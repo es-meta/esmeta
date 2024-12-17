@@ -72,35 +72,30 @@ trait TypeGuardDecl { self: TyChecker =>
       case AssertTarget(block, _)  => block
     def func: Func = cfg.funcOf(node)
 
-  /** type refinement kinds */
-  enum RefinementKind {
-    case True, False, Normal, Abrupt, NormalTrue, NormalFalse
-    lazy val ty: ValueTy = this match
-      case True        => TrueT
-      case False       => FalseT
-      case Normal      => NormalT
-      case Abrupt      => AbruptT
-      case NormalTrue  => NormalT(TrueT)
-      case NormalFalse => NormalT(FalseT)
-    override def toString: String = (new Appender >> this).toString
+  case class RefinementKind(private val _ty: ValueTy) {
+    def ty: ValueTy = _ty
   }
   object RefinementKind {
-    def from(givenTy: ValueTy): Set[RefinementKind] = {
-      if (givenTy.isBottom) Set()
-      else if (givenTy <= BoolT) givenTy.bool.set.map(if (_) True else False)
-      else if (givenTy <= CompT) {
-        val normal = (givenTy && NormalT).record
-        val normalValue = normal("Value").value
-        val normalSet =
-          if (normalValue <= BoolT)
-            normalValue.bool.set.map(if (_) NormalTrue else NormalFalse)
-          else if (normalValue.isBottom) Set()
-          else Set(Normal)
-        val abrupt = (givenTy && AbruptT).record
-        val abruptSet = if (abrupt.isBottom) Set() else Set(Abrupt)
-        normalSet ++ abruptSet
-      } else Set()
-    }
+    val set: Set[ValueTy] =
+      Set(
+        TrueT,
+        FalseT,
+        NormalT,
+        AbruptT,
+        NormalT(TrueT),
+        NormalT(FalseT),
+        ENUMT_SYNC,
+        ENUMT_ASYNC,
+      )
+
+    def apply(ty: ValueTy): RefinementKind =
+      if (RefinementKind.set.contains(ty)) new RefinementKind(ty)
+      else throw notSupported(s"Unsupported RefinementKind: $ty")
+
+    def from(givenTy: ValueTy): Set[RefinementKind] =
+      RefinementKind.set
+        .filter(ty => !(givenTy && ty).isBottom)
+        .map(RefinementKind(_))
   }
 
   /** Symbol */
@@ -193,7 +188,6 @@ trait TypeGuardDecl { self: TyChecker =>
   /** symbolic expressions */
   enum SymExpr {
     case SEBool(b: Boolean)
-    case SEStr(s: String)
     case SERef(ref: SymRef)
     case SEExists(ref: SymRef)
     case SETypeCheck(base: SymExpr, ty: ValueTy)
@@ -202,7 +196,6 @@ trait TypeGuardDecl { self: TyChecker =>
     case SEOr(left: SymExpr, right: SymExpr)
     case SEAnd(left: SymExpr, right: SymExpr)
     case SENot(expr: SymExpr)
-    case SENormal(expr: SymExpr)
     def ||(that: SymExpr): SymExpr = (this, that) match
       case _ if this == that                     => this
       case (SEBool(false), _)                    => that
@@ -217,7 +210,6 @@ trait TypeGuardDecl { self: TyChecker =>
       case _                                       => SEAnd(this, that)
     def has(x: SymBase): Boolean = this match
       case SEBool(b)             => false
-      case SEStr(s)              => false
       case SERef(ref)            => ref.has(x)
       case SEExists(ref)         => ref.has(x)
       case SETypeCheck(base, ty) => base.has(x)
@@ -226,10 +218,8 @@ trait TypeGuardDecl { self: TyChecker =>
       case SEOr(left, right)     => left.has(x) || right.has(x)
       case SEAnd(left, right)    => left.has(x) || right.has(x)
       case SENot(expr)           => expr.has(x)
-      case SENormal(expr)        => expr.has(x)
     def bases: Set[SymBase] = this match
       case SEBool(b)             => Set()
-      case SEStr(s)              => Set()
       case SERef(ref)            => ref.bases
       case SEExists(ref)         => ref.bases
       case SETypeCheck(base, ty) => base.bases
@@ -238,10 +228,8 @@ trait TypeGuardDecl { self: TyChecker =>
       case SEOr(left, right)     => left.bases ++ right.bases
       case SEAnd(left, right)    => left.bases ++ right.bases
       case SENot(expr)           => expr.bases
-      case SENormal(expr)        => expr.bases
     def kill(bases: Set[SymBase]): Option[SymExpr] = this match
       case SEBool(b)             => Some(this)
-      case SEStr(s)              => Some(this)
       case SERef(ref)            => ref.kill(bases).map(SERef(_))
       case SEExists(ref)         => ref.kill(bases).map(SEExists(_))
       case SETypeCheck(base, ty) => base.kill(bases).map(SETypeCheck(_, ty))
@@ -262,8 +250,7 @@ trait TypeGuardDecl { self: TyChecker =>
           case (Some(l), None)    => Some(l)
           case (None, Some(r))    => Some(r)
           case _                  => None
-      case SENot(expr)    => expr.kill(bases).map(SENot(_))
-      case SENormal(expr) => expr.kill(bases).map(SENormal(_))
+      case SENot(expr) => expr.kill(bases).map(SENot(_))
     override def toString: String = (new Appender >> this).toString
   }
   object SymExpr {
@@ -287,7 +274,7 @@ trait TypeGuardDecl { self: TyChecker =>
   /** symbolic references */
   enum SymRef {
     case SBase(base: SymBase)
-    case SField(base: SymRef, field: SymExpr)
+    case SField(base: SymRef, field: SymTy)
     def getBase: SymBase = this match
       case SBase(s)        => s
       case SField(base, f) => base.getBase
@@ -322,7 +309,6 @@ trait TypeGuardDecl { self: TyChecker =>
     import SymExpr.*
     expr match
       case SEBool(bool)  => app >> bool
-      case SEStr(str)    => app >> "\"" >> normStr(str) >> "\""
       case SERef(ref)    => app >> ref
       case SEExists(ref) => app >> "(exists " >> ref >> ")"
       case SETypeCheck(expr, ty) =>
@@ -337,15 +323,15 @@ trait TypeGuardDecl { self: TyChecker =>
         app >> "(&& " >> left >> " " >> right >> ")"
       case SENot(expr) =>
         app >> "(! " >> expr >> ")"
-      case SENormal(expr) =>
-        app >> "Normal[" >> expr >> "]"
   given Rule[SymRef] = (app, ref) =>
-    import SymExpr.*
+    import SymExpr.*, SymRef.*, SymTy.*
     lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-    import SymRef.*
     ref match
-      case SBase(x)                            => app >> x
-      case SField(base, SEStr(inlineField(f))) => app >> base >> "." >> f
+      case SBase(x) => app >> x
+      case SField(base, STy(x)) if !x.isBottom =>
+        x.getSingle match
+          case One(f: String) => app >> base >> "." >> f
+          case _              => app >> base >> "[" >> x >> "]"
       case SField(base, field) => app >> base >> "[" >> field >> "]"
   given Rule[Provenance] = (app, prov) =>
     val Provenance(map) = prov
@@ -367,6 +353,8 @@ trait TypeGuardDecl { self: TyChecker =>
     if (pred.map.nonEmpty) app >> pred.map
     pred.sexpr.fold(app) { (sexpr, prov) => app >> sexpr >> prov }
   given Rule[TypeGuard] = (app, guard) =>
+    given Ordering[RefinementKind] = Ordering.by(_.toString)
+    given Rule[RefinementKind] = (app, kind) => app >> kind.ty
     given Rule[Map[RefinementKind, SymPred]] = sortedMapRule("{", "}", " => ")
     app >> guard.map
   given Rule[RefinementTarget] = (app, target) =>
@@ -385,14 +373,4 @@ trait TypeGuardDecl { self: TyChecker =>
       case BranchTarget(branch, isTrue) => (branch.id, if (isTrue) 1 else 0)
       case AssertTarget(block, idx)     => (block.id, idx)
   }
-  given Rule[RefinementKind] = (app, kind) =>
-    import RefinementKind.*
-    kind match
-      case True        => app >> "True"
-      case False       => app >> "False"
-      case Normal      => app >> "Normal"
-      case Abrupt      => app >> "Abrupt"
-      case NormalTrue  => app >> "Normal[True]"
-      case NormalFalse => app >> "Normal[False]"
-  given Ordering[RefinementKind] = Ordering.by(_.toString)
 }

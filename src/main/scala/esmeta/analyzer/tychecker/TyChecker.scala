@@ -26,6 +26,7 @@ class TyChecker(
   override val useRepl: Boolean = false,
   override val replContinue: Boolean = false,
 ) extends Analyzer
+  with SymTyDecl
   with AbsValueDecl
   with AbsStateDecl
   with AbsRetDecl
@@ -297,14 +298,14 @@ class TyChecker(
     callerSt: AbsState,
     locals: List[(Local, AbsValue)],
   ): AbsState =
-    import SymExpr.*, SymRef.*
+    import SymExpr.*, SymRef.*, SymTy.*
     given AbsState = callerSt
     if (inferTypeGuard) {
       val idxLocals = locals.zipWithIndex
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
       } yield (
-        x -> AbsValue(BotT, One(SERef(SBase(sym))), TypeGuard()),
+        x -> AbsValue(SRef(SBase(sym))),
         sym -> value.ty,
       )).unzip
       AbsState(true, newLocals.toMap, symEnv.toMap, SymPred())

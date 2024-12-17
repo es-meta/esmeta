@@ -13,28 +13,22 @@ import esmeta.util.BaseUtils.*
 /** abstract values */
 trait AbsValueDecl { self: TyChecker =>
 
+  import SymTy.*
+
   case class AbsValue(
-    lowerTy: ValueTy = BotT,
-    expr: Flat[SymExpr] = Zero,
+    symty: SymTy,
     guard: TypeGuard = TypeGuard.Empty,
   ) extends AbsValueLike {
     import AbsValue.*
 
     /** bottom check */
-    def isBottom: Boolean = lowerTy.isBottom && (expr == Zero || expr == Many)
+    def isBottom: Boolean = symty.isBottom
 
     /** upper type */
-    def ty(using st: AbsState): ValueTy = expr match
-      case Zero      => lowerTy
-      case One(expr) => lowerTy || st.getTy(expr)
-      case Many      => lowerTy
+    def ty(using st: AbsState): ValueTy = symty.ty
 
     /** single check */
-    def isSingle: Boolean =
-      expr == Zero && guard.isEmpty && (lowerTy.getSingle match
-        case One(_) => true
-        case _      => false
-      )
+    def isSingle(using st: AbsState): Boolean = symty.isSingle && guard.isEmpty
 
     /** partial order */
     def ⊑(that: AbsValue)(using st: AbsState): Boolean =
@@ -53,7 +47,7 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** prune operator */
     def --(that: AbsValue)(using AbsState): AbsValue =
-      this.copy(lowerTy = this.lowerTy -- that.lowerTy)
+      this.copy(symty = this.symty -- that.symty)
 
     /** add type guard */
     def addGuard(guard: TypeGuard)(using AbsState): AbsValue =
@@ -61,11 +55,11 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** kill bases */
     def kill(bases: Set[SymBase], update: Boolean)(using AbsState): AbsValue =
-      val (lowerTy, expr) = this.expr match
-        case One(expr) if expr.bases.exists(bases.contains) => (this.ty, Many)
-        case e                                              => (this.lowerTy, e)
+      val ty = this.symty.bases.exists(bases.contains) match
+        case true  => STy(this.ty)
+        case false => this.symty
       val guard = if (update) this.guard.kill(bases) else this.guard
-      AbsValue(lowerTy, expr, guard)
+      AbsValue(ty, guard)
 
     /** normalize abstract values for return */
     def forReturn(
@@ -77,7 +71,7 @@ trait AbsValueDecl { self: TyChecker =>
       if (isTypeGuardCandidate(func)) {
         val xs = givenSt.getImprecBases(entrySt)
         this.forReturn(entrySt).kill(xs, update = false)
-      } else Bot.copy(this.ty)
+      } else AbsValue(this.ty)
 
     /** normalize abstract values for return */
     def forReturn(entrySt: AbsState): AbsValue =
@@ -85,16 +79,15 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** get symbols */
     def bases: Set[SymBase] =
-      val inExpr = expr match
-        case One(expr) => expr.bases
-        case _         => Set()
+      val inSymty = symty.bases
       val inGuard = guard.bases
-      inExpr ++ inGuard
+      inSymty ++ inGuard
 
     /** get symbolic expression when it only has a symbolic expression */
-    def getSymExpr: Option[SymExpr] = expr match
-      case One(expr) if lowerTy.isBottom => Some(expr)
-      case _                             => None
+    // TODO: Erase this
+    // def getSymExpr: Option[SymExpr] = expr match
+    //   case One(expr) if lowerTy.isBottom => Some(expr)
+    //   case _                             => None
 
     /** introduce a new type guard */
     def getTypeGuard(using st: AbsState): TypeGuard = TypeGuard((for {
@@ -105,7 +98,7 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** check whether it has a type guard */
     def hasTypeGuard(entrySt: AbsState): Boolean =
-      (expr != Zero && expr != Many) || guard.map.exists { (kind, pred) =>
+      guard.map.exists { (kind, pred) =>
         pred.map.exists {
           case (x: Sym, (ty, _)) => !(entrySt.getTy(x) <= ty)
           case _                 => false
@@ -181,13 +174,9 @@ trait AbsValueDecl { self: TyChecker =>
           else ValueTy.Bot
         case COp.ToNumber =>
           lazy val fromMath = ty.math match
-            case MathTopTy      => NumberTopTy
-            case IntTy          => NumberIntTy(false)
-            case NonPosIntTy    => NumberTy.NonPosInt
-            case NonNegIntTy    => NumberTy.NonNegInt
-            case NegIntTy       => NumberTy.NegInt
-            case PosIntTy       => NumberTy.PosInt
-            case MathSetTy(set) => NumberSetTy(set.map(m => Number(m.toDouble)))
+            case MathSignTy(_)  => NumberTy.Top
+            case MathIntTy(int) => NumberIntTy(int, false)
+            case MathSetTy(set) => NumberSetTy(set.map(n => Number(n.toDouble)))
           if (!ty.str.isBottom) NumberT
           else ValueTy(number = ty.number || fromMath)
         case COp.ToBigInt
@@ -201,14 +190,10 @@ trait AbsValueDecl { self: TyChecker =>
           else BigIntT
         case COp.ToMath =>
           val fromNumber = ty.number match
-            case NumberTopTy                     => MathTopTy
-            case NumberIntTy(_)                  => IntTy
-            case NumberSubIntTy(true, true, _)   => NonNegIntTy
-            case NumberSubIntTy(true, false, _)  => PosIntTy
-            case NumberSubIntTy(false, true, _)  => NonPosIntTy
-            case NumberSubIntTy(false, false, _) => NegIntTy
+            case NumberSignTy(sign, _) => MathSignTy(sign)
+            case NumberIntTy(int, _)   => MathIntTy(int)
             case NumberSetTy(set) => MathSetTy(set.map(n => Math(n.double)))
-          val fromBigInt = if (ty.bigInt) IntTy else MathTy.Bot
+          val fromBigInt = if (ty.bigInt) MathTy.Int else MathTy.Bot
           ValueTy(math = ty.math || fromNumber || fromBigInt)
         case COp.ToStr(_)
             if (!ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
@@ -268,18 +253,13 @@ trait AbsValueDecl { self: TyChecker =>
     def unary_-(using AbsState): AbsValue =
       val ty = this.ty
       val mathTy = ty.math match
-        case MathTopTy      => MathTopTy
-        case IntTy          => IntTy
-        case NonPosIntTy    => NonNegIntTy
-        case NonNegIntTy    => NonPosIntTy
-        case PosIntTy       => NegIntTy
-        case NegIntTy       => PosIntTy
+        case MathSignTy(s)  => MathSignTy(-s)
+        case MathIntTy(x)   => MathIntTy(-x)
         case MathSetTy(set) => MathSetTy(set.map(m => Math(-m.decimal)))
       val numberTy = ty.number match
-        case NumberTopTy                  => NumberTopTy
-        case NumberIntTy(_)               => NumberIntTy(false)
-        case NumberSubIntTy(pos, zero, _) => NumberSubIntTy(!pos, zero, false)
-        case NumberSetTy(set) => NumberSetTy(set.map(n => Number(-n.double)))
+        case NumberSignTy(s, _) => NumberSignTy(-s, false)
+        case NumberIntTy(x, _)  => NumberIntTy(-x, false)
+        case NumberSetTy(set)   => NumberSetTy(set.map(n => Number(-n.double)))
       AbsValue(
         ValueTy(math = mathTy, number = numberTy, bigInt = this.ty.bigInt),
       )
@@ -291,14 +271,13 @@ trait AbsValueDecl { self: TyChecker =>
     def unary_~(using AbsState): AbsValue =
       val ty = this.ty
       val mathTy = ty.math match
-        case MathTopTy | IntTy | NonPosIntTy => IntTy
-        case NonNegIntTy | PosIntTy          => NegIntTy
-        case NegIntTy                        => PosIntTy
+        case s @ MathSignTy(_) => if s.isBottom then MathTy.Bot else MathTy.Top
+        case MathIntTy(x)      => MathIntTy(~x)
         case MathSetTy(set) =>
           MathSetTy(set.map(m => Math(~(m.decimal.toInt))))
       val numberTy = ty.number match
         case NumberSetTy(set) => NumberSetTy(set.filter(_.double.isWhole))
-        case _                => NumberIntTy(false)
+        case _                => NumberIntTy(IntTy.Top, false)
       AbsValue(
         ValueTy(math = mathTy, number = numberTy, bigInt = ty.bigInt),
       )
@@ -306,17 +285,16 @@ trait AbsValueDecl { self: TyChecker =>
     /** absolute operation */
     def abs(using AbsState): AbsValue =
       val mathTy = this.ty.math match
-        case MathTopTy                         => MathTopTy
-        case IntTy | NonNegIntTy | NonPosIntTy => NonNegIntTy
-        case NegIntTy | PosIntTy               => PosIntTy
+        case MathSignTy(_)  => MathTy.Top
+        case MathIntTy(x)   => MathIntTy(x.abs)
         case MathSetTy(set) => MathSetTy(set.map(Interpreter.abs))
       AbsValue(ValueTy(math = mathTy))
 
     /** floor operation */
     def floor(using AbsState): AbsValue =
       val mathTy = this.ty.math match
-        case MathTopTy | IntTy                                     => IntTy
-        case m @ (NonNegIntTy | NonPosIntTy | NegIntTy | PosIntTy) => m
+        case MathSignTy(_)  => MathTy.Int
+        case MathIntTy(x)   => MathIntTy(x.floor)
         case MathSetTy(set) => MathSetTy(set.map(Interpreter.floor))
       AbsValue(ValueTy(math = mathTy))
 
@@ -430,11 +408,13 @@ trait AbsValueDecl { self: TyChecker =>
   }
   object AbsValue extends DomainLike[AbsValue] {
 
+    def apply(ty: ValueTy): AbsValue = AbsValue(STy(ty), TypeGuard.Empty)
+
     /** top element */
-    lazy val Top: AbsValue = AbsValue(AnyT, Many, TypeGuard.Empty)
+    lazy val Top: AbsValue = AbsValue(STy(AnyT), TypeGuard.Empty)
 
     /** bottom element */
-    lazy val Bot: AbsValue = AbsValue(BotT, Zero, TypeGuard.Empty)
+    lazy val Bot: AbsValue = AbsValue(STy(BotT), TypeGuard.Empty)
 
     /** useful abstract values */
     lazy val True = AbsValue(TrueT)
@@ -464,19 +444,9 @@ trait AbsValueDecl { self: TyChecker =>
       r: AbsValue,
       rst: AbsState,
     ): Boolean =
-      val AbsValue(llty, lexpr, lguard) = l
-      val AbsValue(rlty, rexpr, rguard) = r
-      val luty = l.ty(using lst)
-      val ruty = r.ty(using rst)
-      (lguard <= rguard) && ((lexpr, rexpr) match
-        case (Zero, Zero)     => llty <= rlty
-        case (Zero, One(_))   => llty <= rlty
-        case (One(x), One(y)) => llty <= rlty && x == y
-        case (One(_), Many)   => luty <= rlty
-        case (Zero, Many)     => llty <= rlty
-        case (Many, Many)     => llty <= rlty
-        case _                => false
-      )
+      val AbsValue(lsymty, lguard) = l
+      val AbsValue(rsymty, rguard) = r
+      (lsymty ⊑ rsymty)(lst, rst) && lguard <= rguard
 
     def joinHelper(
       l: AbsValue,
@@ -484,22 +454,12 @@ trait AbsValueDecl { self: TyChecker =>
       r: AbsValue,
       rst: AbsState,
     ): AbsValue =
-      val AbsValue(llty, lexpr, lguard) = l
-      val AbsValue(rlty, rexpr, rguard) = r
+      val AbsValue(lsymty, lguard) = l
+      val AbsValue(rsymty, rguard) = r
       val luty = l.ty(using lst)
       val ruty = r.ty(using rst)
       val guard = (lguard || rguard)(luty, ruty)
-      (lexpr, rexpr) match
-        case (Zero, Zero)               => AbsValue(llty || rlty, Zero, guard)
-        case (Zero, One(r))             => AbsValue(llty || rlty, One(r), guard)
-        case (One(l), Zero)             => AbsValue(llty || rlty, One(l), guard)
-        case (One(l), One(r)) if l == r => AbsValue(llty || rlty, One(l), guard)
-        case (One(_), One(_))           => AbsValue(luty || ruty, Many, guard)
-        case (One(_), Many)             => AbsValue(luty || rlty, Many, guard)
-        case (Many, One(_))             => AbsValue(llty || ruty, Many, guard)
-        case (Zero, Many)               => AbsValue(llty || rlty, Many, guard)
-        case (Many, Zero)               => AbsValue(llty || rlty, Many, guard)
-        case (Many, Many)               => AbsValue(llty || rlty, Many, guard)
+      AbsValue((lsymty ⊔ rsymty)(lst, rst), guard)
 
     def meetHelper(
       l: AbsValue,
@@ -507,23 +467,9 @@ trait AbsValueDecl { self: TyChecker =>
       r: AbsValue,
       rst: AbsState,
     ): AbsValue =
-      val AbsValue(llty, lexpr, lguard) = l
-      val AbsValue(rlty, rexpr, rguard) = r
-      val luty = l.ty(using lst)
-      val ruty = r.ty(using rst)
-      val (lty, expr) = (lexpr, rexpr) match
-        case (Zero, Zero)               => (llty && rlty, Zero)
-        case (Zero, One(_))             => (llty && ruty, Zero)
-        case (One(_), Zero)             => (luty && rlty, Zero)
-        case (One(l), One(r)) if l == r => (llty && rlty, One(l))
-        case (One(_), One(_))           => (luty && ruty, Many)
-        case (One(_), Many)             => (luty && rlty, Many)
-        case (Many, One(_))             => (llty && ruty, Many)
-        case (Zero, Many)               => (llty && rlty, Many)
-        case (Many, Zero)               => (llty && rlty, Many)
-        case (Many, Many)               => (llty && rlty, Many)
-      val guard = (lguard && rguard).filter(lty)
-      AbsValue(lty, expr, guard)
+      val AbsValue(lsymty, lguard) = l
+      val AbsValue(rsymty, rguard) = r
+      AbsValue((lsymty ⊓ rsymty)(lst, rst), lguard && rguard)
 
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) =>
@@ -532,14 +478,8 @@ trait AbsValueDecl { self: TyChecker =>
       import irStringifier.given
       given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
       given Ordering[Local] = Ordering.by(_.toString)
-      val AbsValue(lowerTy, expr, guard) = elem
-      if (!lowerTy.isBottom || expr == Zero)
-        app >> lowerTy
-        if (expr != Zero) app >> " | "
-      expr match
-        case Zero      =>
-        case One(expr) => app >> expr
-        case Many      => app >> "*"
+      val AbsValue(symty, guard) = elem
+      app >> symty
       if (guard.nonEmpty) app >> " " >> guard
       app
   }

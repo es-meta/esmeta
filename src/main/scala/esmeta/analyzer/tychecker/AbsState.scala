@@ -124,7 +124,6 @@ trait AbsStateDecl { self: TyChecker =>
       import SymExpr.*
       expr match
         case SEBool(b)             => BoolT(b)
-        case SEStr(s)              => StrT(s)
         case SERef(ref)            => getTy(ref)
         case SEExists(ref)         => BoolT
         case SETypeCheck(base, ty) => BoolT
@@ -133,7 +132,6 @@ trait AbsStateDecl { self: TyChecker =>
         case SEOr(left, right)     => BoolT
         case SEAnd(left, right)    => BoolT
         case SENot(expr)           => BoolT
-        case SENormal(expr)        => NormalT(getTy(expr))
     }
 
     /** getter for symbolic references */
@@ -149,15 +147,17 @@ trait AbsStateDecl { self: TyChecker =>
       case x: Sym   => symEnv.getOrElse(x, BotT)
       case x: Local => get(x).ty
 
+    def getTy(x: SymTy): ValueTy = x.ty(using this)
+
     /** getter */
     def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue = {
-      import SymExpr.*, SymRef.*
+      import SymExpr.*, SymRef.*, SymTy.*
       val guard = lookupGuard(base.guard, field)
-      (base.getSymExpr, field.ty.getSingle) match
-        case (Some(SERef(ref)), One(Str(f))) =>
-          AbsValue(BotT, One(SERef(SField(ref, SEStr(f)))), guard)
+      (base.symty, field.ty.getSingle) match
+        case (SRef(ref), One(Str(f))) =>
+          AbsValue(SRef(SField(ref, STy(StrT(f)))), guard)
         case _ =>
-          AbsValue(get(base.ty, field.ty), Zero, guard)
+          AbsValue(STy(get(base.ty, field.ty)), guard)
     }
     def get(baseTy: ValueTy, fieldTy: ValueTy)(using AbsState): ValueTy =
       lookupAst(baseTy.ast, fieldTy) ||
@@ -244,8 +244,10 @@ trait AbsStateDecl { self: TyChecker =>
       field.ty.str.getSingle match
         case One("Value") =>
           TypeGuard(guard.map.collect {
-            case (NormalTrue, map)  => True -> map
-            case (NormalFalse, map) => False -> map
+            case (RefinementKind(ty), map) if ty == NormalT(TrueT) =>
+              RefinementKind(TrueT) -> map
+            case (RefinementKind(ty), map) if ty == NormalT(FalseT) =>
+              RefinementKind(FalseT) -> map
           })
         case _ => TypeGuard.Empty
     }

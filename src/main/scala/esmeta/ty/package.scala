@@ -95,14 +95,18 @@ def EnumT(set: Set[String]): ValueTy =
 def EnumT(xs: String*): ValueTy = EnumT(xs.toSet)
 lazy val MathT: ValueTy = ValueTy(math = MathTy.Top)
 lazy val ExtMathT: ValueTy = MathT || InfinityT
-lazy val IntT: ValueTy = ValueTy(math = IntTy)
-lazy val NonPosIntT: ValueTy = ValueTy(math = NonPosIntTy)
-lazy val NonNegIntT: ValueTy = ValueTy(math = NonNegIntTy)
-lazy val NegIntT: ValueTy = ValueTy(math = NegIntTy)
-lazy val PosIntT: ValueTy = ValueTy(math = PosIntTy)
+lazy val IntT: ValueTy = ValueTy(math = MathTy.Int)
+def IntT(set: Set[Long]): ValueTy =
+  if (set.isEmpty) BotT
+  else ValueTy(math = MathIntTy(IntSetTy(set)))
+def IntT(ds: Long*): ValueTy = IntT(ds.toSet)
+lazy val NonPosIntT: ValueTy = ValueTy(math = MathTy.NonPosInt)
+lazy val NonNegIntT: ValueTy = ValueTy(math = MathTy.NonNegInt)
+lazy val NegIntT: ValueTy = ValueTy(math = MathTy.NegInt)
+lazy val PosIntT: ValueTy = ValueTy(math = MathTy.PosInt)
 def MathT(ds: BigDecimal*): ValueTy =
   if (ds.isEmpty) BotT
-  else ValueTy(math = MathSetTy(ds.toSet.map(Math(_))))
+  else ValueTy(math = MathSetTy(ds.toSet.map(Math(_))).canon)
 lazy val InfinityT: ValueTy = ValueTy(infinity = InfinityTy.Top)
 lazy val NegInfinityT: ValueTy = ValueTy(infinity = InfinityTy.Neg)
 lazy val PosInfinityT: ValueTy = ValueTy(infinity = InfinityTy.Pos)
@@ -120,6 +124,10 @@ lazy val NaNT: ValueTy = ValueTy(number = NumberTy.NaN)
 def NumberT(ns: Number*): ValueTy =
   if (ns.isEmpty) BotT
   else ValueTy(number = NumberSetTy(ns.toSet))
+lazy val PosNumberT = ValueTy(number = NumberTy.Pos)
+lazy val NegNumberT = ValueTy(number = NumberTy.Neg)
+lazy val NonPosNumberT = ValueTy(number = NumberTy.NonPos)
+lazy val NonNegNumberT = ValueTy(number = NumberTy.NonNeg)
 lazy val BigIntT: ValueTy = ValueTy(bigInt = true)
 lazy val StrT: ValueTy = ValueTy(str = Inf)
 def StrT(set: Set[String]): ValueTy =
@@ -173,6 +181,8 @@ val ENUMT_FULFILLED = EnumT("fulfilled")
 val ENUMT_REJECTED = EnumT("rejected")
 val ENUMT_FULFILL = EnumT("Fulfill")
 val ENUMT_REJECT = EnumT("Reject")
+val ENUMT_SYNC = EnumT("sync")
+val ENUMT_ASYNC = EnumT("async")
 
 extension (elem: Boolean) {
   inline def isTop: Boolean = elem == true

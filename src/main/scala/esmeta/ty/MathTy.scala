@@ -1,376 +1,348 @@
 package esmeta.ty
 
-import esmeta.state.*
+import esmeta.state.Math
 import esmeta.ty.util.Parser
 import esmeta.util.*
+import esmeta.interpreter.Interpreter
 
 /** mathematical value types */
 sealed trait MathTy extends TyElem with Lattice[MathTy] {
   import MathTy.*
 
   /** top check */
-  def isTop: Boolean = this eq Top
+  def isTop: Boolean = this.canon == Top
 
   /** bottom check */
-  def isBottom: Boolean = this == Bot
+  def isBottom: Boolean = this.canon match
+    case MathSignTy(sign) => sign.isBottom
+    case MathSetTy(set)   => set.isEmpty
+    case MathIntTy(int)   => int.isBottom
 
-  /** partial order/subset operator */
-  def <=(that: => MathTy): Boolean = (this, that) match
+  /** partial order */
+  def <=(that: => MathTy): Boolean = (this.canon, that.canon) match
     case _ if (this eq that) || (this == Bot) => true
-    case (_, MathTopTy)                       => true
-    case (NegIntTy | PosIntTy | NonNegIntTy | NonPosIntTy | IntTy, IntTy) =>
-      true
-    case (MathSetTy(set), IntTy) =>
-      set.forall(_.decimal.isWhole)
-    case (NegIntTy | NonPosIntTy, NonPosIntTy) => true
-    case (MathSetTy(set), NonPosIntTy) =>
-      set.forall(m => m.decimal.isWhole && m.decimal <= 0)
-    case (PosIntTy | NonNegIntTy, NonNegIntTy) => true
-    case (MathSetTy(set), NonNegIntTy) =>
-      set.forall(m => m.decimal.isWhole && m.decimal >= 0)
-    case (NegIntTy, NegIntTy) => true
-    case (MathSetTy(set), NegIntTy) =>
-      set.forall(m => m.decimal.isWhole && m.decimal < 0)
-    case (PosIntTy, PosIntTy) => true
-    case (MathSetTy(set), PosIntTy) =>
-      set.forall(m => m.decimal.isWhole && m.decimal > 0)
+    // same types
+    case (MathSignTy(l), MathSignTy(r))     => l <= r
+    case (MathIntTy(l), MathIntTy(r))       => l <= r
     case (MathSetTy(lset), MathSetTy(rset)) => lset subsetOf rset
-    case _                                  => false
+    // subset
+    case (MathIntTy(l), MathSignTy(r)) => l.toSign <= r
+    // comparsion with set
+    case (MathIntTy(int), MathSetTy(set)) =>
+      int.toMathSet.fold(false) {
+        case mset => mset subsetOf set
+      }
+    case (MathSetTy(set), MathIntTy(int))     => false
+    case (l @ MathSetTy(lset), MathSignTy(r)) => l.toSign <= r
+    case _                                    => false
 
   /** union type */
-  def ||(that: => MathTy): MathTy = (this, that) match
-    case _ if this eq that               => this
-    case (MathTopTy, _) | (_, MathTopTy) => Top
-    case (IntTy, MathSetTy(set)) =>
-      if (set.exists(m => !m.decimal.isWhole)) Top
-      else IntTy
-    case (IntTy, _) => IntTy
-    case (NonPosIntTy, MathSetTy(set)) =>
-      if (set.exists(m => !m.decimal.isWhole)) Top
-      else if (set.exists(m => m.decimal >= 0)) IntTy
-      else NonPosIntTy
-    case (NonPosIntTy, PosIntTy | NonNegIntTy | IntTy) => IntTy
-    case (NonPosIntTy, _)                              => NonPosIntTy
-    case (NonNegIntTy, MathSetTy(set)) =>
-      if (set.exists(m => !m.decimal.isWhole)) Top
-      else if (set.exists(m => m.decimal < 0)) IntTy
-      else NonNegIntTy
-    case (NonNegIntTy, NegIntTy | NonPosIntTy | IntTy) => IntTy
-    case (NonNegIntTy, _)                              => NonNegIntTy
-    case (NegIntTy, MathSetTy(set)) =>
-      if (set.exists(m => !m.decimal.isWhole)) Top
-      else if (set.exists(m => m.decimal > 0)) IntTy
-      else if (set contains Math.zero) NonNegIntTy
-      else NegIntTy
-    case (NegIntTy, PosIntTy | NonNegIntTy | IntTy) => IntTy
-    case (NegIntTy, NonPosIntTy)                    => NonPosIntTy
-    case (NegIntTy, _)                              => NegIntTy
-    case (PosIntTy, MathSetTy(set)) =>
-      if (set.exists(m => !m.decimal.isWhole)) Top
-      else if (set.exists(m => m.decimal < 0)) IntTy
-      else if (set contains Math.zero) NonNegIntTy
-      else PosIntTy
-    case (PosIntTy, NegIntTy | NonPosIntTy | IntTy) => IntTy
-    case (PosIntTy, NonNegIntTy)                    => NonNegIntTy
-    case (PosIntTy, _)                              => PosIntTy
+  def ||(that: => MathTy): MathTy = (this.canon, that.canon) match
+    case _ if this eq that            => this
+    case (l, r) if l.isTop || r.isTop => Top
+    // same types
+    case (MathSignTy(l), MathSignTy(r))     => MathSignTy(l || r)
+    case (MathIntTy(l), MathIntTy(r))       => MathIntTy(l || r)
     case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset union rset)
-    case (MathSetTy(set), _)                => that || this
+    // comparison with set
+    case (MathIntTy(int), MathSetTy(set)) => integrate(int, set)(_ union _)
+    case (MathSetTy(set), MathIntTy(int)) => integrate(int, set)(_ union _)
+    case (MathSignTy(sign), MathSetTy(set)) =>
+      MathSetTy(set ++ set.filter(n => sign.contains(n.decimal)))
+    case (MathSetTy(set), MathSignTy(sign)) =>
+      MathSetTy(set ++ set.filter(n => sign.contains(n.decimal)))
+    case (l, r) => MathSignTy(l.toSign || r.toSign)
 
   /** intersection type */
-  def &&(that: => MathTy): MathTy = (this, that) match
-    case _ if this eq that          => this
-    case (_, MathTopTy)             => this
-    case (MathTopTy, _)             => that
-    case (IntTy, MathSetTy(set))    => MathSetTy(set.filter(_.decimal.isWhole))
-    case (IntTy, _)                 => that
-    case (NonPosIntTy, IntTy)       => NonPosIntTy
-    case (NonPosIntTy, NonNegIntTy) => Zero
-    case (NonPosIntTy, PosIntTy)    => Bot
-    case (NonPosIntTy, MathSetTy(set)) =>
-      MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal <= 0))
-    case (NonPosIntTy, _)        => that
-    case (NonNegIntTy, IntTy)    => NonNegIntTy
-    case (NonNegIntTy, NegIntTy) => Zero
-    case (NonNegIntTy, PosIntTy) => PosIntTy
-    case (NonNegIntTy, MathSetTy(set)) =>
-      MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal >= 0))
-    case (NonNegIntTy, NonPosIntTy)         => Zero
-    case (NegIntTy, NonPosIntTy | IntTy)    => NegIntTy
-    case (NegIntTy, NonNegIntTy | PosIntTy) => Bot
-    case (NegIntTy, MathSetTy(set)) =>
-      MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal < 0))
-    case (NegIntTy, _)                      => that
-    case (PosIntTy, NonNegIntTy | IntTy)    => PosIntTy
-    case (PosIntTy, NonPosIntTy | NegIntTy) => Bot
-    case (PosIntTy, MathSetTy(set)) =>
-      MathSetTy(set.filter(m => m.decimal.isWhole && m.decimal > 0))
-    case (PosIntTy, _)                      => that
+  def &&(that: => MathTy): MathTy = (this.canon, that.canon) match
+    case _ if this eq that                  => this
+    case (l, r) if l.isBottom || r.isBottom => Bot
+    // same types
+    case (MathSignTy(l), MathSignTy(r))     => MathSignTy(l && r)
+    case (MathIntTy(l), MathIntTy(r))       => MathIntTy(l && r)
     case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset intersect rset)
-    case _                                  => that && this
+    // comparison with set
+    case (MathIntTy(int), MathSetTy(set)) => integrate(int, set)(_ intersect _)
+    case (MathSetTy(set), MathIntTy(int)) => integrate(int, set)(_ intersect _)
+    case (MathSignTy(sign), MathSetTy(set)) =>
+      MathSetTy(set.filter(n => sign.contains(n.decimal)))
+    case (MathSetTy(set), MathSignTy(sign)) =>
+      MathSetTy(set.filter(n => sign.contains(n.decimal)))
+    case (l, r) => MathSignTy(l.toSign && r.toSign)
 
   /** prune type */
-  def --(that: => MathTy): MathTy = (this, that) match
-    case _ if this eq that                          => Bot
-    case (_, MathTopTy)                             => Bot
-    case (MathTopTy, _)                             => Top
-    case (IntTy, IntTy)                             => Bot
-    case (IntTy, NonPosIntTy)                       => PosIntTy
-    case (IntTy, NonNegIntTy)                       => NegIntTy
-    case (IntTy, NegIntTy)                          => NonNegIntTy
-    case (IntTy, PosIntTy)                          => NonPosIntTy
-    case (IntTy, _)                                 => IntTy
-    case (NonPosIntTy, NonPosIntTy | IntTy)         => Bot
-    case (NonPosIntTy, NonNegIntTy)                 => NegIntTy
-    case (NonPosIntTy, NegIntTy)                    => Zero
-    case (NonPosIntTy, _)                           => NonPosIntTy
-    case (NonNegIntTy, NonNegIntTy | IntTy)         => Bot
-    case (NonNegIntTy, NonPosIntTy)                 => PosIntTy
-    case (NonNegIntTy, PosIntTy)                    => Zero
-    case (NonNegIntTy, _)                           => NonNegIntTy
-    case (NegIntTy, NegIntTy | NonPosIntTy | IntTy) => Bot
-    case (NegIntTy, _)                              => NegIntTy
-    case (PosIntTy, PosIntTy | NonNegIntTy | IntTy) => Bot
-    case (PosIntTy, _)                              => PosIntTy
-    case (MathSetTy(set), IntTy) =>
-      MathSetTy(set.filter(m => !m.decimal.isWhole))
-    case (MathSetTy(set), NonPosIntTy) =>
-      MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal <= 0)))
-    case (MathSetTy(set), NonNegIntTy) =>
-      MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal >= 0)))
-    case (MathSetTy(set), NegIntTy) =>
-      MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal < 0)))
-    case (MathSetTy(set), PosIntTy) =>
-      MathSetTy(set.filter(m => !(m.decimal.isWhole && m.decimal > 0)))
+  def --(that: => MathTy): MathTy = (this.canon, that.canon) match
+    case _ if this eq that               => Bot
+    case (l, r) if l.isBottom || r.isTop => Bot
+    // same types
+    case (MathSignTy(l), MathSignTy(r))     => MathSignTy(l -- r)
+    case (MathIntTy(l), MathIntTy(r))       => MathIntTy(l -- r)
     case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset -- rset)
+    // comparison with set
+    case (MathIntTy(int), MathSetTy(set)) => integrate(int, set)(_ -- _)
+    case (MathSetTy(set), MathIntTy(int)) => integrate(int, set)(_ -- _)
+    case (MathSetTy(set), MathSignTy(sign)) =>
+      MathSetTy(set.filter(n => sign.contains(n.decimal)))
+    case (l, r) => MathSignTy(l.toSign -- r.toSign)
 
   /** addition */
-  def +(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isPosInt && r.isPosInt       => PosIntTy
-    case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
-    case (l, r) if l.isInt && r.isInt             => IntTy
-    case _                                        => MathTopTy
+  def +(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l + r)
+    case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l + r)
+    case _                              => Top
 
   /** subtraction */
-  def -(that: MathTy): MathTy = (this, that) match
-    case (SingleTy(Math(l)), SingleTy(Math(r))) => MathSetTy(Math(l - r))
-    case (l, r) if l.isInt && r.isInt           => IntTy
-    case _                                      => MathTopTy
+  def -(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l - r)
+    case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l - r)
+    case _                              => Top
 
   /** multiplcation */
-  def *(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
-    case (l, r) if l.isInt && r.isInt             => IntTy
-    case _                                        => MathTopTy
+  def *(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l * r)
+    case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l * r)
+    case _                              => Top
 
   /** modulo */
-  def %(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
-    case (l, r) if l.isInt && r.isInt             => IntTy
-    case _                                        => MathTopTy
+  def %(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l % r)
+    case _                            => Top
 
   /** exponentiation */
-  def **(that: MathTy): MathTy = (this, that) match
-    case (SingleTy(Math(l)), SingleTy(Math(r))) if r.isValidInt && r >= 0 =>
-      MathSetTy(Math(l.pow(r.toInt)))
-    case (l, r) if l.isNonNegInt && r.isNonNegInt => NonNegIntTy
-    case (l, r) if l.isInt && r.isInt             => IntTy
-    case _                                        => MathTopTy
+  def **(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l ** r)
+    case _                            => Top
 
   /** bitwise operation (&) */
-  def &(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isInt && r.isInt => IntTy
-    case _                            => MathTopTy
+  def &(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l & r)
+    case _                            => Top
 
   /** bitwise operation (|) */
-  def |(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isInt && r.isInt => IntTy
-    case _                            => MathTopTy
+  def |(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l | r)
+    case _                            => Top
 
   /** bitwise operation (^) */
-  def ^(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isInt && r.isInt => IntTy
-    case _                            => MathTopTy
+  def ^(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l ^ r)
+    case _                            => Top
 
   /** shift left */
-  def <<(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isInt && r.isInt => IntTy
-    case _                            => MathTopTy
+  def <<(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l << r)
+    case _                            => Top
 
   /** shift right */
-  def >>(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isInt && r.isInt => IntTy
-    case _                            => MathTopTy
+  def >>(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l >> r)
+    case _                            => Top
 
   /** unsigned shift right */
-  def >>>(that: MathTy): MathTy = (this, that) match
-    case (l, r) if l.isInt && r.isInt => IntTy
-    case _                            => MathTopTy
+  def >>>(that: MathTy): MathTy = (this.canon, that.canon) match
+    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l >>> r)
+    case _                            => Top
 
   /** min operation */
-  def min(that: MathTy): MathTy = (this, that) match
-    case (MathTopTy, _) | (_, MathTopTy)         => MathTopTy
-    case (IntTy, IntTy | NonNegIntTy | PosIntTy) => IntTy
-    case (IntTy, NonPosIntTy)                    => NonPosIntTy
-    case (IntTy, NegIntTy)                       => NegIntTy
-    case (NonNegIntTy, NonNegIntTy | PosIntTy)   => NonNegIntTy
-    case (NonNegIntTy, NonPosIntTy)              => NonPosIntTy
-    case (NonNegIntTy, NegIntTy)                 => NegIntTy
-    case (NonPosIntTy, NonPosIntTy | PosIntTy)   => NonPosIntTy
-    case (NonPosIntTy, NegIntTy)                 => NegIntTy
-    case (PosIntTy, PosIntTy)                    => PosIntTy
-    case (PosIntTy, NegIntTy)                    => NegIntTy
-    case (NegIntTy, NegIntTy)                    => NegIntTy
-    case (MathSetTy(set), _)                     => set.foldLeft(that)(_ min _)
-    case _                                       => that min this
-
-  /** min operation */
-  private def min(math: Math): MathTy =
-    val Math(d) = math
-    this match
-      case MathTopTy       => MathTopTy
-      case MathSetTy(set)  => MathSetTy(set.map(m => Math(m.decimal min d)))
-      case _ if !d.isWhole => MathTopTy
-      case IntTy if d < 0  => NegIntTy
-      case IntTy if d <= 0 => NonPosIntTy
-      case IntTy           => IntTy
-      case NonNegIntTy if d <= 0 => MathSetTy(Set(math))
-      case NonNegIntTy           => NonNegIntTy
-      case NonPosIntTy if d < 0  => NegIntTy
-      case NonPosIntTy           => NonPosIntTy
-      case PosIntTy if d <= 1    => MathSetTy(Set(math))
-      case PosIntTy              => PosIntTy
-      case NegIntTy              => NegIntTy
+  def min(that: MathTy): MathTy =
+    import Math.given
+    (this.canon, that.canon) match
+      case (l, r) if l.isTop || r.isTop   => Top
+      case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l min r)
+      case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l min r)
+      case (MathSetTy(lset), MathSetTy(rset)) =>
+        if lset.max < rset.min then MathSetTy(lset)
+        else if rset.max < lset.min then MathSetTy(rset)
+        else Top
+      case _ => Top
 
   /** max operation */
-  def max(that: MathTy): MathTy = (this, that) match
-    case (MathTopTy, _) | (_, MathTopTy)       => MathTopTy
-    case (IntTy, IntTy)                        => IntTy
-    case (IntTy, NonPosIntTy | NegIntTy)       => IntTy
-    case (IntTy, NonNegIntTy)                  => NonNegIntTy
-    case (IntTy, PosIntTy)                     => PosIntTy
-    case (PosIntTy, PosIntTy | NonNegIntTy)    => PosIntTy
-    case (PosIntTy, NonPosIntTy | NegIntTy)    => PosIntTy
-    case (NonNegIntTy, NonNegIntTy)            => NonNegIntTy
-    case (NonNegIntTy, NonPosIntTy | NegIntTy) => NonNegIntTy
-    case (NonPosIntTy, NonPosIntTy | NegIntTy) => NonPosIntTy
-    case (NegIntTy, NegIntTy)                  => NegIntTy
-    case (MathSetTy(set), _)                   => set.foldLeft(that)(_ max _)
-    case _                                     => that max this
-
-  /** max operation */
-  private def max(math: Math): MathTy =
-    val Math(d) = math
-    this match
-      case MathTopTy       => MathTopTy
-      case MathSetTy(set)  => MathSetTy(set.map(m => Math(m.decimal max d)))
-      case _ if !d.isWhole => MathTopTy
-      case IntTy if d > 0  => PosIntTy
-      case IntTy if d >= 0 => NonNegIntTy
-      case IntTy           => IntTy
-      case NonPosIntTy if d >= 0 => MathSetTy(Set(math))
-      case NonPosIntTy           => NonPosIntTy
-      case NonNegIntTy if d > 0  => PosIntTy
-      case NonNegIntTy           => NonNegIntTy
-      case NegIntTy if d >= -1   => MathSetTy(Set(math))
-      case NegIntTy              => NegIntTy
-      case PosIntTy              => PosIntTy
+  def max(that: MathTy): MathTy =
+    import Math.given
+    (this.canon, that.canon) match
+      case (l, r) if l.isTop || r.isTop   => Top
+      case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l max r)
+      case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l max r)
+      case (MathSetTy(lset), MathSetTy(rset)) =>
+        if lset.min > rset.max then MathSetTy(lset)
+        else if rset.min > lset.max then MathSetTy(rset)
+        else Top
+      case _ => Top
 
   /** inclusion check */
-  def contains(math: Math): Boolean = this match
-    case MathTopTy      => true
-    case IntTy          => math.decimal.isWhole
-    case NonPosIntTy    => math.decimal.isWhole && math.decimal <= 0
-    case NonNegIntTy    => math.decimal.isWhole && math.decimal >= 0
-    case NegIntTy       => math.decimal.isWhole && math.decimal < 0
-    case PosIntTy       => math.decimal.isWhole && math.decimal > 0
-    case MathSetTy(set) => set contains math
+  def contains(math: Math): Boolean = this.canon match
+    case MathSignTy(sign) => sign.contains(math.decimal)
+    case MathIntTy(int)   => math.decimal.isWhole && int.contains(math.toInt)
+    case MathSetTy(set)   => set.contains(math)
 
   /** get single value */
-  def getSingle: Flat[Math] = this match
-    case MathSetTy(set) => Flat(set)
-    case _              => Many
+  def getSingle: Flat[Math] =
+    this.canon match
+      case MathSignTy(sign) => if sign.isZero then Flat(Math(0)) else Many
+      case MathIntTy(int) =>
+        int.toMathSet.fold(esmeta.util.Zero)(Flat(_))
+      case MathSetTy(set) => Flat(set)
 
   /** integral check */
-  def isInt: Boolean = this match
-    case IntTy | NonPosIntTy | NonNegIntTy | NegIntTy | PosIntTy => true
-    case MathSetTy(set) => set.forall(n => n.decimal.isWhole)
-    case _              => false
+  def isInt: Boolean = this.canon match
+    case MathIntTy(_) => true
+    case _            => false
+
+  /** non-positive check */
+  def isNonPos: Boolean = this.canon match
+    case MathSignTy(sign) => sign.isNonPos
+    case MathIntTy(int)   => int.isNonPos
+    case s                => s.toSignTy.isNonPos
+
+  /** non-negative check */
+  def isNonNeg: Boolean = this.canon match
+    case MathSignTy(sign) => sign.isNonNeg
+    case MathIntTy(int)   => int.isNonNeg
+    case s                => s.toSignTy.isNonNeg
+
+  /** negative check */
+  def isNeg: Boolean = this.canon match
+    case MathSignTy(sign) => sign.isNeg
+    case MathIntTy(int)   => int.isNeg
+    case s                => s.toSignTy.isNeg
+
+  /** positive check */
+  def isPos: Boolean = this.canon match
+    case MathSignTy(sign) => sign.isPos
+    case MathIntTy(int)   => int.isPos
+    case s                => s.toSignTy.isPos
 
   /** non-positive integral check */
-  def isNonPosInt: Boolean = this match
-    case NonPosIntTy | NegIntTy => true
-    case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal <= 0)
+  def isNonPosInt: Boolean = this.canon match
+    case MathIntTy(int) => int.isNonPos
     case _              => false
 
   /** non-negative integral check */
-  def isNonNegInt: Boolean = this match
-    case NonNegIntTy | PosIntTy => true
-    case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal >= 0)
+  def isNonNegInt: Boolean = this.canon match
+    case MathIntTy(int) => int.isNonNeg
     case _              => false
 
   /** negative integral check */
-  def isNegInt: Boolean = this match
-    case NegIntTy       => true
-    case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal < 0)
+  def isNegInt: Boolean = this.canon match
+    case MathIntTy(int) => int.isNeg
     case _              => false
 
   /** positive integral check */
-  def isPosInt: Boolean = this match
-    case PosIntTy       => true
-    case MathSetTy(set) => set.forall(n => n.decimal.isWhole && n.decimal > 0)
+  def isPosInt: Boolean = this.canon match
+    case MathIntTy(int) => int.isPos
     case _              => false
 
   /** to list of atomic math types */
-  def toAtomicTys: List[MathTy] = this match
+  def toAtomicTys: List[MathTy] = this.canon match
     case MathSetTy(set) =>
       set
         .map(n =>
           if (n.decimal.isWhole)
-            if (n.decimal < 0) NegIntTy
-            else if (n.decimal > 0) PosIntTy
-            else MathSetTy(Set(Math.zero))
-          else MathTopTy,
+            if (n.decimal < 0) NegInt
+            else if (n.decimal > 0) PosInt
+            else MathTy.Zero
+          else Top,
         )
         .toList
     case _ => List(this)
+
+  /** This returns an canonical form of the mathematical type. 1) If the type is
+    * a set of integers, this must return MathIntTy. 2) Else if the gamma(type)
+    * is finite, then this must return MathSetTy. 3) Otherwise, this must return
+    * MathSignTy.
+    *
+    * @return
+    *   canonical form of the mathematical type
+    */
+  def canon: MathTy = this match
+    case MathSignTy(sign) =>
+      if sign.isZero then MathIntTy(IntTy.Zero)
+      else if sign.isBottom then MathIntTy(IntTy.Bot)
+      else this
+    case MathSetTy(set) =>
+      if (set.forall(_.decimal.isWhole))
+        MathIntTy(set.map(x => x.decimal.toLong))
+      else this
+    case i @ MathIntTy(_) => i
+
+  def toSign: Sign = this.canon match
+    case MathSignTy(sign) => sign
+    case MathSetTy(set) =>
+      Sign.alpha(
+        set,
+        v =>
+          if v.decimal < 0 then Sign.Neg
+          else if v.decimal > 0 then Sign.Pos
+          else Sign.Zero,
+      )
+    case MathIntTy(int) => int.toSign
+
+  /** This returns a sign type of the mathematical type. May not return a
+    * canonical form.
+    *
+    * @return
+    *   sign type of the mathematical type
+    */
+  def toSignTy: MathSignTy = this.canon match
+    case s @ MathSignTy(sign) => s
+    case MathSetTy(set)       => MathSignTy(this.toSign)
+    case MathIntTy(int)       => MathSignTy(int.toSign)
 }
 
 /** mathematical value types */
-case object MathTopTy extends MathTy
-
-/** integer types */
-case object IntTy extends MathTy
-
-/** non-positive integer type */
-case object NonPosIntTy extends MathTy
-
-/** non-negative integer type */
-case object NonNegIntTy extends MathTy
-
-/** negative integer type */
-case object NegIntTy extends MathTy
-
-/** positive integer type */
-case object PosIntTy extends MathTy
+case class MathSignTy(sign: Sign) extends MathTy
 
 /** types for set of mathematical values */
 case class MathSetTy(set: Set[Math]) extends MathTy
-object SingleTy {
-  def unapply(ty: MathSetTy): Option[Math] =
-    if (ty.set.size == 1) Some(ty.set.head) else None
-}
-object MathSetTy {
+
+/** types for mathematical integers */
+case class MathIntTy(int: IntTy) extends MathTy
+
+object MathSetTy:
   def apply(seq: Math*): MathSetTy = MathSetTy(seq.toSet)
-}
+
+object MathIntTy:
+  def apply(ints: Iterable[Long]): MathIntTy = MathIntTy(IntSetTy(ints.toSet))
 
 object MathTy extends Parser.From(Parser.mathTy) {
-  lazy val Top: MathTy = MathTopTy
-  lazy val Bot: MathTy = MathSetTy(Set.empty)
-  lazy val Int: MathTy = IntTy
-  lazy val NonPosInt: MathTy = NonPosIntTy
-  lazy val NonNegInt: MathTy = NonNegIntTy
-  lazy val NegInt: MathTy = NegIntTy
-  lazy val PosInt: MathTy = PosIntTy
-  lazy val Zero: MathTy = MathSetTy(Set(Math.zero))
-  lazy val One: MathTy = MathSetTy(Set(Math.one))
+  // Top & Bot
+  lazy val Top: MathTy = MathSignTy(Sign.Top)
+  lazy val Bot: MathTy = MathSignTy(Sign.Bot).canon
+
+  // Signs
+  lazy val NonPos: MathTy = MathSignTy(Sign.NonPos)
+  lazy val NonNeg: MathTy = MathSignTy(Sign.NonNeg)
+  lazy val Neg: MathTy = MathSignTy(Sign.Neg)
+  lazy val Pos: MathTy = MathSignTy(Sign.Pos)
+
+  // Integers
+  lazy val Int: MathTy = MathIntTy(IntTy.Top)
+  lazy val NonPosInt: MathTy = MathIntTy(IntTy.NonPos)
+  lazy val NonNegInt: MathTy = MathIntTy(IntTy.NonNeg)
+  lazy val NegInt: MathTy = MathIntTy(IntTy.Neg)
+  lazy val PosInt: MathTy = MathIntTy(IntTy.Pos)
+
+  // Constants
+  lazy val Zero: MathTy = MathIntTy(IntTy.Zero)
+  lazy val One: MathTy = MathIntTy(IntTy.One)
+
+  /** This helper is for applying f between the given set and the given integer
+    * domain. If the integer domain is not finite, this returns Top.
+    *
+    * @param int
+    *   integer domain
+    * @param set
+    *   set of mathematical values
+    * @param f
+    *   function to apply between the given set and the given integer domain
+    * @return
+    *   result of applying f between the given set and the given integer domain,
+    *   or Top if fails
+    */
+  private def integrate(int: IntTy, set: Set[Math])(
+    f: (Set[Math], Set[Math]) => Set[Math],
+  ): MathTy =
+    int.toMathSet.fold(Top) {
+      case mset => MathSetTy(f(mset, set))
+    }
 }
