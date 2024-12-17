@@ -67,5 +67,5 @@ case class Heap(
   }
 
   /** copied */
-  def copied: Heap = Heap(MMap.from(map.toList.map { _ -> _.copied }), size)
+  def copied: Heap = Heap(MMap.from(map.map { _ -> _.copied }), size)
 }

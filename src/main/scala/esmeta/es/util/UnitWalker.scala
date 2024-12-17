@@ -15,7 +15,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** syntactic productions */
   def walk(ast: Syntactic): Unit =
-    walkList(ast.children, walkOpt(_, walk))
+    walkVector(ast.children, walkOpt(_, walk))
 
   /** lexical productions */
   def walk(ast: Lexical): Unit = {}

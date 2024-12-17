@@ -114,9 +114,11 @@ class ContainsTinyTest extends TyTest {
       ContT(42) -> cont,
     )
 
-    lazy val ast1 = Syntactic("A", List(false, true), 5, Nil)
+    lazy val F = false
+    lazy val T = true
+    lazy val ast1 = Syntactic("A", List(F, T), 5, Vector.empty)
     lazy val astValue1 = AstValue(ast1)
-    lazy val ast2 = Syntactic("B", List(false, true), 5, List(Some(ast1), None))
+    lazy val ast2 = Syntactic("B", List(F, T), 5, Vector(Some(ast1), None))
     lazy val astValue2 = AstValue(ast2)
     checkContains("abstract syntax tree (AST) values")(
       AstT -> astValue1,
@@ -128,7 +130,7 @@ class ContainsTinyTest extends TyTest {
       AstT("B", 3) -> astValue2,
     )
 
-    lazy val grammarSymbolA = GrammarSymbol("A", List(true, false, true))
+    lazy val grammarSymbolA = GrammarSymbol("A", List(T, F, T))
     lazy val grammarSymbolB = GrammarSymbol("B", Nil)
     checkContains("nonterminals")(
       GrammarSymbolT -> grammarSymbolA,
@@ -166,13 +168,13 @@ class ContainsTinyTest extends TyTest {
     checkContains("non-numeric simple values")(
       StrT -> Str("test"),
       StrT("a", "b") -> Str("a"),
-      BoolT -> Bool(false),
-      BoolT(true) -> Bool(true),
+      BoolT -> Bool(F),
+      BoolT(T) -> Bool(T),
       UndefT -> Undef,
       NullT -> Null,
     ).neg(
       StrT("a") -> Str("b"),
-      BoolT(true) -> Bool(false),
+      BoolT(T) -> Bool(F),
     )
   }
   init

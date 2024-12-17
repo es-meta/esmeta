@@ -29,7 +29,7 @@ case object Eval extends Phase[CFG, State] {
     else run(cfg, config, getFirstFilename(cmdConfig, this.name))
 
   def run(cfg: CFG, config: Config, filename: String): State = Interpreter(
-    Initialize.fromFile(cfg, filename),
+    cfg.init.fromFile(filename),
     log = config.log,
     detail = config.detail,
     timeLimit = config.timeLimit,

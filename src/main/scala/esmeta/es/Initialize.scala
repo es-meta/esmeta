@@ -11,19 +11,32 @@ import scala.collection.mutable.{Map => MMap}
 
 class Initialize(cfg: CFG) {
 
-  /** the result state of initialization */
-  def getResult(
+  /** get initial state from source text */
+  def from(sourceText: String): State =
+    val (ast, semiInjected) = cfg.scriptParser.fromWithCode(sourceText)
+    from(semiInjected, ast)
+
+  /** get initial state from script */
+  def from(script: Script): State = from(script.code)
+
+  /** get initial state from JS file */
+  def fromFile(filename: String): State =
+    val (ast, semiInjected) = cfg.scriptParser.fromFileWithCode(filename)
+    from(semiInjected, ast, Some(filename))
+
+  /** get initial state with source text and cached AST */
+  def from(
     sourceText: String,
-    cachedAst: Option[Ast],
-    filename: Option[String],
+    ast: Ast,
+    filename: Option[String] = None,
   ): State = State(
     cfg,
     context = Context(cfg.main),
     sourceText = Some(sourceText),
-    cachedAst = cachedAst,
     filename = filename,
+    cachedAst = Some(ast),
     globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
-    heap = initHeap,
+    heap = initHeap.copied,
   )
 
   // initial globals
@@ -91,7 +104,7 @@ class Initialize(cfg: CFG) {
     // add global object
     map ++= glob.map
 
-    Heap(map, map.size)
+    Heap(map)
   }
 
   // ---------------------------------------------------------------------------
@@ -261,16 +274,4 @@ class Initialize(cfg: CFG) {
   // get length value from built-in head parameters
   private def getLength(head: Head): Int =
     head.originalParams.count(_.kind == ParamKind.Normal)
-}
-object Initialize {
-  def apply(
-    cfg: CFG,
-    sourceText: String,
-    cachedAst: Option[Ast] = None,
-    filename: Option[String] = None,
-  ): State = new Initialize(cfg).getResult(sourceText, cachedAst, filename)
-
-  /** initialize from file */
-  def fromFile(cfg: CFG, filename: String): State =
-    apply(cfg, readFile(filename), filename = Some(filename))
 }

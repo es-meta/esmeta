@@ -3,7 +3,7 @@ package esmeta.util
 /** unique ids */
 trait UId {
   // unique ids
-  val id: Int
+  def id: Int
 
   // get simple string
   def simpleString: String = s"${getClass.getSimpleName}[$id]"

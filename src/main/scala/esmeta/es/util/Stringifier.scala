@@ -14,9 +14,12 @@ class Stringifier(
 ) {
   // elements
   given elemRule: Rule[ESElem] = (app, elem) =>
-    elem match {
-      case elem: Ast => astRule(app, elem)
-    }
+    elem match
+      case elem: Script => scriptRule(app, elem)
+      case elem: Ast    => astRule(app, elem)
+
+  // ECMAScript script program
+  given scriptRule: Rule[Script] = (app, script) => app >> script.code
 
   // abstract syntax tree (AST) values
   given astRule: Rule[Ast] = (app, ast) =>
@@ -35,12 +38,12 @@ class Stringifier(
       case Lexical(name, str) => app >> str >> " "
       case Syntactic(name, args, rhsIdx, children) =>
         var cs = children
-        for (symbol <- nameMap(name).rhsList(rhsIdx).symbols) symbol match
+        for (symbol <- nameMap(name).rhsVec(rhsIdx).symbols) symbol match
           case Terminal(term)                          => app >> term >> " "
           case Empty | NoLineTerminator | _: Lookahead =>
           case _ =>
-            cs match
-              case hd :: tl => hd.map(aux); cs = tl
+            cs.headOption match
+              case Some(hd) => hd.map(aux); cs = cs.tail
               case _        => error(s"invalid AST: $origAst")
     aux(origAst)
     app

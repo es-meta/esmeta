@@ -68,10 +68,11 @@ object SystemUtils {
     dirname: String,
     getName: T => String,
     getData: T => Any = (x: T) => x,
+    remove: Boolean = false,
     append: Boolean = false,
     silent: Boolean = false,
   ): Unit =
-    mkdir(dirname)
+    mkdir(dirname, remove)
     for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}", append)
     println(s"- Dumped $name into `$dirname` .")
 
@@ -167,11 +168,23 @@ object SystemUtils {
     StandardCopyOption.REPLACE_EXISTING,
   )
 
-  /** create directories */
-  def mkdir(name: String): Unit = File(name).mkdirs
+  /** create symbolic link */
+  def createSymLink(
+    link: String,
+    target: String,
+    overwrite: Boolean = false,
+  ): Unit =
+    if (overwrite)
+      deleteFile(link)
+    Files.createSymbolicLink(
+      File(link).toPath,
+      File(target).toPath,
+    )
 
-  /** clean directories */
-  def cleanDir(name: String) = for (file <- walkTree(name)) file.delete
+  /** create directories */
+  def mkdir(name: String, remove: Boolean = false): Unit =
+    if (remove) rmdir(name)
+    File(name).mkdirs
 
   /** remove directories */
   def rmdir(name: String): Unit = {
@@ -183,6 +196,14 @@ object SystemUtils {
       f.delete()
     deleteRecursively(File(name))
   }
+
+  /** list directory */
+  def listFiles(name: String): List[File] = listFiles(File(name))
+  def listFiles(dir: File): List[File] =
+    Option(dir.listFiles)
+      .map(_.toList)
+      .getOrElse(List())
+      .filter(!_.getName.startsWith("."))
 
   /** file existence check */
   def exists(name: String): Boolean = File(name).exists

@@ -168,7 +168,7 @@ trait Parsers extends TyParsers {
     ("|" ~> word <~ "|") ~ parseParams ~
     ("<" ~> int <~ ">") ~
     (opt("(" ~> repsep(opt(expr), ",") <~ ")") ^^ { _.getOrElse(Nil) }) ^^ {
-      case n ~ as ~ i ~ es => ESyntactic(n, as, i, es)
+      case n ~ as ~ i ~ es => ESyntactic(n, as, i, es.toVector)
     } ||| ("|" ~> word <~ "|") ~ ("(" ~> expr <~ ")") ^^ {
       case n ~ e => ELexical(n, e)
     }

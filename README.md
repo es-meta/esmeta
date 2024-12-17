@@ -25,7 +25,7 @@ automatically generates language-based tools.
     + [Interactive Execution with ECMAScript Double Debugger](#interactive-execution-with-ecmascript-double-debugger)
     + [Conformance Test Synthesizer from ECMA-262](#conformance-test-synthesizer-from-ecma-262)
     + [Type Analysis on ECMA-262](#type-analysis-on-ecma-262)
-    + [Meta-Level Static Analyzer for ECMAScript](#meta-level-static-analyzer-for-ecmascript) (temporarily removed)
+    + ~~[Meta-Level Static Analyzer for ECMAScript](#meta-level-static-analyzer-for-ecmascript)~~ (temporarily removed)
   * [Academic Achievement](#academic-achievement)
     + [Publications](#publications)
     + [PLDI 2022 Tutorial](#pldi-2022-tutorial)
@@ -35,9 +35,9 @@ automatically generates language-based tools.
 ## Installation Guide
 
 We explain how to install ESMeta with the necessary environment settings from
-scratch. Our framework is developed in Scala, which works on JDK 8+, including
-GraalVM. So before installation, please install [JDK
-8+](https://www.oracle.com/java/technologies/downloads/) and
+scratch. Our framework is developed in Scala, which works on JDK 17+. So before
+installation, please install [JDK
+17+](https://www.oracle.com/java/technologies/downloads/) and
 [sbt](https://www.scala-sbt.org/), an interactive build tool for Scala.
 
 
@@ -245,16 +245,54 @@ We will enhance it with the following features:
 ### Conformance Test Synthesizer from ECMA-262
 
 ESMeta supports the synthesis of JavaScript files as conformance tests. We
-introduced the main concept of the test synthesis in the [ICSE
-2021 paper](https://doi.org/10.1109/ICSE43902.2021.00015) with a tool named
+introduced the main concept of the test synthesis in the [ICSE 2021
+paper](https://doi.org/10.1109/ICSE43902.2021.00015) with a tool named
 [JEST](https://github.com/kaist-plrg/jest), a **J**avaScript **E**ngines and
 **S**pecification **T**ester. The test synthesis technique consists of two
-parts: 1) _program synthesis_ of JavaScript files and 2) _assertion injection_
-based on the mechanized specification extract from ECMA-262.
+parts: 1) _program synthesis_ of JavaScript programs using **specification
+coverage** and 2) _assertion injection_ based on the mechanized specification
+extract from ECMA-262.
 
-The current version of ESMeta focuses on the assertion injection to a given
-JavaScript file. If you want to inject assertions into the program conforming to
-ECMA-262, please use the `inject` command:
+#### Synthesis of JavaScript Programs
+
+If you want to synthesize JavaScript programs, please use the `fuzz` command:
+```bash
+esmeta fuzz -fuzz:log
+```
+It basically uses the **node/branch coverage** in the mechanized specification
+to synthesize JavaScript programs. The `-fuzz:log` option dumps the synthesized
+JavaScript programs into the `logs/fuzz/fuzz-<date>` directory with the detailed
+information of the synthesis process:
+
+* `seed`: seed of the random number generator
+* `node-coverage.json`: node coverage information
+* `branch-coverage.json`: branch coverage information
+* `constructor.json`: constructor information
+* `mutation-stat.tsv`: statistics of mutation methods
+* `selector-stat.tsv`: statistics of selector methods
+* `summary.tsv`: summary of the synthesis process for each logging interval
+* `target-conds.json`: target conditions for the synthesis
+* `unreach-funcs`: unreachable functions
+* `version`: ESMeta version information
+
+In addition, you can use **feature-sensitive coverage**, which is introduced in
+the [PLDI 2023 paper](https://doi.org/10.1145/3591240), with the following
+options:
+
+* `-fuzz:k-fs=<int>`: the depth of features for feature-sensitive coverage
+* `-fuzz:cp`: use the call path for feature-sensitive coverage
+
+For example, you can synthesize JavaScript programs with the 2-FCPS coverage
+(2-feature-sensitive coverage with call path) as follows:
+```bash
+esmeta fuzz -fuzz:log -fuzz:k-fs=2 -fuzz:cp
+```
+
+#### Assertion Injection
+
+You can inject assertions into the synthesized JavaScript programs according to
+the mechanized specification. If you want to inject assertions, please use the
+`inject` command:
 ```bash
 # inject assertions based on the semantics described in ECMA-262
 $ esmeta inject example.js
@@ -282,9 +320,6 @@ please use the `-inject:defs` option:
 $ esmeta inject example.js -silent -inject:defs -inject:out=test.js
 # - Dumped an assertion-injected ECMAScript program into test.js.
 ```
-
-In the future version of ESMeta, we plan to support the program synthesis
-feature as well.
 
 
 ### Type Analysis on ECMA-262
@@ -323,9 +358,9 @@ $ esmeta tycheck -extract:target=2c78e6f
 ```
 
 
-### Meta-Level Static Analyzer for ECMAScript
+### ~~Meta-Level Static Analyzer for ECMAScript~~
 
-> [!NOTE]
+> [!WARNING]
 >
 > The meta-level static analyzer is temporarily removed from the current version
 > of ESMeta. We are working on the improvement of the meta-level static analyzer

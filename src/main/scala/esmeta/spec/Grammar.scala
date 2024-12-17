@@ -10,7 +10,7 @@ case class Grammar(
   prodsForWeb: List[Production] = Nil,
 ) extends SpecElem {
 
-  /** a mappging from names to productions */
+  /** a mapping from names to productions */
   lazy val nameMap: Map[String, Production] =
     (for (prod <- prods) yield prod.lhs.name -> prod).toMap
 

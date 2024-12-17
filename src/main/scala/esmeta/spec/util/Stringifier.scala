@@ -79,11 +79,11 @@ object Stringifier {
 
   // for productions
   given prodRule: Rule[Production] = (app, prod) =>
-    val Production(lhs, kind, oneof, rhsList) = prod
+    val Production(lhs, kind, oneof, rhsVec) = prod
     app >> lhs >> " " >> kind
     given Rule[List[Rhs]] = iterableRule(sep = " ")
-    if (oneof) app.wrap(" one of", "")(app :> rhsList)
-    else app.wrap("", "")(for (rhs <- rhsList) app :> rhs)
+    if (oneof) app.wrap(" one of", "")(app :> rhsVec)
+    else app.wrap("", "")(for (rhs <- rhsVec) app :> rhs)
 
   // for production left-hand-sides (LHSs)
   given lhsRule: Rule[Lhs] = (app, lhs) =>

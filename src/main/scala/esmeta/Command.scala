@@ -161,8 +161,17 @@ case object CmdTest262Test
 }
 
 // -----------------------------------------------------------------------------
-// ECMAScript Transformer
+// ECMAScript Fuzzer
 // -----------------------------------------------------------------------------
+/** `fuzz` command */
+case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
+  val help = "generate ECMAScript programs for fuzzing."
+  val examples = List(
+    "esmeta fuzz                 # generate ECMAScript programs for fuzzing",
+    "esmeta fuzz -fuzz:log       # fuzz in the logging mode.",
+  )
+}
+
 /** `inject` command */
 case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   val help = "injects assertions to check final state of an ECMAScript file."

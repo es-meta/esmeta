@@ -24,11 +24,28 @@ case class Test262(
   withYet: Boolean = false,
 ) {
 
+  type Filename = String
+  type CodeVec = (Vector[Ast], String)
+  type Code = (Ast, String)
+  extension (pair: CodeVec) {
+    def +(that: CodeVec): CodeVec =
+      val (lstmts, lstr) = pair
+      val (rstmts, rstr) = that
+      (lstmts ++ rstmts, lstr + rstr)
+    def toCode: Code =
+      val (stmts, str) = pair
+      (mergeStmt(stmts), str)
+  }
+  extension (pair: Code) {
+    def toCodeVec: CodeVec =
+      val (ast, str) = pair
+      (ast.flattenStmt, str)
+  }
+
   /** cache for parsing results for necessary harness files */
-  lazy val getHarness = cached(name =>
-    val filename = s"$TEST262_DIR/harness/$name"
-    () => parseFile(filename).flattenStmt,
-  )
+  lazy val getHarness = cached[Filename, CodeVec] { name =>
+    parseFile(s"$TEST262_DIR/harness/$name").toCodeVec
+  }
 
   /** test262 filter */
   lazy val testFilter: TestFilter = TestFilter(cfg.spec)
@@ -40,23 +57,22 @@ case class Test262(
   lazy val (allTargetTests, allRemoved) = testFilter(allTests, withYet)
 
   /** basic harness files */
-  lazy val basicHarness = getHarness("assert.js")() ++ getHarness("sta.js")()
+  lazy val basicHarness: CodeVec =
+    getHarness("assert.js") + getHarness("sta.js")
 
   /** specification */
   val spec = cfg.spec
 
   /** load test262 */
-  def loadTest(filename: String): Ast =
+  def loadTest(filename: String): Code =
     loadTest(filename, Test(filename).includes)
 
   /** load test262 with harness files */
-  def loadTest(filename: String, includes: List[String]): Ast =
+  def loadTest(filename: String, includes: List[String]): Code =
     // load harness
-    val harnessStmts = includes.foldLeft(basicHarness)(_ ++ getHarness(_)())
-
+    val harness = includes.foldLeft(basicHarness)(_ + getHarness(_))
     // merge with harnesses
-    val stmts = flattenStmt(parseFile(filename))
-    mergeStmt(harnessStmts ++ stmts)
+    (harness + parseFile(filename).toCodeVec).toCode
 
   /** get tests */
   def getTests(
@@ -142,7 +158,6 @@ case class Test262(
     // coverage with time limit
     lazy val cov = Coverage(
       cfg = cfg,
-      test262 = Some(this),
       timeLimit = timeLimit,
     )
 
@@ -160,12 +175,15 @@ case class Test262(
         val st =
           if (!useCoverage)
             evalFile(filename, log && !multiple, detail, Some(logPW), timeLimit)
-          else cov.run(filename)
+          else {
+            val (ast, code) = loadTest(filename)
+            cov.runAndCheck(Script(code, filename), ast)._1
+          }
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,
       // dump coverage
-      logDir => if (useCoverage) cov.dumpTo(logDir),
+      postJob = logDir => if (useCoverage) cov.dumpTo(logDir),
     )
 
     // close log file
@@ -212,8 +230,8 @@ case class Test262(
       // check parsing result with its corresponding code
       check = test =>
         val filename = test.path
-        val ast = parseFile(filename)
-        val newAst = parse(ast.toString(grammar = Some(cfg.grammar)))
+        val (ast, _) = parseFile(filename)
+        val (newAst, _) = parse(ast.toString(grammar = Some(cfg.grammar)))
         if (ast != newAst) throw UnexpectedParseResult,
     )
 
@@ -228,8 +246,10 @@ case class Test262(
   // ---------------------------------------------------------------------------
   // parse ECMAScript code
   private lazy val scriptParser = cfg.scriptParser
-  private def parse(code: String): Ast = scriptParser.from(code)
-  private def parseFile(filename: String): Ast = scriptParser.fromFile(filename)
+  private def parse(code: String): Code =
+    scriptParser.fromWithCode(code)
+  private def parseFile(filename: String): Code =
+    scriptParser.fromFileWithCode(filename)
 
   // eval ECMAScript code
   private def evalFile(
@@ -239,9 +259,19 @@ case class Test262(
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
-    val ast = loadTest(filename)
-    val code = ast.toString(grammar = Some(cfg.grammar)).trim
-    val st = Initialize(cfg, code, Some(ast), Some(filename))
+    val (ast, code) = loadTest(filename)
+    eval(code, ast, log, detail, logPW, timeLimit)
+
+  // eval ECMAScript code
+  private def eval(
+    code: String,
+    ast: Ast,
+    log: Boolean = false,
+    detail: Boolean = false,
+    logPW: Option[PrintWriter] = None,
+    timeLimit: Option[Int] = None,
+  ): State =
+    val st = cfg.init.from(code, ast)
     Interpreter(
       st = st,
       log = log,
@@ -280,5 +310,8 @@ case class Test262(
         if (postSummary.isEmpty) s"$summary"
         else s"$summary$LINE_SEP$postSummary"
       dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
+
+    // post job
+    postJob(logDir)
 }
 object Test262 extends Git(TEST262_DIR)

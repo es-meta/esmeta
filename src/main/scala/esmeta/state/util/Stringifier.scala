@@ -33,6 +33,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Value       => valueRule(app, elem)
       case elem: RefTarget   => refTargetRule(app, elem)
       case elem: Uninit      => uninitRule(app, elem)
+      case elem: Feature     => featureRule(app, elem)
+      case elem: CallPath    => callPathRule(app, elem)
 
   // states
   given stRule: Rule[State] = (app, st) =>
@@ -57,7 +59,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // cursor
   given cursorRule: Rule[Cursor] = (app, cursor) =>
     cursor match
-      case NodeCursor(node) => app >> node.simpleString
+      case NodeCursor(func, node, idx) =>
+        app >> func.simpleString
+        app >> ":" >> node.simpleString
+        app >> ":" >> idx
+        node.loc.fold(app)(app >> " (" >> _ >> ")")
       case ExitCursor(func) => app >> func.simpleString
 
   // calling contexts
@@ -165,4 +171,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // uninit
   given uninitRule: Rule[Uninit] = (app, _) => app >> "uninit"
+
+  // syntax directed operation information
+  given featureRule: Rule[Feature] = (app, feature) =>
+    val irFunc = feature.func.irFunc
+    app >> irFunc.kind >> irFunc.name
+
+  // abstraction of call stack as simple path
+  given callPathRule: Rule[CallPath] = (app, path) =>
+    given Rule[Call] = (app, call) => app >> call.id
+    given Rule[Iterable[Call]] = iterableRule("[", " <- ", "]")
+    app >> "CallPath" >> path.path
 }
