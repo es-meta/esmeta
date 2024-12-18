@@ -177,6 +177,7 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       ("ch.megard" %% "akka-http-cors" % "1.2.0")
         .cross(CrossVersion.for3Use2_13), // cors
+      ("org.typelevel" %% "cats-core" % "2.12.0"),
     ),
     resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
 
