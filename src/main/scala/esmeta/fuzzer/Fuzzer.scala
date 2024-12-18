@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.es.util.*
+import esmeta.fuzzer.builder.Builder
 import esmeta.fuzzer.mutator.*
 import esmeta.fuzzer.synthesizer.*
 import esmeta.spec.*
@@ -12,11 +13,14 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
-import io.circe.*, io.circe.syntax.*
+import io.circe.*
+import io.circe.syntax.*
+
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
-import scala.collection.mutable.{ListBuffer, Map => MMap}
-import scala.collection.parallel.CollectionConverters._
+import scala.collection.mutable
+import scala.collection.mutable.Map as MMap
+import scala.collection.parallel.CollectionConverters.*
 import scala.util.*
 
 /** ECMAScript program fuzzer with ECMA-262 */
@@ -33,19 +37,25 @@ object Fuzzer {
     init: Option[String] = None, // initial pool directory path given by user
     kFs: Int = 0,
     cp: Boolean = false,
-  ): Coverage = new Fuzzer(
-    cfg,
-    log,
-    logInterval,
-    debug,
-    stdOut,
-    timeLimit,
-    trial,
-    duration,
-    init,
-    kFs,
-    cp,
-  ).result
+    build: Boolean = false,
+  ): Coverage =
+    if (build) {
+      Builder(cfg)
+      throw ESMetaError("Building file disables fuzzing")
+    } else
+      new Fuzzer(
+        cfg,
+        log,
+        logInterval,
+        debug,
+        stdOut,
+        timeLimit,
+        trial,
+        duration,
+        init,
+        kFs,
+        cp,
+      ).result
 
   // debugging levels
   val ALL = 2
