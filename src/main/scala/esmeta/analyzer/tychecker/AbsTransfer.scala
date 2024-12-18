@@ -890,13 +890,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             var bools = Set(true, false)
             toSymRef(ref, lv).map { ref =>
               if (lty != thenTy && !thenTy.isBottom)
-                  reduceToBase(ref -> thenTy, np).map { pair =>
-                    guard += RefinementKind(TrueT) -> withCur(TypeConstr(pair))
-                  }
+                reduceToBase(ref -> thenTy, np).map { pair =>
+                  guard += RefinementKind(TrueT) -> withCur(TypeConstr(pair))
+                }
               if (lty != elseTy && !elseTy.isBottom)
-                  reduceToBase(ref -> elseTy, np).map { pair =>
-                    guard += RefinementKind(FalseT) -> withCur(TypeConstr(pair))
-                  }
+                reduceToBase(ref -> elseTy, np).map { pair =>
+                  guard += RefinementKind(FalseT) -> withCur(TypeConstr(pair))
+                }
             }
             TypeGuard(guard)
           }
@@ -916,13 +916,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             var guard: Map[RefinementKind, TypeConstr] = Map()
             toSymRef(x, lv).map { ref =>
               if (lty != thenTy && !thenTy.isBottom)
-                  reduceToBase(ref -> thenTy, np).map { pair =>
-                    guard += RefinementKind(TrueT) -> withCur(TypeConstr(pair))
-                  }
+                reduceToBase(ref -> thenTy, np).map { pair =>
+                  guard += RefinementKind(TrueT) -> withCur(TypeConstr(pair))
+                }
               if (lty != elseTy && !elseTy.isBottom)
-                  reduceToBase(ref -> elseTy, np).map { pair =>
-                    guard += RefinementKind(FalseT) -> withCur(TypeConstr(pair))
-                  }
+                reduceToBase(ref -> elseTy, np).map { pair =>
+                  guard += RefinementKind(FalseT) -> withCur(TypeConstr(pair))
+                }
             }
             TypeGuard(guard)
           }
@@ -1438,7 +1438,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       // refine logical disjunction
       case EBinary(BOp.Or, l, r) =>
         st =>
-          if (positive) syntacticRefine(l, true)(st) ⊔ syntacticRefine(r, true)(st)
+          if (positive)
+            syntacticRefine(l, true)(st) ⊔ syntacticRefine(r, true)(st)
           else syntacticRefine(r, false)(syntacticRefine(l, false)(st))
       // refine logical conjunction
       case EBinary(BOp.And, l, r) =>
@@ -1538,14 +1539,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     ): Option[(SymBase, (ValueTy, Provenance))] =
       reduceToBase(pair._1, pair._2, np)
 
-    /**
-      * When the `ref` should be refined to the type `ty`, then this method
-      * returns the type base of the reference should be refined.
-      * The returned type base is a pair of the reference and the type.
+    /** When the `ref` should be refined to the type `ty`, then this method
+      * returns the type base of the reference should be refined. The returned
+      * type base is a pair of the reference and the type.
       *
-      * @param ref the reference to be refined
-      * @param givenTy the type to be refined
-      * @return the type base of the reference should be refined
+      * @param ref
+      *   the reference to be refined
+      * @param givenTy
+      *   the type to be refined
+      * @return
+      *   the type base of the reference should be refined
       */
     def reduceToBase(
       ref: SymRef,
@@ -1676,14 +1679,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       )
     }
 
-    extension(value: AbsValue) {
-      /**
-        * Call this to propagate refinements when the abstract value is refined. 
+    extension (value: AbsValue) {
+
+      /** Call this to propagate refinements when the abstract value is refined.
         *
-        * @param refinedValue the refined abstract value
-        * @return an updater that propagates the refinements
+        * @param refinedValue
+        *   the refined abstract value
+        * @return
+        *   an updater that propagates the refinements
         */
-      def refineTo(refinedValue: AbsValue)(using np: NodePoint[_]): Updater = 
+      def refineTo(refinedValue: AbsValue)(using np: NodePoint[_]): Updater =
         import RefinementKind.*
         given AbsState = getResult(np)
         val refined = refinedValue.ty
