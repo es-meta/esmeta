@@ -251,6 +251,8 @@ class Compiler(
       lazy val e = expr.fold(EUndef())(compile(fb, _))
       (expr, fb.returnContext, fb.needReturnComp) match
         case (Some(ReturnIfAbruptExpression(expr, check)), None, true) =>
+          /* Temporal change due to support immediate return of returnIfAbrupt */
+//          val e = returnIfAbrupt(fb, compile(fb, expr), check, false, true)
           val e = returnIfAbrupt(fb, compile(fb, expr), check, true)
           fb.addInst(IReturn(e))
         case (_, None, true) =>
@@ -1202,7 +1204,9 @@ class Compiler(
     fb: FuncBuilder,
     expr: Expr,
     check: Boolean,
-    imeediateReturn: Boolean = false,
+    immediateReturn: Boolean = false,
+    /* Temporal change due to support immediate return of returnIfAbrupt */
+    tmpOption: Boolean = false,
   ): Expr =
     val (x, xExpr) = expr match
       case ERef(local: Local) => (local, expr)
@@ -1211,13 +1215,15 @@ class Compiler(
       if (check) IAssert(ETypeCheck(xExpr, IRType(CompT)))
       else IAssert(ETypeCheck(xExpr, IRType(NormalT))),
     )
-    if (!imeediateReturn)
+    if (!immediateReturn)
       fb.addInst(
         if (check)
           IIf(
             ETypeCheck(xExpr, IRType(AbruptT)),
             IReturn(xExpr),
-            IAssign(x, ERef(Field(x, EStr("Value")))),
+            if (tmpOption) IReturn(xExpr)
+            else IAssign(x, ERef(Field(x, EStr("Value")))),
+            true,
           )
         else IAssign(x, ERef(Field(x, EStr("Value")))),
       )

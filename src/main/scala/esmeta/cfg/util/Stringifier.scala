@@ -60,7 +60,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Call(_, callInst, next) =>
         app >> callInst
         next.map(x => app >> " -> " >> x.id)
-      case Branch(_, kind, cond, thenNode, elseNode) =>
+      case Branch(_, kind, cond, _, thenNode, elseNode) =>
         app >> kind >> " " >> cond
         thenNode.map(x => app >> " then " >> x.id)
         elseNode.map(x => app >> " else " >> x.id)

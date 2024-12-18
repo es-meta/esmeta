@@ -10,6 +10,7 @@ import esmeta.util.ManualInfo
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
+import scala.jdk.CollectionConverters._
 
 /** specification extractor from ECMA-262 */
 object Extractor:
@@ -141,11 +142,11 @@ class Extractor(
     // checks whether it is an algorithm that should be ignored
     if (IGNORE_ALGO_PARENT_IDS contains parent.id) return Nil
 
-    // checks whether it is a valid algorithm heaad
+    // checks whether it is a valid algorithm head
     if (parent.tagName != "emu-clause") return Nil
 
     // consider algorithm head types using `type` attributes
-    parent.attr("type") match {
+    val headList = parent.attr("type") match {
       case "abstract operation" =>
         extractAbsOpHead(parent, elem, false)
       case "implementation-defined abstract operation" =>
@@ -165,6 +166,12 @@ class Extractor(
       case _ =>
         extractUnusualHead(parent, elem)
     }
+
+    headList.foreach(head =>
+      val siblings = parent.children().asScala.filter(_.tagName == "emu-alg")
+      head.emuClauseId = s"${parent.id}[${siblings.indexWhere(_ == elem)}]",
+    )
+    headList
   }
 
   /** extracts tables */

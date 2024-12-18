@@ -55,8 +55,8 @@ class CFGBuilder(
       inst match
         case branch: BranchInst =>
           branch match
-            case IIf(cond, thenInst, elseInst) =>
-              val branch = Branch(nextNId, BranchKind.If, cond)
+            case IIf(cond, thenInst, elseInst, isAbruptInst) =>
+              val branch = Branch(nextNId, BranchKind.If, cond, isAbruptInst)
               connect(branch.setInst(inst))
               val thenPrev = {
                 prev = List((branch, true)); aux(thenInst); prev
