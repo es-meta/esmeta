@@ -169,6 +169,7 @@ case object CmdFuzz extends Command("fuzz", CmdBuildCFG >> Fuzz) {
   val examples = List(
     "esmeta fuzz                 # generate ECMAScript programs for fuzzing",
     "esmeta fuzz -fuzz:log       # fuzz in the logging mode.",
+    "esmeta fuzz -fuzz:build     # build files for ecma-visualizer",
   )
 }
 

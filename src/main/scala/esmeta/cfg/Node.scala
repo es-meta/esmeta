@@ -33,6 +33,9 @@ sealed trait Node extends CFGElem with UId {
   /** get source locations */
   def loc: Option[Loc] = this match
     case block: Block =>
+      /* FixMe
+       *   What if a block node corresponds with several steps..?
+       * */
       for {
         head <- block.insts.headOption
         headLoc <- head.loc
@@ -78,6 +81,7 @@ case class Branch(
   id: Int,
   kind: BranchKind,
   cond: Expr,
+  isAbruptNode: Boolean = false,
   var thenNode: Option[Node] = None,
   var elseNode: Option[Node] = None,
 ) extends NodeWithInst {
