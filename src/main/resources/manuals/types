@@ -501,7 +501,7 @@ type ProxyExoticObject extends ExoticObject {
 type RealmRecord {
   AgentSignifier: Record[AgentSignifier];
   Intrinsics: Map[String -> Record[Object]];
-  GlobalObject: Record[Object] | Undefined;
+  GlobalObject: Record[Object];
   GlobalEnv: Record[GlobalEnvironmentRecord];
   TemplateMap: List[Record[{ Site: Ast[TemplateLiteral], Array: Record[Array] }]];
   LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecord] }]];
