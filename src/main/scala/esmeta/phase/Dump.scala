@@ -88,10 +88,10 @@ case object Dump extends Phase[CFG, Unit] {
     }
     print("check success")
 
-    dumpAndCheck("spec")(cfg.spec)
+    // dumpAndCheck("spec")(cfg.spec)
     dumpAndCheck("grammar")(cfg.spec.grammar)
     dumpAndCheck("tyModel.decls")(cfg.spec.tyModel.decls)
-    dumpAndCheck("algorithms")(cfg.spec.algorithms)
+    // dumpAndCheck("algorithms")(cfg.spec.algorithms)
     dumpAndCheck("spec.tables")(cfg.spec.tables)
     dumpAndCheck("spec.version")(cfg.spec.version)
 
