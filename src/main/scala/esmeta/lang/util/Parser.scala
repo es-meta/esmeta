@@ -1304,7 +1304,9 @@ trait Parsers extends IndentParsers {
 
   // AST types
   lazy val astTy: P[ValueTy] =
-    rep1sep(opt("an" | "a") ~> nt, sep("or")) ^^ { ss => AstT(ss.toSet) }
+    val singleAstTy = article ~> nt <~ opt("Parse Node")
+    article ~ "Parse Node" ~ opt("s") ^^^ AstT |
+    rep1sep(singleAstTy, sep("or")) ^^ { ss => AstT(ss.toSet) }
 
   // grammar symbol types
   lazy val grammarSymbolTy: P[ValueTy] = "a grammar symbol" ^^^ GrammarSymbolT
@@ -1354,8 +1356,6 @@ trait Parsers extends IndentParsers {
     "*NaN*" ^^! NaNT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
-    "Parse Node" ^^^ AstT |
-    nt <~ "Parse Node" ^^ { AstT(_) } |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }
   } <~ opt("s")
 
@@ -1436,4 +1436,7 @@ trait Parsers extends IndentParsers {
 
   // literal for mathematical one
   private val one = DecimalMathValueLiteral(1)
+
+  // article
+  private val article = opt("a " | "an " | "the ")
 }
