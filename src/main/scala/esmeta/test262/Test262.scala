@@ -262,7 +262,7 @@ case class Test262(
     timeLimit: Option[Int] = None,
   ): State =
     val (ast, code) = loadTest(filename)
-    eval(code, ast, log, detail, logPW, timeLimit)
+    eval(code, ast, log, detail, None, timeLimit)
 
   // eval ECMAScript code
   private def eval(
@@ -278,7 +278,7 @@ case class Test262(
       st = st,
       log = log,
       detail = detail,
-      logPW = logPW,
+      logPW = None, // logPW,
       timeLimit = timeLimit,
     )
 
