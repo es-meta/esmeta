@@ -11,46 +11,6 @@ object JsonProtocol extends BasicJsonProtocol {
   val stringifier = LangElem.getStringifier(true, false)
   import stringifier.given
 
-  given Encoder[Syntax] = Encoder.instance {
-    _ match
-      case x: Block      => x.asJson
-      case x: Condition  => x.asJson
-      case x: Directive  => x.asJson
-      case x: Expression => x.asJson
-      case x: Intrinsic  => x.asJson
-      case x: Property   => x.asJson
-      case x: Reference  => x.asJson
-      case x: Step       => x.asJson
-      case x =>
-        throw ESMetaError(s"${x} is not known", "unknown syntax")
-  }
-
-  // TODO refactor. very bad, but it works for now
-  given Decoder[Syntax] = Decoder.instance { c =>
-    c.as[Block]
-      .orElse(
-        c.as[Condition]
-          .orElse(
-            c.as[Directive]
-              .orElse(
-                c.as[Expression]
-                  .orElse(
-                    c.as[Intrinsic]
-                      .orElse(
-                        c.as[Property]
-                          .orElse(
-                            c.as[Reference]
-                              .orElse(
-                                c.as[Step],
-                              ),
-                          ),
-                      ),
-                  ),
-              ),
-          ),
-      )
-  }
-
   given Encoder[Reference] = encoderWithStringifier(stringify)
   given Decoder[Reference] = decoderWithParser(Reference.from)
   given Encoder[Property] = encoderWithStringifier(stringify)

@@ -758,11 +758,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // types
   given typeRule: Rule[Type] = (app, ty) =>
     given Rule[Ty] = tyRule
-    app >> ty.ty
-  // TODO
-  // ty.ty match
-  // case UnknownTy(msg) => app >> msg.getOrElse("unknown")
-  // case ty: ValueTy    => valueTyRule(false, false)(app, ty)
+    ty.ty match
+      case UnknownTy(msg) => app >> msg.getOrElse("unknown")
+      case ty: ValueTy    => valueTyRule(false, false)(app, ty)
 
   // value types
   def valueTyRule(
