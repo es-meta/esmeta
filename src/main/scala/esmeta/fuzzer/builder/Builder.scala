@@ -19,10 +19,11 @@ object Builder {
 }
 
 class Builder(cfg: CFG) {
-  val nodeToProg: MMap[String, MMap[String, String]] =
-    MMap() /* { nodeId : { feature : jsprog } } */
+  val nodeToProgId: MMap[String, MMap[String, String]] =
+    MMap() /* { nodeId : { feature : progId } } */
   val stepToNode: MMap[String, StepToNodeBlock] =
     MMap() /* { algId : { algName, { step : nodeId } } */
+  val progIdToProg: MMap[String, String] = MMap() /* { progId : prog } */
   val noLocFuncs: MSet[String] = MSet()
 
   val jsonProtocol = JsonProtocol(cfg)
@@ -44,11 +45,17 @@ class Builder(cfg: CFG) {
               TmpNodeView(TmpNode(_, inst, _), tmpView),
               script,
             ) =>
-          val code = readFile(s"$RECENT_DIR/minimal/$script")
           val nodeId = inst.split(":").head
-
           val feature = tmpView.map(_._2).getOrElse("none")
-          nodeToProg.getOrElseUpdate(nodeId, MMap.empty) += (feature -> code)
+          nodeToProgId.getOrElseUpdate(
+            nodeId,
+            MMap.empty,
+          ) += (feature -> script)
+
+          val code = readFile(s"$RECENT_DIR/minimal/$script")
+          progIdToProg.get(script) match
+            case Some(_) =>
+            case None    => progIdToProg += (script -> code)
       }
     }
     readNodeCoverage()
@@ -79,17 +86,22 @@ class Builder(cfg: CFG) {
       }
 
       node match {
-        case Branch(_, _, _, isAbruptNode, Some(thenNode), _) if isAbruptNode =>
+        case Branch(_, _, _, isAbruptNode, Some(thenNode), _)
+            if isAbruptNode && thenNode.loc.isDefined =>
           stepToNode.get(ecId) match {
             case Some(StepToNodeBlock(_, steps)) =>
               steps += (generateUniqueKey(
-                loc.stepString,
+                thenNode.loc.get.stepString,
                 steps,
-              ) -> node.id.toString)
+              ) -> thenNode.id.toString)
             case None =>
               stepToNode += ecId -> StepToNodeBlock(
                 func.name,
-                MMap(generateUniqueKey(loc.stepString) -> node.id.toString),
+                MMap(
+                  generateUniqueKey(
+                    thenNode.loc.get.stepString,
+                  ) -> thenNode.id.toString,
+                ),
               )
           }
         case _ =>
@@ -101,27 +113,33 @@ class Builder(cfg: CFG) {
     dumpJson(
       "no-loc-functions.json",
       noLocFuncs,
-      s"$FUZZ_LOG_DIR/no-loc-functions.json",
-      false,
+      s"$RECENT_DIR/no-loc-functions.json",
+      true,
     )
     dumpJson(
       "step-to-node.json",
       stepToNode,
-      s"$FUZZ_LOG_DIR/step-to-node.json",
-      false,
+      s"$RECENT_DIR/step-to-node.json",
+      true,
     )
     dumpJson(
-      "node-to-prog.json",
-      nodeToProg,
-      s"$FUZZ_LOG_DIR/node-to-prog.json",
-      false,
+      "node-to-progId.json",
+      nodeToProgId,
+      s"$RECENT_DIR/node-to-progId.json",
+      true,
+    )
+    dumpJson(
+      "progId-to-prog.json",
+      progIdToProg,
+      s"$RECENT_DIR/progId-to-prog.json",
+      true,
     )
 
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
 
-  private val RECENT_DIR = s"$FUZZ_LOG_DIR/recent"
+  private val RECENT_DIR = s"$FUZZ_LOG_DIR/fuzz-241218_11_14"
 
   case class StepToNodeBlock(
     name: String,
