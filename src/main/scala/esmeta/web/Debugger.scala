@@ -58,7 +58,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   /** step result */
   enum StepResult:
-    case Breaked, Terminated, Succeed
+    case Breaked, Terminated, Succeed, ReachedFront
 
   // step until given predicate
   // TODO handle yet
@@ -75,8 +75,10 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     count: Int,
     fn: Option[() => Unit] = None,
   ): StepResult = {
-    // throw exception if count is negative?
-    if (count <= 0) then return StepResult.Succeed
+    // XXX should throw exception if count is negative?
+    if (count <= 0) then
+      return if (getIter == 0) then StepResult.ReachedFront
+      else StepResult.Succeed
     stepUntil {
       fn.map(_())
       val current = getIter;
