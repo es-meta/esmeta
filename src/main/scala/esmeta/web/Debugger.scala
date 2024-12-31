@@ -26,13 +26,18 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // overrides IR interpreter
   // ---------------------------------------------------------------------------
   // transition for node to more fine-grained execution within block node
-  override def step: Boolean = (super.step, cursor) match
-    case (_, _: ExitCursor) if !st.callStack.isEmpty =>
-      saveBpCounts // save counter
-      val res = step
-      triggerBreaks // trigger breakpoints
-      res
-    case (res, _) => res
+  override def step: Boolean =
+    cursor match
+      case _: ExitCursor if !st.callStack.isEmpty =>
+        val ret = super.step
+        triggerBreaks;
+        ret
+      case _ =>
+        val ret = super.step;
+        cursor match
+          case _: NodeCursor                          => ret
+          case _: ExitCursor if !st.callStack.isEmpty => saveBpCounts; ret
+          case _: ExitCursor                          => ret
   override def eval(node: Node): Unit = {
     saveBpCounts // save counter
     (cursor, node) match
@@ -65,6 +70,18 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       else if (keep) StepResult.Succeed
       else StepResult.Terminated
     } else StepResult.Breaked
+
+  final def stepExactly(count: Int): StepResult = {
+    if (count <= 0) then return StepResult.Succeed
+    stepUntil {
+      val current = getIter;
+      current < count
+    }
+  }
+
+  final def reset: Option[Debugger] = for {
+    sourceText <- st.sourceText
+  } yield Debugger(cfg.init.from(sourceText))
 
   private def getIrInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
 
