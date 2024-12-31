@@ -51,12 +51,16 @@ object ExecRoute {
         path("specStepBack") {
           complete(
             HttpEntity(
-              ContentTypes.`application/json`, {
-                val old = debugger
-                initDebugger(old.reset.get)
-                val newD = debugger
-                debugger.stepExactly(old.getIter - 1)
-              },
+              ContentTypes.`application/json`,
+              debugger.specStepBack,
+            ),
+          )
+        },
+        path("specStepBackOver") {
+          complete(
+            HttpEntity(
+              ContentTypes.`application/json`,
+              debugger.specStepBackOver,
             ),
           )
         },

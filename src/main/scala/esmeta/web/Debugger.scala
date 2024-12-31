@@ -71,17 +71,39 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       else StepResult.Terminated
     } else StepResult.Breaked
 
-  final def stepExactly(count: Int): StepResult = {
+  private def stepExactly(
+    count: Int,
+    fn: Option[() => Unit] = None,
+  ): StepResult = {
+    // throw exception if count is negative?
     if (count <= 0) then return StepResult.Succeed
     stepUntil {
+      fn.map(_())
       val current = getIter;
       current < count
     }
   }
 
-  final def reset: Option[Debugger] = for {
-    sourceText <- st.sourceText
-  } yield Debugger(cfg.init.from(sourceText))
+  private def stepExactlyFromZero(
+    count: Int,
+    fn: Option[() => Unit] = None,
+  ): StepResult =
+    reset;
+    stepExactly(count, fn)
+
+  private def reset: Unit =
+    val newDOpt = for {
+      sourceText <- st.sourceText
+    } yield Debugger(cfg.init.from(sourceText))
+    val newD = newDOpt.get
+    this.st.context = newD.st.context
+    this.st.callStack = newD.st.callStack
+    this.st.heap.map.clear();
+    this.st.heap.map ++= newD.st.heap.map
+    this.st.heap.size = newD.st.heap.size
+    this.st.globals.clear()
+    this.st.globals ++= newD.st.globals
+    setIter(0)
 
   private def getIrInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
 
@@ -103,6 +125,30 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   final def specStepOut =
     val (_, prevStackSize) = getIrInfo
     stepUntil { prevStackSize <= getIrInfo._2 }
+
+  // spec step back
+  final def specStepBack: StepResult = {
+    val target = getIter - 1;
+    stepExactlyFromZero(target)
+  }
+
+  // spec step back over
+  final def specStepBackOver: StepResult = {
+    val (prevLoc, prevStackSize) = getIrInfo
+    val currentIter = getIter;
+    var target: Int = 0;
+    val calcTarget = () => {
+      val (loc, stackSize) = getIrInfo
+      val cond =
+        (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
+      if (!cond) then target = getIter
+    }
+    stepExactlyFromZero(
+      currentIter - 1,
+      Some(calcTarget),
+    )
+    stepExactlyFromZero(target)
+  }
 
   // es steps from ast span info
   private def getEsInfo =

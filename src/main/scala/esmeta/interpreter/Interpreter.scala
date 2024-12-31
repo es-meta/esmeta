@@ -397,7 +397,8 @@ class Interpreter(
   def moveExit: Unit =
     st.context.cursor = ExitCursor(st.func)
 
-  def getIter = iter
+  protected def getIter = iter
+  protected def setIter(i: Int) = iter = i
 
   // ---------------------------------------------------------------------------
   // private helpers
