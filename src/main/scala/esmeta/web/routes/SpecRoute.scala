@@ -5,6 +5,7 @@ import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import io.circe.syntax.*
 import esmeta.cfg.CFG
+import esmeta.spec.util.JsonProtocol.given
 import esmeta.web.*
 
 /** spec router */
@@ -22,6 +23,16 @@ object SpecRoute {
               .toList
               .asJson
               .noSpaces,
+          ),
+        )
+      }
+    },
+    path("version") {
+      get {
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            cfg.spec.version.asJson.noSpaces,
           ),
         )
       }
