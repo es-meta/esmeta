@@ -284,10 +284,10 @@ case class Coverage(
     // update target branches
     val neg = condView.neg
     cond.branch match
-      case _ if nearest.isEmpty          =>
-      case Branch(_, _, EBool(_), _, _)  =>
-      case _ if getScript(neg).isDefined => removeTargetCond(neg)
-      case _                             => addTargetCond(condView, nearest)
+      case _ if nearest.isEmpty            =>
+      case Branch(_, _, EBool(_), _, _, _) =>
+      case _ if getScript(neg).isDefined   => removeTargetCond(neg)
+      case _                               => addTargetCond(condView, nearest)
 
     condViewMap += cond -> updated(apply(cond), view, script)
   }
@@ -308,7 +308,7 @@ case class Coverage(
         _minimalInfo -= origScript.name
       }
     }
-    // increse counter of new script
+    // increase counter of new script
     _minimalScripts += script
     counter += script -> (counter.getOrElse(script, 0) + 1)
     map + (view -> script)

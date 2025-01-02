@@ -103,7 +103,7 @@ class DotPrinter(
             drawEdge(id, getId(next), getEdgeColor(node, next), None)
           case None =>
             drawEdge(id.toString, exitId, edgeColor, None)
-      case Branch(_, kind, cond, thenOpt, elseOpt) =>
+      case Branch(_, kind, cond, _, thenOpt, elseOpt) =>
         drawNode(id, "diamond", nodeColor, bgColor, Some(norm(cond)))
         thenOpt.map { thn =>
           drawEdge(id, getId(thn), getEdgeColor(node, thn), Some("true"))
