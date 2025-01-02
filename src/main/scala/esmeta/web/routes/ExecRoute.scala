@@ -30,6 +30,20 @@ object ExecRoute {
             complete(HttpEntity(ContentTypes.`application/json`, "null"))
           }
         },
+        // resume from iter count
+        path("resumeFromIter") {
+          entity(as[String]) { raw =>
+            decode[(String, List[(Boolean, Int, List[Int], Boolean)], Int)](
+              raw,
+            ) match
+              case Left(err) => ??? // TODO handle error
+              case Right((sourceText, bpDatas, iterCount)) =>
+                initDebugger(cfg, sourceText)
+                for { data <- bpDatas } debugger.addBreak
+                debugger.stepExactly(iterCount)
+            complete(HttpEntity(ContentTypes.`application/json`, "null"))
+          }
+        },
         // spec step
         path("specStep") {
           complete(

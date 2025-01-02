@@ -71,7 +71,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       else StepResult.Terminated
     } else StepResult.Breaked
 
-  private def stepExactly(
+  def stepExactly(
     count: Int,
     fn: Option[() => Unit] = None,
   ): StepResult = {
