@@ -2,44 +2,19 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.ir.{Func, Program}
+import esmeta.ir.*
 import esmeta.ir.util.JsonProtocol.given
 import esmeta.ir.util.{UnitWalker as IRUnitWalker}
 import esmeta.spec.{Algorithm, Grammar, Spec, Table}
 import esmeta.spec.util.JsonProtocol.given
-import esmeta.ty.*
-import esmeta.ty.util.JsonProtocol.{
-  given_Encoder_TyModel,
-  given_Decoder_TyModel,
-  given,
-}
 import esmeta.lang.Type
 import esmeta.lang.util.JsonProtocol.given
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*;
 import io.circe.parser.decode;
-
-import scala.util.chaining.*
-import scala.util.ChainingOps.*
-
-val x = given_Encoder_Intrinsic
-val y = given_Decoder_Directive
-
-import esmeta.ir.Inst
-
-// fast
-// import com.github.plokhotnyuk.jsoniter_scala.macros._
-// import com.github.plokhotnyuk.jsoniter_scala.core._
-// import esmeta.ir.util.FastJsonProtocol.given
-import esmeta.util.BaseUtils.*
-import esmeta.ir.Expr
-import esmeta.ir.EBinary
-import esmeta.lang.Syntax
-import esmeta.ir.util.JsonProtocol
-import esmeta.ir.AllocExpr
-import esmeta.ir.Name
 
 /** `dump` phase */
 case object Dump extends Phase[CFG, Unit] {
@@ -53,7 +28,6 @@ case object Dump extends Phase[CFG, Unit] {
     dumpAndCheck("program")(cfg.program.asJson.spaces2)
     val newFuncs = dumpAndCheck("funcs")(cfg.program.funcs).get
 
-    print("check locs ...")
     for {
       f <- cfg.program.funcs
       newF <- newFuncs.find(_.name == f.name)
@@ -86,16 +60,11 @@ case object Dump extends Phase[CFG, Unit] {
         }
       }
     }
-    print("check success")
 
-    // dumpAndCheck("spec")(cfg.spec)
     dumpAndCheck("grammar")(cfg.spec.grammar)
-    dumpAndCheck("tyModel.decls")(cfg.spec.tyModel.decls)
-    // dumpAndCheck("algorithms")(cfg.spec.algorithms)
+    dumpAndCheck("tyModel.decls")(cfg.spec.tyModel)
     dumpAndCheck("spec.tables")(cfg.spec.tables)
     dumpAndCheck("spec.version")(cfg.spec.version)
-
-    ()
   }
 
   private def dumpAndCheck[T: Encoder: Decoder](
@@ -121,23 +90,6 @@ case object Dump extends Phase[CFG, Unit] {
         None
     }
   }
-
-  // private def fastDumpAndCheck[T: JsonValueCodec](
-  //   tag: String,
-  // )(data: T): Unit = {
-  //   val (elapsed, jsonString) = time {
-  //     writeToString(data)
-  //   }
-  //   dumpFile(jsonString, s"$DUMP_LOG_DIR/$tag.fast.json")
-  //   (time { readFromString[T](jsonString) }) match {
-  //     case (read, Right(_)) =>
-  //       println(
-  //         s"$tag.fast is correct, write: $elapsed ms, read(parse): $read ms",
-  //       )
-  //     case (_, Left(error)) =>
-  //       println(s"$tag.fast is incorrect, error: (silent)")
-  //   }
-  // }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
