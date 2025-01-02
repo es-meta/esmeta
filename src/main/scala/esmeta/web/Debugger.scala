@@ -152,6 +152,22 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     stepExactlyFromZero(target)
   }
 
+  // spec step back out
+  final def specStepBackOut: StepResult = {
+    val (_, prevStackSize) = getIrInfo
+    val currentIter = getIter;
+    var target: Int = 0;
+    val calcTarget = () => {
+      val cond = prevStackSize <= getIrInfo._2
+      if (!cond) then target = getIter
+    }
+    stepExactlyFromZero(
+      currentIter - 1,
+      Some(calcTarget),
+    )
+    stepExactlyFromZero(target)
+  }
+
   // es steps from ast span info
   private def getEsInfo =
     val ctxts = st.context :: st.callStack.map(_.context)

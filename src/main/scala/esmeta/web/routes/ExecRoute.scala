@@ -78,6 +78,14 @@ object ExecRoute {
             ),
           )
         },
+        path("specStepBackOut") {
+          complete(
+            HttpEntity(
+              ContentTypes.`application/json`,
+              debugger.specStepBackOut,
+            ),
+          )
+        },
         // spec continue
         path("specContinue") {
           complete(
