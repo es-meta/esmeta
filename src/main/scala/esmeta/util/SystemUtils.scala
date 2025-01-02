@@ -117,10 +117,16 @@ object SystemUtils {
 
   /** read file */
   def readFile(filename: String): String =
-    val source = Source.fromFile(filename, ENC)
-    val str = source.mkString
-    source.close
-    str
+    try {
+      val source = Source.fromFile(filename, ENC)
+      val str = source.mkString
+      source.close
+      str
+    } catch {
+      case e: Exception =>
+        println(s"Error reading file: ${e.getMessage}")
+        ""
+    }
 
   /** read JSON */
   def readJson[T](filename: String)(implicit decoder: Decoder[T]): T =

@@ -412,7 +412,7 @@ class Interpreter(
   /** grammar */
   private def grammar = cfg.grammar
 
-  /** itereration count */
+  /** iteration count */
   private var iter = 0
 
   /** logging */
@@ -423,7 +423,7 @@ class Interpreter(
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
   // create a new context
-  private def createContext(
+  protected def createContext(
     call: Call,
     func: Func,
     locals: MMap[Local, Value],
@@ -431,7 +431,7 @@ class Interpreter(
   ): Context = createContext(call, func, locals, Some(prevCtxt))
 
   // create a new context
-  private def createContext(
+  protected def createContext(
     call: Call,
     func: Func,
     locals: MMap[Local, Value],
