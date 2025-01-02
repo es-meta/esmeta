@@ -86,6 +86,7 @@ case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
   val examples = List(
     "esmeta compile                        # compile spec to IR program.",
     "esmeta compile -extract:target=es2022 # compile es2022 spec to IR program",
+    "esmeta compile -compile:no-opt        # compile with out IR optimization",
   )
 }
 
@@ -141,6 +142,15 @@ case object CmdWeb extends Command("web", CmdBuildCFG >> Web) {
   val help = "starts a web server for an ECMAScript double debugger."
   val examples = List(
     "esmeta web    # turn on the server (Use with `esmeta-debugger-client`).",
+  )
+}
+
+/** `construct` command */
+case object CmdConstruct
+  extends Command("construct", CmdBuildCFG >> Construct) {
+  val help = "starts a web server for an ECMAScript double debugger."
+  val examples = List(
+    "esmeta construct    # builds file for ECMAVisualizer.",
   )
 }
 

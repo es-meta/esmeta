@@ -73,6 +73,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdParse,
     CmdEval,
     CmdWeb,
+    CmdConstruct,
     // Tester for Test262 (ECMAScript Test Suite)
     CmdTest262Test,
     // ECMAScript Fuzzer
@@ -99,6 +100,7 @@ object ESMeta extends Git(BASE_DIR) {
     Parse,
     Eval,
     Web,
+    Construct,
     // Tester for Test262 (ECMAScript Test Suite)
     Test262Test,
     // ECMAScript Fuzzer
