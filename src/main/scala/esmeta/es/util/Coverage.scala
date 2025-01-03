@@ -19,6 +19,7 @@ case class Coverage(
   kFs: Int = 0,
   cp: Boolean = false,
   timeLimit: Option[Int] = None,
+  total: Boolean = false,
 ) {
   import Coverage.{*, given}
 
@@ -33,16 +34,24 @@ case class Coverage(
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
 
   // mapping from nodes/conditions to scripts
-  private var nodeViewMap: Map[Node, Map[View, Script]] = Map()
+  private var nodeViewMap: Map[Node, Map[View, Set[Script]]] = Map()
   private var nodeViews: Set[NodeView] = Set()
-  private var condViewMap: Map[Cond, Map[View, Script]] = Map()
+  private var condViewMap: Map[Cond, Map[View, Set[Script]]] = Map()
   private var condViews: Set[CondView] = Set()
 
-  def apply(node: Node): Map[View, Script] = nodeViewMap.getOrElse(node, Map())
-  def getScript(nv: NodeView): Option[Script] = apply(nv.node).get(nv.view)
+  def apply(node: Node): Map[View, Set[Script]] =
+    nodeViewMap.getOrElse(node, Map())
+  def getScripts(nv: NodeView): Option[Set[Script]] =
+    apply(nv.node).get(nv.view)
+  def getScript(nv: NodeView): Option[Script] =
+    getScripts(nv).flatMap(s => if total then s.headOption else None)
 
-  def apply(cond: Cond): Map[View, Script] = condViewMap.getOrElse(cond, Map())
-  def getScript(cv: CondView): Option[Script] = apply(cv.cond).get(cv.view)
+  def apply(cond: Cond): Map[View, Set[Script]] =
+    condViewMap.getOrElse(cond, Map())
+  def getScripts(cv: CondView): Option[Set[Script]] =
+    apply(cv.cond).get(cv.view)
+  def getScript(cv: CondView): Option[Script] =
+    getScripts(cv).flatMap(s => if total then s.headOption else None)
 
   // script reference counter
   private var counter: Map[Script, Int] = Map()
@@ -95,27 +104,40 @@ case class Coverage(
     // update node coverage
     for ((nodeView, nearest) <- interp.touchedNodeViews)
       touchedNodeViews += nodeView -> nearest
-      getScript(nodeView) match
+      getScripts(nodeView) match
         case None => update(nodeView, script); updated = true; covered = true
-        case Some(originalScript) if originalScript.code.length > code.length =>
-          update(nodeView, script)
-          updated = true
-          blockingScripts += originalScript
-        case Some(blockScript) => blockingScripts += blockScript
+        case Some(scripts) =>
+          if (total) {
+            update(nodeView, script)
+            updated = true
+          } else {
+            val originalScript = scripts.head
+            if (originalScript.code.length > code.length) {
+              update(nodeView, script)
+              updated = true
+            }
+            blockingScripts += originalScript
+          }
 
     // update branch coverage
     for ((condView, nearest) <- interp.touchedCondViews)
       touchedCondViews += condView -> nearest
-      getScript(condView) match
+      getScripts(condView) match
         case None =>
           update(condView, nearest, script); updated = true; covered = true
-        case Some(origScript) if origScript.code.length > code.length =>
-          update(condView, nearest, script)
-          updated = true
-          blockingScripts += origScript
-        case Some(blockScript) => blockingScripts += blockScript
+        case Some(scripts) =>
+          if (total) {
+            update(condView, nearest, script)
+            updated = true
+          } else {
+            val originalScript = scripts.head
+            if (originalScript.code.length > code.length)
+              update(condView, nearest, script)
+              updated = true
+            blockingScripts += originalScript
+          }
 
-    if (updated)
+    if (!total && updated)
       _minimalInfo += script.name -> ScriptInfo(
         // TODO ConformTest.createTest(cfg, finalSt),
         touchedNodeViews.keys,
@@ -286,7 +308,7 @@ case class Coverage(
     cond.branch match
       case _ if nearest.isEmpty            =>
       case Branch(_, _, EBool(_), _, _, _) =>
-      case _ if getScript(neg).isDefined   => removeTargetCond(neg)
+      case _ if getScripts(neg).isDefined  => removeTargetCond(neg)
       case _                               => addTargetCond(condView, nearest)
 
     condViewMap += cond -> updated(apply(cond), view, script)
@@ -294,24 +316,26 @@ case class Coverage(
 
   // update mapping
   private def updated[View](
-    map: Map[View, Script],
+    map: Map[View, Set[Script]],
     view: View,
     script: Script,
-  ): Map[View, Script] =
-    // decrease counter of original script
-    for (origScript <- map.get(view)) {
-      val count = counter(origScript) - 1
-      counter += (origScript -> count)
-      if (count == 0) {
-        counter -= origScript
-        _minimalScripts -= origScript
-        _minimalInfo -= origScript.name
+  ): Map[View, Set[Script]] =
+    if (!total)
+      // decrease counter of original script
+      map.get(view).flatMap(_.headOption).foreach { origScript =>
+        val count = counter(origScript) - 1
+        counter += (origScript -> count)
+        if (count == 0) {
+          counter -= origScript
+          if (!total)
+            _minimalScripts -= origScript
+            _minimalInfo -= origScript.name
+        }
       }
-    }
-    // increase counter of new script
-    _minimalScripts += script
-    counter += script -> (counter.getOrElse(script, 0) + 1)
-    map + (view -> script)
+      // increase counter of new script
+      _minimalScripts += script
+      counter += script -> (counter.getOrElse(script, 0) + 1)
+    map + (view -> (map.getOrElse(view, Set()) + script))
 
   // add a cond to targetConds
   private def addTargetCond(cv: CondView, nearest: Option[Nearest]): Unit =
@@ -335,15 +359,15 @@ case class Coverage(
   private def nodeViewInfos(ordered: List[NodeView]): List[NodeViewInfo] =
     for {
       (nodeView, idx) <- ordered.zipWithIndex
-      script <- getScript(nodeView)
-    } yield NodeViewInfo(idx, nodeView, script.name)
+      scripts <- getScripts(nodeView)
+    } yield NodeViewInfo(idx, nodeView, scripts.map(_.name))
 
   // get JSON for branch coverage
   private def condViewInfos(ordered: List[CondView]): List[CondViewInfo] =
     for {
       (condView, idx) <- ordered.zipWithIndex
-      script <- getScript(condView)
-    } yield CondViewInfo(idx, condView, script.name)
+      scripts <- getScripts(condView)
+    } yield CondViewInfo(idx, condView, scripts.map(_.name))
 }
 
 object Coverage {
@@ -441,8 +465,8 @@ object Coverage {
   given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
 
   // meta-info for each view or features
-  case class NodeViewInfo(index: Int, nodeView: NodeView, script: String)
-  case class CondViewInfo(index: Int, condView: CondView, script: String)
+  case class NodeViewInfo(index: Int, nodeView: NodeView, script: Set[String])
+  case class CondViewInfo(index: Int, condView: CondView, script: Set[String])
 
   case class CoverageConstructor(
     kFs: Int,
