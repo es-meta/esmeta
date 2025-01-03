@@ -41,6 +41,7 @@ class WebServer(cfg: CFG, port: Int) {
           pathPrefix("exec")(ExecRoute(cfg)), // exec route
           pathPrefix("breakpoint")(BreakpointRoute()), // breakpoint route
           pathPrefix("state")(StateRoute()), // state route
+          pathPrefix("meta")(MetaRoute()), // meta route
         ),
       )
     }
