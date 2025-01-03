@@ -1,6 +1,6 @@
 package esmeta.state
 
-import esmeta.cfg.{Func, Block, Call}
+import esmeta.cfg.{Func, Node, Block, Call}
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.Ast
 import esmeta.util.BaseUtils.error
@@ -17,6 +17,9 @@ case class Context(
 
   /** current cursor in this context */
   var cursor: Cursor = NodeCursor(func, func.entry)
+
+  /** visited nodes */
+  var visited: Set[Node] = Set()
 
   /** move one instruction */
   def moveInst: Unit = cursor match

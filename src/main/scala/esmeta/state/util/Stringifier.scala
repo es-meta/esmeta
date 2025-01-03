@@ -53,6 +53,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app.wrap {
       app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
       app :> "local-vars: " >> ctxt.locals
+      app :> "visited: "
+      app.wrapIterable("[", ",", "]")(ctxt.visited.toList.map(_.id).sorted)
       ctxt.retVal.map(app :> "return: " >> _)
     }
 

@@ -85,7 +85,10 @@ class Interpreter(
 
   /** transition for cursors */
   def eval(cursor: Cursor): Boolean = cursor match
-    case NodeCursor(_, node, _) => eval(node); true
+    case NodeCursor(_, node, _) =>
+      st.context.visited += node
+      eval(node)
+      true
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
