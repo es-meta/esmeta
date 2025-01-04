@@ -64,15 +64,15 @@ case class Test262(
   val spec = cfg.spec
 
   /** load test262 */
-  def loadTest(filename: String): Code =
+  def loadTest(filename: String): (Code, Vector[Ast]) =
     loadTest(filename, Test(filename).includes)
 
   /** load test262 with harness files */
-  def loadTest(filename: String, includes: List[String]): Code =
+  def loadTest(filename: String, includes: List[String]): (Code, Vector[Ast]) =
     // load harness
     val harness = includes.foldLeft(basicHarness)(_ + getHarness(_))
     // merge with harnesses
-    (harness + parseFile(filename).toCodeVec).toCode
+    ((harness + parseFile(filename).toCodeVec).toCode, harness._1)
 
   /** get tests */
   def getTests(
@@ -177,8 +177,8 @@ case class Test262(
           if (!useCoverage)
             evalFile(filename, log && !multiple, detail, Some(logPW), timeLimit)
           else {
-            val (ast, code) = loadTest(filename)
-            cov.runAndCheck(Script(code, filename), ast)._1
+            val ((ast, code), harness) = loadTest(filename)
+            cov.runAndCheck(Script(code, filename), ast, Some(harness))._1
           }
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
@@ -260,7 +260,7 @@ case class Test262(
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
-    val (ast, code) = loadTest(filename)
+    val ((ast, code), _) = loadTest(filename)
     eval(code, ast, log, detail, logPW, timeLimit)
 
   // eval ECMAScript code
