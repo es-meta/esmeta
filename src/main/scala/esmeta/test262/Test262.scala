@@ -127,6 +127,8 @@ case class Test262(
     detail: Boolean = false,
     useProgress: Boolean = false,
     useCoverage: Boolean = false,
+    kFs: Int = 0,
+    cp: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
     concurrent: CP = CP.Single,
     verbose: Boolean = false,
@@ -159,6 +161,8 @@ case class Test262(
     lazy val cov = Coverage(
       cfg = cfg,
       timeLimit = timeLimit,
+      kFs = kFs,
+      cp = cp,
       rank = true,
     )
 

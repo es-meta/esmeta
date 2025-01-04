@@ -50,6 +50,8 @@ case object Test262Test extends Phase[CFG, Summary] {
       config.detail,
       config.progress,
       config.coverage,
+      config.kFs,
+      config.cp,
       config.timeLimit,
       config.concurrent,
     )
@@ -81,6 +83,16 @@ case object Test262Test extends Phase[CFG, Summary] {
       "coverage",
       BoolOption(_.coverage = _),
       "measure node/branch coverage in CFG of ECMA-262.",
+    ),
+    (
+      "k-fs",
+      NumOption((c, k) => c.kFs = k),
+      "set the k-value for feature sensitivity (default: 0).",
+    ),
+    (
+      "cp",
+      BoolOption((c, b) => c.cp = b),
+      "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
     ),
     (
       "timeout",
@@ -115,6 +127,8 @@ case object Test262Test extends Phase[CFG, Summary] {
   case class Config(
     var target: Option[String] = None,
     var coverage: Boolean = false,
+    var cp: Boolean = false,
+    var kFs: Int = 0,
     var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,

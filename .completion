@@ -22,7 +22,7 @@ _esmeta_completions() {
   evalOpt="-eval:timeout -eval:multiple -eval:log -eval:detail-log"
   webOpt="-web:port"
   constructOpt=""
-  test262testOpt="-test262-test:target -test262-test:features -test262-test:progress -test262-test:coverage -test262-test:timeout -test262-test:with-yet -test262-test:log -test262-test:detail-log -test262-test:concurrent"
+  test262testOpt="-test262-test:target -test262-test:features -test262-test:progress -test262-test:coverage -test262-test:k-fs -test262-test:cp -test262-test:timeout -test262-test:with-yet -test262-test:log -test262-test:detail-log -test262-test:concurrent"
   fuzzOpt="-fuzz:log -fuzz:log-interval -fuzz:out -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:cp -fuzz:init -fuzz:k-fs"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
