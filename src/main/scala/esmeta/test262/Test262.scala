@@ -159,7 +159,7 @@ case class Test262(
     lazy val cov = Coverage(
       cfg = cfg,
       timeLimit = timeLimit,
-      total = true,
+      rank = true,
     )
 
     // run tests with logging
