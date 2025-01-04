@@ -56,6 +56,10 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // execution control
   // ---------------------------------------------------------------------------
 
+  /** ignore break point flag */
+  private var globalBPIgnoreFlag: Boolean = false
+  final def toggleIgnoreFlag(): Unit = globalBPIgnoreFlag = !globalBPIgnoreFlag
+
   /** step result */
   enum StepResult:
     case Breaked, Terminated, Succeed, ReachedFront
@@ -126,21 +130,27 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step
   final def specStep = {
     val (prevLoc, _) = getIrInfo
-    stepUntil { prevLoc._2.isDefined && prevLoc == getIrInfo._1 }
+    stepUntil(
+      { prevLoc._2.isDefined && prevLoc == getIrInfo._1 },
+      globalBPIgnoreFlag,
+    )
   }
 
   // spec step over
   final def specStepOver =
     val (prevLoc, prevStackSize) = getIrInfo
-    stepUntil {
-      val (loc, stackSize) = getIrInfo
-      (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
-    }
+    stepUntil(
+      {
+        val (loc, stackSize) = getIrInfo
+        (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
+      },
+      globalBPIgnoreFlag,
+    )
 
   // spec step out
   final def specStepOut =
     val (_, prevStackSize) = getIrInfo
-    stepUntil { prevStackSize <= getIrInfo._2 }
+    stepUntil({ prevStackSize <= getIrInfo._2 }, globalBPIgnoreFlag)
 
   // spec step back
   final def specStepBack: StepResult = {
@@ -155,7 +165,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     }
 
     stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
-    stepExactlyFrom(target)
+    stepExactlyFrom(target, globalBPIgnoreFlag)
   }
 
   // spec step back over
@@ -189,12 +199,13 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     }
 
     stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
-    stepExactlyFrom(
-      currentIter - 1,
-      true,
-      from = Some(target),
-      fn = Some(calcBp),
-    )
+    if (globalBPIgnoreFlag)
+      stepExactlyFrom(
+        currentIter - 1,
+        true,
+        from = Some(target),
+        fn = Some(calcBp),
+      )
     val result = stepExactlyFrom(target, true)
     if (breakFlag) StepResult.Breaked else result
   }
@@ -230,12 +241,13 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     }
 
     stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
-    stepExactlyFrom(
-      currentIter - 1,
-      true,
-      from = Some(target),
-      fn = Some(calcBp),
-    )
+    if (globalBPIgnoreFlag)
+      stepExactlyFrom(
+        currentIter - 1,
+        true,
+        from = Some(target),
+        fn = Some(calcBp),
+      )
     val result = stepExactlyFrom(target, true)
     if (breakFlag) StepResult.Breaked else result
   }
@@ -273,6 +285,37 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // continue
   final def continue: StepResult = stepUntil { true }
+
+  // rewind
+  final def rewind: StepResult = {
+    val (prevLoc, prevStackSize) = getIrInfo
+    val currentIter = getIter
+    var target: Int = 0
+    var breakFlag: Boolean = false
+
+    val calcBp = () => {
+      val (loc, stackSize) = getIrInfo
+      val sameStep =
+        (prevLoc._2.isDefined && prevLoc == loc) && (prevStackSize == stackSize)
+      breakpoints.foreach {
+        case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
+          if (
+            st.context.func.id == fid && st.context.cursor.stepsOpt == Some(
+              steps,
+            )
+          )
+            breakFlag = true
+            target = getIter
+        case _ =>
+      }
+    }
+
+    stepExactlyFrom(currentIter - 1, true, fn = Some(calcBp))
+    if (breakFlag)
+      stepExactlyFrom(target, true)
+      StepResult.Breaked
+    else stepExactlyFrom(currentIter, true)
+  }
 
   // ---------------------------------------------------------------------------
   // breakpoints

@@ -30,6 +30,13 @@ object ExecRoute {
             complete(HttpEntity(ContentTypes.`application/json`, "null"))
           }
         },
+        // toggleIgnoreFlag
+        path("ignoreFlag") {
+          debugger.toggleIgnoreFlag()
+          complete(
+            HttpEntity(ContentTypes.`application/json`, "null"),
+          )
+        },
         // resume from iter count
         path("resumeFromIter") {
           entity(as[String]) { raw =>
@@ -90,6 +97,11 @@ object ExecRoute {
         path("specContinue") {
           complete(
             HttpEntity(ContentTypes.`application/json`, debugger.continue),
+          )
+        },
+        path("specRewind") {
+          complete(
+            HttpEntity(ContentTypes.`application/json`, debugger.rewind),
           )
         },
         // ECMAScript steps
