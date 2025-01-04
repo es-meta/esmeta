@@ -329,8 +329,7 @@ case class Coverage(
     view: View,
     script: Script,
   ): Map[View, Map[Script, Int]] =
-    if (!rank)
-      // decrease counter of original script
+    if (!rank) { // decrease counter of original script
       map.get(view).flatMap(_.headOption).map(_._1).foreach { origScript =>
         val count = counter(origScript) - 1
         counter += (origScript -> count)
@@ -344,8 +343,11 @@ case class Coverage(
       // increase counter of new script
       _minimalScripts += script
       counter += script -> (counter.getOrElse(script, 0) + 1)
-    map + (view -> (map.getOrElse(view, Map()) +
-    ((script -> (map.getOrElse(view, Map()).getOrElse(script, 0) + 1)))))
+      map + (view -> Map(script -> 1))
+    } else {
+      map + (view -> (map.getOrElse(view, Map()) +
+      ((script -> (map.getOrElse(view, Map()).getOrElse(script, 0) + 1)))))
+    }
 
   // add a cond to targetConds
   private def addTargetCond(cv: CondView, nearest: Option[Nearest]): Unit =
