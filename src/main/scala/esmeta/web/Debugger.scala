@@ -28,7 +28,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // transition for node to more fine-grained execution within block node
   override def step: Boolean =
     cursor match
-      case _: ExitCursor if !st.callStack.isEmpty =>
+      case _: ExitCursor if st.callStack.nonEmpty =>
         val ret = super.step
         triggerBreaks;
         ret
@@ -36,7 +36,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
         val ret = super.step;
         cursor match
           case _: NodeCursor                          => ret
-          case _: ExitCursor if !st.callStack.isEmpty => saveBpCounts; ret
+          case _: ExitCursor if st.callStack.nonEmpty => saveBpCounts; ret
           case _: ExitCursor                          => ret
   override def eval(node: Node): Unit = {
     saveBpCounts // save counter
@@ -64,12 +64,16 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // TODO handle yet
   @tailrec
   final def stepUntil(pred: => Boolean): StepResult =
-    if (!isBreaked) {
-      val keep = step
-      if (pred && keep) stepUntil(pred)
-      else if (keep) StepResult.Succeed
-      else StepResult.Terminated
-    } else StepResult.Breaked
+    val keep = step
+    val break = isBreaked
+
+    if (pred && keep && !break) stepUntil(pred)
+    else if (break)
+      StepResult.Breaked
+    else if (keep)
+      StepResult.Succeed
+    else
+      StepResult.Terminated
 
   def stepExactly(
     count: Int,
@@ -130,8 +134,20 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // spec step back
   final def specStepBack: StepResult = {
-    val target = getIter - 1;
-    stepExactlyFromZero(target)
+    val (prevLoc, prevStackSize) = getIrInfo
+    val currentIter = getIter;
+    var target: Int = 0;
+    val calcTarget = () => {
+      val (loc, stackSize) = getIrInfo
+      val cond =
+        prevLoc._2.isDefined && prevLoc == getIrInfo._1
+      if (!cond) then target = getIter
+    }
+
+    ignoreBps[StepResult] {
+      stepExactlyFromZero(currentIter - 1, Some(calcTarget))
+      stepExactlyFromZero(target)
+    }
   }
 
   // spec step back over
@@ -145,11 +161,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
         (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
       if (!cond) then target = getIter
     }
-    stepExactlyFromZero(
-      currentIter - 1,
-      Some(calcTarget),
-    )
-    stepExactlyFromZero(target)
+
+    ignoreBps[StepResult] {
+      stepExactlyFromZero(currentIter - 1, Some(calcTarget))
+      stepExactlyFromZero(target)
+    }
   }
 
   // spec step back out
@@ -161,11 +177,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       val cond = prevStackSize <= getIrInfo._2
       if (!cond) then target = getIter
     }
-    stepExactlyFromZero(
-      currentIter - 1,
-      Some(calcTarget),
-    )
-    stepExactlyFromZero(target)
+
+    ignoreBps[StepResult] {
+      stepExactlyFromZero(currentIter - 1, Some(calcTarget))
+      stepExactlyFromZero(target)
+    }
   }
 
   // es steps from ast span info
@@ -264,6 +280,22 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // breakpoints
   private val breakpoints: ListBuffer[Breakpoint] = ListBuffer()
+  private def disableBps(): List[Int] = {
+    val enabledIndices = breakpoints.zipWithIndex.collect {
+      case (bp, idx) if bp.enabled => idx
+    }.toList
+    breakpoints.foreach(_.enabled = false)
+    enabledIndices
+  }
+  private def enableBps(enableIndices: List[Int]): Unit = {
+    enableIndices.foreach((idx) => breakpoints(idx).enabled = true)
+  }
+  protected def ignoreBps[T](action: => T): T = {
+    val enabledIndices = disableBps()
+    val result = action
+    enableBps(enabledIndices)
+    result
+  }
 
   // trigger breakpoints
   private def triggerBreaks: Unit =
