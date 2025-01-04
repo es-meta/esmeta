@@ -65,6 +65,14 @@ case object Dump extends Phase[CFG, Unit] {
     dumpAndCheck("tyModel.decls")(cfg.spec.tyModel)
     dumpAndCheck("spec.tables")(cfg.spec.tables)
     dumpAndCheck("spec.version")(cfg.spec.version)
+    dumpAndCheck("irFuncToCode")(
+      Map.from(
+        cfg.program.funcs.map { f =>
+          f.name -> f.algo.map(_.code)
+        },
+      ),
+    )
+
   }
 
   private def dumpAndCheck[T: Encoder: Decoder](
