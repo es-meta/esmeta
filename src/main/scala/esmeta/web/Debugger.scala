@@ -52,16 +52,26 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     triggerBreaks // trigger breakpoints
   }
 
+  override def eval(expr: Expr): Value = expr match {
+    case _: AllocExpr =>
+      val addr = super.eval(expr)
+      provenance._2 match {
+        case Some(provAddr) if provAddr == addr => provenance = (getIter, None)
+        case _                                  =>
+      }
+      addr
+    case _ => super.eval(expr)
+  }
+
   // ---------------------------------------------------------------------------
   // execution control
   // ---------------------------------------------------------------------------
 
-  /** ignore break point flag */
+  /** ToDo : eliminate unnecessary mutable variables */
   private var globalBPIgnoreFlag: Boolean = false
   final def toggleIgnoreFlag(): Unit = globalBPIgnoreFlag = !globalBPIgnoreFlag
-
-  /** check if it was exited cursor */
   private var wasExited: Boolean = false
+  private var provenance: (Int, Option[Addr]) = (0, None)
 
   /** step result */
   enum StepResult:
@@ -334,6 +344,12 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     else stepExactlyFrom(currentIter, true)
   }
 
+  final def stepBackToProvenance(addr: Addr): StepResult = {
+    provenance = (0, Some(addr))
+    stepExactlyFrom(getIter, true)
+    stepExactlyFrom(provenance._1, true)
+  }
+
   // ---------------------------------------------------------------------------
   // breakpoints
   // ---------------------------------------------------------------------------
@@ -512,7 +528,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       wasExited,
       c.locals.collect {
         case (Name(name), v) => (name, v.toString)
-      }.toList,
+      }.toList ++ c.retVal.map { case (_, v) => ("return", v.toString) },
     )
 
     getInfo(st.context, wasExited) :: st.callStack

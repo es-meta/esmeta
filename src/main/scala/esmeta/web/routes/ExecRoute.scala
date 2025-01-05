@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import esmeta.cfg.CFG
+import esmeta.state.DynamicAddr
 import esmeta.web.*
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 import io.circe.generic.semiauto.*
@@ -30,12 +31,28 @@ object ExecRoute {
             complete(HttpEntity(ContentTypes.`application/json`, "null"))
           }
         },
-        // toggleIgnoreFlag
+        // toggle global ignore flag
         path("ignoreFlag") {
           debugger.toggleIgnoreFlag()
           complete(
             HttpEntity(ContentTypes.`application/json`, "null"),
           )
+        },
+        // step back to provenance
+        path("backToProvenance") {
+          entity(as[String]) { raw =>
+            // ToDo - support named address
+            decode[String](
+              raw,
+            ) match
+              case Left(err)   => ??? // TODO handle error
+              case Right(addr) =>
+                // ToDo - handle NumberFormatException
+                debugger.stepBackToProvenance(
+                  DynamicAddr(addr.filter(_.isDigit).toLong),
+                )
+            complete(HttpEntity(ContentTypes.`application/json`, "null"))
+          }
         },
         // resume from iter count
         path("resumeFromIter") {
