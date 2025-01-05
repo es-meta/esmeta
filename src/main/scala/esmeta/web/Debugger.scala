@@ -26,18 +26,18 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // overrides IR interpreter
   // ---------------------------------------------------------------------------
   // transition for node to more fine-grained execution within block node
-  override def step: Boolean =
-    cursor match
+  override def step: Boolean = {
+    val ret = super.step
+    cursor match {
       case _: ExitCursor if st.callStack.nonEmpty =>
-        val ret = super.step
         triggerBreaks
-        ret
-      case _ =>
-        val ret = super.step
-        cursor match
-          case _: NodeCursor                          => ret
-          case _: ExitCursor if st.callStack.nonEmpty => saveBpCounts; ret
-          case _: ExitCursor                          => ret
+        saveBpCounts
+      case _: ExitCursor =>
+      case _: NodeCursor =>
+    }
+    ret
+  }
+
   override def eval(node: Node): Unit = {
     saveBpCounts // save counter
     (cursor, node) match
@@ -60,6 +60,9 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   private var globalBPIgnoreFlag: Boolean = false
   final def toggleIgnoreFlag(): Unit = globalBPIgnoreFlag = !globalBPIgnoreFlag
 
+  /** check if it was exited cursor */
+  private var wasExited: Boolean = false
+
   /** step result */
   enum StepResult:
     case Breaked, Terminated, Succeed, ReachedFront
@@ -71,7 +74,12 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     pred: => Boolean,
     ignoreBreak: Boolean = false,
   ): StepResult =
+    val (prevLoc, prevStackSize) = getIrInfo
     val keep = step
+    val (curLoc, curStackSize) = getIrInfo
+
+    wasExited =
+      prevStackSize > curStackSize || (wasExited && prevLoc._2 == curLoc._2)
     val break = isBreaked && !ignoreBreak
 
     if (pred && keep && !break) stepUntil(pred, ignoreBreak)
@@ -154,41 +162,53 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // spec step back
   final def specStepBack: StepResult = {
-    val (prevLoc, prevStackSize) = getIrInfo
-    val currentIter = getIter
+    val (curLoc, curStackSize) = getIrInfo
+    val curIter = getIter
+    var breakFlag: Boolean = false
+
     var target: Int = 0
     val calcTarget = () => {
-      val (loc, stackSize) = getIrInfo
-      val cond =
-        prevLoc._2.isDefined && prevLoc == getIrInfo._1
-      if !cond then target = getIter
+      val (iterLoc, iterStackSize) = getIrInfo
+      val iterCond = curLoc._2.isDefined && curLoc == iterLoc
+      if (!iterCond) {
+        target = getIter
+        breakpoints.foreach {
+          case SpecBreakpoint(fid, steps, true)
+              if st.context.func.id == fid && iterLoc._2.contains(
+                steps,
+              ) =>
+            breakFlag = true
+          case _ => breakFlag = false
+        }
+      }
     }
 
-    stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
-    stepExactlyFrom(target, globalBPIgnoreFlag)
+    stepExactlyFrom(curIter - 1, true, fn = Some(calcTarget))
+    val result = stepExactlyFrom(target, true)
+    if (breakFlag && !globalBPIgnoreFlag) StepResult.Breaked else result
   }
 
   // spec step back over
   final def specStepBackOver: StepResult = {
-    val (prevLoc, prevStackSize) = getIrInfo
+    val (curLoc, curStackSize) = getIrInfo
     val currentIter = getIter
+
     var target: Int = 0
-    var breakFlag: Boolean = false
     val calcTarget = () => {
-      val (loc, stackSize) = getIrInfo
+      val (iterLoc, iterStackSize) = getIrInfo
       val cond =
-        (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
+        (curLoc._2.isDefined && curLoc == iterLoc) || (curStackSize < iterStackSize)
       if !cond then target = getIter
     }
 
+    var breakFlag: Boolean = false
     val calcBp = () => {
-      val (loc, stackSize) = getIrInfo
-      val sameStep =
-        (prevLoc._2.isDefined && prevLoc == loc) && (prevStackSize == stackSize)
+      val (iterLoc, iterStackSize) = getIrInfo
+      val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
       breakpoints.foreach {
         case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
           if (
-            st.context.func.id == fid && st.context.cursor.stepsOpt == Some(
+            st.context.func.id == fid && iterLoc._2.contains(
               steps,
             )
           )
@@ -199,7 +219,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     }
 
     stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
-    if (globalBPIgnoreFlag)
+    if (!globalBPIgnoreFlag)
       stepExactlyFrom(
         currentIter - 1,
         true,
@@ -212,25 +232,23 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // spec step back out
   final def specStepBackOut: StepResult = {
-    val (prevLoc, prevStackSize) = getIrInfo
+    val (curLoc, curStackSize) = getIrInfo
     val currentIter = getIter
 
     var target: Int = 0
     var breakFlag: Boolean = false
 
     val calcTarget = () => {
-      val cond = prevStackSize <= getIrInfo._2
-      if !cond then target = getIter
+      if !(curStackSize <= getIrInfo._2) then target = getIter
     }
 
     val calcBp = () => {
-      val (loc, stackSize) = getIrInfo
-      val sameStep =
-        (prevLoc._2.isDefined && prevLoc == loc) && (prevStackSize == stackSize)
+      val (iterLoc, iterStackSize) = getIrInfo
+      val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
       breakpoints.foreach {
         case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
           if (
-            st.context.func.id == fid && st.context.cursor.stepsOpt == Some(
+            st.context.func.id == fid && iterLoc._2.contains(
               steps,
             )
           )
@@ -241,7 +259,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     }
 
     stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
-    if (globalBPIgnoreFlag)
+    if (!globalBPIgnoreFlag)
       stepExactlyFrom(
         currentIter - 1,
         true,
@@ -288,19 +306,18 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // rewind
   final def rewind: StepResult = {
-    val (prevLoc, prevStackSize) = getIrInfo
+    val (curLoc, curStackSize) = getIrInfo
     val currentIter = getIter
     var target: Int = 0
     var breakFlag: Boolean = false
 
     val calcBp = () => {
-      val (loc, stackSize) = getIrInfo
-      val sameStep =
-        (prevLoc._2.isDefined && prevLoc == loc) && (prevStackSize == stackSize)
+      val (iterLoc, iterStackSize) = getIrInfo
+      val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
       breakpoints.foreach {
         case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
           if (
-            st.context.func.id == fid && st.context.cursor.stepsOpt == Some(
+            st.context.func.id == fid && iterLoc._2.contains(
               steps,
             )
           )
@@ -488,15 +505,19 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   /** call stack information */
   def callStackInfo =
-    def getInfo(c: Context) = (
+    def getInfo(c: Context, wasExited: Boolean = false) = (
       c.func.id,
       c.name,
       c.cursor.stepsOpt.getOrElse(List()),
+      wasExited,
       c.locals.collect {
         case (Name(name), v) => (name, v.toString)
       }.toList,
     )
-    (st.context :: st.callStack.map(_.context)).map(getInfo(_))
+
+    getInfo(st.context, wasExited) :: st.callStack
+      .map(_.context)
+      .map(getInfo(_))
 
   /** context information */
   def ctxtInfo(cid: Int) =
