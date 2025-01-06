@@ -2,12 +2,13 @@ package esmeta.web
 
 import esmeta.cfg.*
 import esmeta.es.Ast
-import esmeta.ir.{Func => IRFunc, *}
+import esmeta.ir.{Func as IRFunc, *}
 import esmeta.interpreter.Interpreter
 import esmeta.lang.Syntax
 import esmeta.spec.{Algorithm, SyntaxDirectedOperationHead}
 import esmeta.state.*
 import esmeta.util.Loc
+
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
@@ -68,8 +69,6 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // ---------------------------------------------------------------------------
 
   /** ToDo : eliminate unnecessary mutable variables */
-  private var globalBPIgnoreFlag: Boolean = false
-  final def toggleIgnoreFlag(): Unit = globalBPIgnoreFlag = !globalBPIgnoreFlag
   private var wasExited: Boolean = false
   private var provenance: (Int, Option[Addr]) = (0, None)
 
@@ -146,37 +145,37 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   private def getIrInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
 
   // spec step
-  final def specStep = {
+  final def specStep(ignoreBreak: Boolean = false) = {
     val (prevLoc, _) = getIrInfo
     stepUntil(
       { prevLoc._2.isDefined && prevLoc == getIrInfo._1 },
-      globalBPIgnoreFlag,
+      ignoreBreak,
     )
   }
 
   // spec step over
-  final def specStepOver =
+  final def specStepOver(ignoreBreak: Boolean = false) =
     val (prevLoc, prevStackSize) = getIrInfo
     stepUntil(
       {
         val (loc, stackSize) = getIrInfo
         (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
       },
-      globalBPIgnoreFlag,
+      ignoreBreak,
     )
 
   // spec step out
-  final def specStepOut =
+  final def specStepOut(ignoreBreak: Boolean = false) =
     val (_, prevStackSize) = getIrInfo
-    stepUntil({ prevStackSize <= getIrInfo._2 }, globalBPIgnoreFlag)
+    stepUntil({ prevStackSize <= getIrInfo._2 }, ignoreBreak)
 
   // spec step back
-  final def specStepBack: StepResult = {
-    val (curLoc, curStackSize) = getIrInfo
-    val curIter = getIter
-    var breakFlag: Boolean = false
+  final def specStepBack(ignoreBreak: Boolean = false) = {
+    val ((curLoc, curStackSize), curIter) = (getIrInfo, getIter)
 
     var target: Int = 0
+    var breakFlag: Boolean = false
+
     val calcTarget = () => {
       val (iterLoc, iterStackSize) = getIrInfo
       val iterCond = curLoc._2.isDefined && curLoc == iterLoc
@@ -195,11 +194,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
     stepExactlyFrom(curIter - 1, true, fn = Some(calcTarget))
     val result = stepExactlyFrom(target, true)
-    if (breakFlag && !globalBPIgnoreFlag) StepResult.Breaked else result
+    if (breakFlag && !ignoreBreak) StepResult.Breaked else result
   }
 
   // spec step back over
-  final def specStepBackOver: StepResult = {
+  final def specStepBackOver(ignoreBreak: Boolean = false) = {
     val (curLoc, curStackSize) = getIrInfo
     val currentIter = getIter
 
@@ -229,7 +228,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     }
 
     stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
-    if (!globalBPIgnoreFlag)
+    if (!ignoreBreak)
       stepExactlyFrom(
         currentIter - 1,
         true,
@@ -241,7 +240,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   }
 
   // spec step back out
-  final def specStepBackOut: StepResult = {
+  final def specStepBackOut(ignoreBreak: Boolean = false) = {
     val (curLoc, curStackSize) = getIrInfo
     val currentIter = getIter
 
@@ -269,7 +268,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     }
 
     stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
-    if (!globalBPIgnoreFlag)
+    if (!ignoreBreak)
       stepExactlyFrom(
         currentIter - 1,
         true,
@@ -341,7 +340,9 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     if (breakFlag)
       stepExactlyFrom(target, true)
       StepResult.Breaked
-    else stepExactlyFrom(currentIter, true)
+    else
+      reset
+      StepResult.Succeed
   }
 
   final def stepBackToProvenance(addr: Addr): StepResult = {

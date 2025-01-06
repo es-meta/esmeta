@@ -6,14 +6,25 @@ import akka.http.scaladsl.server.Route
 import esmeta.cfg.CFG
 import esmeta.state.DynamicAddr
 import esmeta.web.*
-import io.circe.*, io.circe.syntax.*, io.circe.parser.*
-import io.circe.generic.semiauto.*
+import io.circe.*, io.circe.parser.*
 
 // exec router
 object ExecRoute {
 
   /** conversion for HTTP response */
   given Conversion[Debugger#StepResult, String] = _.ordinal.toString
+
+  /** helper function for steps with ignoreBreak flag */
+  private def ignoreBreakWrapper(handler: Boolean => Debugger#StepResult) =
+    entity(as[String]) { raw =>
+      decode[Boolean](raw) match {
+        case Left(err) => ??? // TODO handle error
+        case Right(ignoreBreak) =>
+          complete(
+            HttpEntity(ContentTypes.`application/json`, handler(ignoreBreak)),
+          )
+      }
+    }
 
   // root router
   def apply(cfg: CFG): Route = {
@@ -25,33 +36,30 @@ object ExecRoute {
               raw,
             ) match
               case Left(err) => ??? // TODO handle error
-              case Right((sourceText, bpDatas)) =>
+              case Right((sourceText, bpData)) =>
                 initDebugger(cfg, sourceText)
-                for { data <- bpDatas } debugger.addBreak(data)
+                for { data <- bpData } debugger.addBreak(data)
             complete(HttpEntity(ContentTypes.`application/json`, "null"))
           }
-        },
-        // toggle global ignore flag
-        path("ignoreFlag") {
-          debugger.toggleIgnoreFlag()
-          complete(
-            HttpEntity(ContentTypes.`application/json`, "null"),
-          )
         },
         // step back to provenance
         path("backToProvenance") {
           entity(as[String]) { raw =>
-            // ToDo - support named address
             decode[String](
               raw,
             ) match
               case Left(err)   => ??? // TODO handle error
               case Right(addr) =>
+                // ToDo - support named address
                 // ToDo - handle NumberFormatException
-                debugger.stepBackToProvenance(
-                  DynamicAddr(addr.filter(_.isDigit).toLong),
+                complete(
+                  HttpEntity(
+                    ContentTypes.`application/json`,
+                    debugger.stepBackToProvenance(
+                      DynamicAddr(addr.filter(_.isDigit).toLong),
+                    ),
+                  ),
                 )
-            complete(HttpEntity(ContentTypes.`application/json`, "null"))
           }
         },
         // resume from iter count
@@ -61,54 +69,33 @@ object ExecRoute {
               raw,
             ) match
               case Left(err) => ??? // TODO handle error
-              case Right((sourceText, bpDatas, iterCount)) =>
+              case Right((sourceText, bpData, iterCount)) =>
                 initDebugger(cfg, sourceText)
-                for { data <- bpDatas } debugger.addBreak
-                debugger.stepExactly(iterCount)
+                for { data <- bpData } debugger.addBreak
+                debugger.stepExactly(iterCount, true)
             complete(HttpEntity(ContentTypes.`application/json`, "null"))
           }
         },
         // spec step
         path("specStep") {
-          complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.specStep),
-          )
+          ignoreBreakWrapper(debugger.specStep)
         },
         // spec step-over
         path("specStepOver") {
-          complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.specStepOver),
-          )
+          ignoreBreakWrapper(debugger.specStepOver)
         },
         // spec step-out
         path("specStepOut") {
-          complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.specStepOut),
-          )
+          ignoreBreakWrapper(debugger.specStepOut)
         },
         path("specStepBack") {
-          complete(
-            HttpEntity(
-              ContentTypes.`application/json`,
-              debugger.specStepBack,
-            ),
-          )
+          ignoreBreakWrapper(debugger.specStepBack)
         },
         path("specStepBackOver") {
-          complete(
-            HttpEntity(
-              ContentTypes.`application/json`,
-              debugger.specStepBackOver,
-            ),
-          )
+          ignoreBreakWrapper(debugger.specStepBackOver)
         },
         path("specStepBackOut") {
-          complete(
-            HttpEntity(
-              ContentTypes.`application/json`,
-              debugger.specStepBackOut,
-            ),
-          )
+          ignoreBreakWrapper(debugger.specStepBackOut)
         },
         // spec continue
         path("specContinue") {
