@@ -7,6 +7,7 @@ import esmeta.ty.*
 import esmeta.util.SystemUtils.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Appender, UId}
+import scala.collection.mutable.{Map => MMap}
 
 /** CFG functions */
 case class Func(
@@ -59,6 +60,26 @@ case class Func(
   /** a mapping from nid to nodes */
   lazy val nodeMap: Map[Int, Node] =
     (for (node <- nodes) yield node.id -> node).toMap
+
+  /** a mapping from nodes to successors */
+  lazy val succs: Map[Node, Set[Node]] =
+    (for { node <- nodes } yield node -> node.succs).toMap
+
+  /** a mapping from nodes to predecessors */
+  lazy val preds: Map[Node, Set[Node]] = {
+    val preds = MMap[Node, Set[Node]]()
+    for {
+      node <- nodes
+      succ <- succs(node)
+    } preds(succ) = preds.getOrElse(succ, Set()) + node
+    preds.toMap.withDefaultValue(Set())
+  }
+
+  /** check whether it is an exit */
+  def isExit(node: Node): Boolean = succs(node).isEmpty
+
+  /** all exits */
+  lazy val exits: Set[Node] = nodes.filter(isExit)
 
   /** algorithm heads */
   lazy val head: Option[Head] = irFunc.head

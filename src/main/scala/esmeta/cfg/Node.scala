@@ -44,6 +44,12 @@ sealed trait Node extends CFGElem with UId {
       } yield Loc(headLoc.start, lastLoc.end, headLoc.steps)
     case call: Call     => call.callInst.loc
     case branch: Branch => branch.cond.loc
+
+  /** get successors */
+  lazy val succs: Set[Node] = this match
+    case block: Block   => block.next.toSet
+    case call: Call     => call.next.toSet
+    case branch: Branch => branch.thenNode.toSet ++ branch.elseNode.toSet
 }
 
 /** block nodes */
