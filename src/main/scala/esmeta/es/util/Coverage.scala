@@ -124,8 +124,10 @@ case class Coverage(
             if (originalScript.code.length > code.length) {
               update(nodeView, script)
               updated = true
+              blockingScripts += originalScript
+            } else {
+              blockingScripts += script
             }
-            blockingScripts += originalScript
           }
 
     // update branch coverage
@@ -140,10 +142,14 @@ case class Coverage(
             updated = true
           } else {
             val originalScript = scripts.head._1
-            if (originalScript.code.length > code.length)
+            if (originalScript.code.length > code.length) {
               update(condView, nearest, script)
               updated = true
-            blockingScripts += originalScript
+              blockingScripts += originalScript
+            } else {
+              blockingScripts += script
+            }
+
           }
 
     if (!rank && updated)
@@ -336,9 +342,8 @@ case class Coverage(
         counter += (origScript -> count)
         if (count == 0) {
           counter -= origScript
-          if (!rank)
-            _minimalScripts -= origScript
-            _minimalInfo -= origScript.name
+          _minimalScripts -= origScript
+          _minimalInfo -= origScript.name
         }
       }
       // increase counter of new script
