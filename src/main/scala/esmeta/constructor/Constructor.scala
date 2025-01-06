@@ -2,8 +2,8 @@ package esmeta.constructor
 
 import esmeta.cfg.*
 import esmeta.error.NoBoolean
-import esmeta.interpreter.Interpreter
 import esmeta.state.*
+import esmeta.web.Debugger
 
 import scala.collection.mutable.Map as MMap
 
@@ -13,7 +13,7 @@ class Constructor(
   targetFeature: String,
   targetCallPath: String,
   nodeToProgId: MMap[String, MMap[String, MMap[String, (String, Int)]]],
-) extends Interpreter(st) {
+) extends Debugger(st) {
   private var flag = true;
   private inline def cfg = st.cfg
 
@@ -50,7 +50,7 @@ class Constructor(
       nodeToProgId(targetNodeId)(targetFeature) -= targetCallPath;
       nodeToProgId(targetNodeId)(
         targetFeature,
-      ) += path -> (script, getIter)
+      ) += path -> (script, getIter - 1)
     }
 
     super.eval(node)

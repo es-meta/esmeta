@@ -8,6 +8,8 @@ import io.circe.*
 import java.lang.Integer.*
 import scala.collection.mutable.{Map as MMap, Set as MSet}
 import esmeta.phase.Construct.RECENT_DIR
+import esmeta.spec.Algorithm
+import esmeta.util.Loc
 
 object Builder {
   def apply(
@@ -15,8 +17,9 @@ object Builder {
     nodeToProgId: MMap[String, MMap[String, MMap[String, (String, Int)]]],
     stepToNode: MMap[String, MMap[String, String]],
     progIdToProg: MMap[String, String],
-    noLocFuncs: MSet[String],
-    funcToEcId: MMap[String, String],
+    noLocFunc: MSet[String],
+    targetNodes: MSet[String],
+    funcToEcId: MMap[String, MSet[String]],
     ecIdToFunc: MMap[String, String],
   ): Unit =
     new Builder(
@@ -24,10 +27,11 @@ object Builder {
       nodeToProgId,
       stepToNode,
       progIdToProg,
-      noLocFuncs,
+      noLocFunc,
+      targetNodes,
       funcToEcId,
       ecIdToFunc,
-    ).build
+    ).build()
 }
 
 class Builder(
@@ -35,26 +39,90 @@ class Builder(
   nodeToProgId: MMap[String, MMap[String, MMap[String, (String, Int)]]],
   stepToNode: MMap[String, MMap[String, String]],
   progIdToProg: MMap[String, String],
-  noLocFuncs: MSet[String],
-  funcToEcId: MMap[String, String],
+  noLocFunc: MSet[String],
+  targetNodes: MSet[String],
+  funcToEcId: MMap[String, MSet[String]],
   ecIdToFunc: MMap[String, String],
+  extraInfo: Boolean = true
 ) {
   val jsonProtocol = JsonProtocol(cfg)
   import jsonProtocol.{*, given}
 
-  def build: Unit = {
-    fillStepToNode
-    fillNodeToProgIdToProg
-    fillNoLocFuncs
-  }
+  def build(): Unit =
+    fillFuncToEcId()
+    fillStepToNode()
+    fillNodeToProgIdToProg()
+    fillNoLocFunc()
 
-  // ---------------------------------------------------------------------------
-  // private helpers
-  // ---------------------------------------------------------------------------
-  private val targetNodeSet: MSet[String] = MSet()
+  private def fillFuncToEcId(): Unit =
+    for {
+      func <- cfg.funcs
+    } func.irFunc.algo match {
+      case Some(Algorithm(_, _, _, ecId)) =>
+        val funcEcIds = funcToEcId.getOrElseUpdate(func.name, MSet.empty)
+        funcEcIds += ecId
+        
+        if (funcEcIds.size == 2)
+          extraInfo(s"Several EcId for a ${func.name}")
 
-  /* ToDo - only handle nodes that are corresponding to step */
-  private def fillNodeToProgIdToProg: Unit =
+        ecIdToFunc += (ecId -> func.name)
+      case None =>
+        extraInfo(
+          s"[FillFuncToEcId] Algorithm not found for function: ${func.name}",
+        )
+    }
+
+  private def fillStepToNode(): Unit =
+    for {
+      func <- cfg.funcs
+      node <- func.nodes
+      step <- steps(node)
+    } {
+      val funcNameKey = func.name
+      val nodeIdVal = node.id.toString
+      val stepToNodeId = step -> nodeIdVal
+
+      stepToNode.get(funcNameKey) match {
+        case Some(stepToNodeIds) =>
+          stepToNodeIds.get(step) match {
+            case Some(prevNodeId)
+                if parseInt(prevNodeId) > parseInt(nodeIdVal) =>
+              stepToNodeIds += stepToNodeId
+              targetNodes += nodeIdVal
+            case None =>
+              stepToNodeIds += stepToNodeId
+              targetNodes += nodeIdVal
+            case _ =>
+          }
+        case None =>
+          stepToNode += funcNameKey -> MMap(stepToNodeId)
+          targetNodes += nodeIdVal
+      }
+
+      node match {
+        case Branch(_, _, _, true, Some(thenNode), _)
+            if thenNode.loc.isDefined =>
+          val thenNodeId = thenNode.id.toString
+          targetNodes += thenNodeId
+          stepToNode.get(funcNameKey) match {
+            case Some(stepToNodeIds) =>
+              stepToNodeIds += (generateUniqueKey(
+                step,
+                stepToNodeIds,
+              ) -> thenNodeId)
+            case None =>
+              stepToNode += funcNameKey ->
+              MMap(
+                generateUniqueKey(
+                  step,
+                ) -> thenNodeId,
+              )
+          }
+        case _ =>
+      }
+    }
+
+  private def fillNodeToProgIdToProg(): Unit =
     val nviList = readJson[List[TmpNodeViewInfo]](
       s"$RECENT_DIR/node-coverage.json",
     )
@@ -66,7 +134,7 @@ class Builder(
           ) =>
         val nodeId = inst.split(":").head
 
-        if (targetNodeSet.contains(nodeId)) {
+        if (targetNodes.contains(nodeId)) {
           val feature = tmpView.map(_._2).getOrElse("no-feature")
 
           val path = tmpView.map(_._3).getOrElse("no-path")
@@ -76,7 +144,7 @@ class Builder(
               featureMap.get(feature) match {
                 case Some(pathMap) =>
                   pathMap.get(path) match
-                    case Some(script) => println(s"Same Path ${path}")
+                    case Some(script) => println(s"Same Path $path")
                     case None         => pathMap += (path -> (script, 1))
                 case None => featureMap += feature -> MMap(path -> (script, 1))
               }
@@ -95,70 +163,32 @@ class Builder(
         }
     }
 
-  private def fillNoLocFuncs: Unit =
+  private def fillNoLocFunc(): Unit =
     for {
       func <- cfg.funcs
       if func.nodes.isEmpty || func.nodes.forall(_.loc.isEmpty)
-    } noLocFuncs.add(func.name)
+    } noLocFunc.add(func.name)
 
-  private def fillStepToNode: Unit =
-    for {
-      func <- cfg.funcs
-      node <- func.nodes
-      loc <- node.loc
-      alg <- func.irFunc.algo
-      ecId = alg.head.emuClauseId
-    } {
-      funcToEcId += (func.name -> ecId)
-      ecIdToFunc += (ecId -> func.name)
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  private def steps(node: Node): List[String] = node match
+    case block: Block =>
+      block.insts.map(_.loc).collect { case Some(l) => l.stepString }.toList
+    case call: Call =>
+      List(call.callInst.loc).collect { case Some(l) => l.stepString }
+    case branch: Branch =>
+      List(branch.cond.loc).collect { case Some(l) => l.stepString }
 
-      val mapping = loc.stepString -> node.id.toString
-      stepToNode.get(ecId) match {
-        case Some(steps) =>
-          steps.get(loc.stepString) match {
-            case Some(prevNodeId)
-                if (parseInt(prevNodeId) > parseInt(node.id.toString)) =>
-              steps += mapping
-              targetNodeSet += node.id.toString
-            case Some(_) =>
-            case None =>
-              steps += mapping
-              targetNodeSet += node.id.toString
-          }
-        case None =>
-          stepToNode += ecId -> MMap(mapping)
-          targetNodeSet += node.id.toString
-      }
-
-      node match {
-        case Branch(_, _, _, isAbruptNode, Some(thenNode), _)
-            if isAbruptNode && thenNode.loc.isDefined =>
-          targetNodeSet += thenNode.id.toString
-          stepToNode.get(ecId) match {
-            case Some(steps) =>
-              steps += (generateUniqueKey(
-                thenNode.loc.get.stepString,
-                steps,
-              ) -> thenNode.id.toString)
-            case None =>
-              stepToNode += ecId ->
-              MMap(
-                generateUniqueKey(
-                  thenNode.loc.get.stepString,
-                ) -> thenNode.id.toString,
-              )
-          }
-        case _ =>
-      }
-    }
-
-  def safeParseInt(str: String): Option[Int] = {
+  private def safeParseInt(str: String): Option[Int] = {
     try {
       Some(Integer.parseInt(str))
     } catch {
       case _: NumberFormatException => None
     }
   }
+
+  private def extraInfo(str: String) : Unit = if(extraInfo) println(str)
 
   private def generateUniqueKey(
     baseKey: String,

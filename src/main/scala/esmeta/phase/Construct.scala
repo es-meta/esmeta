@@ -4,9 +4,7 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.constructor.{Builder, Constructor, Analyzer}
-import esmeta.interpreter.Interpreter
-import esmeta.state.State
+import esmeta.constructor.{Builder}
 
 import scala.collection.mutable.{Map as MMap, Set as MSet}
 import java.nio.file.{Files, Paths}
@@ -19,63 +17,76 @@ case object Construct extends Phase[CFG, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
-//    println("=========== Building =========")
-//    Builder(
-//      cfg,
-//      nodeToProgId,
-//      stepToNode,
-//      progIdToProg,
-//      noLocFuncs,
-//      funcToEcId,
-//      ecIdToFunc,
-//    )
-//
+    println("=========== Building =========")
+    Builder(
+      cfg,
+      nodeToProgId,
+      stepToNode,
+      progIdToProg,
+      noLocFunc,
+      targetNodes,
+      funcToEcId,
+      ecIdToFunc,
+    )
+
 //    val keyValuePairs = for {
 //      (outerKey, outerMap) <- nodeToProgId
 //      (innerKey, innerMap) <- outerMap
 //      (leafKey, value) <- innerMap
 //    } yield (outerKey, innerKey, leafKey, value)
-
-    println("=========== Handling Abruption ===========")
-    val st = new Analyzer(
-      cfg.init.fromFile(s"$BASE_DIR/test.js"),
-      2027, // 이거 2028로 고쳐야됨
-    ).apply()
+//
+//    val total = keyValuePairs.size
+//    var iter = 1;
 
 //    println("=========== Calculating Iteration Count =========")
 //    keyValuePairs.foreach {
-//      case (node, feature, callpath, (filename, intValue))
-//          if (Files.exists(Paths.get(s"$MINIMAL_DIR/$filename"))) =>
-//        println(s"$filename running")
+//      case (node, feature, callPath, (filename, intValue))
+//          if Files.exists(Paths.get(s"$MINIMAL_DIR/$filename")) =>
+//        println(s"$iter/$total : $filename running")
+//        iter += 1
 //        new Constructor(
 //          cfg.init.fromFile(s"$MINIMAL_DIR/$filename"),
 //          node,
 //          feature,
-//          callpath,
+//          callPath,
 //          nodeToProgId,
 //        ).result
 //    }
-//
-//    println("=========== Dump =========")
-//    dump
 
+    println("=========== Dump =========")
+    dump()
+
+  /* { nodeId : { feature : { callPath : progId } } } */
   val nodeToProgId: MMap[String, MMap[String, MMap[String, (String, Int)]]] =
     MMap()
-  /* { nodeId : { feature : { callPath : progId } } } */
+
+  /* { algId : { algName, { step : nodeId } } */
   val stepToNode: MMap[String, MMap[String, String]] =
     MMap()
-  /* { algId : { algName, { step : nodeId } } */
-  val progIdToProg: MMap[String, String] = MMap()
+
   /* { progId : prog } */
-  val noLocFuncs: MSet[String] = MSet()
+  val progIdToProg: MMap[String, String] = MMap()
 
-  val funcToEcId: MMap[String, String] = MMap();
-  val ecIdToFunc: MMap[String, String] = MMap();
+  val targetNodes: MSet[String] = MSet()
+  val noLocFunc: MSet[String] = MSet()
 
-  def dump: Unit =
+  val funcToEcId: MMap[String, MSet[String]] = MMap()
+  val ecIdToFunc: MMap[String, String] = MMap()
+
+  val RECENT_DIR = s"$FUZZ_LOG_DIR/fuzz-250103_11_39"
+  private val MINIMAL_DIR = s"$RECENT_DIR/minimal"
+  private val noSpace = false
+
+  def dump(): Unit =
+    dumpJson(
+      "target-nodes.json",
+      targetNodes,
+      s"$RECENT_DIR/target-nodes.json",
+      noSpace,
+    )
     dumpJson(
       "no-loc-functions.json",
-      noLocFuncs,
+      noLocFunc,
       s"$RECENT_DIR/no-loc-functions.json",
       noSpace,
     )
@@ -109,10 +120,6 @@ case object Construct extends Phase[CFG, Unit] {
       s"$RECENT_DIR/ecId-to-func.json",
       noSpace,
     )
-
-  val RECENT_DIR = s"$FUZZ_LOG_DIR/fuzz-241223_06_58_1"
-  val MINIMAL_DIR = s"${RECENT_DIR}/minimal"
-  private val noSpace = false
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

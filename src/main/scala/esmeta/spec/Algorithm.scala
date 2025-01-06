@@ -10,6 +10,7 @@ case class Algorithm(
   head: Head,
   body: Step,
   code: String,
+  emuClauseId: String,
 ) extends SpecElem {
 
   /** HTML elements */

@@ -115,7 +115,10 @@ class Extractor(
     head <- extractHeads(elem)
     code = elem.html.unescapeHtml
     body = parser.parseBy(parser.step)(code)
-    algo = Algorithm(head, body, code)
+
+    siblings = elem.parent.children().asScala.filter(_.tagName == "emu-alg")
+    emuClauseId = s"${elem.parent.id}[${siblings.indexWhere(_ == elem)}]"
+    algo = Algorithm(head, body, code, emuClauseId)
     _ = algo.elem = elem
   } yield algo
 
@@ -146,7 +149,7 @@ class Extractor(
     if (parent.tagName != "emu-clause") return Nil
 
     // consider algorithm head types using `type` attributes
-    val headList = parent.attr("type") match {
+    parent.attr("type") match {
       case "abstract operation" =>
         extractAbsOpHead(parent, elem, false)
       case "implementation-defined abstract operation" =>
@@ -166,12 +169,6 @@ class Extractor(
       case _ =>
         extractUnusualHead(parent, elem)
     }
-
-    headList.foreach(head =>
-      val siblings = parent.children().asScala.filter(_.tagName == "emu-alg")
-      head.emuClauseId = s"${parent.id}[${siblings.indexWhere(_ == elem)}]",
-    )
-    headList
   }
 
   /** extracts tables */

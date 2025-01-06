@@ -8,7 +8,6 @@ import esmeta.ty.*
 /** algorithm heads */
 sealed trait Head extends SpecElem {
   val retTy: Type
-  var emuClauseId: String = ""
 
   /** get original parameters */
   def originalParams: List[Param] = this match
