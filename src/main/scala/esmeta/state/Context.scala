@@ -38,6 +38,7 @@ case class Context(
   /** copy contexts */
   def copied: Context = {
     val newContext = copy(locals = MMap.from(locals))
+    newContext.visited = visited
     newContext.cursor = cursor
     newContext
   }
