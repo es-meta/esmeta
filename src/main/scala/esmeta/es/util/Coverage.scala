@@ -26,6 +26,8 @@ case class Coverage(
   val jsonProtocol: JsonProtocol = JsonProtocol(cfg)
   import jsonProtocol.given
 
+  import ManualInfo.targetNids
+
   // minimal scripts
   def minimalScripts: Set[Script] = _minimalScripts
   private var _minimalScripts: Set[Script] = Set()
@@ -114,11 +116,18 @@ case class Coverage(
     for ((nodeView, nearest) <- interp.touchedNodeViews)
       touchedNodeViews += nodeView -> nearest
       getScripts(nodeView) match
-        case None => update(nodeView, script); updated = true; covered = true
+        case None =>
+          if (rank) {
+            if (targetNids contains nodeView.node.id)
+              update(nodeView, script); updated = true; covered = true
+          } else {
+            update(nodeView, script); updated = true; covered = true
+          }
         case Some(scripts) =>
           if (rank) {
-            update(nodeView, script)
-            updated = true
+            if (targetNids contains nodeView.node.id)
+              update(nodeView, script)
+              updated = true
           } else {
             val originalScript = scripts.head._1
             if (originalScript.code.length > code.length) {
@@ -149,7 +158,6 @@ case class Coverage(
             } else {
               blockingScripts += script
             }
-
           }
 
     if (!rank && updated)

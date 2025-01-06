@@ -48,6 +48,11 @@ object ManualInfo {
     readJson[List[String]](s"$MANUALS_DIR/test262/supported-features.json"),
   )
 
+  /** get target node ids for test262 rank-coverage */
+  lazy val targetNids: Set[Int] =
+    readJson[Set[String]](s"$MANUALS_DIR/test262/target-nodes.json")
+      .map(_.toInt)
+
   /** find all files in the manual directory with a filter */
   private def getFiles(filter: String => Boolean): List[File] = (for {
     file <- walkTree(MANUALS_DIR)
