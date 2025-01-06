@@ -129,6 +129,7 @@ case class Test262(
     useCoverage: Boolean = false,
     kFs: Int = 0,
     cp: Boolean = false,
+    rank: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
     concurrent: CP = CP.Single,
     verbose: Boolean = false,
@@ -163,7 +164,7 @@ case class Test262(
       timeLimit = timeLimit,
       kFs = kFs,
       cp = cp,
-      rank = true,
+      rank = rank,
     )
 
     // run tests with logging

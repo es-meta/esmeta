@@ -52,6 +52,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       config.coverage,
       config.kFs,
       config.cp,
+      config.rank,
       config.timeLimit,
       config.concurrent,
     )
@@ -86,13 +87,19 @@ case object Test262Test extends Phase[CFG, Summary] {
     ),
     (
       "k-fs",
-      NumOption((c, k) => c.kFs = k),
+      NumOption(_.kFs = _),
       "set the k-value for feature sensitivity (default: 0).",
     ),
     (
       "cp",
-      BoolOption((c, b) => c.cp = b),
+      BoolOption(_.cp = _),
       "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
+    ),
+    (
+      "rank-coverage",
+      BoolOption((c, b) => { c.coverage ||= b; c.rank = b }),
+      "measure node/branch coverage in CFG of ECMA-262 by most visited rank." +
+      " Dump top-k most visited scripts. (default: 5)",
     ),
     (
       "timeout",
@@ -129,6 +136,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     var coverage: Boolean = false,
     var cp: Boolean = false,
     var kFs: Int = 0,
+    var rank: Boolean = false,
     var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,

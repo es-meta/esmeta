@@ -329,7 +329,8 @@ case class Coverage(
     view: View,
     script: Script,
   ): Map[View, Map[Script, Int]] =
-    if (!rank) { // decrease counter of original script
+    if (!rank) {
+      // decrease counter of original script
       map.get(view).flatMap(_.headOption).map(_._1).foreach { origScript =>
         val count = counter(origScript) - 1
         counter += (origScript -> count)
