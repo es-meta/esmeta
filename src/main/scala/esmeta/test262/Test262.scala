@@ -64,15 +64,15 @@ case class Test262(
   val spec = cfg.spec
 
   /** load test262 */
-  def loadTest(filename: String): (Code, Vector[Ast]) =
+  def loadTest(filename: String): Code =
     loadTest(filename, Test(filename).includes)
 
   /** load test262 with harness files */
-  def loadTest(filename: String, includes: List[String]): (Code, Vector[Ast]) =
+  def loadTest(filename: String, includes: List[String]): Code =
     // load harness
     val harness = includes.foldLeft(basicHarness)(_ + getHarness(_))
     // merge with harnesses
-    ((harness + parseFile(filename).toCodeVec).toCode, harness._1)
+    (harness + parseFile(filename).toCodeVec).toCode
 
   /** get tests */
   def getTests(
@@ -169,6 +169,8 @@ case class Test262(
       kFs = kFs,
       cp = cp,
       total = total,
+      isTargetNode = (_, st) => !inHarness(st),
+      isTargetBranch = (_, st) => !inHarness(st),
     )
 
     // run tests with logging
@@ -186,8 +188,8 @@ case class Test262(
           if (!useCoverage)
             evalFile(filename, log && !multiple, detail, Some(logPW), timeLimit)
           else {
-            val ((ast, code), harness) = loadTest(filename)
-            cov.runAndCheck(Script(code, filename), ast, Some(harness))._1
+            val (ast, code) = loadTest(filename)
+            cov.runAndCheck(Script(code, filename), ast)._1
           }
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
@@ -269,7 +271,7 @@ case class Test262(
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
-    val ((ast, code), _) = loadTest(filename)
+    val (ast, code) = loadTest(filename)
     eval(code, ast, log, detail, logPW, timeLimit)
 
   // eval ECMAScript code
@@ -289,6 +291,16 @@ case class Test262(
       logPW = logPW,
       timeLimit = timeLimit,
     )
+
+  // check whether program point is in harness
+  private def inHarness(st: State): Boolean = (for {
+    ast <- st.context.astOpt.orElse(
+      st.callStack.view.flatMap(_.context.astOpt).headOption,
+    )
+    loc <- ast.loc
+    filename <- loc.filename
+    if filename.contains("test262/harness")
+  } yield true).getOrElse(false)
 
   // logging mode for tests
   private def logForTests(

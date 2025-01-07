@@ -20,6 +20,8 @@ case class Coverage(
   cp: Boolean = false,
   timeLimit: Option[Int] = None,
   total: Boolean = false,
+  isTargetNode: (Node, State) => Boolean = (_, _) => true,
+  isTargetBranch: (Branch, State) => Boolean = (_, _) => true,
 ) {
   import Coverage.{*, given}
 
@@ -79,12 +81,8 @@ case class Coverage(
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
-  def runAndCheck(
-    script: Script,
-    ast: Ast,
-    harness: Option[Vector[Ast]] = None,
-  ): (State, Boolean, Boolean) =
-    val interp = run(script.code, ast, Some(script.name), harness)
+  def runAndCheck(script: Script, ast: Ast): (State, Boolean, Boolean) =
+    val interp = run(script.code, ast, Some(script.name))
     this.synchronized(check(script, interp))
 
   /** evaluate a given ECMAScript program */
@@ -96,14 +94,10 @@ case class Coverage(
   def run(code: String): Interp = run(code, scriptParser.from(code), None)
 
   /** evaluate a given ECMAScript program */
-  def run(
-    code: String,
-    ast: Ast,
-    name: Option[String],
-    harness: Option[Vector[Ast]] = None,
-  ): Interp =
+  def run(code: String, ast: Ast, name: Option[String]): Interp =
     val initSt = cfg.init.from(code, ast, name)
-    val interp = Interp(initSt, kFs, cp, timeLimit, harness)
+    val interp =
+      Interp(initSt, kFs, cp, timeLimit, isTargetNode, isTargetBranch)
     interp.result; interp
 
   def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
@@ -414,36 +408,26 @@ object Coverage {
     kFs: Int,
     cp: Boolean,
     timeLimit: Option[Int],
-    harness: Option[Vector[Ast]],
+    isTargetNode: (Node, State) => Boolean,
+    isTargetBranch: (Branch, State) => Boolean,
   ) extends Interpreter(initSt, timeLimit = timeLimit) {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 
     // override eval for node
     override def eval(node: Node): Unit =
-      // record touched nodes (if not in harness)
-      if (!inHarness)
+      // record touched nodes if it is a target node
+      if (isTargetNode(node, st))
         touchedNodeViews += NodeView(node, getView(node)) -> getNearest
       super.eval(node)
 
     // override branch move
     override def moveBranch(branch: Branch, b: Boolean): Unit =
-      // record touched conditional branch (if not in harness)
-      if (!inHarness)
+      // record touched conditional branch if it is a target branch
+      if (isTargetBranch(branch, st))
         val cond = Cond(branch, b)
         touchedCondViews += CondView(cond, getView(cond)) -> getNearest
       super.moveBranch(branch, b)
-
-    /** extension for AST */
-    extension (ast: Ast) {
-
-      /** get all ast parents */
-      def parents: List[Ast] =
-        ast :: (ast.parent match
-          case Some(parent) => parent.parents
-          case None         => Nil
-        )
-    }
 
     // get syntax-sensitive views
     private def getView(node: Node | Cond): View =
@@ -456,16 +440,6 @@ object Coverage {
 
     // get location information
     private def getNearest: Option[Nearest] = st.context.nearest
-
-    // check whether program point is in harness
-    private def inHarness: Boolean =
-      val ctxts = st.context :: st.callStack.map(_.context)
-      ctxts.flatMap(_.astOpt).headOption match
-        case Some(ast) =>
-          ast.parents.filter(_.name == "StatementListItem").headOption match
-            case Some(item) => harness.getOrElse(Vector()) contains item
-            case None       => true
-        case _ => false
   }
 
   /** meta-information for each script */
