@@ -40,6 +40,11 @@ case class Coverage(
   private var condViews: Set[CondView] = Set()
 
   import ManualInfo.visibleNodes
+  private val testIdMap: Map[String, Int] = if (total) {
+    import esmeta.TEST262TEST_LOG_DIR
+    readJson[Map[Int, String]](s"$TEST262TEST_LOG_DIR/test-id-map.json")
+      .map(_.swap)
+  } else Map()
 
   def apply(node: Node): Map[View, Set[Script]] =
     nodeViewMap.getOrElse(node, Map())
@@ -387,7 +392,13 @@ case class Coverage(
     for {
       (nodeView, idx) <- ordered.zipWithIndex
       scripts <- getScripts(nodeView)
-    } yield NodeViewInfo(idx, nodeView, scripts.map(_.name))
+    } yield
+      if (total) {
+        val testIds = scripts.map(t => testIdMap(t.name).toString)
+        NodeViewInfo(idx, nodeView, testIds)
+      } else {
+        NodeViewInfo(idx, nodeView, scripts.map(_.name))
+      }
 
   // get JSON for branch coverage
   private def condViewInfos(ordered: List[CondView]): List[CondViewInfo] =
