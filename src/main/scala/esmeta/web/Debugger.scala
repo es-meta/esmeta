@@ -592,7 +592,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
             case ExitCursor(_)          => None
 
           val intersection = currentNode match
-            case Some(node) => dynamic -- static.getOrElse(node, Set())
+            case Some(node) => dynamic intersect static.getOrElse(node, Set())
             case None       => dynamic
 
           // if (intersection.size != dynamic.size) {
