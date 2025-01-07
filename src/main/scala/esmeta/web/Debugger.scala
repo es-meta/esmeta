@@ -464,6 +464,22 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // debugger info
   // ---------------------------------------------------------------------------
 
+  extension (node: Node) {
+
+    /** get location in spec of node */
+    def stepsOpt: List[List[Int]] =
+
+      def instList: List[Inst] = node match
+        case Block(_, insts, _) => insts.toList
+        case node: NodeWithInst => node.inst.fold(Nil)(_ :: Nil)
+      def langOpt: List[Syntax] = instList.flatMap(_.langOpt)
+      for {
+        lang <- langOpt
+        loc <- lang.loc
+      } yield loc.steps
+
+  }
+
   /** extension for cursor */
   extension (cursor: Cursor) {
 
@@ -516,20 +532,85 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   /** heap information */
   def heapInfo = st.heap.map.map {
-    case (addr, obj) => (addr.toString, obj.toString)
+    case (addr, obj) =>
+      import io.circe.*
+      import io.circe.syntax.*
+      (
+        addr.toString,
+        obj match
+          case RecordObj(tname, map) =>
+            Json.obj(
+              "type" -> Json.fromString("RecordObj"),
+              "tname" -> Json.fromString(tname),
+              "map" -> Json.fromFields(map.map {
+                case (k, v) => (k, v.toString.asJson)
+              }),
+              "stringform" -> Json.fromString(obj.toString),
+            )
+          case MapObj(map) =>
+            Json.obj(
+              "type" -> Json.fromString("MapObj"),
+              "map" -> Json.fromFields(map.map {
+                case (k, v) => (k.toString, v.toString.asJson)
+              }),
+              "stringform" -> Json.fromString(obj.toString),
+            )
+          case ListObj(values) =>
+            Json.obj(
+              "type" -> Json.fromString("ListObj"),
+              "values" -> Json.fromValues(values.map(_.toString.asJson)),
+              "stringform" -> Json.fromString(obj.toString),
+            )
+          case YetObj(tname, msg) =>
+            Json.obj(
+              "type" -> Json.fromString("YetObj"),
+              "tname" -> Json.fromString(tname),
+              "msg" -> Json.fromString(msg),
+              "stringform" -> Json.fromString(obj.toString),
+            ),
+      )
   }
 
   /** call stack information */
   def callStackInfo =
-    def getInfo(c: Context, wasExited: Boolean = false) = (
-      c.func.id,
-      c.name,
-      c.cursor.stepsOpt.getOrElse(List()),
-      wasExited,
-      c.locals.collect {
-        case (Name(name), v) => (name, v.toString)
-      }.toList ++ c.retVal.map { case (_, v) => ("return", v.toString) },
-    )
+    def getInfo(c: Context, wasExited: Boolean = false) =
+      (
+        c.func.id,
+        c.name,
+        c.cursor.stepsOpt.getOrElse(List()),
+        wasExited,
+        c.locals.collect {
+          case (Name(name), v) => (name, v.toString)
+        }.toList ++ c.retVal.map { case (_, v) => ("return", v.toString) },
+        {
+          val dynamic = c.visited 
+          val static = cfg.depGraph.deps(cfg.funcMap(c.func.id))
+          // what to do?
+
+
+          val currentNode = c.cursor match
+            case NodeCursor(_, node, _) => Some(node)
+            case ExitCursor(_) => None
+          
+
+          val intersection = currentNode match
+            case Some(node) => dynamic -- static.getOrElse(node, Set())
+            case None => dynamic
+
+          // if (intersection.size != dynamic.size) {
+          //   println("HIT!!!!!")
+          //   // println(s"Dynamic (${dynamic.size}): $dynamic")
+          //   // println(s"Intersection (${intersection.size}): $intersection")
+          //   println(s"currentNode ${currentNode.get},")
+          //   println(s"static deps of current node : ${static.getOrElse(currentNode.get, Set())}")
+          // } else {
+          //   println("MISS")
+          // }
+
+          intersection.flatMap(_.stepsOpt).toList
+        },
+        // st.cfg.depGraph.getStringForm()
+      )
 
     getInfo(st.context, wasExited) :: st.callStack
       .map(_.context)
