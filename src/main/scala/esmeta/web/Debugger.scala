@@ -582,21 +582,18 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
         wasExited,
         c.locals.collect {
           case (Name(name), v) => (name, v.toString)
-        }.toList ++ c.retVal.map { case (_, v) => ("return", v.toString) },
-        {
-          val dynamic = c.visited 
+        }.toList ++ c.retVal.map { case (_, v) => ("return", v.toString) }, {
+          val dynamic = c.visited
           val static = cfg.depGraph.deps(cfg.funcMap(c.func.id))
           // what to do?
 
-
           val currentNode = c.cursor match
             case NodeCursor(_, node, _) => Some(node)
-            case ExitCursor(_) => None
-          
+            case ExitCursor(_)          => None
 
           val intersection = currentNode match
             case Some(node) => dynamic -- static.getOrElse(node, Set())
-            case None => dynamic
+            case None       => dynamic
 
           // if (intersection.size != dynamic.size) {
           //   println("HIT!!!!!")

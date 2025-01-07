@@ -1,49 +1,28 @@
 package esmeta.constructor
 
 import esmeta.cfg.*
+import esmeta.error.ESMetaError
 import esmeta.es.util.JsonProtocol
 import esmeta.util.SystemUtils.*
 import io.circe.*
 
 import java.lang.Integer.*
 import scala.collection.mutable.{Map as MMap, Set as MSet}
-import esmeta.phase.Construct.RECENT_DIR
+import esmeta.phase.Construct.{RECENT_DIR, StepToNodeId}
 import esmeta.spec.Algorithm
 import esmeta.util.Loc
 
-object Builder {
-  def apply(
-    cfg: CFG,
-    nodeToProgId: MMap[String, MMap[String, MMap[String, (String, Int)]]],
-    stepToNode: MMap[String, MMap[String, String]],
-    progIdToProg: MMap[String, String],
-    noLocFunc: MSet[String],
-    targetNodes: MSet[String],
-    funcToEcId: MMap[String, MSet[String]],
-    ecIdToFunc: MMap[String, String],
-  ): Unit =
-    new Builder(
-      cfg,
-      nodeToProgId,
-      stepToNode,
-      progIdToProg,
-      noLocFunc,
-      targetNodes,
-      funcToEcId,
-      ecIdToFunc,
-    ).build()
-}
-
 class Builder(
   cfg: CFG,
-  nodeToProgId: MMap[String, MMap[String, MMap[String, (String, Int)]]],
-  stepToNode: MMap[String, MMap[String, String]],
-  progIdToProg: MMap[String, String],
-  noLocFunc: MSet[String],
-  targetNodes: MSet[String],
-  funcToEcId: MMap[String, MSet[String]],
-  ecIdToFunc: MMap[String, String],
-  extraInfo: Boolean = true
+  StepToNodeId: MMap[Int, MMap[String, Int]],
+  NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int)]]],
+  ProgIdToProg: MMap[Int, String],
+  EcIdToFunc: MMap[String, MSet[String]],
+  FuncToEcId: MMap[String, String],
+  FuncIdToFunc: MMap[Int, String],
+  NoLocFunc: MSet[Int],
+  TargetNodeId: MSet[Int],
+  extraInfo: Boolean = false,
 ) {
   val jsonProtocol = JsonProtocol(cfg)
   import jsonProtocol.{*, given}
@@ -57,15 +36,16 @@ class Builder(
   private def fillFuncToEcId(): Unit =
     for {
       func <- cfg.funcs
+      _ = FuncIdToFunc += (func.id -> func.name)
     } func.irFunc.algo match {
       case Some(Algorithm(_, _, _, ecId)) =>
-        val funcEcIds = funcToEcId.getOrElseUpdate(func.name, MSet.empty)
-        funcEcIds += ecId
-        
-        if (funcEcIds.size == 2)
-          extraInfo(s"Several EcId for a ${func.name}")
+        val ecFuncIds = EcIdToFunc.getOrElseUpdate(ecId, MSet.empty)
+        ecFuncIds += func.name
 
-        ecIdToFunc += (ecId -> func.name)
+        if (ecFuncIds.size == 2)
+          extraInfo(s"More than one func : ${func.irFunc.kind} for a ${ecId}")
+
+        FuncToEcId += (func.name -> ecId)
       case None =>
         extraInfo(
           s"[FillFuncToEcId] Algorithm not found for function: ${func.name}",
@@ -78,40 +58,39 @@ class Builder(
       node <- func.nodes
       step <- steps(node)
     } {
-      val funcNameKey = func.name
-      val nodeIdVal = node.id.toString
+      val funcIdKey = func.id
+      val nodeIdVal = node.id
       val stepToNodeId = step -> nodeIdVal
 
-      stepToNode.get(funcNameKey) match {
+      StepToNodeId.get(funcIdKey) match {
         case Some(stepToNodeIds) =>
           stepToNodeIds.get(step) match {
-            case Some(prevNodeId)
-                if parseInt(prevNodeId) > parseInt(nodeIdVal) =>
+            case Some(prevNodeId) if prevNodeId > nodeIdVal =>
               stepToNodeIds += stepToNodeId
-              targetNodes += nodeIdVal
+              TargetNodeId += nodeIdVal
             case None =>
               stepToNodeIds += stepToNodeId
-              targetNodes += nodeIdVal
+              TargetNodeId += nodeIdVal
             case _ =>
           }
         case None =>
-          stepToNode += funcNameKey -> MMap(stepToNodeId)
-          targetNodes += nodeIdVal
+          StepToNodeId += funcIdKey -> MMap(stepToNodeId)
+          TargetNodeId += nodeIdVal
       }
 
       node match {
         case Branch(_, _, _, true, Some(thenNode), _)
             if thenNode.loc.isDefined =>
-          val thenNodeId = thenNode.id.toString
-          targetNodes += thenNodeId
-          stepToNode.get(funcNameKey) match {
+          val thenNodeId = thenNode.id
+          TargetNodeId += thenNodeId
+          StepToNodeId.get(funcIdKey) match {
             case Some(stepToNodeIds) =>
               stepToNodeIds += (generateUniqueKey(
                 step,
                 stepToNodeIds,
               ) -> thenNodeId)
             case None =>
-              stepToNode += funcNameKey ->
+              StepToNodeId += funcIdKey ->
               MMap(
                 generateUniqueKey(
                   step,
@@ -123,51 +102,67 @@ class Builder(
     }
 
   private def fillNodeToProgIdToProg(): Unit =
+    /* ToDo change TmpNodeView */
     val nviList = readJson[List[TmpNodeViewInfo]](
       s"$RECENT_DIR/node-coverage.json",
     )
     nviList.foreach {
       case TmpNodeViewInfo(
             _,
-            TmpNodeView(TmpNode(_, inst, func), tmpView),
+            TmpNodeView(
+              TmpNode(_, inst, func),
+              Some(TmpView(_, featureName, path)),
+            ),
             script,
           ) =>
-        val nodeId = inst.split(":").head
+        val nodeId = parseInt(inst.split(":").head) // get node id
+        val featureId = cfg.fnameMap
+          .getOrElse(
+            featureName,
+            throw new ESMetaError(
+              s"[Builder] no corresponding feature for $featureName",
+            ),
+          )
+          .id
+        val scriptId = parseInt(script.stripSuffix(".js"))
 
-        if (targetNodes.contains(nodeId)) {
-          val feature = tmpView.map(_._2).getOrElse("no-feature")
-
-          val path = tmpView.map(_._3).getOrElse("no-path")
-
-          nodeToProgId.get(nodeId) match {
+        if (TargetNodeId.contains(nodeId)) {
+          NodeIdToProgId.get(nodeId) match {
             case Some(featureMap) =>
-              featureMap.get(feature) match {
+              featureMap.get(featureId) match {
                 case Some(pathMap) =>
                   pathMap.get(path) match
-                    case Some(script) => println(s"Same Path $path")
-                    case None         => pathMap += (path -> (script, 1))
-                case None => featureMap += feature -> MMap(path -> (script, 1))
+                    case Some(script) => extraInfo(s"Same Path $path")
+                    case None         => pathMap += (path -> (scriptId, 1))
+                case None =>
+                  featureMap += featureId -> MMap(path -> (scriptId, 1))
               }
             case None =>
-              nodeToProgId += (nodeId -> MMap(
-                feature -> MMap(path -> (script, 1)),
+              NodeIdToProgId += (nodeId -> MMap(
+                featureId -> MMap(path -> (scriptId, 1)),
               ))
           }
 
-          val code = readFile(s"$RECENT_DIR/minimal/$script")
+          val code = readFile(s"$RECENT_DIR/minimal/$scriptId.js")
           if (code != "") {
-            progIdToProg.get(script) match
+            ProgIdToProg.get(scriptId) match
               case Some(_) =>
-              case None    => progIdToProg += (script -> code)
+              case None    => ProgIdToProg += (scriptId -> code)
           }
         }
+      case TmpNodeViewInfo(
+            _,
+            TmpNodeView(TmpNode(_, inst, func), _),
+            _,
+          ) =>
+        extraInfo(s"[Uncollected Node View] $func : $inst")
     }
 
   private def fillNoLocFunc(): Unit =
     for {
       func <- cfg.funcs
       if func.nodes.isEmpty || func.nodes.forall(_.loc.isEmpty)
-    } noLocFunc.add(func.name)
+    } NoLocFunc.add(func.id)
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -180,19 +175,11 @@ class Builder(
     case branch: Branch =>
       List(branch.cond.loc).collect { case Some(l) => l.stepString }
 
-  private def safeParseInt(str: String): Option[Int] = {
-    try {
-      Some(Integer.parseInt(str))
-    } catch {
-      case _: NumberFormatException => None
-    }
-  }
-
-  private def extraInfo(str: String) : Unit = if(extraInfo) println(str)
+  private def extraInfo(str: String): Unit = if (extraInfo) println(str)
 
   private def generateUniqueKey(
     baseKey: String,
-    steps: MMap[String, String] = null,
+    steps: MMap[String, Int] = null,
   ): String = {
     var counter = 1
     var newKey = s"$baseKey?$counter"

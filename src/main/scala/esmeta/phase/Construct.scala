@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.constructor.{Builder}
+import esmeta.constructor.{Builder, Constructor}
 
 import scala.collection.mutable.{Map as MMap, Set as MSet}
 import java.nio.file.{Files, Paths}
@@ -18,106 +18,111 @@ case object Construct extends Phase[CFG, Unit] {
     config: Config,
   ): Unit =
     println("=========== Building =========")
-    Builder(
+    new Builder(
       cfg,
-      nodeToProgId,
-      stepToNode,
-      progIdToProg,
-      noLocFunc,
-      targetNodes,
-      funcToEcId,
-      ecIdToFunc,
-    )
+      StepToNodeId,
+      NodeIdToProgId,
+      ProgIdToProg,
+      EcIdToFunc,
+      FuncToEcId,
+      FuncIdToFunc,
+      NoLocFunc,
+      TargetNodeId,
+    ).build()
 
-//    val keyValuePairs = for {
-//      (outerKey, outerMap) <- nodeToProgId
-//      (innerKey, innerMap) <- outerMap
-//      (leafKey, value) <- innerMap
-//    } yield (outerKey, innerKey, leafKey, value)
-//
-//    val total = keyValuePairs.size
-//    var iter = 1;
+    /* { nodeId : { featureFuncId : { callPathFuncIdString : (progId,IterCnt,test262bitvector } } } */
+    val keyValuePairs = for {
+      (nodeId, fncMap) <- NodeIdToProgId
+      (featureId, cpMap) <- fncMap
+      (cp, value) <- cpMap
+    } yield (nodeId, featureId, cp, value)
 
-//    println("=========== Calculating Iteration Count =========")
-//    keyValuePairs.foreach {
-//      case (node, feature, callPath, (filename, intValue))
-//          if Files.exists(Paths.get(s"$MINIMAL_DIR/$filename")) =>
-//        println(s"$iter/$total : $filename running")
-//        iter += 1
-//        new Constructor(
-//          cfg.init.fromFile(s"$MINIMAL_DIR/$filename"),
-//          node,
-//          feature,
-//          callPath,
-//          nodeToProgId,
-//        ).result
-//    }
+    val total = keyValuePairs.size
+    var iter = 1
+
+    println("=========== Calculating Iteration Count =========")
+    keyValuePairs.foreach {
+      case (node, feature, callPath, (filename, _))
+          if Files.exists(Paths.get(s"$MINIMAL_DIR/$filename.js")) =>
+        println(s"$iter/$total : $filename running")
+        iter += 1
+        new Constructor(
+          cfg.init.fromFile(s"$MINIMAL_DIR/$filename.js"),
+          node,
+          feature,
+          callPath,
+          NodeIdToProgId,
+        ).result
+    }
 
     println("=========== Dump =========")
     dump()
 
-  /* { nodeId : { feature : { callPath : progId } } } */
-  val nodeToProgId: MMap[String, MMap[String, MMap[String, (String, Int)]]] =
-    MMap()
-
-  /* { algId : { algName, { step : nodeId } } */
-  val stepToNode: MMap[String, MMap[String, String]] =
-    MMap()
-
+  /* { funcId : { step : nodeId } } */
+  val StepToNodeId: MMap[Int, MMap[String, Int]] = MMap()
+  /* { nodeId : { featureFuncId : { callPathFuncIdString : (progId,IterCnt,test262bitvector } } } */
+  val NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int)]]] = MMap()
   /* { progId : prog } */
-  val progIdToProg: MMap[String, String] = MMap()
+  val ProgIdToProg: MMap[Int, String] = MMap()
 
-  val targetNodes: MSet[String] = MSet()
-  val noLocFunc: MSet[String] = MSet()
+  val FuncToEcId: MMap[String, String] = MMap()
+  val EcIdToFunc: MMap[String, MSet[String]] = MMap()
+  val FuncIdToFunc: MMap[Int, String] = MMap()
 
-  val funcToEcId: MMap[String, MSet[String]] = MMap()
-  val ecIdToFunc: MMap[String, String] = MMap()
+  val TargetNodeId: MSet[Int] = MSet()
+  val NoLocFunc: MSet[Int] = MSet()
 
   val RECENT_DIR = s"$FUZZ_LOG_DIR/fuzz-250103_11_39"
   private val MINIMAL_DIR = s"$RECENT_DIR/minimal"
   private val noSpace = false
 
-  def dump(): Unit =
+  private def dump(): Unit =
     dumpJson(
-      "target-nodes.json",
-      targetNodes,
-      s"$RECENT_DIR/target-nodes.json",
+      "target-nodeId.json",
+      TargetNodeId,
+      s"$RECENT_DIR/target-nodeId.json",
       noSpace,
     )
     dumpJson(
-      "no-loc-functions.json",
-      noLocFunc,
-      s"$RECENT_DIR/no-loc-functions.json",
+      "no-loc-function.json",
+      NoLocFunc,
+      s"$RECENT_DIR/no-loc-function.json",
       noSpace,
     )
     dumpJson(
-      "step-to-node.json",
-      stepToNode,
-      s"$RECENT_DIR/step-to-node.json",
+      "step-to-nodeId.json",
+      StepToNodeId,
+      s"$RECENT_DIR/step-to-nodeId.json",
       noSpace,
     )
     dumpJson(
-      "node-to-progId.json",
-      nodeToProgId,
-      s"$RECENT_DIR/node-to-progId.json",
+      "nodeId-to-progId.json",
+      NodeIdToProgId,
+      s"$RECENT_DIR/nodeId-to-progId.json",
       noSpace,
     )
     dumpJson(
       "progId-to-prog.json",
-      progIdToProg,
+      ProgIdToProg,
       s"$RECENT_DIR/progId-to-prog.json",
       noSpace,
     )
     dumpJson(
       "func-to-ecId.json",
-      funcToEcId,
+      FuncToEcId,
       s"$RECENT_DIR/func-to-ecId.json",
       noSpace,
     )
     dumpJson(
       "ecId-to-func.json",
-      ecIdToFunc,
+      EcIdToFunc,
       s"$RECENT_DIR/ecId-to-func.json",
+      noSpace,
+    )
+    dumpJson(
+      "funcId-to-func.json",
+      FuncIdToFunc,
+      s"$RECENT_DIR/funcId-to-func.json",
       noSpace,
     )
 
