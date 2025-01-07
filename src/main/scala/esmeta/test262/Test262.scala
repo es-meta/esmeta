@@ -143,9 +143,12 @@ case class Test262(
     // get target tests and removed tests
     val (targetTests, removed) = testFilter(tests, withYet)
 
-    // test id map
-    val testIdMap = targetTests.map(_.path).zipWithIndex.map(_.swap).toMap
-    if (total) dumpJson(testIdMap, s"$TEST262TEST_LOG_DIR/test-id-map.json")
+    // dump test id to path for test262test total coverage
+    if (total)
+      dumpJson(
+        targetTests.map(_.path).zipWithIndex.map(_.swap).toMap,
+        s"$TEST262TEST_LOG_DIR/test262-test-id-mapping.json",
+      )
 
     // open log file
     val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")

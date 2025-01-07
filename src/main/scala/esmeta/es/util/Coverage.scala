@@ -12,6 +12,8 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
+import scala.collection.immutable.BitSet
+import java.util.Base64
 
 /** coverage measurement of cfg */
 case class Coverage(
@@ -41,11 +43,13 @@ case class Coverage(
   private var condViewMap: Map[Cond, Map[View, Set[Script]]] = Map()
   private var condViews: Set[CondView] = Set()
 
+  // meta-info for test262test total coverage
   import ManualInfo.visibleNodes
-  private val testIdMap: Map[String, Int] = if (total) {
+  private val pathMap: Map[String, Int] = if (total) {
     import esmeta.TEST262TEST_LOG_DIR
-    readJson[Map[Int, String]](s"$TEST262TEST_LOG_DIR/test-id-map.json")
-      .map(_.swap)
+    readJson[Map[Int, String]](
+      s"$TEST262TEST_LOG_DIR/test262-test-id-mapping.json",
+    ).map(_.swap)
   } else Map()
 
   def apply(node: Node): Map[View, Set[Script]] =
@@ -387,19 +391,30 @@ case class Coverage(
       (nodeView, idx) <- ordered.zipWithIndex
       scripts <- getScripts(nodeView)
     } yield
-      if (total) {
-        val testIds = scripts.map(t => testIdMap(t.name).toString)
-        NodeViewInfo(idx, nodeView, testIds)
-      } else {
-        NodeViewInfo(idx, nodeView, scripts.map(_.name))
-      }
+      if (total) NodeViewInfo(idx, nodeView, encode(scripts, pathMap))
+      else NodeViewInfo(idx, nodeView, scripts.head.name)
 
   // get JSON for branch coverage
   private def condViewInfos(ordered: List[CondView]): List[CondViewInfo] =
     for {
       (condView, idx) <- ordered.zipWithIndex
       scripts <- getScripts(condView)
-    } yield CondViewInfo(idx, condView, scripts.map(_.name))
+    } yield CondViewInfo(idx, condView, scripts.head.name)
+
+  // get test encoding helper
+  private def encode(
+    scripts: Set[Script],
+    pathMap: Map[String, Int],
+  ): String =
+    val bs = scripts.map(t => pathMap(t.name)).foldLeft(BitSet.empty)(_ + _)
+    Base64.getEncoder.encodeToString(
+      bs.toBitMask
+        .flatMap(long =>
+          (7 to 0 by -1).map(i => ((long >> (i * 8)) & 0xff).toByte),
+        )
+        .dropWhile(_ == 0)
+        .toArray,
+    )
 }
 
 object Coverage {
@@ -501,8 +516,8 @@ object Coverage {
   given Ordering[CondView] = Ordering.by(v => (v.cond, v.view))
 
   // meta-info for each view or features
-  case class NodeViewInfo(index: Int, nodeView: NodeView, script: Set[String])
-  case class CondViewInfo(index: Int, condView: CondView, script: Set[String])
+  case class NodeViewInfo(index: Int, nodeView: NodeView, script: String)
+  case class CondViewInfo(index: Int, condView: CondView, script: String)
 
   case class CoverageConstructor(
     kFs: Int,
