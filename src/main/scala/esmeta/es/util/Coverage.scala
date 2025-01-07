@@ -208,23 +208,19 @@ case class Coverage(
     def elapsedSec = (System.nanoTime() - st) / 1e9
     def log(msg: Any): Unit = if (withMsg) println(s"[${elapsedSec}s] $msg")
 
-    dumpJsonChunks(
+    dumpJson(
       name = "node coverage",
-      iterable = nodeViewInfos(orderedNodeViews),
-      filename = s"$baseDir/node-coverage-chunks.json",
+      data = nodeViewInfos(orderedNodeViews),
+      filename = s"$baseDir/node-coverage.json",
       noSpace = false,
-      useStream = true,
-      chunkSize = 20000,
     )
     log("Dumped node coverage")
 
-    dumpJsonChunks(
+    dumpJson(
       name = "branch coverage",
-      iterable = condViewInfos(orderedCondViews),
-      filename = s"$baseDir/branch-coverage-chunks.json",
+      data = condViewInfos(orderedCondViews),
+      filename = s"$baseDir/branch-coverage.json",
       noSpace = false,
-      useStream = true,
-      chunkSize = 20000,
     )
     log("Dumped branch coverage")
 
