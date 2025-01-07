@@ -39,6 +39,8 @@ case class Coverage(
   private var condViewMap: Map[Cond, Map[View, Set[Script]]] = Map()
   private var condViews: Set[CondView] = Set()
 
+  import ManualInfo.visibleNodes
+
   def apply(node: Node): Map[View, Set[Script]] =
     nodeViewMap.getOrElse(node, Map())
   def getScripts(nv: NodeView): Option[Set[Script]] =
@@ -310,7 +312,12 @@ case class Coverage(
   private def update(nodeView: NodeView, script: Script): Unit =
     val NodeView(node, view) = nodeView
     nodeViews += nodeView
-    nodeViewMap += node -> updated(apply(node), view, script)
+    if (total) {
+      if (visibleNodes contains node.id)
+        nodeViewMap += node -> updated(apply(node), view, script)
+    } else {
+      nodeViewMap += node -> updated(apply(node), view, script)
+    }
 
   // update mapping from conditional branches to scripts
   private def update(

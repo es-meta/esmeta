@@ -48,6 +48,10 @@ object ManualInfo {
     readJson[List[String]](s"$MANUALS_DIR/test262/supported-features.json"),
   )
 
+  /** get node IDs currently visible in visualizer */
+  lazy val visibleNodes: Set[Int] =
+    readJson[Set[Int]](s"$MANUALS_DIR/visualizer/visible-nodes.json")
+
   /** find all files in the manual directory with a filter */
   private def getFiles(filter: String => Boolean): List[File] = (for {
     file <- walkTree(MANUALS_DIR)
