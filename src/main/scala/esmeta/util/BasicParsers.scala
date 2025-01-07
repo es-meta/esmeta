@@ -157,7 +157,7 @@ trait BasicParsers extends JavaTokenParsers {
     }
 
     lazy val steps = "(" ~> opt(stepTriple) ~ range <~ ")" ^^ {
-      case ss ~ (s -> e) => Loc(s, e, ss.getOrElse(Nil))
+      case ss ~ (s -> e) => Loc(s, e, steps = ss.getOrElse(Nil))
     }
 
     steps
@@ -174,7 +174,7 @@ trait BasicParsers extends JavaTokenParsers {
         p(trimmed) match
           case s @ Success(res, rest) =>
             Success(
-              res.setLoc(trimmed, rest, List()),
+              res.setLoc(trimmed, rest),
               rest,
             )
           case ns: NoSuccess => ns
