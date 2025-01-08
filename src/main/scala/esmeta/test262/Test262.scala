@@ -146,7 +146,7 @@ case class Test262(
     // dump test id to path for test262test total coverage
     if (total)
       dumpJson(
-        targetTests.map(_.path).zipWithIndex.map(_.swap).toMap,
+        targetTests.map(_.relName).zipWithIndex.map(_.swap).toMap,
         s"$TEST262TEST_LOG_DIR/test262-test-id-mapping.json",
       )
 

@@ -402,15 +402,30 @@ case class Coverage(
     scripts: Set[Script],
     pathMap: Map[String, Int],
   ): String =
-    val bs = scripts.map(t => pathMap(t.name)).foldLeft(BitSet.empty)(_ + _)
-    Base64.getEncoder.encodeToString(
-      bs.toBitMask
-        .flatMap(long =>
-          (7 to 0 by -1).map(i => ((long >> (i * 8)) & 0xff).toByte),
-        )
-        .dropWhile(_ == 0)
-        .toArray,
-    )
+    val bs = scripts
+      .map(t => pathMap(t.name.split("/tests/test262/test/").last))
+      .foldLeft(BitSet.empty)(_ + _)
+    val bytes = bs.toBitMask
+      .flatMap(long =>
+        (7 to 0 by -1).map(i => ((long >> (i * 8)) & 0xff).toByte),
+      )
+      .dropWhile(_ == 0)
+      .toArray
+    val base64 = Base64.getEncoder.encodeToString(bytes)
+    val compressed = base64
+      .foldLeft(List.empty[(Char, Int)]) {
+        case (acc, ch) =>
+          acc match
+            case (last, count) :: rest if last == ch =>
+              (last, count + 1) :: rest
+            case _ => (ch, 1) :: acc
+      }
+      .reverse
+    val compressedStr = "@" + compressed.map {
+      case (char, count) =>
+        s"$char.$count."
+    }.mkString
+    if compressedStr.length < base64.length then compressedStr else base64
 }
 
 object Coverage {
