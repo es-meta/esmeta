@@ -12,7 +12,7 @@ class Constructor(
   targetNodeId: Int,
   targetFeature: Int,
   targetCallPath: String,
-  nodeToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int)]]],
+  nodeToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int, String)]]],
 ) extends Debugger(st) {
   private var flag = true
   private inline def cfg = st.cfg
@@ -22,7 +22,7 @@ class Constructor(
       flag && node.id == targetNodeId && st.context.callPath.toString == targetCallPath
     ) {
       flag = false
-      val (script, cnt) =
+      val (script, cnt, encode) =
         nodeToProgId
           .getOrElse(
             targetNodeId,
@@ -67,7 +67,7 @@ class Constructor(
       nodeToProgId(targetNodeId)(targetFeature) -= targetCallPath
       nodeToProgId(targetNodeId)(
         targetFeature,
-      ) += path -> (script, getIter - 1)
+      ) += path -> (script, getIter - 1, encode)
     }
     super.eval(node)
 

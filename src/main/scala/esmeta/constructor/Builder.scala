@@ -8,14 +8,14 @@ import io.circe.*
 
 import java.lang.Integer.*
 import scala.collection.mutable.{Map as MMap, Set as MSet}
-import esmeta.phase.Construct.{RECENT_DIR, StepToNodeId}
+import esmeta.phase.Construct.{RECENT_DIR, RECENT_TEST262_DIR, StepToNodeId}
 import esmeta.spec.Algorithm
 import esmeta.util.Loc
 
 class Builder(
   cfg: CFG,
   StepToNodeId: MMap[Int, MMap[String, Int]],
-  NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int)]]],
+  NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int, String)]]],
   ProgIdToProg: MMap[Int, String],
   EcIdToFunc: MMap[String, MSet[String]],
   FuncToEcId: MMap[String, String],
@@ -106,6 +106,9 @@ class Builder(
     val nviList = readJson[List[TmpNodeViewInfo]](
       s"$RECENT_DIR/node-coverage.json",
     )
+    val test262List = readJson[List[TmpNodeViewInfo]](
+      s"$RECENT_TEST262_DIR/node-coverage.json",
+    )
     nviList.foreach {
       case TmpNodeViewInfo(
             _,
@@ -133,13 +136,15 @@ class Builder(
                 case Some(pathMap) =>
                   pathMap.get(path) match
                     case Some(script) => extraInfo(s"Same Path $path")
-                    case None         => pathMap += (path -> (scriptId, 1))
+                    case None         => pathMap += (path -> (scriptId, 1, ""))
                 case None =>
-                  featureMap += featureId -> MMap(path -> (scriptId, 1))
+                  featureMap += featureId -> MMap(
+                    path -> (scriptId, 1, ""),
+                  )
               }
             case None =>
               NodeIdToProgId += (nodeId -> MMap(
-                featureId -> MMap(path -> (scriptId, 1)),
+                featureId -> MMap(path -> (scriptId, 1, "")),
               ))
           }
 
@@ -156,6 +161,48 @@ class Builder(
             _,
           ) =>
         extraInfo(s"[Uncollected Node View] $func : $inst")
+    }
+
+    test262List.foreach {
+      case TmpNodeViewInfo(
+            _,
+            TmpNodeView(
+              TmpNode(_, inst, _),
+              Some(TmpView(_, featureName, path)),
+            ),
+            encoded,
+          ) =>
+        val nodeId = parseInt(inst.split(":").head)
+        val featureId = cfg.fnameMap
+          .getOrElse(
+            featureName,
+            throw new ESMetaError(
+              s"[Builder] no corresponding feature for $featureName",
+            ),
+          )
+          .id
+        if (TargetNodeId.contains(nodeId)) {
+          NodeIdToProgId.get(nodeId) match {
+            case Some(featureMap) =>
+              featureMap.get(featureId) match {
+                case Some(pathMap) =>
+                  pathMap.get(path) match
+                    case Some(script) =>
+                      val save = pathMap.get(path)
+                      pathMap += (path -> (save.get._1, save.get._2 + 1, encoded))
+                    case None => pathMap += (path -> (-1, -1, encoded))
+                case None =>
+                  featureMap += featureId -> MMap(
+                    path -> (-1, -1, encoded),
+                  )
+              }
+            case None =>
+              NodeIdToProgId += (nodeId -> MMap(
+                featureId -> MMap(path -> (-1, -1, encoded)),
+              ))
+          }
+        }
+      case _ =>
     }
 
   private def fillNoLocFunc(): Unit =

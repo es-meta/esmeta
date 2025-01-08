@@ -42,8 +42,10 @@ case object Construct extends Phase[CFG, Unit] {
 
     println("=========== Calculating Iteration Count =========")
     keyValuePairs.foreach {
-      case (node, feature, callPath, (filename, _))
-          if Files.exists(Paths.get(s"$MINIMAL_DIR/$filename.js")) =>
+      case (node, feature, callPath, (filename, _, encode))
+          if (Files.exists(
+            Paths.get(s"$MINIMAL_DIR/$filename.js"),
+          ) && filename == -1) =>
         println(s"$iter/$total : $filename running")
         iter += 1
         new Constructor(
@@ -61,7 +63,8 @@ case object Construct extends Phase[CFG, Unit] {
   /* { funcId : { step : nodeId } } */
   val StepToNodeId: MMap[Int, MMap[String, Int]] = MMap()
   /* { nodeId : { featureFuncId : { callPathFuncIdString : (progId,IterCnt,test262bitvector } } } */
-  val NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int)]]] = MMap()
+  val NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int, String)]]] =
+    MMap()
   /* { progId : prog } */
   val ProgIdToProg: MMap[Int, String] = MMap()
 
@@ -73,6 +76,7 @@ case object Construct extends Phase[CFG, Unit] {
   val NoLocFunc: MSet[Int] = MSet()
 
   val RECENT_DIR = s"$FUZZ_LOG_DIR/fuzz-250103_11_39"
+  val RECENT_TEST262_DIR = s"$TEST262TEST_LOG_DIR/eval-250108_02_03"
   private val MINIMAL_DIR = s"$RECENT_DIR/minimal"
   private val noSpace = false
 
