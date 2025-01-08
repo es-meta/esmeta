@@ -1,7 +1,7 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.cfg.CFG
+import esmeta.cfg.{CFG, Func}
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.constructor.{Builder, Constructor}
@@ -17,17 +17,29 @@ case object Construct extends Phase[CFG, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
+    var SPEC_FUNC_IDS: MSet[Int] = MSet()
+    val SPEC_FUNC = for {
+      func <- cfg.funcs
+      irFunc = func.irFunc
+      alg <- irFunc.algo
+      _ = SPEC_FUNC_IDS += func.id
+    } yield func
+
     println("=========== Building =========")
     new Builder(
       cfg,
+      SPEC_FUNC,
+      SPEC_FUNC_IDS,
       StepToNodeId,
       NodeIdToProgId,
       ProgIdToProg,
       EcIdToFunc,
       FuncToEcId,
       FuncIdToFunc,
+      FuncToFuncId,
       NoLocFunc,
       TargetNodeId,
+      FuncIdToFeature,
     ).build()
 
     /* { nodeId : { featureFuncId : { callPathFuncIdString : (progId,IterCnt,test262bitvector } } } */
@@ -71,11 +83,15 @@ case object Construct extends Phase[CFG, Unit] {
   val FuncToEcId: MMap[String, String] = MMap()
   val EcIdToFunc: MMap[String, MSet[String]] = MMap()
   val FuncIdToFunc: MMap[Int, String] = MMap()
+  val FuncToFuncId: MMap[String, Int] = MMap()
+
+  val FuncIdToFeature: MMap[Int, String] = MMap()
 
   val TargetNodeId: MSet[Int] = MSet()
   val NoLocFunc: MSet[Int] = MSet()
 
   val RECENT_DIR = s"$FUZZ_LOG_DIR/fuzz-250103_11_39"
+  val DUMP_DIR = s"$RECENT_DIR/json-dump"
   val RECENT_TEST262_DIR = s"$TEST262TEST_LOG_DIR/eval-250108_02_03"
   private val MINIMAL_DIR = s"$RECENT_DIR/minimal"
   private val noSpace = false
@@ -84,49 +100,61 @@ case object Construct extends Phase[CFG, Unit] {
     dumpJson(
       "target-nodeId.json",
       TargetNodeId,
-      s"$RECENT_DIR/target-nodeId.json",
+      s"$DUMP_DIR/target-nodeId.json",
       noSpace,
     )
     dumpJson(
       "no-loc-function.json",
       NoLocFunc,
-      s"$RECENT_DIR/no-loc-function.json",
+      s"$DUMP_DIR/no-loc-function.json",
       noSpace,
     )
     dumpJson(
       "step-to-nodeId.json",
       StepToNodeId,
-      s"$RECENT_DIR/step-to-nodeId.json",
+      s"$DUMP_DIR/step-to-nodeId.json",
       noSpace,
     )
     dumpJson(
       "nodeId-to-progId.json",
       NodeIdToProgId,
-      s"$RECENT_DIR/nodeId-to-progId.json",
+      s"$DUMP_DIR/nodeId-to-progId.json",
       noSpace,
     )
     dumpJson(
       "progId-to-prog.json",
       ProgIdToProg,
-      s"$RECENT_DIR/progId-to-prog.json",
+      s"$DUMP_DIR/progId-to-prog.json",
       noSpace,
     )
     dumpJson(
       "func-to-ecId.json",
       FuncToEcId,
-      s"$RECENT_DIR/func-to-ecId.json",
+      s"$DUMP_DIR/func-to-ecId.json",
       noSpace,
     )
     dumpJson(
       "ecId-to-func.json",
       EcIdToFunc,
-      s"$RECENT_DIR/ecId-to-func.json",
+      s"$DUMP_DIR/ecId-to-func.json",
       noSpace,
     )
     dumpJson(
       "funcId-to-func.json",
       FuncIdToFunc,
-      s"$RECENT_DIR/funcId-to-func.json",
+      s"$DUMP_DIR/funcId-to-func.json",
+      noSpace,
+    )
+    dumpJson(
+      "func-to-funcId.json",
+      FuncToFuncId,
+      s"$DUMP_DIR/func-to-funcId.json",
+      noSpace,
+    )
+    dumpJson(
+      "funcId-to-feature.json",
+      FuncIdToFeature,
+      s"$DUMP_DIR/funcId-to-feature.json",
       noSpace,
     )
 

@@ -8,42 +8,50 @@ import io.circe.*
 
 import java.lang.Integer.*
 import scala.collection.mutable.{Map as MMap, Set as MSet}
-import esmeta.phase.Construct.{RECENT_DIR, RECENT_TEST262_DIR, StepToNodeId}
-import esmeta.spec.Algorithm
+import esmeta.phase.Construct.{RECENT_DIR, RECENT_TEST262_DIR}
+import esmeta.spec.SyntaxDirectedOperationHead.*
+import esmeta.spec.{Algorithm, SyntaxDirectedOperationHead}
 import esmeta.util.Loc
 
 class Builder(
   cfg: CFG,
+  SPEC_FUNC: List[Func],
+  SPEC_FUNC_IDS: MSet[Int],
   StepToNodeId: MMap[Int, MMap[String, Int]],
   NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int, String)]]],
   ProgIdToProg: MMap[Int, String],
   EcIdToFunc: MMap[String, MSet[String]],
   FuncToEcId: MMap[String, String],
   FuncIdToFunc: MMap[Int, String],
+  FuncToFuncId: MMap[String, Int],
   NoLocFunc: MSet[Int],
   TargetNodeId: MSet[Int],
-  extraInfo: Boolean = false,
+  FuncIdToFeature: MMap[Int, String],
+  extraInfoFlag: Boolean = false,
 ) {
+  /* ToDO */
   val jsonProtocol = JsonProtocol(cfg)
   import jsonProtocol.{*, given}
 
   def build(): Unit =
     fillFuncToEcId()
+    fillFuncIdToFeatureHTML()
     fillStepToNode()
     fillNodeToProgIdToProg()
     fillNoLocFunc()
 
   private def fillFuncToEcId(): Unit =
     for {
-      func <- cfg.funcs
+      func <- SPEC_FUNC
       _ = FuncIdToFunc += (func.id -> func.name)
+      _ = FuncToFuncId += func.name -> func.id
     } func.irFunc.algo match {
       case Some(Algorithm(_, _, _, ecId)) =>
         val ecFuncIds = EcIdToFunc.getOrElseUpdate(ecId, MSet.empty)
         ecFuncIds += func.name
 
         if (ecFuncIds.size == 2)
-          extraInfo(s"More than one func : ${func.irFunc.kind} for a ${ecId}")
+          extraInfo(s"More than one func : ${func.irFunc.kind} for a $ecId")
 
         FuncToEcId += (func.name -> ecId)
       case None =>
@@ -52,9 +60,35 @@ class Builder(
         )
     }
 
+  private def fillFuncIdToFeatureHTML(): Unit =
+    for {
+      func <- SPEC_FUNC
+      irFunc = func.irFunc
+      algo <- func.irFunc.algo
+      head = algo.head
+    } {
+      head match
+        case SyntaxDirectedOperationHead(
+              Some(
+                Target(
+                  lhsName,
+                  _,
+                  _,
+                  rhsParams,
+                ),
+              ),
+              _,
+              _,
+              _,
+              _,
+            ) =>
+          FuncIdToFeature += func.id -> s"$lhsName,${rhsParams.toString().stripPrefix("List(").stripSuffix(")").replaceAll(",\\s*", ",")}"
+        case _ =>
+    }
+
   private def fillStepToNode(): Unit =
     for {
-      func <- cfg.funcs
+      func <- SPEC_FUNC
       node <- func.nodes
       step <- steps(node)
     } {
@@ -99,6 +133,38 @@ class Builder(
           }
         case _ =>
       }
+    }
+
+    val inlineBranchStepList = readJson[List[String]](
+      s"$RECENT_DIR/inline-step.json",
+    )
+    val inlineStepSet = inlineBranchStepList.toSet
+
+    for {
+      func <- SPEC_FUNC
+      irFunc = func.irFunc
+      algo <- func.irFunc.algo
+      node <- func.nodes
+      step <- steps(node)
+      ecId = algo.emuClauseId
+    } {
+      val funcIdKey = func.id
+      val nodeIdVal = node.id
+      node match
+        case Branch(_, _, _, _, Some(thenNode), Some(elseNode))
+            if inlineStepSet.contains(s"$ecId/$step") =>
+          StepToNodeId.get(funcIdKey) match
+            case Some(stepToNodeIds) =>
+              stepToNodeIds += s"${step}then" -> thenNode.id
+              stepToNodeIds += s"${step}else" -> elseNode.id
+            case None =>
+        case Branch(_, _, _, _, Some(thenNode), _)
+            if steps(node) == steps(thenNode) =>
+          StepToNodeId.get(funcIdKey) match
+            case Some(stepToNodeIds) =>
+              stepToNodeIds += (step -> thenNode.id)
+            case None =>
+        case _ =>
     }
 
   private def fillNodeToProgIdToProg(): Unit =
@@ -154,13 +220,13 @@ class Builder(
               case Some(_) =>
               case None    => ProgIdToProg += (scriptId -> code)
           }
-        }
+        } else extraInfo(s"[Builder] $featureId is not a spec function id")
       case TmpNodeViewInfo(
             _,
             TmpNodeView(TmpNode(_, inst, func), _),
             _,
           ) =>
-        extraInfo(s"[Uncollected Node View] $func : $inst")
+        extraInfo(s"[Builder] view is null - $func : $inst")
     }
 
     test262List.foreach {
@@ -207,7 +273,7 @@ class Builder(
 
   private def fillNoLocFunc(): Unit =
     for {
-      func <- cfg.funcs
+      func <- SPEC_FUNC
       if func.nodes.isEmpty || func.nodes.forall(_.loc.isEmpty)
     } NoLocFunc.add(func.id)
 
@@ -222,7 +288,7 @@ class Builder(
     case branch: Branch =>
       List(branch.cond.loc).collect { case Some(l) => l.stepString }
 
-  private def extraInfo(str: String): Unit = if (extraInfo) println(str)
+  private def extraInfo(str: String): Unit = if (extraInfoFlag) println(str)
 
   private def generateUniqueKey(
     baseKey: String,
