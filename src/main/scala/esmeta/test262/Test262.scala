@@ -318,6 +318,7 @@ case class Test262(
   ): Unit =
     val summary: Summary = progressBar.summary
     val logDir = s"$TEST262TEST_LOG_DIR/$name-$dateStr"
+    val symlink = s"$TEST262TEST_LOG_DIR/recent"
 
     // setting for logging
     if (log)
@@ -338,5 +339,6 @@ case class Test262(
 
     // post job
     postJob(logDir)
+    if exists(logDir) then createSymLink(symlink, logDir, overwrite = true)
 }
 object Test262 extends Git(TEST262_DIR)
