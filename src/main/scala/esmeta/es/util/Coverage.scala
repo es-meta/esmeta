@@ -405,13 +405,13 @@ case class Coverage(
     val bs = scripts
       .map(t => pathMap(t.name.split("/tests/test262/test/").last))
       .foldLeft(BitSet.empty)(_ + _)
-    val bytes = bs.toBitMask
-      .flatMap(long =>
-        (7 to 0 by -1).map(i => ((long >> (i * 8)) & 0xff).toByte),
-      )
-      .dropWhile(_ == 0)
-      .toArray
-    val base64 = Base64.getEncoder.encodeToString(bytes)
+    val hexString = bs.toBitMask.reverse
+      .map(l => String.format("%016x", l))
+      .mkString
+      .dropWhile(_ == '0')
+    val base64 = Base64.getEncoder.encodeToString(
+      hexString.grouped(2).map(Integer.parseInt(_, 16).toByte).toArray,
+    )
     val compressed = base64
       .foldLeft(List.empty[(Char, Int)]) {
         case (acc, ch) =>
@@ -422,8 +422,7 @@ case class Coverage(
       }
       .reverse
     val compressedStr = "@" + compressed.map {
-      case (char, count) =>
-        s"$char.$count."
+      case (char, count) => s"$char.$count."
     }.mkString
     if compressedStr.length < base64.length then compressedStr else base64
 }
