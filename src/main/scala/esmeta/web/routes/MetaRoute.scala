@@ -19,5 +19,29 @@ object MetaRoute {
         )
       }
     },
+    path("iter") {
+      get {
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            _debugger match
+              case None => ("no debugger").toString.asJson.noSpaces
+              case Some(value) => value.getIter.asJson.noSpaces
+          ),
+        )
+      }
+    },
+    path("cursor") {
+      get {
+        complete(
+          HttpEntity(
+            ContentTypes.`application/json`,
+            _debugger match
+              case None => ("no debugger").toString.asJson.noSpaces
+              case Some(value) => value.st.context.cursor.toString.asJson.noSpaces
+          )
+        )
+      }
+    },
   )
 }
