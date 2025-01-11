@@ -400,7 +400,7 @@ class Interpreter(
   def moveExit: Unit =
     st.context.cursor = ExitCursor(st.func)
 
-  protected def getIter = iter
+  def getIter = iter
   protected def setIter(i: Int) = iter = i
 
   // ---------------------------------------------------------------------------
