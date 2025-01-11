@@ -595,17 +595,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
             case Some(node) => dynamic intersect static.getOrElse(node, Set())
             case None       => dynamic
 
-          // if (intersection.size != dynamic.size) {
-          //   println("HIT!!!!!")
-          //   // println(s"Dynamic (${dynamic.size}): $dynamic")
-          //   // println(s"Intersection (${intersection.size}): $intersection")
-          //   println(s"currentNode ${currentNode.get},")
-          //   println(s"static deps of current node : ${static.getOrElse(currentNode.get, Set())}")
-          // } else {
-          //   println("MISS")
-          // }
-
-          intersection.flatMap(_.stepsOpt).toList
+          (intersection ++ currentNode).flatMap(_.stepsOpt).toList
         },
         // st.cfg.depGraph.getStringForm()
       )
