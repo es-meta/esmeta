@@ -39,7 +39,7 @@ case object Construct extends Phase[CFG, Unit] {
       FuncToFuncId,
       NoLocFunc,
       TargetNodeId,
-      FuncIdToFeature,
+      NodeIdToTest262,
     ).build()
 
     /* { nodeId : { featureFuncId : { callPathFuncIdString : (progId,IterCnt,test262bitvector } } } */
@@ -54,10 +54,10 @@ case object Construct extends Phase[CFG, Unit] {
 
     println("=========== Calculating Iteration Count =========")
     keyValuePairs.foreach {
-      case (node, feature, callPath, (filename, _, encode))
+      case (node, feature, callPath, (filename, _))
           if (Files.exists(
             Paths.get(s"$MINIMAL_DIR/$filename.js"),
-          ) && filename == -1) =>
+          )) =>
         println(s"$iter/$total : $filename running")
         iter += 1
         new Constructor(
@@ -72,20 +72,17 @@ case object Construct extends Phase[CFG, Unit] {
     println("=========== Dump =========")
     dump()
 
-  /* { funcId : { step : nodeId } } */
-  val StepToNodeId: MMap[Int, MMap[String, Int]] = MMap()
-  /* { nodeId : { featureFuncId : { callPathFuncIdString : (progId,IterCnt,test262bitvector } } } */
-  val NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int, String)]]] =
-    MMap()
-  /* { progId : prog } */
-  val ProgIdToProg: MMap[Int, String] = MMap()
+  val StepToNodeId: MMap[Int, MMap[String, Int]] = MMap() /* { funcId : { step : nodeId } } */
+  val NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int)]]] =
+    MMap() /* { nodeId : { featureFuncId : { callPathFuncIdString : [ progId, IterCnt ] } } */
+  val NodeIdToTest262: MMap[Int, MMap[Int, MMap[String, String]]] = MMap() /* { nodeId : { featureFuncId : { callPathFuncIdString : progId } } } */
+  val ProgIdToProg: MMap[Int, String] = MMap() /* { progId : prog } */
 
   val FuncToEcId: MMap[String, String] = MMap()
   val EcIdToFunc: MMap[String, MSet[String]] = MMap()
   val FuncIdToFunc: MMap[Int, String] = MMap()
   val FuncToFuncId: MMap[String, Int] = MMap()
 
-  val FuncIdToFeature: MMap[Int, String] = MMap()
 
   val TargetNodeId: MSet[Int] = MSet()
   val NoLocFunc: MSet[Int] = MSet()
@@ -152,9 +149,9 @@ case object Construct extends Phase[CFG, Unit] {
       noSpace,
     )
     dumpJson(
-      "funcId-to-feature.json",
-      FuncIdToFeature,
-      s"$DUMP_DIR/funcId-to-feature.json",
+      "nodeId-to-test262.json",
+      NodeIdToTest262,
+      s"$DUMP_DIR/nodeId-to-test262.json",
       noSpace,
     )
 

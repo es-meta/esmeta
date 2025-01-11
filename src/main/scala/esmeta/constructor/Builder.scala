@@ -18,7 +18,7 @@ class Builder(
   SPEC_FUNC: List[Func],
   SPEC_FUNC_IDS: MSet[Int],
   StepToNodeId: MMap[Int, MMap[String, Int]],
-  NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int, String)]]],
+  NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int)]]],
   ProgIdToProg: MMap[Int, String],
   EcIdToFunc: MMap[String, MSet[String]],
   FuncToEcId: MMap[String, String],
@@ -26,7 +26,7 @@ class Builder(
   FuncToFuncId: MMap[String, Int],
   NoLocFunc: MSet[Int],
   TargetNodeId: MSet[Int],
-  FuncIdToFeature: MMap[Int, String],
+  NodeIdToTest262: MMap[Int, MMap[Int, MMap[String, String]]],
   extraInfoFlag: Boolean = false,
 ) {
   /* ToDO */
@@ -35,9 +35,9 @@ class Builder(
 
   def build(): Unit =
     fillFuncToEcId()
-    fillFuncIdToFeatureHTML()
     fillStepToNode()
     fillNodeToProgIdToProg()
+    fillNodeToTest262()
     fillNoLocFunc()
 
   private def fillFuncToEcId(): Unit =
@@ -60,32 +60,6 @@ class Builder(
         )
     }
 
-  private def fillFuncIdToFeatureHTML(): Unit =
-    for {
-      func <- SPEC_FUNC
-      irFunc = func.irFunc
-      algo <- func.irFunc.algo
-      head = algo.head
-    } {
-      head match
-        case SyntaxDirectedOperationHead(
-              Some(
-                Target(
-                  lhsName,
-                  _,
-                  _,
-                  rhsParams,
-                ),
-              ),
-              _,
-              _,
-              _,
-              _,
-            ) =>
-          FuncIdToFeature += func.id -> s"$lhsName,${rhsParams.toString().stripPrefix("List(").stripSuffix(")").replaceAll(",\\s*", ",")}"
-        case _ =>
-    }
-
   private def fillStepToNode(): Unit =
     for {
       func <- SPEC_FUNC
@@ -96,6 +70,7 @@ class Builder(
       val nodeIdVal = node.id
       val stepToNodeId = step -> nodeIdVal
 
+      // collect steps
       StepToNodeId.get(funcIdKey) match {
         case Some(stepToNodeIds) =>
           stepToNodeIds.get(step) match {
@@ -112,6 +87,7 @@ class Builder(
           TargetNodeId += nodeIdVal
       }
 
+      // collect return if abrupt
       node match {
         case Branch(_, _, _, true, Some(thenNode), _)
             if thenNode.loc.isDefined =>
@@ -135,35 +111,45 @@ class Builder(
       }
     }
 
-    val inlineBranchStepList = readJson[List[String]](
-      s"$RECENT_DIR/inline-step.json",
-    )
-    val inlineStepSet = inlineBranchStepList.toSet
-
+    // collect branch
     for {
       func <- SPEC_FUNC
       irFunc = func.irFunc
-      algo <- func.irFunc.algo
       node <- func.nodes
       step <- steps(node)
-      ecId = algo.emuClauseId
     } {
       val funcIdKey = func.id
-      val nodeIdVal = node.id
       node match
-        case Branch(_, _, _, _, Some(thenNode), Some(elseNode))
-            if inlineStepSet.contains(s"$ecId/$step") =>
-          StepToNodeId.get(funcIdKey) match
-            case Some(stepToNodeIds) =>
-              stepToNodeIds += s"${step}then" -> thenNode.id
-              stepToNodeIds += s"${step}else" -> elseNode.id
-            case None =>
-        case Branch(_, _, _, _, Some(thenNode), _)
-            if steps(node) == steps(thenNode) =>
-          StepToNodeId.get(funcIdKey) match
-            case Some(stepToNodeIds) =>
-              stepToNodeIds += (step -> thenNode.id)
-            case None =>
+        case Branch(_, _, _, false, optionThen, optionElse) =>
+          for {
+            thenNode <- optionThen
+            if(steps(node) == steps(thenNode))
+          }
+            val map = StepToNodeId.getOrElse(funcIdKey, MMap())
+            map.get(s"${step}then") match
+              case None =>
+                TargetNodeId += thenNode.id
+                map += (s"${step}then" -> thenNode.id)
+              case Some(nodeId) =>
+                if(nodeId > thenNode.id)
+                  TargetNodeId += thenNode.id
+                  map += (s"${step}then" -> thenNode.id)
+            StepToNodeId += funcIdKey -> map
+          for {
+            elseNode <- optionElse
+            if (steps(node) == steps(elseNode))
+          }
+            TargetNodeId += elseNode.id
+            val map = StepToNodeId.getOrElse(funcIdKey, MMap())
+            map.get(s"${step}else") match
+              case None =>
+                TargetNodeId += elseNode.id
+                map += (s"${step}else" -> elseNode.id)
+              case Some(nodeId) =>
+                if(nodeId > elseNode.id)
+                  TargetNodeId += elseNode.id
+                  map += (s"${step}else" -> elseNode.id)
+            StepToNodeId += funcIdKey -> map
         case _ =>
     }
 
@@ -171,9 +157,6 @@ class Builder(
     /* ToDo change TmpNodeView */
     val nviList = readJson[List[TmpNodeViewInfo]](
       s"$RECENT_DIR/node-coverage.json",
-    )
-    val test262List = readJson[List[TmpNodeViewInfo]](
-      s"$RECENT_TEST262_DIR/node-coverage.json",
     )
     nviList.foreach {
       case TmpNodeViewInfo(
@@ -202,15 +185,15 @@ class Builder(
                 case Some(pathMap) =>
                   pathMap.get(path) match
                     case Some(script) => extraInfo(s"Same Path $path")
-                    case None         => pathMap += (path -> (scriptId, 1, ""))
+                    case None         => pathMap += (path -> (scriptId, 1))
                 case None =>
                   featureMap += featureId -> MMap(
-                    path -> (scriptId, 1, ""),
+                    path -> (scriptId, 1),
                   )
               }
             case None =>
               NodeIdToProgId += (nodeId -> MMap(
-                featureId -> MMap(path -> (scriptId, 1, "")),
+                featureId -> MMap(path -> (scriptId, 1)),
               ))
           }
 
@@ -229,16 +212,21 @@ class Builder(
         extraInfo(s"[Builder] view is null - $func : $inst")
     }
 
+  private def fillNodeToTest262(): Unit =
+    /* ToDo change TmpNodeView */
+    val test262List = readJson[List[TmpNodeViewInfo]](
+      s"$RECENT_TEST262_DIR/node-coverage.json",
+    )
     test262List.foreach {
       case TmpNodeViewInfo(
             _,
             TmpNodeView(
-              TmpNode(_, inst, _),
-              Some(TmpView(_, featureName, path)),
+              TmpNode(_, inst, func),
+              Some(TmpView(_, featureName, rawPath)),
             ),
             encoded,
           ) =>
-        val nodeId = parseInt(inst.split(":").head)
+        val nodeId = parseInt(inst.split(":").head) // get node id
         val featureId = cfg.fnameMap
           .getOrElse(
             featureName,
@@ -247,28 +235,33 @@ class Builder(
             ),
           )
           .id
+
+        val path = generateCallpathString(rawPath)
         if (TargetNodeId.contains(nodeId)) {
-          NodeIdToProgId.get(nodeId) match {
+          NodeIdToTest262.get(nodeId) match {
             case Some(featureMap) =>
               featureMap.get(featureId) match {
                 case Some(pathMap) =>
                   pathMap.get(path) match
-                    case Some(script) =>
-                      val save = pathMap.get(path)
-                      pathMap += (path -> (save.get._1, save.get._2 + 1, encoded))
-                    case None => pathMap += (path -> (-1, -1, encoded))
+                    case Some(script) => extraInfo(s"Same Path $path")
+                    case None         => pathMap += (path -> encoded)
                 case None =>
                   featureMap += featureId -> MMap(
-                    path -> (-1, -1, encoded),
+                    path -> encoded,
                   )
               }
             case None =>
-              NodeIdToProgId += (nodeId -> MMap(
-                featureId -> MMap(path -> (-1, -1, encoded)),
+              NodeIdToTest262 += (nodeId -> MMap(
+                featureId -> MMap(path -> encoded),
               ))
           }
-        }
-      case _ =>
+        } else extraInfo(s"[Builder] $featureId is not a spec function id")
+      case TmpNodeViewInfo(
+            _,
+            TmpNodeView(TmpNode(_, inst, func), _),
+            _,
+          ) =>
+        extraInfo(s"[Builder] view is null - $func : $inst")
     }
 
   private def fillNoLocFunc(): Unit =
@@ -302,4 +295,27 @@ class Builder(
     }
     newKey
   }
+
+  private def generateCallpathString(rawPath : String) : String =
+    val nodeIdList = "\\d+".r
+      .findAllIn(rawPath)
+      .toList
+      .map { nodeIdStr =>
+        nodeIdStr.toIntOption.getOrElse(
+          throw new IllegalArgumentException(
+            s"Invalid integer value: $nodeIdStr",
+          ),
+        )
+      }
+
+    val funcIdList: List[Int] = nodeIdList.flatMap { nodeId =>
+      cfg.nodeMap.get(nodeId).flatMap { node =>
+        cfg.funcOf.get(node).map(_.id)
+      }
+    }
+
+    val path =
+      if funcIdList.isEmpty then "ncp" else funcIdList.mkString("<")
+    path
+
 }
