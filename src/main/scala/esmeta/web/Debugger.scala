@@ -282,16 +282,51 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // es steps from ast span info
   private def getEsInfo =
     val ctxts = st.context :: st.callStack.map(_.context)
-    val callStackSize = ctxts.count(_.isEsCall)
+    val esCallStackSize = {
+      val stackAddr = st(GLOBAL_EXECUTION_STACK).asAddr
+      val stackSize = st.heap.map(stackAddr).size
+      stackSize
+    }
     val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
-    ((ls, le), callStackSize)
+    ((ls, le), esCallStackSize)
+
+  /* auxiliary - check if function is .Evaluation of SDO */
+  def isEsEvaluation = st.context.func.isSDO && st.context.name.endsWith("Evaluation")
+
+  /* auxiliary - check if ast is single StatementListItem */
+  def isSingleStatementListItem: Boolean ={
+    // TODO should get these constants in a better way?
+    val STATEMENT = "Statement"
+    val DECLARATION = "Declaration"
+    st.context.astOpt.flatMap(_.parent).map(_.name) match
+      case Some(name) =>
+            name == STATEMENT || name == DECLARATION
+      case None => false
+    }
+
+  def isAtFirst = cursor match
+    case NodeCursor(func, node, 0) => func.entry == node 
+    case _                    => false
+  
 
   // es step
-  final def esStep =
+  final def esAstStep =
     val (prevLoc, _) = getEsInfo
     stepWhile {
       val (loc, _) = getEsInfo
-      loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1
+      !isEsEvaluation || 
+      (prevLoc == loc) ||
+      !isAtFirst
+    }
+
+  // es step
+  final def esStatementStep =
+    val (prevLoc, _) = getEsInfo
+    stepWhile {
+      val (loc, _) = getEsInfo
+      !isEsEvaluation ||
+      !isSingleStatementListItem ||
+      !isAtFirst
     }
 
   // es step over
@@ -299,7 +334,10 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     val (prevLoc, prevStackSize) = getEsInfo
     stepWhile {
       val (loc, stackSize) = getEsInfo
-      loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1 || prevStackSize < stackSize
+      !isEsEvaluation ||
+      !isSingleStatementListItem ||
+      !isAtFirst ||
+      prevStackSize < stackSize
     }
 
   // es step out
@@ -307,7 +345,10 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     val (_, prevStackSize) = getEsInfo
     stepWhile {
       val (loc, stackSize) = getEsInfo
-      loc._1 == -1 || prevStackSize <= stackSize
+      !isEsEvaluation ||
+      !isSingleStatementListItem ||
+      !isAtFirst ||
+      prevStackSize <= stackSize
     }
 
   // continue
