@@ -286,8 +286,6 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
     ((ls, le), callStackSize)
 
-    
-
   // es step
   final def esStep =
     val (prevLoc, _) = getEsInfo
