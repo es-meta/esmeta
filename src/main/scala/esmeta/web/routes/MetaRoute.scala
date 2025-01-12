@@ -25,8 +25,8 @@ object MetaRoute {
           HttpEntity(
             ContentTypes.`application/json`,
             _debugger match
-              case None => ("no debugger").toString.asJson.noSpaces
-              case Some(value) => value.getIter.asJson.noSpaces
+              case None        => ("no debugger").toString.asJson.noSpaces
+              case Some(value) => value.getIter.asJson.noSpaces,
           ),
         )
       }
@@ -38,8 +38,9 @@ object MetaRoute {
             ContentTypes.`application/json`,
             _debugger match
               case None => ("no debugger").toString.asJson.noSpaces
-              case Some(value) => value.st.context.cursor.toString.asJson.noSpaces
-          )
+              case Some(value) =>
+                value.st.context.cursor.toString.asJson.noSpaces,
+          ),
         )
       }
     },

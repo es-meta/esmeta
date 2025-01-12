@@ -44,7 +44,6 @@ case class Coverage(
   private var condViews: Set[CondView] = Set()
 
   // meta-info for test262test total coverage
-  import ManualInfo.visibleNodes
   private val pathMap: Map[String, Int] = if (total) {
     import esmeta.TEST262TEST_LOG_DIR
     readJson[Map[Int, String]](
@@ -311,12 +310,7 @@ case class Coverage(
   private def update(nodeView: NodeView, script: Script): Unit =
     val NodeView(node, view) = nodeView
     nodeViews += nodeView
-    if (total) {
-      if (visibleNodes contains node.id)
-        nodeViewMap += node -> updated(apply(node), view, script)
-    } else {
-      nodeViewMap += node -> updated(apply(node), view, script)
-    }
+    nodeViewMap += node -> updated(apply(node), view, script)
 
   // update mapping from conditional branches to scripts
   private def update(
