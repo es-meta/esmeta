@@ -559,7 +559,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
           case ListObj(values) =>
             Json.obj(
               "type" -> Json.fromString("ListObj"),
-              "values" -> Json.fromValues(values.map(_.toString.asJson)),
+              "values" -> Json.arr((values.map(_.toString.asJson))*),
               "stringform" -> Json.fromString(obj.toString),
             )
           case YetObj(tname, msg) =>
