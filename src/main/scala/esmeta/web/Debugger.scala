@@ -118,6 +118,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     )
   }
 
+  final def stepUntil(
+    pred: => Boolean,
+    ignoreBreak: Boolean = false,
+  ) = stepWhile(!pred, ignoreBreak)
+
   private def stepExactlyFrom(
     to: Int,
     ignoreBreak: Boolean = false,
@@ -291,64 +296,64 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     ((ls, le), esCallStackSize)
 
   /* auxiliary - check if function is .Evaluation of SDO */
-  def isEsEvaluation = st.context.func.isSDO && st.context.name.endsWith("Evaluation")
+  def isEsEvaluation =
+    st.context.func.isSDO && st.context.name.endsWith("Evaluation")
 
   /* auxiliary - check if ast is single StatementListItem */
-  def isSingleStatementListItem: Boolean ={
+  def isSingleStatementListItem: Boolean = {
     // TODO should get these constants in a better way?
     val STATEMENT = "Statement"
     val DECLARATION = "Declaration"
     st.context.astOpt.flatMap(_.parent).map(_.name) match
       case Some(name) =>
-            name == STATEMENT || name == DECLARATION
+        name == STATEMENT || name == DECLARATION
       case None => false
-    }
+  }
 
   def isAtFirst = cursor match
-    case NodeCursor(func, node, 0) => func.entry == node 
-    case _                    => false
-  
+    case NodeCursor(func, node, 0) => func.entry == node
+    case _                         => false
 
   // es step
   final def esAstStep =
     val (prevLoc, _) = getEsInfo
-    stepWhile {
+    stepUntil {
       val (loc, _) = getEsInfo
-      !isEsEvaluation || 
-      (prevLoc == loc) ||
-      !isAtFirst
+      isEsEvaluation &&
+      (prevLoc != loc) &&
+      isAtFirst
     }
 
   // es step
   final def esStatementStep =
     val (prevLoc, _) = getEsInfo
-    stepWhile {
+    stepUntil {
       val (loc, _) = getEsInfo
-      !isEsEvaluation ||
-      !isSingleStatementListItem ||
-      !isAtFirst
+      isEsEvaluation &&
+      isSingleStatementListItem &&
+      isAtFirst
     }
 
   // es step over
   final def esStepOver =
     val (prevLoc, prevStackSize) = getEsInfo
-    stepWhile {
+    stepUntil {
       val (loc, stackSize) = getEsInfo
-      !isEsEvaluation ||
-      !isSingleStatementListItem ||
-      !isAtFirst ||
-      prevStackSize < stackSize
+      isEsEvaluation &&
+      isSingleStatementListItem &&
+      isAtFirst &&
+      prevStackSize >= stackSize
     }
 
   // es step out
   final def esStepOut =
     val (_, prevStackSize) = getEsInfo
-    stepWhile {
+    stepUntil {
       val (loc, stackSize) = getEsInfo
-      !isEsEvaluation ||
-      !isSingleStatementListItem ||
-      !isAtFirst ||
-      prevStackSize <= stackSize
+      isEsEvaluation &&
+      isSingleStatementListItem &&
+      isAtFirst &&
+      prevStackSize > stackSize
     }
 
   // continue
