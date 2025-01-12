@@ -99,6 +99,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     else
       StepResult.Terminated
 
+  final def stepUntil(
+    pred: => Boolean,
+    ignoreBreak: Boolean = false,
+  ) = stepWhile(!pred, ignoreBreak)
+
   def stepExactly(
     count: Int,
     ignoreBreak: Boolean = false,
@@ -117,11 +122,6 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       ignoreBreak,
     )
   }
-
-  final def stepUntil(
-    pred: => Boolean,
-    ignoreBreak: Boolean = false,
-  ) = stepWhile(!pred, ignoreBreak)
 
   private def stepExactlyFrom(
     to: Int,
