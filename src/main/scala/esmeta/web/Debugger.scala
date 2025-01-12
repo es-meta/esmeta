@@ -295,25 +295,6 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
     ((ls, le), esCallStackSize)
 
-  /* auxiliary - check if function is .Evaluation of SDO */
-  def isEsEvaluation =
-    st.context.func.isSDO && st.context.name.endsWith("Evaluation")
-
-  /* auxiliary - check if ast is single StatementListItem */
-  def isSingleStatementListItem: Boolean = {
-    // TODO should get these constants in a better way?
-    val STATEMENT = "Statement"
-    val DECLARATION = "Declaration"
-    st.context.astOpt.flatMap(_.parent).map(_.name) match
-      case Some(name) =>
-        name == STATEMENT || name == DECLARATION
-      case None => false
-  }
-
-  def isAtFirst = cursor match
-    case NodeCursor(func, node, 0) => func.entry == node
-    case _                         => false
-
   // es step
   final def esAstStep =
     val (prevLoc, _) = getEsInfo
@@ -510,6 +491,26 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // ---------------------------------------------------------------------------
   // debugger info
   // ---------------------------------------------------------------------------
+
+  /* auxiliary - check if function is .Evaluation of SDO */
+  def isEsEvaluation =
+    st.context.func.isSDO && st.context.name.endsWith("Evaluation")
+
+  /* auxiliary - check if ast is single StatementListItem */
+  def isSingleStatementListItem: Boolean = {
+    // TODO should get these constants in a better way?
+    val STATEMENT = "Statement"
+    val DECLARATION = "Declaration"
+    st.context.astOpt.flatMap(_.parent).map(_.name) match
+      case Some(name) =>
+        name == STATEMENT || name == DECLARATION
+      case None => false
+  }
+
+  def isAtFirst = cursor match
+    case NodeCursor(func, node, 0) => func.entry == node
+    case _                         => false
+
 
   extension (node: Node) {
 
