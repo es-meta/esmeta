@@ -83,9 +83,9 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     pred: => Boolean,
     ignoreBreak: Boolean = false,
   ): StepResult =
-    val (prevLoc, prevStackSize) = getIrInfo
+    val (prevLoc, prevStackSize) = getSpecInfo
     val keep = step
-    val (curLoc, curStackSize) = getIrInfo
+    val (curLoc, curStackSize) = getSpecInfo
 
     wasExited =
       prevStackSize > curStackSize || (wasExited && prevLoc._2 == curLoc._2)
@@ -147,23 +147,48 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     this.st.globals ++= newD.st.globals
     setIter(0)
 
-  private def getIrInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
+
+  // ir step
+  final def irStep(ignoreBreak: Boolean = false) = {
+    val (prevCursor, _) = getIrInfo
+    stepUntil({
+      val (curCursor, _) = getIrInfo
+      prevCursor != curCursor
+    }, ignoreBreak,
+    )
+  }
+
+  // ir step over
+  final def irStepOver(ignoreBreak: Boolean = false) =
+    val (prevCursor, prevStackSize) = getIrInfo
+      stepUntil({
+      val (curCursor, stackSize) = getIrInfo
+      prevCursor != curCursor && prevStackSize >= stackSize
+    }, ignoreBreak)
+
+  // ir step over
+  final def irStepOut(ignoreBreak: Boolean = false) =
+    val (prevCursor, prevStackSize) = getIrInfo
+      stepUntil({
+      val (curCursor, stackSize) = getIrInfo
+      prevCursor != curCursor && prevStackSize > stackSize
+    }, ignoreBreak)
 
   // spec step
   final def specStep(ignoreBreak: Boolean = false) = {
-    val (prevLoc, _) = getIrInfo
+    val (prevLoc, _) = getSpecInfo
     stepWhile(
-      { prevLoc._2.isDefined && prevLoc == getIrInfo._1 },
+      { prevLoc._2.isDefined && prevLoc == getSpecInfo._1 },
       ignoreBreak,
     )
   }
 
   // spec step over
   final def specStepOver(ignoreBreak: Boolean = false) =
-    val (prevLoc, prevStackSize) = getIrInfo
+    val (prevLoc, prevStackSize) = getSpecInfo
     stepWhile(
       {
-        val (loc, stackSize) = getIrInfo
+        val (loc, stackSize) = getSpecInfo
         (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
       },
       ignoreBreak,
@@ -171,18 +196,18 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // spec step out
   final def specStepOut(ignoreBreak: Boolean = false) =
-    val (_, prevStackSize) = getIrInfo
-    stepWhile({ prevStackSize <= getIrInfo._2 }, ignoreBreak)
+    val (_, prevStackSize) = getSpecInfo
+    stepWhile({ prevStackSize <= getSpecInfo._2 }, ignoreBreak)
 
   // spec step back
   final def specStepBack(ignoreBreak: Boolean = false) = {
-    val ((curLoc, curStackSize), curIter) = (getIrInfo, getIter)
+    val ((curLoc, curStackSize), curIter) = (getSpecInfo, getIter)
 
     var target: Int = 0
     var breakFlag: Boolean = false
 
     val calcTarget = () => {
-      val (iterLoc, iterStackSize) = getIrInfo
+      val (iterLoc, iterStackSize) = getSpecInfo
       val iterCond = curLoc._2.isDefined && curLoc == iterLoc
       if (!iterCond) {
         target = getIter
@@ -204,12 +229,12 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // spec step back over
   final def specStepBackOver(ignoreBreak: Boolean = false) = {
-    val (curLoc, curStackSize) = getIrInfo
+    val (curLoc, curStackSize) = getSpecInfo
     val currentIter = getIter
 
     var target: Int = 0
     val calcTarget = () => {
-      val (iterLoc, iterStackSize) = getIrInfo
+      val (iterLoc, iterStackSize) = getSpecInfo
       val cond =
         (curLoc._2.isDefined && curLoc == iterLoc) || (curStackSize < iterStackSize)
       if !cond then target = getIter
@@ -217,7 +242,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
     var breakFlag: Boolean = false
     val calcBp = () => {
-      val (iterLoc, iterStackSize) = getIrInfo
+      val (iterLoc, iterStackSize) = getSpecInfo
       val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
       breakpoints.foreach {
         case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
@@ -246,18 +271,18 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // spec step back out
   final def specStepBackOut(ignoreBreak: Boolean = false) = {
-    val (curLoc, curStackSize) = getIrInfo
+    val (curLoc, curStackSize) = getSpecInfo
     val currentIter = getIter
 
     var target: Int = 0
     var breakFlag: Boolean = false
 
     val calcTarget = () => {
-      if !(curStackSize <= getIrInfo._2) then target = getIter
+      if !(curStackSize <= getSpecInfo._2) then target = getIter
     }
 
     val calcBp = () => {
-      val (iterLoc, iterStackSize) = getIrInfo
+      val (iterLoc, iterStackSize) = getSpecInfo
       val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
       breakpoints.foreach {
         case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
@@ -283,17 +308,6 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     val result = stepExactlyFrom(target, true)
     if (breakFlag) StepResult.Breaked else result
   }
-
-  // es steps from ast span info
-  private def getEsInfo =
-    val ctxts = st.context :: st.callStack.map(_.context)
-    val esCallStackSize = {
-      val stackAddr = st(GLOBAL_EXECUTION_STACK).asAddr
-      val stackSize = st.heap.map(stackAddr).size
-      stackSize
-    }
-    val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
-    ((ls, le), esCallStackSize)
 
   // es step
   final def esAstStep =
@@ -342,13 +356,13 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // rewind
   final def rewind: StepResult = {
-    val (curLoc, curStackSize) = getIrInfo
+    val (curLoc, curStackSize) = getSpecInfo
     val currentIter = getIter
     var target: Int = 0
     var breakFlag: Boolean = false
 
     val calcBp = () => {
-      val (iterLoc, iterStackSize) = getIrInfo
+      val (iterLoc, iterStackSize) = getSpecInfo
       val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
       breakpoints.foreach {
         case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
@@ -489,14 +503,29 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   }
 
   // ---------------------------------------------------------------------------
-  // debugger info
+  // step auxiliaries
   // ---------------------------------------------------------------------------
 
-  /* auxiliary - check if function is .Evaluation of SDO */
+  private def getIrInfo = (cursor, st.callStack.size)
+
+  private def getSpecInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
+
+  // es steps from ast span info
+  private def getEsInfo =
+    val ctxts = st.context :: st.callStack.map(_.context)
+    val esCallStackSize = {
+      val stackAddr = st(GLOBAL_EXECUTION_STACK).asAddr
+      val stackSize = st.heap.map(stackAddr).size
+      stackSize
+    }
+    val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
+    ((ls, le), esCallStackSize)
+    
+  /* check if function is .Evaluation of SDO */
   def isEsEvaluation =
     st.context.func.isSDO && st.context.name.endsWith("Evaluation")
 
-  /* auxiliary - check if ast is single StatementListItem */
+  /* check if ast is single StatementListItem */
   def isSingleStatementListItem: Boolean = {
     // TODO should get these constants in a better way?
     val STATEMENT = "Statement"
@@ -511,6 +540,9 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     case NodeCursor(func, node, 0) => func.entry == node
     case _                         => false
 
+  // ---------------------------------------------------------------------------
+  // debugger info
+  // ---------------------------------------------------------------------------
 
   extension (node: Node) {
 

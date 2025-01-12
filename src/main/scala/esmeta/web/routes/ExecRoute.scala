@@ -108,9 +108,32 @@ object ExecRoute {
             HttpEntity(ContentTypes.`application/json`, debugger.rewind),
           )
         },
+        // IR-ES steps
+        path("irStep") {
+          ignoreBreakWrapper(debugger.irStep)
+        },
+        // spec step-over
+        path("irStepOver") {
+          ignoreBreakWrapper(debugger.irStepOver)
+        },
+        // spec step-out
+        path("irStepOut") {
+          ignoreBreakWrapper(debugger.irStepOut)
+        },
+        // ECMAScript ast steps
+        path("esAstStep") {
+          complete(
+            HttpEntity(ContentTypes.`application/json`, debugger.esAstStep),
+          )
+        },
         // ECMAScript steps
-        path("esStep") {
-          complete(HttpEntity(ContentTypes.`application/json`, debugger.esStep))
+        path("esStatementStep") {
+          complete(
+            HttpEntity(
+              ContentTypes.`application/json`,
+              debugger.esStatementStep,
+            ),
+          )
         },
         // ECMAScript step-over
         path("esStepOver") {
