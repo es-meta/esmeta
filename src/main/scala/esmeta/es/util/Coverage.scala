@@ -399,10 +399,8 @@ case class Coverage(
     val bs = scripts
       .map(t => pathMap(t.name.split("/tests/test262/test/").last))
       .foldLeft(BitSet.empty)(_ + _)
-    val hexString = bs.toBitMask.reverse
-      .map(l => String.format("%016x", l))
-      .mkString
-      .dropWhile(_ == '0')
+    val hexString =
+      bs.toBitMask.reverse.map(l => String.format("%016x", l)).mkString
     val base64 = Base64.getEncoder.encodeToString(
       hexString.grouped(2).map(Integer.parseInt(_, 16).toByte).toArray,
     )
