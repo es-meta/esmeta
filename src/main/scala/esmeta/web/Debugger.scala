@@ -79,7 +79,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // step until given predicate
   // TODO handle yet
   @tailrec
-  final def stepUntil(
+  final def stepWhile(
     pred: => Boolean,
     ignoreBreak: Boolean = false,
   ): StepResult =
@@ -91,7 +91,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       prevStackSize > curStackSize || (wasExited && prevLoc._2 == curLoc._2)
     val break = isBreaked && !ignoreBreak
 
-    if (pred && keep && !break) stepUntil(pred, ignoreBreak)
+    if (pred && keep && !break) stepWhile(pred, ignoreBreak)
     else if (break)
       StepResult.Breaked
     else if (keep)
@@ -108,7 +108,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     if count <= 0 then
       return if getIter == 0 then StepResult.ReachedFront
       else StepResult.Succeed
-    stepUntil(
+    stepWhile(
       {
         fn.map(_())
         val current = getIter
@@ -147,7 +147,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step
   final def specStep(ignoreBreak: Boolean = false) = {
     val (prevLoc, _) = getIrInfo
-    stepUntil(
+    stepWhile(
       { prevLoc._2.isDefined && prevLoc == getIrInfo._1 },
       ignoreBreak,
     )
@@ -156,7 +156,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step over
   final def specStepOver(ignoreBreak: Boolean = false) =
     val (prevLoc, prevStackSize) = getIrInfo
-    stepUntil(
+    stepWhile(
       {
         val (loc, stackSize) = getIrInfo
         (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
@@ -167,7 +167,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step out
   final def specStepOut(ignoreBreak: Boolean = false) =
     val (_, prevStackSize) = getIrInfo
-    stepUntil({ prevStackSize <= getIrInfo._2 }, ignoreBreak)
+    stepWhile({ prevStackSize <= getIrInfo._2 }, ignoreBreak)
 
   // spec step back
   final def specStepBack(ignoreBreak: Boolean = false) = {
@@ -286,10 +286,12 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
     ((ls, le), callStackSize)
 
+    
+
   // es step
   final def esStep =
     val (prevLoc, _) = getEsInfo
-    stepUntil {
+    stepWhile {
       val (loc, _) = getEsInfo
       loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1
     }
@@ -297,7 +299,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // es step over
   final def esStepOver =
     val (prevLoc, prevStackSize) = getEsInfo
-    stepUntil {
+    stepWhile {
       val (loc, stackSize) = getEsInfo
       loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1 || prevStackSize < stackSize
     }
@@ -305,13 +307,13 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // es step out
   final def esStepOut =
     val (_, prevStackSize) = getEsInfo
-    stepUntil {
+    stepWhile {
       val (loc, stackSize) = getEsInfo
       loc._1 == -1 || prevStackSize <= stackSize
     }
 
   // continue
-  final def continue: StepResult = stepUntil { true }
+  final def continue: StepResult = stepWhile { true }
 
   // rewind
   final def rewind: StepResult = {
