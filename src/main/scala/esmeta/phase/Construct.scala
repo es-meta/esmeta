@@ -37,6 +37,8 @@ case object Construct extends Phase[CFG, Unit] {
       FuncToEcId,
       FuncIdToFunc,
       FuncToFuncId,
+      CallNodeIdToFuncId,
+      StepEcIdToCallNodeId,
       NoLocFunc,
       TargetNodeId,
       NodeIdToTest262,
@@ -52,13 +54,15 @@ case object Construct extends Phase[CFG, Unit] {
     val total = keyValuePairs.size
     var iter = 1
 
+    println(s"Target Nodes : ${total}")
+
     println("=========== Calculating Iteration Count =========")
     keyValuePairs.foreach {
       case (node, feature, callPath, (filename, _))
           if (Files.exists(
             Paths.get(s"$MINIMAL_DIR/$filename.js"),
           )) =>
-        println(s"$iter/$total : $filename running")
+        println(s"$iter/$total : $MINIMAL_DIR/$filename running")
         iter += 1
         new Constructor(
           cfg.init.fromFile(s"$MINIMAL_DIR/$filename.js"),
@@ -72,40 +76,44 @@ case object Construct extends Phase[CFG, Unit] {
     println("=========== Dump =========")
     dump()
 
-  val StepToNodeId: MMap[Int, MMap[String, Int]] = MMap() /* { funcId : { step : nodeId } } */
+  val StepToNodeId: MMap[Int, MMap[String, MSet[Int]]] =
+    MMap() /* { funcId : { step : nodeIdSet } } */
   val NodeIdToProgId: MMap[Int, MMap[Int, MMap[String, (Int, Int)]]] =
     MMap() /* { nodeId : { featureFuncId : { callPathFuncIdString : [ progId, IterCnt ] } } */
-  val NodeIdToTest262: MMap[Int, MMap[Int, MMap[String, String]]] = MMap() /* { nodeId : { featureFuncId : { callPathFuncIdString : progId } } } */
+  val NodeIdToTest262: MMap[Int, MMap[Int, MMap[String, String]]] =
+    MMap() /* { nodeId : { featureFuncId : { callPathFuncIdString : progId } } } */
   val ProgIdToProg: MMap[Int, String] = MMap() /* { progId : prog } */
+
+  val StepEcIdToCallNodeId: MMap[String, Int] = MMap()
+  val CallNodeIdToFuncId: MMap[Int, String] = MMap()
 
   val FuncToEcId: MMap[String, String] = MMap()
   val EcIdToFunc: MMap[String, MSet[String]] = MMap()
   val FuncIdToFunc: MMap[Int, String] = MMap()
   val FuncToFuncId: MMap[String, Int] = MMap()
 
-
   val TargetNodeId: MSet[Int] = MSet()
   val NoLocFunc: MSet[Int] = MSet()
 
-  val RECENT_DIR = s"$FUZZ_LOG_DIR/fuzz-250103_11_39"
+  val RECENT_DIR = s"$FUZZ_LOG_DIR/fuzz-250112_09_00"
   val DUMP_DIR = s"$RECENT_DIR/json-dump"
   val RECENT_TEST262_DIR = s"$TEST262TEST_LOG_DIR/eval-250108_02_03"
   private val MINIMAL_DIR = s"$RECENT_DIR/minimal"
   private val noSpace = false
 
   private def dump(): Unit =
-    dumpJson(
-      "target-nodeId.json",
-      TargetNodeId,
-      s"$DUMP_DIR/target-nodeId.json",
-      noSpace,
-    )
-    dumpJson(
-      "no-loc-function.json",
-      NoLocFunc,
-      s"$DUMP_DIR/no-loc-function.json",
-      noSpace,
-    )
+//    dumpJson(
+//      "target-nodeId.json",
+//      TargetNodeId,
+//      s"$DUMP_DIR/target-nodeId.json",
+//      noSpace,
+//    )
+//    dumpJson(
+//      "no-loc-function.json",
+//      NoLocFunc,
+//      s"$DUMP_DIR/no-loc-function.json",
+//      noSpace,
+//    )
     dumpJson(
       "step-to-nodeId.json",
       StepToNodeId,
@@ -152,6 +160,18 @@ case object Construct extends Phase[CFG, Unit] {
       "nodeId-to-test262.json",
       NodeIdToTest262,
       s"$DUMP_DIR/nodeId-to-test262.json",
+      noSpace,
+    )
+    dumpJson(
+      "callId-to-funcId.json",
+      CallNodeIdToFuncId,
+      s"$DUMP_DIR/callId-to-funcId.json",
+      noSpace,
+    )
+    dumpJson(
+      "ecId-to-callId.json",
+      StepEcIdToCallNodeId,
+      s"$DUMP_DIR/ecId-to-callId.json",
       noSpace,
     )
 

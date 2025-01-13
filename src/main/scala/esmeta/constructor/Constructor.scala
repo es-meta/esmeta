@@ -19,7 +19,9 @@ class Constructor(
 
   override def eval(node: Node): Unit =
     if (
-      flag && node.id == targetNodeId && st.context.callPath.toString == targetCallPath
+      flag && node.id == targetNodeId && generateCallpathString(
+        st.context.callPath.toString,
+      ) == targetCallPath
     ) {
       flag = false
       val (script, cnt) =
@@ -43,32 +45,33 @@ class Constructor(
             ),
           )
 
-      val rawPath = targetCallPath
-      val nodeIdList = "\\d+".r
-        .findAllIn(rawPath)
-        .toList
-        .map { nodeIdStr =>
-          nodeIdStr.toIntOption.getOrElse(
-            throw new IllegalArgumentException(
-              s"Invalid integer value: $nodeIdStr",
-            ),
-          )
-        }
-
-      val funcIdList: List[Int] = nodeIdList.flatMap { nodeId =>
-        cfg.nodeMap.get(nodeId).flatMap { node =>
-          cfg.funcOf.get(node).map(_.id)
-        }
-      }
-
-      val path =
-        if funcIdList.isEmpty then "ncp" else funcIdList.mkString("<")
-
       nodeToProgId(targetNodeId)(targetFeature) -= targetCallPath
       nodeToProgId(targetNodeId)(
         targetFeature,
-      ) += path -> (script, getIter - 1)
+      ) += targetCallPath -> (script, getIter - 1)
     }
     super.eval(node)
+
+  private def generateCallpathString(rawPath: String): String =
+    val nodeIdList = "\\d+".r
+      .findAllIn(rawPath)
+      .toList
+      .map { nodeIdStr =>
+        nodeIdStr.toIntOption.getOrElse(
+          throw new IllegalArgumentException(
+            s"Invalid integer value: $nodeIdStr",
+          ),
+        )
+      }
+
+//    val funcIdList: List[Int] = nodeIdList.flatMap { nodeId =>
+//      cfg.nodeMap.get(nodeId).flatMap { node =>
+//        cfg.funcOf.get(node).map(_.id)
+//      }
+//    }
+
+    val path =
+      if nodeIdList.isEmpty then "" else nodeIdList.mkString("<")
+    path
 
 }
