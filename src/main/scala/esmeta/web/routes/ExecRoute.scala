@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.Route
 import esmeta.cfg.CFG
 import esmeta.state.DynamicAddr
 import esmeta.web.*
-import io.circe.*, io.circe.parser.*
+import io.circe.*, io.circe.parser.*, io.circe.syntax.*
 
 // exec router
 object ExecRoute {
@@ -39,7 +39,10 @@ object ExecRoute {
               case Right((sourceText, bpData)) =>
                 initDebugger(cfg, sourceText)
                 for { data <- bpData } debugger.addBreak(data)
-            complete(HttpEntity(ContentTypes.`application/json`, "null"))
+                val reprinted = debugger.st.sourceText match
+                  case Some(value) => value.asJson.noSpaces
+                  case None => "null"
+                complete(HttpEntity(ContentTypes.`application/json`, reprinted))
           }
         },
         // step back to provenance
