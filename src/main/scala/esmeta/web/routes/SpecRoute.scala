@@ -66,7 +66,9 @@ object SpecRoute {
                             SdoInfoJsonProtocol.encoder(using cfg),
                           ),
                           "isMethod" -> f.isMethod.asJson,
-                          "sdoInfo" -> ???,
+                          "sdoInfo" -> f.sdoInfo.asJson(using
+                            SdoInfoJsonProtocol.encoder(using cfg),
+                          ),
                           "methodInfo" -> f.irFunc.methodName.asJson,
                         )
                         .asJson,
