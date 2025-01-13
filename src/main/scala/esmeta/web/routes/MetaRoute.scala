@@ -25,21 +25,23 @@ object MetaRoute {
           HttpEntity(
             ContentTypes.`application/json`,
             _debugger match
-              case None        => ("no debugger").toString.asJson.noSpaces
-              case Some(value) => value.getIter.asJson.noSpaces,
+              case None => "null"
+              case Some(d) => d.getIter.asJson.noSpaces,
           ),
         )
       }
     },
-    path("cursor") {
+    path("debugString") {
       get {
         complete(
           HttpEntity(
             ContentTypes.`application/json`,
             _debugger match
               case None => ("no debugger").toString.asJson.noSpaces
-              case Some(value) =>
-                value.st.context.cursor.toString.asJson.noSpaces,
+              case Some(d) => {
+              val pairs = d.st.context.func.nodes.toList.map(node => node.id.toString() -> d.nodeStepsOpt(node).asJson).toSeq
+              Json.obj(pairs*).spaces2
+              }                    
           ),
         )
       }
