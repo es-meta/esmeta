@@ -40,7 +40,7 @@ case class Rhs(
   /** get terminals in an RHS */
   lazy val ts: List[Terminal] = symbols.flatMap(_.getT)
 
-  /** get terminals in an RHS */
+  /** get nonterminals in an RHS */
   lazy val getNts = cached[Int, List[Option[String]]] { subIdx =>
     val binStr = subIdx.toBinaryString
     val optCount = optionals.size
@@ -54,6 +54,21 @@ case class Rhs(
         flags = flags.tail
         if (present) Some(nt.name) else None
       case _ => Some(nt.name)
+  }
+
+  /** get symbols in an RHS */
+  lazy val getSymbols = cached[Int, List[Option[Symbol]]] { subIdx =>
+    val binStr = subIdx.toBinaryString
+    val optCount = optionals.size
+    var flags = (("0" * (optCount - binStr.length)) + binStr).map(_ == '1')
+    for {
+      symbol <- symbols
+    } yield symbol match
+      case _: Optional =>
+        val present = flags.head
+        flags = flags.tail
+        if (present) Some(symbol) else None
+      case _ => Some(symbol)
   }
 
   /** count sub production */

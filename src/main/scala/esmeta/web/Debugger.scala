@@ -147,41 +147,50 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     this.st.globals ++= newD.st.globals
     setIter(0)
 
-
   // ir step
   final def irStep(ignoreBreak: Boolean = false) = {
     val (prevCursor, _) = getIrInfo
-    stepUntil({
-      val (curCursor, _) = getIrInfo
-      prevCursor != curCursor
-    }, ignoreBreak,
+    stepUntil(
+      {
+        val (curCursor, _) = getIrInfo
+        prevCursor != curCursor
+      },
+      ignoreBreak,
     )
   }
 
   // ir step over
   final def irStepOver(ignoreBreak: Boolean = false) =
     val (prevCursor, prevStackSize) = getIrInfo
-      stepUntil({
-      val (curCursor, stackSize) = getIrInfo
-      prevCursor != curCursor && prevStackSize >= stackSize
-    }, ignoreBreak)
+    stepUntil(
+      {
+        val (curCursor, stackSize) = getIrInfo
+        prevCursor != curCursor && prevStackSize >= stackSize
+      },
+      ignoreBreak,
+    )
 
   // ir step over
   final def irStepOut(ignoreBreak: Boolean = false) =
     val (prevCursor, prevStackSize) = getIrInfo
-      stepUntil({
-      val (curCursor, stackSize) = getIrInfo
-      prevCursor != curCursor && prevStackSize > stackSize
-    }, ignoreBreak)
+    stepUntil(
+      {
+        val (curCursor, stackSize) = getIrInfo
+        prevCursor != curCursor && prevStackSize > stackSize
+      },
+      ignoreBreak,
+    )
 
   // spec step
   final def specStep(ignoreBreak: Boolean = false) = {
     val (prevLoc, _) = getSpecInfo
-    stepUntil({ (prevLoc._2.isEmpty ||
-      prevLoc != getSpecInfo._1
-      // ) && !isExitCursor
-    )
-    },
+    stepUntil(
+      {
+        (prevLoc._2.isEmpty ||
+        prevLoc != getSpecInfo._1
+        // ) && !isExitCursor
+        )
+      },
       ignoreBreak,
     )
   }
@@ -189,10 +198,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step over
   final def specStepOver(ignoreBreak: Boolean = false) =
     val (prevLoc, prevStackSize) = getSpecInfo
-    stepUntil({
+    stepUntil(
+      {
         val (loc, stackSize) = getSpecInfo
-        (prevLoc._2.isEmpty || prevLoc != loc) && 
-        (prevStackSize >= stackSize) 
+        (prevLoc._2.isEmpty || prevLoc != loc) &&
+        (prevStackSize >= stackSize)
         // && !isExitCursor
       },
       ignoreBreak,
@@ -201,10 +211,13 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step out
   final def specStepOut(ignoreBreak: Boolean = false) =
     val (_, prevStackSize) = getSpecInfo
-    stepUntil({ 
-      val (_, stackSize) = getSpecInfo
-      (prevStackSize > stackSize) // && !isExitCursor
-     }, ignoreBreak)
+    stepUntil(
+      {
+        val (_, stackSize) = getSpecInfo
+        (prevStackSize > stackSize) // && !isExitCursor
+      },
+      ignoreBreak,
+    )
 
   // spec step back
   final def specStepBack(ignoreBreak: Boolean = false) = {
@@ -527,7 +540,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     }
     val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
     ((ls, le), esCallStackSize)
-    
+
   /* check if function is .Evaluation of SDO */
   def isEsEvaluation =
     st.context.func.isSDO && st.context.name.endsWith("Evaluation")
@@ -727,5 +740,5 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       code,
       (os, oe),
     )
-    
+
 }

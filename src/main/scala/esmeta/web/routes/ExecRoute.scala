@@ -41,7 +41,7 @@ object ExecRoute {
                 for { data <- bpData } debugger.addBreak(data)
                 val reprinted = debugger.st.sourceText match
                   case Some(value) => value.asJson.noSpaces
-                  case None => "null"
+                  case None        => "null"
                 complete(HttpEntity(ContentTypes.`application/json`, reprinted))
           }
         },
