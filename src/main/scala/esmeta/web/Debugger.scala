@@ -177,8 +177,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step
   final def specStep(ignoreBreak: Boolean = false) = {
     val (prevLoc, _) = getSpecInfo
-    stepWhile(
-      { prevLoc._2.isDefined && prevLoc == getSpecInfo._1 },
+    stepUntil({ (prevLoc._2.isEmpty ||
+      prevLoc != getSpecInfo._1
+      // ) && !isExitCursor
+    )
+    },
       ignoreBreak,
     )
   }
@@ -186,10 +189,11 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step over
   final def specStepOver(ignoreBreak: Boolean = false) =
     val (prevLoc, prevStackSize) = getSpecInfo
-    stepWhile(
-      {
+    stepUntil({
         val (loc, stackSize) = getSpecInfo
-        (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
+        (prevLoc._2.isEmpty || prevLoc != loc) && 
+        (prevStackSize >= stackSize) 
+        // && !isExitCursor
       },
       ignoreBreak,
     )
@@ -197,7 +201,10 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step out
   final def specStepOut(ignoreBreak: Boolean = false) =
     val (_, prevStackSize) = getSpecInfo
-    stepWhile({ prevStackSize <= getSpecInfo._2 }, ignoreBreak)
+    stepUntil({ 
+      val (_, stackSize) = getSpecInfo
+      (prevStackSize > stackSize) // && !isExitCursor
+     }, ignoreBreak)
 
   // spec step back
   final def specStepBack(ignoreBreak: Boolean = false) = {
@@ -540,6 +547,10 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     case NodeCursor(func, node, 0) => func.entry == node
     case _                         => false
 
+  def isExitCursor = cursor match
+    case _: ExitCursor => true
+    case _             => false
+
   // ---------------------------------------------------------------------------
   // debugger info
   // ---------------------------------------------------------------------------
@@ -559,6 +570,9 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       } yield loc.steps
 
   }
+
+  // XXX temporary info for debugging debugger itself
+  def nodeStepsOpt(node: Node): List[List[Int]] = node.stepsOpt
 
   /** extension for cursor */
   extension (cursor: Cursor) {
@@ -713,4 +727,5 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       code,
       (os, oe),
     )
+    
 }
