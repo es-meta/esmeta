@@ -123,6 +123,13 @@ object ExecRoute {
         path("irStepOut") {
           ignoreBreakWrapper(debugger.irStepOut)
         },
+        path("iterPlus") {
+          ignoreBreakWrapper(debugger.iterPlus)
+        },
+        path("iterMinus") {
+          ignoreBreakWrapper(debugger.iterMinus)
+        },
+
         // ECMAScript ast steps
         path("esAstStep") {
           complete(

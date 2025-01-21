@@ -412,6 +412,21 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     stepExactlyFrom(provenance._1, true)
   }
 
+  final def iterPlus(ignoreBreak: Boolean = false) = {
+    val targetIter = getIter + 1
+    stepUntil(
+      {
+        getIter == targetIter
+      },
+      ignoreBreak,
+    )
+  }
+
+  final def iterMinus(ignoreBreak: Boolean = false) = {
+    val targetIter = getIter - 1
+    stepExactlyFrom(targetIter)
+  }
+
   // ---------------------------------------------------------------------------
   // breakpoints
   // ---------------------------------------------------------------------------
