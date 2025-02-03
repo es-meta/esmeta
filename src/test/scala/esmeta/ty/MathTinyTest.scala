@@ -15,7 +15,9 @@ class MathTinyTest extends TyTest {
         IntSetTy(Set(1L, 2L)),
       ),
       MathSignTy(Sign(false, true, false)).canon -> MathIntTy(IntSetTy(Set(0))),
-      MathSetTy(Math(3), Math(5), Math(2)).canon -> MathIntTy(Set(3L, 5L, 2L)),
+      MathSetTy(Math(3), Math(5), Math(2)).canon -> MathIntTy(
+        Set(3, 5, 2).map(scala.math.BigInt(_)),
+      ),
     )
   }
 
