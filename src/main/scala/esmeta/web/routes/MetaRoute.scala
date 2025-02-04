@@ -26,7 +26,7 @@ object MetaRoute {
             ContentTypes.`application/json`,
             _debugger match
               case None    => "null"
-              case Some(d) => d.getIter.asJson.noSpaces,
+              case Some(d) => d.getStepCnt.asJson.noSpaces,
           ),
         )
       }

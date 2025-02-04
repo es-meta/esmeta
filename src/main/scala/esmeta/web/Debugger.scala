@@ -13,7 +13,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /** debugger extension of IR interpreter */
-class Debugger(st: State) extends Interpreter(st, log = true) {
+class Debugger(st: State) extends Interpreter(st) {
   // ---------------------------------------------------------------------------
   // shortcuts
   // ---------------------------------------------------------------------------
@@ -43,7 +43,9 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     saveBpCounts // save counter
     (cursor, node) match
       case (cursor: NodeCursor, block @ Block(_, insts, next)) =>
-        eval(insts(cursor.idx))
+        val targetInst = insts(cursor.idx)
+        countStep(cfg.funcOf(node).id, targetInst.loc)
+        eval(targetInst)
         cursor.idx += 1
         if (cursor.idx == insts.length) {
           cursor.idx -= 1
@@ -57,7 +59,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     case _: AllocExpr =>
       val addr = super.eval(expr)
       provenance._2 match {
-        case Some(provAddr) if provAddr == addr => provenance = (getIter, None)
+        case Some(provAddr) if provAddr == addr => provenance = (stepCnt, None)
         case _                                  =>
       }
       addr
@@ -111,12 +113,12 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   ): StepResult = {
     // XXX should throw exception if count is negative?
     if count <= 0 then
-      return if getIter == 0 then StepResult.ReachedFront
+      return if stepCnt == 0 then StepResult.ReachedFront
       else StepResult.Succeed
     stepWhile(
       {
         fn.map(_())
-        val current = getIter
+        val current = stepCnt
         current < count
       },
       ignoreBreak,
@@ -145,7 +147,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     this.st.heap.size = newD.st.heap.size
     this.st.globals.clear()
     this.st.globals ++= newD.st.globals
-    setIter(0)
+    this.stepCnt = 0
 
   // ir step
   final def irStep(ignoreBreak: Boolean = false) = {
@@ -221,7 +223,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // spec step back
   final def specStepBack(ignoreBreak: Boolean = false) = {
-    val ((curLoc, curStackSize), curIter) = (getSpecInfo, getIter)
+    val ((curLoc, curStackSize), curIter) = (getSpecInfo, stepCnt)
 
     var target: Int = 0
     var breakFlag: Boolean = false
@@ -230,7 +232,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       val (iterLoc, iterStackSize) = getSpecInfo
       val iterCond = curLoc._2.isDefined && curLoc == iterLoc
       if (!iterCond) {
-        target = getIter
+        target = stepCnt
         breakpoints.foreach {
           case SpecBreakpoint(fid, steps, true)
               if st.context.func.id == fid && iterLoc._2.contains(
@@ -250,14 +252,14 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step back over
   final def specStepBackOver(ignoreBreak: Boolean = false) = {
     val (curLoc, curStackSize) = getSpecInfo
-    val currentIter = getIter
+    val currentIter = stepCnt
 
     var target: Int = 0
     val calcTarget = () => {
       val (iterLoc, iterStackSize) = getSpecInfo
       val cond =
         (curLoc._2.isDefined && curLoc == iterLoc) || (curStackSize < iterStackSize)
-      if !cond then target = getIter
+      if !cond then target = stepCnt
     }
 
     var breakFlag: Boolean = false
@@ -272,7 +274,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
             )
           )
             breakFlag = true
-            target = getIter
+            target = stepCnt
         case _ =>
       }
     }
@@ -292,13 +294,13 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // spec step back out
   final def specStepBackOut(ignoreBreak: Boolean = false) = {
     val (curLoc, curStackSize) = getSpecInfo
-    val currentIter = getIter
+    val currentIter = stepCnt
 
     var target: Int = 0
     var breakFlag: Boolean = false
 
     val calcTarget = () => {
-      if !(curStackSize <= getSpecInfo._2) then target = getIter
+      if !(curStackSize <= getSpecInfo._2) then target = stepCnt
     }
 
     val calcBp = () => {
@@ -312,7 +314,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
             )
           )
             breakFlag = true
-            target = getIter
+            target = stepCnt
         case _ =>
       }
     }
@@ -377,7 +379,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // rewind
   final def rewind: StepResult = {
     val (curLoc, curStackSize) = getSpecInfo
-    val currentIter = getIter
+    val currentIter = stepCnt
     var target: Int = 0
     var breakFlag: Boolean = false
 
@@ -392,7 +394,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
             )
           )
             breakFlag = true
-            target = getIter
+            target = stepCnt
         case _ =>
       }
     }
@@ -408,23 +410,23 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   final def stepBackToProvenance(addr: Addr): StepResult = {
     provenance = (0, Some(addr))
-    stepExactlyFrom(getIter, true)
+    stepExactlyFrom(stepCnt, true)
     stepExactlyFrom(provenance._1, true)
   }
 
   final def iterPlus(ignoreBreak: Boolean = false) = {
-    val targetIter = getIter + 1
+    val tarstepCnt = stepCnt + 1
     stepUntil(
       {
-        getIter == targetIter
+        stepCnt == tarstepCnt
       },
       ignoreBreak,
     )
   }
 
   final def iterMinus(ignoreBreak: Boolean = false) = {
-    val targetIter = getIter - 1
-    stepExactlyFrom(targetIter)
+    val tarstepCnt = stepCnt - 1
+    stepExactlyFrom(tarstepCnt)
   }
 
   // ---------------------------------------------------------------------------

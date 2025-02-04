@@ -59,7 +59,7 @@ class Interpreter(
     try {
       // text-based logging
       if (log)
-        pw.println(st.getCursorString)
+        pw.println(st.getCursorString + s" StepCnt : $stepCnt")
         if (detail) pw.println(st.context)
         pw.flush
 
@@ -104,27 +104,28 @@ class Interpreter(
 
   /** transition for nodes */
   def eval(node: Node): Unit =
+    val fid = cfg.funcOf(node).id
     node match {
       case bnode @ Block(_, insts, _) =>
         for (inst <- insts) {
+          countStep(fid, inst.loc)
           eval(inst)
           st.context.moveInst
         }
         st.context.moveNode
       case branch: Branch =>
-        countStep(branch.loc)
+        countStep(fid, branch.loc)
         eval(branch.cond) match
           case Bool(bool) => moveBranch(branch, bool)
           case v          => throw NoBoolean(v)
       case call: Call =>
-        countStep(call.loc)
+        countStep(fid, call.loc)
         eval(call)
     }
 
   /** transition for normal instructions */
-  def eval(inst: NormalInst): Unit = 
-    countStep(inst.loc)
-    inst match 
+  def eval(inst: NormalInst): Unit =
+    inst match
       case IExpr(expr)         => eval(expr)
       case ILet(lhs, expr)     => st.define(lhs, eval(expr))
       case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
@@ -148,7 +149,6 @@ class Interpreter(
         val v = eval(expr)
         if (!TEST_MODE) println(st.getString(v))
       case INop() => /* do nothing */
-
   /** transition for calls */
   def eval(call: Call): Unit = call.callInst match {
     case ICall(lhs, fexpr, args) =>
@@ -419,20 +419,30 @@ class Interpreter(
 
   /** iteration count */
   private var iter = 0
-  def getIter = iter
-  protected def setIter(i: Int) = iter = i
 
   /** count of passed instruction */
-  private var prevLoc : Option[Loc] = None
-  private var stepCnt : Int = 0
-  private def countStep(curLoc : Option[Loc]) : Unit = 
+  case class StepLocation(fid: Int, loc: Loc)
+  private var prevLoc: Option[StepLocation] = None
+  protected var stepCnt: Int = 0
+
+  private def convertLocation(
+    fid: Int,
+    loc: Option[Loc],
+  ): Option[StepLocation] = loc match
+    case None       => None
+    case Some(sLoc) => Some(StepLocation(fid, sLoc))
+
+  protected def countStep(fid: Int, loc: Option[Loc]): Unit =
+    val curLoc = convertLocation(fid, loc)
     (prevLoc, curLoc) match
-      case (None,Some(_)) => stepCnt += 1
+      case (None, Some(_)) => stepCnt += 1
       case (Some(_), None) => stepCnt += 1
-      case (Some(loc1), Some(loc2)) if loc1.steps != loc2.steps => stepCnt += 1
+      case (Some(l1), Some(l2))
+          if l1.fid != l2.fid || l1.loc.steps != l2.loc.steps =>
+        stepCnt += 1
       case _ =>
     prevLoc = curLoc
-
+  def getStepCnt = stepCnt
 
   /** logging */
   private lazy val pw: PrintWriter =
