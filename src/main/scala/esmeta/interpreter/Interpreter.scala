@@ -24,6 +24,7 @@ import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
+import esmeta.util.Loc
 
 /** extensible helper of IR interpreter with a CFG */
 class Interpreter(
@@ -104,45 +105,49 @@ class Interpreter(
   /** transition for nodes */
   def eval(node: Node): Unit =
     node match {
-      case Block(_, insts, _) =>
+      case bnode @ Block(_, insts, _) =>
         for (inst <- insts) {
           eval(inst)
           st.context.moveInst
         }
         st.context.moveNode
       case branch: Branch =>
+        countStep(branch.loc)
         eval(branch.cond) match
           case Bool(bool) => moveBranch(branch, bool)
           case v          => throw NoBoolean(v)
-      case call: Call => eval(call)
+      case call: Call =>
+        countStep(call.loc)
+        eval(call)
     }
 
   /** transition for normal instructions */
-  def eval(inst: NormalInst): Unit = inst match {
-    case IExpr(expr)         => eval(expr)
-    case ILet(lhs, expr)     => st.define(lhs, eval(expr))
-    case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
-    case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
-    case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
-    case IPush(elem, list, front) =>
-      val value = eval(elem)
-      val addr = eval(list).asAddr
-      st.push(addr, value, front)
-    case IPop(lhs, list, front) =>
-      val addr = eval(list).asAddr
-      st.context.locals += lhs -> st.pop(addr, front)
-    case ret @ IReturn(expr) =>
-      st.context.retVal = Some(ret, eval(expr))
-    case IAssert(expr) =>
-      optional(eval(expr)) match
-        case None             => /* skip not yet compiled assertions */
-        case Some(Bool(true)) =>
-        case v                => throw AssertionFail(expr)
-    case IPrint(expr) =>
-      val v = eval(expr)
-      if (!TEST_MODE) println(st.getString(v))
-    case INop() => /* do nothing */
-  }
+  def eval(inst: NormalInst): Unit = 
+    countStep(inst.loc)
+    inst match 
+      case IExpr(expr)         => eval(expr)
+      case ILet(lhs, expr)     => st.define(lhs, eval(expr))
+      case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
+      case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
+      case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
+      case IPush(elem, list, front) =>
+        val value = eval(elem)
+        val addr = eval(list).asAddr
+        st.push(addr, value, front)
+      case IPop(lhs, list, front) =>
+        val addr = eval(list).asAddr
+        st.context.locals += lhs -> st.pop(addr, front)
+      case ret @ IReturn(expr) =>
+        st.context.retVal = Some(ret, eval(expr))
+      case IAssert(expr) =>
+        optional(eval(expr)) match
+          case None             => /* skip not yet compiled assertions */
+          case Some(Bool(true)) =>
+          case v                => throw AssertionFail(expr)
+      case IPrint(expr) =>
+        val v = eval(expr)
+        if (!TEST_MODE) println(st.getString(v))
+      case INop() => /* do nothing */
 
   /** transition for calls */
   def eval(call: Call): Unit = call.callInst match {
@@ -400,9 +405,6 @@ class Interpreter(
   def moveExit: Unit =
     st.context.cursor = ExitCursor(st.func)
 
-  def getIter = iter
-  protected def setIter(i: Int) = iter = i
-
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
@@ -417,6 +419,20 @@ class Interpreter(
 
   /** iteration count */
   private var iter = 0
+  def getIter = iter
+  protected def setIter(i: Int) = iter = i
+
+  /** count of passed instruction */
+  private var prevLoc : Option[Loc] = None
+  private var stepCnt : Int = 0
+  private def countStep(curLoc : Option[Loc]) : Unit = 
+    (prevLoc, curLoc) match
+      case (None,Some(_)) => stepCnt += 1
+      case (Some(_), None) => stepCnt += 1
+      case (Some(loc1), Some(loc2)) if loc1.steps != loc2.steps => stepCnt += 1
+      case _ =>
+    prevLoc = curLoc
+
 
   /** logging */
   private lazy val pw: PrintWriter =

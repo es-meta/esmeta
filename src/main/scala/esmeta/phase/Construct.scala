@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.cfg.{CFG, Func}
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.constructor.{Builder, Constructor}
+import esmeta.constructor.{Builder}
 
 import scala.collection.mutable.{Map as MMap, Set as MSet}
 import java.nio.file.{Files, Paths}
@@ -64,13 +64,13 @@ case object Construct extends Phase[CFG, Unit] {
           )) =>
         println(s"$iter/$total : $MINIMAL_DIR/$filename running")
         iter += 1
-        new Constructor(
-          cfg.init.fromFile(s"$MINIMAL_DIR/$filename.js"),
-          node,
-          feature,
-          callPath,
-          NodeIdToProgId,
-        ).result
+      // new Constructor(
+      //   cfg.init.fromFile(s"$MINIMAL_DIR/$filename.js"),
+      //   node,
+      //   feature,
+      //   callPath,
+      //   NodeIdToProgId,
+      // ).result
     }
 
     println("=========== Dump =========")
