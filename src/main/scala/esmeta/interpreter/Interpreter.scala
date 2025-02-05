@@ -106,7 +106,7 @@ class Interpreter(
   def eval(node: Node): Unit =
     val fid = cfg.funcOf(node).id
     node match {
-      case bnode @ Block(_, insts, _) =>
+      case Block(_, insts, _) =>
         for (inst <- insts) {
           countStep(fid, inst.loc)
           eval(inst)
@@ -124,31 +124,32 @@ class Interpreter(
     }
 
   /** transition for normal instructions */
-  def eval(inst: NormalInst): Unit =
-    inst match
-      case IExpr(expr)         => eval(expr)
-      case ILet(lhs, expr)     => st.define(lhs, eval(expr))
-      case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
-      case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
-      case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
-      case IPush(elem, list, front) =>
-        val value = eval(elem)
-        val addr = eval(list).asAddr
-        st.push(addr, value, front)
-      case IPop(lhs, list, front) =>
-        val addr = eval(list).asAddr
-        st.context.locals += lhs -> st.pop(addr, front)
-      case ret @ IReturn(expr) =>
-        st.context.retVal = Some(ret, eval(expr))
-      case IAssert(expr) =>
-        optional(eval(expr)) match
-          case None             => /* skip not yet compiled assertions */
-          case Some(Bool(true)) =>
-          case v                => throw AssertionFail(expr)
-      case IPrint(expr) =>
-        val v = eval(expr)
-        if (!TEST_MODE) println(st.getString(v))
-      case INop() => /* do nothing */
+  def eval(inst: NormalInst): Unit = inst match {
+    case IExpr(expr)         => eval(expr)
+    case ILet(lhs, expr)     => st.define(lhs, eval(expr))
+    case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
+    case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
+    case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
+    case IPush(elem, list, front) =>
+      val value = eval(elem)
+      val addr = eval(list).asAddr
+      st.push(addr, value, front)
+    case IPop(lhs, list, front) =>
+      val addr = eval(list).asAddr
+      st.context.locals += lhs -> st.pop(addr, front)
+    case ret @ IReturn(expr) =>
+      st.context.retVal = Some(ret, eval(expr))
+    case IAssert(expr) =>
+      optional(eval(expr)) match
+        case None             => /* skip not yet compiled assertions */
+        case Some(Bool(true)) =>
+        case v                => throw AssertionFail(expr)
+    case IPrint(expr) =>
+      val v = eval(expr)
+      if (!TEST_MODE) println(st.getString(v))
+    case INop() => /* do nothing */
+  }
+
   /** transition for calls */
   def eval(call: Call): Unit = call.callInst match {
     case ICall(lhs, fexpr, args) =>

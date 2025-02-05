@@ -24,14 +24,14 @@ object Compiler:
   def apply(
     spec: Spec,
     log: Boolean = false,
-    noOpt: Boolean = false,
-  ): Program = new Compiler(spec, log, noOpt).result
+    opt: Boolean = false,
+  ): Program = new Compiler(spec, log, opt).result
 
 /** extensible helper of compiler from metalangauge to IR */
 class Compiler(
   spec: Spec,
   log: Boolean = false,
-  noOpt: Boolean = false,
+  opt: Boolean = false,
 ) {
 
   /** compiled specification */
@@ -253,7 +253,7 @@ class Compiler(
       lazy val e = expr.fold(EUndef())(compile(fb, _))
       (expr, fb.returnContext, fb.needReturnComp) match
         case (Some(ReturnIfAbruptExpression(expr, check)), None, true) =>
-          if (check && noOpt)
+          if (check && !opt)
             val e = returnIfAbrupt(fb, compile(fb, expr), check, false, true)
           else
             val e = returnIfAbrupt(fb, compile(fb, expr), check, true)

@@ -73,7 +73,6 @@ object ESMeta extends Git(BASE_DIR) {
     CmdParse,
     CmdEval,
     CmdWeb,
-    CmdConstruct,
     // Tester for Test262 (ECMAScript Test Suite)
     CmdTest262Test,
     // ECMAScript Fuzzer
@@ -81,7 +80,6 @@ object ESMeta extends Git(BASE_DIR) {
     CmdInject,
     CmdMutate,
     CmdDump,
-    CmdWebFromDump,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -100,7 +98,6 @@ object ESMeta extends Git(BASE_DIR) {
     Parse,
     Eval,
     Web,
-    Construct,
     // Tester for Test262 (ECMAScript Test Suite)
     Test262Test,
     // ECMAScript Fuzzer
@@ -108,7 +105,6 @@ object ESMeta extends Git(BASE_DIR) {
     Inject,
     Mutate,
     Dump,
-    WebFromDump,
   )
 
   /** command options */

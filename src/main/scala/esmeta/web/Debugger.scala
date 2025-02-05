@@ -2,13 +2,12 @@ package esmeta.web
 
 import esmeta.cfg.*
 import esmeta.es.Ast
-import esmeta.ir.{Func as IRFunc, *}
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.interpreter.Interpreter
 import esmeta.lang.Syntax
 import esmeta.spec.{Algorithm, SyntaxDirectedOperationHead}
 import esmeta.state.*
 import esmeta.util.Loc
-
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 

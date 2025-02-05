@@ -1,7 +1,5 @@
 package esmeta.util
 
-import esmeta.util.BasicParsers
-
 trait StringNumeral {
   protected def getString(
     number: Int,

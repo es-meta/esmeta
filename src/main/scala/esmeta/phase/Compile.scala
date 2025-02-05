@@ -16,7 +16,7 @@ case object Compile extends Phase[Spec, Program] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Program = {
-    val compiler = new Compiler(spec, config.log, config.noOpt)
+    val compiler = new Compiler(spec, config.log, config.opt)
     val program = compiler.result
 
     // logging mode
@@ -58,14 +58,14 @@ case object Compile extends Phase[Spec, Program] {
       "turn on logging mode with location info.",
     ),
     (
-      "no-opt",
-      BoolOption((c, b) => { c.noOpt ||= b; c.noOpt = b }),
-      "turn off ir optimization",
+      "opt",
+      BoolOption((c, b) => { c.opt ||= b; c.opt = b }),
+      "turn on ir optimization",
     ),
   )
   case class Config(
     var log: Boolean = false,
     var loc: Boolean = false,
-    var noOpt: Boolean = false,
+    var opt: Boolean = false,
   )
 }

@@ -10,7 +10,6 @@ import esmeta.util.ManualInfo
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
-import scala.jdk.CollectionConverters._
 
 /** specification extractor from ECMA-262 */
 object Extractor:
@@ -115,10 +114,7 @@ class Extractor(
     head <- extractHeads(elem)
     code = elem.html.unescapeHtml
     body = parser.parseBy(parser.step)(code)
-
-    siblings = elem.parent.children().asScala.filter(_.tagName == "emu-alg")
-    emuClauseId = s"${elem.parent.id}[${siblings.indexWhere(_ == elem)}]"
-    algo = Algorithm(head, body, code, emuClauseId)
+    algo = Algorithm(head, body, code)
     _ = algo.elem = elem
   } yield algo
 

@@ -9,11 +9,6 @@ import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   import Coverage.*
 
-  given tmpNodeDecoder: Decoder[TmpNode] = deriveDecoder
-  given tmpViewDecoder: Decoder[TmpView] = deriveDecoder
-  given tmpNodeViewDecoder: Decoder[TmpNodeView] = deriveDecoder
-  given tmpNodeViewInfoDecoder: Decoder[TmpNodeViewInfo] = deriveDecoder
-
   given viewDecoder: Decoder[View] = optionDecoder
   given viewEncoder: Encoder[View] =
     Encoder.instance {
@@ -54,27 +49,4 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   // coverage constructor
   given coverageConstructorDecoder: Decoder[CoverageConstructor] = deriveDecoder
   given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
-
-  case class TmpView(
-    enclosing: List[String],
-    feature: String,
-    path: String,
-  )
-
-  case class TmpNode(
-    name: String,
-    inst: String,
-    func: String,
-  )
-
-  case class TmpNodeView(
-    node: TmpNode,
-    view: Option[TmpView],
-  )
-
-  case class TmpNodeViewInfo(
-    index: Int,
-    nodeView: TmpNodeView,
-    script: String,
-  )
 }
