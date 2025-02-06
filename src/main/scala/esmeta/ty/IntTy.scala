@@ -5,6 +5,8 @@ import esmeta.interpreter.Interpreter
 import esmeta.state.{Math, Number}
 import esmeta.util.Flat
 
+import scala.math.BigInt
+
 sealed trait IntTy extends TyElem with Lattice[IntTy] {
   import IntTy.*
 
@@ -75,7 +77,7 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
       case _ => Top
 
   def **(that: => IntTy): IntTy =
-    single(this, that, (l, r) => scala.math.pow(l.toDouble, r.toDouble).toLong)
+    single(this, that, (l, r) => l.pow(r.toInt))
 
   def &(that: => IntTy): IntTy = single(this, that, _ & _)
 
@@ -122,6 +124,10 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case IntSetTy(set)   => set.contains(value)
     case IntSignTy(sign) => sign.contains(value)
 
+  def contains(value: BigInt): Boolean = this.canon match
+    case IntSetTy(set)   => set.contains(value)
+    case IntSignTy(sign) => sign.contains(value)
+
   def isNonPos: Boolean = this.canon match
     case IntSignTy(sign) => sign.isNonPos
     case s               => s.toSignTy.isNonPos
@@ -157,7 +163,7 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case IntSignTy(sign) => sign.isZero
     case IntSetTy(set)   => true
 
-  def getSingle: Flat[Long] =
+  def getSingle: Flat[BigInt] =
     import esmeta.util.*
     this.canon match
       case IntSetTy(set) => Flat(set)
@@ -180,7 +186,7 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case _             => None
 }
 
-case class IntSetTy(set: Set[Long]) extends IntTy
+case class IntSetTy(set: Set[BigInt]) extends IntTy
 case class IntSignTy(sign: Sign) extends IntTy
 
 object IntTy {
@@ -204,7 +210,7 @@ object IntTy {
     * @return
     *   a singleton set if the result is a singleton, otherwise Top
     */
-  def single(l: IntTy, r: IntTy, f: (Long, Long) => Long) =
+  def single(l: IntTy, r: IntTy, f: (BigInt, BigInt) => BigInt) =
     import esmeta.util
     (l.getSingle, r.getSingle) match
       case (util.One(lv), util.One(rv)) => IntSetTy(Set(f(lv, rv)))

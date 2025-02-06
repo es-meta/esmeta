@@ -206,7 +206,7 @@ trait Parsers extends BasicParsers {
     lazy val intSignTy =
       "Int" ~> "[" ~> sign <~ "]" ^^ { case s => IntSignTy(s) }
     lazy val intSetTy =
-      "Int" ~> "[" ~> rep1sep(long, ",") <~ "]" ^^ {
+      "Int" ~> "[" ~> rep1sep(bigInt, ",") <~ "]" ^^ {
         case ds => IntSetTy(ds.toSet)
       }
     lazy val intTop = "Int" ^^^ IntSignTy(Sign.Top)
@@ -250,7 +250,7 @@ trait Parsers extends BasicParsers {
         case s ~ n => (IntSignTy(s), n)
       }
     lazy val intSetTy =
-      ("NumberInt" ~> "[" ~> rep1sep(long, ",") <~ "]") ~ nan ^^ {
+      ("NumberInt" ~> "[" ~> rep1sep(bigInt, ",") <~ "]") ~ nan ^^ {
         case ds ~ n => (IntSetTy(ds.toSet), n)
       }
     lazy val intTop = "NumberInt" ~> nan ^^ {
