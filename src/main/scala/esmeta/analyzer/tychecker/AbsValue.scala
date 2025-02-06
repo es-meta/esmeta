@@ -472,6 +472,8 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) =>
+      val irStringifier = IRElem.getStringifier(true, false)
+      import irStringifier.given
       given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
       given Ordering[Local] = Ordering.by(_.toString)
       val AbsValue(symty, guard) = elem

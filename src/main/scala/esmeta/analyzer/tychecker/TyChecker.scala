@@ -33,7 +33,7 @@ class TyChecker(
   with TypeGuardDecl
   with ViewDecl {
 
-  val tyStringifier = TyElem.getStringifier(true, false)
+  val tyStringifier = TyElem.getStringifier(false, false)
   import tyStringifier.given
 
   npMap = getInitNpMap(targetFuncs)

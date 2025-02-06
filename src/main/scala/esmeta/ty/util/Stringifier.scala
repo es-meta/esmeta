@@ -2,12 +2,12 @@ package esmeta.ty.util
 
 import esmeta.LINE_SEP
 import esmeta.ir.{IRElem, LangEdge}
+import esmeta.lang.Syntax
 import esmeta.state.{Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.Math.zero
 
 /** stringifier for types */
 class Stringifier(
@@ -334,12 +334,12 @@ class Stringifier(
   // type error points
   given tpRule: Rule[TypeErrorPoint] = (app, tp) =>
     import irStringifier.given
-    given Rule[IRElem with LangEdge] = addLocRule
+    given Rule[Option[Syntax]] = addLocRule
     app >> tp.node.simpleString >> " "
     tp match
       case CallPoint(caller, callsite, callee) =>
         app >> "function call from "
-        app >> caller.name >> callsite.callInst
+        app >> caller.name >> callsite.callInst.langOpt
         app >> " to " >> callee.name
       case aap @ ArgAssignPoint(cp, idx) =>
         val param = aap.param
@@ -359,10 +359,10 @@ class Stringifier(
         app >> "binary operation (" >> binary.bop >> ") in " >> func.name
         app >> binary
 
-  private val addLocRule: Rule[IRElem with LangEdge] = (app, elem) =>
+  private val addLocRule: Rule[Option[Syntax]] = (app, opt) =>
     for {
-      lang <- elem.langOpt
-      loc <- lang.loc
+      syntax <- opt
+      loc <- syntax.loc
     } app >> " " >> loc.toString
     app
 
