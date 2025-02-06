@@ -9,8 +9,7 @@ case class Binding(
   value: ValueTy,
   uninit: Boolean = false,
   absent: Boolean = false,
-) extends TyElem
-  with Lattice[Binding] {
+) extends TyElem {
 
   /** top check */
   def isTop: Boolean = value.isTop && uninit.isTop && absent.isTop
@@ -22,14 +21,14 @@ case class Binding(
   def isAbsent: Boolean = value.isBottom && !uninit && absent
 
   /** partial order/subset operator */
-  def <=(that: => Binding): Boolean = (this eq that) || {
+  def <=(that: Binding): Boolean = (this eq that) || {
     this.value <= that.value &&
     this.uninit <= that.uninit &&
     this.absent <= that.absent
   }
 
   /** union type */
-  def ||(that: => Binding): Binding =
+  def ||(that: Binding): Binding =
     if (this eq that) this
     else
       val uninit =
@@ -42,7 +41,7 @@ case class Binding(
       )
 
   /** intersection type */
-  def &&(that: => Binding): Binding =
+  def &&(that: Binding): Binding =
     if (this eq that) this
     else
       Binding(
@@ -52,7 +51,7 @@ case class Binding(
       )
 
   /** prune type */
-  def --(that: => Binding): Binding =
+  def --(that: Binding): Binding =
     if (that.isBottom) this
     else
       Binding(

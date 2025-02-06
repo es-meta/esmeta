@@ -1,11 +1,12 @@
 package esmeta.ty
 
-import esmeta.util.*
 import esmeta.state.{Value, RecordObj, Heap}
 import esmeta.ty.util.Parser
+import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** record types */
-enum RecordTy extends TyElem with Lattice[RecordTy] {
+enum RecordTy extends TyElem {
 
   case Top
 
@@ -23,7 +24,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => RecordTy): Boolean = (this eq that) || {
+  def <=(that: RecordTy): Boolean = (this eq that) || {
     (this, that) match
       case (Bot, _) | (_, Top)      => true
       case (Top, _) | (_, Bot)      => false
@@ -31,7 +32,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   }
 
   /** union type */
-  def ||(that: => RecordTy): RecordTy = (this, that) match
+  def ||(that: RecordTy): RecordTy = (this, that) match
     case _ if this eq that   => this
     case (Bot, _) | (_, Top) => that
     case (Top, _) | (_, Bot) => this
@@ -52,7 +53,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       }).normalized
 
   /** intersection type */
-  def &&(that: => RecordTy): RecordTy = (this, that) match
+  def &&(that: RecordTy): RecordTy = (this, that) match
     case _ if this eq that   => this
     case (Bot, _) | (_, Top) => this
     case (Top, _) | (_, Bot) => that
@@ -83,7 +84,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       )
 
   /** prune type */
-  def --(that: => RecordTy): RecordTy = (this, that) match
+  def --(that: RecordTy): RecordTy = (this, that) match
     case (Bot, _) | (_, Top) => Bot
     case (Top, _) | (_, Bot) => this
     case (Elem(lmap), Elem(rmap)) =>

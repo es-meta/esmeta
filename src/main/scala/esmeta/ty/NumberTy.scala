@@ -3,9 +3,10 @@ package esmeta.ty
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** number types */
-sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
+sealed trait NumberTy extends TyElem {
   import NumberTy.*
 
   /** top check */
@@ -15,7 +16,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
   def isBottom: Boolean = this.canon == Bot
 
   /** partial order/subset operator */
-  def <=(that: => NumberTy): Boolean = (this.canon, that.canon) match
+  def <=(that: NumberTy): Boolean = (this.canon, that.canon) match
     case _ if (this eq that) || (this == Bot) => true
     // same types
     case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
@@ -36,7 +37,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     case _ => false
 
   /** union type */
-  def ||(that: => NumberTy): NumberTy = (this.canon, that.canon) match
+  def ||(that: NumberTy): NumberTy = (this.canon, that.canon) match
     case _ if this eq that            => this
     case (l, r) if l.isTop || r.isTop => Top
     case (l, r) if l.isBottom         => r
@@ -60,7 +61,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
       )
 
   /** intersection type */
-  def &&(that: => NumberTy): NumberTy = (this.canon, that.canon) match
+  def &&(that: NumberTy): NumberTy = (this.canon, that.canon) match
     case _ if this eq that                  => this
     case (l, r) if l.isBottom || r.isBottom => Bot
     case (l, r) if l.isTop                  => r
@@ -96,7 +97,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
       )
 
   /** prune type */
-  def --(that: => NumberTy): NumberTy =
+  def --(that: NumberTy): NumberTy =
     (this.canon, that.canon) match
       case _ if this eq that               => Bot
       case _ if this == Bot || that == Top => Bot
@@ -130,7 +131,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
 
   /** get single value */
   def getSingle: Flat[Number] = this.canon match
-    case s if s.isBottom  => esmeta.util.Zero
+    case s if s.isBottom  => Flat.Zero
     case NumberSetTy(set) => Flat(set)
     case NumberIntTy(int, nan) =>
       if nan && int.isBottom then Flat(Number(Double.NaN))

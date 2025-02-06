@@ -3,9 +3,10 @@ package esmeta.ty
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** AST value types */
-enum AstTy extends TyElem with Lattice[AstTy] {
+enum AstTy extends TyElem {
 
   /** the top element */
   case Top
@@ -25,7 +26,7 @@ enum AstTy extends TyElem with Lattice[AstTy] {
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => AstTy): Boolean = (this eq that) || (
+  def <=(that: AstTy): Boolean = (this eq that) || (
     (this, that) match
       case (_, Top)                           => true
       case (Top, _)                           => false
@@ -37,7 +38,7 @@ enum AstTy extends TyElem with Lattice[AstTy] {
   )
 
   /** union type */
-  def ||(that: => AstTy): AstTy =
+  def ||(that: AstTy): AstTy =
     if (this eq that) this
     else if (this <= that) that
     else if (that <= this) this
@@ -47,7 +48,7 @@ enum AstTy extends TyElem with Lattice[AstTy] {
         case (Fin(ls), Fin(rs))  => Simple(ls ++ rs)
 
   /** intersection type */
-  def &&(that: => AstTy): AstTy =
+  def &&(that: AstTy): AstTy =
     if (this eq that) this
     else if (this <= that) this
     else if (that <= this) that
@@ -58,7 +59,7 @@ enum AstTy extends TyElem with Lattice[AstTy] {
         case (Fin(ls), Fin(rs)) => Simple(ls intersect rs)
 
   /** prune type */
-  def --(that: => AstTy): AstTy =
+  def --(that: AstTy): AstTy =
     if (that.isBottom) this
     else
       (this, that) match

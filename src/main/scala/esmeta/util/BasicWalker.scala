@@ -1,9 +1,11 @@
 package esmeta.util
 
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 import scala.collection.mutable.{Map => MMap}
 
 /** the basic walker */
 trait BasicWalker {
+
   def walkOpt[T](
     opt: Option[T],
     tWalk: T => T,

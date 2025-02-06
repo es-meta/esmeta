@@ -72,14 +72,17 @@ case class Cont(
   callStack: List[CallContext],
 ) extends Callable
 
+/** primitive values */
+sealed trait PrimValue extends Value
+
 /** abstract syntax tree (AST) values */
-case class AstValue(ast: Ast) extends Value
+case class AstValue(ast: Ast) extends PrimValue
 
 /** grammar symbols */
-case class GrammarSymbol(name: String, params: List[Boolean]) extends Value
+case class GrammarSymbol(name: String, params: List[Boolean]) extends PrimValue
 
 /** mathematical values */
-case class Math(decimal: BigDecimal) extends Value
+case class Math(decimal: BigDecimal) extends PrimValue
 object Math {
   val zero: Math = Math(0)
   val one: Math = Math(1)
@@ -113,20 +116,20 @@ object Math {
 }
 
 /** infinity values */
-case class Infinity(pos: Boolean) extends Value
+case class Infinity(pos: Boolean) extends PrimValue
 
 /** enums */
-case class Enum(name: String) extends Value
+case class Enum(name: String) extends PrimValue
 
 /** code units */
-case class CodeUnit(c: Char) extends Value
+case class CodeUnit(c: Char) extends PrimValue
 
 /** simple values
   *
   * Simple values are ECMAScript values except objects and symbols. ECMAScript
   * objects and symbols need to be stored in a heap.
   */
-sealed trait SimpleValue extends Value
+sealed trait SimpleValue extends PrimValue
 
 /** numeric values */
 sealed trait Numeric extends SimpleValue:

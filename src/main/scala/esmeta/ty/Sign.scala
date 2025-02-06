@@ -1,50 +1,48 @@
 package esmeta.ty
 
-import esmeta.util.Lattice
 import esmeta.ty.util.Parser
 
-case class Sign(neg: Boolean, zero: Boolean, pos: Boolean)
-  extends Lattice[Sign] {
+case class Sign(neg: Boolean, zero: Boolean, pos: Boolean) {
   import Sign.*
   def isBottom: Boolean = this == Bot
   def isTop: Boolean = this == Top
 
-  def <=(that: => Sign): Boolean = (this, that) match
+  def <=(that: Sign): Boolean = (this, that) match
     case _ if this eq that => true
     case (Sign(ln, lz, lp), Sign(rn, rz, rp)) =>
       (!ln || rn) && (!lz || rz) && (!lp || rp)
 
-  def ||(that: => Sign): Sign = (this, that) match
+  def ||(that: Sign): Sign = (this, that) match
     case _ if this eq that => this
     case (Sign(ln, lz, lp), Sign(rn, rz, rp)) =>
       Sign(ln || rn, lz || rz, lp || rp)
 
-  def &&(that: => Sign): Sign = (this, that) match
+  def &&(that: Sign): Sign = (this, that) match
     case _ if this eq that => this
     case (Sign(ln, lz, lp), Sign(rn, rz, rp)) =>
       Sign(ln && rn, lz && rz, lp && rp)
 
-  def --(that: => Sign): Sign = (this, that) match
+  def --(that: Sign): Sign = (this, that) match
     case _ if this eq that => Bot
     case (Sign(ln, lz, lp), Sign(rn, rz, rp)) =>
       Sign(ln && !rn, lz && !rz, lp && !rp)
 
-  def +(that: => Sign): Sign = arithAlpha(this, that, (l, r) => Some(l + r))
+  def +(that: Sign): Sign = arithAlpha(this, that, (l, r) => Some(l + r))
 
-  def -(that: => Sign): Sign = arithAlpha(this, that, (l, r) => Some(l - r))
+  def -(that: Sign): Sign = arithAlpha(this, that, (l, r) => Some(l - r))
 
-  def *(that: => Sign): Sign = arithAlpha(this, that, (l, r) => Some(l * r))
+  def *(that: Sign): Sign = arithAlpha(this, that, (l, r) => Some(l * r))
 
-  def /(that: => Sign): Sign =
+  def /(that: Sign): Sign =
     arithAlpha(this, that, (l, r) => if r != 0 then Some(l / r) else None)
 
   def unary_- : Sign = Sign(pos, zero, neg)
 
   def abs: Sign = Sign(false, zero, neg || pos)
 
-  def min(that: => Sign): Sign = arithAlpha(this, that, (l, r) => Some(l min r))
+  def min(that: Sign): Sign = arithAlpha(this, that, (l, r) => Some(l min r))
 
-  def max(that: => Sign): Sign = arithAlpha(this, that, (l, r) => Some(l max r))
+  def max(that: Sign): Sign = arithAlpha(this, that, (l, r) => Some(l max r))
 
   def contains(value: Int): Boolean =
     if value == 0 then zero

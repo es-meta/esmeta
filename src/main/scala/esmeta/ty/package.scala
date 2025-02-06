@@ -4,6 +4,7 @@ import esmeta.cfg.Node
 import esmeta.state.*
 import esmeta.ty.util.*
 import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 

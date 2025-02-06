@@ -8,12 +8,14 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.domain.{*, given}
 
 /** stringifier for types */
 class Stringifier(
   detail: Boolean,
   location: Boolean,
 ) {
+  import BSet.*
 
   private lazy val irStringifier = IRElem.getStringifier(detail, location)
 
@@ -384,16 +386,6 @@ class Stringifier(
   )(using Rule[T]): Rule[Set[T]] = (app, set) =>
     given Rule[List[T]] = iterableRule(pre, sep, post)
     app >> set.toList.sorted
-
-  // rule for option type for top
-  private def topRule[T <: Lattice[T]](
-    tRule: Rule[T],
-    pre: String = "[",
-    post: String = "]",
-  ): Rule[T] = (app, t) =>
-    given Rule[T] = tRule
-    if (!t.isTop) app >> pre >> t >> post
-    else app
 
   // appender with filtering
   private class FilterApp(val app: Appender) {

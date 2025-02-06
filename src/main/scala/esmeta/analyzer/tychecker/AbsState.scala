@@ -1,12 +1,13 @@
 package esmeta.analyzer.tychecker
 
 import esmeta.ir.*
-import esmeta.ty.{*, given}
 import esmeta.state.*
+import esmeta.ty.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** abstract states */
 trait AbsStateDecl { self: TyChecker =>
@@ -101,7 +102,7 @@ trait AbsStateDecl { self: TyChecker =>
         } yield x -> v).toMap
         val newSymEnv = (for {
           sym <- (l.symEnv.keySet intersect r.symEnv.keySet).toList
-          ty = l.getTy(sym) ⊓ r.getTy(sym)
+          ty = l.getTy(sym) && r.getTy(sym)
         } yield sym -> ty).toMap
         val newPred = l.pred && r.pred
         AbsState(true, newLocals, newSymEnv, newPred)
@@ -216,7 +217,7 @@ trait AbsStateDecl { self: TyChecker =>
       val str = field.str
       var res = BotT
       def add(fieldStr: String): Unit = res ||= record(fieldStr).value
-      if (!record.isBottom) for (fieldStr <- str) add(fieldStr)
+      if (!record.isBottom) for (fieldStr <- str.unsoundList) add(fieldStr)
       res
 
     // list lookup

@@ -5,9 +5,7 @@ import esmeta.ty.util.Parser
 import esmeta.util.*
 
 /** field refinement map */
-case class FieldMap(map: Map[String, Binding])
-  extends TyElem
-  with Lattice[FieldMap] {
+case class FieldMap(map: Map[String, Binding]) extends TyElem {
 
   import FieldMap.*
 
@@ -18,12 +16,12 @@ case class FieldMap(map: Map[String, Binding])
   def isBottom: Boolean = false
 
   /** partial order/subset operator */
-  def <=(that: => FieldMap): Boolean = (this eq that) || that.isTop || (
+  def <=(that: FieldMap): Boolean = (this eq that) || that.isTop || (
     that.fields.forall { f => this(f) <= that(f) },
   )
 
   /** union type */
-  def ||(that: => FieldMap): FieldMap =
+  def ||(that: FieldMap): FieldMap =
     if (this eq that) this
     else if (this.isTop || that.isTop) Top
     else
@@ -36,7 +34,7 @@ case class FieldMap(map: Map[String, Binding])
       )
 
   /** intersection type */
-  def &&(that: => FieldMap): FieldMap =
+  def &&(that: FieldMap): FieldMap =
     if (this eq that) this
     else if (this.isTop) that
     else if (that.isTop) this
@@ -50,7 +48,7 @@ case class FieldMap(map: Map[String, Binding])
       )
 
   /** TODO prune type */
-  def --(that: => FieldMap): FieldMap = this
+  def --(that: FieldMap): FieldMap = this
 
   /** field accessor */
   def apply(field: String): Binding = map.getOrElse(field, Binding.Top)

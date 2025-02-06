@@ -2,6 +2,7 @@ package esmeta.error
 
 import esmeta.LINE_SEP
 import esmeta.ir.Param
+import esmeta.state.*
 
 sealed abstract class AnalysisError(msg: String)
   extends ESMetaError(msg, s"AnalysisError")
@@ -16,3 +17,7 @@ case class AnalysisImprecise(msg: String) extends AnalysisError(msg)
 // type checking failure
 case class TyCheckFail(msg: Option[String])
   extends AnalysisError("type checking failed." + msg.fold("")(LINE_SEP + _))
+
+// invalid abstraction
+case class InvalidAbstraction(value: Any)
+  extends AnalysisError(s"invalid abstraction: $value")

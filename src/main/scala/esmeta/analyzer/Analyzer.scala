@@ -12,7 +12,7 @@ import esmeta.util.BaseUtils.*
 abstract class Analyzer
   extends AbsTransferLikeDecl
   with ControlPointDecl
-  with DomainLikeDecl
+  with DomainDecl
   with ViewLikeDecl
   with util.Decl
   with repl.Decl {

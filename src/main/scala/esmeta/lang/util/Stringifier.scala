@@ -6,6 +6,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** stringifier for metalanguage */
 class Stringifier(detail: Boolean, location: Boolean) {
@@ -817,7 +818,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           else tys :+= s"${name.indefArticle} |$name| Parse Node"
 
     // enums
-    for (name <- ty.enumv.toList.sorted) tys :+= s"~$name~"
+    for (name <- ty.enumv.unsoundList.sorted) tys :+= s"~$name~"
 
     // numbers
     if (!ty.number.isBottom) tys :+= "Number".withArticle(plural)

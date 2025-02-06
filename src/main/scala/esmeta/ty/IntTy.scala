@@ -1,13 +1,12 @@
 package esmeta.ty
 
-import esmeta.util.Lattice
 import esmeta.interpreter.Interpreter
 import esmeta.state.{Math, Number}
-import esmeta.util.Flat
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 import scala.math.BigInt
 
-sealed trait IntTy extends TyElem with Lattice[IntTy] {
+sealed trait IntTy extends TyElem {
   import IntTy.*
 
   def isTop: Boolean = this == Top
@@ -15,60 +14,60 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case IntSetTy(set)   => set.isEmpty
     case IntSignTy(sign) => sign.isBottom
 
-  def <=(that: => IntTy): Boolean = (this, that) match
+  def <=(that: IntTy): Boolean = (this, that) match
     case _ if (this == that) || (this == Bot) || (that eq Top) => true
     case (IntSetTy(lset), IntSetTy(rset))     => lset subsetOf rset
     case (IntSignTy(lsign), IntSignTy(rsign)) => lsign <= rsign
     case (l, r)                               => l.toSign <= r.toSign
 
-  def ||(that: => IntTy): IntTy =
+  def ||(that: IntTy): IntTy =
     (this.canon, that.canon) match
       case _ if this eq that                    => this
       case (IntSetTy(lset), IntSetTy(rset))     => IntSetTy(lset union rset)
       case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign || rsign)
       case (l, r) => IntSignTy(l.toSign || r.toSign)
 
-  def &&(that: => IntTy): IntTy = (this, that) match
+  def &&(that: IntTy): IntTy = (this, that) match
     case _ if this eq that                    => this
     case (IntSetTy(lset), IntSetTy(rset))     => IntSetTy(lset intersect rset)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign && rsign)
     case (l, r)                               => IntSignTy(l.toSign && r.toSign)
 
-  def --(that: => IntTy): IntTy = (this, that) match
+  def --(that: IntTy): IntTy = (this, that) match
     case _ if this eq that                    => Bot
     case (IntSetTy(lset), IntSetTy(rset))     => IntSetTy(lset -- rset)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign -- rsign)
     case (l, r)                               => IntSignTy(l.toSign -- r.toSign)
 
-  def +(that: => IntTy): IntTy = (this, that) match
+  def +(that: IntTy): IntTy = (this, that) match
     case (l @ IntSetTy(lset), r @ IntSetTy(rset))
         if single(l, r, _ + _) != Top =>
       single(l, r, _ + _)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign + rsign)
     case (l, r)                               => l.toSignTy + r.toSignTy
 
-  def -(that: => IntTy): IntTy = (this, that) match
+  def -(that: IntTy): IntTy = (this, that) match
     case (l @ IntSetTy(lset), r @ IntSetTy(rset))
         if single(l, r, _ - _) != Top =>
       single(l, r, _ - _)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign - rsign)
     case (l, r)                               => l.toSignTy - r.toSignTy
 
-  def *(that: => IntTy): IntTy = (this, that) match
+  def *(that: IntTy): IntTy = (this, that) match
     case (l @ IntSetTy(lset), r @ IntSetTy(rset))
         if single(l, r, _ * _) != Top =>
       single(l, r, _ * _)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign * rsign)
     case (l, r)                               => l.toSignTy * r.toSignTy
 
-  def /(that: => IntTy): IntTy = (this, that) match
+  def /(that: IntTy): IntTy = (this, that) match
     case (l @ IntSetTy(lset), r @ IntSetTy(rset))
         if single(l, r, _ / _) != Top =>
       single(l, r, _ / _)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign / rsign)
     case (l, r)                               => l.toSignTy / r.toSignTy
 
-  def %(that: => IntTy): IntTy =
+  def %(that: IntTy): IntTy =
     import esmeta.util.*
     (this, that) match
       case (IntSetTy(lset), IntSetTy(rset))
@@ -76,20 +75,20 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
         single(this, that, _ % _)
       case _ => Top
 
-  def **(that: => IntTy): IntTy =
+  def **(that: IntTy): IntTy =
     single(this, that, (l, r) => l.pow(r.toInt))
 
-  def &(that: => IntTy): IntTy = single(this, that, _ & _)
+  def &(that: IntTy): IntTy = single(this, that, _ & _)
 
-  def |(that: => IntTy): IntTy = single(this, that, _ | _)
+  def |(that: IntTy): IntTy = single(this, that, _ | _)
 
-  def ^(that: => IntTy): IntTy = single(this, that, _ ^ _)
+  def ^(that: IntTy): IntTy = single(this, that, _ ^ _)
 
-  def <<(that: => IntTy): IntTy = single(this, that, _ << _.toInt)
+  def <<(that: IntTy): IntTy = single(this, that, _ << _.toInt)
 
-  def >>(that: => IntTy): IntTy = single(this, that, _ >> _.toInt)
+  def >>(that: IntTy): IntTy = single(this, that, _ >> _.toInt)
 
-  def >>>(that: => IntTy): IntTy = Top
+  def >>>(that: IntTy): IntTy = Top
 
   def unary_- : IntTy = this.canon match
     case IntSetTy(set)   => IntSetTy(set.map(-_))
@@ -112,11 +111,11 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
       IntSetTy(set.map(x => Interpreter.floor(Math(x)).toInt))
     case IntSignTy(sign) => IntSignTy(sign)
 
-  def min(that: => IntTy): IntTy = (this.canon, that.canon) match
+  def min(that: IntTy): IntTy = (this.canon, that.canon) match
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign min rsign)
     case _ => IntSignTy(this.toSign min that.toSign)
 
-  def max(that: => IntTy): IntTy = (this.canon, that.canon) match
+  def max(that: IntTy): IntTy = (this.canon, that.canon) match
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign max rsign)
     case _ => IntSignTy(this.toSign max that.toSign)
 
@@ -163,14 +162,12 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case IntSignTy(sign) => sign.isZero
     case IntSetTy(set)   => true
 
-  def getSingle: Flat[BigInt] =
-    import esmeta.util.*
-    this.canon match
-      case IntSetTy(set) => Flat(set)
-      case IntSignTy(sign) =>
-        if sign.isBottom then Zero
-        else if sign.isZero then One(0)
-        else Many
+  def getSingle: Flat[BigInt] = this.canon match
+    case IntSetTy(set) => Flat(set)
+    case IntSignTy(sign) =>
+      if sign.isBottom then Flat.Zero
+      else if sign.isZero then Flat.One(0)
+      else Many
 
   def canon: IntTy = this match
     case s @ IntSetTy(set)              => s
@@ -211,8 +208,7 @@ object IntTy {
     *   a singleton set if the result is a singleton, otherwise Top
     */
   def single(l: IntTy, r: IntTy, f: (BigInt, BigInt) => BigInt) =
-    import esmeta.util
     (l.getSingle, r.getSingle) match
-      case (util.One(lv), util.One(rv)) => IntSetTy(Set(f(lv, rv)))
+      case (Flat.One(lv), Flat.One(rv)) => IntSetTy(Set(f(lv, rv)))
       case _                            => Top
 }

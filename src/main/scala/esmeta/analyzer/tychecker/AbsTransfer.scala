@@ -1,13 +1,14 @@
 package esmeta.analyzer.tychecker
 
 import esmeta.cfg.{util => _, *}
+import esmeta.es.builtin.JOB_QUEUE
 import esmeta.ir.{Func => _, util => _, *}
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 import scala.annotation.tailrec
-import esmeta.es.builtin.JOB_QUEUE
 
 trait AbsTransferDecl { analyzer: TyChecker =>
 
@@ -162,7 +163,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               case Inf => AnyT
               case Fin(fids) =>
                 for {
-                  fid <- fty.cont.toIterable(stop = false)
+                  fid <- fty.cont.unsoundList
                   f <- cfg.funcMap.get(fid)
                   view = if (typeSens) View(vs.map(_.ty)) else emptyView
                   tgt = Some(NodePoint(f, f.entry, view))

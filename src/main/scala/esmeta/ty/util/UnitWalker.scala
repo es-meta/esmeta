@@ -3,6 +3,7 @@ package esmeta.ty.util
 import esmeta.state.{GrammarSymbol, Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** a unit walker for types */
 trait UnitWalker extends BasicUnitWalker {

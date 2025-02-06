@@ -15,9 +15,17 @@ class ESAnalyzer(
   with AbsStateDecl
   with AbsRetDecl
   with AbsValueDecl
+  with AbsPrimValueDecl
+  with AbsAddrDecl
+  with AbsCloDecl
+  with AbsContDecl
   with AbsTransferDecl
   with ViewDecl {
 
+  /** loop out edges */
+  var loopOut: Map[View, Set[View]] = Map()
+
+  /** analysis result */
   case class Result(
     npMap: Map[NodePoint[Node], AbsState],
     rpMap: Map[ReturnPoint, AbsRet],

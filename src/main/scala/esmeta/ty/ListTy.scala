@@ -5,7 +5,7 @@ import esmeta.ty.util.Parser
 import esmeta.util.*
 
 /** list types */
-enum ListTy extends TyElem with Lattice[ListTy] {
+enum ListTy extends TyElem {
   case Top
   case Elem(value: ValueTy)
   case Bot
@@ -19,7 +19,7 @@ enum ListTy extends TyElem with Lattice[ListTy] {
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => ListTy): Boolean = (this eq that) || {
+  def <=(that: ListTy): Boolean = (this eq that) || {
     (this, that) match
       case (Bot, _) | (_, Top) => true
       case (Top, _) | (_, Bot) => false
@@ -27,7 +27,7 @@ enum ListTy extends TyElem with Lattice[ListTy] {
   }
 
   /** union type */
-  def ||(that: => ListTy): ListTy =
+  def ||(that: ListTy): ListTy =
     if (this eq that) this
     else
       (this, that) match
@@ -36,7 +36,7 @@ enum ListTy extends TyElem with Lattice[ListTy] {
         case (Elem(l), Elem(r))  => Elem(l || r).normalized
 
   /** intersection type */
-  def &&(that: => ListTy): ListTy =
+  def &&(that: ListTy): ListTy =
     if (this eq that) this
     else
       (this, that) match
@@ -45,7 +45,7 @@ enum ListTy extends TyElem with Lattice[ListTy] {
         case (Elem(l), Elem(r))  => Elem(l && r).normalized
 
   /** prune type */
-  def --(that: => ListTy): ListTy = if (this <= that) Bot else this
+  def --(that: ListTy): ListTy = if (this <= that) Bot else this
 
   /** list element type */
   def elem: ValueTy = this match

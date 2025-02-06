@@ -3,6 +3,7 @@ package esmeta.analyzer.es
 import esmeta.cfg.*
 import esmeta.interpreter.Interpreter
 import esmeta.ir.{Func => _, *}
+import esmeta.error.*
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
@@ -13,7 +14,12 @@ import esmeta.util.BaseUtils.*
 /** abstract values */
 trait AbsValueDecl { self: ESAnalyzer =>
 
-  case class AbsValue() extends AbsValueLike {
+  case class AbsValue(
+    addr: AbsAddr = AbsAddr.Bot,
+    clo: AbsClo = AbsClo.Bot,
+    cont: AbsCont = AbsCont.Bot,
+    prim: AbsPrimValue = AbsPrimValue.Bot,
+  ) extends AbsValueLike {
     import AbsValue.*
 
     /** bottom check */
@@ -116,22 +122,32 @@ trait AbsValueDecl { self: ESAnalyzer =>
     lazy val Bot: AbsValue = ???
 
     /** useful abstract values */
-    lazy val True = ???
-    lazy val False = ???
-    lazy val BoolTop = ???
-    lazy val StrTop = ???
-    lazy val NonNegInt = ???
-    lazy val MathTop = ???
-    lazy val NumberTop = ???
-    lazy val BigIntTop = ???
+    lazy val True = AbsValue(prim = AbsPrimValue.True)
+    lazy val False = AbsValue(prim = AbsPrimValue.False)
+    lazy val BoolTop = AbsValue(prim = AbsPrimValue.BoolTop)
+    lazy val StrTop = AbsValue(prim = AbsPrimValue.StrTop)
+    lazy val NonNegInt = AbsValue(prim = AbsPrimValue.NonNegInt)
+    lazy val MathTop = AbsValue(prim = AbsPrimValue.MathTop)
+    lazy val NumberTop = AbsValue(prim = AbsPrimValue.NumberTop)
+    lazy val BigIntTop = AbsValue(prim = AbsPrimValue.BigIntTop)
 
-    /** abstraction functions for an original value */
-    def apply(value: Value): AbsValue = ???
-    def apply(ast: Ast): AbsValue = ???
-    def apply(n: Double): AbsValue = ???
-    def apply(s: String): AbsValue = ???
-    def apply(b: Boolean): AbsValue = ???
-    def apply(d: BigDecimal): AbsValue = ???
+    // abstraction functions
+    def apply(vs: Value*): AbsValue = apply(vs)
+    def apply(vs: Iterable[Value]): AbsValue = {
+      var addrs = Set[Addr]()
+      var prims = Set[PrimValue]()
+      vs.map {
+        case prim: PrimValue => prims += prim
+        case addr: NamedAddr => addrs += addr
+        case v               => throw InvalidAbstraction(v)
+      }
+      AbsValue(addr = AbsAddr(addrs), prim = AbsPrimValue(prims))
+    }
+    inline def apply(ast: Ast): AbsValue = AbsValue(prim = AbsPrimValue(ast))
+    inline def apply(n: Double): AbsValue = AbsValue(prim = AbsPrimValue(n))
+    inline def apply(s: String): AbsValue = AbsValue(prim = AbsPrimValue(s))
+    inline def apply(b: Boolean): AbsValue = AbsValue(prim = AbsPrimValue(b))
+    inline def apply(d: BigDecimal): AbsValue = AbsValue(prim = AbsPrimValue(d))
 
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) => ???

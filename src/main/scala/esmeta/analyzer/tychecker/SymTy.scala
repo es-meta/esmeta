@@ -8,6 +8,7 @@ import esmeta.ty.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 trait SymTyDecl { self: TyChecker =>
   import tyStringifier.given
@@ -53,8 +54,8 @@ trait SymTyDecl { self: TyChecker =>
     /** partial order in different state */
     def ⊑(that: SymTy)(lst: AbsState, rst: AbsState): Boolean =
       (this, that) match
-        case (STy(lty), STy(rty))           => lty ⊑ rty
-        case (l, STy(rty))                  => l.ty(using lst) ⊑ rty
+        case (STy(lty), STy(rty))           => lty <= rty
+        case (l, STy(rty))                  => l.ty(using lst) <= rty
         case (l, r) if l.isBottom || l == r => true
         case _                              => false
 

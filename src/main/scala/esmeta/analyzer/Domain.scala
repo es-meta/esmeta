@@ -3,7 +3,7 @@ package esmeta.analyzer
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
-trait DomainLikeDecl { self: Analyzer =>
+trait DomainDecl { self: Analyzer =>
 
   /** abstract domain */
   trait DomainLike[Elem] {

@@ -1,12 +1,13 @@
 package esmeta.ty
 
+import esmeta.interpreter.Interpreter
 import esmeta.state.Math
 import esmeta.ty.util.Parser
 import esmeta.util.*
-import esmeta.interpreter.Interpreter
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** mathematical value types */
-sealed trait MathTy extends TyElem with Lattice[MathTy] {
+sealed trait MathTy extends TyElem {
   import MathTy.*
 
   /** top check */
@@ -19,7 +20,7 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case MathIntTy(int)   => int.isBottom
 
   /** partial order */
-  def <=(that: => MathTy): Boolean = (this.canon, that.canon) match
+  def <=(that: MathTy): Boolean = (this.canon, that.canon) match
     case _ if (this eq that) || (this == Bot) => true
     // same types
     case (MathSignTy(l), MathSignTy(r))     => l <= r
@@ -37,7 +38,7 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case _                                    => false
 
   /** union type */
-  def ||(that: => MathTy): MathTy = (this.canon, that.canon) match
+  def ||(that: MathTy): MathTy = (this.canon, that.canon) match
     case _ if this eq that            => this
     case (l, r) if l.isTop || r.isTop => Top
     // same types
@@ -54,7 +55,7 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case (l, r) => MathSignTy(l.toSign || r.toSign)
 
   /** intersection type */
-  def &&(that: => MathTy): MathTy = (this.canon, that.canon) match
+  def &&(that: MathTy): MathTy = (this.canon, that.canon) match
     case _ if this eq that                  => this
     case (l, r) if l.isBottom || r.isBottom => Bot
     // same types
@@ -71,7 +72,7 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case (l, r) => MathSignTy(l.toSign && r.toSign)
 
   /** prune type */
-  def --(that: => MathTy): MathTy = (this.canon, that.canon) match
+  def --(that: MathTy): MathTy = (this.canon, that.canon) match
     case _ if this eq that               => Bot
     case (l, r) if l.isBottom || r.isTop => Bot
     // same types
@@ -184,12 +185,10 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case MathSetTy(set)   => set.exists(_.decimal == bint.bigInt)
 
   /** get single value */
-  def getSingle: Flat[Math] =
-    this.canon match
-      case MathSignTy(sign) => if sign.isZero then Flat(Math(0)) else Many
-      case MathIntTy(int) =>
-        int.toMathSet.fold(esmeta.util.Zero)(Flat(_))
-      case MathSetTy(set) => Flat(set)
+  def getSingle: Flat[Math] = this.canon match
+    case MathSignTy(sign) => if sign.isZero then Flat(Math(0)) else Many
+    case MathIntTy(int)   => int.toMathSet.fold(Flat.Zero)(Flat(_))
+    case MathSetTy(set)   => Flat(set)
 
   /** integral check */
   def isInt: Boolean = this.canon match

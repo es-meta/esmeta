@@ -3,7 +3,7 @@ package esmeta.lang.util
 import esmeta.lang.*
 import esmeta.ty.*
 import esmeta.ty.util.{Parsers => TyParsers}
-import esmeta.util.{IndentParsers, Locational, ConcreteLattice, ManualInfo}
+import esmeta.util.{IndentParsers, Locational, ManualInfo}
 import esmeta.util.BaseUtils.*
 
 /** metalanguage parser */

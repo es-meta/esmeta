@@ -1,11 +1,12 @@
 package esmeta.ty
 
-import esmeta.util.*
 import esmeta.state.*
 import esmeta.ty.util.Parser
+import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** closure types */
-sealed trait CloTy extends TyElem with Lattice[CloTy] {
+sealed trait CloTy extends TyElem {
   import CloTy.*
 
   /** top check */
@@ -15,7 +16,7 @@ sealed trait CloTy extends TyElem with Lattice[CloTy] {
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => CloTy): Boolean = (this, that) match
+  def <=(that: CloTy): Boolean = (this, that) match
     case (_, Top) => true
     case (CloArrowTy(lps, lret), CloArrowTy(rps, rret)) =>
       lps.zip(rps).forall((l, r) => l <= r) && rret <= lret
@@ -24,7 +25,7 @@ sealed trait CloTy extends TyElem with Lattice[CloTy] {
     case _                                => false
 
   /** union type */
-  def ||(that: => CloTy): CloTy = (this, that) match
+  def ||(that: CloTy): CloTy = (this, that) match
     case (CloTopTy, _) | (_, CloTopTy) => Top
     case (CloArrowTy(lps, lret), CloArrowTy(rps, rret)) =>
       CloArrowTy(lps.zip(rps).map((l, r) => l || r), lret && rret)
@@ -33,7 +34,7 @@ sealed trait CloTy extends TyElem with Lattice[CloTy] {
     case (_: CloArrowTy, _: CloSetTy)     => this
 
   /** intersection type */
-  def &&(that: => CloTy): CloTy = (this, that) match
+  def &&(that: CloTy): CloTy = (this, that) match
     case (CloTopTy, _) => that
     case (_, CloTopTy) => this
     case (CloArrowTy(lps, lret), CloArrowTy(rps, rret)) =>
@@ -43,7 +44,7 @@ sealed trait CloTy extends TyElem with Lattice[CloTy] {
     case (_: CloArrowTy, _: CloSetTy)     => that
 
   /** prune type */
-  def --(that: => CloTy): CloTy = (this, that) match
+  def --(that: CloTy): CloTy = (this, that) match
     case _ if this <= that                => Bot
     case (CloSetTy(lset), CloSetTy(rset)) => CloSetTy(lset -- rset)
     case _                                => this

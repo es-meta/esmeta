@@ -3,9 +3,10 @@ package esmeta.ty
 import esmeta.state.{Value, MapObj, Heap}
 import esmeta.ty.util.Parser
 import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** map types */
-enum MapTy extends TyElem with Lattice[MapTy] {
+enum MapTy extends TyElem {
   case Top
   case Elem(key: ValueTy, value: ValueTy)
   case Bot
@@ -19,7 +20,7 @@ enum MapTy extends TyElem with Lattice[MapTy] {
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => MapTy): Boolean = (this eq that) || {
+  def <=(that: MapTy): Boolean = (this eq that) || {
     (this, that) match
       case (Bot, _) | (_, Top)          => true
       case (Top, _) | (_, Bot)          => false
@@ -27,7 +28,7 @@ enum MapTy extends TyElem with Lattice[MapTy] {
   }
 
   /** union type */
-  def ||(that: => MapTy): MapTy =
+  def ||(that: MapTy): MapTy =
     if (this eq that) this
     else
       (this, that) match
@@ -36,7 +37,7 @@ enum MapTy extends TyElem with Lattice[MapTy] {
         case (Elem(lk, lv), Elem(rk, rv)) => Elem(lk || rk, lv || rv).normalized
 
   /** intersection type */
-  def &&(that: => MapTy): MapTy =
+  def &&(that: MapTy): MapTy =
     if (this eq that) this
     else
       (this, that) match
@@ -45,7 +46,7 @@ enum MapTy extends TyElem with Lattice[MapTy] {
         case (Elem(lk, lv), Elem(rk, rv)) => Elem(lk && rk, lv && rv).normalized
 
   /** prune type */
-  def --(that: => MapTy): MapTy = if (this <= that) Bot else this
+  def --(that: MapTy): MapTy = if (this <= that) Bot else this
 
   /** get key type */
   def getKey: ValueTy = this match

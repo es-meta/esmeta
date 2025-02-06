@@ -5,6 +5,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** metalanguage parser */
 object Parser extends Parsers

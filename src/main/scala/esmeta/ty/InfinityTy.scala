@@ -1,12 +1,11 @@
 package esmeta.ty
 
-import esmeta.util.*
 import esmeta.ty.util.Parser
+import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** boolean types */
-case class InfinityTy(pos: Set[Boolean] = Set())
-  extends TyElem
-  with Lattice[InfinityTy] {
+case class InfinityTy(pos: Set[Boolean] = Set()) extends TyElem {
   import InfinityTy.*
 
   /** top check */
@@ -16,18 +15,18 @@ case class InfinityTy(pos: Set[Boolean] = Set())
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => InfinityTy): Boolean = this.pos subsetOf that.pos
+  def <=(that: InfinityTy): Boolean = this.pos subsetOf that.pos
 
   /** union type */
-  def ||(that: => InfinityTy): InfinityTy = InfinityTy(this.pos ++ that.pos)
+  def ||(that: InfinityTy): InfinityTy = InfinityTy(this.pos ++ that.pos)
 
   /** intersection type */
-  def &&(that: => InfinityTy): InfinityTy = InfinityTy(
+  def &&(that: InfinityTy): InfinityTy = InfinityTy(
     this.pos intersect that.pos,
   )
 
   /** prune type */
-  def --(that: => InfinityTy): InfinityTy = InfinityTy(this.pos -- that.pos)
+  def --(that: InfinityTy): InfinityTy = InfinityTy(this.pos -- that.pos)
 
   /** inclusion check */
   def contains(b: Boolean): Boolean = pos contains b

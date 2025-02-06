@@ -1,6 +1,7 @@
 package esmeta.util
 
 import esmeta.LINE_SEP
+import esmeta.util.BaseUtils.*
 
 /** a wrapper of java.lang.StringBuilder in a typeclass style
   *
@@ -153,4 +154,14 @@ object Appender {
   given doubleRule: Rule[Double] = _ >> _.toString
   given longRule: Rule[Long] = _ >> _.toString
   given booleanRule: Rule[Boolean] = _ >> _.toString
+}
+
+/** appendable */
+trait Appendable[T <: Appendable[T]] { self: T =>
+
+  /** appender */
+  given rule: Appender.Rule[T]
+
+  /** conversion to string */
+  override def toString: String = stringify(this)
 }

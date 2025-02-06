@@ -7,9 +7,10 @@ import esmeta.error.NotSupported.{*, given}
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
+import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 
 /** value types */
-sealed trait ValueTy extends Ty with Lattice[ValueTy] {
+sealed trait ValueTy extends Ty {
   import ValueTy.*
 
   def clo: CloTy
@@ -59,7 +60,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
       )
 
   /** partial order/subset operator */
-  def <=(that: => ValueTy): Boolean =
+  def <=(that: ValueTy): Boolean =
     if ((this eq that) || (this eq Bot) || (that eq Top)) true
     else if (this eq Top) false
     else
@@ -82,7 +83,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
       this.nullv <= that.nullv
 
   /** union type */
-  def ||(that: => ValueTy): ValueTy =
+  def ||(that: ValueTy): ValueTy =
     if (this eq that) this
     else if (this eq Bot) that
     else if (this eq Top) Top
@@ -110,7 +111,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
       ).norm
 
   /** intersection type */
-  def &&(that: => ValueTy): ValueTy =
+  def &&(that: ValueTy): ValueTy =
     if (this eq that) this
     else if (this eq Bot) Bot
     else if (this eq Top) that
@@ -138,7 +139,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
       )
 
   /** prune type */
-  def --(that: => ValueTy): ValueTy =
+  def --(that: ValueTy): ValueTy =
     if (this eq that) Bot
     else if (this eq Bot) Bot
     else if (that eq Bot) this
@@ -299,7 +300,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         map = MapTy.Bot,
         list = ListTy.Bot,
         ast = AstTy.Bot,
-        str = Fin(),
+        str = BSet.Bot,
       )
 
   /** boolean operations */
@@ -353,11 +354,11 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
       tys ++= ast.toAtomicTys.map(ast => ValueElemTy(ast = ast))
       grammarSymbol match
         case Inf    => tys :+= ValueElemTy(grammarSymbol = Inf)
-        case Fin(s) => tys ++= s.map(g => ValueElemTy(grammarSymbol = Fin(g)))
+        case Fin(s) => tys ++= s.map(g => ValueElemTy(grammarSymbol = BSet(g)))
       if (codeUnit) tys :+= ValueElemTy(codeUnit = true)
       enumv match
         case Inf    => tys :+= ValueElemTy(enumv = Inf)
-        case Fin(s) => tys ++= s.map(e => ValueElemTy(enumv = Fin(e)))
+        case Fin(s) => tys ++= s.map(e => ValueElemTy(enumv = BSet(e)))
       tys ++= math.toAtomicTys.map(math => ValueElemTy(math = math))
       if (!infinity.isBottom) tys :+= ValueElemTy(infinity = InfinityTy.Top)
       if (!number.isBottom) tys :+= ValueElemTy(number = NumberTy.Top)
@@ -392,19 +393,19 @@ case object ValueTopTy extends ValueTy {
 
 case class ValueElemTy(
   clo: CloTy = CloTy.Bot,
-  cont: BSet[Int] = Fin(),
+  cont: BSet[Int] = BSet.Bot,
   record: RecordTy = RecordTy.Bot,
   map: MapTy = MapTy.Bot,
   list: ListTy = ListTy.Bot,
   ast: AstTy = AstTy.Bot,
-  grammarSymbol: BSet[GrammarSymbol] = Fin(),
+  grammarSymbol: BSet[GrammarSymbol] = BSet.Bot,
   codeUnit: Boolean = false,
-  enumv: BSet[String] = Fin(),
+  enumv: BSet[String] = BSet.Bot,
   math: MathTy = MathTy.Bot,
   infinity: InfinityTy = InfinityTy.Bot,
   number: NumberTy = NumberTy.Bot,
   bigInt: Boolean = false,
-  str: BSet[String] = Fin(),
+  str: BSet[String] = BSet.Bot,
   bool: BoolTy = BoolTy.Bot,
   undef: Boolean = false,
   nullv: Boolean = false,
@@ -412,19 +413,19 @@ case class ValueElemTy(
 object ValueTy extends Parser.From(Parser.valueTy) {
   def apply(
     clo: CloTy = CloTy.Bot,
-    cont: BSet[Int] = Fin(),
+    cont: BSet[Int] = BSet.Bot,
     record: RecordTy = RecordTy.Bot,
     map: MapTy = MapTy.Bot,
     list: ListTy = ListTy.Bot,
     ast: AstTy = AstTy.Bot,
-    grammarSymbol: BSet[GrammarSymbol] = Fin(),
+    grammarSymbol: BSet[GrammarSymbol] = BSet.Bot,
     codeUnit: Boolean = false,
-    enumv: BSet[String] = Fin(),
+    enumv: BSet[String] = BSet.Bot,
     math: MathTy = MathTy.Bot,
     infinity: InfinityTy = InfinityTy.Bot,
     number: NumberTy = NumberTy.Bot,
     bigInt: Boolean = false,
-    str: BSet[String] = Fin(),
+    str: BSet[String] = BSet.Bot,
     bool: BoolTy = BoolTy.Bot,
     undef: Boolean = false,
     nullv: Boolean = false,
