@@ -12,7 +12,7 @@ import esmeta.util.BaseUtils.*
 trait SymTyDecl { self: TyChecker =>
   import tyStringifier.given
 
-  enum SymTy extends SymTyLike {
+  enum SymTy {
     case STy(ty: ValueTy)
     case SRef(ref: SymRef)
     case SNormal(symty: SymTy)
