@@ -69,7 +69,7 @@ abstract class Analyzer
   def logging: Unit
 
   // ---------------------------------------------------------------------------
-  // Analysis Status
+  // Analysis Results
   // ---------------------------------------------------------------------------
   /** abstract states in each node point */
   var npMap: Map[NodePoint[Node], AbsState] = Map()
@@ -117,11 +117,6 @@ abstract class Analyzer
   // Predefined Definitions
   // ---------------------------------------------------------------------------
   given CFG = cfg
-
-  /** perform type analysis */
-  lazy val analyze: Unit =
-    transfer.fixpoint
-    if (log) logging
 
   /** analyzer elements */
   trait AnalyzerElem {

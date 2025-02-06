@@ -23,7 +23,6 @@ class TyChecker(
   val detail: Boolean = false,
   val silent: Boolean = false,
   override val useRepl: Boolean = false,
-  override val replContinue: Boolean = false,
 ) extends Analyzer
   with SymTyDecl
   with AbsValueDecl
@@ -36,7 +35,13 @@ class TyChecker(
   val tyStringifier = TyElem.getStringifier(false, false)
   import tyStringifier.given
 
-  npMap = getInitNpMap(targetFuncs)
+  /** perform type analysis */
+  lazy val analyze: Unit = {
+    npMap = getInitNpMap(targetFuncs)
+    worklist.reset(npMap.keySet)
+    transfer.fixpoint
+    if (log) logging
+  }
 
   def isTypeGuardCandidate(func: Func): Boolean =
     !func.isBuiltin && !func.isSDO && !func.isAux && func.weakComplete
@@ -45,7 +50,7 @@ class TyChecker(
   // Implementation for General Analyzer
   // ---------------------------------------------------------------------------
   /** worklist of control points */
-  val worklist: Worklist[ControlPoint] = PriorityQueueWorklist(npMap.keySet)
+  val worklist: Worklist[ControlPoint] = new PriorityQueueWorklist
 
   /** abstract transfer function */
   val transfer: AbsTransfer = new AbsTransfer

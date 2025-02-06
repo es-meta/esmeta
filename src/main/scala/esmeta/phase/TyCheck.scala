@@ -30,7 +30,6 @@ case object TyCheck extends Phase[CFG, Unit] {
       detail = config.detail,
       silent = silent,
       useRepl = config.useRepl,
-      replContinue = config.replContinue,
     )
     tychecker.analyze
     if (tychecker.needUpdate)
@@ -48,11 +47,6 @@ case object TyCheck extends Phase[CFG, Unit] {
       "repl",
       BoolOption(_.useRepl = _),
       "use a REPL for type checking of ECMA-262.",
-    ),
-    (
-      "repl-continue",
-      BoolOption(_.replContinue = _),
-      "run `continue` command at startup when using REPL",
     ),
     (
       "ignore",
@@ -90,7 +84,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var ignorePath: Option[String] = None,
     var updateIgnore: Boolean = false,
     var useRepl: Boolean = false,
-    var replContinue: Boolean = false,
     var log: Boolean = false,
     var detail: Boolean = false,
     var typeSens: Boolean = false,

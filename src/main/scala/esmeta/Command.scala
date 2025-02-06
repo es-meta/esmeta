@@ -75,7 +75,7 @@ case object CmdExtract extends Command("extract", CmdBase >> Extract) {
   val help = "extracts specification model from ECMA-262 (spec.html)."
   val examples = List(
     "esmeta extract                           // extract current version.",
-    "esmeta extract -extract:target=es2022    // extract es2022 version.",
+    "esmeta extract -extract:target=es2024    // extract es2024 version.",
     "esmeta extract -extract:target=868fe7a   // extract 868fe7a hash version.",
   )
 }
@@ -85,7 +85,7 @@ case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
   val help = "compiles a specification to an IR program."
   val examples = List(
     "esmeta compile                        # compile spec to IR program.",
-    "esmeta compile -extract:target=es2022 # compile es2022 spec to IR program",
+    "esmeta compile -extract:target=es2024 # compile es2024 spec to IR program",
   )
 }
 
@@ -94,7 +94,7 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
   val help = "builds a control-flow graph (CFG) from an IR program."
   val examples = List(
     "esmeta build-cfg                          # build CFG for spec.",
-    "esmeta build-cfg -extract:target=es2022   # build CFG for es2022 spec.",
+    "esmeta build-cfg -extract:target=es2024   # build CFG for es2024 spec.",
   )
 }
 
@@ -107,7 +107,7 @@ case object CmdTyCheck extends Command("tycheck", CmdBuildCFG >> TyCheck) {
   val examples = List(
     "esmeta tycheck                              # type check for spec.",
     "esmeta tycheck -tycheck:target='.*ToString' # type check with targets",
-    "esmeta tycheck -extract:target=es2022       # type check for es2022 spec.",
+    "esmeta tycheck -extract:target=es2024       # type check for es2024 spec.",
   )
 }
 
@@ -119,7 +119,7 @@ case object CmdParse extends Command("parse", CmdExtract >> Parse) {
   val help = "parses an ECMAScript file."
   val examples = List(
     "esmeta parse a.js                         # parse a.js file.",
-    "esmeta parse a.js -extract:target=es2022  # parse with es2022 spec.",
+    "esmeta parse a.js -extract:target=es2024  # parse with es2024 spec.",
     "esmeta parse a.js -parse:debug            # parse in the debugging mode.",
   )
   override val targetName = "<js>+"
@@ -130,7 +130,7 @@ case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
   val help = "evaluates an ECMAScript file."
   val examples = List(
     "esmeta eval a.js                         # eval a.js file.",
-    "esmeta eval a.js -extract:target=es2022  # eval with es2022 spec.",
+    "esmeta eval a.js -extract:target=es2024  # eval with es2024 spec.",
     "esmeta eval a.js -eval:log               # eval in the logging mode.",
   )
   override val targetName = "<js>+"
@@ -190,4 +190,18 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
     "esmeta mutate a.js -mutate:out=b.js          # dump the mutated program.",
     "esmeta mutate a.js -mutate:mutator=random    # use random mutator.",
   )
+}
+
+// -----------------------------------------------------------------------------
+// ECMAScript Static Analysis (Meta-Level Static Analysis)
+// -----------------------------------------------------------------------------
+/** `analyze` command */
+case object CmdAnalyze extends Command("analyze", CmdBuildCFG >> Analyze) {
+  val help = "analyzes an ECMAScript file using meta-level static analysis."
+  val examples = List(
+    "esmeta analyze a.js                         # analyze a.js file.",
+    "esmeta analyze a.js -extract:target=es2024  # analyze with es2024 spec.",
+    "esmeta analyze a.js -analyze:repl           # analyze in a REPL mode.",
+  )
+  override val targetName = "<js>+"
 }
