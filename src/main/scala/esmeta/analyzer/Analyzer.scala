@@ -13,7 +13,6 @@ abstract class Analyzer
   extends AbsTransferLikeDecl
   with ControlPointDecl
   with DomainLikeDecl
-  with TypeErrorDecl
   with ViewLikeDecl
   with util.Decl
   with repl.Decl {

@@ -1,11 +1,11 @@
 package esmeta.analyzer.tychecker
 
 import esmeta.ty.*
-import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.Appender.*
 
 /** view abstraction */
 trait ViewDecl { self: TyChecker =>
+  import tyStringifier.given
 
   /** view abstraction for analysis sensitivities */
   case class View(tys: List[ValueTy] = Nil) extends ViewLike {
@@ -16,7 +16,6 @@ trait ViewDecl { self: TyChecker =>
 
   /** appender */
   def viewRule(detail: Boolean): Rule[View] = (app, view) => {
-    import TyStringifier.given
     given Rule[List[ValueTy]] = iterableRule[ValueTy]("[", ", ", "]")
     app >> view.tys
   }

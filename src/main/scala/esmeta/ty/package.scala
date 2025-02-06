@@ -9,9 +9,21 @@ import esmeta.util.BaseUtils.*
 
 /** type elements */
 trait TyElem {
-  override def toString: String =
-    import Stringifier.elemRule
+  override def toString: String = toString(false, false)
+
+  /** stringify with options */
+  def toString(
+    detail: Boolean = false,
+    location: Boolean = false,
+  ): String =
+    val stringifier = TyElem.getStringifier(detail, location)
+    import stringifier.elemRule
     stringify(this)
+}
+object TyElem {
+  val getStringifier = cached[(Boolean, Boolean), Stringifier] {
+    Stringifier(_, _)
+  }
 }
 
 // -----------------------------------------------------------------------------

@@ -154,9 +154,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   fname <- names
                   f <- cfg.fnameMap.get(fname)
                 } {
-                  val callPoint = CallPoint(callerNp, f)
                   val captured: Map[Name, AbsValue] = Map() // TODO
-                  doCall(callPoint, st, args, vs, captured, f.isMethod)
+                  doCall(callerNp, f, st, args, vs, captured, f.isMethod)
                 }
                 BotT
             val contRes = fty.cont match
@@ -168,9 +167,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   view = if (typeSens) View(vs.map(_.ty)) else emptyView
                   tgt = Some(NodePoint(f, f.entry, view))
                 } {
-                  val callPoint = CallPoint(callerNp, f)
                   val captured: Map[Name, AbsValue] = Map() // TODO
-                  doCall(callPoint, st, args, vs, captured, f.isMethod, tgt)
+                  doCall(callerNp, f, st, args, vs, captured, f.isMethod, tgt)
                 }
                 BotT
             AbsValue(cloRes || contRes)
@@ -189,8 +187,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
             // syntactic sdo
             for ((sdo, ast) <- bv.getSdo(method))
-              val callPoint = CallPoint(callerNp, sdo)
-              doCall(callPoint, st, base :: args, ast :: vs, method = true)
+              doCall(callerNp, sdo, st, base :: args, ast :: vs, method = true)
 
             newV
           }
@@ -199,7 +196,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** handle calls */
     def doCall(
-      callPoint: CallPoint,
+      callerNp: NodePoint[Call],
+      callee: Func,
       callerSt: AbsState,
       args: List[Expr],
       vs: List[AbsValue],
@@ -207,7 +205,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       method: Boolean = false,
       contTarget: Option[NodePoint[Node]] = None,
     ): Unit = {
-      val CallPoint(callerNp, callee) = callPoint
       given AbsState = callerSt
       callInfo += callerNp -> callerSt
       val argsInfo = (args zip vs)
@@ -229,7 +226,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         } analyzer += nextNp -> newSt
       }
       // get locals
-      val locals = getLocals(callPoint, method, vs) ++ captured
+      val locals = getLocals(callerNp, callee, method, vs) ++ captured
       // keep caller state to restore it
       contTarget match
         case Some(target) =>
@@ -277,14 +274,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** get local variables */
     def getLocals(
-      callPoint: CallPoint,
+      callerNp: NodePoint[Call],
+      callee: Func,
       method: Boolean,
       vs: List[AbsValue],
     ): List[(Local, AbsValue)] = {
-      val CallPoint(callerNp, callee) = callPoint
       val arity @ (from, to) = callee.arity
       val len = vs.length
       if (config.checkArity && (len < from || to < len))
+        val callPoint = CallPoint(callerNp.func, callerNp.node, callee)
         addError(ArityMismatch(callPoint, len))
       // get parameters
       val params: List[Param] = callee.irFunc.params
@@ -292,22 +290,24 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       // construct local type environment
       (for {
         ((param, arg), idx) <- (params zip vs).zipWithIndex
-      } yield param.lhs -> assignArg(callPoint, method, idx, param, arg))
+      } yield param.lhs -> assignArg(callerNp, callee, method, idx, param, arg))
     }
 
     /** assign argument to parameter */
     def assignArg(
-      callPoint: CallPoint,
+      callerNp: NodePoint[Call],
+      callee: Func,
       method: Boolean,
       idx: Int,
       param: Param,
       arg: AbsValue,
     ): AbsValue =
-      given AbsState = getResult(callPoint.callerNp)
+      given AbsState = getResult(callerNp)
       val paramTy = param.ty.ty.toValue
       val argTy = arg.ty
       if (method && idx == 0) () /* ignore `this` for method calls */
       else if (config.checkParamType && !(argTy <= paramTy))
+        val callPoint = CallPoint(callerNp.func, callerNp.node, callee)
         addError(ParamTypeMismatch(ArgAssignPoint(callPoint, idx), argTy))
       AbsValue(paramTy && argTy)
 
@@ -446,9 +446,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       irReturn: Return,
       v: AbsValue,
     )(using np: NodePoint[Node]): Unit =
-      val NodePoint(func, _, view) = np
+      val NodePoint(func, node, view) = np
       val givenSt = getResult(np)
-      val irp = InternalReturnPoint(np, irReturn)
+      val irp = InternalReturnPoint(func, node, irReturn)
       val entryView = getEntryView(view)
       val entryNp = NodePoint(func, func.entry, entryView)
       val entrySt = getResult(entryNp)
@@ -1137,7 +1137,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       operandTy: ValueTy,
       expectedTys: ValueTy,
     )(using np: NodePoint[Node]): Unit = if (!(operandTy <= expectedTys))
-      addError(UnaryOpTypeMismatch(UnaryOpPoint(np, unary), operandTy))
+      val NodePoint(func, node, _) = np
+      addError(UnaryOpTypeMismatch(UnaryOpPoint(func, node, unary), operandTy))
 
     /** transfer function for binary operators */
     def transfer(
@@ -1188,7 +1189,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       expectedTys: Set[ValueTy],
     )(using np: NodePoint[Node]): Unit =
       if (!expectedTys.exists(ty => lhsTy <= ty || rhsTy <= ty))
-        val binaryPoint = BinaryOpPoint(np, binary)
+        val NodePoint(func, node, _) = np
+        val binaryPoint = BinaryOpPoint(func, node, binary)
         addError(BinaryOpTypeMismatch(binaryPoint, lhsTy, rhsTy))
 
     /** transfer for variadic operators */

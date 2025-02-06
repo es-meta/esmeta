@@ -5,13 +5,13 @@ import esmeta.interpreter.Interpreter
 import esmeta.ir.{Name, BOp, COp, VOp, MOp, UOp, Local, IRElem}
 import esmeta.state.*
 import esmeta.ty.{*, given}
-import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** abstract values */
 trait AbsValueDecl { self: TyChecker =>
+  import tyStringifier.given
 
   import SymTy.*
 
@@ -402,7 +402,6 @@ trait AbsValueDecl { self: TyChecker =>
     /** get string of abstract value with an abstract state */
     def getString(state: AbsState): String =
       given AbsState = state
-      import TyStringifier.given
       s"$this (${ty})"
 
   }
@@ -473,9 +472,6 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) =>
-      val irStringifier = IRElem.getStringifier(true, false)
-      import TyStringifier.given
-      import irStringifier.given
       given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
       given Ordering[Local] = Ordering.by(_.toString)
       val AbsValue(symty, guard) = elem

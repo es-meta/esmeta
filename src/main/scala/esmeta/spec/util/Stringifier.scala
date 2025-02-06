@@ -3,7 +3,7 @@ package esmeta.spec.util
 import esmeta.LINE_SEP
 import esmeta.lang.*
 import esmeta.spec.*
-import esmeta.ty.util.{Stringifier => TyStringifier}
+import esmeta.ty.*
 import esmeta.util.Appender
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -13,7 +13,8 @@ object Stringifier {
   // stringifier for metalanguage
   val langStringifier = LangElem.getStringifier(false, false)
   import langStringifier.{given, *}
-  import TyStringifier.{*, given}
+  val tyStringifier = TyElem.getStringifier(false, false)
+  import tyStringifier.{*, given}
 
   type NtArg = NonterminalArgument
   type NtArgKind = NonterminalArgumentKind

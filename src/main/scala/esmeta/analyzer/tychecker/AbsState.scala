@@ -2,7 +2,6 @@ package esmeta.analyzer.tychecker
 
 import esmeta.ir.*
 import esmeta.ty.{*, given}
-import esmeta.ty.util.Stringifier.{*, given}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -11,6 +10,8 @@ import esmeta.util.BaseUtils.*
 
 /** abstract states */
 trait AbsStateDecl { self: TyChecker =>
+  import tyStringifier.given
+
   case class AbsState(
     reachable: Boolean,
     locals: Map[Local, AbsValue],

@@ -7,7 +7,8 @@ import esmeta.util.BaseUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
 object JsonProtocol extends BasicJsonProtocol {
-  import Stringifier.given
+  private val stringifier = TyElem.getStringifier(false, false)
+  import stringifier.given
 
   given Decoder[BoolTy] = decoderWithParser(BoolTy.from)
   given Encoder[BoolTy] = encoderWithStringifier(stringify)
@@ -37,4 +38,7 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[FieldMap] = encoderWithStringifier(stringify)
   given fmeDec: Decoder[Binding] = decoderWithParser(Binding.from)
   given fmeEnc: Encoder[Binding] = encoderWithStringifier(stringify)
+
+  // TODO: type errors
+  // TODO: type error points
 }
