@@ -10,7 +10,7 @@ import esmeta.util.BaseUtils.*
 
 /** abstract states */
 trait AbsStateDecl { self: ESAnalyzer =>
-  case class AbsState() extends AbsStateLike {
+  case class AbsState() extends AbsStateElem {
     import AbsState.*
 
     given AbsState = this
@@ -82,7 +82,7 @@ trait AbsStateDecl { self: ESAnalyzer =>
     /** allocate a list object */
     def allocList(vs: Iterable[AbsValue]): (AbsValue, AbsState) = ???
   }
-  object AbsState extends DomainLike[AbsState] {
+  object AbsState extends StateDomain {
 
     /** bases */
     private val globals: Map[Global, AbsValue] =

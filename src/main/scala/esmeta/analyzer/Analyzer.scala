@@ -39,15 +39,6 @@ abstract class Analyzer
   /** check reachability of return points */
   def reachable(rp: ReturnPoint): Boolean
 
-  /** abstract states */
-  type AbsState <: AbsStateLike
-
-  /** abstract return values */
-  type AbsRet <: AbsRetLike
-
-  /** abstract values */
-  type AbsValue <: AbsValueLike
-
   /** lookup for node points */
   def getResult(np: NodePoint[Node]): AbsState =
     npMap.getOrElse(np, AbsState.Bot)
@@ -63,6 +54,7 @@ abstract class Analyzer
     detail: Boolean = false,
   ): String
 
+  /** logging mode */
   val log: Boolean
 
   /** logging the current analysis result */

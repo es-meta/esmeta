@@ -31,8 +31,8 @@ case class InfinityTy(pos: Set[Boolean] = Set()) extends TyElem {
   /** inclusion check */
   def contains(b: Boolean): Boolean = pos contains b
 
-  /** get single value */
-  def getSingle: Flat[Boolean] = Flat(pos)
+  /** flatten */
+  def toFlat: Flat[Boolean] = Flat(pos)
 }
 object InfinityTy extends Parser.From(Parser.infTy) {
   lazy val Top: InfinityTy = InfinityTy(Set(true, false))

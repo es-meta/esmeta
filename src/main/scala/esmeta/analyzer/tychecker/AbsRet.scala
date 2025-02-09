@@ -5,7 +5,7 @@ import esmeta.util.Appender.*
 /** abstract return values */
 trait AbsRetDecl { self: TyChecker =>
 
-  case class AbsRet(value: AbsValue) extends AbsRetLike {
+  case class AbsRet(value: AbsValue) extends AbsRetElem {
     import AbsRet.*
 
     /** bottom check */
@@ -25,7 +25,7 @@ trait AbsRetDecl { self: TyChecker =>
     def ⊓(that: AbsRet)(using AbsState): AbsRet =
       AbsRet(this.value ⊓ that.value)
   }
-  object AbsRet extends DomainLike[AbsRet] {
+  object AbsRet extends RetDomain {
 
     /** top element */
     lazy val Top: AbsRet = AbsRet(AbsValue.Top)

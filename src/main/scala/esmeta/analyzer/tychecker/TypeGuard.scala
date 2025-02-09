@@ -328,7 +328,7 @@ trait TypeGuardDecl { self: TyChecker =>
     ref match
       case SBase(x) => app >> x
       case SField(base, STy(x)) if !x.isBottom =>
-        x.getSingle match
+        x.toFlat match
           case One(Str(f)) => app >> base >> "." >> f
           case _           => app >> base >> "[" >> x >> "]"
       case SField(base, field) => app >> base >> "[" >> field >> "]"

@@ -18,7 +18,7 @@ trait AbsStateDecl { self: TyChecker =>
     locals: Map[Local, AbsValue],
     symEnv: Map[Sym, ValueTy],
     pred: SymPred,
-  ) extends AbsStateLike {
+  ) extends AbsStateElem {
     import AbsState.*
 
     given AbsState = this
@@ -155,7 +155,7 @@ trait AbsStateDecl { self: TyChecker =>
     def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue = {
       import SymExpr.*, SymRef.*, SymTy.*
       val guard = lookupGuard(base.guard, field)
-      (base.symty, field.ty.getSingle) match
+      (base.symty, field.ty.toFlat) match
         case (SRef(ref), One(Str(f))) =>
           AbsValue(SRef(SField(ref, STy(StrT(f)))), guard)
         case _ =>
@@ -184,7 +184,7 @@ trait AbsStateDecl { self: TyChecker =>
     private def lookupAstIdxField(
       name: String,
       idx: Int,
-    )(field: ValueTy): ValueTy = field.math.getSingle match
+    )(field: ValueTy): ValueTy = field.math.toFlat match
       case Zero => BotT
       case One(k) =>
         (for {
@@ -197,7 +197,7 @@ trait AbsStateDecl { self: TyChecker =>
     // lookup string fields of ASTs
     private def lookupAstStrField(field: ValueTy): ValueTy =
       val nameMap = cfg.grammar.nameMap
-      field.str.getSingle match
+      field.str.toFlat match
         case Zero                               => BotT
         case One(name) if nameMap contains name => AstT(name)
         case _ => AstT // TODO warning(s"invalid access: $name of $ast")
@@ -243,7 +243,7 @@ trait AbsStateDecl { self: TyChecker =>
       field: AbsValue,
     )(using AbsState): TypeGuard = {
       import RefinementKind.*
-      field.ty.str.getSingle match
+      field.ty.str.toFlat match
         case One("Value") =>
           TypeGuard(guard.map.collect {
             case (RefinementKind(ty), map) if ty == NormalT(TrueT) =>
@@ -327,7 +327,7 @@ trait AbsStateDecl { self: TyChecker =>
     ): (AbsValue, AbsState) =
       (AbsValue(ListT(vs.foldLeft(BotT)(_ || _.ty))), this)
   }
-  object AbsState extends DomainLike[AbsState] {
+  object AbsState extends StateDomain {
 
     /** top element */
     lazy val Top: AbsState = exploded("top abstract state")

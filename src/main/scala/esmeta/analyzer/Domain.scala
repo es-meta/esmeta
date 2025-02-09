@@ -5,11 +5,8 @@ import esmeta.util.BaseUtils.*
 
 trait DomainDecl { self: Analyzer =>
 
-  /** abstract domain */
-  trait DomainLike[Elem] {
-
-    /** top element */
-    def Top: Elem
+  /** analysis domains */
+  trait AnalysisDomain[Elem <: AnalysisElem[Elem]] {
 
     /** bottom element */
     def Bot: Elem
@@ -18,17 +15,22 @@ trait DomainDecl { self: Analyzer =>
     given rule: Rule[Elem]
   }
 
-  trait DomainElemLike[Elem] { self: Elem =>
+  /** analysis elements */
+  trait AnalysisElem[Elem <: AnalysisElem[Elem]] { self: Elem =>
 
     /** abstract domain */
-    def domain: DomainLike[Elem]
+    def domain: AnalysisDomain[Elem]
 
     /** conversion to string */
     override def toString: String = stringify(this)(using domain.rule)
   }
 
+  /** value domains */
+  trait ValueDomain extends AnalysisDomain[AbsValue]
+  val AbsValue: ValueDomain
+
   /** abstract values */
-  trait AbsValueLike extends DomainElemLike[AbsValue] { self: AbsValue =>
+  trait AbsValueElem extends AnalysisElem[AbsValue] { self: AbsValue =>
 
     /** abstract domain */
     def domain = AbsValue
@@ -36,10 +38,14 @@ trait DomainDecl { self: Analyzer =>
     /** get string of abstract value with an abstract state */
     def getString(state: AbsState): String
   }
-  val AbsValue: DomainLike[AbsValue]
+  type AbsValue <: AbsValueElem
+
+  /** state domains */
+  trait StateDomain extends AnalysisDomain[AbsState]
+  val AbsState: StateDomain
 
   /** abstract states */
-  trait AbsStateLike extends DomainElemLike[AbsState] { self: AbsState =>
+  trait AbsStateElem extends AnalysisElem[AbsState] { self: AbsState =>
 
     /** abstract domain */
     def domain = AbsState
@@ -47,10 +53,14 @@ trait DomainDecl { self: Analyzer =>
     /** has imprecise elements */
     def hasImprec: Boolean
   }
-  val AbsState: DomainLike[AbsState]
+  type AbsState <: AbsStateElem
+
+  /** return value domains */
+  trait RetDomain extends AnalysisDomain[AbsRet]
+  val AbsRet: RetDomain
 
   /** abstract return values */
-  trait AbsRetLike extends DomainElemLike[AbsRet] { self: AbsRet =>
+  trait AbsRetElem extends AnalysisElem[AbsRet] { self: AbsRet =>
 
     /** abstract domain */
     def domain = AbsRet
@@ -58,5 +68,5 @@ trait DomainDecl { self: Analyzer =>
     /** return value */
     def value: AbsValue
   }
-  val AbsRet: DomainLike[AbsRet]
+  type AbsRet <: AbsRetElem
 }

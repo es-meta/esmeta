@@ -162,7 +162,7 @@ sealed trait IntTy extends TyElem {
     case IntSignTy(sign) => sign.isZero
     case IntSetTy(set)   => true
 
-  def getSingle: Flat[BigInt] = this.canon match
+  def toFlat: Flat[BigInt] = this.canon match
     case IntSetTy(set) => Flat(set)
     case IntSignTy(sign) =>
       if sign.isBottom then Flat.Zero
@@ -208,7 +208,7 @@ object IntTy {
     *   a singleton set if the result is a singleton, otherwise Top
     */
   def single(l: IntTy, r: IntTy, f: (BigInt, BigInt) => BigInt) =
-    (l.getSingle, r.getSingle) match
+    (l.toFlat, r.toFlat) match
       case (Flat.One(lv), Flat.One(rv)) => IntSetTy(Set(f(lv, rv)))
       case _                            => Top
 }

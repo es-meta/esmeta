@@ -19,7 +19,7 @@ trait AbsValueDecl { self: ESAnalyzer =>
     clo: AbsClo = AbsClo.Bot,
     cont: AbsCont = AbsCont.Bot,
     prim: AbsPrimValue = AbsPrimValue.Bot,
-  ) extends AbsValueLike {
+  ) extends AbsValueElem {
     import AbsValue.*
 
     /** bottom check */
@@ -113,7 +113,7 @@ trait AbsValueDecl { self: ESAnalyzer =>
     def getString(state: AbsState): String = ???
 
   }
-  object AbsValue extends DomainLike[AbsValue] {
+  object AbsValue extends ValueDomain {
 
     /** top element */
     lazy val Top: AbsValue = ???

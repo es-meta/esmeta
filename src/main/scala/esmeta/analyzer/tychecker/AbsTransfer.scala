@@ -752,7 +752,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               var math = lty.math
               val infinity = lty.infinity --
                 (if (!(isLt ^ pos)) InfinityTy.Pos else InfinityTy.Neg)
-              if (lty.math <= MathTy.Int) rty.getSingle match
+              if (lty.math <= MathTy.Int) rty.toFlat match
                 case One(Math(0)) =>
                   math = (isLt, pos) match
                     case (true, true)   => /* x < 0 */ MathTy.NegInt
@@ -960,7 +960,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           } yield {
             val lty = lv.ty
             val rty = rv.ty
-            def aux(positive: Boolean): ValueTy = rty.str.getSingle match
+            def aux(positive: Boolean): ValueTy = rty.str.toFlat match
               case One(tname) =>
                 val vty = ValueTy.fromTypeOf(tname)
                 if (positive) lty && vty else lty -- vty
@@ -1543,7 +1543,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           if (ty <= givenTy) None else Some(x -> givenTy)
         case SField(base, STy(x)) if x <= StrT && x.isSingle =>
           val bty = st.getTy(base)
-          val field = x.str.getSingle match
+          val field = x.str.toFlat match
             case One(elem) => elem
             case _         => return None
           val refinedTy = ValueTy(
@@ -1621,7 +1621,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       given AbsState <- get
       lty = lv.ty
       rty = rv.ty
-      refinedV = rty.str.getSingle match
+      refinedV = rty.str.toFlat match
         case One(tname) =>
           val value = AbsValue(ValueTy.fromTypeOf(tname))
           if (positive) lv ⊓ value else lv -- value
@@ -1724,7 +1724,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         },
         "RequireInternalSlot" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          val refined = vs(1).ty.str.getSingle match
+          val refined = vs(1).ty.str.toFlat match
             case One(f) =>
               ValueTy(
                 record = ObjectT.record.update(f, Binding.Exist, refine = true),

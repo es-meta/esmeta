@@ -129,13 +129,13 @@ sealed trait NumberTy extends TyElem {
       else number.double.isWhole && int.contains(number.double.toInt)
     case NumberSetTy(set) => set contains number
 
-  /** get single value */
-  def getSingle: Flat[Number] = this.canon match
+  /** flatten */
+  def toFlat: Flat[Number] = this.canon match
     case s if s.isBottom  => Flat.Zero
     case NumberSetTy(set) => Flat(set)
     case NumberIntTy(int, nan) =>
       if nan && int.isBottom then Flat(Number(Double.NaN))
-      else int.getSingle.map(x => Number(x.toDouble))
+      else int.toFlat.map(x => Number(x.toDouble))
     case NumberSignTy(sign, nan) =>
       if nan && sign.isBottom then Flat(Number(Double.NaN))
       else if sign.isZero then Flat(Number(0))

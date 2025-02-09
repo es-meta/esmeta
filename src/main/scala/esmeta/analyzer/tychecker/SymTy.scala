@@ -13,17 +13,19 @@ import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 trait SymTyDecl { self: TyChecker =>
   import tyStringifier.given
 
-  enum SymTy {
+  enum SymTy extends AnalysisElem[SymTy] {
     case STy(ty: ValueTy)
     case SRef(ref: SymRef)
     case SNormal(symty: SymTy)
+
+    def domain = SymTy
 
     def isBottom: Boolean = this match
       case STy(ty)        => ty.isBottom
       case SRef(ref)      => false
       case SNormal(symty) => symty.isBottom
 
-    def isSingle(using st: AbsState): Boolean = this.ty.getSingle match
+    def isSingle(using st: AbsState): Boolean = this.ty.toFlat match
       case One(_) => true
       case _      => false
 
@@ -96,11 +98,9 @@ trait SymTyDecl { self: TyChecker =>
 
     def getString = s"${this}"
   }
-  object SymTy extends DomainLike[SymTy] {
-    override def Top: SymTy = STy(ValueTy.Top)
-
-    override def Bot: SymTy = STy(ValueTy.Bot)
-
+  object SymTy extends AnalysisDomain[SymTy] {
+    lazy val Top: SymTy = STy(ValueTy.Top)
+    lazy val Bot: SymTy = STy(ValueTy.Bot)
     given rule: Rule[SymTy] = (app, elem) =>
       elem match {
         case STy(ty)        => app >> ty

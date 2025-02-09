@@ -9,7 +9,7 @@ import esmeta.util.Appender.*
 trait AbsContDecl { self: ESAnalyzer =>
 
   // TODO more precise abstraction
-  case class AbsCont(exist: Boolean) extends DomainElemLike[AbsCont] {
+  case class AbsCont(exist: Boolean) extends AnalysisElem[AbsCont] {
 
     /** abstract domain */
     def domain = AbsCont
@@ -32,7 +32,7 @@ trait AbsContDecl { self: ESAnalyzer =>
     /** meet operator */
     def ⊓(that: AbsCont): AbsCont = AbsCont(exist && that.exist)
   }
-  object AbsCont extends DomainLike[AbsCont] {
+  object AbsCont extends AnalysisDomain[AbsCont] {
 
     /** top element */
     lazy val Top: AbsCont = AbsCont(true)

@@ -54,8 +54,8 @@ enum MapTy extends TyElem {
     case Bot        => BotT
     case Elem(k, _) => k
 
-  /** get single value */
-  def getSingle: Flat[Value] = if (this.isBottom) Zero else Many
+  /** flatten */
+  def toFlat: Flat[Value] = if (this.isBottom) Zero else Many
 
   /** map containment check */
   def contains(m: MapObj, heap: Heap): Boolean = this match

@@ -12,7 +12,7 @@ trait AbsPrimValueDecl { self: ESAnalyzer =>
   // TODO more precise abstraction
   case class AbsPrimValue(
     set: BSet[PrimValue],
-  ) extends DomainElemLike[AbsPrimValue] {
+  ) extends AnalysisElem[AbsPrimValue] {
 
     /** abstract domain */
     def domain = AbsPrimValue
@@ -32,7 +32,7 @@ trait AbsPrimValueDecl { self: ESAnalyzer =>
     /** meet operator */
     def ⊓(that: AbsPrimValue): AbsPrimValue = ???
   }
-  object AbsPrimValue extends DomainLike[AbsPrimValue] {
+  object AbsPrimValue extends AnalysisDomain[AbsPrimValue] {
 
     /** top element */
     lazy val Top: AbsPrimValue = ???

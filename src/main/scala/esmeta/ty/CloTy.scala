@@ -54,8 +54,8 @@ sealed trait CloTy extends TyElem {
     case CloSetTy(names) => names contains fname
     case _               => true
 
-  /** get single value */
-  def getSingle: Flat[Clo] = if (isBottom) Zero else Many
+  /** flatten */
+  def toFlat: Flat[Clo] = if (isBottom) Zero else Many
 
   /** to list of atomic closure types */
   def toAtomicTys: List[CloTy] = if (isBottom) Nil else List(this)

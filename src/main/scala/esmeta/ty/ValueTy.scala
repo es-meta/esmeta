@@ -253,28 +253,28 @@ sealed trait ValueTy extends Ty {
   ) ValueTy.Top
   else this
 
-  /** get single value */
-  def getSingle: Flat[Value] =
-    clo.getSingle ||
+  /** flatten */
+  def toFlat: Flat[Value] =
+    clo.toFlat ||
     (if (this.cont.isBottom) Zero else Many) ||
     (if (this.record.isBottom) Zero else Many) ||
     (if (this.map.isBottom) Zero else Many) ||
     (if (this.list.isBottom) Zero else Many) ||
     (if (this.ast.isBottom) Zero else Many) ||
-    grammarSymbol.getSingle ||
+    grammarSymbol.toFlat ||
     (if (this.codeUnit.isBottom) Zero else Many) ||
-    (enumv.getSingle.map(Enum(_): Value)) ||
-    math.getSingle ||
-    (infinity.getSingle.map(Infinity(_): Value)) ||
-    number.getSingle ||
+    (enumv.toFlat.map(Enum(_): Value)) ||
+    math.toFlat ||
+    (infinity.toFlat.map(Infinity(_): Value)) ||
+    number.toFlat ||
     (if (this.bigInt.isBottom) Zero else Many) ||
-    (str.getSingle.map(Str(_): Value)) ||
-    (bool.getSingle.map(Bool(_): Value)) ||
+    (str.toFlat.map(Str(_): Value)) ||
+    (bool.toFlat.map(Bool(_): Value)) ||
     (if (this.undef.isBottom) Zero else One(Undef)) ||
     (if (this.nullv.isBottom) Zero else One(Null))
 
   /** single value check */
-  def isSingle: Boolean = getSingle match
+  def isSingle: Boolean = toFlat match
     case One(_) => true
     case _      => false
 

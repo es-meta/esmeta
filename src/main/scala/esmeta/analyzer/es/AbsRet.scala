@@ -5,7 +5,7 @@ import esmeta.util.Appender.*
 /** abstract return values */
 trait AbsRetDecl { self: ESAnalyzer =>
 
-  case class AbsRet() extends AbsRetLike {
+  case class AbsRet() extends AbsRetElem {
     import AbsRet.*
 
     /** return value */
@@ -26,7 +26,7 @@ trait AbsRetDecl { self: ESAnalyzer =>
     /** meet operator */
     def ⊓(that: AbsRet): AbsRet = ???
   }
-  object AbsRet extends DomainLike[AbsRet] {
+  object AbsRet extends RetDomain {
 
     /** top element */
     lazy val Top: AbsRet = ???

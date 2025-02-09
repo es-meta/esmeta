@@ -29,8 +29,8 @@ case class BoolTy(set: Set[Boolean] = Set()) extends TyElem {
   /** inclusion check */
   def contains(b: Boolean): Boolean = set contains b
 
-  /** get single value */
-  def getSingle: Flat[Boolean] = Flat(set)
+  /** flatten */
+  def toFlat: Flat[Boolean] = Flat(set)
 }
 object BoolTy extends Parser.From(Parser.boolTy) {
   def apply(b: Boolean): BoolTy = BoolTy(Set(b))

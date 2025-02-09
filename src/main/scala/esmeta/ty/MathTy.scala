@@ -184,8 +184,8 @@ sealed trait MathTy extends TyElem {
     case MathIntTy(int)   => int.contains(bint.bigInt)
     case MathSetTy(set)   => set.exists(_.decimal == bint.bigInt)
 
-  /** get single value */
-  def getSingle: Flat[Math] = this.canon match
+  /** flatten */
+  def toFlat: Flat[Math] = this.canon match
     case MathSignTy(sign) => if sign.isZero then Flat(Math(0)) else Many
     case MathIntTy(int)   => int.toMathSet.fold(Flat.Zero)(Flat(_))
     case MathSetTy(set)   => Flat(set)

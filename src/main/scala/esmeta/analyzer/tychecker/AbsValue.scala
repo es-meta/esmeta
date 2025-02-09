@@ -19,7 +19,7 @@ trait AbsValueDecl { self: TyChecker =>
   case class AbsValue(
     symty: SymTy,
     guard: TypeGuard = TypeGuard.Empty,
-  ) extends AbsValueLike {
+  ) extends AbsValueElem {
     import AbsValue.*
 
     /** bottom check */
@@ -406,7 +406,7 @@ trait AbsValueDecl { self: TyChecker =>
       s"$this (${ty})"
 
   }
-  object AbsValue extends DomainLike[AbsValue] {
+  object AbsValue extends ValueDomain {
 
     def apply(ty: ValueTy): AbsValue = AbsValue(STy(ty), TypeGuard.Empty)
 
