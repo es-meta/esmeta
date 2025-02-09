@@ -347,7 +347,7 @@ class Stringifier(
         app >> (idx + 1).toOrdinal >> " parameter _" >> param.lhs.name >> "_"
         app >> " when " >> cp
       case InternalReturnPoint(func, node, irReturn) =>
-        app >> "return statement in " >> func.name >> irReturn
+        app >> "return statement in " >> func.name >> irReturn.langOpt
       case FieldBasePoint(fieldPoint) =>
         app >> "base in" >> fieldPoint
       case FieldPoint(func, node, field) =>
