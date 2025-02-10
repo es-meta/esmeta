@@ -25,7 +25,7 @@ enum Flat[+T] {
 
   def isTop: Boolean = this == Many
   def isBottom: Boolean = this == Zero
-  inline def ⊑(that: Flat[T @uncheckedVariance]): Boolean = this ⊑ that
+  inline def ⊑(that: Flat[T @uncheckedVariance]): Boolean = this <= that
   def <=[U >: T](that: Flat[U]): Boolean = (this, that) match
     case (Zero, _) | (_, Many) => true
     case (Many, _) | (_, Zero) => false
@@ -55,8 +55,8 @@ enum Flat[+T] {
 object Flat {
   val Top = Many
   val Bot = Zero
-  inline def apply[A](elems: A*): Flat[A] = apply(elems)
-  def apply[A](elems: Iterable[A]): Flat[A] =
+  inline def apply[T](elems: T*): Flat[T] = apply(elems)
+  def apply[T](elems: Iterable[T]): Flat[T] =
     if (elems.isEmpty) Zero
     else if (elems.size == 1) One(elems.head)
     else Many
