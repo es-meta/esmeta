@@ -1,7 +1,6 @@
 package esmeta.util.domain
 
 import esmeta.util.BaseUtils.*
-import scala.annotation.unchecked.uncheckedVariance
 import Flat.*, BSet.*
 
 /** flat abstraction */
@@ -17,7 +16,7 @@ enum Flat[+T] {
     case Zero       => Zero
 
   /** prune operator */
-  def --(that: Flat[T @uncheckedVariance]): Flat[T] = (this, that) match
+  def --[U >: T](that: Flat[U]): Flat[U] = (this, that) match
     case (Many, One(_))        => Many
     case (_, Zero)             => this
     case (One(l), One(r))      => if (l == r) Zero else this
@@ -25,24 +24,21 @@ enum Flat[+T] {
 
   def isTop: Boolean = this == Many
   def isBottom: Boolean = this == Zero
-  inline def ⊑(that: Flat[T @uncheckedVariance]): Boolean = this <= that
   def <=[U >: T](that: Flat[U]): Boolean = (this, that) match
     case (Zero, _) | (_, Many) => true
     case (Many, _) | (_, Zero) => false
     case (One(l), One(r))      => l == r
-  inline def ⊔(that: Flat[T @uncheckedVariance]): Flat[T] = this || that
   def ||[U >: T](that: Flat[U]): Flat[U] = (this, that) match
     case (Many, _) | (_, Many) => Many
     case (Zero, _)             => that
     case (_, Zero)             => this
     case (One(l), One(r))      => if (l == r) this else Many
-  inline def ⊓(that: Flat[T @uncheckedVariance]): Flat[T] = this && that
   def &&[U >: T](that: Flat[U]): Flat[U] = (this, that) match
     case (Zero, _) | (_, Zero) => Zero
     case (Many, _)             => that
     case (_, Many)             => this
     case (One(l), One(r))      => if (l == r) this else Zero
-  def contains(value: T @uncheckedVariance): Boolean = this match
+  def contains[U >: T](value: U): Boolean = this match
     case Many   => true
     case One(v) => v == value
     case Zero   => false

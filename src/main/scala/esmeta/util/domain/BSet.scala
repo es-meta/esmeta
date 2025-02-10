@@ -26,21 +26,18 @@ enum BSet[+T] {
 
   def isTop: Boolean = this == Inf
   def isBottom: Boolean = this == Fin(Set())
-  inline def ⊑(that: BSet[T @uncheckedVariance]): Boolean = this <= that
   def <=[U >: T](that: BSet[U]): Boolean = (this, that) match
     case (_, Inf)               => true
     case (Inf, _)               => false
     case (Fin(lset), Fin(rset)) => lset.toSet subsetOf rset.toSet
-  inline def ⊔(that: BSet[T @uncheckedVariance]): BSet[T] = this || that
   def ||[U >: T](that: BSet[U]): BSet[U] = (this, that) match
     case (Inf, _) | (_, Inf)    => Inf
     case (Fin(lset), Fin(rset)) => Fin(lset ++ rset)
-  inline def ⊓(that: BSet[T @uncheckedVariance]): BSet[T] = this && that
   def &&[U >: T](that: BSet[U]): BSet[U] = (this, that) match
     case (Inf, _)               => that
     case (_, Inf)               => this
     case (Fin(lset), Fin(rset)) => Fin(lset.toSet intersect rset.toSet)
-  def contains(value: T @uncheckedVariance): Boolean = this match
+  def contains[U >: T](value: U): Boolean = this match
     case Inf      => true
     case Fin(set) => set.toSet contains value
   def toBSet: BSet[T] = this
