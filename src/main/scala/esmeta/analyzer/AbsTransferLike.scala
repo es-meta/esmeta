@@ -31,7 +31,6 @@ trait AbsTransferLikeDecl { self: Analyzer =>
         // text-based debugging
         if (debugMode) println(s"${cp.func.name}:$cp")
         // run REPL
-        println(useRepl)
         if (useRepl) Repl(cp)
         // abstract transfer for the current control point
         else apply(cp)

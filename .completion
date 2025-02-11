@@ -25,7 +25,7 @@ _esmeta_completions() {
   fuzzOpt="-fuzz:log -fuzz:log-interval -fuzz:out -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:cp -fuzz:init -fuzz:k-fs"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
-  analyzeOpt="-analyze:repl"
+  analyzeOpt="-analyze:log -analyze:repl"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
