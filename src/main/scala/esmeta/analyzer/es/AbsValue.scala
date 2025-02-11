@@ -10,6 +10,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.domain.*, Lattice.{*, given}, BSet.*, Flat.*
 
 /** abstract values */
 trait AbsValueDecl { self: ESAnalyzer =>
@@ -19,11 +20,15 @@ trait AbsValueDecl { self: ESAnalyzer =>
     clo: AbsClo = AbsClo.Bot,
     cont: AbsCont = AbsCont.Bot,
     prim: AbsPrimValue = AbsPrimValue.Bot,
-  ) {
+  ) extends DirectOps[AbsValue]
+    with Printable[AbsValue] {
     import AbsValue.*
 
-    /** bottom check */
-    def isBottom: Boolean = ???
+    /** top element check */
+    def isTop: Boolean = this == Top
+
+    /** bottom element check */
+    def isBottom: Boolean = this == Bot
 
     /** partial order */
     def ⊑(that: AbsValue): Boolean = ???
@@ -110,13 +115,13 @@ trait AbsValueDecl { self: ESAnalyzer =>
     def typeOf(using AbsState): AbsValue = ???
 
   }
-  object AbsValue extends ValueDomain {
+  object AbsValue extends ValueDomain with AbsDomain {
 
     /** top element */
-    lazy val Top: AbsValue = ???
+    lazy val Top: AbsValue = exploded("top abstract value")
 
     /** bottom element */
-    lazy val Bot: AbsValue = ???
+    lazy val Bot: AbsValue = AbsValue()
 
     /** useful abstract values */
     lazy val True = AbsValue(prim = AbsPrimValue.True)
@@ -129,8 +134,7 @@ trait AbsValueDecl { self: ESAnalyzer =>
     lazy val BigIntTop = AbsValue(prim = AbsPrimValue.BigIntTop)
 
     // abstraction functions
-    def apply(vs: Value*): AbsValue = apply(vs)
-    def apply(vs: Iterable[Value]): AbsValue = {
+    def alpha(vs: Iterable[Value]): AbsValue = {
       var addrs = Set[Addr]()
       var prims = Set[PrimValue]()
       vs.map {
@@ -138,7 +142,10 @@ trait AbsValueDecl { self: ESAnalyzer =>
         case addr: NamedAddr => addrs += addr
         case v               => throw InvalidAbstraction(v)
       }
-      AbsValue(addr = AbsAddr(addrs), prim = AbsPrimValue(prims))
+      AbsValue(
+        addr = AbsAddr(addrs.map(AddrPart(_))),
+        prim = AbsPrimValue(prims),
+      )
     }
     inline def apply(ast: Ast): AbsValue = AbsValue(prim = AbsPrimValue(ast))
     inline def apply(n: Double): AbsValue = AbsValue(prim = AbsPrimValue(n))
@@ -147,7 +154,18 @@ trait AbsValueDecl { self: ESAnalyzer =>
     inline def apply(d: BigDecimal): AbsValue = AbsValue(prim = AbsPrimValue(d))
 
     /** appender */
-    given rule: Rule[AbsValue] = (app, elem) => ???
+    given rule: Rule[AbsValue] = (app, elem) => {
+      if (elem.isBottom) app >> "⊥"
+      else {
+        val Elem(addr, clo, cont, prim) = elem
+        var strs = Vector[String]()
+        if (addr.nonBottom) strs :+= addr.toString
+        if (clo.nonBottom) strs :+= clo.toString
+        if (cont.nonBottom) strs :+= cont.toString
+        if (prim.nonBottom) strs :+= prim.toString
+        app >> strs.mkString(", ")
+      }
+    }
 
     extension (value: AbsValue) {
       def getString(state: AbsState): String = ???

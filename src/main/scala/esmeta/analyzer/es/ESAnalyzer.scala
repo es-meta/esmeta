@@ -4,17 +4,25 @@ import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.ir.*
+import esmeta.state.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
+import esmeta.util.domain.*
 
 /** meta-level static analyzer for ECMAScript */
 class ESAnalyzer(
   val cfg: CFG,
   val log: Boolean = false,
+  val irSens: Boolean = true,
+  override val detail: Boolean = false,
+  override val location: Boolean = false,
   override val useRepl: Boolean = false,
 ) extends Analyzer
   with AbsStateDecl
   with AbsRetDecl
   with AbsValueDecl
+  with AbsHeapDecl
+  with AbsObjDecl
   with AbsPrimValueDecl
   with AbsAddrDecl
   with AbsCloDecl
@@ -23,10 +31,10 @@ class ESAnalyzer(
   with ViewDecl {
 
   /** loop out edges */
-  var loopOut: Map[View, Set[View]] = Map()
+  protected var loopOut: Map[View, Set[View]] = Map()
 
   /** analysis result */
-  case class Result(
+  case class AnalysisResult(
     npMap: Map[NodePoint[Node], AbsState],
     rpMap: Map[ReturnPoint, AbsRet],
     callInfo: Map[NodePoint[Call], AbsState],
@@ -38,17 +46,17 @@ class ESAnalyzer(
   }
 
   /** perform type analysis with the given control flow graph */
-  def analyze(sourceText: String): Result = {
+  def analyze(sourceText: String): AnalysisResult = {
     init(sourceText)
     transfer.fixpoint
-    Result(npMap, rpMap, callInfo, retEdges, iter, counter)
+    AnalysisResult(npMap, rpMap, callInfo, retEdges, iter, counter)
   }
 
   // ---------------------------------------------------------------------------
   // Implementation for General Analyzer
   // ---------------------------------------------------------------------------
   /** worklist of control points */
-  val worklist: Worklist[ControlPoint] = PriorityQueueWorklist(npMap.keySet)
+  val worklist: Worklist[ControlPoint] = new PriorityQueueWorklist
 
   /** abstract transfer function */
   val transfer: AbsTransfer = new AbsTransfer
@@ -64,17 +72,32 @@ class ESAnalyzer(
     cp: ControlPoint,
     color: Option[String],
     detail: Boolean,
-  ): String = ???
+  ): String = {
+    val func = cp.func.name
+    val cpStr = cp.toString(detail = detail)
+    val k = color.fold(cpStr)(setColor(_)(cpStr))
+    cp match
+      case np: NodePoint[_] => s"$k -> ${getResult(np)}"
+      case rp: ReturnPoint  => s"$k -> ${getResult(rp)}"
+  }
 
   /** logging the current analysis result */
   def logging: Unit = ???
 
   // ---------------------------------------------------------------------------
-  // private helpers
+  // helper functions
   // ---------------------------------------------------------------------------
+  /** update internal map */
+  protected def +=(pair: (NodePoint[Node], AbsState)): Unit =
+    val (np, newSt) = pair
+    val oldSt = getResult(np)
+    if (!oldSt.isBottom && useRepl) Repl.merged = true
+    if (!newSt.isBottom && !(newSt ⊑ oldSt))
+      npMap += np -> (oldSt ⊔ newSt)
+      worklist += np
 
   /** initialize analysis */
-  private def init(sourceText: String): Unit = {
+  protected def init(sourceText: String): Unit = {
     val runJobs = cfg.fnameMap("RunJobs")
     val entry = runJobs.entry
     val initNp = NodePoint(runJobs, entry, View())
@@ -85,6 +108,9 @@ class ESAnalyzer(
 
     // initialize analysis result
     npMap = Map(initNp -> initSt)
+
+    // initialize worklist
+    worklist.reset(npMap.keySet)
   }
 }
 object ESAnalyzer {

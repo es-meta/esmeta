@@ -99,6 +99,7 @@ trait SymTyDecl { self: TyChecker =>
     def getString = s"${this}"
   }
   object SymTy extends Domain {
+    type Conc = Value
     type Elem = SymTy
     lazy val Top: SymTy = STy(ValueTy.Top)
     lazy val Bot: SymTy = STy(ValueTy.Bot)

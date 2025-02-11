@@ -96,9 +96,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // values
   given valueRule: Rule[Value] = (app, value) =>
     value match
-      case addr: Addr        => addrRule(app, addr)
-      case clo: Clo          => cloRule(app, clo)
-      case cont: Cont        => cogrammarSymbolRule(app, cont)
+      case addr: Addr      => addrRule(app, addr)
+      case clo: Clo        => cloRule(app, clo)
+      case cont: Cont      => cogrammarSymbolRule(app, cont)
+      case prim: PrimValue => primValueRule(app, prim)
+
+  // primitive values
+  given primValueRule: Rule[PrimValue] = (app, prim) =>
+    prim match
       case AstValue(ast)     => app >> ast
       case gr: GrammarSymbol => grammarSymbolRule(app, gr)
       case m: Math           => mathRule(app, m)

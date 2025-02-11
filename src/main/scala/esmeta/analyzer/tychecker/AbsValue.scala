@@ -22,7 +22,7 @@ trait AbsValueDecl { self: TyChecker =>
   ) extends Printable[AbsValue] {
     import AbsValue.*
 
-    /** bottom check */
+    /** bottom element check */
     def isBottom: Boolean = symty.isBottom
 
     /** upper type */

@@ -1,30 +1,31 @@
 package esmeta.analyzer.es
 
+import esmeta.util.*
 import esmeta.util.Appender.*
+import esmeta.util.domain.*, Lattice.*, BSet.*, Flat.*
 
 /** abstract return values */
 trait AbsRetDecl { self: ESAnalyzer =>
 
-  case class AbsRet() {
-    import AbsRet.*
+  case class AbsRet() extends DirectOps[AbsRet] with Printable[AbsRet] {
 
-    /** return value */
-    def value: AbsValue = ???
+    /** top element check */
+    def isTop: Boolean = ???
 
-    /** bottom check */
+    /** bottom element check */
     def isBottom: Boolean = ???
 
     /** partial order */
     def ⊑(that: AbsRet): Boolean = ???
-
-    /** not partial order */
-    def !⊑(that: AbsRet): Boolean = ???
 
     /** join operator */
     def ⊔(that: AbsRet): AbsRet = ???
 
     /** meet operator */
     def ⊓(that: AbsRet): AbsRet = ???
+
+    /** return value */
+    def value: AbsValue = ???
   }
   object AbsRet extends RetDomain {
 

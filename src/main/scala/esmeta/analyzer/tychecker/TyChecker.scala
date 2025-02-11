@@ -20,8 +20,9 @@ class TyChecker(
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
   val log: Boolean = false,
-  val detail: Boolean = false,
   val silent: Boolean = false,
+  override val detail: Boolean = false,
+  override val location: Boolean = false,
   override val useRepl: Boolean = false,
 ) extends Analyzer
   with SymTyDecl

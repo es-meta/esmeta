@@ -2,12 +2,13 @@ package esmeta.analyzer
 
 import esmeta.cfg.{util => _, *}
 import esmeta.error.*
-import esmeta.util.domain.*
 import esmeta.error.NotSupported.given
 import esmeta.es.Ast
 import esmeta.ir.{Func => _, util => _, *}
+import esmeta.state.{util => _, *}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.domain.*, Lattice.*
 
 /** static analyzer */
 abstract class Analyzer
@@ -65,8 +66,9 @@ abstract class Analyzer
   // ---------------------------------------------------------------------------
   /** value domains */
   val AbsValue: ValueDomain
-  type AbsValue
+  type AbsValue <: Printable[AbsValue]
   trait ValueDomain extends Domain {
+    type Conc = Value
     type Elem = AbsValue
     extension (elem: AbsValue) {
 
@@ -77,8 +79,9 @@ abstract class Analyzer
 
   /** state domains */
   val AbsState: StateDomain
-  type AbsState
+  type AbsState <: Printable[AbsState]
   trait StateDomain extends Domain {
+    type Conc = State
     type Elem = AbsState
     extension (elem: AbsState) {
 
@@ -89,8 +92,9 @@ abstract class Analyzer
 
   /** return value domains */
   val AbsRet: RetDomain
-  type AbsRet
+  type AbsRet <: Printable[AbsRet]
   trait RetDomain extends Domain {
+    type Conc = (Value, State)
     type Elem = AbsRet
     extension (elem: AbsRet) {
 
@@ -143,6 +147,21 @@ abstract class Analyzer
 
   /** throw exception for not yet compiled expressions */
   val yetThrow: Boolean = false
+
+  /** detailed string */
+  val detail: Boolean = false
+
+  /** string with location */
+  val location: Boolean = false
+
+  /** stringifier for states */
+  val stateStringifier = StateElem.getStringifier((detail, location))
+
+  /** stringifier for CFG */
+  val cfgStringifier = CFGElem.getStringifier(detail, location)
+
+  /** stringifier for CFG */
+  val irStringifier = IRElem.getStringifier(detail, location)
 
   // ---------------------------------------------------------------------------
   // Predefined Definitions
@@ -213,9 +232,6 @@ abstract class Analyzer
     color: String,
     detail: Boolean,
   ): String = getString(cp, Some(color), detail)
-
-  /** exploded */
-  def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
 
   /** not supported */
   def notSupported(msg: String): Nothing = throw NotSupported(msg)

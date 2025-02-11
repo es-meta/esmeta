@@ -3,49 +3,35 @@ package esmeta.analyzer.es
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.util.*
-import esmeta.util.Appender.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.util.Appender.{*, given}
+import esmeta.util.BaseUtils.*
+import esmeta.util.domain.*, Lattice.*, BSet.*, Flat.*
 
 /** abstract primitive values */
 trait AbsAddrDecl { self: ESAnalyzer =>
 
   /** abstract address */
-  case class AbsAddr(set: BSet[Addr]) {
-
-    /** bottom check */
-    def isBottom: Boolean = ???
-
-    /** partial order */
-    def ⊑(that: AbsAddr): Boolean = ???
-
-    /** not partial order */
-    def !⊑(that: AbsAddr): Boolean = !(this ⊑ that)
-
-    /** join operator */
-    def ⊔(that: AbsAddr): AbsAddr = ???
-
-    /** meet operator */
-    def ⊓(that: AbsAddr): AbsAddr = ???
-  }
-  object AbsAddr extends Domain {
-    type Elem = AbsAddr
-
-    /** top element */
-    lazy val Top: AbsAddr = ???
-
-    /** bottom element */
-    lazy val Bot: AbsAddr = ???
-
-    // abstraction functions
-    def apply(addrs: Addr*): AbsAddr = apply(addrs)
-    def apply(addrs: Iterable[Addr]): AbsAddr = AbsAddr(BSet(addrs))
+  type AbsAddr = AbsAddr.Elem
+  object AbsAddr extends SetDomain[AddrPart] {
 
     /** appender */
-    given rule: Rule[AbsAddr] = (app, elem) => ???
+    given rule: Rule[AbsAddr] = setRule
   }
 
   /** allocation site */
-  enum AllocSite:
-    case Static(name: String)
-    case Dynamic(k: Int, view: View)
+  enum AddrPart:
+    case Named(name: String)
+    case Alloc(k: Int, view: View)
+  object AddrPart {
+    def apply(addr: Addr): AddrPart = addr match
+      case NamedAddr(name) => Named(name)
+      case DynamicAddr(k)  => error(s"invalid address abstraction: $addr")
+  }
+  given Rule[AddrPart] = (app, addr) => {
+    import AddrPart.*
+    addr match
+      case Named(name)    => app >> "#" >> name
+      case Alloc(k, view) => app >> "#" >> k >> ":" >> view.toString
+  }
+  given Ordering[AddrPart] = Ordering.by(_.toString)
 }

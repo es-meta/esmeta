@@ -2,6 +2,7 @@ package esmeta.util
 
 import esmeta.LINE_SEP
 import esmeta.util.BaseUtils.*
+import esmeta.util.domain.*, BSet.*
 
 /** a wrapper of java.lang.StringBuilder in a typeclass style
   *
@@ -34,14 +35,14 @@ class Appender(tab: String = "  ") {
     if (close != "") this :> close else this
 
   /** wrap iterable with detail option */
-  def wrapIterable[T](iter: Iterable[T])(using tRule: Rule[T]): Appender =
+  def wrapIterable[T](iter: Iterable[T])(using Rule[T]): Appender =
     wrapIterable()(iter)
   def wrapIterable[T](
     open: String = "{",
     sep: String = ",",
     close: String = "}",
     detail: Boolean = true,
-  )(iter: Iterable[T])(using tRule: Rule[T]): Appender =
+  )(iter: Iterable[T])(using Rule[T]): Appender =
     if (iter.isEmpty) this >> open >> close
     else if (!detail) this >> open >> " ... " >> close
     else this.wrap(open, close) { for (elem <- iter) this :> elem >> sep }
@@ -60,7 +61,7 @@ object Appender {
   /** optional with default string */
   def optionRule[T](
     defaultStr: String,
-  )(using tRule: Rule[T]): Rule[Option[T]] = (app, opt) =>
+  )(using Rule[T]): Rule[Option[T]] = (app, opt) =>
     opt match {
       case Some(x) => app >> x
       case None    => app >> defaultStr
@@ -71,7 +72,7 @@ object Appender {
     left: String = "",
     sep: String = "",
     right: String = "",
-  )(using tRule: Rule[T]): Rule[Iterable[T]] = (app, iter) =>
+  )(using Rule[T]): Rule[Iterable[T]] = (app, iter) =>
     app >> left
     if (!iter.isEmpty) {
       app >> iter.head
@@ -80,16 +81,10 @@ object Appender {
     app >> right
 
   /** arrows for pairs */
-  given arrowRule[T, U](using
-    tRule: Rule[T],
-    uRule: Rule[U],
-  ): Rule[(T, U)] = arrowRule()
+  given arrowRule[T, U](using Rule[T], Rule[U]): Rule[(T, U)] = arrowRule()
   def arrowRule[T, U](
     sep: String = " -> ",
-  )(using
-    tRule: Rule[T],
-    uRule: Rule[U],
-  ): Rule[(T, U)] = (app, pair) =>
+  )(using Rule[T], Rule[U]): Rule[(T, U)] = (app, pair) =>
     val (t, u) = pair
     app >> t >> sep >> u
 
@@ -124,11 +119,37 @@ object Appender {
         else app >> value
     app
 
+  /** bounded set appender */
+  given bsetRule[V](using Ordering[V], Rule[V]): Rule[BSet[V]] =
+    sortedBSetRule()
+
+  /** sorted bounded set appender */
+  def sortedBSetRule[V](
+    left: String = "{",
+    right: String = "}",
+    sep: String = ",",
+  )(using Ordering[V], Rule[V]): Rule[BSet[V]] = (app, bset) =>
+    bset match
+      case Inf      => app >> "⊥"
+      case Fin(set) => sortedSetRule(left, right, sep)(app, set)
+
+  /** set appender */
+  given setRule[V](using Ordering[V], Rule[V]): Rule[Set[V]] = sortedSetRule()
+
+  /** sorted set appender */
+  def sortedSetRule[V](
+    left: String = "{",
+    right: String = "}",
+    sep: String = ",",
+  )(using Ordering[V], Rule[V]): Rule[Set[V]] = (app, set) =>
+    if (set.size == 0) app >> left >> right
+    else app.wrap(for (elem <- set.toList.sorted) app :> elem)
+
   /** map appender */
   given mapRule[K, V](using
-    kOrd: Ordering[K],
-    kRule: Rule[K],
-    vRule: Rule[V],
+    Ordering[K],
+    Rule[K],
+    Rule[V],
   ): Rule[Iterable[(K, V)]] = sortedMapRule()
 
   /** sorted map appender */
@@ -136,11 +157,7 @@ object Appender {
     left: String = "{",
     right: String = "}",
     sep: String = " -> ",
-  )(using
-    kOrd: Ordering[K],
-    kRule: Rule[K],
-    vRule: Rule[V],
-  ): Rule[Iterable[(K, V)]] = (app, map) =>
+  )(using Ordering[K], Rule[K], Rule[V]): Rule[Iterable[(K, V)]] = (app, map) =>
     given Rule[(K, V)] = arrowRule(sep)
     if (map.size == 0) app >> left >> right
     else app.wrap(for (pair <- map.toList.sortBy(_._1)) app :> pair)

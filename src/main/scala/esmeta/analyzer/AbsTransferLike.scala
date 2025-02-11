@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.cfg.{util => _, *}
 import esmeta.ir.{Func => _, util => _, *}
+import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 
 trait AbsTransferLikeDecl { self: Analyzer =>
@@ -30,6 +31,7 @@ trait AbsTransferLikeDecl { self: Analyzer =>
         // text-based debugging
         if (debugMode) println(s"${cp.func.name}:$cp")
         // run REPL
+        println(useRepl)
         if (useRepl) Repl(cp)
         // abstract transfer for the current control point
         else apply(cp)

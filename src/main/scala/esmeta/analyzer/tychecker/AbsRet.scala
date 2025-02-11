@@ -2,6 +2,7 @@ package esmeta.analyzer.tychecker
 
 import esmeta.util.*
 import esmeta.util.Appender.*
+import esmeta.util.domain.*, Lattice.*
 
 /** abstract return values */
 trait AbsRetDecl { self: TyChecker =>
@@ -9,7 +10,7 @@ trait AbsRetDecl { self: TyChecker =>
   case class AbsRet(value: AbsValue) extends Printable[AbsRet] {
     import AbsRet.*
 
-    /** bottom check */
+    /** bottom element check */
     def isBottom: Boolean = value.isBottom
 
     /** partial order */

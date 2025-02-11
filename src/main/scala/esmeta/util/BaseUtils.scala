@@ -29,6 +29,9 @@ object BaseUtils {
   /** throw a simple error */
   def error(any: Any): Nothing = throw ESMetaError(any.toString)
 
+  /** too imprecise analysis */
+  def exploded(msg: String): Nothing = throw AnalysisImprecise(msg)
+
   /** show a warning message */
   def warn[T](x: T, showTrace: Boolean = false): T =
     warn("WARNING", x, showTrace)

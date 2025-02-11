@@ -47,6 +47,10 @@ enum Flat[+T] {
     case One(value) => Fin(Set(value))
     case Zero       => Fin(Set())
   def toFlat: Flat[T] = this
+  override def toString: String = this match
+    case Many       => "⊤"
+    case One(value) => value.toString
+    case Zero       => "⊥"
 }
 object Flat {
   val Top = Many

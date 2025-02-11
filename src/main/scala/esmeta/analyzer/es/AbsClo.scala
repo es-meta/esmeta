@@ -1,45 +1,33 @@
 package esmeta.analyzer.es
 
+import esmeta.cfg.*
 import esmeta.es.*
+import esmeta.ir.Name
 import esmeta.state.*
 import esmeta.util.*
-import esmeta.util.Appender.*
-import esmeta.util.domain.*
+import esmeta.util.Appender.{*, given}
+import esmeta.util.domain.*, Lattice.*, BSet.*, Flat.*
 
 /** abstract primitive values */
 trait AbsCloDecl { self: ESAnalyzer =>
 
-  // TODO more precise abstraction
-  case class AbsClo(exist: Boolean) {
-
-    /** bottom check */
-    def isTop: Boolean = exist
-
-    /** bottom check */
-    def isBottom: Boolean = !exist
-
-    /** partial order */
-    def ⊑(that: AbsClo): Boolean = !exist || that.exist
-
-    /** not partial order */
-    def !⊑(that: AbsClo): Boolean = !(this ⊑ that)
-
-    /** join operator */
-    def ⊔(that: AbsClo): AbsClo = AbsClo(exist || that.exist)
-
-    /** meet operator */
-    def ⊓(that: AbsClo): AbsClo = AbsClo(exist && that.exist)
+  /** abstract closures */
+  type AbsClo = AbsClo.Elem
+  object AbsClo extends SetDomain[AClo] {
+    given rule: Rule[AbsClo] = setRule
   }
-  object AbsClo extends Domain {
-    type Elem = AbsClo
 
-    /** top element */
-    lazy val Top: AbsClo = AbsClo(true)
-
-    /** bottom element */
-    lazy val Bot: AbsClo = AbsClo(false)
-
-    /** appender */
-    given rule: Rule[AbsClo] = (app, elem) => ???
+  /** abstract closure elements */
+  case class AClo(
+    func: Func,
+    captured: Map[Name, AbsValue],
+  ) extends Printable[AClo]
+  object AClo {
+    def apply(clo: Clo): AClo =
+      val Clo(func, captured) = clo
+      val newCaptured = captured.map((x, v) => x -> AbsValue(v)).toMap
+      AClo(func, newCaptured)
   }
+  given Rule[AClo] = (app, clo) => app >> "clo<" >> clo.func.name >> ">"
+  given Ordering[AClo] = Ordering.by(_.func.id)
 }

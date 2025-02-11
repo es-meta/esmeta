@@ -45,6 +45,12 @@ enum BSet[+T] {
     case Inf                       => Many
     case Fin(set) if set.size == 1 => One(set.head)
     case Fin(_)                    => Zero
+  override def toString: String = this match
+    case Inf => "⊤"
+    case Fin(set) =>
+      if (set.isEmpty) "⊥"
+      else if (set.size == 1) set.head.toString
+      else set.mkString("{", ", ", "}")
 }
 object BSet {
   val Top = Inf
