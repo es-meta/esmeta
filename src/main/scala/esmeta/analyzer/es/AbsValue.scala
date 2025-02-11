@@ -19,7 +19,7 @@ trait AbsValueDecl { self: ESAnalyzer =>
     clo: AbsClo = AbsClo.Bot,
     cont: AbsCont = AbsCont.Bot,
     prim: AbsPrimValue = AbsPrimValue.Bot,
-  ) extends AbsValueElem {
+  ) {
     import AbsValue.*
 
     /** bottom check */
@@ -109,9 +109,6 @@ trait AbsValueDecl { self: ESAnalyzer =>
     /** type operations */
     def typeOf(using AbsState): AbsValue = ???
 
-    /** get string of abstract value with an abstract state */
-    def getString(state: AbsState): String = ???
-
   }
   object AbsValue extends ValueDomain {
 
@@ -151,5 +148,9 @@ trait AbsValueDecl { self: ESAnalyzer =>
 
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) => ???
+
+    extension (value: AbsValue) {
+      def getString(state: AbsState): String = ???
+    }
   }
 }

@@ -2,6 +2,7 @@ package esmeta.analyzer
 
 import esmeta.cfg.{util => _, *}
 import esmeta.error.*
+import esmeta.util.domain.*
 import esmeta.error.NotSupported.given
 import esmeta.es.Ast
 import esmeta.ir.{Func => _, util => _, *}
@@ -12,7 +13,6 @@ import esmeta.util.BaseUtils.*
 abstract class Analyzer
   extends AbsTransferLikeDecl
   with ControlPointDecl
-  with DomainDecl
   with ViewLikeDecl
   with util.Decl
   with repl.Decl {
@@ -59,6 +59,45 @@ abstract class Analyzer
 
   /** logging the current analysis result */
   def logging: Unit
+
+  // ---------------------------------------------------------------------------
+  // Abstract Domains
+  // ---------------------------------------------------------------------------
+  /** value domains */
+  val AbsValue: ValueDomain
+  type AbsValue
+  trait ValueDomain extends Domain {
+    type Elem = AbsValue
+    extension (elem: AbsValue) {
+
+      /** get string of abstract value with an abstract state */
+      def getString(state: AbsState): String
+    }
+  }
+
+  /** state domains */
+  val AbsState: StateDomain
+  type AbsState
+  trait StateDomain extends Domain {
+    type Elem = AbsState
+    extension (elem: AbsState) {
+
+      /** has imprecise elements */
+      def hasImprec: Boolean
+    }
+  }
+
+  /** return value domains */
+  val AbsRet: RetDomain
+  type AbsRet
+  trait RetDomain extends Domain {
+    type Elem = AbsRet
+    extension (elem: AbsRet) {
+
+      /** return value */
+      def value: AbsValue
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Analysis Results

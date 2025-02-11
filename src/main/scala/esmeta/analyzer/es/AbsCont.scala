@@ -4,15 +4,13 @@ import esmeta.es.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
+import esmeta.util.domain.*
 
 /** abstract primitive values */
 trait AbsContDecl { self: ESAnalyzer =>
 
   // TODO more precise abstraction
-  case class AbsCont(exist: Boolean) extends AnalysisElem[AbsCont] {
-
-    /** abstract domain */
-    def domain = AbsCont
+  case class AbsCont(exist: Boolean) {
 
     /** bottom check */
     def isTop: Boolean = exist
@@ -32,7 +30,8 @@ trait AbsContDecl { self: ESAnalyzer =>
     /** meet operator */
     def ⊓(that: AbsCont): AbsCont = AbsCont(exist && that.exist)
   }
-  object AbsCont extends AnalysisDomain[AbsCont] {
+  object AbsCont extends Domain {
+    type Elem = AbsCont
 
     /** top element */
     lazy val Top: AbsCont = AbsCont(true)

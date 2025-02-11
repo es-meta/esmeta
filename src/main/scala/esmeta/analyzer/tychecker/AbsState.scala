@@ -18,7 +18,7 @@ trait AbsStateDecl { self: TyChecker =>
     locals: Map[Local, AbsValue],
     symEnv: Map[Sym, ValueTy],
     pred: SymPred,
-  ) extends AbsStateElem {
+  ) extends Printable[AbsState] {
     import AbsState.*
 
     given AbsState = this
@@ -112,9 +112,6 @@ trait AbsStateDecl { self: TyChecker =>
       val newLocals = for { (x, v) <- locals } yield x -> v.kill(bases, update)
       val newPred = if (update) pred.kill(bases) else pred
       AbsState(reachable, newLocals, symEnv, newPred)
-
-    /** has imprecise elements */
-    def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
 
     /** getter */
     def get(x: Var): AbsValue = x match
@@ -355,5 +352,9 @@ trait AbsStateDecl { self: TyChecker =>
         app >> pred
         app
       } else app >> "⊥"
+
+    extension (st: AbsState) {
+      def hasImprec: Boolean = st.locals.values.exists(_.ty(using st).isImprec)
+    }
   }
 }

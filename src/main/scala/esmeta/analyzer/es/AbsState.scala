@@ -10,7 +10,7 @@ import esmeta.util.BaseUtils.*
 
 /** abstract states */
 trait AbsStateDecl { self: ESAnalyzer =>
-  case class AbsState() extends AbsStateElem {
+  case class AbsState() {
     import AbsState.*
 
     given AbsState = this
@@ -29,9 +29,6 @@ trait AbsStateDecl { self: ESAnalyzer =>
 
     /** meet operator */
     def ⊓(that: AbsState): AbsState = ???
-
-    /** has imprecise elements */
-    def hasImprec: Boolean = ???
 
     /** getter */
     def get(x: Var): AbsValue = ???
@@ -102,5 +99,9 @@ trait AbsStateDecl { self: ESAnalyzer =>
 
     // appender generator
     private def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) => ???
+
+    extension (state: AbsState) {
+      def hasImprec: Boolean = ???
+    }
   }
 }

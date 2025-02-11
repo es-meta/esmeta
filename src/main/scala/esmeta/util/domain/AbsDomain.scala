@@ -1,12 +1,43 @@
 package esmeta.util.domain
 
 import esmeta.util.*
-import esmeta.util.Appender.*
+import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import Flat.*, BSet.*
 
+/** abstract domain */
+trait AbsDomain extends Domain {
+
+  /** concrete element type */
+  type Conc
+
+  /** abstract element type */
+  type Elem
+
+  /** abstraction */
+  def alpha(elems: Iterable[Conc]): Elem
+
+  /** abstraction */
+  inline def alpha(elems: Conc*): Elem = alpha(elems)
+
+  /** abstraction */
+  inline def apply(elems: Iterable[Conc]): Elem = alpha(elems)
+
+  /** abstraction */
+  inline def apply(elems: Conc*): Elem = alpha(elems)
+
+  extension (elem: Elem) {
+
+    /** concretization to set domain */
+    def toBSet: BSet[Conc]
+
+    /** concretization to flat domain */
+    def toFlat: Flat[Conc]
+  }
+}
+
 /** set abstract domains */
-class BSetDomain[T] extends Domain {
+trait BSetDomain[T] extends AbsDomain with Lattice {
   type Conc = T
   type Elem = BSet[Conc]
   val Top = Inf
@@ -25,7 +56,7 @@ class BSetDomain[T] extends Domain {
 }
 
 /** flat abstract domain */
-trait FlatDomain[T] extends Domain {
+trait FlatDomain[T] extends AbsDomain with Lattice {
   type Conc = T
   type Elem = Flat[T]
   val Top = Many
@@ -44,18 +75,18 @@ trait FlatDomain[T] extends Domain {
 }
 
 /** simple abstract domains */
-trait SimpleDomain[T] extends Domain {
+trait SimpleDomain[T] extends AbsDomain with Lattice {
   type Conc = T
-  type Elem = Boolean
+  opaque type Elem = Boolean
   val Top = true
   val Bot = false
-  def alpha(elems: Iterable[T]): Boolean = elems.nonEmpty
-  extension (elem: Boolean) {
+  def alpha(elems: Iterable[T]): Elem = elems.nonEmpty
+  extension (elem: Elem) {
     def isTop: Boolean = elem
     def isBottom: Boolean = !elem
-    def ⊑(that: Boolean): Boolean = !elem || that
-    def ⊔(that: Boolean): Boolean = elem || that
-    def ⊓(that: Boolean): Boolean = elem && that
+    def ⊑(that: Elem): Boolean = !elem || that
+    def ⊔(that: Elem): Elem = elem || that
+    def ⊓(that: Elem): Elem = elem && that
     def contains(value: T): Boolean = elem
     def toBSet: BSet[T] = if (elem) Inf else Fin(Set())
     def toFlat: Flat[T] = if (elem) Many else Zero

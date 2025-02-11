@@ -9,10 +9,8 @@ import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 /** abstract primitive values */
 trait AbsAddrDecl { self: ESAnalyzer =>
 
-  case class AbsAddr(set: BSet[Addr]) extends AnalysisElem[AbsAddr] {
-
-    /** abstract domain */
-    def domain = AbsAddr
+  /** abstract address */
+  case class AbsAddr(set: BSet[Addr]) {
 
     /** bottom check */
     def isBottom: Boolean = ???
@@ -29,7 +27,8 @@ trait AbsAddrDecl { self: ESAnalyzer =>
     /** meet operator */
     def ⊓(that: AbsAddr): AbsAddr = ???
   }
-  object AbsAddr extends AnalysisDomain[AbsAddr] {
+  object AbsAddr extends Domain {
+    type Elem = AbsAddr
 
     /** top element */
     lazy val Top: AbsAddr = ???

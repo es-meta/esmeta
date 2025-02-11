@@ -20,6 +20,8 @@ import scala.util.matching.Regex
 
 trait ReplDecl { self: Self =>
 
+  import AbsState.*
+
   // REPL for static analysis
   object Repl {
 

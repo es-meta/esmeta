@@ -13,7 +13,7 @@ import esmeta.util.domain.{*, given}, BSet.*, Flat.*
 trait SymTyDecl { self: TyChecker =>
   import tyStringifier.given
 
-  enum SymTy extends AnalysisElem[SymTy] {
+  enum SymTy extends Printable[SymTy] {
     case STy(ty: ValueTy)
     case SRef(ref: SymRef)
     case SNormal(symty: SymTy)
@@ -98,7 +98,8 @@ trait SymTyDecl { self: TyChecker =>
 
     def getString = s"${this}"
   }
-  object SymTy extends AnalysisDomain[SymTy] {
+  object SymTy extends Domain {
+    type Elem = SymTy
     lazy val Top: SymTy = STy(ValueTy.Top)
     lazy val Bot: SymTy = STy(ValueTy.Bot)
     given rule: Rule[SymTy] = (app, elem) =>

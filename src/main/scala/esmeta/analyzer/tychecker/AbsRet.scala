@@ -1,11 +1,12 @@
 package esmeta.analyzer.tychecker
 
+import esmeta.util.*
 import esmeta.util.Appender.*
 
 /** abstract return values */
 trait AbsRetDecl { self: TyChecker =>
 
-  case class AbsRet(value: AbsValue) extends AbsRetElem {
+  case class AbsRet(value: AbsValue) extends Printable[AbsRet] {
     import AbsRet.*
 
     /** bottom check */
@@ -35,5 +36,9 @@ trait AbsRetDecl { self: TyChecker =>
 
     /** appender */
     given rule: Rule[AbsRet] = (app, elem) => app >> elem.value
+
+    extension (ret: AbsRet) {
+      def value: AbsValue = ret.value
+    }
   }
 }

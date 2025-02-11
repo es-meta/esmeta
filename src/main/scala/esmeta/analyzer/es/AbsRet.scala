@@ -5,7 +5,7 @@ import esmeta.util.Appender.*
 /** abstract return values */
 trait AbsRetDecl { self: ESAnalyzer =>
 
-  case class AbsRet() extends AbsRetElem {
+  case class AbsRet() {
     import AbsRet.*
 
     /** return value */
@@ -36,5 +36,9 @@ trait AbsRetDecl { self: ESAnalyzer =>
 
     /** appender */
     given rule: Rule[AbsRet] = (app, elem) => ???
+
+    extension (ret: AbsRet) {
+      def value: AbsValue = ret.value
+    }
   }
 }

@@ -19,7 +19,7 @@ trait AbsValueDecl { self: TyChecker =>
   case class AbsValue(
     symty: SymTy,
     guard: TypeGuard = TypeGuard.Empty,
-  ) extends AbsValueElem {
+  ) extends Printable[AbsValue] {
     import AbsValue.*
 
     /** bottom check */
@@ -400,11 +400,6 @@ trait AbsValueDecl { self: TyChecker =>
       ),
     )
 
-    /** get string of abstract value with an abstract state */
-    def getString(state: AbsState): String =
-      given AbsState = state
-      s"$this (${ty})"
-
   }
   object AbsValue extends ValueDomain {
 
@@ -481,5 +476,9 @@ trait AbsValueDecl { self: TyChecker =>
       app >> symty
       if (guard.nonEmpty) app >> " " >> guard
       app
+
+    extension (value: AbsValue) {
+      def getString(st: AbsState): String = s"$this (${value.ty(using st)})"
+    }
   }
 }

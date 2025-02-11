@@ -155,13 +155,3 @@ object Appender {
   given longRule: Rule[Long] = _ >> _.toString
   given booleanRule: Rule[Boolean] = _ >> _.toString
 }
-
-/** appendable */
-trait Appendable[T <: Appendable[T]] { self: T =>
-
-  /** appender */
-  given rule: Appender.Rule[T]
-
-  /** conversion to string */
-  override def toString: String = stringify(this)
-}

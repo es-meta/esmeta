@@ -4,18 +4,13 @@ import esmeta.es.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.util.domain.*
 
 /** abstract primitive values */
 trait AbsPrimValueDecl { self: ESAnalyzer =>
 
   // TODO more precise abstraction
-  case class AbsPrimValue(
-    set: BSet[PrimValue],
-  ) extends AnalysisElem[AbsPrimValue] {
-
-    /** abstract domain */
-    def domain = AbsPrimValue
+  case class AbsPrimValue(set: BSet[PrimValue]) {
 
     /** bottom check */
     def isBottom: Boolean = ???
@@ -32,7 +27,8 @@ trait AbsPrimValueDecl { self: ESAnalyzer =>
     /** meet operator */
     def ⊓(that: AbsPrimValue): AbsPrimValue = ???
   }
-  object AbsPrimValue extends AnalysisDomain[AbsPrimValue] {
+  object AbsPrimValue extends Domain {
+    type Elem = AbsPrimValue
 
     /** top element */
     lazy val Top: AbsPrimValue = ???

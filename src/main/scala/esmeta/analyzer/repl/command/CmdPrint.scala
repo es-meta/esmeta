@@ -30,11 +30,10 @@ trait CmdPrintDecl { self: Self =>
           val str = rest.mkString(" ")
           cp match
             case np: NodePoint[Node] =>
-              given NodePoint[Node] = np
+              import AbsValue.*
               val st = getResult(np)
-              val (v, _) = transfer.transfer(Expr.from(str))(st)
+              val (v, _) = transfer.transfer(Expr.from(str))(using np)(st)
               println(v.getString(st))
-
             case rp: ReturnPoint =>
               println("cannot evaluate expression in return point")
         case _ => println("Inappropriate argument")
