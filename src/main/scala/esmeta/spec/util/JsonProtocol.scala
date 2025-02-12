@@ -14,6 +14,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Spec] = deriveDecoder
   given Encoder[Spec] = deriveEncoder
 
+  // version
+  given Decoder[Spec.Version] = deriveDecoder
+  given Encoder[Spec.Version] = deriveEncoder
+
   // tables
   given Decoder[Table] = deriveDecoder
   given Encoder[Table] = deriveEncoder

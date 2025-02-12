@@ -22,7 +22,7 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
           "path" -> path.map(_.toString).asJson,
         )
     }
-  // given nodeViewDecoder: Decoder[NodeView] = deriveDecoder
+  given nodeViewDecoder: Decoder[NodeView] = deriveDecoder
   given nodeViewEncoder: Encoder[NodeView] =
     Encoder.instance(nv =>
       Json.obj(
@@ -37,6 +37,10 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   given condViewEncoder: Encoder[CondView] = deriveEncoder
   given funcViewDecoder: Decoder[FuncView] = deriveDecoder
   given funcViewEncoder: Encoder[FuncView] = deriveEncoder
+
+  // conditions
+  given condDecoder: Decoder[Cond] = deriveDecoder
+  given condEncoder: Encoder[Cond] = deriveEncoder
 
   // meta-info for each view or features
   given nodeViewInfoDecoder: Decoder[NodeViewInfo] = deriveDecoder
