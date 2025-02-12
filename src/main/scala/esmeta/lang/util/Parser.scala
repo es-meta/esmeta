@@ -898,22 +898,26 @@ trait Parsers extends IndentParsers {
       "If" ~> compound(baseCond, "then" ^^^ Imply)
     lazy val compOr: P[Condition] = compound(simpleAnd, "or" ^^^ Or)
 
-    baseCond ||| simpleAnd ||| simpleOr ||| simpleImply ||| compOr
+    compOr |||
+    simpleImply |||
+    simpleOr |||
+    simpleAnd |||
+    baseCond
   }.named("lang.Condition")
 
   // base conditions
   lazy val baseCond: PL[Condition] =
-    exprCond |||
-    typeCheckCond |||
-    hasFieldCond |||
-    hasBindingCond |||
-    productionCond |||
-    predCond |||
-    isAreCond |||
-    binCond |||
-    inclusiveIntervalCond |||
+    specialCond |||
     containsCond |||
-    specialCond
+    inclusiveIntervalCond |||
+    binCond |||
+    isAreCond |||
+    predCond |||
+    productionCond |||
+    hasBindingCond |||
+    hasFieldCond |||
+    typeCheckCond |||
+    exprCond
 
   // expression conditions
   lazy val exprCond: PL[ExpressionCondition] = expr ^^ {
@@ -940,7 +944,7 @@ trait Parsers extends IndentParsers {
   lazy val hasBindingCond: PL[HasBindingCondition] =
     // GeneratorValidate
     (ref <~ opt("also")) ~
-    ("has" ^^^ false ||| "does not have" ^^^ true) ~
+    ("has" ^^^ false | "does not have" ^^^ true) ~
     ("a binding for" ~> expr) ^^ {
       case r ~ n ~ f => HasBindingCondition(r, n, f)
     }
@@ -1039,7 +1043,9 @@ trait Parsers extends IndentParsers {
       variable ~
       ("such that" ~> cond)
     } ^^ { case t ~ x ~ c => SuchThat(t, x, c) }
-    exprTarget ||| whoseFieldTarget ||| suchThatTarget
+    suchThatTarget |||
+    whoseFieldTarget |||
+    exprTarget
 
   // rarely used conditions
   // TODO clean-up
@@ -1112,18 +1118,20 @@ trait Parsers extends IndentParsers {
   // metalanguage references
   // ---------------------------------------------------------------------------
   given ref: PL[Reference] = {
-    baseRef ||| propRef ||| specialRef
+    specialRef |||
+    propRef |||
+    baseRef
   }.named("lang.Reference")
 
   // property references
   lazy val propRef: PL[PropertyReference] = opt(
     "the" ~ opt("String") ~ "value" ~ opt("of"),
   ) ~> {
-    baseRef ~ prop ~ rep(prop) ^^ {
+    prop ~ baseRef ^^ {
+      case p ~ base => PropertyReference(base, p)
+    } ||| baseRef ~ prop ~ rep(prop) ^^ {
       case base ~ p ~ ps =>
         ps.foldLeft(PropertyReference(base, p))(PropertyReference(_, _))
-    } ||| prop ~ baseRef ^^ {
-      case p ~ base => PropertyReference(base, p)
     }
   }
 
@@ -1181,18 +1189,16 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given prop: PL[Property] = preProp | postProp
   lazy val preProp: PL[Property] = {
-    "the" ~> component <~ opt("component") ~ "of" ^^ {
-      ComponentProperty(_)
-    } |||
+    "the" ~> nt <~ "of" ^^ { NonterminalProperty(_) } |||
     "the binding for" ~> expr <~ "in" ^^ { BindingProperty(_) } |||
-    "the" ~> nt <~ "of" ^^ { NonterminalProperty(_) }
+    "the" ~> component <~ opt("component") ~ "of" ^^ { ComponentProperty(_) }
   }.named("lang.Property")
 
   lazy val postProp: PL[Property] = {
-    "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) } |||
-    "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
+    "[" ~> expr <~ "]" ^^ { IndexProperty(_) } |||
     ("'s" | ".") ~> camel.filter(_ != "If") ^^ { ComponentProperty(_) } |||
-    "[" ~> expr <~ "]" ^^ { IndexProperty(_) }
+    "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
+    "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
   }.named("lang.Property")
 
   // TODO extract component name from spec.html
@@ -1265,14 +1271,14 @@ trait Parsers extends IndentParsers {
   // pure value types
   lazy val pureValueTy: P[ValueTy] = multi(singlePureValueTy)
   lazy val singlePureValueTy: P[ValueTy] =
-    recordTy ||| (listTy | cloTy | astTy | grammarSymbolTy | simpleTy)
+    (listTy | cloTy | astTy | grammarSymbolTy | simpleTy) ||| recordTy
 
   // named record types
   lazy val recordTy: P[ValueTy] =
     "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
       case fs => RecordT("", fs.map(_.name -> AnyT).toMap)
     } | opt("an " | "a ") ~> {
-      rep1(camel) ^^ { case ss => normRecordT(ss.mkString(" ")) } ||| (
+      (
         "ordinary object" |
         "function object" |
         "constructor" |
@@ -1289,7 +1295,8 @@ trait Parsers extends IndentParsers {
         "execution context" |
         "Module Namespace Object" ^^^ "ModuleNamespaceExoticObject" |
         "error"
-      ) ^^ { normRecordT(_) }
+      ) ^^ { normRecordT(_) } |||
+      rep1(camel) ^^ { case ss => normRecordT(ss.mkString(" ")) }
     } <~ opt("s")
 
   // list types
@@ -1369,13 +1376,11 @@ trait Parsers extends IndentParsers {
   }
 
   // type name
-  lazy val tname: P[String] =
-    rep1(camel) ^^ {
-      case ss => ss.mkString(" ")
-    } |||
-    (opt("ECMAScript code") ~ "execution context" ^^^ "ExecutionContext" |
+  lazy val tname: P[String] = {
+    opt("ECMAScript code") ~ "execution context" ^^^ "ExecutionContext" |
     "\\w+ Environment Record".r |
-    "[a-zA-Z ]+ object".r)
+    "[a-zA-Z ]+ object".r
+  } ||| rep1(camel) ^^ { case ss => ss.mkString(" ") }
 
   // ---------------------------------------------------------------------------
   // private helpers

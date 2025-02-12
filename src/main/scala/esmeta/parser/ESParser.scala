@@ -217,7 +217,7 @@ case class ESParser(
       else res
     val parser = Parser { in => aux(trie, in, Failure("", in)) }
     // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`
-    parser ||| ("?." <~ not("\\d".r))
+    ("?." <~ not("\\d".r)) ||| parser
 
   // automatic semicolon insertion
   private def insertSemicolon(reader: EPackratReader[Char]): Option[String] = {
