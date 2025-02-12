@@ -176,7 +176,7 @@ trait LAParsers extends Lexer {
                |with $follow at [${in.pos}]
                |
                |${in.pos.longString}
-               | 
+               |----------------------------------------
                |parser> """.stripMargin
           if (keepLog) stop(stopMsg) match
             case "j" | "jump" =>

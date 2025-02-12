@@ -253,21 +253,23 @@ class TyChecker(
     (new Appender >> refined).toString
 
   /** inferred type guards */
-  def getTypeGuards: List[(Func, AbsValue)] = for {
-    func <- cfg.funcs
-    entrySt = getResult(NodePoint(func, func.entry, emptyView))
-    AbsRet(value) = getResult(ReturnPoint(func, emptyView))
-    if value.hasTypeGuard(entrySt)
-    guard = TypeGuard(for {
-      (kind, pred) <- value.guard.map
-      newPred = SymPred(for {
-        pair <- pred.map
-        (x, (ty, prov)) = pair
-        if !(entrySt.getTy(x) <= ty)
-      } yield pair)
-      if newPred.nonTop
-    } yield kind -> newPred)
-  } yield func -> value.copy(guard = guard)
+  def getTypeGuards: List[(Func, AbsValue)] =
+    import SymTy.*, SymExpr.*
+    for {
+      func <- cfg.funcs
+      entrySt = getResult(NodePoint(func, func.entry, emptyView))
+      AbsRet(value) = getResult(ReturnPoint(func, emptyView))
+      if value.hasTypeGuard(entrySt)
+      guard = TypeGuard(for {
+        (dty, pred) <- value.guard.map
+        newPred = TypeConstr(for {
+          pair <- pred.map
+          (x, (ty, prov)) = pair
+          if !(entrySt.getTy(x) <= ty)
+        } yield pair)
+        if newPred.nonTop
+      } yield dty -> newPred)
+    } yield func -> value.copy(guard = guard)
 
   // ---------------------------------------------------------------------------
   // Implementation for Type Checker
@@ -299,18 +301,18 @@ class TyChecker(
     callerSt: AbsState,
     locals: List[(Local, AbsValue)],
   ): AbsState =
-    import SymExpr.*, SymRef.*, SymTy.*
+    import SymExpr.*, SymTy.*
     given AbsState = callerSt
     if (inferTypeGuard) {
       val idxLocals = locals.zipWithIndex
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
       } yield (
-        x -> AbsValue(SRef(SBase(sym))),
+        x -> AbsValue(SSym(sym)),
         sym -> value.ty,
       )).unzip
-      AbsState(true, newLocals.toMap, symEnv.toMap, SymPred())
-    } else AbsState(true, locals.toMap, Map(), SymPred())
+      AbsState(true, newLocals.toMap, symEnv.toMap, TypeConstr())
+    } else AbsState(true, locals.toMap, Map(), TypeConstr())
 
   /** get initial abstract states in each node point */
   private def getInitNpMap(

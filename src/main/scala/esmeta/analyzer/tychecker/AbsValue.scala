@@ -54,7 +54,7 @@ trait AbsValueDecl { self: TyChecker =>
       this.copy(guard = (this.guard && guard).filter(this.ty))
 
     /** kill bases */
-    def kill(bases: Set[SymBase], update: Boolean)(using AbsState): AbsValue =
+    def kill(bases: Set[Base], update: Boolean)(using AbsState): AbsValue =
       val ty = this.symty.bases.exists(bases.contains) match
         case true  => STy(this.ty)
         case false => this.symty
@@ -78,29 +78,19 @@ trait AbsValueDecl { self: TyChecker =>
       copy(guard = guard.forReturn(entrySt.symEnv))
 
     /** get symbols */
-    def bases: Set[SymBase] =
+    def bases: Set[Base] =
       val inSymty = symty.bases
       val inGuard = guard.bases
       inSymty ++ inGuard
 
-    /** get symbolic expression when it only has a symbolic expression */
-    // TODO: Erase this
-    // def getSymExpr: Option[SymExpr] = expr match
-    //   case One(expr) if lowerTy.isBottom => Some(expr)
-    //   case _                             => None
-
-    /** introduce a new type guard */
-    def getTypeGuard(using st: AbsState): TypeGuard = TypeGuard((for {
-      kind <- RefinementKind.from(this.ty).toList
-      pred = st.pred
-      if pred.nonTop
-    } yield kind -> pred).toMap)
+    def lift(using st: AbsState): AbsValue = AbsValue(symty, guard.lift(this.ty))
 
     /** check whether it has a type guard */
     def hasTypeGuard(entrySt: AbsState): Boolean =
-      guard.map.exists { (kind, pred) =>
-        pred.map.exists {
-          case (x: Sym, (ty, _)) => !(entrySt.getTy(x) <= ty)
+      import SymTy.*, SymExpr.*
+      guard.map.exists { (kind, constr) =>
+        constr.map.exists {
+          case (x: Sym, (ty, _)) => !(entrySt.getTy(SERef(SSym(x))) <= ty)
           case _                 => false
         }
       }
