@@ -2,7 +2,7 @@ package esmeta.ty
 
 import esmeta.interpreter.Interpreter
 import esmeta.state.{Math, Number}
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 import scala.math.BigInt
 

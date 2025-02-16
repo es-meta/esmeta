@@ -1,51 +1,32 @@
 package esmeta.analyzer.es
 
+import esmeta.cfg.*
 import esmeta.es.*
+import esmeta.ir.{Name, given}
 import esmeta.state.*
 import esmeta.util.*
-import esmeta.util.Appender.*
-import esmeta.util.domain.*, Lattice.*, BSet.*, Flat.*
+import esmeta.util.Appender.{*, given}
+import esmeta.domain.{*, given}
 
-/** abstract primitive values */
+/** abstract continuations */
 trait AbsContDecl { self: ESAnalyzer =>
 
-  // TODO more precise abstraction
-  case class AbsCont(exist: Boolean)
-    extends DirectOps[AbsCont]
-    with Printable[AbsCont] {
+  /** abstract continuations */
+  type AbsCont = AbsCont.Elem
+  object AbsCont extends SetDomain[ACont]
 
-    /** bottom check */
-    def isTop: Boolean = exist
+  given Rule[AbsCont] = setRule("", " | ", "")
 
-    /** bottom check */
-    def isBottom: Boolean = !exist
+  /** abstract continuation elements */
+  case class ACont(
+    target: NodePoint[Node],
+    captured: Map[Name, AbsValue],
+  ) extends Printable[ACont]
 
-    /** partial order */
-    def ⊑(that: AbsCont): Boolean = !exist || that.exist
-
-    /** not partial order */
-    def !⊑(that: AbsCont): Boolean = !(this ⊑ that)
-
-    /** join operator */
-    def ⊔(that: AbsCont): AbsCont = AbsCont(exist || that.exist)
-
-    /** meet operator */
-    def ⊓(that: AbsCont): AbsCont = AbsCont(exist && that.exist)
-  }
-  object AbsCont extends AbsDomain with DirectLattice {
-    type Conc = Cont
-    type Elem = AbsCont
-
-    /** top element */
-    lazy val Top: AbsCont = AbsCont(true)
-
-    /** bottom element */
-    lazy val Bot: AbsCont = AbsCont(false)
-
-    /** abstraction */
-    def alpha(elems: Iterable[Cont]): AbsCont = ???
-
-    /** appender */
-    given rule: Rule[AbsCont] = (app, elem) => ???
-  }
+  given Rule[ACont] = (app, cont) =>
+    import irStringifier.given
+    val ACont(target, captured) = cont
+    app >> "cont<" >> target
+    if (captured.nonEmpty) app >> ", " >> captured
+    app >> ">"
 }

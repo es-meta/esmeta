@@ -40,7 +40,7 @@ case class Heap(
   def pop(addr: Addr, front: Boolean): Value = apply(addr).pop(front)
 
   /** copy */
-  def copy(addr: Addr): Addr = alloc(apply(addr).copied)
+  def copyObj(addr: Addr): Addr = alloc(apply(addr).copied)
 
   /** keys */
   def keys(addr: Addr, intSorted: Boolean): Addr =

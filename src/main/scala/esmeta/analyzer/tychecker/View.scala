@@ -15,7 +15,7 @@ trait ViewDecl { self: TyChecker =>
   }
 
   /** appender */
-  def viewRule(detail: Boolean): Rule[View] = (app, view) => {
+  given viewRule: Rule[View] = (app, view) => {
     given Rule[List[ValueTy]] = iterableRule[ValueTy]("[", ", ", "]")
     app >> view.tys
   }

@@ -10,9 +10,12 @@ trait ViewDecl { self: ESAnalyzer =>
 
   /** view abstraction for analysis sensitivities */
   case class View(
+    // calling contexts
     calls: List[Call] = Nil,
+    // loop contexts
     loops: List[LoopCtxt] = Nil,
-    intraLoopDepth: Int = 0,
+    // intra-procedural loop depth
+    loopDepth: Int = 0,
   ) extends ViewLike {
 
     /** empty check */
@@ -20,13 +23,12 @@ trait ViewDecl { self: ESAnalyzer =>
   }
 
   /** appender */
-  def viewRule(detail: Boolean): Rule[View] = (app, view) => {
+  given viewRule: Rule[View] = (app, view) => {
     def auxRule[T](
       name: String,
     )(using Rule[T]): Rule[Iterable[T]] = (app, iter) =>
-      if (iter.isEmpty) app
-      else if (detail) iterableRule(s"[$name: ", ", ", "]")(app, iter)
-      else app >> s"[$name: " >> iter.size >> "]"
+      given Rule[Iterable[T]] = iterableRule(s"[$name: ", ", ", "]")
+      if (iter.isEmpty) app else app >> iter
     given cRule: Rule[Call] = (app, call) => app >> call.id
     given csRule: Rule[Iterable[Call]] = auxRule("call")
     given lRule: Rule[LoopCtxt] = {
@@ -42,7 +44,7 @@ trait ViewDecl { self: ESAnalyzer =>
   /** get entry views of loops */
   @tailrec
   final def getEntryView(view: View): View =
-    if (view.intraLoopDepth == 0) view
+    if (view.loopDepth == 0) view
     else getEntryView(loopExit(view))
 
   /** loop context */
@@ -59,7 +61,7 @@ trait ViewDecl { self: ESAnalyzer =>
   def loopEnter(view: View, loop: Branch): View = {
     val loopView = view.copy(
       loops = LoopCtxt(loop, 0) :: view.loops,
-      intraLoopDepth = view.intraLoopDepth + 1,
+      loopDepth = view.loopDepth + 1,
     )
     loopOut += loopView -> (loopOut.getOrElse(loopView, Set()) + view)
     loopView

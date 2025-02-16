@@ -1,6 +1,6 @@
 package esmeta.util
 
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 import scala.collection.mutable.{Map => MMap}
 
 /** the basic walker */
@@ -53,16 +53,16 @@ trait BasicWalker {
     set: BSet[T],
     tWalk: T => T,
   ): BSet[T] = set match
-    case Inf      => Inf
-    case Fin(set) => Fin(set.map(tWalk))
+    case BSet.Inf      => BSet.Inf
+    case BSet.Fin(set) => BSet.Fin(set.map(tWalk))
 
   def walkFlat[T](
     flat: Flat[T],
     tWalk: T => T,
   ): Flat[T] = flat match
-    case Zero      => Zero
-    case One(elem) => One(tWalk(elem))
-    case Many      => Many
+    case Flat.Zero      => Flat.Zero
+    case Flat.One(elem) => Flat.One(tWalk(elem))
+    case Flat.Many      => Flat.Many
 
   def walk(str: String): String = str
   def walk(bool: Boolean): Boolean = bool

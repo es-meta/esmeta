@@ -6,7 +6,7 @@ import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 import esmeta.util.{*, given}
 
 /** type guards */
@@ -328,8 +328,8 @@ trait TypeGuardDecl { self: TyChecker =>
       case SBase(x) => app >> x
       case SField(base, STy(x)) if !x.isBottom =>
         x.toFlat match
-          case One(Str(f)) => app >> base >> "." >> f
-          case _           => app >> base >> "[" >> x >> "]"
+          case Flat.One(Str(f)) => app >> base >> "." >> f
+          case _                => app >> base >> "[" >> x >> "]"
       case SField(base, field) => app >> base >> "[" >> field >> "]"
   given Rule[Provenance] = (app, prov) =>
     val Provenance(map) = prov

@@ -7,7 +7,7 @@ import esmeta.error.NotSupported.{*, given}
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** value types */
 sealed trait ValueTy extends Ty {
@@ -372,6 +372,7 @@ sealed trait ValueTy extends Ty {
 }
 
 case object ValueTopTy extends ValueTy {
+  import BSet.*, Flat.*
   def clo: CloTy = CloTopTy
   def cont: BSet[Int] = Inf
   def record: RecordTy = RecordTy.Top

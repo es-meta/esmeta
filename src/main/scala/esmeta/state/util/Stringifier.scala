@@ -44,6 +44,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       given Rule[List[String]] = iterableRule("[", ", ", "]")
       app :> "call-stack: "
       app.wrapIterable("[", ",", "]")(st.callStack)
+      given Rule[Iterable[(Global, Value)]] = sortedMapRule()
       app :> "globals: " >> st.globals
       app :> "heap: " >> st.heap
     }
@@ -51,6 +52,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // contexts
   given ctxtRule: Rule[Context] = (app, ctxt) =>
     app.wrap {
+      given Rule[Iterable[(Local, Value)]] = sortedMapRule()
       app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
       app :> "local-vars: " >> ctxt.locals
       ctxt.retVal.map(app :> "return: " >> _)
@@ -84,7 +86,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case RecordObj(tname, map) =>
         app >> "Record"
         given Rule[Iterable[(String, Value | Uninit)]] =
-          sortedMapRule("{", "}", " : ")
+          sortedMapRule("{", " : ", "}")
         if (tname.nonEmpty) app >> "[" >> tname >> "]"
         app >> " " >> map.map { case (k, v) => (s"\"$k\"", v) }
       case ListObj(values) =>

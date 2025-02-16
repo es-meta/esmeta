@@ -2,7 +2,7 @@ package esmeta.analyzer.tychecker
 
 import esmeta.util.*
 import esmeta.util.Appender.*
-import esmeta.util.domain.*, Lattice.*
+import esmeta.domain.*
 
 /** abstract return values */
 trait AbsRetDecl { self: TyChecker =>

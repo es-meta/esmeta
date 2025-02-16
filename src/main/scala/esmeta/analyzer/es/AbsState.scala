@@ -7,72 +7,69 @@ import esmeta.ty.ValueTy
 import esmeta.util.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.*, Lattice.*, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 
 /** abstract states */
 trait AbsStateDecl { self: ESAnalyzer =>
   case class AbsState(
     reachable: Boolean = false,
-    locals: Map[Local, AbsValue] = Map(),
+    locals: Map[Local, AbsValue.opt] = Map(),
     globals: Map[Global, AbsValue] = Map(),
     heap: AbsHeap = AbsHeap.Bot,
-  ) extends DirectOps[AbsState]
-    with Printable[AbsState] {
-    import AbsState.*, Lattice.{*, given}
-
+  ) extends Printable[AbsState] {
+    import AbsState.*
     given AbsState = this
 
-    /** top element check */
-    def isTop: Boolean = ???
-
-    /** bottom element check */
-    def isBottom: Boolean = !reachable
-
-    /** partial order */
-    def ⊑(that: AbsState): Boolean =
-      if (this.isBottom) true
-      else if (that.isBottom) false
-      else {
-        val AbsState(_, llocals, lglobals, lheap) = this
-        val AbsState(_, rlocals, rglobals, rheap) = that
-        ???
-      }
-
-    /** not partial order */
-    def !⊑(that: AbsState): Boolean = !(this ⊑ that)
-
-    /** join operator */
-    def ⊔(that: AbsState): AbsState = ???
-
-    /** meet operator */
-    def ⊓(that: AbsState): AbsState = ???
+    /** getter */
+    def get(rt: AbsRefTarget): AbsValue = rt match
+      case AbsRefTarget.AbsId(x)              => get(x)
+      case AbsRefTarget.AbsField(base, field) => get(base, field)
 
     /** getter */
-    def get(
-      x: Var,
-    ): AbsValue = ???
+    def get(x: Var): AbsValue = x match
+      case x: Global => globals.getOrElse(x, base.getOrElse(x, AbsValue.Bot))
+      case x: Local  => locals.get(x).fold(AbsValue.Bot)(_.value)
 
     /** getter */
     def get(
       base: AbsValue,
       field: AbsValue,
-    )(using AbsState): AbsValue = ???
+    )(using AbsState): AbsValue =
+      base.addr.foldLeft(AbsValue.Bot) { _ ⊔ heap(_)(field) }
 
     /** define variables */
     def define(
       x: Var,
       value: AbsValue,
-    ): AbsState = x match {
-      case x: Local  => copy(locals = locals + (x -> value))
-      case x: Global => copy(globals = globals + (x -> value))
-    }
+    ): AbsState = this.checkBottom(value)(x match
+      case x: Local  => copy(locals = locals + (x -> value.opt))
+      case x: Global => copy(globals = globals + (x -> value)),
+    )
 
-    /** identifier setter */
+    /** setter */
+    def update(
+      rt: AbsRefTarget,
+      value: AbsValue,
+    ): AbsState = rt match
+      case AbsRefTarget.AbsId(x)              => update(x, value)
+      case AbsRefTarget.AbsField(base, field) => update(base, field, value)
+
+    /** setter */
     def update(
       x: Var,
       value: AbsValue,
-      refine: Boolean,
-    ): AbsState = ???
+    ): AbsState = define(x, value)
+
+    /** setter */
+    def update(
+      base: AbsValue,
+      field: AbsValue,
+      value: AbsValue,
+    ): AbsState = this.checkBottom(value) {
+      val addr = base.addr
+      val h = heap.update(addr, field, value)
+      this.checkBottom(h) { copy(heap = h) }
+    }
 
     /** type check */
     def typeCheck(
@@ -106,41 +103,52 @@ trait AbsStateDecl { self: ESAnalyzer =>
 
     /** pop a value from a list */
     def pop(
+      part: AddrPart,
       list: AbsValue,
       front: Boolean,
-    ): (AbsValue, AbsState) = ???
+    ): AbsState = ???
 
     /** copy object */
-    def copy(
+    def copyObj(
+      part: AddrPart,
       from: AbsValue,
-    ): (AbsValue, AbsState) = ???
+    ): AbsState = ???
 
     /** get keys of a record/map object as a list */
     def keys(
+      part: AddrPart,
       base: AbsValue,
       intSorted: Boolean,
-    ): (AbsValue, AbsState) = ???
+    ): AbsState = ???
 
     /** allocate a record object */
     def allocRecord(
+      part: AddrPart,
       tname: String,
       pairs: Iterable[(String, AbsValue)],
-    ): (AbsValue, AbsState) = ???
+    ): AbsState =
+      val h = heap.allocRecord(part, tname, pairs)
+      this.checkBottom(h) { copy(heap = h) }
 
     /** allocate a map object */
     def allocMap(
       pairs: Iterable[(AbsValue, AbsValue)],
-    ): (AbsValue, AbsState) = ???
+      part: AddrPart,
+    ): AbsState = ???
 
     /** allocate a list object */
     def allocList(
+      part: AddrPart,
       vs: Iterable[AbsValue],
-    ): (AbsValue, AbsState) = ???
+    ): AbsState = ???
   }
-  object AbsState extends StateDomain {
+  object AbsState
+    extends StateDomain
+    with Lattice[AbsState]
+    with AbsDomain[State, AbsState] {
 
     /** bases */
-    private lazy val globals: Map[Global, AbsValue] =
+    private lazy val base: Map[Global, AbsValue] =
       for ((x, v) <- cfg.init.initGlobal) yield x -> AbsValue(v)
 
     /** top element */
@@ -152,13 +160,13 @@ trait AbsStateDecl { self: ESAnalyzer =>
     /** empty element */
     lazy val Empty: AbsState = AbsState(reachable = true)
 
-    /** appender */
-    given rule: Rule[AbsState] = mkRule(true)
+    /** abstraction */
+    def alpha(elems: Iterable[State]): AbsState = ???
 
     // appender generator
-    private def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) => {
+    def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) => {
       import irStringifier.given
-      given Rule[AbsHeap] = if (detail) AbsHeap.rule else AbsHeap.shortRule
+      given Rule[AbsHeap] = AbsHeap.mkRule(detail)
       if (!elem.isBottom) app.wrap {
         app :> "locals: " >> elem.locals
         app :> "globals: " >> elem.globals
@@ -171,4 +179,40 @@ trait AbsStateDecl { self: ESAnalyzer =>
       def hasImprec: Boolean = ???
     }
   }
+
+  given Lattice[AbsState] = AbsState
+
+  given Lattice.Ops[AbsState] with
+    extension (x: AbsState) {
+
+      def isTop: Boolean = false
+
+      def isBottom: Boolean = x.reachable == false
+
+      def ⊑(y: AbsState): Boolean = {
+        if (!x.reachable) true
+        else if (!y.reachable) false
+        else {
+          ???
+        }
+      }
+
+      def ⊔(y: AbsState): AbsState = {
+        if (!x.reachable) y
+        else if (!y.reachable) x
+        else {
+          ???
+        }
+      }
+      def ⊓(y: AbsState): AbsState = ???
+    }
+
+  given AbsDomain.GenericOps[State, AbsState] with
+    extension (st: AbsState) {
+      def contains(value: State): Boolean = ???
+      def toBSet: BSet[State] = ???
+      def toFlat: Flat[State] = ???
+    }
+
+  given Rule[AbsState] = AbsState.mkRule(true)
 }

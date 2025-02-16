@@ -4,38 +4,96 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.*, Lattice.*, BSet.*, Flat.*
+import esmeta.domain.*
 
 /** abstract heaps */
 trait AbsHeapDecl { self: ESAnalyzer =>
   case class AbsHeap(
     map: Map[AddrPart, AbsObj] = Map(),
     merged: Set[AddrPart] = Set(),
-  ) extends DirectOps[AbsHeap]
-    with Printable[AbsHeap] {
-    import AbsHeap.*
+  ) extends Printable[AbsHeap] {
+    import ManualInfo.tyModel
 
-    /** top element check */
-    def isTop: Boolean = ???
+    /** lookup address partitions */
+    def apply(part: AddrPart): AbsObj =
+      map.getOrElse(part, AbsHeap.base.getOrElse(part, AbsObj.Bot))
 
-    /** bottom element check */
-    def isBottom: Boolean = map.isEmpty
+    /** lookup address partitions with a key */
+    def apply(part: AddrPart, key: AbsValue): AbsValue = apply(part)(key)
 
-    /** partial order */
-    def ⊑(that: AbsHeap): Boolean = ???
+    /** setters */
+    def update(
+      addr: AbsAddr,
+      field: AbsValue,
+      value: AbsValue,
+    ): AbsHeap = update(addr)(_.update(field, value, _))
 
-    /** not partial order */
-    def !⊑(that: AbsHeap): Boolean = !(this ⊑ that)
+    /** copy object */
+    def copyObj(
+      part: AddrPart,
+      from: AbsValue,
+    ): AbsHeap = ???
 
-    /** join operator */
-    def ⊔(that: AbsHeap): AbsHeap = ???
+    /** get keys of a record/map object as a list */
+    def keys(
+      part: AddrPart,
+      base: AbsValue,
+      intSorted: Boolean,
+    ): AbsHeap = ???
 
-    /** meet operator */
-    def ⊓(that: AbsHeap): AbsHeap = ???
+    /** allocate a record object */
+    def allocRecord(
+      part: AddrPart,
+      tname: String,
+      pairs: Iterable[(String, AbsValue)],
+    ): AbsHeap = this.checkBottom(pairs.map { (k, v) => v }) {
+      alloc(
+        part,
+        AbsRecord(
+          baseTyName = tyModel.baseOf(tname),
+          fields = pairs.map { _ -> Binding(_) }.toMap,
+        ),
+      )
+    }
+
+    /** allocate a map object */
+    def allocMap(
+      pairs: Iterable[(AbsValue, AbsValue)],
+      part: AddrPart,
+    ): AbsHeap = ???
+
+    /** allocate a list object */
+    def allocList(
+      part: AddrPart,
+      vs: Iterable[AbsValue],
+    ): AbsHeap = ???
+
+    // allocation helper
+    private def alloc(
+      part: AddrPart,
+      obj: AbsObj,
+    ): AbsHeap = map.get(part) match {
+      case None      => AbsHeap(map + (part -> obj), merged)
+      case Some(cur) => AbsHeap(map + (part -> (cur ⊔ obj)), merged + part)
+    }
+
+    // update each address partition
+    private def update(addr: AbsAddr)(
+      f: (AbsObj, Boolean) => AbsObj,
+    ): AbsHeap = addr.foldLeft(this) { (heap, part) =>
+      val weak = merged.contains(part)
+      val obj = heap(part)
+      copy(map = map + (part -> f(obj, weak)))
+    }
   }
-  object AbsHeap extends AbsDomain with DirectLattice {
-    type Conc = Heap
-    type Elem = AbsHeap
+  object AbsHeap extends Lattice[AbsHeap] with AbsDomain[Heap, AbsHeap] {
+
+    /** bases */
+    private lazy val base: Map[AddrPart, AbsObj] = (for {
+      (addr, obj) <- cfg.init.initHeap.map
+      part = AddrPart(addr)
+      aobj = AbsObj(obj)
+    } yield part -> aobj).toMap
 
     /** top element */
     lazy val Top: AbsHeap = exploded("top abstract heap")
@@ -46,26 +104,38 @@ trait AbsHeapDecl { self: ESAnalyzer =>
     /** abstraction */
     def alpha(elems: Iterable[Heap]): AbsHeap = ???
 
-    /** appender */
-    given rule: Rule[AbsHeap] = mkRule(true)
-
-    /** simpler appender */
-    val shortRule: Rule[Elem] = mkRule(false)
-
     // appender generator
-    private def mkRule(detail: Boolean): Rule[AbsHeap] = (app, elem) => {
-      val Elem(map, merged) = elem
-      if (elem.isBottom) app >> "{}"
+    def mkRule(detail: Boolean): Rule[AbsHeap] = (app, heap) => {
+      val AbsHeap(map, merged) = heap
+      if (heap.isBottom) app >> "{}"
       else if (!detail) app >> "{ ... }"
       else
         app.wrap {
           map.toList.sortBy(_._1.toString).foreach {
             case (k, v) =>
-              app :> "["
-              app >> (if (merged contains k) "M" else " ")
-              app >> "] " >> s"$k -> " >> v
+              app :> (if (merged contains k) "*" else " ") >> k >> " -> " >> v
           }
         }
     }
   }
+
+  given Lattice[AbsHeap] = AbsHeap
+
+  given Lattice.Ops[AbsHeap] with
+    extension (heap: AbsHeap) {
+      def isTop: Boolean = ???
+      def isBottom: Boolean = heap.map.isEmpty
+      def ⊑(that: AbsHeap): Boolean = ???
+      def ⊔(that: AbsHeap): AbsHeap = ???
+      def ⊓(that: AbsHeap): AbsHeap = ???
+    }
+
+  given AbsDomain.GenericOps[Heap, AbsHeap] with
+    extension (heap: AbsHeap) {
+      def contains(value: Heap): Boolean = ???
+      def toBSet: BSet[Heap] = ???
+      def toFlat: Flat[Heap] = ???
+    }
+
+  given Rule[AbsHeap] = AbsHeap.mkRule(true)
 }

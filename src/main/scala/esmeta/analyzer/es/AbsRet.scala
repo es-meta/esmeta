@@ -1,13 +1,15 @@
 package esmeta.analyzer.es
 
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
-import esmeta.util.domain.*, Lattice.*, BSet.*, Flat.*
+import esmeta.domain.*
 
 /** abstract return values */
 trait AbsRetDecl { self: ESAnalyzer =>
 
-  case class AbsRet() extends DirectOps[AbsRet] with Printable[AbsRet] {
+  case class AbsRet(
+  ) extends Printable[AbsRet] {
 
     /** top element check */
     def isTop: Boolean = ???
@@ -27,13 +29,19 @@ trait AbsRetDecl { self: ESAnalyzer =>
     /** return value */
     def value: AbsValue = ???
   }
-  object AbsRet extends RetDomain {
+  object AbsRet
+    extends RetDomain
+    with Lattice[AbsRet]
+    with AbsDomain[Ret, AbsRet] {
 
     /** top element */
     lazy val Top: AbsRet = ???
 
     /** bottom element */
     lazy val Bot: AbsRet = ???
+
+    /** abstraction */
+    def alpha(elems: Iterable[Ret]): AbsRet = ???
 
     /** appender */
     given rule: Rule[AbsRet] = (app, elem) => ???
@@ -42,4 +50,22 @@ trait AbsRetDecl { self: ESAnalyzer =>
       def value: AbsValue = ret.value
     }
   }
+
+  type Ret = (Value, State)
+
+  given Lattice.Ops[AbsRet] with
+    extension (x: AbsRet) {
+      def isTop: Boolean = ???
+      def isBottom: Boolean = ???
+      def ⊑(y: AbsRet): Boolean = ???
+      def ⊔(y: AbsRet): AbsRet = ???
+      def ⊓(y: AbsRet): AbsRet = ???
+    }
+
+  given AbsDomain.GenericOps[Ret, AbsRet] with
+    extension (x: AbsRet) {
+      def contains(value: Ret): Boolean = ???
+      def toBSet: BSet[Ret] = ???
+      def toFlat: Flat[Ret] = ???
+    }
 }

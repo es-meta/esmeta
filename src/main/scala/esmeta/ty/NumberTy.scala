@@ -3,7 +3,7 @@ package esmeta.ty
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** number types */
 sealed trait NumberTy extends TyElem {

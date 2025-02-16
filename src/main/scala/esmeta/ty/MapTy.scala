@@ -3,7 +3,7 @@ package esmeta.ty
 import esmeta.state.{Value, MapObj, Heap}
 import esmeta.ty.util.Parser
 import esmeta.util.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** map types */
 enum MapTy extends TyElem {

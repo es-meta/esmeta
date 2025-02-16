@@ -6,7 +6,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 
 /** stringifier for metalanguage */
 class Stringifier(detail: Boolean, location: Boolean) {
@@ -811,8 +811,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
     // AST values
     ty.ast.names match
-      case Inf => tys :+= "Parse Node".withArticle(plural)
-      case Fin(set) =>
+      case BSet.Inf => tys :+= "Parse Node".withArticle(plural)
+      case BSet.Fin(set) =>
         for (name <- set.toList.sorted)
           if (plural) tys :+= s"|$name| Parse Node${name.pluralPostfix}"
           else tys :+= s"${name.indefArticle} |$name| Parse Node"
@@ -828,8 +828,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
     // strings
     ty.str match
-      case Inf      => tys :+= "String".withArticle(plural)
-      case Fin(set) => for (s <- set.toList.sorted) tys :+= s"\"$s\""
+      case BSet.Inf      => tys :+= "String".withArticle(plural)
+      case BSet.Fin(set) => for (s <- set.toList.sorted) tys :+= s"\"$s\""
 
     // booleans
     if (ty.bool.set.size > 1) tys :+= "Boolean".withArticle(plural)

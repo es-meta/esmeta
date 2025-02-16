@@ -7,7 +7,7 @@ import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 import scala.annotation.tailrec
 
 trait AbsTransferDecl { analyzer: TyChecker =>
@@ -359,11 +359,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** transfer function for normal instructions */
     def transfer(
       inst: NormalInst,
-    )(using np: NodePoint[_]): Updater = transfer(inst, -1)
-
-    /** transfer function for normal instructions */
-    def transfer(
-      inst: NormalInst,
       idx: Int,
     )(using np: NodePoint[_]): Updater = inst match {
       case IExpr(expr) =>
@@ -653,7 +648,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case ECopy(obj) =>
         for {
           v <- transfer(obj)
-          lv <- id(_.copy(v))
+          lv <- id(_.copyObj(v))
         } yield lv
       case EKeys(map, intSorted) =>
         for {

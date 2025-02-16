@@ -8,39 +8,38 @@ import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
-import esmeta.util.Appender.*
+import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.*, Lattice.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 
 /** abstract values */
 trait AbsValueDecl { self: ESAnalyzer =>
 
+  /** abstract values */
   case class AbsValue(
     addr: AbsAddr = AbsAddr.Bot,
     clo: AbsClo = AbsClo.Bot,
     cont: AbsCont = AbsCont.Bot,
     prim: AbsPrimValue = AbsPrimValue.Bot,
-  ) extends DirectOps[AbsValue]
-    with Printable[AbsValue] {
+  ) extends Printable[AbsValue] {
     import AbsValue.*
 
-    /** top element check */
-    def isTop: Boolean = this == Top
+    /** convert to optional abstract value */
+    inline def opt: AbsValue.opt = AbsOpt(this, false)
 
-    /** bottom element check */
-    def isBottom: Boolean = this == Bot
-
-    /** partial order */
-    def ⊑(that: AbsValue): Boolean = ???
-
-    /** not partial order */
-    def !⊑(that: AbsValue): Boolean = !(this ⊑ that)
-
-    /** join operator */
-    def ⊔(that: AbsValue): AbsValue = ???
-
-    /** meet operator */
-    def ⊓(that: AbsValue): AbsValue = ???
+    /** getter of specific type */
+    inline def ast: Flat[Ast] = prim.ast
+    inline def grammarSymbol: Set[GrammarSymbol] = prim.grammarSymbol
+    inline def math: BSet[Math] = prim.math
+    inline def infinity: Flat[Boolean] = prim.infinity
+    inline def enumv: Set[String] = prim.enumv
+    inline def codeUnit: Flat[Char] = prim.codeUnit
+    inline def number: Flat[Double] = prim.number
+    inline def bigint: Flat[scala.BigInt] = prim.bigint
+    inline def str: BSet[String] = prim.str
+    inline def bool: Flat[Boolean] = prim.bool
+    inline def undef: Boolean = prim.undef
+    inline def nullv: Boolean = prim.nullv
 
     /** get lexical result */
     def getLexical(method: String): AbsValue = ???
@@ -115,7 +114,14 @@ trait AbsValueDecl { self: ESAnalyzer =>
     def typeOf(using AbsState): AbsValue = ???
 
   }
-  object AbsValue extends ValueDomain with AbsDomain {
+  object AbsValue
+    extends ValueDomain
+    with Lattice[AbsValue]
+    with AbsDomain[Value, AbsValue] {
+
+    /** abstract optional values */
+    lazy val opt = OptDomain(AbsValue)
+    type opt = AbsOpt[AbsValue]
 
     /** top element */
     lazy val Top: AbsValue = exploded("top abstract value")
@@ -124,6 +130,8 @@ trait AbsValueDecl { self: ESAnalyzer =>
     lazy val Bot: AbsValue = AbsValue()
 
     /** useful abstract values */
+    lazy val Null = AbsValue(prim = AbsPrimValue.Null)
+    lazy val Undef = AbsValue(prim = AbsPrimValue.Undef)
     lazy val True = AbsValue(prim = AbsPrimValue.True)
     lazy val False = AbsValue(prim = AbsPrimValue.False)
     lazy val BoolTop = AbsValue(prim = AbsPrimValue.BoolTop)
@@ -136,39 +144,84 @@ trait AbsValueDecl { self: ESAnalyzer =>
     // abstraction functions
     def alpha(vs: Iterable[Value]): AbsValue = {
       var addrs = Set[Addr]()
+      var clos = Set[AClo]()
+      var conts = Set[ACont]()
       var prims = Set[PrimValue]()
       vs.map {
-        case prim: PrimValue => prims += prim
         case addr: NamedAddr => addrs += addr
+        case clo: Clo        => clos += AClo(clo)
+        case prim: PrimValue => prims += prim
         case v               => throw InvalidAbstraction(v)
       }
       AbsValue(
         addr = AbsAddr(addrs.map(AddrPart(_))),
+        clo = clos,
+        cont = conts,
         prim = AbsPrimValue(prims),
       )
     }
+    inline def apply(part: AddrPart): AbsValue = AbsValue(addr = AbsAddr(part))
+    inline def apply(clo: AClo): AbsValue = AbsValue(clo = AbsClo(clo))
+    inline def apply(cont: ACont): AbsValue = AbsValue(cont = AbsCont(cont))
     inline def apply(ast: Ast): AbsValue = AbsValue(prim = AbsPrimValue(ast))
     inline def apply(n: Double): AbsValue = AbsValue(prim = AbsPrimValue(n))
+    inline def apply(n: scala.BigInt): AbsValue =
+      AbsValue(prim = AbsPrimValue(n))
     inline def apply(s: String): AbsValue = AbsValue(prim = AbsPrimValue(s))
     inline def apply(b: Boolean): AbsValue = AbsValue(prim = AbsPrimValue(b))
     inline def apply(d: BigDecimal): AbsValue = AbsValue(prim = AbsPrimValue(d))
 
-    /** appender */
-    given rule: Rule[AbsValue] = (app, elem) => {
-      if (elem.isBottom) app >> "⊥"
-      else {
-        val Elem(addr, clo, cont, prim) = elem
-        var strs = Vector[String]()
-        if (addr.nonBottom) strs :+= addr.toString
-        if (clo.nonBottom) strs :+= clo.toString
-        if (cont.nonBottom) strs :+= cont.toString
-        if (prim.nonBottom) strs :+= prim.toString
-        app >> strs.mkString(", ")
-      }
-    }
-
     extension (value: AbsValue) {
       def getString(state: AbsState): String = ???
+    }
+  }
+
+  given Lattice[AbsValue] = AbsValue
+
+  given Rule[AbsValue] = (app, elem) => {
+    if (elem.isBottom) app >> "⊥"
+    else {
+      val AbsValue(addr, clo, cont, prim) = elem
+      var first = true
+      def add[T: Rule: Lattice.Ops](x: T): Unit = if (x.nonBottom) {
+        if (first) { first = false; app >> x }
+        else app >> " | " >> x
+      }
+      add(addr); add(clo); add(cont); add(prim)
+      app
+    }
+  }
+
+  given Lattice.Ops[AbsValue] with {
+    import AbsValue.*
+    extension (x: AbsValue) {
+      def isTop: Boolean = false
+      def isBottom: Boolean = x == Bot
+      def ⊑(y: AbsValue): Boolean =
+        (x.addr ⊑ y.addr) &&
+        (x.clo ⊑ y.clo) &&
+        (x.cont ⊑ y.cont) &&
+        (x.prim ⊑ y.prim)
+      def ⊔(y: AbsValue): AbsValue = AbsValue(
+        x.addr ⊔ y.addr,
+        x.clo ⊔ y.clo,
+        x.cont ⊔ y.cont,
+        x.prim ⊔ y.prim,
+      )
+      def ⊓(y: AbsValue): AbsValue = AbsValue(
+        x.addr ⊓ y.addr,
+        x.clo ⊓ y.clo,
+        x.cont ⊓ y.cont,
+        x.prim ⊓ y.prim,
+      )
+    }
+  }
+
+  given AbsDomain.GenericOps[Value, AbsValue] with {
+    extension (x: AbsValue) {
+      def contains(value: Value): Boolean = ???
+      def toBSet: BSet[Value] = ???
+      def toFlat: Flat[Value] = ???
     }
   }
 }

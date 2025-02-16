@@ -25,9 +25,7 @@ trait CmdMoveDecl { self: Self =>
     // print node points
     def printNps(nps: Array[NodePoint[Node]]) = {
       nps.zipWithIndex.foreach {
-        case (np, idx) =>
-          val npStr = np.toString(detail = true)
-          println(s"  $idx: $npStr")
+        case (np, idx) => println(s"  $idx: $np")
       }
     }
 

@@ -2,7 +2,7 @@ package esmeta.ty
 
 import esmeta.util.*
 import esmeta.ty.util.Parser
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 
 /** boolean types */
 case class BoolTy(set: Set[Boolean] = Set()) extends TyElem {

@@ -4,7 +4,7 @@ import esmeta.cfg.Node
 import esmeta.state.*
 import esmeta.ty.util.*
 import esmeta.util.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
@@ -57,10 +57,10 @@ def CloT(params: List[ValueTy], ret: ValueTy): ValueTy =
 def CloT(names: Set[String]): ValueTy =
   if (names.isEmpty) BotT
   else ValueTy(clo = CloSetTy(names))
-lazy val ContT: ValueTy = ValueTy(cont = Inf)
+lazy val ContT: ValueTy = ValueTy(cont = BSet.Inf)
 def ContT(nids: Int*): ValueTy =
   if (nids.isEmpty) BotT
-  else ValueTy(cont = Fin(nids.toSet))
+  else ValueTy(cont = BSet(nids.toSet))
 lazy val ObjectT: ValueTy = RecordT("Object")
 lazy val FunctionT: ValueTy = RecordT("FunctionObject")
 lazy val ConstructorT: ValueTy = RecordT("Constructor")
@@ -71,7 +71,7 @@ lazy val ESPrimT: ValueTy = ValueTy(
   record = RecordTy("Symbol"),
   number = NumberTy.Top,
   bigInt = true,
-  str = Inf,
+  str = BSet.Inf,
   bool = BoolTy.Top,
   undef = true,
   nullv = true,
@@ -98,15 +98,15 @@ def AstT(xs: Set[String]): ValueTy =
 def AstT(xs: String*): ValueTy = AstT(xs.toSet)
 def AstT(name: String, idx: Int): ValueTy =
   ValueTy(ast = AstTy.Detail(name, idx))
-def GrammarSymbolT: ValueTy = ValueTy(grammarSymbol = Inf)
+def GrammarSymbolT: ValueTy = ValueTy(grammarSymbol = BSet.Inf)
 def GrammarSymbolT(xs: GrammarSymbol*): ValueTy =
   if (xs.isEmpty) BotT
-  else ValueTy(grammarSymbol = Fin(xs.toSet))
+  else ValueTy(grammarSymbol = BSet(xs.toSet))
 lazy val CodeUnitT: ValueTy = ValueTy(codeUnit = true)
-def EnumT: ValueTy = ValueTy(enumv = Inf)
+def EnumT: ValueTy = ValueTy(enumv = BSet.Inf)
 def EnumT(set: Set[String]): ValueTy =
   if (set.isEmpty) BotT
-  else ValueTy(enumv = Fin(set))
+  else ValueTy(enumv = BSet(set))
 def EnumT(xs: String*): ValueTy = EnumT(xs.toSet)
 lazy val MathT: ValueTy = ValueTy(math = MathTy.Top)
 lazy val ExtMathT: ValueTy = MathT || InfinityT
@@ -144,13 +144,13 @@ lazy val NegNumberT = ValueTy(number = NumberTy.Neg)
 lazy val NonPosNumberT = ValueTy(number = NumberTy.NonPos)
 lazy val NonNegNumberT = ValueTy(number = NumberTy.NonNeg)
 lazy val BigIntT: ValueTy = ValueTy(bigInt = true)
-lazy val StrT: ValueTy = ValueTy(str = Inf)
+lazy val StrT: ValueTy = ValueTy(str = BSet.Inf)
 def StrT(set: Set[String]): ValueTy =
   if (set.isEmpty) BotT
-  else ValueTy(str = Fin(set))
+  else ValueTy(str = BSet(set))
 def StrT(xs: String*): ValueTy =
   if (xs.isEmpty) BotT
-  else ValueTy(str = Fin(xs.toSet))
+  else ValueTy(str = BSet(xs.toSet))
 def BoolT(set: Set[Boolean]): ValueTy =
   if (set.isEmpty) BotT
   else ValueTy(bool = BoolTy(set))

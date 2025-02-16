@@ -3,7 +3,7 @@ package esmeta.ty
 import esmeta.state.{Value, RecordObj, Heap}
 import esmeta.ty.util.Parser
 import esmeta.util.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** record types */
 enum RecordTy extends TyElem {

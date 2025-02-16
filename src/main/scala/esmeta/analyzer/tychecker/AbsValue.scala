@@ -8,7 +8,7 @@ import esmeta.ty.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** abstract values */
 trait AbsValueDecl { self: TyChecker =>

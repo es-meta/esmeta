@@ -5,7 +5,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 
 /** metalanguage parser */
 object Parser extends Parsers
@@ -107,8 +107,8 @@ trait Parsers extends BasicParsers {
     singleCloTy ^^ { case c => ValueTy(clo = c) } |
     // continuation
     "Cont[" ~> rep1sep(int, ",") <~ "]" ^^ {
-      case s => ValueTy(cont = Fin(s.toSet))
-    } | "Cont" ^^^ ValueTy(cont = Inf) |
+      case s => ValueTy(cont = BSet(s.toSet))
+    } | "Cont" ^^^ ValueTy(cont = BSet.Inf) |
     // record
     singleRecordTy ^^ { case r => ValueTy(record = r) } |
     // map
@@ -119,15 +119,15 @@ trait Parsers extends BasicParsers {
     singleAstTy ^^ { case ast => ValueTy(ast = ast) } |
     // grammar symbol
     "GrammarSymbol[" ~> rep1sep(grammarSymbol, ",") <~ "]" ^^ {
-      case s => ValueTy(grammarSymbol = Fin(s.toSet))
-    } | "GrammarSymbol" ^^^ ValueTy(grammarSymbol = Inf) |
+      case s => ValueTy(grammarSymbol = BSet(s.toSet))
+    } | "GrammarSymbol" ^^^ ValueTy(grammarSymbol = BSet.Inf) |
     // code unit
     "CodeUnit" ^^^ ValueTy(codeUnit = true) |
     // enum
     "Enum" ~> opt("[" ~> rep1sep(enumv, ",") <~ "]") ^^ {
-      case s => ValueTy(enumv = s.fold(Inf)(es => Fin(es.toSet)))
+      case s => ValueTy(enumv = s.fold(BSet.Inf)(es => BSet(es.toSet)))
     } |
-    "Enum" ^^^ ValueTy(enumv = Inf) |
+    "Enum" ^^^ ValueTy(enumv = BSet.Inf) |
     // mathematical value
     singleMathTy ^^ { case m => ValueTy(math = m) } |
     // infinity
@@ -138,8 +138,8 @@ trait Parsers extends BasicParsers {
     "BigInt" ^^^ ValueTy(bigInt = true) |
     // string
     "String[" ~> rep1sep(string, ",") <~ "]" ^^ {
-      case s => ValueTy(str = Fin(s.toSet))
-    } | "String" ^^^ ValueTy(str = Inf) |
+      case s => ValueTy(str = BSet(s.toSet))
+    } | "String" ^^^ ValueTy(str = BSet.Inf) |
     // boolean
     singleBoolTy ^^ { case b => ValueTy(bool = b) } |
     // undefined

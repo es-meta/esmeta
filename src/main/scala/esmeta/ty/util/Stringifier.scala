@@ -8,7 +8,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.{*, given}
+import esmeta.domain.{*, given}
 
 /** stringifier for types */
 class Stringifier(

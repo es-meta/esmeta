@@ -7,7 +7,7 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** abstract states */
 trait AbsStateDecl { self: TyChecker =>
@@ -288,7 +288,7 @@ trait AbsStateDecl { self: TyChecker =>
       (AbsValue(list.ty.list.elem), this)
 
     /** copy object */
-    def copy(from: AbsValue): (AbsValue, AbsState) = (from, this)
+    def copyObj(from: AbsValue): (AbsValue, AbsState) = (from, this)
 
     /** get keys of a record/map object as a list */
     def keys(

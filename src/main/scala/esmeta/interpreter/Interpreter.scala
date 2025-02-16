@@ -319,7 +319,7 @@ class Interpreter(
     case EMap(_, pairs) =>
       st.allocMap(for ((k, v) <- pairs) yield eval(k) -> eval(v))
     case EList(exprs) => st.allocList(exprs.map(expr => eval(expr)).toVector)
-    case ECopy(obj)   => st.copy(eval(obj).asAddr)
+    case ECopy(obj)   => st.copyObj(eval(obj).asAddr)
     case EKeys(map, intSorted) => st.keys(eval(map).asAddr, intSorted)
     case EMath(n)              => Math(n)
     case EInfinity(pos)        => Infinity(pos)

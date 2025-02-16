@@ -8,7 +8,7 @@ import esmeta.ty.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}
 
 trait SymTyDecl { self: TyChecker =>
   import tyStringifier.given
@@ -25,9 +25,7 @@ trait SymTyDecl { self: TyChecker =>
       case SRef(ref)      => false
       case SNormal(symty) => symty.isBottom
 
-    def isSingle(using st: AbsState): Boolean = this.ty.toFlat match
-      case One(_) => true
-      case _      => false
+    def isSingle(using st: AbsState): Boolean = this.ty.isSingle
 
     def ty(using st: AbsState): ValueTy = this match
       case STy(ty)        => ty
@@ -98,13 +96,11 @@ trait SymTyDecl { self: TyChecker =>
 
     def getString = s"${this}"
   }
-  object SymTy extends Domain {
-    type Conc = Value
-    type Elem = SymTy
+  object SymTy extends Domain[SymTy] {
     lazy val Top: SymTy = STy(ValueTy.Top)
     lazy val Bot: SymTy = STy(ValueTy.Bot)
-    given rule: Rule[SymTy] = (app, elem) =>
-      elem match {
+    given rule: Rule[SymTy] = (app, sty) =>
+      sty match {
         case STy(ty)        => app >> ty
         case SRef(ref)      => app >> ref
         case SNormal(symty) => app >> "Normal[" >> symty >> "]"

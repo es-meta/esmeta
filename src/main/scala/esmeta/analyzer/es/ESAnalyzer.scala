@@ -7,7 +7,7 @@ import esmeta.ir.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.domain.*
+import esmeta.domain.*
 
 /** meta-level static analyzer for ECMAScript */
 class ESAnalyzer(
@@ -23,10 +23,12 @@ class ESAnalyzer(
   with AbsValueDecl
   with AbsHeapDecl
   with AbsObjDecl
+  with BindingDecl
   with AbsPrimValueDecl
   with AbsAddrDecl
   with AbsCloDecl
   with AbsContDecl
+  with AbsRefTargetDecl
   with AbsTransferDecl
   with ViewDecl {
 
@@ -74,7 +76,7 @@ class ESAnalyzer(
     detail: Boolean,
   ): String = {
     val func = cp.func.name
-    val cpStr = cp.toString(detail = detail)
+    val cpStr = cp.toString
     val k = color.fold(cpStr)(setColor(_)(cpStr))
     cp match
       case np: NodePoint[_] => s"$k -> ${getResult(np)}"

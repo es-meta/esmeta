@@ -69,7 +69,7 @@ class TyChecker(
     detail: Boolean = false,
   ): String =
     val func = cp.func.name
-    val cpStr = cp.toString(detail = detail)
+    val cpStr = cp.toString
     val k = color.fold(cpStr)(setColor(_)(cpStr))
     cp match
       case np: NodePoint[_] =>

@@ -4,7 +4,7 @@ import esmeta.interpreter.Interpreter
 import esmeta.state.Math
 import esmeta.ty.util.Parser
 import esmeta.util.*
-import esmeta.util.domain.{*, given}, BSet.*, Flat.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** mathematical value types */
 sealed trait MathTy extends TyElem {
