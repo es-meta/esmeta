@@ -38,6 +38,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       duration = config.duration,
       kFs = config.kFs,
       cp = config.cp,
+      tyCheck = config.tyCheck,
     )
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
@@ -106,6 +107,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       NumOption((c, k) => c.kFs = k),
       "set the k-value for feature sensitivity (default: 0).",
     ),
+    (
+      "tyCheck",
+      BoolOption((c, b) => c.tyCheck = b),
+      "turn on the typecheck mode (default: false).",
+    ),
   )
   case class Config(
     var log: Boolean = false,
@@ -119,5 +125,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var init: Option[String] = None,
     var kFs: Int = 0,
     var cp: Boolean = false,
+    var tyCheck: Boolean = false,
   )
 }

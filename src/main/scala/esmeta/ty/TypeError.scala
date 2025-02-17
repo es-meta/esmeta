@@ -10,17 +10,39 @@ sealed trait TypeError extends TyElem {
   inline def func: Func = point.func
 }
 
+case class ErrorDetail(
+  field: String,
+  actual: String,
+  expected: String,
+)
+
+sealed trait DetailedTypeError extends TypeError {
+  val errorDetail: List[ErrorDetail]
+}
+
 /** parameter type mismatches */
 case class ParamTypeMismatch(
   point: ArgAssignPoint,
   argTy: ValueTy,
 ) extends TypeError
 
+case class DetailedParamTypeMismatch(
+  point: ArgAssignPoint,
+  argTy: ValueTy,
+  errorDetail: List[ErrorDetail],
+) extends DetailedTypeError
+
 /** return type mismatches */
 case class ReturnTypeMismatch(
   point: InternalReturnPoint,
   retTy: ValueTy,
 ) extends TypeError
+
+case class DetailedReturnTypeMismatch(
+  point: InternalReturnPoint,
+  retTy: ValueTy,
+  errorDetail: List[ErrorDetail],
+) extends DetailedTypeError
 
 /** arity mismatches */
 case class ArityMismatch(

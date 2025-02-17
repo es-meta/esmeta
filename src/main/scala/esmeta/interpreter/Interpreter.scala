@@ -25,6 +25,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap, Set => MSet}
 import scala.math.{BigInt => SBigInt}
 import esmeta.util.BaseUtils
+import scala.collection.mutable.ListBuffer
 
 /** extensible helper of IR interpreter with a CFG */
 class Interpreter(
@@ -377,7 +378,18 @@ class Interpreter(
           else if (paramTy.isDefined && !paramTy.contains(arg, st))
             val callPoint = CallPoint(st.context.func, caller, func)
             val aap = ArgAssignPoint(callPoint, idx)
-            addError(ParamTypeMismatch(aap, st.typeOf(arg)))
+
+            // val edList: ListBuffer[ErrorDetail] = ListBuffer()
+            // val _ = paramTy.contains(arg, st.heap, Some(edList))
+
+            addError(
+              DetailedParamTypeMismatch(
+                aap,
+                st.typeOf(arg),
+                // edList.toList,
+                List(),
+              ),
+            )
         aux(pl, al)
     }
     aux(params, args)
@@ -432,9 +444,9 @@ class Interpreter(
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
   /** type mismatch errors */
-  private val typeErrors: MSet[TypeError] = MSet()
+  private val typeErrors: MSet[DetailedTypeError] = MSet()
   def getTypeErrors = typeErrors
-  private def addError(error: TypeError): Unit = typeErrors += error
+  private def addError(error: DetailedTypeError): Unit = typeErrors += error
   private def addReturnTypeError(retVal: Value, returnInst: IReturn): Unit =
     val retTy = st.context.func.irFunc.retTy.ty
     if (retTy.isDefined && !retTy.contains(retVal, st)) {
@@ -442,7 +454,18 @@ class Interpreter(
         case NodeCursor(_, node, _) => node
         case _ => BaseUtils.error("cursor is not node cursor")
       val irp = InternalReturnPoint(st.context.func, node, returnInst)
-      addError(ReturnTypeMismatch(irp, st.typeOf(retVal)))
+
+      // val edList: ListBuffer[ErrorDetail] = ListBuffer()
+      // val _ = retTy.contains(retVal, st.heap, Some(edList))
+
+      addError(
+        DetailedReturnTypeMismatch(
+          irp,
+          st.typeOf(retVal),
+          // edList.toList,
+          List(),
+        ),
+      )
     }
   // ToDo : private def addParamTypeError()
 

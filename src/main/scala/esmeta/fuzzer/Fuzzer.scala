@@ -7,6 +7,8 @@ import esmeta.es.util.*
 import esmeta.fuzzer.mutator.*
 import esmeta.fuzzer.synthesizer.*
 import esmeta.spec.*
+import esmeta.ty.*
+import esmeta.analyzer.tychecker.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -15,7 +17,7 @@ import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
-import scala.collection.mutable.{ListBuffer, Map => MMap}
+import scala.collection.mutable.{ListBuffer, Map => MMap, Set => MSet}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.*
 
@@ -33,6 +35,7 @@ object Fuzzer {
     init: Option[String] = None, // initial pool directory path given by user
     kFs: Int = 0,
     cp: Boolean = false,
+    tyCheck: Boolean = false,
   ): Coverage = new Fuzzer(
     cfg,
     log,
@@ -45,6 +48,7 @@ object Fuzzer {
     init,
     kFs,
     cp,
+    tyCheck,
   ).result
 
   // debugging levels
@@ -66,6 +70,7 @@ class Fuzzer(
   init: Option[String],
   kFs: Int,
   cp: Boolean,
+  tyCheck: Boolean,
 ) {
   import Fuzzer.*
 
@@ -84,7 +89,16 @@ class Fuzzer(
       genSummaryHeader
       genStatHeader(selector.names, selStatTsv)
       genStatHeader(mutator.names, mutStatTsv)
+      if (tyCheck) genTyCheckSummaryHeader
     }
+
+    if (tyCheck)
+      val tychecker = TyChecker(
+        cfg = cfg,
+      )
+      tychecker.analyze
+      em.init(tychecker.errors)
+
     time(
       s"- initializing program pool with ${initPool.size} programs", {
         var i = 1
@@ -120,6 +134,7 @@ class Fuzzer(
       summaryTsv.close
       selStatTsv.close
       mutStatTsv.close
+      tycheckSummaryTsv.close
     }
 
     cov
@@ -196,10 +211,16 @@ class Fuzzer(
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
+
+    if (tyCheck) em.addRuntimeErrors(interp.getTypeErrors, code)
+
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
     covered
   })
+
+  /** handle type mismatch errors */
+  val em = new TypeErrorManager()
 
   /** handle add result */
   def handleResult(result: Try[Boolean]): Boolean = {
@@ -341,6 +362,7 @@ class Fuzzer(
     header ++= Vector("target-conds(#)")
     if (kFs > 0) header ++= Vector(s"sens-target-conds(#)")
     addRow(header)
+
   private def genStatHeader(keys: List[String], nf: PrintWriter) =
     var header1 = Vector("iter(#)")
     var header2 = Vector("-")
@@ -350,6 +372,19 @@ class Fuzzer(
     })
     addRow(header1, nf)
     addRow(header2, nf)
+
+  def genTyCheckSummaryHeader =
+    val header = Vector(
+      "iter(#)",
+      "time(ms)",
+      "time(h:m:s)",
+      "total(#)",
+      "root(#)",
+      "pending(#)",
+      "verified(#)",
+      "discovered(#)",
+    )
+    addRow(header, tycheckSummaryTsv)
 
   // dump selector and mutator stat
   private def dumpStat(
@@ -381,6 +416,17 @@ class Fuzzer(
     row ++= Vector(tc)
     if (kFs > 0) row ++= Vector(tcv)
     addRow(row)
+
+    if (tyCheck)
+      val te = em.totalError.size
+      val re = em.rootError.size
+      val pe = em.pendingError.size
+      val ve = em.verifiedError.size
+      val de = em.discoveredError.size
+      val errorRow = Vector(iter, e, t, te, re, pe, ve, de)
+      addRow(errorRow, tycheckSummaryTsv)
+      em.dump(s"$logDir/tycheck")
+
     // dump coveragge
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
@@ -398,4 +444,7 @@ class Fuzzer(
     getPrintWriter(s"$logDir/selector-stat.tsv")
   private lazy val mutStatTsv: PrintWriter =
     getPrintWriter(s"$logDir/mutation-stat.tsv")
+
+  private lazy val tycheckSummaryTsv: PrintWriter =
+    getPrintWriter(s"$logDir/tycheck/summary.tsv")
 }
