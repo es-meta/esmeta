@@ -105,8 +105,8 @@ case class TargetFeatureSet(
 }
 
 case class TargetFeatureData(
-  private var hits: Long = 0,
-  private var misses: Long = 0,
+  var hits: Long = 0,
+  var misses: Long = 0,
   var chiSqValue: Double = 0.0,
   var status: TargetFeatureStatus = TargetFeatureStatus.Ignored,
 ) {
@@ -133,14 +133,17 @@ case class TargetFeatureData(
   private def updateStatus(
     config: SelectiveConfig,
   ): Option[UpdateResult] =
+    val transProb =
+      if (hits + misses) > 10 then hits.toDouble / (hits + misses)
+      else 0.0
     status match
       case TargetFeatureStatus.Noticed =>
-        if chiSqValue < config.demotionThreshold then
+        if transProb < 1 - config.demotionThreshold then
           status = TargetFeatureStatus.Ignored
           Some(UpdateResult.Demoted)
         else None
       case TargetFeatureStatus.Ignored =>
-        if chiSqValue > config.promotionThreshold then
+        if transProb > 1 - config.promotionThreshold then
           status = TargetFeatureStatus.Noticed
           Some(UpdateResult.Promoted)
         else None
@@ -169,14 +172,22 @@ case class TargetFeatureData(
 }
 
 case class SelectiveConfig(
-  promotionThreshold: Double = chiSqDistTable("0.01"),
-  demotionThreshold: Double = chiSqDistTable("0.05"),
+  promotionThreshold: Double = 0.01,
+  demotionThreshold: Double = 0.05,
   maxSensitivity: Int = 2,
   targetTrans: String = "swc",
 ) {
   assert(
-    promotionThreshold > demotionThreshold,
-    "Promotion threshold should be greater than demotion threshold",
+    promotionThreshold < demotionThreshold,
+    "Promotion threshold should be less than demotion threshold",
+  )
+  assert(
+    promotionThreshold >= 0 && promotionThreshold <= 1,
+    "Promotion threshold should be between 0 and 1",
+  )
+  assert(
+    demotionThreshold >= 0 && demotionThreshold <= 1,
+    "Demotion threshold should be between 0 and 1",
   )
   assert(
     maxSensitivity > 0,

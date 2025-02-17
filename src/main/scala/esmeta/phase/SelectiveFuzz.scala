@@ -95,10 +95,9 @@ case object SelectiveFuzz extends Phase[CFG, Coverage] {
     (
       "pro-alpha",
       StrOption((c, k) =>
-        c.proThreshold = chiSqDistTable.getOrElse(
-          k,
+        c.proThreshold = k.toDoubleOption.getOrElse(
           error(
-            "unsupported pro-alpha: use 0.2, 0.1, 0.05, 0.025, 0.01, 0.005, 0.002 or 0.001",
+            "invalid pro-alpha: use a number between 0 and 1",
           ),
         ),
       ),
@@ -107,10 +106,9 @@ case object SelectiveFuzz extends Phase[CFG, Coverage] {
     (
       "dem-alpha",
       StrOption((c, k) =>
-        c.demThreshold = chiSqDistTable.getOrElse(
-          k,
+        c.demThreshold = k.toDoubleOption.getOrElse(
           error(
-            "unsupported dem-alpha: use 0.2, 0.1, 0.05, 0.025, 0.01, 0.005, 0.002 or 0.001",
+            "invalid dem-alpha: use a number between 0 and 1",
           ),
         ),
       ),
@@ -129,7 +127,7 @@ case object SelectiveFuzz extends Phase[CFG, Coverage] {
     var seed: Option[Int] = None,
     var maxK: Int = 2,
     var cp: Boolean = false,
-    var proThreshold: Double = chiSqDistTable("0.01"),
-    var demThreshold: Double = chiSqDistTable("0.05"),
+    var proThreshold: Double = 0.01,
+    var demThreshold: Double = 0.05,
   )
 }
