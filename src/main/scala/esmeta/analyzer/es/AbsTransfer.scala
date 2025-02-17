@@ -40,11 +40,37 @@ trait AbsTransferDecl { analyzer: ESAnalyzer =>
           } yield ())(st)
           call.next.foreach(to => analyzer += getNextNp(np, to) -> newSt)
         case Branch(_, kind, c, thenNode, elseNode) =>
-          ???
+          (for { v <- transfer(c); newSt <- get } yield {
+            if (v.bool.contains(true))
+              thenNode.map(analyzer += getNextNp(np, _) -> newSt)
+            if (v.bool.contains(false))
+              elseNode.map(analyzer += getNextNp(np, _) -> newSt)
+          })(st)
       }
     }
 
-    def apply(rp: ReturnPoint): Unit = ???
+    def apply(rp: ReturnPoint): Unit = {
+      var AbsRet(value, st) = getResult(rp)
+      for {
+        callerNps <- retEdges.get(rp)
+        callerNp @ NodePoint(func, call, view) <- callerNps
+        nextNode <- callerNp.node.next
+      } {
+        val callerSt = callInfo(callerNp)
+        val nextNp = NodePoint(
+          func,
+          nextNode,
+          nextNode match {
+            case br: Branch if br.isLoop => loopEnter(view, br)
+            case _                       => view
+          },
+        )
+        analyzer += nextNp -> st.doReturn(
+          callerSt,
+          call.lhs -> value.opt,
+        )
+      }
+    }
 
     def transfer(
       inst: NormalInst,
@@ -70,10 +96,15 @@ trait AbsTransferDecl { analyzer: ESAnalyzer =>
       case IDelete(base, expr)      => ???
       case IPush(elem, list, front) => ???
       case IPop(lhs, list, front)   => ???
-      case IReturn(expr)            => ???
-      case IAssert(expr)            => pure(())
-      case IPrint(expr)             => ???
-      case INop()                   => ???
+      case inst @ IReturn(expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- doReturn(inst, v)
+          _ <- put(AbsState.Bot)
+        } yield ()
+      case IAssert(expr) => pure(())
+      case IPrint(expr)  => ???
+      case INop()        => ???
     }
 
     def transfer(
@@ -91,12 +122,27 @@ trait AbsTransferDecl { analyzer: ESAnalyzer =>
           rt <- transfer(ref)
           v <- transfer(rt)
         } yield v
-      case EUnary(uop, expr)         => ???
-      case EBinary(bop, left, right) => ???
-      case EVariadic(vop, exprs)     => ???
-      case EMathOp(mop, args)        => ???
-      case EConvert(cop, expr)       => ???
-      case EExists(ref)              => ???
+      case EUnary(uop, expr) =>
+        for {
+          v <- transfer(expr)
+          st <- get
+          newV <- transfer(st, uop, v)
+        } yield newV
+      case EBinary(bop, left, right) =>
+        for {
+          l <- transfer(left)
+          r <- transfer(right)
+          st <- get
+          newV <- transfer(st, bop, l, r)
+        } yield newV
+      case EVariadic(vop, exprs) => ???
+      case EMathOp(mop, args)    => ???
+      case EConvert(cop, expr)   => ???
+      case EExists(ref) =>
+        for {
+          rt <- transfer(ref)
+          v <- get(_.exists(rt))
+        } yield v
       case ETypeOf(base)             => ???
       case EInstanceOf(base, target) => ???
       case ETypeCheck(base, ty)      => ???
@@ -104,9 +150,7 @@ trait AbsTransferDecl { analyzer: ESAnalyzer =>
       case EClo(fname, captured) =>
         cfg.fnameMap.get(fname) match {
           case Some(f) =>
-            for {
-              st <- get
-            } yield AbsValue(
+            for { st <- get } yield AbsValue(
               AClo(f, captured.map(x => x -> st.get(x)).toMap),
             )
           case None =>
@@ -172,13 +216,22 @@ trait AbsTransferDecl { analyzer: ESAnalyzer =>
 
     def transfer(
       st: AbsState,
-      unary: EUnary,
+      uop: UOp,
       operand: AbsValue,
-    )(using np: NodePoint[Node]): AbsValue = ???
+    )(using np: NodePoint[Node]): AbsValue = {
+      import UOp.*
+      given AbsState = st
+      uop match
+        case Neg   => -operand
+        case Not   => !operand
+        case BNot  => ~operand
+        case Abs   => operand.abs
+        case Floor => operand.floor
+    }
 
     def transfer(
       st: AbsState,
-      binary: EBinary,
+      bop: BOp,
       left: AbsValue,
       right: AbsValue,
     )(using np: NodePoint[Node]): AbsValue = ???
@@ -304,5 +357,21 @@ trait AbsTransferDecl { analyzer: ESAnalyzer =>
       val NodePoint(_, callSite, view) = callerNp
       if (irSens) List(view.copy(calls = callSite :: view.calls, loopDepth = 0))
       else List(view)
+
+    /** update return points */
+    def doReturn(
+      irReturn: Return,
+      v: AbsValue,
+    )(using np: NodePoint[Node]): Unit = if (v.nonBottom) {
+      val NodePoint(func, node, view) = np
+      val st = getResult(np)
+      val rp = ReturnPoint(func, getEntryView(view))
+      val newRet = AbsRet(v, st.copy(locals = Map()))
+      val oldRet = getResult(rp)
+      if (!oldRet.value.isBottom && useRepl) Repl.merged = true
+      if (newRet !⊑ oldRet)
+        rpMap += rp -> (oldRet ⊔ newRet)
+        worklist += rp
+    }
   }
 }

@@ -70,7 +70,7 @@ case class Call(
   var next: Option[Node] = None,
 ) extends NodeWithInst {
   setInst(callInst)
-  def lhs: Local = callInst.lhs
+  inline def lhs: Local = callInst.lhs
 }
 
 /** branch nodes */

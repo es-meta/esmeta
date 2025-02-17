@@ -105,6 +105,7 @@ object Math {
     def >(n: Math): Boolean = m.decimal > n.decimal
     def pow(n: Math): Math = Math(m.decimal.pow(n.toInt))
     def unary_- : Math = Math(-m.decimal)
+    def unary_~ : Math = Math(~(m.toInt))
     def toInt: Int = m.decimal.toInt
     def toLong: Long = m.decimal.toLong
     def toDouble: Double = m.decimal.toDouble

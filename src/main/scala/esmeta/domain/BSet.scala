@@ -65,6 +65,11 @@ enum BSet[+T] {
     case Inf      => Inf
     case Fin(set) => Fin(set map f)
 
+  /** conversion function */
+  def to[E: Lattice.Ops](f: T => E)(using lattice: Lattice[E]): E = this match
+    case Inf      => lattice.Top
+    case Fin(set) => set.foldLeft[E](lattice.Bot) { _ ⊔ f(_) }
+
   /** prune operator */
   def --[U >: T](that: BSet[U]): BSet[U] = (this, that) match
     case (_, Inf)         => Fin(Set())

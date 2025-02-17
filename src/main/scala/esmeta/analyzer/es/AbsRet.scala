@@ -9,42 +9,27 @@ import esmeta.domain.*
 trait AbsRetDecl { self: ESAnalyzer =>
 
   case class AbsRet(
-  ) extends Printable[AbsRet] {
+    value: AbsValue = AbsValue.Bot,
+    state: AbsState = AbsState.Bot,
+  ) extends Printable[AbsRet]
 
-    /** top element check */
-    def isTop: Boolean = ???
-
-    /** bottom element check */
-    def isBottom: Boolean = ???
-
-    /** partial order */
-    def ⊑(that: AbsRet): Boolean = ???
-
-    /** join operator */
-    def ⊔(that: AbsRet): AbsRet = ???
-
-    /** meet operator */
-    def ⊓(that: AbsRet): AbsRet = ???
-
-    /** return value */
-    def value: AbsValue = ???
-  }
   object AbsRet
     extends RetDomain
     with Lattice[AbsRet]
     with AbsDomain[Ret, AbsRet] {
 
     /** top element */
-    lazy val Top: AbsRet = ???
+    lazy val Top: AbsRet = AbsRet(AbsValue.Top, AbsState.Top)
 
     /** bottom element */
-    lazy val Bot: AbsRet = ???
+    lazy val Bot: AbsRet = AbsRet()
 
     /** abstraction */
     def alpha(elems: Iterable[Ret]): AbsRet = ???
 
     /** appender */
-    given rule: Rule[AbsRet] = (app, elem) => ???
+    given rule: Rule[AbsRet] = (app, ret) =>
+      app >> ret.value.getString(ret.state)
 
     extension (ret: AbsRet) {
       def value: AbsValue = ret.value
@@ -55,11 +40,11 @@ trait AbsRetDecl { self: ESAnalyzer =>
 
   given Lattice.Ops[AbsRet] with
     extension (x: AbsRet) {
-      def isTop: Boolean = ???
-      def isBottom: Boolean = ???
-      def ⊑(y: AbsRet): Boolean = ???
-      def ⊔(y: AbsRet): AbsRet = ???
-      def ⊓(y: AbsRet): AbsRet = ???
+      def isTop: Boolean = x.value.isTop && x.state.isTop
+      def isBottom: Boolean = x.value.isBottom && x.state.isBottom
+      def ⊑(y: AbsRet): Boolean = (x.value ⊑ y.value) && (x.state ⊑ y.state)
+      def ⊔(y: AbsRet): AbsRet = AbsRet(x.value ⊔ y.value, x.state ⊔ y.state)
+      def ⊓(y: AbsRet): AbsRet = AbsRet(x.value ⊓ y.value, x.state ⊓ y.state)
     }
 
   given AbsDomain.GenericOps[Ret, AbsRet] with

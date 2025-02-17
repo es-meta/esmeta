@@ -1,13 +1,14 @@
 package esmeta.analyzer.es
 
 import esmeta.*
+import esmeta.es.*
 import esmeta.ir.{*, given}
 import esmeta.state.*
 import esmeta.ty.ValueTy
 import esmeta.util.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import esmeta.domain.{*, given}
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** abstract states */
 trait AbsStateDecl { self: ESAnalyzer =>
@@ -77,10 +78,35 @@ trait AbsStateDecl { self: ESAnalyzer =>
       givenTy: ValueTy,
     ): ValueTy = ???
 
-    /** variable existence check */
+    /** existence check */
     def exists(
-      ref: Ref,
-    ): AbsValue = ???
+      rt: AbsRefTarget,
+    ): AbsValue =
+      import AbsRefTarget.*
+      AbsValue(prim = AbsPrimValue(bool = rt match {
+        case AbsId(x)              => exists(x)
+        case AbsField(base, field) => exists(base, field)
+      }))
+
+    /** variable existence check */
+    def exists(x: Var): Flat[Boolean] = x match
+      case x: Global => Flat.Many
+      case x: Local  => locals.getOrElse(x, AbsValue.opt.Absent).exists
+
+    /** field existence check */
+    def exists(
+      base: AbsValue,
+      field: AbsValue,
+    ): Flat[Boolean] = {
+      heap.exists(base.addr, field) ⊔
+      base.ast.flatMap(exists(_, field))
+    }
+
+    /** AST field existence check */
+    def exists(
+      ast: Ast,
+      field: AbsValue,
+    ): Flat[Boolean] = ???
 
     /** expand a field of a record object */
     def expand(
@@ -141,6 +167,24 @@ trait AbsStateDecl { self: ESAnalyzer =>
       part: AddrPart,
       vs: Iterable[AbsValue],
     ): AbsState = ???
+
+    /** handle returns */
+    def doReturn(to: Elem, defs: (Local, AbsValue.opt)*): Elem =
+      doReturn(to, defs)
+
+    /** handle returns */
+    def doReturn(
+      callerSt: AbsState,
+      defs: Iterable[(Local, AbsValue.opt)],
+    ): AbsState = AbsState(
+      reachable = true,
+      locals = callerSt.locals ++ defs,
+      globals = globals,
+      heap = heap.doReturn(callerSt.heap),
+    ).garbageCollected
+
+    /** TODO garbage collection */
+    def garbageCollected: AbsState = this
   }
   object AbsState
     extends StateDomain

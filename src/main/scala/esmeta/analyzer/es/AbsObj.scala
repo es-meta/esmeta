@@ -2,7 +2,7 @@ package esmeta.analyzer.es
 
 import esmeta.state.*
 import esmeta.util.*
-import esmeta.util.Appender.*
+import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import esmeta.domain.{*, given}, BSet.*, Flat.*
 import scala.collection.immutable.VectorMap
@@ -14,6 +14,7 @@ trait AbsObjDecl { self: ESAnalyzer =>
   sealed trait AbsObj extends Printable[AbsObj] {
     import AbsObj.*, AbsValue.opt.Absent
 
+    /** getter */
     def apply(key: AbsValue): AbsValue = this match {
       case record: AbsRecord =>
         key.str.toFlat.to(record(_).value)
@@ -25,11 +26,8 @@ trait AbsObjDecl { self: ESAnalyzer =>
         ???
     }
 
-    def update(
-      key: AbsValue,
-      value: AbsValue,
-      weak: Boolean,
-    ): AbsObj =
+    /** setter */
+    def update(key: AbsValue, value: AbsValue, weak: Boolean): AbsObj =
       val v = if (weak) apply(key) ⊔ value else value
       this match {
         case AbsRecord(tname, fs) =>
@@ -39,6 +37,20 @@ trait AbsObjDecl { self: ESAnalyzer =>
         case AbsMap(m)   => ???
         case AbsList(vs) => ???
         case _           => Bot
+      }
+
+    /** existence check */
+    def exists(field: AbsValue): Flat[Boolean] =
+      this match {
+        case AbsRecord(_, fs) => field.str.toFlat.map(fs.contains)
+        case AbsMap(m) =>
+          import AbsMap.Key.*
+          field.str.toFlat.map(s => m.contains(Str(s))) ⊔
+          field.addr.toFlat.map(a => m.contains(Sym(a)))
+        case AbsList(vs) =>
+          ???
+        case _ =>
+          ???
       }
   }
 
@@ -52,10 +64,22 @@ trait AbsObjDecl { self: ESAnalyzer =>
 
   /** abstract ordered map */
   case class AbsMap(
-    map: VectorMap[AddrPart | String, AbsValue],
+    map: VectorMap[AbsMap.Key, AbsValue],
   ) extends AbsObj {
-    def apply(key: String | AddrPart): AbsValue =
-      map.getOrElse(key, AbsValue.Bot)
+    import AbsMap.Key.*
+    def apply(key: String): AbsValue =
+      map.getOrElse(Str(key), AbsValue.Bot)
+    def apply(key: AddrPart): AbsValue =
+      map.getOrElse(Sym(key), AbsValue.Bot)
+  }
+  object AbsMap {
+    enum Key:
+      case Str(s: String)
+      case Sym(a: AddrPart)
+    given Rule[Key] = (app, key) =>
+      key match
+        case Key.Str(s) => app >> s
+        case Key.Sym(a) => app >> a
   }
 
   /** abstract list */
@@ -69,6 +93,7 @@ trait AbsObjDecl { self: ESAnalyzer =>
 
   object AbsObj extends Lattice[AbsObj] with AbsDomain[Obj, AbsObj] {
     import ManualInfo.tyModel
+    import AbsMap.Key
 
     /** top element */
     lazy val Top: AbsObj = exploded("top abstract heap")
@@ -91,8 +116,8 @@ trait AbsObjDecl { self: ESAnalyzer =>
         )
       case MapObj(map) =>
         AbsMap(VectorMap.from(map.collect {
-          case (Str(s), v)  => s -> AbsValue(v)
-          case (a: Addr, v) => AddrPart(a) -> AbsValue(v)
+          case (Str(s), v)  => Key.Str(s) -> AbsValue(v)
+          case (a: Addr, v) => Key.Sym(AddrPart(a)) -> AbsValue(v)
         }))
       case ListObj(values)    => AbsList(values.map(AbsValue(_)))
       case YetObj(tname, msg) => Bot
@@ -158,12 +183,14 @@ trait AbsObjDecl { self: ESAnalyzer =>
         if (tname != "") app >> "[" >> tname >> "]"
         given Rule[Map[String, Binding]] = sortedMapRule("{", " : ", "}")
         app >> " " >> fs
-      case AbsMap(m) =>
-        ???
+      case AbsMap(map) =>
+        given Rule[Map[AbsMap.Key, AbsValue]] = mapRule("{", " : ", "}")
+        app >> "Map " >> map
       case AbsList(values) =>
         given Rule[Iterable[AbsValue]] = iterableRule("[", ", ", "]")
         app >> values
       case AbsObjBot =>
         app >> "⊥"
   }
+
 }

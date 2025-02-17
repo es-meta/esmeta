@@ -4,7 +4,7 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.domain.*
+import esmeta.domain.{*, given}, BSet.*, Flat.*
 
 /** abstract heaps */
 trait AbsHeapDecl { self: ESAnalyzer =>
@@ -27,6 +27,24 @@ trait AbsHeapDecl { self: ESAnalyzer =>
       field: AbsValue,
       value: AbsValue,
     ): AbsHeap = update(addr)(_.update(field, value, _))
+
+    // update each address partition
+    private def update(addr: AbsAddr)(
+      f: (AbsObj, Boolean) => AbsObj,
+    ): AbsHeap = addr.foldLeft(this) { (heap, part) =>
+      val weak = merged.contains(part)
+      val obj = heap(part)
+      copy(map = map + (part -> f(obj, weak)))
+    }
+
+    /** existence check */
+    def exists(
+      addr: AbsAddr,
+      field: AbsValue,
+    ): Flat[Boolean] = addr.foldLeft[Flat[Boolean]](Zero) {
+      case (Many, _)    => Many
+      case (flat, part) => flat ⊔ apply(part).exists(field)
+    }
 
     /** copy object */
     def copyObj(
@@ -77,14 +95,8 @@ trait AbsHeapDecl { self: ESAnalyzer =>
       case Some(cur) => AbsHeap(map + (part -> (cur ⊔ obj)), merged + part)
     }
 
-    // update each address partition
-    private def update(addr: AbsAddr)(
-      f: (AbsObj, Boolean) => AbsObj,
-    ): AbsHeap = addr.foldLeft(this) { (heap, part) =>
-      val weak = merged.contains(part)
-      val obj = heap(part)
-      copy(map = map + (part -> f(obj, weak)))
-    }
+    /** handle returns */
+    def doReturn(callerSt: AbsHeap): AbsHeap = this
   }
   object AbsHeap extends Lattice[AbsHeap] with AbsDomain[Heap, AbsHeap] {
 
@@ -113,7 +125,8 @@ trait AbsHeapDecl { self: ESAnalyzer =>
         app.wrap {
           map.toList.sortBy(_._1.toString).foreach {
             case (k, v) =>
-              app :> (if (merged contains k) "*" else " ") >> k >> " -> " >> v
+              app :> (if (merged contains k) "[M] " else "[ ] ")
+              app >> k >> " -> " >> v
           }
         }
     }

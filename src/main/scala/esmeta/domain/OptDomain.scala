@@ -3,7 +3,7 @@ package esmeta.domain
 import esmeta.util.Appender.*
 
 /** abstract optional domain */
-class OptDomain[T, E](domain: AbsDomain[T, E])
+class OptDomain[T, E: Lattice.Ops: AbsDomain.Ops[T]](domain: AbsDomain[T, E])
   extends AbsDomain[Option[T], AbsOpt[E]]
   with Lattice[AbsOpt[E]] {
   lazy val Top = AbsOpt(domain.Top, true)
@@ -18,15 +18,24 @@ class OptDomain[T, E](domain: AbsDomain[T, E])
     absent = elems.contains(None),
   )
 }
-case class AbsOpt[E](value: E, absent: Boolean)
+case class AbsOpt[E: Lattice.Ops](value: E, absent: Boolean) {
+  def exists: Flat[Boolean] =
+    var set = Set.empty[Boolean]
+    if (value.nonBottom) set += true
+    if (absent) set += false
+    Flat(set)
+}
 
-given [E]: Lattice.Ops[AbsOpt[E]] with
+given [E: Lattice.Ops]: Lattice.Ops[AbsOpt[E]] with
   extension (x: AbsOpt[E]) {
-    def isTop: Boolean = ???
-    def isBottom: Boolean = ???
-    def ⊑(y: AbsOpt[E]): Boolean = ???
-    def ⊔(y: AbsOpt[E]): AbsOpt[E] = ???
-    def ⊓(y: AbsOpt[E]): AbsOpt[E] = ???
+    def isTop: Boolean = x.value.isTop && x.absent
+    def isBottom: Boolean = x.value.isBottom && !x.absent
+    def ⊑(y: AbsOpt[E]): Boolean =
+      (x.value ⊑ y.value) && (x.absent ⊑ y.absent)
+    def ⊔(y: AbsOpt[E]): AbsOpt[E] =
+      AbsOpt(x.value ⊔ y.value, x.absent ⊔ y.absent)
+    def ⊓(y: AbsOpt[E]): AbsOpt[E] =
+      AbsOpt(x.value ⊓ y.value, x.absent ⊓ y.absent)
   }
 
 given [T, E]: AbsDomain.GenericOps[Option[T], AbsOpt[E]] with

@@ -78,7 +78,13 @@ enum Flat[+T] {
     case One(value) => One(f(value))
     case Zero       => Zero
 
-  /** map function */
+  /** flatMap function */
+  def flatMap[U](f: T => Flat[U]): Flat[U] = this match
+    case Many       => Many
+    case One(value) => f(value)
+    case Zero       => Zero
+
+  /** conversion function */
   def to[E](f: T => E)(using lattice: Lattice[E]): E = this match
     case Many       => lattice.Top
     case One(value) => f(value)

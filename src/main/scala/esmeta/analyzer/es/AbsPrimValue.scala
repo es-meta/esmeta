@@ -181,15 +181,27 @@ trait AbsPrimValueDecl { self: ESAnalyzer =>
         nullv,
       ) = elem
       var first = true
-      def add[T: Rule: Lattice.Ops](x: T): Unit = if (x.nonBottom) {
-        if (first) { first = false; app >> x }
-        else app >> " | " >> x
+      def add[T: Rule: Lattice.Ops](
+        x: T,
+        name: String,
+      ): Unit = if (x.nonBottom) {
+        if (first) first = false else app >> " | "
+        if (x.isTop) app >> name else app >> x
       }
       given [T: Rule]: Rule[Set[T]] = setRule("", " | ", "")
       given [T: Rule]: Rule[BSet[T]] = bsetRule("", " | ", "")
-      add(ast); add(grammarSymbol); add(math); add(infinity); add(enumv);
-      add(codeUnit); add(number); add(bigint); add(str.map("\"" + _ + "\""));
-      add(bool)
+      add(ast, "Ast")
+      add(grammarSymbol, "GrammarSymbol")
+      add(math, "Math")
+      add(infinity, "Infinity")
+      add(enumv, "Enum")
+      add(codeUnit, "CodeUnit")
+      add(number, "Number")
+      add(bigint, "BigInt")
+      add(str.map("\"" + _ + "\""), "String")
+      add(bool, "Boolean")
+      add(undef, "undefined")
+      add(nullv, "null")
       app
     }
   }

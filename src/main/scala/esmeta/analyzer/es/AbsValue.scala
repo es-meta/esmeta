@@ -41,6 +41,20 @@ trait AbsValueDecl { self: ESAnalyzer =>
     inline def undef: Boolean = prim.undef
     inline def nullv: Boolean = prim.nullv
 
+    /** get reachable address partitions */
+    def reachableParts: Set[AddrPart] = {
+      var parts = addr
+      for {
+        AClo(_, captured) <- clo
+        v <- captured.values
+      } parts ++= v.reachableParts
+      for {
+        ACont(_, captured) <- cont
+        v <- captured.values
+      } parts ++= v.reachableParts
+      parts
+    }
+
     /** get lexical result */
     def getLexical(method: String): AbsValue = ???
 
@@ -96,19 +110,35 @@ trait AbsValueDecl { self: ESAnalyzer =>
     def >>>(that: AbsValue)(using AbsState): AbsValue = ???
 
     /** unary negation operation */
-    def unary_-(using AbsState): AbsValue = ???
+    def unary_-(using AbsState): AbsValue = AbsValue(prim =
+      AbsPrimValue(
+        math = math.map(-_),
+        number = number.map(-_),
+        bigint = bigint.map(-_),
+        infinity = infinity.map(!_),
+      ),
+    )
 
     /** unary logical negation operation */
-    def unary_!(using AbsState): AbsValue = ???
+    def unary_!(using AbsState): AbsValue =
+      AbsValue(prim = AbsPrimValue(bool = bool.map(!_)))
 
     /** unary bitwise negation operation */
-    def unary_~(using AbsState): AbsValue = ???
+    def unary_~(using AbsState): AbsValue = AbsValue(prim =
+      AbsPrimValue(
+        math = math.map(n => ~n),
+        number = number.map(n => (~(n.toInt)).toDouble),
+        bigint = bigint.map(~_),
+      ),
+    )
 
     /** absolute operation */
-    def abs(using AbsState): AbsValue = ???
+    def abs(using AbsState): AbsValue =
+      AbsValue(prim = AbsPrimValue(math = math.map(Interpreter.abs)))
 
     /** floor operation */
-    def floor(using AbsState): AbsValue = ???
+    def floor(using AbsState): AbsValue =
+      AbsValue(prim = AbsPrimValue(math = math.map(Interpreter.floor)))
 
     /** type operations */
     def typeOf(using AbsState): AbsValue = ???
@@ -172,7 +202,15 @@ trait AbsValueDecl { self: ESAnalyzer =>
     inline def apply(d: BigDecimal): AbsValue = AbsValue(prim = AbsPrimValue(d))
 
     extension (value: AbsValue) {
-      def getString(state: AbsState): String = ???
+      def getString(st: AbsState): String =
+        val app = new Appender
+        app >> value
+        val parts = value.reachableParts
+        if (parts.nonEmpty)
+          (app >> " @ ").wrap(for (part <- parts.toList.sorted) {
+            app :> part >> " -> " >> st.heap(part)
+          })
+        app.toString
     }
   }
 
