@@ -298,7 +298,7 @@ case class Test262(
     )
     val res = interp.result
     if (tyCheck) {
-      val errors = interp.getTypeErrors
+      val errors = interp.typeErrors
       for { error <- errors } do {
         val updated = totalErrors.getOrElse(error, Set()) + filename
         totalErrors += error -> updated

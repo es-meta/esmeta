@@ -349,7 +349,7 @@ class TyChecker(
   def errors: Set[TypeError] = errorMap.values.toSet
   protected def addError(error: TypeError): Unit =
     errorMap += error.point -> error
-  private var errorMap: Map[TypeErrorPoint, TypeError] = Map()
+  var errorMap: Map[TypeErrorPoint, TypeError] = Map()
 
   /** detected type errors after filtering with ignore set */
   def detected = errors.filter(error => {

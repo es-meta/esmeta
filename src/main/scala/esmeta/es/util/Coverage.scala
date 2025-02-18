@@ -16,6 +16,7 @@ import io.circe.*, io.circe.syntax.*
 /** coverage measurement of cfg */
 case class Coverage(
   cfg: CFG,
+  tyCheck: Boolean = false,
   kFs: Int = 0,
   cp: Boolean = false,
   timeLimit: Option[Int] = None,
@@ -78,7 +79,7 @@ case class Coverage(
   /** evaluate a given ECMAScript program */
   def run(code: String, ast: Ast, name: Option[String]): Interp =
     val initSt = cfg.init.from(code, ast, name)
-    val interp = Interp(initSt, kFs, cp, timeLimit)
+    val interp = Interp(initSt, tyCheck, kFs, cp, timeLimit)
     interp.result; interp
 
   def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
@@ -349,10 +350,11 @@ case class Coverage(
 object Coverage {
   class Interp(
     initSt: State,
+    tyCheck: Boolean,
     kFs: Int,
     cp: Boolean,
     timeLimit: Option[Int],
-  ) extends Interpreter(initSt, timeLimit = timeLimit) {
+  ) extends Interpreter(initSt, tyCheck = tyCheck, timeLimit = timeLimit) {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 

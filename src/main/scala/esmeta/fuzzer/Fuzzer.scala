@@ -25,6 +25,7 @@ import scala.util.*
 object Fuzzer {
   def apply(
     cfg: CFG,
+    tyCheck: Boolean = false,
     log: Boolean = false, // logging mode on/off
     logInterval: Int = 600, // default is 600 s (10 m).
     debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no-debug
@@ -35,9 +36,9 @@ object Fuzzer {
     init: Option[String] = None, // initial pool directory path given by user
     kFs: Int = 0,
     cp: Boolean = false,
-    tyCheck: Boolean = false,
   ): Coverage = new Fuzzer(
     cfg,
+    tyCheck,
     log,
     logInterval,
     debug,
@@ -48,7 +49,6 @@ object Fuzzer {
     init,
     kFs,
     cp,
-    tyCheck,
   ).result
 
   // debugging levels
@@ -60,6 +60,7 @@ object Fuzzer {
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   cfg: CFG,
+  tyCheck: Boolean,
   log: Boolean,
   logInterval: Int,
   debug: Int,
@@ -70,7 +71,6 @@ class Fuzzer(
   init: Option[String],
   kFs: Int,
   cp: Boolean,
-  tyCheck: Boolean,
 ) {
   import Fuzzer.*
 
@@ -97,7 +97,7 @@ class Fuzzer(
         cfg = cfg,
       )
       tychecker.analyze
-      em.init(tychecker.errors)
+      em.init(tychecker.errorMap)
 
     time(
       s"- initializing program pool with ${initPool.size} programs", {
@@ -212,10 +212,13 @@ class Fuzzer(
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
 
-    if (tyCheck) em.addRuntimeErrors(interp.getTypeErrors, code)
+    if (tyCheck)
+      em.addRuntimeErrors(interp.typeErrors, code)
+      em.check(interp.touchedNodeViews, interp.typeErrors, code)
 
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
+
     covered
   })
 
@@ -263,6 +266,7 @@ class Fuzzer(
   /** coverage */
   val cov: Coverage = Coverage(
     cfg,
+    tyCheck,
     kFs,
     cp,
     timeLimit,
@@ -379,10 +383,11 @@ class Fuzzer(
       "time(ms)",
       "time(h:m:s)",
       "total(#)",
-      "root(#)",
+      // "root(#)",
       "pending(#)",
       "verified(#)",
       "discovered(#)",
+      "reachedWithoutError(#)",
     )
     addRow(header, tycheckSummaryTsv)
 
@@ -419,11 +424,12 @@ class Fuzzer(
 
     if (tyCheck)
       val te = em.totalError.size
-      val re = em.rootError.size
+      // val re = em.rootError.size
       val pe = em.pendingError.size
       val ve = em.verifiedError.size
       val de = em.discoveredError.size
-      val errorRow = Vector(iter, e, t, te, re, pe, ve, de)
+      val rwe = em.reachedWithOutError.size
+      val errorRow = Vector(iter, e, t, te, pe, ve, de, rwe)
       addRow(errorRow, tycheckSummaryTsv)
       em.dump(s"$logDir/tycheck")
 

@@ -30,15 +30,16 @@ case object Fuzz extends Phase[CFG, Coverage] {
     // run the fuzzer to get the coverage information
     val cov = Fuzzer(
       cfg = cfg,
+      tyCheck = config.tyCheck,
       log = config.log,
       logInterval = config.logInterval,
       debug = config.debug,
       timeLimit = config.timeLimit,
       trial = config.trial,
       duration = config.duration,
+      init = config.init,
       kFs = config.kFs,
       cp = config.cp,
-      tyCheck = config.tyCheck,
     )
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
@@ -48,6 +49,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
+    (
+      "tyCheck",
+      BoolOption((c, b) => c.tyCheck = b),
+      "turn on the typecheck mode (default: false).",
+    ),
     (
       "log",
       BoolOption((c, b) => c.log = b),
@@ -107,13 +113,9 @@ case object Fuzz extends Phase[CFG, Coverage] {
       NumOption((c, k) => c.kFs = k),
       "set the k-value for feature sensitivity (default: 0).",
     ),
-    (
-      "tyCheck",
-      BoolOption((c, b) => c.tyCheck = b),
-      "turn on the typecheck mode (default: false).",
-    ),
   )
   case class Config(
+    var tyCheck: Boolean = false,
     var log: Boolean = false,
     var logInterval: Int = 600,
     var out: Option[String] = None,
@@ -125,6 +127,5 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var init: Option[String] = None,
     var kFs: Int = 0,
     var cp: Boolean = false,
-    var tyCheck: Boolean = false,
   )
 }

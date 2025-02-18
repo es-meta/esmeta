@@ -57,7 +57,7 @@ case object Eval extends Phase[CFG, State] {
     )
     val res = interp.result
     if (config.tyCheck) {
-      val errors = interp.getTypeErrors
+      val errors = interp.typeErrors
       if (config.multiple) {
         for { error <- errors } do {
           val updated = totalErrors.getOrElse(error, Set()) + filename
