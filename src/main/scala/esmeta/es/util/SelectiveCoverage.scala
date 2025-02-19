@@ -25,6 +25,7 @@ class SelectiveCoverage(
   timeLimit: Option[Int] = None,
   cp: Boolean = false,
   selectiveConfig: SelectiveConfig,
+  fixed: Boolean = false,
 ) extends Coverage(
     timeLimit,
     selectiveConfig.maxSensitivity,
@@ -44,16 +45,21 @@ class SelectiveCoverage(
     val Script(code, name) = script
     val codeWithUseStrict = USE_STRICT + code + LINE_SEP
     val isTranspilerHitFuture = Future {
-      selectiveConfig.targetTrans match
-        case "swc" =>
-          JSTrans.checkTranspileDiffSrvOpt(codeWithUseStrict, Some("swc"))
-        case "babel" =>
-          JSTrans.checkTranspileDiffSrvOpt(codeWithUseStrict, Some("babel"))
-        case "terser" =>
-          JSTrans.checkTranspileDiffSrvOpt(codeWithUseStrict, Some("terser"))
-        case "swcES2015" =>
-          JSTrans.checkTranspileDiffSrvOpt(codeWithUseStrict, Some("swcES2015"))
-        case _ => None
+      if fixed then None
+      else
+        selectiveConfig.targetTrans match
+          case "swc" =>
+            JSTrans.checkTranspileDiffSrvOpt(codeWithUseStrict, Some("swc"))
+          case "babel" =>
+            JSTrans.checkTranspileDiffSrvOpt(codeWithUseStrict, Some("babel"))
+          case "terser" =>
+            JSTrans.checkTranspileDiffSrvOpt(codeWithUseStrict, Some("terser"))
+          case "swcES2015" =>
+            JSTrans.checkTranspileDiffSrvOpt(
+              codeWithUseStrict,
+              Some("swcES2015"),
+            )
+          case _ => None
     }
 
     val initSt =
@@ -162,5 +168,64 @@ class SelectiveCoverage(
       space = true,
     )
     log("dumped target feature set")
+
+}
+
+object SelectiveCoverage {
+
+  def filterMinimals(baseDir: String, targetDir: String): Unit =
+    val jsonProtocol = JsonProtocol(cfg)
+    import jsonProtocol.given
+
+    def rj[T](json: String)(implicit decoder: Decoder[T]) =
+      readJson[T](s"$baseDir/$json")
+
+    val con: CoverageConstructor = rj(s"constructor.json")
+
+    val targetFeatSet = TargetFeatureSet.fromDir(baseDir)
+    val proAlpha = 0.001
+    val demAlpha = 0.005
+    val newTFS = targetFeatSet.copy(
+      config = targetFeatSet.config.copy(
+        promotionThreshold = proAlpha,
+        demotionThreshold = demAlpha,
+      ),
+      targetFeatureMap = targetFeatSet.targetFeatureMap.map {
+        case (k, v) =>
+          k -> v.copy(status =
+            if (v.hits + v.misses > 10) then
+              if (v.hits.toDouble / (v.hits + v.misses) > 1 - proAlpha)
+                TargetFeatureStatus.Noticed
+              else TargetFeatureStatus.Ignored
+            else TargetFeatureStatus.Ignored,
+          )
+      },
+    )
+
+    val cov = new SelectiveCoverage(
+      timeLimit = con.timeLimit,
+      cp = con.cp,
+      selectiveConfig = newTFS.config,
+      fixed = true,
+    )
+    cov.targetFeatSet = newTFS
+
+    import esmeta.util.ProgressBar
+
+    val progress = ProgressBar(
+      msg = "Filter minimals",
+      iterable = listFiles(s"$baseDir/minimal"),
+    )
+
+    for (minimal <- progress) {
+      val name = minimal.getName
+      val code = readFile(minimal.getPath).drop(USE_STRICT.length).trim
+      val script = Script(code, name)
+
+      cov.runAndCheck(script)
+    }
+    cov.dumpToWithDetail(targetDir)
+
+    println(s"Number of filtered minimals: ${cov.minimalScripts.size}")
 
 }

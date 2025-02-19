@@ -14,6 +14,7 @@ import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 import java.util.concurrent.atomic.AtomicInteger
 import math.Ordering.Implicits.seqOrdering
+import esmeta.ty.PureValueTopTy.number
 
 /** coverage measurement in CFG */
 class Coverage(
@@ -573,4 +574,114 @@ object Coverage {
     // TODO: Recover target conds
 
     cov
+
+  def countTRIntersection(
+    baseDir1: String,
+    baseDir2: String,
+  ): Unit = {
+    import io.circe.*, io.circe.generic.semiauto.*
+    import io.circe.syntax.*
+    val jsonProtocol = JsonProtocol(cfg)
+    import jsonProtocol.given
+
+    type IntView = Option[(List[Int], Int, Option[List[Int]])]
+    case class IntNodeView(node: Int, view: IntView)
+    case class IntBranch(branch: Int)
+    case class IntAbrupt(abrupt: Int)
+    case class IntCond(elem: IntBranch | IntAbrupt, cond: Boolean)
+    case class IntCondView(cond: IntCond, view: IntView)
+    case class IntNodeViewInfo(
+      index: Int,
+      nodeView: IntNodeView,
+      script: String,
+    )
+    case class IntCondViewInfo(
+      index: Int,
+      condView: IntCondView,
+      script: String,
+    )
+
+    given intNodeViewInfoDecoder: Decoder[IntNodeViewInfo] = deriveDecoder
+    given intBranchDecoder: Decoder[IntBranch] = deriveDecoder
+    given intAbruptDecoder: Decoder[IntAbrupt] = deriveDecoder
+    given intCondElemDecoder: Decoder[IntBranch | IntAbrupt] =
+      new Decoder[IntBranch | IntAbrupt] {
+        def apply(c: HCursor): Decoder.Result[IntBranch | IntAbrupt] =
+          val intBranchOpt = (for {
+            obj <- c.value.asObject
+            branch <- obj("branch")
+            number <- branch.asNumber
+            id <- number.toInt
+          } yield IntBranch(id))
+          val intAbruptOpt = (for {
+            obj <- c.value.asObject
+            abrupt <- obj("abrupt")
+            number <- abrupt.asNumber
+            id <- number.toInt
+          } yield IntAbrupt(id))
+          intBranchOpt
+            .orElse(intAbruptOpt)
+            .toRight(DecodingFailure("IntCondElem", c.history))
+      }
+    given intCondViewInfoDecoder: Decoder[IntCondViewInfo] = deriveDecoder
+
+    def rj1[T](json: String)(implicit decoder: Decoder[T]) =
+      readJson[T](s"$baseDir1/$json")
+
+    def rj2[T](json: String)(implicit decoder: Decoder[T]) =
+      readJson[T](s"$baseDir2/$json")
+
+    def findNodeChunkFiles(baseDir: String): List[String] =
+      listFiles(baseDir)
+        .filter(_.getName.startsWith("node-coverage-chunks"))
+        .map(_.getName())
+        .sorted
+
+    def findCondChunkFiles(baseDir: String): List[String] =
+      listFiles(baseDir)
+        .filter(_.getName.startsWith("branch-coverage-chunks"))
+        .map(_.getName())
+        .sorted
+
+    val nodeViewInfos1: Vector[IntNodeViewInfo] = findNodeChunkFiles(baseDir1)
+      .flatMap(rj1[Vector[IntNodeViewInfo]](_))
+      .toVector
+    println(s"Read ${nodeViewInfos1.size} node view infos from $baseDir1")
+
+    val nodeViewInfos2: Vector[IntNodeViewInfo] = findNodeChunkFiles(baseDir2)
+      .flatMap(rj2[Vector[IntNodeViewInfo]](_))
+      .toVector
+    println(s"Read ${nodeViewInfos2.size} node view infos from $baseDir2")
+
+    val condViewInfos1: Vector[IntCondViewInfo] = findCondChunkFiles(baseDir1)
+      .flatMap(rj1[Vector[IntCondViewInfo]](_))
+      .toVector
+    println(s"Read ${condViewInfos1.size} cond view infos from $baseDir1")
+
+    val condViewInfos2: Vector[IntCondViewInfo] = findCondChunkFiles(baseDir2)
+      .flatMap(rj2[Vector[IntCondViewInfo]](_))
+      .toVector
+    println(s"Read ${condViewInfos2.size} cond view infos from $baseDir2")
+
+    val nodeViewSet1 = nodeViewInfos1.map(_.nodeView).toSet
+    val nodeViewSet2 = nodeViewInfos2.map(_.nodeView).toSet
+    val nodeViewIntersect = nodeViewSet1.intersect(nodeViewSet2)
+
+    val condViewSet1 = condViewInfos1.map(_.condView).toSet
+    val condViewSet2 = condViewInfos2.map(_.condView).toSet
+    val condViewIntersect = condViewSet1.intersect(condViewSet2)
+
+    val tr1 = nodeViewSet1.size + condViewSet1.size
+    val tr2 = nodeViewSet2.size + condViewSet2.size
+    val trIntersect = nodeViewIntersect.size + condViewIntersect.size
+
+    println(s"|TR1| = $tr1")
+    println(s"|TR2| = $tr2")
+    println(s"|TR1 ∩ TR2| = $trIntersect")
+    println(s"|TR1 - TR2| = ${tr1 - trIntersect}")
+    println(s"|TR2 - TR1| = ${tr2 - trIntersect}")
+
+    println(condViewIntersect.take(10))
+
+  }
 }
