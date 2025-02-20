@@ -2,9 +2,12 @@ package esmeta
 package ty
 package util
 
+import esmeta.lang.Syntax
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.spec
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
+import esmeta.spec.Spec
 
 object JsonProtocol extends BasicJsonProtocol {
   private val stringifier = TyElem.getStringifier(false, false)
@@ -40,5 +43,39 @@ object JsonProtocol extends BasicJsonProtocol {
   given fmeEnc: Encoder[Binding] = encoderWithStringifier(stringify)
 
   // TODO: type errors
+
   // TODO: type error points
+  given typeErrorPointEncoder: Encoder[TypeErrorPoint] =
+    Encoder.instance {
+      case a @ ArgAssignPoint(CallPoint(caller, callsite, callee), idx) =>
+        Json.obj(
+          "target" -> callsite.id.asJson,
+          "caller" -> caller.name.asJson,
+          "callee" -> callee.name.asJson,
+          "param" -> a.param.lhs.name.asJson,
+          "location" -> stringify(callsite.callInst.langOpt).trim().asJson
+        )
+      case InternalReturnPoint(func, node, irReturn) =>
+        Json.obj(
+          "target" -> node.id.asJson,
+          "caller" -> func.name.asJson,
+          "callee" -> "".asJson,
+          "param" -> "".asJson,
+          "location" -> stringify(irReturn.langOpt).trim().asJson
+        )
+      case _ => Json.obj("Todo" -> "Todo".asJson)
+    }
+
+  given Encoder[TypeError] =
+    Encoder.instance {
+      case error @ ParamTypeMismatch(point, argTy) =>
+        Json.obj(
+          "type" -> error.getClass.getSimpleName.asJson,
+        ).deepMerge(typeErrorPointEncoder(point))
+      case error @ ReturnTypeMismatch(point, retTy) =>
+        Json.obj(
+          "type" -> error.getClass.getSimpleName.asJson,
+        ).deepMerge(typeErrorPointEncoder(point))
+      case _ => Json.obj("Todo" -> "Todo".asJson)
+    }
 }

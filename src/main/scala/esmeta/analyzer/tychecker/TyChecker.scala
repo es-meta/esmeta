@@ -10,6 +10,8 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import io.circe.*
+import esmeta.ty.util.JsonProtocol
 
 /** specification type analyzer for ECMA-262 */
 class TyChecker(
@@ -35,6 +37,8 @@ class TyChecker(
 
   val tyStringifier = TyElem.getStringifier(false, false)
   import tyStringifier.given
+  val jsonProtocol = JsonProtocol
+  import jsonProtocol.{*, given}
 
   npMap = getInitNpMap(targetFuncs)
 
@@ -138,6 +142,13 @@ class TyChecker(
         .mkString(LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/counter",
       silent = silent,
+    )
+    dumpJson(
+      name = "detected type errors json",
+      data = errors,
+      filename = s"$ANALYZE_LOG_DIR/errors.json",
+      silent = false,
+      noSpace = false,
     )
     dumpFile(
       name = "detected type errors",

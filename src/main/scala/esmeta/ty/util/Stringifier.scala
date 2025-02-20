@@ -365,7 +365,7 @@ class Stringifier(
         app >> "binary operation (" >> binary.bop >> ") in " >> func.name
         app >> binary
 
-  private val addLocRule: Rule[Option[Syntax]] = (app, opt) =>
+  given addLocRule: Rule[Option[Syntax]] = (app, opt) =>
     for {
       syntax <- opt
       loc <- syntax.loc
