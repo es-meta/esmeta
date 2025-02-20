@@ -11,6 +11,7 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.util.ManualInfo.tpAlarms
 import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
@@ -78,6 +79,9 @@ class Fuzzer(
 
   /** generated ECMAScript programs */
   lazy val result: Coverage = {
+    if (tyCheck)
+      TypeErrorDB.init()
+      TypeErrorDB.add(tpAlarms)
     if (log) {
       // start logging
       mkdir(logDir, remove = true)
@@ -106,6 +110,7 @@ class Fuzzer(
     println(s"- the initial program pool consists of ${pool.size} programs.")
     time(
       "- repeatedly trying to fuzz new programs to increase coverage", {
+        if (tyCheck) TypeErrorDB.update(cov)
         if (log) {
           startTime = System.currentTimeMillis
           startInterval = System.currentTimeMillis
@@ -335,15 +340,10 @@ class Fuzzer(
       "node(#)",
       "branch(#)",
     )
-    if (kFs > 0) header ++= Vector(s"sens-node(#)", s"sens-branch(#)")
+    if (kFs > 0) header ++= Vector("sens-node(#)", "sens-branch(#)")
     header ++= Vector("target-conds(#)")
-    if (kFs > 0) header ++= Vector(s"sens-target-conds(#)")
-    if (tyCheck)
-      header ++= Vector(
-        s"detected-true-positive(#)",
-        s"detected-false-negative(#)",
-        s"trigger-failure(#)",
-      )
+    if (kFs > 0) header ++= Vector("sens-target-conds(#)")
+    if (tyCheck) header ++= Vector("pending(#)", "verified(#)", "discovered(#)")
     addRow(header)
   private def genStatHeader(keys: List[String], nf: PrintWriter) =
     var header1 = Vector("iter(#)")
@@ -380,24 +380,20 @@ class Fuzzer(
     val bv = cov.branchViewCov
     val tc = cov.targetCondViews.size
     val tcv = cov.targetCondViews.map(_._2.size).fold(0)(_ + _)
-    val detected = cov.errorMap.values.fold(Set.empty)(_ ++ _)
-    // !TODO: Parse error-logs(String) to Set[TypeError] then use it for the following
-    // val dtp = (detected intersect known).size
-    // val dfn = detected.size - dtp
-    // val tf: Int = (known diff detected)
-    //   .map(_.point.node)
-    //   .filter(cov.apply(_).nonEmpty)
-    //   .size
+    val p = TypeErrorDB.pending.size
+    val v = TypeErrorDB.verified.size
+    val d = TypeErrorDB.discovered.size
     var row = Vector(iter, e, t, visited.size, pool.size, n, b)
     if (kFs > 0) row ++= Vector(nv, bv)
     row ++= Vector(tc)
     if (kFs > 0) row ++= Vector(tcv)
-    // if (tyCheck) row ++= Vector(dtp, dfn, tf)
+    if (tyCheck) row ++= Vector(p, v, d)
     addRow(row)
-    // dump coveragge
+    // dump coverage
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
+    TypeErrorDB.dump(logDir)
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")

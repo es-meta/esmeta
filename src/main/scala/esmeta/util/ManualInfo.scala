@@ -5,6 +5,7 @@ import esmeta.analyzer.tychecker.TyChecker.Ignore
 import esmeta.spec.Spec
 import esmeta.test262.util.ManualConfig
 import esmeta.ty.*
+import esmeta.fuzzer.TypeErrorRecord
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.File
@@ -47,6 +48,10 @@ object ManualInfo {
     readJson[List[String]](s"$MANUALS_DIR/test262/yet-categorized.json"),
     readJson[List[String]](s"$MANUALS_DIR/test262/supported-features.json"),
   )
+
+  /** get manually classified TP from analyzer alarms */
+  // !TODO: Read JSON (JSONProtocol)
+  lazy val tpAlarms: Set[TypeErrorRecord] = ???
 
   /** find all files in the manual directory with a filter */
   private def getFiles(filter: String => Boolean): List[File] = (for {

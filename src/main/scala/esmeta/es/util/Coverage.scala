@@ -130,7 +130,7 @@ case class Coverage(
         touchedNodeViews.keys,
         touchedCondViews.keys,
       )
-      _errorMap += script.name -> interp.errors
+      _errorMap += script.code -> interp.errors
 
     // TODO: impl checkWithBlocking using `blockingScripts`
     (finalSt, updated, covered)
@@ -241,18 +241,6 @@ case class Coverage(
         filename = s"$baseDir/unreach-funcs",
       )
       log("dumped unreachable functions")
-    if (tyCheck)
-      // !TODO: Minimize error message
-      dumpJson(
-        name = "minimal detected type errors",
-        data = _errorMap
-          .filter(_._2.nonEmpty)
-          .map((name, errors) => name -> errors.map(_.toString))
-          .asJson,
-        filename = s"$baseDir/minimal-errors.json",
-        noSpace = false,
-      )
-      log("Dumped type errors")
   }
 
   /** conversion to string */
