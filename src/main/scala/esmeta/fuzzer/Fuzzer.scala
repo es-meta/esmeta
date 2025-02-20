@@ -18,7 +18,6 @@ import java.util.concurrent.TimeoutException
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.*
-import scala.collection.immutable.Map
 
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer {
@@ -244,13 +243,7 @@ class Fuzzer(
     ).asJson
 
   /** coverage */
-  val cov: Coverage = Coverage(
-    cfg,
-    tyCheck,
-    kFs,
-    cp,
-    timeLimit,
-  )
+  val cov: Coverage = Coverage(cfg, tyCheck, kFs, cp, timeLimit)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
