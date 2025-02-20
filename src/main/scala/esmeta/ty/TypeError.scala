@@ -4,6 +4,25 @@ import esmeta.cfg.*
 import esmeta.ir.{Func => _, *}
 import esmeta.util.*
 
+type DBRowKind = "ParamTypeMismatch" | "ReturnTypeMismatch"
+type DBRowSource = "adv-ty-refine" | "test262" | "fuzzer"
+case class DBRow(
+  id: Int,
+  kind: DBRowKind,
+  target: Int,
+  hash: String,
+  caller: String,
+  callee: Option[String],
+  param: Option[String],
+  location: Option[String],
+  source: DBRowSource,
+  poc: Option[String],
+  notSupported: Option[Boolean],
+  notFized: Option[Boolean],
+) {
+  // ToDo : custom equality overriding
+}
+
 /** type errors in specification */
 sealed trait TypeError extends TyElem {
   val point: TypeErrorPoint

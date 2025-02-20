@@ -43,8 +43,40 @@ object JsonProtocol extends BasicJsonProtocol {
   given fmeEnc: Encoder[Binding] = encoderWithStringifier(stringify)
 
   // TODO: type errors
+  given Encoder[TypeError] =
+    Encoder.instance {
+      case error @ ParamTypeMismatch(point, argTy) =>
+        Json
+          .obj(
+            "type" -> error.getClass.getSimpleName.asJson,
+          )
+          .deepMerge(typeErrorPointEncoder(point))
+      case error @ ReturnTypeMismatch(point, retTy) =>
+        Json
+          .obj(
+            "type" -> error.getClass.getSimpleName.asJson,
+          )
+          .deepMerge(typeErrorPointEncoder(point))
+      case _ => Json.obj("Todo" -> "Todo".asJson)
+    }
 
   // TODO: type error points
+  given Decoder[DBRowSource] = Decoder.decodeString.emap {
+    case "adv-ty-refine" => Right("adv-ty-refine")
+    case "test262"       => Right("test262")
+    case "fuzzer"        => Right("fuzzer")
+    case other           => Left(s"Invalid DBRowSource: $other")
+  }
+  given Encoder[DBRowSource] = Encoder.encodeString.contramap(_.toString)
+  given Decoder[DBRowKind] = Decoder.decodeString.emap {
+    case "ParamTypeMismatch"  => Right("ParamTypeMismatch")
+    case "ReturnTypeMismatch" => Right("ReturnTypeMismatch")
+    case other                => Left(s"Invalid DBRowKind: $other")
+  }
+  given Encoder[DBRowKind] = Encoder.encodeString.contramap(_.toString)
+  given Decoder[DBRow] = deriveDecoder
+  given Encoder[DBRow] = deriveEncoder
+
   given typeErrorPointEncoder: Encoder[TypeErrorPoint] =
     Encoder.instance {
       case a @ ArgAssignPoint(CallPoint(caller, callsite, callee), idx) =>
@@ -63,23 +95,6 @@ object JsonProtocol extends BasicJsonProtocol {
           "param" -> "".asJson,
           "location" -> stringify(irReturn.langOpt).trim().asJson,
         )
-      case _ => Json.obj("Todo" -> "Todo".asJson)
-    }
-
-  given Encoder[TypeError] =
-    Encoder.instance {
-      case error @ ParamTypeMismatch(point, argTy) =>
-        Json
-          .obj(
-            "type" -> error.getClass.getSimpleName.asJson,
-          )
-          .deepMerge(typeErrorPointEncoder(point))
-      case error @ ReturnTypeMismatch(point, retTy) =>
-        Json
-          .obj(
-            "type" -> error.getClass.getSimpleName.asJson,
-          )
-          .deepMerge(typeErrorPointEncoder(point))
       case _ => Json.obj("Todo" -> "Todo".asJson)
     }
 }

@@ -8,52 +8,53 @@ import scala.collection.mutable.{Set => MSet, Map => MMap}
 import esmeta.cfg.{Func, Node}
 import esmeta.util.SystemUtils.*
 import io.circe.generic.auto._
+import esmeta.ty.util.JsonProtocol
 import esmeta.util.BaseUtils.*
 import esmeta.es.util.Coverage
 import esmeta.cfg.Call
 import esmeta.spec.Spec
 
-case class DBRow (
-  id: Int,
-  kind: "ParamTypeMismatch" | "ReturnTypeMismatch",
-  target: Int,
-  hash: String,
-  caller: String,
-  callee: Option[String],
-  param : Option[String],
-  location: Option[String],
-  source: "adv-ty-refine" | "test262" | "fuzzer",
-  poc: Option[String],
-  notSupported: Option[Boolean],
-  notFized : Option[Boolean],
-) {
-  // ToDo : custom equality overriding
-}
-
 class TypeErrorDB() {
   private val stringifier = TyElem.getStringifier(false, false)
   import stringifier.given
+  private val jsonProtocol = JsonProtocol
+  import jsonProtocol.{*, given}
 
-  val _db : MSet[DBRow] = MSet.empty
+  var _db: MSet[DBRow] = MSet.empty
 
-  def init : Unit = ??? // ToDo : read error tsv(json)
+  def init: Unit =
+    val tmpDb = readJson[List[DBRow]](
+      "???/errorDB.json",
+    )
+    _db = MSet.from(tmpDb)
 
-  def update(coverage : Coverage) : Unit = addError(coverage.errorMap)
-    
-  def addError(errorMap : Map[String, Set[TypeError]]) : Unit = 
+  def update(coverage: Coverage): Unit = addError(coverage.errorMap)
+
+  def addError(errorMap: Map[String, Set[TypeError]]): Unit =
     for {
       (poc, typeErrorSet) <- errorMap
       typeError <- typeErrorSet
     }
       addError(poc, typeError)
 
-  def addError(poc : String, error : TypeError) : Unit = 
+  def addError(poc: String, error: TypeError): Unit =
     // ToDo : contain check
-    _db += convertTypeError(error,poc)
-    
+    _db += convertTypeError(error, poc)
 
-  def convertTypeError(error : TypeError, poc : String) : DBRow = error match
-    case ParamTypeMismatch(aap @ ArgAssignPoint(CallPoint(caller, callsite, callee),_), argTy) =>
+  def dumpError: Unit =
+    dumpJson(
+      name = "error database",
+      data = _db.toList.sortBy(_.id),
+      filename = "errorDB.json",
+      noSpace = false,
+      silent = false,
+    )
+
+  def convertTypeError(error: TypeError, poc: String): DBRow = error match
+    case ParamTypeMismatch(
+          aap @ ArgAssignPoint(CallPoint(caller, callsite, callee), _),
+          argTy,
+        ) =>
       DBRow(
         _db.size + 1,
         "ParamTypeMismatch",
@@ -68,7 +69,10 @@ class TypeErrorDB() {
         None,
         None,
       )
-    case ReturnTypeMismatch(irp @ InternalReturnPoint(func, node, irReturn), retTy) =>
+    case ReturnTypeMismatch(
+          irp @ InternalReturnPoint(func, node, irReturn),
+          retTy,
+        ) =>
       DBRow(
         _db.size + 1,
         "ReturnTypeMismatch",
@@ -84,8 +88,6 @@ class TypeErrorDB() {
         None,
       )
     case _ => esmeta.util.BaseUtils.error("[TypeErrorDB] wtf")
-  
-  
 
   // def init(analyzerErrorMap: Map[TypeErrorPoint, TypeError]) =
   //   this.analyzerErrorMap = analyzerErrorMap
