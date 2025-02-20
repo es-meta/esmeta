@@ -53,7 +53,7 @@ object JsonProtocol extends BasicJsonProtocol {
           "caller" -> caller.name.asJson,
           "callee" -> callee.name.asJson,
           "param" -> a.param.lhs.name.asJson,
-          "location" -> stringify(callsite.callInst.langOpt).trim().asJson
+          "location" -> stringify(callsite.callInst.langOpt).trim().asJson,
         )
       case InternalReturnPoint(func, node, irReturn) =>
         Json.obj(
@@ -61,7 +61,7 @@ object JsonProtocol extends BasicJsonProtocol {
           "caller" -> func.name.asJson,
           "callee" -> "".asJson,
           "param" -> "".asJson,
-          "location" -> stringify(irReturn.langOpt).trim().asJson
+          "location" -> stringify(irReturn.langOpt).trim().asJson,
         )
       case _ => Json.obj("Todo" -> "Todo".asJson)
     }
@@ -69,13 +69,17 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[TypeError] =
     Encoder.instance {
       case error @ ParamTypeMismatch(point, argTy) =>
-        Json.obj(
-          "type" -> error.getClass.getSimpleName.asJson,
-        ).deepMerge(typeErrorPointEncoder(point))
+        Json
+          .obj(
+            "type" -> error.getClass.getSimpleName.asJson,
+          )
+          .deepMerge(typeErrorPointEncoder(point))
       case error @ ReturnTypeMismatch(point, retTy) =>
-        Json.obj(
-          "type" -> error.getClass.getSimpleName.asJson,
-        ).deepMerge(typeErrorPointEncoder(point))
+        Json
+          .obj(
+            "type" -> error.getClass.getSimpleName.asJson,
+          )
+          .deepMerge(typeErrorPointEncoder(point))
       case _ => Json.obj("Todo" -> "Todo".asJson)
     }
 }

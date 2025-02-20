@@ -92,12 +92,7 @@ class Fuzzer(
       if (tyCheck) genTyCheckSummaryHeader
     }
 
-    if (tyCheck)
-      val tychecker = TyChecker(
-        cfg = cfg,
-      )
-      tychecker.analyze
-      em.init(tychecker.errorMap)
+    if (tyCheck) db.init
 
     time(
       s"- initializing program pool with ${initPool.size} programs", {
@@ -212,18 +207,20 @@ class Fuzzer(
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
 
-    if (tyCheck)
-      em.addRuntimeErrors(interp.typeErrors, code)
-      em.check(interp.touchedNodeViews, interp.typeErrors, code)
+    // if (tyCheck)
+    //   em.addRuntimeErrors(interp.typeErrors, code)
+    //   em.check(interp.touchedNodeViews, interp.typeErrors, code)
 
     val (_, updated, covered) = cov.check(script, interp)
+
+    if (tyCheck) db.update(cov)
     if (!updated) fail("NO UPDATE")
 
     covered
   })
 
   /** handle type mismatch errors */
-  val em = new TypeErrorManager()
+  val db = new TypeErrorDB()
 
   /** handle add result */
   def handleResult(result: Try[Boolean]): Boolean = {
@@ -423,18 +420,19 @@ class Fuzzer(
     addRow(row)
 
     if (tyCheck)
-      val te = em.totalError.size
-      // val re = em.rootError.size
-      val pe = em.pendingError.size
-      val ve = em.verifiedError.size
-      val de = em.discoveredError.size
-      val rwe = em.reachedWithOutError.size
-      val errorRow = Vector(iter, e, t, te, pe, ve, de, rwe)
-      addRow(errorRow, tycheckSummaryTsv)
-      em.dump(s"$logDir/tycheck")
+      // ToDo dump tsv
+      // val te = em.totalError.size
+      // // val re = em.rootError.size
+      // val pe = em.pendingError.size
+      // val ve = em.verifiedError.size
+      // val de = em.discoveredError.size
+      // val rwe = em.reachedWithOutError.size
+      // val errorRow = Vector(iter, e, t, te, pe, ve, de, rwe)
+      // addRow(errorRow, tycheckSummaryTsv)
+      // em.dump(s"$logDir/tycheck")
 
-    // dump coveragge
-    cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
+      // dump coveragge
+      cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
 

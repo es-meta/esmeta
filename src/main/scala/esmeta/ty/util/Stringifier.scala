@@ -316,13 +316,7 @@ class Stringifier(
       case ParamTypeMismatch(point, argTy) =>
         app :> "- expected: " >> point.param.ty
         app :> "- actual  : " >> argTy
-      case DetailedParamTypeMismatch(point, argTy, _) =>
-        app :> "- expected: " >> point.param.ty
-        app :> "- actual  : " >> argTy
       case ReturnTypeMismatch(point, retTy) =>
-        app :> "- expected: " >> point.func.retTy
-        app :> "- actual  : " >> retTy
-      case DetailedReturnTypeMismatch(point, retTy, _) =>
         app :> "- expected: " >> point.func.retTy
         app :> "- actual  : " >> retTy
       case ArityMismatch(point, actual) =>

@@ -11,6 +11,7 @@ import esmeta.es.util.Coverage.Interp
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
+import esmeta.ty.*
 import io.circe.*, io.circe.syntax.*
 
 /** coverage measurement of cfg */
@@ -29,6 +30,9 @@ case class Coverage(
   // minimal scripts
   def minimalScripts: Set[Script] = _minimalScripts
   private var _minimalScripts: Set[Script] = Set()
+
+  def errorMap: Map[String, Set[TypeError]] = _errorMap
+  private var _errorMap: Map[String, Set[TypeError]] = Map()
 
   // meta-info of each script
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
@@ -122,7 +126,6 @@ case class Coverage(
         touchedNodeViews.keys,
         touchedCondViews.keys,
       )
-
     // TODO: impl checkWithBlocking using `blockingScripts`
     (finalSt, updated, covered)
   }
