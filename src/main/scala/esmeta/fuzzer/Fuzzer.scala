@@ -11,7 +11,7 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.util.ManualInfo.tpAlarms
+// import esmeta.util.ManualInfo.tpAlarms
 import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
@@ -81,7 +81,7 @@ class Fuzzer(
   lazy val result: Coverage = {
     if (tyCheck)
       TypeErrorDB.init()
-      TypeErrorDB.add(tpAlarms)
+    // TypeErrorDB.add(tpAlarms)
     if (log) {
       // start logging
       mkdir(logDir, remove = true)

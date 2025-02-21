@@ -51,7 +51,7 @@ object ManualInfo {
 
   /** get manually classified TP from analyzer alarms */
   // !TODO: Read JSON (JSONProtocol)
-  lazy val tpAlarms: Set[TypeErrorRecord] = ???
+  // lazy val tpAlarms: Set[TypeErrorRecord] = ???
 
   /** find all files in the manual directory with a filter */
   private def getFiles(filter: String => Boolean): List[File] = (for {
