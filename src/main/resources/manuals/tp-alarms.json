@@ -6,7 +6,7 @@
     "callee": "OrdinaryCreateFromConstructor",
     "idx": 1,
     "loc": "(step 2, 3:33-231)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -18,7 +18,7 @@
     "callee": "AsyncGeneratorStart",
     "idx": 1,
     "loc": "(step 5, 6:20-68)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -30,7 +30,7 @@
     "callee": "GeneratorStart",
     "idx": 1,
     "loc": "(step 13, 14:22-60)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -42,7 +42,7 @@
     "callee": "GeneratorStart",
     "idx": 1,
     "loc": "(step 5, 6:20-55)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -54,7 +54,7 @@
     "callee": "OrdinaryCreateFromConstructor",
     "idx": 1,
     "loc": "(step 2, 3:25-183)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -66,7 +66,7 @@
     "callee": "CreateDynamicFunction",
     "idx": 2,
     "loc": "(step 3, 4:23-97)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -78,7 +78,7 @@
     "callee": "CreateDynamicFunction",
     "idx": 2,
     "loc": "(step 3, 4:23-107)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -90,7 +90,7 @@
     "callee": "TypedArrayElementType",
     "idx": 1,
     "loc": "(step 1, 2:26-61)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": true,
     "unpatched": false
@@ -102,7 +102,7 @@
     "callee": "TypedArrayElementType",
     "idx": 1,
     "loc": "(step 1, 2:26-61)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": true,
     "unpatched": false
@@ -114,7 +114,7 @@
     "callee": "CreateDynamicFunction",
     "idx": 2,
     "loc": "(step 3, 4:23-98)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -126,7 +126,7 @@
     "callee": "CreateDynamicFunction",
     "idx": 2,
     "loc": "(step 3, 4:23-101)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -138,7 +138,7 @@
     "callee": "PromiseResolve",
     "idx": 1,
     "loc": "(step 3, 4:23-47)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -150,7 +150,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 9, 13:12-25)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -162,7 +162,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 1, 2:12-43)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -174,7 +174,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 3, 4:12-67)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -186,7 +186,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 2, 3:12-59)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -198,7 +198,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 1, 2:12-57)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -210,7 +210,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 5, 7:12-34)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -222,7 +222,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 1, 2:12-47)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -234,7 +234,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 1, 2:12-47)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false
@@ -246,7 +246,7 @@
     "callee": null,
     "idx": null,
     "loc": "(step 1, 2:12-47)",
-    "source": "analyzer",
+    "source": ["analyzer"],
     "poc": "",
     "notSupported": false,
     "unpatched": false

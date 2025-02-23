@@ -4,6 +4,8 @@ package util
 
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.fuzzer.TypeErrorRecord
+import scala.collection.mutable.BitSet
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
 object JsonProtocol extends BasicJsonProtocol {
@@ -41,4 +43,14 @@ object JsonProtocol extends BasicJsonProtocol {
 
   // TODO: type errors
   // TODO: type error points
+
+  given Encoder[BitSet] = Encoder
+    .encodeList[String]
+    .contramap(_.map(Map(0 -> "fuzzer", 1 -> "analyzer").apply).toList)
+  given Decoder[BitSet] = Decoder
+    .decodeList[String]
+    .map(_.flatMap(Map("fuzzer" -> 0, "analyzer" -> 1).get).to(BitSet))
+
+  given Encoder[TypeErrorRecord] = deriveEncoder
+  given Decoder[TypeErrorRecord] = deriveDecoder
 }

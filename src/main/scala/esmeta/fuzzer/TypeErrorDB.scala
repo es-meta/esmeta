@@ -1,14 +1,12 @@
 package esmeta.fuzzer
 
 import esmeta.ty.*
-import esmeta.{LINE_SEP, RESOURCE_DIR}
+import esmeta.lang.*
 import esmeta.es.util.*
-import esmeta.util.BaseUtils.*
+import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Set => MSet, BitSet}
 import io.circe.*, io.circe.generic.semiauto.*, io.circe.syntax.*
-import esmeta.util.BasicJsonProtocol
-import esmeta.RESOURCE_DIR
 
 case class TypeErrorRecord(
   var id: Int = 0,
@@ -16,68 +14,56 @@ case class TypeErrorRecord(
   caller: String,
   callee: Option[String],
   idx: Option[Int],
-  loc: Option[String], // may differ by spec version, but very small diff
+  loc: String, // may differ by spec version, but very small diff
   source: BitSet = BitSet(),
   var poc: String = "",
   notSupported: Option[Boolean] = None, // manual
   unpatched: Option[Boolean] = None, // manual
 )
 
-object JsonProtocol extends BasicJsonProtocol {
-  given Decoder[BitSet] =
-    Decoder.decodeIterable[Int, List].map(BitSet.fromSpecific)
-  given Encoder[BitSet] = Encoder.encodeIterable[Int, List].contramap(_.toList)
-
-  given Encoder[TypeErrorRecord] = deriveEncoder
-  given Decoder[TypeErrorRecord] = deriveDecoder
-}
-
 object TypeErrorDB {
-  private val jsonProtocol = JsonProtocol
-  import jsonProtocol.{*, given}
 
   private val _db: MSet[TypeErrorRecord] = MSet.empty
 
-  def init(): Unit =
+  def init(): Unit = {
     _db.clear()
-    val readDb = readJson[List[TypeErrorRecord]](
-      s"$RESOURCE_DIR/errorDB.json",
-    )
-    add(Set.from(readDb))
+    for { record <- ManualInfo.tpAlarms } add(record)
+  }
 
-  def add(records: Set[TypeErrorRecord]): Unit =
-    for (record <- records) { this.add(record) }
-
-  def add(record: TypeErrorRecord): Unit =
-    for (orig <- _db) {
-      if (matches(orig, record)) {
-        orig.source |= record.source
-        if (
-          orig.poc.nonEmpty ||
-          record.poc.length < orig.poc.length
-        ) orig.poc = record.poc
-      } else {
-        record.id = _db.size
-        _db += record
+  def add(record: TypeErrorRecord): Unit = {
+    if (_db.exists(orig => matches(orig, record))) {
+      val orig = _db.find(orig => matches(orig, record)).get
+      orig.source |= record.source
+      if (orig.poc.nonEmpty || record.poc.length < orig.poc.length) {
+        orig.poc = record.poc
       }
+    } else {
+      record.id = _db.size
+      _db += record
     }
+  }
 
-  def update(cov: Coverage) =
+  def update(cov: Coverage): Unit = {
     for ((code, errors) <- cov.errorMap) {
       for (error <- errors) {
         val record = convert(error)
         record.poc = code
-        _db.add(record)
+        add(record)
       }
     }
+  }
 
-  def dump(baseDir: String) = dumpJson(
-    name = "error database",
-    data = _db,
-    filename = s"$RESOURCE_DIR/newErrorDB.json",
-    noSpace = false,
-    silent = true,
-  )
+  def dump(baseDir: String): Unit = {
+    import esmeta.ty.util.JsonProtocol.given
+    dumpJson(
+      name = "type error database",
+      data = _db.toVector.sortBy(_.id),
+      filename = s"$baseDir/type-error-database.json",
+      noSpace = false,
+      silent = true,
+    )
+  }
+
   def pending = _db.filter(_.source == BitSet(1)).toSet // only analyzer
   def verified = _db.filter(_.source == BitSet(0, 1)).toSet
   def discovered = _db.filter(_.source == BitSet(0)).toSet // only fuzzer
@@ -87,28 +73,28 @@ object TypeErrorDB {
     rec1.kind == rec2.kind && rec1.caller == rec2.caller &&
     rec1.callee == rec2.callee && rec1.idx == rec2.idx && rec1.loc == rec2.loc
 
-  private def convert(
-    e: TypeError,
-    fromAnalyzer: Boolean = false,
-  ): TypeErrorRecord =
-    e match
+  private def convert(error: TypeError): TypeErrorRecord =
+    val kind = error.getClass.getSimpleName
+    val aux = (opt: Option[Syntax]) =>
+      opt.flatMap(_.loc).map(_.toString).getOrElse("")
+    error match
       case ParamTypeMismatch(point, _) =>
         TypeErrorRecord(
-          kind = "ParamTypeMismatch",
+          kind = kind,
           caller = point.callPoint.caller.name,
           callee = Some(point.callPoint.callee.name),
           idx = Some(point.idx),
-          loc = point.callPoint.callsite.callInst.langOpt.map(_.toString),
-          source = if (fromAnalyzer) BitSet(1) else BitSet(0),
+          loc = aux(point.callPoint.callsite.callInst.langOpt),
+          source = BitSet(0),
         )
       case ReturnTypeMismatch(point, _) =>
         TypeErrorRecord(
-          kind = "ReturnTypeMismatch",
+          kind = kind,
           caller = point.func.name,
           callee = None,
           idx = None,
-          loc = point.irReturn.langOpt.map(_.toString),
-          source = if (fromAnalyzer) BitSet(1) else BitSet(0),
+          loc = aux(point.irReturn.langOpt),
+          source = BitSet(0),
         )
-      case _ => error("unexpected kind of TypeError")
+      case _ => BaseUtils.error("unexpected kind of TypeError")
 }

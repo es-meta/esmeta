@@ -11,7 +11,6 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-// import esmeta.util.ManualInfo.tpAlarms
 import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
@@ -79,9 +78,7 @@ class Fuzzer(
 
   /** generated ECMAScript programs */
   lazy val result: Coverage = {
-    if (tyCheck)
-      TypeErrorDB.init()
-    // TypeErrorDB.add(tpAlarms)
+    if (tyCheck) TypeErrorDB.init()
     if (log) {
       // start logging
       mkdir(logDir, remove = true)
@@ -393,7 +390,7 @@ class Fuzzer(
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
-    TypeErrorDB.dump(logDir)
+    if (tyCheck) TypeErrorDB.dump(logDir)
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")

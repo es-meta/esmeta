@@ -50,8 +50,9 @@ object ManualInfo {
   )
 
   /** get manually classified TP from analyzer alarms */
-  // !TODO: Read JSON (JSONProtocol)
-  // lazy val tpAlarms: Set[TypeErrorRecord] = ???
+  lazy val tpAlarms: Set[TypeErrorRecord] =
+    import esmeta.ty.util.JsonProtocol.given
+    readJson[Set[TypeErrorRecord]](s"$MANUALS_DIR/tp-alarms.json")
 
   /** find all files in the manual directory with a filter */
   private def getFiles(filter: String => Boolean): List[File] = (for {
