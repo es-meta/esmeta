@@ -25,6 +25,7 @@ case class IAssert(expr: Expr) extends NormalInst
 case class IPrint(expr: Expr) extends NormalInst
 case class INop() extends NormalInst
 object NormalInsts extends Parser.From(Parser.normalInsts)
+object IReturn extends Parser.From(Parser.iReturn)
 
 // branch instructions
 sealed trait BranchInst extends Inst

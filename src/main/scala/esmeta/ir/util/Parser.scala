@@ -103,6 +103,12 @@ trait Parsers extends TyParsers {
       case e => IExpr(e)
     }
 
+  given iReturn: Parser[IReturn] = {
+    ("return" ~> expr) ^^ {
+      case e => IReturn(e)
+    }
+  }.named("ir.iRetrun")
+
   given branchInst: Parser[BranchInst] = {
     ("if " ~> expr) ~ inst ~ opt("else" ~> inst) ^^ {
       case (c ~ t ~ Some(e)) => IIf(c, t, e)

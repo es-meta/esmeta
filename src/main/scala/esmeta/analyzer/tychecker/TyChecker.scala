@@ -143,13 +143,6 @@ class TyChecker(
       filename = s"$ANALYZE_LOG_DIR/counter",
       silent = silent,
     )
-    dumpJson(
-      name = "detected type errors json",
-      data = errors,
-      filename = s"$ANALYZE_LOG_DIR/errors.json",
-      silent = false,
-      noSpace = false,
-    )
     dumpFile(
       name = "detected type errors",
       data = errors.toList.sorted

@@ -36,4 +36,7 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[MOp] = decoderWithParser(MOp.from)
   given Encoder[COp] = encoderWithStringifier(stringify)
   given Decoder[COp] = decoderWithParser(COp.from)
+
+  given Encoder[IReturn] = encoderWithStringifier(stringify)
+  given Decoder[IReturn] = decoderWithParser(IReturn.from)
 }

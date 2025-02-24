@@ -443,7 +443,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** update return points */
     def doReturn(
-      irReturn: Return,
+      irReturn: IReturn,
       v: AbsValue,
     )(using np: NodePoint[Node]): Unit =
       val NodePoint(func, node, view) = np

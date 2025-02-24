@@ -59,10 +59,10 @@ case object Eval extends Phase[CFG, State] {
     if (config.tyCheck) {
       val errors = interp.typeErrors
       if (config.multiple) {
-        for { error <- errors } do {
-          val updated = totalErrors.getOrElse(error, Set()) + filename
-          totalErrors += error -> updated
-        }
+        // for { error <- errors } do {
+        //   val updated = totalErrors.getOrElse(error, Set()) + filename
+        //   totalErrors += error -> updated
+        // }
       } else for (error <- errors) println(error.toString + LINE_SEP)
     }
     res

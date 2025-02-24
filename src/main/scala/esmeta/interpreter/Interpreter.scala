@@ -44,10 +44,8 @@ class Interpreter(
   lazy val ITER_CYCLE: Int = 100_000
 
   /** type mismatch errors */
-  def typeErrors: Set[TypeError] = errorMap.values.toSet
-  protected def addError(error: TypeError): Unit =
-    errorMap += error.point -> error
-  private var errorMap: Map[TypeErrorPoint, TypeError] = Map()
+  val typeErrors: MSet[RuntimeTypeError] = MSet()
+  private def addError(error: RuntimeTypeError): Unit = typeErrors += error
 
   /** final state */
   lazy val result: State =
@@ -145,7 +143,7 @@ class Interpreter(
             case NodeCursor(_, node, _) => node
             case _                      => error("cursor is not node cursor")
           val irp = InternalReturnPoint(st.context.func, node, ret)
-          addError(ReturnTypeMismatch(irp, st.typeOf(retVal)))
+          addError(RuntimeTypeError(irp, retVal, st))
         }
       st.context.retVal = Some(ret, retVal)
     case IAssert(expr) =>
@@ -392,12 +390,7 @@ class Interpreter(
             val callPoint = CallPoint(st.context.func, caller, func)
             val aap = ArgAssignPoint(callPoint, idx)
 
-            addError(
-              ParamTypeMismatch(
-                aap,
-                st.typeOf(arg),
-              ),
-            )
+            addError(RuntimeTypeError(aap, arg, st))
         aux(pl, al)
     }
     aux(params, args)

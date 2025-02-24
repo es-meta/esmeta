@@ -92,8 +92,6 @@ class Fuzzer(
       if (tyCheck) genTyCheckSummaryHeader
     }
 
-    if (tyCheck) db.init
-
     time(
       s"- initializing program pool with ${initPool.size} programs", {
         var i = 1
@@ -207,20 +205,18 @@ class Fuzzer(
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
 
-    // if (tyCheck)
-    //   em.addRuntimeErrors(interp.typeErrors, code)
-    //   em.check(interp.touchedNodeViews, interp.typeErrors, code)
+    if (tyCheck)
+      db.update(code, interp.typeErrors)
 
     val (_, updated, covered) = cov.check(script, interp)
 
-    if (tyCheck) db.update(cov)
     if (!updated) fail("NO UPDATE")
 
     covered
   })
 
   /** handle type mismatch errors */
-  val db = new TypeErrorDB()
+  val db = new TypeErrorDB(cfg, "fuzzer")
 
   /** handle add result */
   def handleResult(result: Try[Boolean]): Boolean = {

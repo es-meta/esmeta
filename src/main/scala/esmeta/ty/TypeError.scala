@@ -1,27 +1,15 @@
 package esmeta.ty
 
 import esmeta.cfg.*
+import esmeta.state.*
 import esmeta.ir.{Func => _, *}
 import esmeta.util.*
 
-type DBRowKind = "ParamTypeMismatch" | "ReturnTypeMismatch"
-type DBRowSource = "adv-ty-refine" | "test262" | "fuzzer"
-case class DBRow(
-  id: Int,
-  kind: DBRowKind,
-  target: Int,
-  hash: String,
-  caller: String,
-  callee: Option[String],
-  param: Option[String],
-  location: Option[String],
-  source: DBRowSource,
-  poc: Option[String],
-  notSupported: Option[Boolean],
-  notFized: Option[Boolean],
-) {
-  // ToDo : custom equality overriding
-}
+case class RuntimeTypeError(
+  point: TypeErrorPoint,
+  value: Value,
+  st: State,
+)
 
 /** type errors in specification */
 sealed trait TypeError extends TyElem {
@@ -99,7 +87,8 @@ case class ArgAssignPoint(
 case class InternalReturnPoint(
   func: Func,
   node: Node,
-  irReturn: Return,
+  // irReturn: Return,
+  irReturn: IReturn,
 ) extends TypeErrorPoint
 
 /** base in field reference points */

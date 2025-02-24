@@ -18,6 +18,7 @@ import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
 import scala.collection.mutable.{Map => MMap, Set => MSet}
+import esmeta.fuzzer.TypeErrorDB
 
 /** data in Test262 */
 case class Test262(
@@ -75,6 +76,8 @@ case class Test262(
     val harness = includes.foldLeft(basicHarness)(_ + getHarness(_))
     // merge with harnesses
     (harness + parseFile(filename).toCodeVec).toCode
+
+  val errorDB = new TypeErrorDB(cfg, "test262")
 
   /** get tests */
   def getTests(
@@ -197,7 +200,7 @@ case class Test262(
       ,
       // dump coverage
       postJob = logDir =>
-        if (tyCheck) dumpTypeErrors(s"$logDir/tycheck")
+        if (tyCheck) errorDB.dumpError
         if (useCoverage) cov.dumpTo(logDir),
     )
 
@@ -295,14 +298,11 @@ case class Test262(
       detail = detail,
       logPW = logPW,
       timeLimit = timeLimit,
+      tyCheck = tyCheck,
     )
     val res = interp.result
     if (tyCheck) {
-      val errors = interp.typeErrors
-      for { error <- errors } do {
-        val updated = totalErrors.getOrElse(error, Set()) + filename
-        totalErrors += error -> updated
-      }
+      errorDB.update(filename, interp.typeErrors)
     }
     res
 
@@ -339,26 +339,5 @@ case class Test262(
 
     // post job
     postJob(logDir)
-
-  // detected type errors while dynamic type checking
-  private val totalErrors: MMap[TypeError, Set[String]] = MMap()
-
-  // helper dump function for type errors
-  private def dumpTypeErrors(baseDir: String): Unit =
-    val dtcPW = getPrintWriter(s"$baseDir/errors")
-    val sorted: Vector[TypeError] =
-      totalErrors.iterator.toVector
-        .sortBy { case (_, tests) => -tests.size }
-        .map(_._1)
-    dtcPW.println(s"${sorted.length} type errors detected." + LINE_SEP)
-    for { error <- sorted } do {
-      dtcPW.println(error)
-      dtcPW.println(s"- Found in ${totalErrors(error).size} test(s)")
-      val sample = totalErrors(error).head.drop(TEST262_TEST_DIR.length + 1)
-      dtcPW.println(s"  - sample: ${sample}")
-      dtcPW.println(LINE_SEP)
-      dtcPW.flush
-    }
-    dtcPW.close()
 }
 object Test262 extends Git(TEST262_DIR)

@@ -1,0 +1,416 @@
+[
+  {
+    "id": 1,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody",
+          "callee": "OrdinaryCreateFromConstructor",
+          "callsite": 13914
+        },
+        "idx": 0
+      },
+      "argTy": "Record[ECMAScriptFunctionObject]"
+    }
+  },
+  {
+    "id": 2,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "AsyncGeneratorBody[0,0].EvaluateAsyncGeneratorBody",
+          "callee": "AsyncGeneratorStart",
+          "callsite": 13920
+        },
+        "idx": 0
+      },
+      "argTy": "Record[AsyncGenerator { GeneratorBrand : Enum[~empty~] } | Generator { GeneratorBrand : Enum[~empty~] }]"
+    }
+  },
+  {
+    "id": 13,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "Catch[0,0].CatchClauseEvaluation",
+        "node": 13216,
+        "irReturn": "return B"
+      },
+      "retTy": "Normal[ESValue | Enum[~empty~]] | Break | Continue | Return | Throw"
+    }
+  },
+  {
+    "id": 14,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "Catch[1,0].CatchClauseEvaluation",
+        "node": 13218,
+        "irReturn": "return %0"
+      },
+      "retTy": "Normal[ESValue | Enum[~empty~]] | Break | Continue | Return | Throw"
+    }
+  },
+  {
+    "id": 15,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody",
+        "node": 14188,
+        "irReturn": "return %1"
+      },
+      "retTy": "Normal[ESValue | Enum[~empty~]] | Break | Continue | Return | Throw"
+    }
+  },
+  {
+    "id": 3,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "CreateIteratorFromClosure",
+          "callee": "GeneratorStart",
+          "callsite": 33099
+        },
+        "idx": 0
+      },
+      "argTy": "Record[AsyncGenerator | Generator]"
+    }
+  },
+  {
+    "id": 16,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "FunctionBody[0,0].EvaluateFunctionBody",
+        "node": 13391,
+        "irReturn": "return %1"
+      },
+      "retTy": "Normal[ESValue | Enum[~empty~]] | Break | Continue | Return | Throw"
+    }
+  },
+  {
+    "id": 4,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "GeneratorBody[0,0].EvaluateGeneratorBody",
+          "callee": "GeneratorStart",
+          "callsite": 13642
+        },
+        "idx": 0
+      },
+      "argTy": "Record[AsyncGenerator { GeneratorBrand : Enum[~empty~] } | Generator { GeneratorBrand : Enum[~empty~] }]"
+    }
+  },
+  {
+    "id": 5,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "GeneratorBody[0,0].EvaluateGeneratorBody",
+          "callee": "OrdinaryCreateFromConstructor",
+          "callsite": 13636
+        },
+        "idx": 0
+      },
+      "argTy": "Record[ECMAScriptFunctionObject]"
+    }
+  },
+  {
+    "id": 6,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "INTRINSICS.AsyncFunction",
+          "callee": "CreateDynamicFunction",
+          "callsite": 33391
+        },
+        "idx": 1
+      },
+      "argTy": "Record[Constructor] | Undefined"
+    }
+  },
+  {
+    "id": 7,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "INTRINSICS.AsyncGeneratorFunction",
+          "callee": "CreateDynamicFunction",
+          "callsite": 32954
+        },
+        "idx": 1
+      },
+      "argTy": "Record[Constructor] | Undefined"
+    }
+  },
+  {
+    "id": 8,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": true,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "INTRINSICS.Atomics.add",
+          "callee": "TypedArrayElementType",
+          "callsite": 30994
+        },
+        "idx": 0
+      },
+      "argTy": "ESValue"
+    }
+  },
+  {
+    "id": 9,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": true,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "INTRINSICS.Atomics.sub",
+          "callee": "TypedArrayElementType",
+          "callsite": 31218
+        },
+        "idx": 0
+      },
+      "argTy": "ESValue"
+    }
+  },
+  {
+    "id": 10,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "INTRINSICS.Function",
+          "callee": "CreateDynamicFunction",
+          "callsite": 17779
+        },
+        "idx": 1
+      },
+      "argTy": "Record[Constructor] | Undefined"
+    }
+  },
+  {
+    "id": 11,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "INTRINSICS.GeneratorFunction",
+          "callee": "CreateDynamicFunction",
+          "callsite": 32943
+        },
+        "idx": 1
+      },
+      "argTy": "Record[Constructor] | Undefined"
+    }
+  },
+  {
+    "id": 12,
+    "kind": "ParamTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "callPoint": {
+          "caller": "INTRINSICS.Promise.resolve",
+          "callee": "PromiseResolve",
+          "callsite": 32731
+        },
+        "idx": 0
+      },
+      "argTy": "Record[Object]"
+    }
+  },
+  {
+    "id": 17,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "LabelledItem[1,0].LabelledEvaluation",
+        "node": 13157,
+        "irReturn": "return %0"
+      },
+      "retTy": "Normal[Enum[~empty~]]"
+    }
+  },
+  {
+    "id": 18,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "LabelledStatement[0,0].LabelledEvaluation",
+        "node": 13155,
+        "irReturn": "return stmtResult"
+      },
+      "retTy": "Normal[ESValue | Enum[~empty~]] | Break | Continue | Return | Throw"
+    }
+  },
+  {
+    "id": 19,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "Statement[0,0].LabelledEvaluation",
+        "node": 13159,
+        "irReturn": "return %0"
+      },
+      "retTy": "Normal[ESValue | Enum[~empty~]] | Break | Continue | Return | Throw"
+    }
+  },
+  {
+    "id": 20,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "Statement[1,0].LabelledEvaluation",
+        "node": 13161,
+        "irReturn": "return %0"
+      },
+      "retTy": "Normal[Enum[~empty~]] | Throw"
+    }
+  },
+  {
+    "id": 21,
+    "kind": "ReturnTypeMismatch",
+    "source": [
+      "adv-ty-refine"
+    ],
+    "poc": "",
+    "notSupported": false,
+    "notFixed": true,
+    "error": {
+      "point": {
+        "func": "Statement[2,0].LabelledEvaluation",
+        "node": 13163,
+        "irReturn": "return %0"
+      },
+      "retTy": "Normal[Enum[~empty~]]"
+    }
+  }
+]
