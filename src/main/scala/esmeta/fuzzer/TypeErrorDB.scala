@@ -93,14 +93,14 @@ class TypeErrorDB(cfg: CFG, source: String) {
     dumpJson(
       name = "updated error database",
       data = _db.toList.sortBy(_.id),
-      filename = s"$MANUALS_DIR/errrorDB/errorDB.json",
+      filename = s"$MANUALS_DIR/errorDB/errorDB.json",
       noSpace = false,
       silent = false,
     )
     dumpJson(
       name = "discovered errors",
       data = _discoveredDB.toList.sortBy(_.id),
-      filename = s"$MANUALS_DIR/errrorDB/discoveredErrorDB.json",
+      filename = s"$MANUALS_DIR/errorDB/discoveredErrorDB.json",
       noSpace = false,
       silent = false,
     )

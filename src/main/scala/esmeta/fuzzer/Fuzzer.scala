@@ -439,5 +439,5 @@ class Fuzzer(
     getPrintWriter(s"$logDir/mutation-stat.tsv")
 
   private lazy val tycheckSummaryTsv: PrintWriter =
-    getPrintWriter(s"$MANUALS_DIR/errrorDB/summary.tsv")
+    getPrintWriter(s"$MANUALS_DIR/errorDB/summary.tsv")
 }
