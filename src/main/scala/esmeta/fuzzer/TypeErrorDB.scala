@@ -34,7 +34,7 @@ object TypeErrorDB {
     if (_db.exists(orig => matches(orig, record))) {
       val orig = _db.find(orig => matches(orig, record)).get
       orig.source |= record.source
-      if (orig.poc.nonEmpty || record.poc.length < orig.poc.length) {
+      if (orig.poc.isEmpty || record.poc.length < orig.poc.length) {
         orig.poc = record.poc
       }
     } else {
@@ -57,16 +57,19 @@ object TypeErrorDB {
     import esmeta.ty.util.JsonProtocol.given
     dumpJson(
       name = "type error database",
-      data = _db.toVector.sortBy(_.id),
+      data = _db.toList.sorted,
       filename = s"$baseDir/type-error-database.json",
       noSpace = false,
-      silent = true,
+      silent = false,
     )
   }
 
   def pending = _db.filter(_.source == BitSet(1)).toSet // only analyzer
   def verified = _db.filter(_.source == BitSet(0, 1)).toSet
   def discovered = _db.filter(_.source == BitSet(0)).toSet // only fuzzer
+
+  import scala.math.Ordering.Implicits.seqOrdering
+  given Ordering[TypeErrorRecord] = Ordering.by(_.id)
 
   // private helper
   private def matches(rec1: TypeErrorRecord, rec2: TypeErrorRecord): Boolean =

@@ -107,7 +107,6 @@ class Fuzzer(
     println(s"- the initial program pool consists of ${pool.size} programs.")
     time(
       "- repeatedly trying to fuzz new programs to increase coverage", {
-        if (tyCheck) TypeErrorDB.update(cov)
         if (log) {
           startTime = System.currentTimeMillis
           startInterval = System.currentTimeMillis
@@ -203,6 +202,7 @@ class Fuzzer(
     val finalState = interp.result
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
+    if (tyCheck) TypeErrorDB.update(cov)
     covered
   })
 

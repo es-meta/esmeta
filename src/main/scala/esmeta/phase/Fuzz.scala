@@ -37,6 +37,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       timeLimit = config.timeLimit,
       trial = config.trial,
       duration = config.duration,
+      init = config.init,
       kFs = config.kFs,
       cp = config.cp,
     )
