@@ -23,6 +23,14 @@ class TypeErrorDB(cfg: CFG, source: String) {
     MSet.from(readJson[Set[TypeErrorRecord]](s"$MANUALS_DIR/errorDB.json"))
   val _discoveredDB: MSet[TypeErrorRecord] = MSet.empty
 
+  def pendingErrors: Int = _db.count(rec =>
+    rec.source.size == 1 && rec.source.contains("adv-ty-refine"),
+  )
+  def verifiedErrors: Int = _db.count(rec =>
+    rec.source.size > 1 && rec.source.contains("adv-ty-refine"),
+  )
+  def discoveredErrors: Int = _discoveredDB.size
+
   private var eidCount: Int = _db.size + 1
   protected def nextEId: Int = { val eid = eidCount; eidCount += 1; eid }
 
@@ -80,6 +88,7 @@ class TypeErrorDB(cfg: CFG, source: String) {
       case iip: InternalReturnPoint => ReturnTypeMismatch(iip, st.typeOf(value))
       case _ => error("[TypeErrorDB] update failure by mismatch")
 
+  // def pendingErrors: Int = _db.count()
   def dumpError: Unit =
     dumpJson(
       name = "updated error database",

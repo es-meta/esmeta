@@ -13,7 +13,7 @@ import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
+import esmeta.{ESMeta, FUZZ_LOG_DIR, MANUALS_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
@@ -375,12 +375,9 @@ class Fuzzer(
       "iter(#)",
       "time(ms)",
       "time(h:m:s)",
-      "total(#)",
-      // "root(#)",
       "pending(#)",
       "verified(#)",
       "discovered(#)",
-      "reachedWithoutError(#)",
     )
     addRow(header, tycheckSummaryTsv)
 
@@ -416,18 +413,14 @@ class Fuzzer(
     addRow(row)
 
     if (tyCheck)
-      // ToDo dump tsv
-      // val te = em.totalError.size
-      // // val re = em.rootError.size
-      // val pe = em.pendingError.size
-      // val ve = em.verifiedError.size
-      // val de = em.discoveredError.size
-      // val rwe = em.reachedWithOutError.size
-      // val errorRow = Vector(iter, e, t, te, pe, ve, de, rwe)
-      // addRow(errorRow, tycheckSummaryTsv)
-      // em.dump(s"$logDir/tycheck")
+      val pe = db.pendingErrors
+      val ve = db.verifiedErrors
+      val de = db.discoveredErrors
+      val errorRow = Vector(iter, e, t, pe, ve, de)
+      addRow(errorRow, tycheckSummaryTsv)
+      db.dumpError
 
-      // dump coveragge
+      // dump coverage
       cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
@@ -446,5 +439,5 @@ class Fuzzer(
     getPrintWriter(s"$logDir/mutation-stat.tsv")
 
   private lazy val tycheckSummaryTsv: PrintWriter =
-    getPrintWriter(s"$logDir/tycheck/summary.tsv")
+    getPrintWriter(s"$MANUALS_DIR/errrorDB/summary.tsv")
 }
