@@ -13,63 +13,72 @@ import esmeta.util.BaseUtils.*
 import esmeta.es.util.Coverage
 import esmeta.cfg.*
 import esmeta.spec.Spec
+import esmeta.ty.ValueTopTy.record
+
+case class TypeErrorRecord(
+  id: Int,
+  kind: String,
+  var source: Set[String],
+  var poc: String,
+  notSupported: Boolean = false,
+  notFixed: Boolean = false,
+  error: TypeError,
+)
 
 class TypeErrorDB(cfg: CFG, source: String) {
   private val jsonProtocol = JsonProtocol2(cfg)
   import jsonProtocol.{*, given}
 
-  // ToDo : change it to map and eliminate custom equality
-  val _db: MSet[TypeErrorRecord] =
-    MSet.from(readJson[Set[TypeErrorRecord]](s"$MANUALS_DIR/errorDB.json"))
-  val _discoveredDB: MSet[TypeErrorRecord] = MSet.empty
+  private var _errorMap: MMap[TypeErrorPoint, TypeErrorRecord] = MMap.empty
+  private val _newErrorMap: MMap[TypeErrorPoint, TypeErrorRecord] = MMap.empty
 
-  def pendingErrors: Int = _db.count(rec =>
+  def init: Unit =
+    _errorMap.clear()
+    _newErrorMap.clear()
+    readJson[Array[TypeErrorRecord]](s"$MANUALS_DIR/errorDB.json").foreach(
+      record => _errorMap += (record.error.point -> record),
+    )
+
+  def errors: Set[TypeErrorRecord] = Set.from(_errorMap.values)
+  def discovered: Set[TypeErrorRecord] = Set.from(_newErrorMap.values)
+  def pending = errors.filter(rec =>
     rec.source.size == 1 && rec.source.contains("adv-ty-refine"),
   )
-  def verifiedErrors: Int = _db.count(rec =>
+  def verified = errors.filter(rec =>
     rec.source.size > 1 && rec.source.contains("adv-ty-refine"),
   )
-  def discoveredErrors: Int = _discoveredDB.size
-
-  private var eidCount: Int = _db.size + 1
-  protected def nextEId: Int = { val eid = eidCount; eidCount += 1; eid }
 
   def update(poc: String, errors: MSet[RuntimeTypeError]): Unit = for {
     error <- errors
   } update(poc, error)
 
-  // ToDo : optimize by custom equalty or node map
   def update(poc: String, rtError: RuntimeTypeError): Unit =
-    var inDB = false
-    val RuntimeTypeError(point, value, st) = rtError
-    for {
-      rec <- _db
-      if rec.error.point == point
-    } {
-      rec.error match
-        case ptm @ ParamTypeMismatch(_, argTy) =>
-          if (argTy.contains(value, st))
-            inDB = true
-            addNewSource(poc, rec)
-        case rtm @ ReturnTypeMismatch(_, retTy) =>
-          if (retTy.contains(value, st))
-            inDB = true
-            addNewSource(poc, rec)
-        case _ => error("[TypeErrorDB] update failure by mismatch")
-    }
-    if !inDB then _discoveredDB += convertToTypeErrorRecord(poc, rtError)
+    val RuntimeTypeError(point, _, _) = rtError
 
-  private def addNewSource(poc: String, ter: TypeErrorRecord): TypeErrorRecord =
-    if (ter.poc.length > poc.length) ter.poc = poc
-    ter.source = ter.source + source
-    ter
+    _errorMap.get(point) match
+      case Some(record) => _errorMap += (point -> addNewSource(poc, record))
+      case None =>
+        _newErrorMap.get(point) match
+          case Some(record) =>
+            _newErrorMap += (point -> addNewSource(poc, record))
+          case None =>
+            _newErrorMap += (point -> convertToTypeErrorRecord(poc, rtError))
+
+  private def addNewSource(
+    poc: String,
+    record: TypeErrorRecord,
+  ): TypeErrorRecord =
+    if (record.poc.length == 0 || record.poc.length > poc.length)
+      record.poc = poc
+    record.source += source
+    record
 
   private def convertToTypeErrorRecord(
     poc: String,
     rtError: RuntimeTypeError,
   ): TypeErrorRecord =
     TypeErrorRecord(
-      id = nextEId,
+      id = _errorMap.size + 1,
       kind = rtError.point match
         case aap: ArgAssignPoint      => "ParamTypeMismatch"
         case iip: InternalReturnPoint => "ReturnTypeMismatch"
@@ -80,7 +89,6 @@ class TypeErrorDB(cfg: CFG, source: String) {
       error = convertToTypeError(rtError),
     )
 
-  // ToDo : refactor `typeOf`
   private def convertToTypeError(rtError: RuntimeTypeError): TypeError =
     val RuntimeTypeError(point, value, st) = rtError
     point match
@@ -88,23 +96,27 @@ class TypeErrorDB(cfg: CFG, source: String) {
       case iip: InternalReturnPoint => ReturnTypeMismatch(iip, st.typeOf(value))
       case _ => error("[TypeErrorDB] update failure by mismatch")
 
-  // def pendingErrors: Int = _db.count()
-  def dumpError: Unit =
+  def dumpError(logDir: String): Unit =
     dumpJson(
       name = "updated error database",
-      data = _db.toList.sortBy(_.id),
-      filename = s"$MANUALS_DIR/errorDB/errorDB.json",
+      data = errors.toList.sortBy(_.id),
+      filename = s"$logDir/errorDB.json",
       noSpace = false,
       silent = false,
     )
     dumpJson(
       name = "discovered errors",
-      data = _discoveredDB.toList.sortBy(_.id),
-      filename = s"$MANUALS_DIR/errorDB/discoveredErrorDB.json",
+      data = discovered.toList.sortBy(_.id),
+      filename = s"$logDir/discoveredErrorDB.json",
       noSpace = false,
       silent = false,
     )
     println(
-      s"[TypeErrorDB Result] db : #${_db.size} / discovered : #${_discoveredDB.size}",
+      s"[TypeErrorDB Result] db : #${_errorMap.size} / discovered : #${_newErrorMap.size}",
     )
+}
+
+object TypeErrorDB {
+  def apply(cfg: CFG, source: String): TypeErrorDB =
+    new TypeErrorDB(cfg, source)
 }

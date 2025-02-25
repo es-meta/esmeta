@@ -80,6 +80,7 @@ class Fuzzer(
 
   /** generated ECMAScript programs */
   lazy val result: Coverage = {
+    if (tyCheck) tyErrorDB.init
     if (log) {
       // start logging
       mkdir(logDir, remove = true)
@@ -206,7 +207,7 @@ class Fuzzer(
     val finalState = interp.result
 
     if (tyCheck)
-      db.update(code, interp.typeErrors)
+      tyErrorDB.update(code, interp.typeErrors)
 
     val (_, updated, covered) = cov.check(script, interp)
 
@@ -216,7 +217,7 @@ class Fuzzer(
   })
 
   /** handle type mismatch errors */
-  val db = new TypeErrorDB(cfg, "fuzzer")
+  val tyErrorDB: TypeErrorDB = TypeErrorDB(cfg, "fuzzer")
 
   /** handle add result */
   def handleResult(result: Try[Boolean]): Boolean = {
@@ -413,12 +414,12 @@ class Fuzzer(
     addRow(row)
 
     if (tyCheck)
-      val pe = db.pendingErrors
-      val ve = db.verifiedErrors
-      val de = db.discoveredErrors
+      val pe = tyErrorDB.pending.size
+      val ve = tyErrorDB.verified.size
+      val de = tyErrorDB.discovered.size
       val errorRow = Vector(iter, e, t, pe, ve, de)
       addRow(errorRow, tycheckSummaryTsv)
-      db.dumpError
+      tyErrorDB.dumpError(s"$logDir/errors")
 
       // dump coverage
       cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
@@ -439,5 +440,5 @@ class Fuzzer(
     getPrintWriter(s"$logDir/mutation-stat.tsv")
 
   private lazy val tycheckSummaryTsv: PrintWriter =
-    getPrintWriter(s"$MANUALS_DIR/errorDB/summary.tsv")
+    getPrintWriter(s"$logDir/errors/summary.tsv")
 }

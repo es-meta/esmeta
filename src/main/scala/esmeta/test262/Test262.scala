@@ -77,7 +77,7 @@ case class Test262(
     // merge with harnesses
     (harness + parseFile(filename).toCodeVec).toCode
 
-  val errorDB = new TypeErrorDB(cfg, "test262")
+  val tyErrorDB = TypeErrorDB(cfg, "test262")
 
   /** get tests */
   def getTests(
@@ -170,6 +170,9 @@ case class Test262(
       timeLimit = timeLimit,
     )
 
+    // init type error db
+    if (tyCheck) tyErrorDB.init
+
     // run tests with logging
     logForTests(
       name = "eval",
@@ -200,7 +203,7 @@ case class Test262(
       ,
       // dump coverage
       postJob = logDir =>
-        if (tyCheck) errorDB.dumpError
+        if (tyCheck) tyErrorDB.dumpError(s"$logDir/errors")
         if (useCoverage) cov.dumpTo(logDir),
     )
 
@@ -301,9 +304,8 @@ case class Test262(
       tyCheck = tyCheck,
     )
     val res = interp.result
-    if (tyCheck) {
-      errorDB.update(filename, interp.typeErrors)
-    }
+    if (tyCheck)
+      tyErrorDB.update(filename, interp.typeErrors)
     res
 
   // logging mode for tests

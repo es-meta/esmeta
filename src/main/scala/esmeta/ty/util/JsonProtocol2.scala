@@ -10,26 +10,10 @@ import esmeta.cfg.util.{JsonProtocol => CFGJsonProtocol}
 import esmeta.spec.*
 import esmeta.es.util.Node
 import esmeta.ir.IReturn
+import esmeta.fuzzer.TypeErrorRecord
 import esmeta.ir.util.JsonProtocol.given
 import esmeta.ty.util.JsonProtocol.given
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
-
-case class TypeErrorRecord(
-  id: Int,
-  kind: String,
-  var source: Set[String],
-  var poc: String,
-  notSupported: Boolean = false,
-  notFixed: Boolean = false,
-  error: TypeError,
-) {
-  override def equals(obj: Any): Boolean = obj match {
-    case that: TypeErrorRecord => this.error == that.error
-    case _                     => false
-  }
-
-  override def hashCode(): Int = error.hashCode()
-}
 
 class JsonProtocol2(cfg: CFG) extends CFGJsonProtocol(cfg) {
   // type errors
