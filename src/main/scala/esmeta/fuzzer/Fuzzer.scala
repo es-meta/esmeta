@@ -178,7 +178,7 @@ class Fuzzer(
   case class CandInfo(
     visited: Boolean = false,
     invalid: Boolean = false,
-    interp: Option[Coverage.Interp] = None,
+    interp: Option[Try[Coverage.Interp]] = None,
   )
 
   /** Extract information for the mutated code. Should be side-effect free. */
@@ -192,7 +192,7 @@ class Fuzzer(
   def getCandInfo(code: String): CandInfo =
     if (visited contains code) CandInfo(visited = true)
     else if (!ValidityChecker(code)) CandInfo(invalid = true)
-    else CandInfo(interp = optional(cov.run(code)))
+    else CandInfo(interp = Some(Try(cov.run(code))))
 
   /** add new program */
   def add(code: String): Boolean = add(code, getCandInfo(code))
@@ -203,17 +203,17 @@ class Fuzzer(
     visited += code
     if (info.invalid) fail("INVALID PROGRAM")
     val script = toScript(code)
-    val interp = info.interp.getOrElse(fail("Interp Fail"))
-    val finalState = interp.result
 
-    if (tyCheck)
-      tyErrorDB.update(code, interp.typeErrors)
-
-    val (_, updated, covered) = cov.check(script, interp)
-
-    if (!updated) fail("NO UPDATE")
-
-    covered
+    val interpResult = info.interp.getOrElse(fail("Interp Fail"))
+    interpResult match
+      case Success(interp) =>
+        val finalState = interp.result
+        if (tyCheck)
+          tyErrorDB.update(code, interp.typeErrors)
+        val (_, updated, covered) = cov.check(script, interp)
+        if (!updated) fail("NO UPDATE")
+        covered
+      case Failure(e) => throw e
   })
 
   /** handle type mismatch errors */
@@ -227,7 +227,7 @@ class Fuzzer(
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
         debugging(failMsg("NOT SUPPORTED")); false
-      case Failure(e: ESMetaError) => throw e
+      // case Failure(e: ESMetaError) => throw e
       case Failure(e) =>
         e.getMessage match
           case "ALREADY VISITED" | "INVALID PROGRAM" if debug == PARTIAL =>
