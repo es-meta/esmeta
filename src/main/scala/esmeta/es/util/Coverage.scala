@@ -106,11 +106,11 @@ case class Coverage(
       touchedNodeViews += nodeView -> nearest
       getScript(nodeView) match
         case None => update(nodeView, script); updated = true; covered = true
-        case Some(originalScript) if originalScript.code.length > code.length =>
+        case Some(origScript) if origScript.code.length > code.length =>
           update(nodeView, script)
           updated = true
-          blockingScripts += originalScript
-        case Some(blockScript) => blockingScripts += blockScript
+          blockingScripts += origScript
+        case Some(origScript) => blockingScripts += script
 
     // update branch coverage
     for ((condView, nearest) <- interp.touchedCondViews)
@@ -122,7 +122,7 @@ case class Coverage(
           update(condView, nearest, script)
           updated = true
           blockingScripts += origScript
-        case Some(blockScript) => blockingScripts += blockScript
+        case Some(origScript) => blockingScripts += script
 
     if (updated)
       _minimalInfo += script.name -> ScriptInfo(
