@@ -184,6 +184,7 @@ class Fuzzer(
     (mutatorName, mutatedCode, getCandInfo(mutatedCode))
 
   /** get candidate information */
+  // TODO: FIXME - Discards detailed InterpreterError info (leads to dead-code in `handleResult`)
   def getCandInfo(code: String): CandInfo =
     if (visited contains code) CandInfo(visited = true)
     else if (!ValidityChecker(code)) CandInfo(invalid = true)
