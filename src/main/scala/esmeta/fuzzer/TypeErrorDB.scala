@@ -9,7 +9,7 @@ import scala.collection.mutable.{Set => MSet, BitSet}
 import io.circe.*, io.circe.generic.semiauto.*, io.circe.syntax.*
 
 case class TypeErrorRecord(
-  var id: Int = 0,
+  var id: Option[Int] = None,
   kind: String,
   caller: String,
   callee: Option[String],
@@ -38,7 +38,7 @@ object TypeErrorDB {
         orig.poc = record.poc
       }
     } else {
-      record.id = _db.size
+      record.id = Some(record.id.getOrElse(_db.size))
       _db += record
     }
   }
