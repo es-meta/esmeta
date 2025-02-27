@@ -199,7 +199,7 @@ case class Test262(
             )
           else {
             val (ast, code) = loadTest(filename)
-            cov.runAndCheck(Script(code, filename), ast)._1
+            cov.runAndCheck(Script(code, ast, filename), ast)._1
           }
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)

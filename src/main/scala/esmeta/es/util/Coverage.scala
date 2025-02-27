@@ -91,10 +91,8 @@ case class Coverage(
     interp.result; interp
 
   def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
-    val Script(code, _) = script
+    val Script(code, ast, _) = script
     val finalSt = interp.result
-
-    def astLen(code: String): Int = scriptParser.from(code).children.size
 
     var covered = false
     var updated = false
@@ -108,7 +106,8 @@ case class Coverage(
       touchedNodeViews += nodeView -> nearest
       getScript(nodeView) match
         case None => update(nodeView, script); updated = true; covered = true
-        case Some(origScript) if astLen(origScript.code) > astLen(code) =>
+        case Some(origScript)
+            if origScript.ast.children.size > ast.children.size =>
           update(nodeView, script)
           updated = true
           blockingScripts += origScript
@@ -120,7 +119,8 @@ case class Coverage(
       getScript(condView) match
         case None =>
           update(condView, nearest, script); updated = true; covered = true
-        case Some(origScript) if astLen(origScript.code) > astLen(code) =>
+        case Some(origScript)
+            if origScript.ast.children.size > ast.children.size =>
           update(condView, nearest, script)
           updated = true
           blockingScripts += origScript
