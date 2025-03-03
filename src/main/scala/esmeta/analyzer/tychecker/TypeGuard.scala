@@ -28,6 +28,12 @@ trait TypeGuardDecl { self: TyChecker =>
       if newConstr.nonTop
     } yield dty -> newConstr)
 
+    def kill(effect: Effect): TypeGuard = TypeGuard(for {
+      (dty, constr) <- map
+      newConstr = constr.kill(effect)
+      if newConstr.nonTop
+    } yield dty -> newConstr)
+
     def forReturn(symEnv: Map[Sym, ValueTy]): TypeGuard = TypeGuard(for {
       (dty, constr) <- map
       newConstr = constr.forReturn(symEnv)
@@ -37,7 +43,7 @@ trait TypeGuardDecl { self: TyChecker =>
     def filter(ty: ValueTy): TypeGuard =
       TypeGuard(map.filter { (dty, _) => !(dty.ty && ty).isBottom })
 
-    def lift(ty: ValueTy = ValueTy.Top)(using st: AbsState): TypeGuard = 
+    def lift(ty: ValueTy = ValueTy.Top)(using st: AbsState): TypeGuard =
       this && TypeGuard((for {
         kind <- DemandType.from(ty).toList
         constr = TypeConstr().lift
@@ -161,7 +167,9 @@ trait TypeGuardDecl { self: TyChecker =>
     sexpr: Option[(SymExpr, Provenance)] = None,
   ) {
     def isTop: Boolean = map.isEmpty && sexpr.isEmpty
+
     def nonTop: Boolean = !isTop
+
     def <=(that: TypeConstr): Boolean =
       that.map.forall {
         case (x, (rty, rprov)) =>
@@ -171,6 +179,7 @@ trait TypeGuardDecl { self: TyChecker =>
               else lty <= rty
           }
       } && (this.sexpr == that.sexpr)
+
     def ||(that: TypeConstr): TypeConstr = TypeConstr(
       map = (for {
         x <- (this.map.keySet intersect that.map.keySet).toList
@@ -181,6 +190,7 @@ trait TypeGuardDecl { self: TyChecker =>
       } yield x -> (ty, prov)).toMap,
       sexpr = this.sexpr || that.sexpr,
     )
+
     def &&(that: TypeConstr): TypeConstr = TypeConstr(
       map = (for {
         x <- (this.map.keySet ++ that.map.keySet).toList
@@ -191,16 +201,27 @@ trait TypeGuardDecl { self: TyChecker =>
       } yield x -> (ty, prov)).toMap,
       sexpr = this.sexpr && that.sexpr,
     )
+
     def has(x: Base): Boolean =
       map.contains(x) || sexpr.fold(false) { case (sexpr, _) => sexpr.has(x) }
+
     def bases: Set[Base] =
       map.keySet.collect { case s: Sym => s } ++
       sexpr.fold(Set[Base]()) { (sexpr, _) => sexpr.bases }
+
     def kill(bases: Set[Base])(using AbsState): TypeConstr =
       this.copy(
         map.filter { case (x, _) => !bases.contains(x) },
         sexpr.fold(None)((e, p) => e.kill(bases).map(_ -> p)),
       )
+
+    def kill(effect: Effect): TypeConstr =
+      import TypeGuardDecl.this.Effect.*
+      TypeConstr(map.map {
+        case (x, (ty, prov)) =>
+          x -> (effect(ty), prov)
+      })
+
     def forReturn(symEnv: Map[Sym, ValueTy]): TypeConstr = TypeConstr(
       map = for {
         case (x: Sym, (ty, prov)) <- map
@@ -208,6 +229,7 @@ trait TypeGuardDecl { self: TyChecker =>
       } yield x -> (origTy && ty, prov),
       sexpr = None,
     )
+
     def depth: Int =
       val provs = map.values.map(_._2).toList
       sexpr.fold(provs)(_._2 :: provs).map(_.depth).max

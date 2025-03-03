@@ -59,6 +59,11 @@ case class FieldMap(map: Map[String, Binding])
   def update(field: String, binding: Binding): FieldMap =
     FieldMap(map + (field -> binding))
 
+  /** field kill */
+  def kill(fields: Set[String]): FieldMap =
+    FieldMap(map.filterNot { case (f, _) => fields.contains(f) })
+  // set.foldLeft(this) { (fm, f) => fm.update(f, Binding.Exist) }
+
   /** fields */
   def fields: Set[String] = map.keySet
 

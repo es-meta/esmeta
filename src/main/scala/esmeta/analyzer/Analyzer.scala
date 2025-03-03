@@ -48,6 +48,9 @@ abstract class Analyzer
   /** abstract values */
   type AbsValue <: AbsValueLike
 
+  /** effect */
+  type Effect <: EffectLike
+
   /** lookup for node points */
   def getResult(np: NodePoint[Node]): AbsState =
     npMap.getOrElse(np, AbsState.Bot)

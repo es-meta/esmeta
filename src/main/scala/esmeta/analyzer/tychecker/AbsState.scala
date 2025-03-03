@@ -17,6 +17,7 @@ trait AbsStateDecl { self: TyChecker =>
     locals: Map[Local, AbsValue],
     symEnv: Map[Sym, ValueTy],
     constr: TypeConstr,
+    effect: Effect,
   ) extends AbsStateLike {
     import AbsState.*
 
@@ -33,8 +34,8 @@ trait AbsStateDecl { self: TyChecker =>
       case _ if this.isBottom => true
       case _ if that.isBottom => false
       case (
-            AbsState(_, llocals, lsymEnv, lconstr),
-            AbsState(_, rlocals, rsymEnv, rconstr),
+            AbsState(_, llocals, lsymEnv, lconstr, leffect),
+            AbsState(_, rlocals, rsymEnv, rconstr, reffect),
           ) =>
         val TypeConstr(lmap, lexpr) = lconstr
         val TypeConstr(rmap, rexpr) = rconstr
@@ -48,7 +49,8 @@ trait AbsStateDecl { self: TyChecker =>
           case (r, (rty, rprov)) =>
             lmap.get(r).fold(false) { (lty, _) => lty <= rty }
         } &&
-        rexpr.forall { r => lexpr.fold(false)(_ == r) }
+        rexpr.forall { r => lexpr.fold(false)(_ == r) } &&
+        leffect ⊑ reffect
 
     /** not partial order */
     def !⊑(that: AbsState): Boolean = !(this ⊑ that)
@@ -73,7 +75,8 @@ trait AbsStateDecl { self: TyChecker =>
           ty = l.get(sym) || r.get(sym)
         } yield sym -> ty).toMap
         val newConstr = l.constr || r.constr
-        AbsState(true, newLocals, newSymEnv, newConstr)
+        val newEffect = l.effect ⊔ r.effect
+        AbsState(true, newLocals, newSymEnv, newConstr, newEffect)
 
     /** get imprecise bases compared with another state */
     def getImprecBases(that: AbsState): Set[Base] =
@@ -104,13 +107,21 @@ trait AbsStateDecl { self: TyChecker =>
           ty = l.get(sym) ⊓ r.get(sym)
         } yield sym -> ty).toMap
         val newConstr = l.constr && r.constr
-        AbsState(true, newLocals, newSymEnv, newConstr)
+        val newEffect = l.effect ⊓ r.effect
+        AbsState(true, newLocals, newSymEnv, newConstr, newEffect)
 
     /** kill bases */
     def kill(bases: Set[Base], update: Boolean): AbsState =
       val newLocals = for { (x, v) <- locals } yield x -> v.kill(bases, update)
       val newConstr = if (update) constr.kill(bases) else constr
-      AbsState(reachable, newLocals, symEnv, newConstr)
+      AbsState(reachable, newLocals, symEnv, newConstr, effect)
+
+    /** kill fields */
+    def kill(ef: Effect): AbsState =
+      val newLocals = for { (x, v) <- locals } yield x -> v.kill(ef)
+      val newSymEnv =
+        for { (sym, ty) <- symEnv } yield sym -> ef(ty)
+      AbsState(reachable, newLocals, newSymEnv, constr, ef)
 
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
@@ -329,10 +340,12 @@ trait AbsStateDecl { self: TyChecker =>
     lazy val Top: AbsState = exploded("top abstract state")
 
     /** bottom element */
-    lazy val Bot: AbsState = AbsState(false, Map(), Map(), TypeConstr())
+    lazy val Bot: AbsState =
+      AbsState(false, Map(), Map(), TypeConstr(), Effect())
 
     /** empty element */
-    lazy val Empty: AbsState = AbsState(true, Map(), Map(), TypeConstr())
+    lazy val Empty: AbsState =
+      AbsState(true, Map(), Map(), TypeConstr(), Effect())
 
     /** appender */
     given rule: Rule[AbsState] = mkRule(true)
@@ -341,7 +354,7 @@ trait AbsStateDecl { self: TyChecker =>
     private def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) =>
       import SymTy.given
       if (!elem.isBottom) {
-        val AbsState(reachable, locals, symEnv, constr) = elem
+        val AbsState(reachable, locals, symEnv, constr, effect) = elem
         given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
         given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")
         given constrRule: Rule[Map[Base, ValueTy]] =
@@ -349,6 +362,7 @@ trait AbsStateDecl { self: TyChecker =>
         if (locals.nonEmpty) app >> locals
         if (symEnv.nonEmpty) app >> symEnv
         app >> constr
+        if (effect.nonEmpty) app >> effect
         app
       } else app >> "⊥"
   }

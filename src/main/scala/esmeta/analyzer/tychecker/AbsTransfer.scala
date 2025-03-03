@@ -112,7 +112,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit = if (!canUseReturnTy(rp.func)) {
-      var AbsRet(value) = getResult(rp)
+      var AbsRet(value, effect) = getResult(rp)
       for {
         callerNps <- retEdges.get(rp)
         callerNp <- callerNps
@@ -121,7 +121,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         given callerSt: AbsState = callInfo(callerNp)
         val retTy = rp.func.retTy.ty.toValue
         val newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
-        val nextSt = callerSt.update(callerNp.node.lhs, newV, refine = false)
+        val nextSt =
+          callerSt.kill(effect).update(callerNp.node.lhs, newV, refine = false)
         analyzer += nextNp -> nextSt
       }
     }
@@ -341,7 +342,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** propagate callee analysis result */
     def propagate(rp: ReturnPoint, callerNp: NodePoint[Call]): Unit = {
       if (!canUseReturnTy(rp.func)) {
-        val AbsRet(value) = getResult(rp)
+        val AbsRet(value, effect) = getResult(rp)
         (for {
           nextNp <- getAfterCallNp(callerNp)
           callerSt = callInfo(callerNp)
@@ -349,7 +350,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           retTy = rp.func.retTy.ty.toValue
           newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
           if !newV.isBottom
-        } yield analyzer += nextNp -> callerSt.define(callerNp.node.lhs, newV))
+        } yield analyzer += nextNp -> callerSt
+          .kill(effect)
+          .define(callerNp.node.lhs, newV))
           .getOrElse {
             if (!getResult(rp).isBottom) worklist += rp
           }
@@ -388,6 +391,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState <- get
           ty <- get(_.get(x).ty)
           record = ty.record.update(f, v.ty, refine = false)
+          newEffect = Effect({
+            record.bases match
+              case Inf => Map()
+              case Fin(set) =>
+                val baseTys = set.map(ManualInfo.tyModel.baseOf(_))
+                baseTys.map { baseTy => baseTy -> Set(f) }.toMap
+          })
+          _ <- modify(_.kill(newEffect))
           _ <- modify(
             _.update(x, AbsValue(ty.copied(record = record)), refine = false),
           )
@@ -414,7 +425,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case inst @ IReturn(expr) =>
         for {
           v <- transfer(expr)
-          _ <- doReturn(inst, v)
+          ef <- get(_.effect)
+          _ <- doReturn(inst, v, ef)
           _ <- put(AbsState.Bot)
         } yield ()
       case IAssert(expr: EYet) =>
@@ -446,6 +458,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     def doReturn(
       irReturn: Return,
       v: AbsValue,
+      effect: Effect,
     )(using np: NodePoint[Node]): Unit =
       val NodePoint(func, node, view) = np
       val givenSt = getResult(np)
@@ -466,13 +479,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             if (config.checkReturnType)
               addError(ReturnTypeMismatch(irp, givenTy))
             AbsValue(STy(givenTy && expectedTy), givenV.guard)
+
+      val newRet = AbsRet(newV, effect)
       if (!newV.isBottom)
-        val AbsRet(oldV) = getResult(rp)
-        if (!oldV.isBottom && useRepl) Repl.merged = true
-        if (newV !⊑ oldV)
+        val oldRet @ AbsRet(oldV, oldEffect) = getResult(rp)
+        if (!oldRet.isBottom && useRepl) Repl.merged = true
+        if (newRet !⊑ oldRet) {
           val v = (oldV ⊔ newV)
-          rpMap += rp -> AbsRet(v.forReturn(entrySt))
+          rpMap += rp -> AbsRet(v.forReturn(entrySt), oldEffect ⊔ effect)
           worklist += rp
+        }
 
     /** transfer function for expressions */
     def transfer(
@@ -1222,7 +1238,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     // =========================================================================
 
     // -------------------------------------------------------------------------
-    // Instantiation 
+    // Instantiation
     // -------------------------------------------------------------------------
     /** instantiation of return value */
     def instantiate(
@@ -1406,7 +1422,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       // refine logical disjunction
       case EBinary(BOp.Or, l, r) =>
         st =>
-          if (positive) syntacticRefine(l, true)(st) ⊔ syntacticRefine(r, true)(st)
+          if (positive)
+            syntacticRefine(l, true)(st) ⊔ syntacticRefine(r, true)(st)
           else syntacticRefine(r, false)(syntacticRefine(l, false)(st))
       // refine logical conjunction
       case EBinary(BOp.And, l, r) =>

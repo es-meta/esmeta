@@ -31,7 +31,8 @@ class TyChecker(
   with AbsRetDecl
   with AbsTransferDecl
   with TypeGuardDecl
-  with ViewDecl {
+  with ViewDecl
+  with EffectDecl {
 
   val tyStringifier = TyElem.getStringifier(false, false)
   import tyStringifier.given
@@ -258,7 +259,7 @@ class TyChecker(
     for {
       func <- cfg.funcs
       entrySt = getResult(NodePoint(func, func.entry, emptyView))
-      AbsRet(value) = getResult(ReturnPoint(func, emptyView))
+      AbsRet(value, _) = getResult(ReturnPoint(func, emptyView))
       if value.hasTypeGuard(entrySt)
       guard = TypeGuard(for {
         (dty, pred) <- value.guard.map
@@ -311,8 +312,8 @@ class TyChecker(
         x -> AbsValue(SSym(sym)),
         sym -> value.ty,
       )).unzip
-      AbsState(true, newLocals.toMap, symEnv.toMap, TypeConstr())
-    } else AbsState(true, locals.toMap, Map(), TypeConstr())
+      AbsState(true, newLocals.toMap, symEnv.toMap, TypeConstr(), Effect())
+    } else AbsState(true, locals.toMap, Map(), TypeConstr(), Effect())
 
   /** get initial abstract states in each node point */
   private def getInitNpMap(

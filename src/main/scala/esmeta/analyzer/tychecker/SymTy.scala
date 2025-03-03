@@ -62,6 +62,17 @@ trait SymTyDecl { self: TyChecker =>
       case STy(ty)        => Some(STy(ty))
       case SNormal(symty) => symty.kill(bases, update).map(SNormal(_))
 
+    def kill(effect: Effect)(using st: AbsState): SymTy =
+      this match
+        case STy(ty)   => STy(effect(ty))
+        case SVar(x)   => SVar(x) // killed by abstract environment
+        case SSym(sym) => SSym(sym) // killed by symbolic environment
+        case SField(b, f) => // maybe unsound
+          val killedb = b.kill(effect)
+          val killedf = f.kill(effect)
+          SField(killedb.asInstanceOf[SymRef], killedf)
+        case SNormal(symty) => SNormal(symty.kill(effect)) // sound by spec
+
     def killRef(
       ref: SymRef,
       bases: Set[Base],

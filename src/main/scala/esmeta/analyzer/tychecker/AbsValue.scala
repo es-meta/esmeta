@@ -61,6 +61,12 @@ trait AbsValueDecl { self: TyChecker =>
       val guard = if (update) this.guard.kill(bases) else this.guard
       AbsValue(ty, guard)
 
+    /** kill field */
+    def kill(effect: Effect)(using AbsState): AbsValue =
+      val sty = this.symty.kill(effect)
+      val guard = this.guard.kill(effect)
+      AbsValue(sty, guard)
+
     /** normalize abstract values for return */
     def forReturn(
       givenSt: AbsState,
@@ -83,7 +89,8 @@ trait AbsValueDecl { self: TyChecker =>
       val inGuard = guard.bases
       inSymty ++ inGuard
 
-    def lift(using st: AbsState): AbsValue = AbsValue(symty, guard.lift(this.ty))
+    def lift(using st: AbsState): AbsValue =
+      AbsValue(symty, guard.lift(this.ty))
 
     /** check whether it has a type guard */
     def hasTypeGuard(entrySt: AbsState): Boolean =
