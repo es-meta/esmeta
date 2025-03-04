@@ -146,7 +146,7 @@ ThisBuild / assemblyPrependShellScript := Some(
 
 // library versions
 val CirceVersion = "0.14.10"
-val AkkaVersion = "2.10.1"
+val AkkaVersion = "2.10.0"
 val AkkaHttpVersion = "10.7.0"
 
 // project root
