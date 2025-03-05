@@ -123,7 +123,8 @@ trait AbsStateDecl { self: TyChecker =>
         val newLocals = for { (x, v) <- locals } yield x -> v.kill(ef)
         val newSymEnv =
           for { (sym, ty) <- symEnv } yield sym -> ef(ty)
-        AbsState(reachable, newLocals, newSymEnv, constr, ef)
+        val newConstr = constr.kill(ef)
+        AbsState(reachable, newLocals, newSymEnv, newConstr, ef)
 
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
