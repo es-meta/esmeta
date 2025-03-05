@@ -138,7 +138,7 @@ trait TypeGuardDecl { self: TyChecker =>
   case class Provenance(
     func: Option[Func],
     edge: Map[Call, Provenance] = Map(),
-    ty: ValueTy = BotT,
+    anot: ValueTy = BotT,
   ) {
     import Provenance.*
 
@@ -149,21 +149,17 @@ trait TypeGuardDecl { self: TyChecker =>
       else if edge.isEmpty then 1
       else edge.map((_, prov) => prov.depth).max + 1
 
-    def <=(that: Provenance)(lty: ValueTy, rty: ValueTy): Boolean =
+    def <=(that: Provenance): Boolean =
       if this == Bot then return true
       else if that == Bot then return false
 
       if this.func != that.func then return false
-      if lty == rty then
-        this.edge.forall {
-          case (lcall, lprov) =>
-            that.edge.get(lcall).fold(true) { rprov =>
-              (lprov <= rprov)(lty, rty)
-            }
-        }
-      else if lty <= rty then true
-      else if rty <= lty then false
-      else false
+      this.edge.forall {
+        case (lcall, lprov) =>
+          that.edge.get(lcall).fold(true) { rprov =>
+            lprov <= rprov
+          }
+      }
 
     def ||(that: Provenance): Provenance =
       if this.func != that.func then return Provenance.Bot
@@ -183,6 +179,9 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def forReturn(call: Call, ty: ValueTy): Provenance =
       Provenance(Some(cfg.funcOf(call)), Map(call -> this))
+
+    def annotated(ty: ValueTy): Provenance =
+      Provenance(func, edge, ty)
 
     override def toString: String = (new Appender >> this).toString
   }
@@ -207,7 +206,7 @@ trait TypeGuardDecl { self: TyChecker =>
         case (x, (rty, rprov)) =>
           this.map.get(x).fold(false) {
             case (lty, lprov) =>
-              if (lty == rty) (lprov <= rprov)(lty, rty)
+              if (lty == rty) lprov <= rprov
               else lty <= rty
           }
       } && (this.sexpr == that.sexpr)
@@ -402,14 +401,14 @@ trait TypeGuardDecl { self: TyChecker =>
 
   /** Provenance */
   given Rule[Provenance] = (app, prov) =>
-    (prov.func, prov.edge, prov.ty) match
+    (prov.func, prov.edge, prov.anot) match
       case (None, _, _) => app
       case (Some(func), edge, ty) =>
         if edge.isEmpty then app >> func.name
         else
           (app >> func.name >> s" ($ty) ").wrap("", "") {
             for ((call, prov) <- edge.toList.sortBy(_._1)) {
-              app :> "<- " >> call.name >> prov
+              app :> "<- " >> call.name >> " " >> prov
             }
           }
 
