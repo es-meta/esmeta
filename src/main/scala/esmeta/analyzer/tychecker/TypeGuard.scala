@@ -135,30 +135,62 @@ trait TypeGuardDecl { self: TyChecker =>
         .map(DemandType(_))
   }
 
-  case class Provenance(map: Map[Func, List[Call]] = Map()) {
-    def depth: Int = map.values.map(_.length).max
-    def <=(that: Provenance): Boolean =
-      this.map.forall {
-        case (lfunc, lcalls) =>
-          that.map.get(lfunc).fold(false) { rcalls => lcalls == rcalls }
-      }
-    def join(that: Provenance): Provenance = Provenance((for {
-      key <- (this.map.keySet union that.map.keySet).toList
-      calls <- (this.map.get(key), that.map.get(key)) match
-        case (Some(lcalls), Some(rcalls)) =>
-          Some(if (lcalls.length < rcalls.length) lcalls else rcalls)
-        case (Some(lcalls), None) => Some(lcalls)
-        case (None, Some(rcalls)) => Some(rcalls)
-        case (None, None)         => None
-    } yield key -> calls).toMap)
-    def forReturn(call: Call): Provenance = Provenance(
-      map.map { case (key, calls) => key -> (call :: calls) },
-    )
+  case class Provenance(
+    func: Option[Func],
+    edge: Map[Call, Provenance] = Map(),
+    ty: ValueTy = BotT,
+  ) {
+    import Provenance.*
+
+    def isBottom: Boolean = func.isEmpty
+
+    def depth: Int =
+      if func.isEmpty then 0
+      else if edge.isEmpty then 1
+      else edge.map((_, prov) => prov.depth).max + 1
+
+    def <=(that: Provenance)(lty: ValueTy, rty: ValueTy): Boolean =
+      if this == Bot then return true
+      else if that == Bot then return false
+
+      if this.func != that.func then return false
+      if lty == rty then
+        this.edge.forall {
+          case (lcall, lprov) =>
+            that.edge.get(lcall).fold(true) { rprov =>
+              (lprov <= rprov)(lty, rty)
+            }
+        }
+      else if lty <= rty then true
+      else if rty <= lty then false
+      else false
+
+    def ||(that: Provenance): Provenance =
+      if this.func != that.func then return Provenance.Bot
+      if this == Bot then return that
+      if that == Bot then return this
+      Provenance(
+        this.func,
+        (for {
+          key <- (this.edge.keySet union that.edge.keySet).toList
+          prov <- (this.edge.get(key), that.edge.get(key)) match
+            case (Some(l), Some(r)) => Some(l || r)
+            case (Some(l), None)    => Some(l)
+            case (None, Some(r))    => Some(r)
+            case _                  => None
+        } yield key -> prov).toMap,
+      )
+
+    def forReturn(call: Call, ty: ValueTy): Provenance =
+      Provenance(Some(cfg.funcOf(call)), Map(call -> this))
+
     override def toString: String = (new Appender >> this).toString
   }
   object Provenance {
-    def apply(funcs: Func*): Provenance =
-      Provenance(funcs.map(_ -> Nil).toMap)
+    def apply(func: Func): Provenance = Provenance(Some(func))
+    def apply(func: Func, ty: ValueTy): Provenance =
+      Provenance(Some(func), Map(), ty)
+    val Bot = Provenance(None, Map())
   }
 
   /** type constraints */
@@ -175,32 +207,40 @@ trait TypeGuardDecl { self: TyChecker =>
         case (x, (rty, rprov)) =>
           this.map.get(x).fold(false) {
             case (lty, lprov) =>
-              if (lty == rty) lprov <= rprov
+              if (lty == rty) (lprov <= rprov)(lty, rty)
               else lty <= rty
           }
       } && (this.sexpr == that.sexpr)
 
-    def ||(that: TypeConstr): TypeConstr = TypeConstr(
-      map = (for {
-        x <- (this.map.keySet intersect that.map.keySet).toList
-        (lty, lprov) = this.map(x)
-        (rty, rprov) = that.map(x)
-        ty = lty || rty
-        prov = lprov join rprov
-      } yield x -> (ty, prov)).toMap,
-      sexpr = this.sexpr || that.sexpr,
-    )
+    def ||(that: TypeConstr): TypeConstr =
+      TypeConstr(
+        map = (for {
+          x <- (this.map.keySet intersect that.map.keySet).toList
+          (lty, lprov) = this.map(x)
+          (rty, rprov) = that.map(x)
+          ty = lty || rty
+          prov = (lprov || rprov)
+        } yield x -> (ty, prov)).toMap,
+        sexpr = this.sexpr || that.sexpr,
+      )
 
-    def &&(that: TypeConstr): TypeConstr = TypeConstr(
-      map = (for {
-        x <- (this.map.keySet ++ that.map.keySet).toList
-        (lty, lprov) = this.map.getOrElse(x, (AnyT, Provenance()))
-        (rty, rprov) = that.map.getOrElse(x, (AnyT, Provenance()))
-        ty = lty && rty
-        prov = lprov join rprov
-      } yield x -> (ty, prov)).toMap,
-      sexpr = this.sexpr && that.sexpr,
-    )
+    def &&(that: TypeConstr): TypeConstr =
+      TypeConstr(
+        map = (for {
+          x <- (this.map.keySet ++ that.map.keySet).toList
+          (lty, lprov) = this.map.getOrElse(x, (AnyT, Provenance.Bot))
+          (rty, rprov) = that.map.getOrElse(x, (AnyT, Provenance.Bot))
+          ty = lty && rty
+          prov =
+            if lty == rty then
+              if lprov.depth <= rprov.depth then lprov
+              else rprov
+            else if lty <= rty then lprov
+            else if rty <= lty then rprov
+            else lprov || rprov
+        } yield x -> (ty, prov)).toMap,
+        sexpr = this.sexpr && that.sexpr,
+      )
 
     def has(x: Base): Boolean =
       map.contains(x) || sexpr.fold(false) { case (sexpr, _) => sexpr.has(x) }
@@ -244,9 +284,6 @@ trait TypeGuardDecl { self: TyChecker =>
       TypeConstr(sexpr = Some(pair))
     def apply(pairs: (Base, (ValueTy, Provenance))*): TypeConstr =
       TypeConstr(pairs.toMap, None)
-    def apply(base: Base, ty: ValueTy): TypeConstr = TypeConstr(
-      base -> (ty, Provenance()),
-    )
   }
 
   /** symbolic expressions */
@@ -327,14 +364,14 @@ trait TypeGuardDecl { self: TyChecker =>
       def &&(
         r: Option[(SymExpr, Provenance)],
       ): Option[(SymExpr, Provenance)] = (l, r) match
-        case (Some(le, lp), Some(re, rp)) => Some(le && re, lp join rp)
+        case (Some(le, lp), Some(re, rp)) => Some(le && re, Provenance.Bot)
         case (Some(l), None)              => Some(l)
         case (None, Some(r))              => Some(r)
         case _                            => None
       def ||(
         r: Option[(SymExpr, Provenance)],
       ): Option[(SymExpr, Provenance)] = (l, r) match
-        case (Some(le, lp), Some(re, rp)) => Some(le || re, lp join rp)
+        case (Some(le, lp), Some(re, rp)) => Some(le || re, Provenance.Bot)
         case _                            => None
   }
 
@@ -365,23 +402,22 @@ trait TypeGuardDecl { self: TyChecker =>
 
   /** Provenance */
   given Rule[Provenance] = (app, prov) =>
-    val Provenance(map) = prov
-    if (map.nonEmpty) (app >> " <from> ").wrap("{", "}") {
-      for ((func, calls) <- map.toList.sortBy(_._1)) {
-        app :> func.nameWithId
-        if (calls.nonEmpty) {
-          for (call <- calls.reverse)
-            app :> "<- " >> call.name >> " @ " >> cfg.funcOf(call).nameWithId
-        }
-      }
-    }
-    app
+    (prov.func, prov.edge, prov.ty) match
+      case (None, _, _) => app
+      case (Some(func), edge, ty) =>
+        if edge.isEmpty then app >> func.name
+        else
+          (app >> func.name >> s" ($ty) ").wrap("", "") {
+            for ((call, prov) <- edge.toList.sortBy(_._1)) {
+              app :> "<- " >> call.name >> prov
+            }
+          }
 
   /** TypeConstr */
   given Rule[TypeConstr] = (app, constr) =>
     import TypeConstr.*
     given Rule[(ValueTy, Provenance)] =
-      case (app, (ty, prov)) => app >> ty >> prov
+      case (app, (ty, prov)) => app >> ty >> " ~~ " >> prov
     import SymTy.given
     given Rule[Map[Base, (ValueTy, Provenance)]] = sortedMapRule(sep = ": ")
     if (constr.map.nonEmpty) app >> constr.map

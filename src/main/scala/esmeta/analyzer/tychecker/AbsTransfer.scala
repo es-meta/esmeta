@@ -1285,11 +1285,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           case _         => None
         (z, zty) <- toBase(y -> ty)
         if !(st.getTy(z) <= zty)
-      } yield z -> (zty, prov.forReturn(call)),
+      } yield z -> (zty, prov.forReturn(call, zty)),
       sexpr = for {
         (e, prov) <- constr.sexpr
         newExpr <- instantiate(e, map)
-      } yield (newExpr, prov.forReturn(call)),
+      } yield (newExpr, prov.forReturn(call, BotT)),
     )
 
     /** instantiation of symbolic expressions */
@@ -1516,7 +1516,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using
       st: AbsState,
     ): Option[(Base, (ValueTy, Provenance))] =
-      toBase(pair).map { (base, ty) => base -> (ty, Provenance(np.func)) }
+      toBase(pair).map { (base, ty) => base -> (ty, Provenance(np.func, ty)) }
 
     def toBase(
       pair: (SymRef, ValueTy),
@@ -1718,7 +1718,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 record = ObjectT.record.update(f, Binding.Exist, refine = true),
               )
             case _ => ObjectT
-          val prov = Provenance(func)
+          val prov = Provenance(func, refined)
           val guard =
             TypeGuard(
               DemandType(NormalT) -> TypeConstr(0 -> (refined, prov)),
@@ -1727,7 +1727,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         },
         "NewPromiseCapability" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          val prov = Provenance(func)
+          val prov = Provenance(func, ConstructorT)
           val guard = TypeGuard(
             DemandType(NormalT) -> TypeConstr(0 -> (ConstructorT, prov)),
           )
