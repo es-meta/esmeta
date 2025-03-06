@@ -222,7 +222,7 @@ class TyChecker(
         filename = s"$ANALYZE_LOG_DIR/refined",
         silent = silent,
       )
-      if (inferTypeGuard)
+      if (inferTypeGuard) {
         val names = typeGuards.map(_._1.name).toSet
         dumpFile(
           name = "type guard information",
@@ -233,6 +233,21 @@ class TyChecker(
           filename = s"$ANALYZE_LOG_DIR/guards",
           silent = silent,
         )
+        val path = s"$ANALYZE_LOG_DIR/provenance"
+        mkdir(path, true)
+        for {
+          (func, value) <- typeGuards 
+          (dty, pred) <- value.guard.map
+        } {
+          val ty = value.symty
+          dumpFile(
+            name = s"type guard for ${func.name} with $dty",
+            data = pred.toString,
+            filename = path + s"/${func.name}_$dty",
+            silent = true,
+          )
+        }
+      }
   }
 
   /** refined targets */
