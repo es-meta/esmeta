@@ -952,7 +952,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               pexpr = SEEq(ltypeOf, rtypeOf)
             } guard += DemandType(TrueT) -> TypeConstr(
               Map(),
-              Some(pexpr)
+              Some(pexpr),
             )
             TypeGuard(guard)
           }
@@ -1290,7 +1290,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       sexpr = for {
         e <- constr.sexpr
         newExpr <- instantiate(e, map)
-      } yield newExpr
+      } yield newExpr,
     )
 
     /** instantiation of symbolic expressions */
@@ -1514,7 +1514,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using
       st: AbsState,
     ): Option[(Base, (ValueTy, Provenance))] =
-      toBase(pair).map { (base, ty) => base -> (ty, Provenance(ty)(using np.node)) }
+      toBase(pair).map { (base, ty) =>
+        base -> (ty, Provenance(ty)(using np.node))
+      }
 
     def toBase(
       pair: (SymRef, ValueTy),

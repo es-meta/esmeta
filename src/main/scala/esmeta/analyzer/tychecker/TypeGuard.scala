@@ -547,4 +547,106 @@ trait TypeGuardDecl { self: TyChecker =>
       case BranchTarget(branch, isTrue) => (branch.id, if (isTrue) 1 else 0)
       case AssertTarget(block, idx)     => (block.id, idx)
   }
+
+  object ProvPrinter {
+    def getId(prov: Provenance): String = 
+      prov match
+        case Leaf(node, ty) => norm(s"Leaf${node.id}")
+        case CallPath(call, ty, child) => norm(s"call${call.id}")
+        case Join(child) => norm(s"join${child.hashCode()}")
+        case Meet(child) => norm(s"meet${child.hashCode()}")
+        case Bot => ???
+        case Top => ???
+
+    /** Colors */
+    val NODE_COLOR = """"black""""
+    val BG_COLOR = """"white""""
+    val EDGE_COLOR = """"black""""
+
+    def draw(prov: Provenance): String = 
+      given app: Appender = new Appender
+      (app >> "digraph").wrap {
+        app :> """graph [fontname = "Consolas"]"""
+        app :> """node [fontname = "Consolas"]"""
+        app :> """edge [fontname = "Consolas"]"""
+        drawProvenance(prov)
+      }
+      app.toString
+
+    def drawProvenance(prov: Provenance)(using app: Appender): Unit =
+      drawProvenanceNode(prov)
+      prov match
+        case CallPath(call, ty, child) => drawProvenance(child)
+        case Join(child) => 
+          child.foreach(drawProvenance)
+        case Meet(child) =>
+          child.foreach(drawProvenance)
+        case _ => ()
+
+    def drawProvenanceNode(prov: Provenance)(using Appender): Unit =
+      prov match
+        case p @ Leaf(node, ty) => 
+          drawNaming(getId(p), NODE_COLOR, node.name)
+          drawNode(getId(p), "box", NODE_COLOR, BG_COLOR, Some(ty.toString))
+        case p @ CallPath(call, ty, child) =>
+          drawNaming(getId(p), NODE_COLOR, call.name)
+          drawNode(getId(p), "box", NODE_COLOR, BG_COLOR, Some(ty.toString))
+          drawEdge(getId(p), getId(child), EDGE_COLOR, None)
+        case p @ Join(child) => 
+          drawNode(getId(p), "ellipse", NODE_COLOR, BG_COLOR, Some(p.ty.toString))
+          child.foreach { c =>
+            drawEdge(getId(p), getId(c), EDGE_COLOR, None)
+          }
+        case p @ Meet(child) =>
+          drawNode(getId(p), "ellipse", NODE_COLOR, BG_COLOR, Some(norm("Meet")))
+          child.foreach(c => 
+            drawEdge(getId(p), getId(c), EDGE_COLOR, None)
+          )
+        case Bot => ()
+        case Top => ()
+
+    def drawNode(
+      dotId: String,
+      shape: String,
+      color: String,
+      bgColor: String,
+      labelOpt: Option[String],
+    )(using app: Appender): Unit = labelOpt match
+      case Some(label) =>
+        app :> s"""$dotId [shape=$shape, label=<<font color=$color>$label</font>> color=$color fillcolor=$bgColor, style=filled]"""
+      case None =>
+        app :> s"""$dotId [shape=$shape label=" " color=$color fillcolor=$bgColor style=filled]"""
+
+    def drawEdge(
+      fid: String,
+      tid: String,
+      color: String,
+      labelOpt: Option[String],
+    )(using app: Appender): Unit =
+      app :> s"$fid -> $tid ["
+      labelOpt.map { label =>
+        app >> s"label=<<font color=$color>$label</font>> "
+      }
+      app >> s"color=$color]"
+
+    def drawNaming(
+      id: String,
+      color: String,
+      name: String,
+    )(using app: Appender): Unit =
+      app :> id >> "_name [shape=none, "
+      app >> "label=<<font color=" >> color >> ">" >> name >> "</font>>]"
+      app :> id >> "_name -> " >> id
+      app >> " [arrowhead=none, color=" >> color >> ", style=dashed]"
+
+    def norm(str: String): String =
+      val s = HtmlUtils.escapeHtml(str).replaceAll("\u0000", "U+0000")
+      s.replaceAll("[^a-zA-Z0-9]", "")
+    def norm(node: IRElem): String =
+      norm(node.toString(detail = false, location = false))
+    protected def norm(insts: Iterable[Inst]): String = (for {
+      (inst, idx) <- insts.zipWithIndex
+      str = norm(inst)
+    } yield s"""[$idx] $str<BR ALIGN="LEFT"/>""").mkString
+  }
 }

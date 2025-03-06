@@ -223,6 +223,8 @@ class TyChecker(
         silent = silent,
       )
       if (inferTypeGuard) {
+        import ProvPrinter.*
+
         val names = typeGuards.map(_._1.name).toSet
         dumpFile(
           name = "type guard information",
@@ -233,19 +235,16 @@ class TyChecker(
           filename = s"$ANALYZE_LOG_DIR/guards",
           silent = silent,
         )
-        val path = s"$ANALYZE_LOG_DIR/provenance"
-        mkdir(path, true)
+        val provPath = s"$ANALYZE_LOG_DIR/provenance"
+        mkdir(provPath, true)
         for {
-          (func, value) <- typeGuards 
+          (func, value) <- typeGuards
           (dty, pred) <- value.guard.map
+          (base, (_, prov)) <- pred.map
         } {
           val ty = value.symty
-          dumpFile(
-            name = s"type guard for ${func.name} with $dty",
-            data = pred.toString,
-            filename = path + s"/${func.name}_$dty",
-            silent = true,
-          )
+          val filename = (s"$provPath/${func.id}_${norm(func.name)}_${norm(dty.ty.toString())}_${norm(base.toString())}")
+          dumpDot(filename, draw(prov), true, true)
         }
       }
   }
