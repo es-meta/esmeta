@@ -22,6 +22,7 @@ val EVAL_LOG_DIR = s"$LOG_DIR/eval"
 val FUZZ_LOG_DIR = s"$LOG_DIR/fuzz"
 val TEST262TEST_LOG_DIR = s"$LOG_DIR/test262"
 val DUMP_LOG_DIR = s"$LOG_DIR/dump"
+val VISUALIZER_LOG_DIR = s"$LOG_DIR/visualizer"
 
 /** stack trace depth */
 val STACK_TRACE_DEPTH = 15

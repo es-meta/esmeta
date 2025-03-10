@@ -199,3 +199,12 @@ case object CmdDump extends Command("dump", CmdBuildCFG >> Dump) {
     "esmeta dump                          # dump data to data.json",
   )
 }
+
+/** `visualizer` command */
+case object CmdVisualizer
+  extends Command("visualizer", CmdBuildCFG >> Visualizer) {
+  def help = "dump resources needed for visualizer"
+  val examples = List(
+    "esmeta visualizer                         # dump resources for visualizer",
+  )
+}
