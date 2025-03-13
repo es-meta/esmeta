@@ -341,10 +341,12 @@ trait TypeGuardDecl { self: TyChecker =>
         (this, that) match
           case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
             lnode == rnode && lty <= rty
-          case (Leaf(lnode, lty), Join(rchild)) =>
+          case (_: Leaf, Join(rchild)) =>
             rchild.exists(_ <= this)
           case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
             lcall == rcall && lty <= rty && lchild <= rchild
+          case (_: CallPath, Join(rchild)) => 
+            rchild.exists(_ <= this)
           case (Join(lchild), Join(rchild)) =>
             lchild.forall(l => rchild.exists(l <= _))
           case _ => false
