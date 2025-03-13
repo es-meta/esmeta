@@ -181,17 +181,14 @@ trait TypeGuardDecl { self: TyChecker =>
       TypeConstr(
         map = (for {
           x <- (this.map.keySet ++ that.map.keySet).toList
-          (lty, lprov) = this.map.getOrElse(x, (AnyT, Provenance.Bot))
-          (rty, rprov) = that.map.getOrElse(x, (AnyT, Provenance.Bot))
-          ty = lty && rty
-          prov =
-            if lty == rty then
-              if lprov.depth <= rprov.depth then lprov
-              else rprov
-            else if lty <= rty then lprov
-            else if rty <= lty then rprov
-            else lprov || rprov
-        } yield x -> (ty, prov)).toMap,
+          (lty, lprov) = this.map.getOrElse(x, (ValueTy.Top, Provenance.Top))
+          (rty, rprov) = that.map.getOrElse(x, (ValueTy.Top, Provenance.Top))
+          pair = {
+            if (lty <= rty) (lty, lprov)
+            else if (rty <= lty) (rty, rprov)
+            else (lty && rty, lprov && rprov)
+          }
+        } yield x -> pair).toMap,
         sexpr = this.sexpr && that.sexpr,
       )
 
@@ -335,6 +332,7 @@ trait TypeGuardDecl { self: TyChecker =>
     def size: Int
     def depth: Int
 
+    // simple explanation is bigger (imprecise)
     def <=(that: Provenance): Boolean = {
       if this == Bot then true
       else if that == Bot then false
@@ -343,15 +341,17 @@ trait TypeGuardDecl { self: TyChecker =>
       else // this and that are not Bot or Top
         (this, that) match
           case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
-            lnode == rnode && lty <= rty
-          case (_: Leaf, Join(rchild)) =>
-            rchild.exists(_ <= this)
+            if lty == rty then lnode == rnode
+            else lty <= rty
           case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
-            lcall == rcall && lty <= rty && lchild <= rchild
-          case (_: CallPath, Join(rchild)) =>
-            rchild.exists(_ <= this)
-          case (Join(lchild), Join(rchild)) =>
-            lchild.forall(l => rchild.exists(l <= _))
+            if lty == rty then lcall == rcall && lchild <= rchild
+            else lty <= rty
+          case (l @ Join(lchild), r @ Join(rchild)) =>
+            if l.ty == r.ty then rchild.forall(l => lchild.exists(l <= _))
+            else l.ty <= r.ty
+          case (l @ Meet(lchild), r @ Meet(rchild)) =>
+            if l.ty == r.ty then rchild.forall(l => lchild.exists(l <= _))
+            else l.ty <= r.ty
           case _ => false
     }
 
@@ -360,9 +360,6 @@ trait TypeGuardDecl { self: TyChecker =>
       else if that == Bot then return this
       else if this == Top || that == Top then return Top
       else // this and that are not Bot or Top
-        if this.ty == that.ty then
-          if this.depth <= that.depth then return that
-          else return this
         if this.ty <= that.ty then return that
         else if that.ty <= this.ty then return this
 
@@ -383,12 +380,38 @@ trait TypeGuardDecl { self: TyChecker =>
         case _ => Join(Set(this, that)).canonical
     }
 
+    def &&(that: Provenance): Provenance = {
+      if this == Bot || that == Bot then return Bot 
+      else if this == Top then return that
+      else if that == Top then return this
+      else // this and that are not Bot or Top
+        if this.ty <= that.ty then return this
+        else if that.ty <= this.ty then return that
+
+      // this and that are not subsumption of each other
+      (this, that) match
+        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
+          if lnode == rnode then Leaf(lnode, lty && rty)
+          else Meet(Set(this, that)).canonical
+        case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
+          if lcall == rcall then CallPath(lcall, lty && rty, lchild && rchild)
+          else Meet(Set(this, that)).canonical
+        case (prov: (Leaf | CallPath), Meet(child)) =>
+          Meet(child + prov).canonical
+        case (Meet(child), prov: (Leaf | CallPath)) =>
+          Meet(child + prov).canonical
+        case (Meet(lchild), Meet(rchild)) =>
+          Meet(lchild ++ rchild).canonical
+        case _ => Meet(Set(this, that)).canonical
+    }
+
     def existsDuplicateCall(c: Call): Boolean =
       this match
         case CallPath(call, _, child) =>
           if call == c then true
           else child.existsDuplicateCall(c)
         case Join(child) => child.exists(_.existsDuplicateCall(c))
+        case Meet(child) => child.exists(_.existsDuplicateCall(c))
         case _           => false
 
     def replaceCall(
@@ -400,6 +423,7 @@ trait TypeGuardDecl { self: TyChecker =>
           if c == call then CallPath(c, ty, child)
           else CallPath(c, ty, child.replaceCall(call, ty))
         case Join(child) => Join(child.map(_.replaceCall(call, ty)))
+        case Meet(child) => Meet(child.map(_.replaceCall(call, ty)))
         case _           => this
 
     def canonical: Provenance =
@@ -413,6 +437,25 @@ trait TypeGuardDecl { self: TyChecker =>
             }
             .toMap
           Join(
+            group
+              .filterNot {
+                case (ty, _) =>
+                  group.keySet.exists(otherTy =>
+                    (ty <= otherTy && otherTy != ty),
+                  )
+              }
+              .values
+              .toSet,
+          )
+        case Meet(set) =>
+          val group = set
+            .groupBy(_.ty)
+            .map {
+              case (ty, dupl) =>
+                ty -> dupl.minBy(_.depth)
+            }
+            .toMap
+          Meet(
             group
               .filterNot {
                 case (ty, _) =>
@@ -466,6 +509,17 @@ trait TypeGuardDecl { self: TyChecker =>
     def toTree(indent: Int): String =
       s"${"  " * indent}Join($ty)\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
   }
+  
+  case class Meet(child: Set[Provenance]) extends Provenance {
+    lazy val ty: ValueTy = child.map(_.ty).reduce(_ && _)
+    def size: Int = child.map(_.size).sum + 1
+    def depth: Int = child.map(_.depth).max + 1
+
+    override def toString = s"Meet(${child.map(_.toString)})"
+    def toTree(indent: Int): String =
+      s"${"  " * indent}Meet($ty)\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
+  }
+
   case class RefinePoint(target: RefinementTarget, child: Provenance)
     extends Provenance {
     lazy val ty: ValueTy = child.ty
@@ -479,17 +533,17 @@ trait TypeGuardDecl { self: TyChecker =>
   object Provenance {
     case object Bot extends Provenance {
       lazy val ty: ValueTy = BotT
-      def size: Int = 0
-      def depth: Int = 0
+      val INF = 1e8.toInt
+      def size: Int = INF
+      def depth: Int = INF
 
       override def toString = "Bot"
       def toTree(indent: Int): String = s"${"  " * indent}$this"
     }
     case object Top extends Provenance {
       lazy val ty: ValueTy = BotT
-      val INF = 1e8.toInt
-      def size: Int = INF
-      def depth: Int = INF
+      def size: Int = 0
+      def depth: Int = 0
 
       override def toString = "Top"
       def toTree(indent: Int): String = s"${"  " * indent}$this"
@@ -570,6 +624,7 @@ trait TypeGuardDecl { self: TyChecker =>
         case Leaf(node, ty)             => norm(s"Leaf${node.id}")
         case CallPath(call, ty, child)  => norm(s"call${call.id}")
         case Join(child)                => norm(s"join${child.hashCode()}")
+        case Meet(child)                => norm(s"meet${child.hashCode()}")
         case RefinePoint(target, child) => norm(s"refine${target.node.id}")
         case Provenance.Bot             => ???
         case Provenance.Top             => ???
@@ -608,6 +663,17 @@ trait TypeGuardDecl { self: TyChecker =>
           drawNode(getId(p), "box", NODE_COLOR, BG_COLOR, Some(ty.toString))
           drawEdge(getId(p), getId(child), EDGE_COLOR, None)
         case p @ Join(child) =>
+          drawNode(
+            getId(p),
+            "ellipse",
+            NODE_COLOR,
+            BG_COLOR,
+            Some(p.ty.toString),
+          )
+          child.foreach { c =>
+            drawEdge(getId(p), getId(c), EDGE_COLOR, None)
+          }
+        case p @ Meet(child) =>
           drawNode(
             getId(p),
             "ellipse",
