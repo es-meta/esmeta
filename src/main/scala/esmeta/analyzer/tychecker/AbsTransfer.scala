@@ -80,12 +80,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       if (xs.isEmpty) refined -= target
       else refined += target -> (xs.toSet, constr.fold(0)(_.depth))
 
-      constr.fold(Map()){ 
-        constr => for {
-          (base, (ty, prov)) <- constr.map 
+      constr.fold(Map()) { constr =>
+        for {
+          (base, (ty, prov)) <- constr.map
           original = st.getTy(base)
           if constr.map.contains(base)
-        } { provenances += ((target, base) -> (original, prov.usedForRefine(target)))}
+        } {
+          provenances += ((target, base) -> (original, prov.usedForRefine(
+            target,
+          )))
+        }
       }
 
     def refine(

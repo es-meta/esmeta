@@ -16,6 +16,7 @@ class TyChecker(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
   val inferTypeGuard: Boolean = true,
+  val useProvenance: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
@@ -103,6 +104,7 @@ class TyChecker(
           "options" -> Map(
             "typeSens" -> typeSens,
             "inferTypeGuard" -> inferTypeGuard,
+            "useProvenance" -> useProvenance,
           ),
           "duration" -> f"${time}%,d ms",
           "error" -> errors.size,
