@@ -235,22 +235,33 @@ class TyChecker(
           filename = s"$ANALYZE_LOG_DIR/guards",
           silent = silent,
         )
-        val provPath = s"$ANALYZE_LOG_DIR/provenance"
-        mkdir(provPath, true)
-        for {
-          (func, value) <- typeGuards
-          (dty, pred) <- value.guard.map
-          (base, (_, prov)) <- pred.map
-        } {
-          val ty = value.symty
-          val filename = (s"$provPath/${func.id}_${norm(func.name)}_${norm(dty.ty.toString())}_${norm(base.toString())}")
-          dumpDot(filename, draw(prov), true, true)
-        }
+        // val provPath = s"$ANALYZE_LOG_DIR/provenance/"
+        // mkdir(provPath, true)
+        // mkdir(s"$provPath/guards", true)
+        // mkdir(s"$provPath/refinepoints", true)
+        // for {
+        //   (func, value) <- typeGuards
+        //   (dty, pred) <- value.guard.map
+        //   (base, (_, prov)) <- pred.map
+        // } {
+        //   val ty = value.symty
+        //   val filename = (s"$provPath/guards/${func.id}_${norm(func.name)}_${norm(dty.ty.toString())}_${norm(base.toString())}")
+        //   dumpDot(filename, draw(prov), true, true)
+        // }
+
+        // for {
+        //   ((target, base), (original, prov)) <- provenances
+        // } {
+        //   val filename = (s"$provPath/refinepoints/${prov.size}_${norm{target.func.name}}_${norm(base.toString)}_${target.node.id}")
+        //   if prov.size >= 7 then dumpDot(filename, draw(prov), true, true)
+        //   //dumpDot(filename, draw(prov), true, true)
+        // }
       }
   }
 
   /** refined targets */
   var refined: Map[RefinementTarget, (Set[Local], Int)] = Map()
+  var provenances: Map[(RefinementTarget, Base), (ValueTy, Provenance)] = Map()
   def refinedTargets: Int = refined.size
   def refinedLocals: Int = refined.values.map(_._1.size).sum
   def refinedAvgDepth: Double =

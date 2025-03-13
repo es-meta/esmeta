@@ -91,6 +91,11 @@ trait TypeGuardDecl { self: TyChecker =>
         else constrs.reduce(_ && _)
       }
 
+    def simple: TypeGuard = 
+      TypeGuard(map.filterNot{(dty, constr) => map.exists {(tdty, tconstr) => 
+        (dty.ty != tdty.ty && dty.ty <= tdty.ty && tconstr <= constr)
+      }})
+
     override def toString: String = (new Appender >> this).toString
   }
   object TypeGuard {
@@ -136,171 +141,6 @@ trait TypeGuardDecl { self: TyChecker =>
         .map(DemandType(_))
   }
 
-  /** Provenance */
-
-  sealed trait Provenance {
-    def ty: ValueTy 
-    def size: Int
-    def depth: Int
-
-    def <=(that: Provenance): Boolean = {
-      if this == Bot then return true 
-      else if that == Bot then return false
-      if that == Top then return true 
-      else if this == Top then return false
-
-      (this, that) match
-        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
-          lnode == rnode && lty <= rty
-        case (Leaf(lnode, lty), Join(rchild)) =>
-          rchild.exists(_ <= this)
-        case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
-          lcall == rcall && lty <= rty && lchild <= rchild
-        case (Join(lchild), Join(rchild)) =>
-          lchild.forall(l => rchild.exists(l <= _))
-        case (Meet(lchild), Meet(rchild)) =>
-          lchild.forall(l => rchild.exists(l <= _))
-        case _ => false
-    }
-
-    def ||(that: Provenance): Provenance = {
-      if this == Bot then return that 
-      else if that == Bot then return this
-
-      if this == Top || that == Top then return Top
-
-      if this.ty == that.ty then
-        if this.depth <= that.depth then return that 
-        else return this
-      if this.ty <= that.ty then return that 
-      else if that.ty <= this.ty then return this
-      
-      val res = (this, that) match
-        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
-          if lnode == rnode then Leaf(lnode, lty || rty)
-          else Join(Set(this, that))
-        case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
-          if lcall == rcall then CallPath(lcall, lty || rty, lchild || rchild)
-          else Join(Set(this, that))
-        case (prov: (Leaf | CallPath), Join(child)) =>
-          Join(child + prov).canonical
-        case (Join(child), prov: (Leaf | CallPath)) =>
-          Join(child + prov).canonical
-        case (Join(lchild), Join(rchild)) =>
-          Join(lchild ++ rchild).canonical
-        case _ => Join(Set(this, that)).canonical
-      if res.depth > 10 then Top else res
-      // res
-    }
-
-    def &&(that: Provenance): Provenance = {
-      if this == Bot || that == Bot then return Bot
-
-      if this == Top then return that 
-      else if that == Top then return this
-
-      if this.ty == that.ty then
-        if this.depth <= that.depth then return this 
-        else return that
-      if this.ty <= that.ty then return this 
-      else if that.ty <= this.ty then return that
-
-      val res = (this, that) match
-        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
-          if lnode == rnode then Leaf(lnode, lty && rty)
-          else Meet(Set(this, that))
-        case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
-          if lcall == rcall then CallPath(lcall, lty && rty, lchild && rchild)
-          else Meet(Set(this, that))
-        case (Meet(lchild), Meet(rchild)) =>
-          Meet(lchild ++ rchild).canonical
-        case _ => Meet(Set(this, that)).canonical
-      if res.depth > 10 then Top else res
-      // res
-    }
-
-    def canonical: Provenance = 
-      this match
-        case CallPath(call, ty, child) => 
-          CallPath(call, ty, child.canonical)
-        case Join(child) => 
-          val set = child.map(_.canonical)
-          set.groupBy(_.ty).map { case (_, dupl) => 
-            dupl.minBy(_.depth)
-          }.filterNot(elem => set.exists(other => (elem <= other) && (other != elem)))
-          Join(set)
-        case Meet(child) =>
-          val set = child.map(_.canonical)
-          set.groupBy(_.ty).map { case (_, dupl) => 
-            dupl.minBy(_.depth)
-          }.filterNot(elem => set.exists(other => (other <= elem) && (other != elem)))
-          Meet(set)
-        case _ => this
-      
-
-    def forReturn(call: Call, ty: ValueTy): Provenance = 
-      val res = if this == Bot then Bot
-      else if this == Top then Top
-      else CallPath(call, ty, this)
-      if res.depth > 10 then Top else res
-      // res
-
-    def toTree(indent: Int): String
-    def toTree: String = toTree(0)
-  }
-
-  case class Leaf(node: Node, ty: ValueTy) extends Provenance {
-    def size: Int = 1
-    def depth: Int = 1
-
-    override def toString = s"Leaf(${cfg.funcOf(node).nameWithId}:${node.id}, $ty)"
-    def toTree(indent: Int): String = s"${"  " * indent}$this"
-  }
-  case class CallPath(call: Call, ty: ValueTy, child: Provenance) extends Provenance {
-    def size: Int = child.size + 1
-    def depth: Int = child.depth + 1
-
-    override def toString = s"CallPath(${cfg.funcOf(call).nameWithId}:${call.id}, $ty, ${child.toString})"
-    def toTree(indent: Int): String = s"${"  " * indent}CallPath(${call.id}, $ty)\n${child.toTree(indent + 1)}"
-  }
-  case class Join(child: Set[Provenance]) extends Provenance {
-    lazy val ty: ValueTy = child.map(_.ty).reduce(_ || _)
-    def size: Int = child.map(_.size).sum
-    def depth: Int = child.map(_.depth).max + 1
-
-    override def toString = s"Join(${child.map(_.toString)})"
-    def toTree(indent: Int): String = s"${"  " * indent}Join\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
-  } 
-  case class Meet(child: Set[Provenance]) extends Provenance {
-    lazy val ty: ValueTy = child.map(_.ty).reduce(_ && _)
-    def size: Int = child.map(_.size).sum
-    def depth: Int = child.map(_.depth).max + 1
-
-    override def toString = s"Meet(${child.map(_.toString)})"
-    def toTree(indent: Int): String = s"${"  " * indent}Meet\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
-  }
-  private case object Bot extends Provenance {
-    lazy val ty: ValueTy = BotT
-    def size: Int = 0
-    def depth: Int = 0
-
-    override def toString = "Bot"
-    def toTree(indent: Int): String = s"${"  " * indent}$this"
-  }
-  private case object Top extends Provenance {
-    lazy val ty: ValueTy = BotT
-    def size: Int = 999999999
-    def depth: Int = 999999999
-
-    override def toString = "Top"
-    def toTree(indent: Int): String = s"${"  " * indent}$this"
-  }
-
-  object Provenance {
-    val Bot: Provenance = Bot
-    val Top: Provenance = Top
-    def apply(ty: ValueTy)(using nd: Node): Leaf = Leaf(nd, ty)
-  }
 
   /** type constraints */
   case class TypeConstr(
@@ -327,9 +167,12 @@ trait TypeGuardDecl { self: TyChecker =>
           x <- (this.map.keySet intersect that.map.keySet).toList
           (lty, lprov) = this.map(x)
           (rty, rprov) = that.map(x)
-          ty = lty || rty
-          prov = lprov || rprov
-        } yield x -> (ty, prov)).toMap,
+          pair = {
+            if (lty <= rty) (rty, rprov)
+            else if (rty <= lty) (lty, lprov)
+            else (lty || rty, lprov || rprov)
+          }
+        } yield x -> pair).toMap,
         sexpr = this.sexpr || that.sexpr,
       )
 
@@ -482,6 +325,153 @@ trait TypeGuardDecl { self: TyChecker =>
         case _                            => None
   }
 
+  /** Provenance */
+
+  sealed trait Provenance {
+    def ty: ValueTy 
+    def size: Int
+    def depth: Int
+
+    def <=(that: Provenance): Boolean = {
+      if this == Bot then true 
+      else if that == Bot then false
+      else if this == Top then false
+      else if that == Top then true 
+      else // this and that are not Bot or Top
+        (this, that) match
+          case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
+            lnode == rnode && lty <= rty
+          case (Leaf(lnode, lty), Join(rchild)) =>
+            rchild.exists(_ <= this)
+          case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
+            lcall == rcall && lty <= rty && lchild <= rchild
+          case (Join(lchild), Join(rchild)) =>
+            lchild.forall(l => rchild.exists(l <= _))
+          case _ => false
+    }
+
+    def ||(that: Provenance): Provenance = {
+      if this == Bot then return that 
+      else if that == Bot then return this
+      else if this == Top || that == Top then return Top
+      else // this and that are not Bot or Top
+        if this.ty == that.ty then
+          if this.depth <= that.depth then return that 
+          else return this
+        if this.ty <= that.ty then return that 
+        else if that.ty <= this.ty then return this
+      
+      // this and that are not subsumption of each other
+      (this, that) match
+        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
+          if lnode == rnode then Leaf(lnode, lty || rty)
+          else Join(Set(this, that)).canonical
+        case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
+          if lcall == rcall then CallPath(lcall, lty || rty, lchild || rchild)
+          else Join(Set(this, that)).canonical
+        case (prov: (Leaf | CallPath), Join(child)) =>
+          Join(child + prov).canonical
+        case (Join(child), prov: (Leaf | CallPath)) =>
+          Join(child + prov).canonical
+        case (Join(lchild), Join(rchild)) =>
+          Join(lchild ++ rchild).canonical
+        case _ => Join(Set(this, that)).canonical
+    }
+
+    def existsDuplicateCall(c: Call): Boolean = 
+      this match
+        case CallPath(call, _, child) => 
+          if call == c then true
+          else child.existsDuplicateCall(c)
+        case Join(child) => child.exists(_.existsDuplicateCall(c))
+        case _ => false
+
+    def replaceCall(call: Call, ty: ValueTy): Provenance = // ONLY WORKS WITH NO VIEW
+      this match
+        case CallPath(c, _, child) => 
+          if c == call then CallPath(c, ty, child)
+          else CallPath(c, ty, child.replaceCall(call, ty))
+        case Join(child) => Join(child.map(_.replaceCall(call, ty)))
+        case _ => this
+
+    def canonical: Provenance = 
+      this match
+        case Join(set) => 
+          val group = set.groupBy(_.ty).map { case (ty, dupl) => 
+            ty -> dupl.minBy(_.depth)
+          }.toMap
+          Join(
+            group.filterNot{ case (ty, _) => group.keySet.exists(
+              otherTy => (otherTy <= ty && otherTy != ty))
+            }.values.toSet)
+        case _ => this
+
+    def forReturn(call: Call, ty: ValueTy): Provenance = 
+      if this == Bot then Bot
+      else if this == Top then Top
+      else if this.existsDuplicateCall(call) then this.replaceCall(call, ty)
+      else CallPath(call, ty, this)
+    
+    def usedForRefine(target: RefinementTarget): Provenance = 
+      RefinePoint(target, this)
+
+    def toTree(indent: Int): String
+    def toTree: String = toTree(0)
+  }
+
+  case class Leaf(node: Node, ty: ValueTy) extends Provenance { // TODO: change to expression & node
+    def size: Int = 1
+    def depth: Int = 1
+
+    override def toString = s"Leaf(${cfg.funcOf(node).nameWithId}:${node.id}, $ty)"
+    def toTree(indent: Int): String = s"${"  " * indent}$this"
+  }
+  case class CallPath(call: Call, ty: ValueTy, child: Provenance) extends Provenance {
+    def size: Int = child.size + 1
+    def depth: Int = child.depth + 1
+
+    override def toString = s"CallPath(${cfg.funcOf(call).nameWithId}:${call.id}, $ty, ${child.toString})"
+    def toTree(indent: Int): String = s"${"  " * indent}CallPath(${cfg.funcOf(call).nameWithId}:${call.id}, $ty)\n${child.toTree(indent + 1)}"
+  }
+  case class Join(child: Set[Provenance]) extends Provenance {
+    lazy val ty: ValueTy = child.map(_.ty).reduce(_ || _)
+    def size: Int = child.map(_.size).sum + 1
+    def depth: Int = child.map(_.depth).max + 1
+
+    override def toString = s"Join(${child.map(_.toString)})"
+    def toTree(indent: Int): String = s"${"  " * indent}Join($ty)\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
+  } 
+  case class RefinePoint(target: RefinementTarget, child: Provenance) extends Provenance { 
+    lazy val ty: ValueTy = child.ty 
+    def size: Int = child.size + 1
+    def depth: Int = child.depth + 1
+
+    override def toString = s"RefinePoint($target, $child)"
+    def toTree(indent: Int): String = s"${"  " * indent}RefinePoint($target)\n${child.toTree(indent + 1)}"
+  }
+  private case object Bot extends Provenance {
+    lazy val ty: ValueTy = BotT
+    def size: Int = 0
+    def depth: Int = 0
+
+    override def toString = "Bot"
+    def toTree(indent: Int): String = s"${"  " * indent}$this"
+  }
+  private case object Top extends Provenance {
+    lazy val ty: ValueTy = BotT
+    val INF = 1e8.toInt
+    def size: Int = INF
+    def depth: Int = INF
+
+    override def toString = "Top"
+    def toTree(indent: Int): String = s"${"  " * indent}$this"
+  }
+
+  object Provenance {
+    val Bot: Provenance = Bot
+    val Top: Provenance = Top
+    def apply(ty: ValueTy)(using nd: Node): Leaf = Leaf(nd, ty)
+  }
   // -----------------------------------------------------------------------------
   // helpers
   // -----------------------------------------------------------------------------
@@ -528,7 +518,7 @@ trait TypeGuardDecl { self: TyChecker =>
     given Rule[DemandType] = (app, dty) => app >> dty.ty
     given Rule[Map[DemandType, TypeConstr]] =
       sortedMapRule("{", "}", " => ")
-    app >> guard.map
+    app >> guard.simple.map
 
   /** RefinementTarget */
   given Rule[RefinementTarget] = (app, target) =>
@@ -554,7 +544,7 @@ trait TypeGuardDecl { self: TyChecker =>
         case Leaf(node, ty) => norm(s"Leaf${node.id}")
         case CallPath(call, ty, child) => norm(s"call${call.id}")
         case Join(child) => norm(s"join${child.hashCode()}")
-        case Meet(child) => norm(s"meet${child.hashCode()}")
+        case RefinePoint(target, child) => norm(s"refine${target.node.id}")
         case Bot => ???
         case Top => ???
 
@@ -579,8 +569,7 @@ trait TypeGuardDecl { self: TyChecker =>
         case CallPath(call, ty, child) => drawProvenance(child)
         case Join(child) => 
           child.foreach(drawProvenance)
-        case Meet(child) =>
-          child.foreach(drawProvenance)
+        case RefinePoint(target, child) => drawProvenance(child)
         case _ => ()
 
     def drawProvenanceNode(prov: Provenance)(using Appender): Unit =
@@ -597,11 +586,9 @@ trait TypeGuardDecl { self: TyChecker =>
           child.foreach { c =>
             drawEdge(getId(p), getId(c), EDGE_COLOR, None)
           }
-        case p @ Meet(child) =>
-          drawNode(getId(p), "ellipse", NODE_COLOR, BG_COLOR, Some(norm("Meet")))
-          child.foreach(c => 
-            drawEdge(getId(p), getId(c), EDGE_COLOR, None)
-          )
+        case p @ RefinePoint(target, child) => 
+          drawNaming(getId(p), NODE_COLOR, target.node.name)
+          drawEdge(getId(p), getId(child), EDGE_COLOR, Some(p.ty.toString))
         case Bot => ()
         case Top => ()
 
