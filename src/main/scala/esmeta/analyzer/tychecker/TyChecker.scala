@@ -16,6 +16,7 @@ class TyChecker(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
   val inferTypeGuard: Boolean = true,
+  val useProvenance: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
@@ -103,6 +104,7 @@ class TyChecker(
           "options" -> Map(
             "typeSens" -> typeSens,
             "inferTypeGuard" -> inferTypeGuard,
+            "useProvenance" -> useProvenance,
           ),
           "duration" -> f"${time}%,d ms",
           "error" -> errors.size,
@@ -222,7 +224,9 @@ class TyChecker(
         filename = s"$ANALYZE_LOG_DIR/refined",
         silent = silent,
       )
-      if (inferTypeGuard)
+      if (inferTypeGuard) {
+        import ProvPrinter.*
+
         val names = typeGuards.map(_._1.name).toSet
         dumpFile(
           name = "type guard information",
@@ -233,10 +237,33 @@ class TyChecker(
           filename = s"$ANALYZE_LOG_DIR/guards",
           silent = silent,
         )
+        // val provPath = s"$ANALYZE_LOG_DIR/provenance/"
+        // mkdir(provPath, true)
+        // mkdir(s"$provPath/guards", true)
+        // mkdir(s"$provPath/refinepoints", true)
+        // for {
+        //   (func, value) <- typeGuards
+        //   (dty, pred) <- value.guard.map
+        //   (base, (_, prov)) <- pred.map
+        // } {
+        //   val ty = value.symty
+        //   val filename = (s"$provPath/guards/${func.id}_${norm(func.name)}_${norm(dty.ty.toString())}_${norm(base.toString())}")
+        //   dumpDot(filename, draw(prov), true, true)
+        // }
+
+        // for {
+        //   ((target, base), (original, prov)) <- provenances
+        // } {
+        //   val filename = (s"$provPath/refinepoints/${prov.size}_${norm{target.func.name}}_${norm(base.toString)}_${target.node.id}")
+        //   if prov.size >= 7 then dumpDot(filename, draw(prov), true, true)
+        //   //dumpDot(filename, draw(prov), true, true)
+        // }
+      }
   }
 
   /** refined targets */
   var refined: Map[RefinementTarget, (Set[Local], Int)] = Map()
+  var provenances: Map[(RefinementTarget, Base), (ValueTy, Provenance)] = Map()
   def refinedTargets: Int = refined.size
   def refinedLocals: Int = refined.values.map(_._1.size).sum
   def refinedAvgDepth: Double =

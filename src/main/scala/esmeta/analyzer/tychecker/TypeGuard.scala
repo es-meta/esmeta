@@ -6,6 +6,7 @@ import esmeta.ty.*
 import esmeta.util.{*, given}
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.SystemUtils.exists
 
 /** type guards */
 trait TypeGuardDecl { self: TyChecker =>
@@ -90,6 +91,13 @@ trait TypeGuardDecl { self: TyChecker =>
         else constrs.reduce(_ && _)
       }
 
+    def simple: TypeGuard =
+      TypeGuard(map.filterNot { (dty, constr) =>
+        map.exists { (tdty, tconstr) =>
+          (dty.ty != tdty.ty && dty.ty <= tdty.ty && tconstr <= constr)
+        }
+      })
+
     override def toString: String = (new Appender >> this).toString
   }
   object TypeGuard {
@@ -135,36 +143,10 @@ trait TypeGuardDecl { self: TyChecker =>
         .map(DemandType(_))
   }
 
-  case class Provenance(map: Map[Func, List[Call]] = Map()) {
-    def depth: Int = map.values.map(_.length).max
-    def <=(that: Provenance): Boolean =
-      this.map.forall {
-        case (lfunc, lcalls) =>
-          that.map.get(lfunc).fold(false) { rcalls => lcalls == rcalls }
-      }
-    def join(that: Provenance): Provenance = Provenance((for {
-      key <- (this.map.keySet union that.map.keySet).toList
-      calls <- (this.map.get(key), that.map.get(key)) match
-        case (Some(lcalls), Some(rcalls)) =>
-          Some(if (lcalls.length < rcalls.length) lcalls else rcalls)
-        case (Some(lcalls), None) => Some(lcalls)
-        case (None, Some(rcalls)) => Some(rcalls)
-        case (None, None)         => None
-    } yield key -> calls).toMap)
-    def forReturn(call: Call): Provenance = Provenance(
-      map.map { case (key, calls) => key -> (call :: calls) },
-    )
-    override def toString: String = (new Appender >> this).toString
-  }
-  object Provenance {
-    def apply(funcs: Func*): Provenance =
-      Provenance(funcs.map(_ -> Nil).toMap)
-  }
-
   /** type constraints */
   case class TypeConstr(
     map: Map[Base, (ValueTy, Provenance)] = Map(),
-    sexpr: Option[(SymExpr, Provenance)] = None,
+    sexpr: Option[SymExpr] = None,
   ) {
     def isTop: Boolean = map.isEmpty && sexpr.isEmpty
 
@@ -180,39 +162,47 @@ trait TypeGuardDecl { self: TyChecker =>
           }
       } && (this.sexpr == that.sexpr)
 
-    def ||(that: TypeConstr): TypeConstr = TypeConstr(
-      map = (for {
-        x <- (this.map.keySet intersect that.map.keySet).toList
-        (lty, lprov) = this.map(x)
-        (rty, rprov) = that.map(x)
-        ty = lty || rty
-        prov = lprov join rprov
-      } yield x -> (ty, prov)).toMap,
-      sexpr = this.sexpr || that.sexpr,
-    )
+    def ||(that: TypeConstr): TypeConstr =
+      TypeConstr(
+        map = (for {
+          x <- (this.map.keySet intersect that.map.keySet).toList
+          (lty, lprov) = this.map(x)
+          (rty, rprov) = that.map(x)
+          pair = {
+            if (lty <= rty) (rty, rprov)
+            else if (rty <= lty) (lty, lprov)
+            else (lty || rty, lprov || rprov)
+          }
+        } yield x -> pair).toMap,
+        sexpr = this.sexpr || that.sexpr,
+      )
 
-    def &&(that: TypeConstr): TypeConstr = TypeConstr(
-      map = (for {
-        x <- (this.map.keySet ++ that.map.keySet).toList
-        (lty, lprov) = this.map.getOrElse(x, (AnyT, Provenance()))
-        (rty, rprov) = that.map.getOrElse(x, (AnyT, Provenance()))
-        ty = lty && rty
-        prov = lprov join rprov
-      } yield x -> (ty, prov)).toMap,
-      sexpr = this.sexpr && that.sexpr,
-    )
+    def &&(that: TypeConstr): TypeConstr =
+      TypeConstr(
+        map = (for {
+          x <- (this.map.keySet ++ that.map.keySet).toList
+          (lty, lprov) = this.map.getOrElse(x, (ValueTy.Top, Provenance.Top))
+          (rty, rprov) = that.map.getOrElse(x, (ValueTy.Top, Provenance.Top))
+          pair = {
+            if (lty <= rty) (lty, lprov)
+            else if (rty <= lty) (rty, rprov)
+            else (lty && rty, lprov && rprov)
+          }
+        } yield x -> pair).toMap,
+        sexpr = this.sexpr && that.sexpr,
+      )
 
     def has(x: Base): Boolean =
-      map.contains(x) || sexpr.fold(false) { case (sexpr, _) => sexpr.has(x) }
+      map.contains(x) || sexpr.fold(false)(_.has(x))
 
     def bases: Set[Base] =
       map.keySet.collect { case s: Sym => s } ++
-      sexpr.fold(Set[Base]()) { (sexpr, _) => sexpr.bases }
+      sexpr.fold(Set[Base]())(_.bases)
 
     def kill(bases: Set[Base])(using AbsState): TypeConstr =
       this.copy(
         map.filter { case (x, _) => !bases.contains(x) },
-        sexpr.fold(None)((e, p) => e.kill(bases).map(_ -> p)),
+        sexpr.fold(None)(_.kill(bases)),
       )
 
     def kill(effect: Effect): TypeConstr =
@@ -230,9 +220,7 @@ trait TypeGuardDecl { self: TyChecker =>
       sexpr = None,
     )
 
-    def depth: Int =
-      val provs = map.values.map(_._2).toList
-      sexpr.fold(provs)(_._2 :: provs).map(_.depth).max
+    def depth: Int = map.values.map(_._2).map(_.depth).max
 
     def lift(using st: AbsState): TypeConstr =
       this && st.constr
@@ -240,13 +228,10 @@ trait TypeGuardDecl { self: TyChecker =>
     override def toString: String = (new Appender >> this).toString
   }
   object TypeConstr {
-    def apply(pair: (SymExpr, Provenance)): TypeConstr =
-      TypeConstr(sexpr = Some(pair))
+    def apply(sexpr: SymExpr): TypeConstr =
+      TypeConstr(sexpr = Some(sexpr))
     def apply(pairs: (Base, (ValueTy, Provenance))*): TypeConstr =
       TypeConstr(pairs.toMap, None)
-    def apply(base: Base, ty: ValueTy): TypeConstr = TypeConstr(
-      base -> (ty, Provenance()),
-    )
   }
 
   /** symbolic expressions */
@@ -323,21 +308,250 @@ trait TypeGuardDecl { self: TyChecker =>
   object SymExpr {
     // val T: SymExpr = SEBool(true)
     // val F: SymExpr = SEBool(false)
-    extension (l: Option[(SymExpr, Provenance)])
+    extension (l: Option[SymExpr])
       def &&(
-        r: Option[(SymExpr, Provenance)],
-      ): Option[(SymExpr, Provenance)] = (l, r) match
-        case (Some(le, lp), Some(re, rp)) => Some(le && re, lp join rp)
-        case (Some(l), None)              => Some(l)
-        case (None, Some(r))              => Some(r)
-        case _                            => None
+        r: Option[SymExpr],
+      ): Option[SymExpr] = (l, r) match
+        case (Some(le), Some(re)) => Some(le && re)
+        case (Some(l), None)      => Some(l)
+        case (None, Some(r))      => Some(r)
+        case _                    => None
       def ||(
-        r: Option[(SymExpr, Provenance)],
-      ): Option[(SymExpr, Provenance)] = (l, r) match
-        case (Some(le, lp), Some(re, rp)) => Some(le || re, lp join rp)
-        case _                            => None
+        r: Option[SymExpr],
+      ): Option[SymExpr] = (l, r) match
+        case (Some(le), Some(re)) => Some(le || re)
+        case _                    => None
   }
 
+  /** Provenance */
+
+  sealed trait Provenance {
+    import Provenance.*
+
+    def ty: ValueTy
+    def size: Int
+    def depth: Int
+
+    // simple explanation is bigger (imprecise)
+    def <=(that: Provenance): Boolean = {
+      if this == Bot then true
+      else if that == Bot then false
+      else if this == Top then false
+      else if that == Top then true
+      else // this and that are not Bot or Top
+        (this, that) match
+          case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
+            if lty == rty then lnode == rnode
+            else lty <= rty
+          case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
+            if lty == rty then lcall == rcall && lchild <= rchild
+            else lty <= rty
+          case (l @ Join(lchild), r @ Join(rchild)) =>
+            if l.ty == r.ty then rchild.forall(l => lchild.exists(l <= _))
+            else l.ty <= r.ty
+          case (l @ Meet(lchild), r @ Meet(rchild)) =>
+            if l.ty == r.ty then rchild.forall(l => lchild.exists(l <= _))
+            else l.ty <= r.ty
+          case _ => false
+    }
+
+    def ||(that: Provenance): Provenance = {
+      if this == Bot then return that
+      else if that == Bot then return this
+      else if this == Top || that == Top then return Top
+      else // this and that are not Bot or Top
+        if this.ty <= that.ty then return that
+        else if that.ty <= this.ty then return this
+
+      // this and that are not subsumption of each other
+      (this, that) match
+        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
+          if lnode == rnode then Leaf(lnode, lty || rty)
+          else Join(Set(this, that)).canonical
+        case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
+          if lcall == rcall then CallPath(lcall, lty || rty, lchild || rchild)
+          else Join(Set(this, that)).canonical
+        case (prov: (Leaf | CallPath), Join(child)) =>
+          Join(child + prov).canonical
+        case (Join(child), prov: (Leaf | CallPath)) =>
+          Join(child + prov).canonical
+        case (Join(lchild), Join(rchild)) =>
+          Join(lchild ++ rchild).canonical
+        case _ => Join(Set(this, that)).canonical
+    }
+
+    def &&(that: Provenance): Provenance = {
+      if this == Bot || that == Bot then return Bot 
+      else if this == Top then return that
+      else if that == Top then return this
+      else // this and that are not Bot or Top
+        if this.ty <= that.ty then return this
+        else if that.ty <= this.ty then return that
+
+      // this and that are not subsumption of each other
+      (this, that) match
+        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
+          if lnode == rnode then Leaf(lnode, lty && rty)
+          else Meet(Set(this, that)).canonical
+        case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
+          if lcall == rcall then CallPath(lcall, lty && rty, lchild && rchild)
+          else Meet(Set(this, that)).canonical
+        case (prov: (Leaf | CallPath), Meet(child)) =>
+          Meet(child + prov).canonical
+        case (Meet(child), prov: (Leaf | CallPath)) =>
+          Meet(child + prov).canonical
+        case (Meet(lchild), Meet(rchild)) =>
+          Meet(lchild ++ rchild).canonical
+        case _ => Meet(Set(this, that)).canonical
+    }
+
+    def existsDuplicateCall(c: Call): Boolean =
+      this match
+        case CallPath(call, _, child) =>
+          if call == c then true
+          else child.existsDuplicateCall(c)
+        case Join(child) => child.exists(_.existsDuplicateCall(c))
+        case Meet(child) => child.exists(_.existsDuplicateCall(c))
+        case _           => false
+
+    def replaceCall(
+      call: Call,
+      ty: ValueTy,
+    ): Provenance = // ONLY WORKS WITH NO VIEW
+      this match
+        case CallPath(c, _, child) =>
+          if c == call then CallPath(c, ty, child)
+          else CallPath(c, ty, child.replaceCall(call, ty))
+        case Join(child) => Join(child.map(_.replaceCall(call, ty)))
+        case Meet(child) => Meet(child.map(_.replaceCall(call, ty)))
+        case _           => this
+
+    def canonical: Provenance =
+      this match
+        case Join(set) =>
+          val group = set
+            .groupBy(_.ty)
+            .map {
+              case (ty, dupl) =>
+                ty -> dupl.minBy(_.depth)
+            }
+            .toMap
+          Join(
+            group
+              .filterNot {
+                case (ty, _) =>
+                  group.keySet.exists(otherTy =>
+                    (ty <= otherTy && otherTy != ty),
+                  )
+              }
+              .values
+              .toSet,
+          )
+        case Meet(set) =>
+          val group = set
+            .groupBy(_.ty)
+            .map {
+              case (ty, dupl) =>
+                ty -> dupl.minBy(_.depth)
+            }
+            .toMap
+          Meet(
+            group
+              .filterNot {
+                case (ty, _) =>
+                  group.keySet.exists(otherTy =>
+                    (otherTy <= ty && otherTy != ty),
+                  )
+              }
+              .values
+              .toSet,
+          )
+        case _ => this
+
+    def forReturn(call: Call, ty: ValueTy): Provenance =
+      if this == Bot then Bot
+      else if this == Top then Top
+      else if this.existsDuplicateCall(call) then this.replaceCall(call, ty)
+      else CallPath(call, ty, this)
+
+    def usedForRefine(target: RefinementTarget): Provenance =
+      RefinePoint(target, this)
+
+    def toTree(indent: Int): String
+    def toTree: String = toTree(0)
+  }
+
+  case class Leaf(node: Node, ty: ValueTy) extends Provenance { // TODO: change to expression & node
+    def size: Int = 1
+    def depth: Int = 1
+
+    override def toString =
+      s"Leaf(${cfg.funcOf(node).nameWithId}:${node.id}, $ty)"
+    def toTree(indent: Int): String = s"${"  " * indent}$this"
+  }
+  case class CallPath(call: Call, ty: ValueTy, child: Provenance)
+    extends Provenance {
+    def size: Int = child.size + 1
+    def depth: Int = child.depth + 1
+
+    override def toString =
+      s"CallPath(${cfg.funcOf(call).nameWithId}:${call.id}, $ty, ${child.toString})"
+    def toTree(indent: Int): String =
+      s"${"  " * indent}CallPath(${cfg.funcOf(call).nameWithId}:${call.id}, $ty)\n${child
+        .toTree(indent + 1)}"
+  }
+  case class Join(child: Set[Provenance]) extends Provenance {
+    lazy val ty: ValueTy = child.map(_.ty).reduce(_ || _)
+    def size: Int = child.map(_.size).sum + 1
+    def depth: Int = child.map(_.depth).max + 1
+
+    override def toString = s"Join(${child.map(_.toString)})"
+    def toTree(indent: Int): String =
+      s"${"  " * indent}Join($ty)\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
+  }
+  
+  case class Meet(child: Set[Provenance]) extends Provenance {
+    lazy val ty: ValueTy = child.map(_.ty).reduce(_ && _)
+    def size: Int = child.map(_.size).sum + 1
+    def depth: Int = child.map(_.depth).max + 1
+
+    override def toString = s"Meet(${child.map(_.toString)})"
+    def toTree(indent: Int): String =
+      s"${"  " * indent}Meet($ty)\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
+  }
+
+  case class RefinePoint(target: RefinementTarget, child: Provenance)
+    extends Provenance {
+    lazy val ty: ValueTy = child.ty
+    def size: Int = child.size + 1
+    def depth: Int = child.depth + 1
+
+    override def toString = s"RefinePoint($target, $child)"
+    def toTree(indent: Int): String =
+      s"${"  " * indent}RefinePoint($target)\n${child.toTree(indent + 1)}"
+  }
+  object Provenance {
+    case object Bot extends Provenance {
+      lazy val ty: ValueTy = BotT
+      val INF = 1e8.toInt
+      def size: Int = INF
+      def depth: Int = INF
+
+      override def toString = "Bot"
+      def toTree(indent: Int): String = s"${"  " * indent}$this"
+    }
+    case object Top extends Provenance {
+      lazy val ty: ValueTy = BotT
+      def size: Int = 0
+      def depth: Int = 0
+
+      override def toString = "Top"
+      def toTree(indent: Int): String = s"${"  " * indent}$this"
+    }
+
+    def apply(ty: ValueTy)(using nd: Node): Provenance =
+      if useProvenance then Leaf(nd, ty) else Bot
+  }
   // -----------------------------------------------------------------------------
   // helpers
   // -----------------------------------------------------------------------------
@@ -365,27 +579,18 @@ trait TypeGuardDecl { self: TyChecker =>
 
   /** Provenance */
   given Rule[Provenance] = (app, prov) =>
-    val Provenance(map) = prov
-    if (map.nonEmpty) (app >> " <from> ").wrap("{", "}") {
-      for ((func, calls) <- map.toList.sortBy(_._1)) {
-        app :> func.nameWithId
-        if (calls.nonEmpty) {
-          for (call <- calls.reverse)
-            app :> "<- " >> call.name >> " @ " >> cfg.funcOf(call).nameWithId
-        }
-      }
-    }
-    app
+    import Provenance.*
+    if useProvenance then app >> prov.toTree else app
 
   /** TypeConstr */
   given Rule[TypeConstr] = (app, constr) =>
     import TypeConstr.*
     given Rule[(ValueTy, Provenance)] =
-      case (app, (ty, prov)) => app >> ty >> prov
+      case (app, (ty, prov)) => app >> ty >> " ~~\n" >> prov
     import SymTy.given
     given Rule[Map[Base, (ValueTy, Provenance)]] = sortedMapRule(sep = ": ")
     if (constr.map.nonEmpty) app >> constr.map
-    constr.sexpr.fold(app) { (sexpr, prov) => app >> sexpr >> prov }
+    constr.sexpr.fold(app) { app >> _ }
 
   /** TypeGuard */
   given Rule[TypeGuard] = (app, guard) =>
@@ -393,7 +598,7 @@ trait TypeGuardDecl { self: TyChecker =>
     given Rule[DemandType] = (app, dty) => app >> dty.ty
     given Rule[Map[DemandType, TypeConstr]] =
       sortedMapRule("{", "}", " => ")
-    app >> guard.map
+    app >> guard.simple.map
 
   /** RefinementTarget */
   given Rule[RefinementTarget] = (app, target) =>
@@ -411,5 +616,122 @@ trait TypeGuardDecl { self: TyChecker =>
     target match
       case BranchTarget(branch, isTrue) => (branch.id, if (isTrue) 1 else 0)
       case AssertTarget(block, idx)     => (block.id, idx)
+  }
+
+  object ProvPrinter {
+    def getId(prov: Provenance): String =
+      prov match
+        case Leaf(node, ty)             => norm(s"Leaf${node.id}")
+        case CallPath(call, ty, child)  => norm(s"call${call.id}")
+        case Join(child)                => norm(s"join${child.hashCode()}")
+        case Meet(child)                => norm(s"meet${child.hashCode()}")
+        case RefinePoint(target, child) => norm(s"refine${target.node.id}")
+        case Provenance.Bot             => ???
+        case Provenance.Top             => ???
+
+    /** Colors */
+    val NODE_COLOR = """"black""""
+    val BG_COLOR = """"white""""
+    val EDGE_COLOR = """"black""""
+
+    def draw(prov: Provenance): String =
+      given app: Appender = new Appender
+      (app >> "digraph").wrap {
+        app :> """graph [fontname = "Consolas"]"""
+        app :> """node [fontname = "Consolas"]"""
+        app :> """edge [fontname = "Consolas"]"""
+        drawProvenance(prov)
+      }
+      app.toString
+
+    def drawProvenance(prov: Provenance)(using app: Appender): Unit =
+      drawProvenanceNode(prov)
+      prov match
+        case CallPath(call, ty, child) => drawProvenance(child)
+        case Join(child) =>
+          child.foreach(drawProvenance)
+        case RefinePoint(target, child) => drawProvenance(child)
+        case _                          => ()
+
+    def drawProvenanceNode(prov: Provenance)(using Appender): Unit =
+      prov match
+        case p @ Leaf(node, ty) =>
+          drawNaming(getId(p), NODE_COLOR, node.name)
+          drawNode(getId(p), "box", NODE_COLOR, BG_COLOR, Some(ty.toString))
+        case p @ CallPath(call, ty, child) =>
+          drawNaming(getId(p), NODE_COLOR, call.name)
+          drawNode(getId(p), "box", NODE_COLOR, BG_COLOR, Some(ty.toString))
+          drawEdge(getId(p), getId(child), EDGE_COLOR, None)
+        case p @ Join(child) =>
+          drawNode(
+            getId(p),
+            "ellipse",
+            NODE_COLOR,
+            BG_COLOR,
+            Some(p.ty.toString),
+          )
+          child.foreach { c =>
+            drawEdge(getId(p), getId(c), EDGE_COLOR, None)
+          }
+        case p @ Meet(child) =>
+          drawNode(
+            getId(p),
+            "ellipse",
+            NODE_COLOR,
+            BG_COLOR,
+            Some(p.ty.toString),
+          )
+          child.foreach { c =>
+            drawEdge(getId(p), getId(c), EDGE_COLOR, None)
+          }
+        case p @ RefinePoint(target, child) =>
+          drawNaming(getId(p), NODE_COLOR, target.node.name)
+          drawEdge(getId(p), getId(child), EDGE_COLOR, Some(p.ty.toString))
+        case Provenance.Bot => ()
+        case Provenance.Top => ()
+
+    def drawNode(
+      dotId: String,
+      shape: String,
+      color: String,
+      bgColor: String,
+      labelOpt: Option[String],
+    )(using app: Appender): Unit = labelOpt match
+      case Some(label) =>
+        app :> s"""$dotId [shape=$shape, label=<<font color=$color>$label</font>> color=$color fillcolor=$bgColor, style=filled]"""
+      case None =>
+        app :> s"""$dotId [shape=$shape label=" " color=$color fillcolor=$bgColor style=filled]"""
+
+    def drawEdge(
+      fid: String,
+      tid: String,
+      color: String,
+      labelOpt: Option[String],
+    )(using app: Appender): Unit =
+      app :> s"$fid -> $tid ["
+      labelOpt.map { label =>
+        app >> s"label=<<font color=$color>$label</font>> "
+      }
+      app >> s"color=$color]"
+
+    def drawNaming(
+      id: String,
+      color: String,
+      name: String,
+    )(using app: Appender): Unit =
+      app :> id >> "_name [shape=none, "
+      app >> "label=<<font color=" >> color >> ">" >> name >> "</font>>]"
+      app :> id >> "_name -> " >> id
+      app >> " [arrowhead=none, color=" >> color >> ", style=dashed]"
+
+    def norm(str: String): String =
+      val s = HtmlUtils.escapeHtml(str).replaceAll("\u0000", "U+0000")
+      s.replaceAll("[^a-zA-Z0-9]", "")
+    def norm(node: IRElem): String =
+      norm(node.toString(detail = false, location = false))
+    protected def norm(insts: Iterable[Inst]): String = (for {
+      (inst, idx) <- insts.zipWithIndex
+      str = norm(inst)
+    } yield s"""[$idx] $str<BR ALIGN="LEFT"/>""").mkString
   }
 }

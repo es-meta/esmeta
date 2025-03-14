@@ -80,6 +80,20 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       if (xs.isEmpty) refined -= target
       else refined += target -> (xs.toSet, constr.fold(0)(_.depth))
 
+      if (useProvenance) {
+        constr.fold(Map()) { constr =>
+          for {
+            (base, (ty, prov)) <- constr.map
+            original = st.getTy(base)
+            if constr.map.contains(base)
+          } {
+            provenances += ((target, base) -> (original, prov.usedForRefine(
+              target,
+            )))
+          }
+        }
+      }
+
     def refine(
       expr: Expr,
       v: AbsValue,
@@ -731,6 +745,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** get a type guard */
     def getTypeGuard(expr: Expr)(using np: NodePoint[_]): Result[TypeGuard] = {
       import DemandType.*
+      given Node = np.node
       expr match {
         case EBool(bool) =>
           val dty = if (bool) DemandType(TrueT) else DemandType(FalseT)
@@ -933,7 +948,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               pexpr = SEExists(SField(bref, fref))
             } guard += DemandType(TrueT) -> TypeConstr(
               Map(),
-              Some(pexpr, Provenance(np.func)),
+              Some(pexpr),
             )
             TypeGuard(guard)
           }
@@ -951,7 +966,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               pexpr = SEEq(ltypeOf, rtypeOf)
             } guard += DemandType(TrueT) -> TypeConstr(
               Map(),
-              Some(pexpr, Provenance(np.func)),
+              Some(pexpr),
             )
             TypeGuard(guard)
           }
@@ -1285,11 +1300,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           case _         => None
         (z, zty) <- toBase(y -> ty)
         if !(st.getTy(z) <= zty)
-      } yield z -> (zty, prov.forReturn(call)),
+      } yield z -> (zty, prov.forReturn(call, zty)),
       sexpr = for {
-        (e, prov) <- constr.sexpr
+        e <- constr.sexpr
         newExpr <- instantiate(e, map)
-      } yield (newExpr, prov.forReturn(call)),
+      } yield newExpr,
     )
 
     /** instantiation of symbolic expressions */
@@ -1456,10 +1471,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
       /** Alias handling */
       val alias: Map[Base, Base] = expr.fold(Map()) {
-        case (
-              SEEq(SETypeOf(SERef(x: SymBase)), SETypeOf(SERef(y: SymBase))),
-              _,
-            ) =>
+        case SEEq(SETypeOf(SERef(x: SymBase)), SETypeOf(SERef(y: SymBase))) =>
           Map(x.toBase -> y.toBase, y.toBase -> x.toBase)
         case _ => Map()
       }
@@ -1516,7 +1528,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )(using
       st: AbsState,
     ): Option[(Base, (ValueTy, Provenance))] =
-      toBase(pair).map { (base, ty) => base -> (ty, Provenance(np.func)) }
+      toBase(pair).map { (base, ty) =>
+        base -> (ty, Provenance(ty)(using np.node))
+      }
 
     def toBase(
       pair: (SymRef, ValueTy),
@@ -1718,7 +1732,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 record = ObjectT.record.update(f, Binding.Exist, refine = true),
               )
             case _ => ObjectT
-          val prov = Provenance(func)
+          val prov = Provenance(refined)(using func.entry)
           val guard =
             TypeGuard(
               DemandType(NormalT) -> TypeConstr(0 -> (refined, prov)),
@@ -1727,7 +1741,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         },
         "NewPromiseCapability" -> { (func, vs, retTy, st) =>
           given AbsState = st
-          val prov = Provenance(func)
+          val prov = Provenance(ConstructorT)(using func.entry)
           val guard = TypeGuard(
             DemandType(NormalT) -> TypeConstr(0 -> (ConstructorT, prov)),
           )
@@ -1750,10 +1764,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "SameType" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val expr = SEEq(SETypeOf(SERef(SSym(0))), SETypeOf(SERef(SSym(1))))
-          val prov = Provenance(func)
           AbsValue(
             STy(BoolT),
-            TypeGuard(DemandType(TrueT) -> TypeConstr(expr -> prov)),
+            TypeGuard(DemandType(TrueT) -> TypeConstr(expr)),
           )
         },
         "TypedArrayElementType" -> { (func, vs, retTy, st) =>

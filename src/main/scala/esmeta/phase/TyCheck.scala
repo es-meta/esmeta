@@ -23,6 +23,7 @@ case object TyCheck extends Phase[CFG, Unit] {
       cfg = cfg,
       targetPattern = config.target,
       inferTypeGuard = config.inferTypeGuard,
+      useProvenance = config.useProvenance,
       typeSens = config.typeSens,
       config = TyChecker.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
@@ -84,6 +85,11 @@ case object TyCheck extends Phase[CFG, Unit] {
       BoolOption(_.inferTypeGuard = _),
       "automatic inference of type guards (default: true).",
     ),
+    (
+      "provenance",
+      BoolOption(_.useProvenance = _),
+      "turn on provenance tracking.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -95,5 +101,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var detail: Boolean = false,
     var typeSens: Boolean = false,
     var inferTypeGuard: Boolean = true,
+    var useProvenance: Boolean = false,
   )
 }

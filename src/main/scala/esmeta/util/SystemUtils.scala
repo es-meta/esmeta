@@ -122,6 +122,19 @@ object SystemUtils {
     source.close
     str
 
+  def dumpDot(
+    path: String,
+    dot: String,
+    pdf: Boolean,
+    silent: Boolean = true,
+  ): Unit =
+    dumpFile(dot, s"$path.dot")
+    if (pdf) {
+      executeCmd(s"""unflatten -l 10 -o ${path}_trans.dot $path.dot""")
+      executeCmd(s"""dot -Tpdf "${path}_trans.dot" -o "$path.pdf"""")
+      if (!silent) println(s"Dumped CFG to $path.pdf")
+    } else if (!silent) println(s"Dumped CFG to $path.dot")
+
   /** read JSON */
   def readJson[T](filename: String)(implicit decoder: Decoder[T]): T =
     parse(readFile(filename)) match {
