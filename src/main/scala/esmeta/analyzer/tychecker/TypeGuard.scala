@@ -360,8 +360,8 @@ trait TypeGuardDecl { self: TyChecker =>
       else if that == Bot then return this
       else if this == Top || that == Top then return Top
       else // this and that are not Bot or Top
-        if this.ty <= that.ty then return that
-        else if that.ty <= this.ty then return this
+      if this.ty <= that.ty then return that
+      else if that.ty <= this.ty then return this
 
       // this and that are not subsumption of each other
       (this, that) match
@@ -381,12 +381,12 @@ trait TypeGuardDecl { self: TyChecker =>
     }
 
     def &&(that: Provenance): Provenance = {
-      if this == Bot || that == Bot then return Bot 
+      if this == Bot || that == Bot then return Bot
       else if this == Top then return that
       else if that == Top then return this
       else // this and that are not Bot or Top
-        if this.ty <= that.ty then return this
-        else if that.ty <= this.ty then return that
+      if this.ty <= that.ty then return this
+      else if that.ty <= this.ty then return that
 
       // this and that are not subsumption of each other
       (this, that) match
@@ -509,7 +509,7 @@ trait TypeGuardDecl { self: TyChecker =>
     def toTree(indent: Int): String =
       s"${"  " * indent}Join($ty)\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
   }
-  
+
   case class Meet(child: Set[Provenance]) extends Provenance {
     lazy val ty: ValueTy = child.map(_.ty).reduce(_ && _)
     def size: Int = child.map(_.size).sum + 1
@@ -586,7 +586,8 @@ trait TypeGuardDecl { self: TyChecker =>
   given Rule[TypeConstr] = (app, constr) =>
     import TypeConstr.*
     given Rule[(ValueTy, Provenance)] =
-      case (app, (ty, prov)) => app >> ty >> " ~~\n" >> prov
+      case (app, (ty, prov)) if useProvenance => app >> ty >> " ~~\n" >> prov
+      case (app, (ty, prov))                  => app >> ty
     import SymTy.given
     given Rule[Map[Base, (ValueTy, Provenance)]] = sortedMapRule(sep = ": ")
     if (constr.map.nonEmpty) app >> constr.map

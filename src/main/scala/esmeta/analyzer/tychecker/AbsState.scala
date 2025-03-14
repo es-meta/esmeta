@@ -364,7 +364,7 @@ trait AbsStateDecl { self: TyChecker =>
           sortedMapRule(sep = " <: ")
         if (locals.nonEmpty) app >> locals
         if (symEnv.nonEmpty) app >> symEnv
-        app >> constr
+        // app >> constr
         if (effect.nonEmpty) app >> effect
         app
       } else app >> "⊥"
