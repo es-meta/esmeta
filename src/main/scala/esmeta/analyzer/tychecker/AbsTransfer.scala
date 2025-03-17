@@ -1695,10 +1695,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState = st
           AbsValue(SSym(0))
         },
-        "NormalCompletion" -> { (func, vs, retTy, st) =>
-          given AbsState = st
-          AbsValue(SNormal(SSym(0)))
-        },
+        // "NormalCompletion" -> { (func, vs, retTy, st) =>
+        //   given AbsState = st
+        //   AbsValue(SNormal(SSym(0)))
+        // },
         "UpdateEmpty" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val record = vs(0).ty.record
