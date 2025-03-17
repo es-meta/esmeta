@@ -500,7 +500,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         if (!oldRet.isBottom && useRepl) Repl.merged = true
         if (newRet !⊑ oldRet) {
           val v = (oldV ⊔ newV)
-          rpMap += rp -> AbsRet(v.forReturn(entrySt), oldEffect ⊔ effect)
+          rpMap += rp -> AbsRet(v, oldEffect ⊔ effect)
           worklist += rp
         }
 

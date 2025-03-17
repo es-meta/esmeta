@@ -67,7 +67,7 @@ trait AbsValueDecl { self: TyChecker =>
       val guard = this.guard.kill(effect)
       AbsValue(sty, guard)
 
-    /** normalize abstract values for return */
+    /** remove non-parameter local variables */
     def forReturn(
       givenSt: AbsState,
       func: Func,
@@ -76,12 +76,8 @@ trait AbsValueDecl { self: TyChecker =>
       given AbsState = givenSt
       if (isTypeGuardCandidate(func)) {
         val xs = givenSt.getImprecBases(entrySt)
-        this.forReturn(entrySt).kill(xs, update = false)
+        this.kill(xs, update = false)
       } else AbsValue(this.ty)
-
-    /** normalize abstract values for return */
-    def forReturn(entrySt: AbsState): AbsValue =
-      copy(guard = guard.forReturn(entrySt.symEnv))
 
     /** get symbols */
     def bases: Set[Base] =
