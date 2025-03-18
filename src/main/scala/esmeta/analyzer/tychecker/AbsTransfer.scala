@@ -398,7 +398,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           given AbsState <- get
           tv <- transfer(expr)
-          v = if useSyntacticKill && np.isMutable(x) then AbsValue(tv.ty) else tv
+          v =
+            if useFullSyntaxKill && np.canMakeSideEffect then AbsValue(tv.ty)
+            else if useBasicSyntaxKill && np.isMutable(x) then AbsValue(tv.ty)
+            else tv
           _ <- modify(_.update(x, v, refine = false))
         } yield ()
       case IAssign(Field(x: Var, EStr(f)), expr) =>
@@ -1697,10 +1700,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState = st
           AbsValue(SSym(0))
         },
-        // "NormalCompletion" -> { (func, vs, retTy, st) =>
-        //   given AbsState = st
-        //   AbsValue(SNormal(SSym(0)))
-        // },
+        "NormalCompletion" -> { (func, vs, retTy, st) =>
+          given AbsState = st
+          AbsValue(SNormal(SSym(0)))
+        },
         "UpdateEmpty" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val record = vs(0).ty.record

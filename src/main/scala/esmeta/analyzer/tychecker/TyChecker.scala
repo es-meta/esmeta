@@ -17,7 +17,8 @@ class TyChecker(
   val targetPattern: Option[String] = None,
   val inferTypeGuard: Boolean = true,
   val useProvenance: Boolean = false,
-  val useSyntacticKill: Boolean = false,
+  val useBasicSyntaxKill: Boolean = false,
+  val useFullSyntaxKill: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
@@ -106,7 +107,8 @@ class TyChecker(
             "typeSens" -> typeSens,
             "inferTypeGuard" -> inferTypeGuard,
             "useProvenance" -> useProvenance,
-            "useSyntacticKill" -> useSyntacticKill,
+            "useBaseSyntaxKill" -> useBasicSyntaxKill,
+            "useFullSyntaxKill" -> useFullSyntaxKill,
           ),
           "duration" -> f"${time}%,d ms",
           "error" -> errors.size,
@@ -339,7 +341,9 @@ class TyChecker(
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
       } yield {
-        if useSyntacticKill && callee.mutable.contains(x) then
+        if useFullSyntaxKill && callee.canMakeSideEffect then
+          (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
+        else if useBasicSyntaxKill && callee.mutableLocals.contains(x) then
           (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
         else (x -> AbsValue(SSym(sym)), sym -> value.ty)
       }).unzip
@@ -457,14 +461,46 @@ class TyChecker(
     (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
 
   /** For Expriement: Imitating Kent's work */
-  extension (func: Func) {
-    def mutable: Set[Ref] = func.nodes.flatMap(_.mutable)
-  }
-  extension (node: Node) {
-    def mutable: Set[Ref] = node match
-      case block: Block => block.insts.flatMap(_.mutable).toSet
-      case _            => Set()
-  }
+
+  lazy val impureFuncs =
+    def basicImpureFuncs: Set[Func] =
+      cfg.funcs.filter(_.mutableLocals.nonEmpty).toSet
+    var visited = Set[Func]()
+    def bfs(mque: scala.collection.mutable.Queue[Func]): Unit =
+      if mque.nonEmpty then
+        val func = mque.dequeue()
+        func.nodes.foreach {
+          case call: Call =>
+            call.inst.fold(()) { inst =>
+              val callee = inst match
+                case ICall(_, fexpr, _) =>
+                  fexpr match
+                    case EClo(fname, _) => Some(fname)
+                    case ECont(fname)   => Some(fname)
+                    case _              => None
+                case ISdoCall(_, base, _, _) =>
+                  base match
+                    case EClo(fname, _) => Some(fname)
+                    case ECont(fname)   => Some(fname)
+                    case _              => None
+                case _ => None
+              callee match
+                case Some(fname) =>
+                  cfg.funcs.filter(_.name == fname).foreach { f =>
+                    visited += f
+                    if !visited.contains(f) then mque.enqueue(f)
+                  }
+                case _ => ()
+            }
+          case _ => ()
+        }
+        bfs(mque)
+    bfs(scala.collection.mutable.Queue.from(basicImpureFuncs))
+    println(
+      s"${visited.size} functions are impure while ${cfg.funcs.size} functions exist.",
+    )
+    visited
+
   extension (inst: NormalInst) {
     def mutable: Set[Ref] = inst match
       case IAssign(ref, _) => Set(ref)
@@ -473,8 +509,18 @@ class TyChecker(
       case IPush(_, ERef(list: Local), _) => Set(list)
       case _                              => Set()
   }
+  extension (node: Node) {
+    def mutable: Set[Ref] = node match
+      case block: Block => block.insts.flatMap(_.mutable).toSet
+      case _            => Set()
+  }
+  extension (func: Func) {
+    def mutableLocals = func.nodes.flatMap(_.mutable)
+    def canMakeSideEffect = impureFuncs.contains(func)
+  }
   extension (np: NodePoint[_]) {
-    def isMutable = np.func.mutable.contains
+    def isMutable: Ref => Boolean = np.func.mutableLocals.contains
+    def canMakeSideEffect: Boolean = np.func.canMakeSideEffect
   }
 }
 
