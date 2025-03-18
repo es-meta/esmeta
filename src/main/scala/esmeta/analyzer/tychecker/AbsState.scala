@@ -148,7 +148,7 @@ trait AbsStateDecl { self: TyChecker =>
     def getTy(expr: SymExpr): ValueTy = {
       import SymExpr.*
       expr match
-        // case SEBool(b)             => BoolT(b)
+        case SEBool(b)             => BoolT(b)
         case SERef(ref)            => getTy(ref)
         case SEExists(ref)         => BoolT
         case SETypeCheck(base, ty) => BoolT

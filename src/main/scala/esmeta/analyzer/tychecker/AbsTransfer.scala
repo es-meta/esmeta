@@ -1312,7 +1312,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       sexpr: SymExpr,
       map: Map[Sym, AbsValue],
     )(using st: AbsState): Option[SymExpr] = sexpr match {
-      // case SEBool(b) => Some(sexpr)
+      case SEBool(b) => Some(sexpr)
       case SERef(ref) =>
         instantiate(ref, map).symty match
           case x: SymRef => Some(SERef(x))

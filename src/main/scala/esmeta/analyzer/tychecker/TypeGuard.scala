@@ -236,7 +236,7 @@ trait TypeGuardDecl { self: TyChecker =>
 
   /** symbolic expressions */
   enum SymExpr {
-    // case SEBool(b: Boolean)
+    case SEBool(b: Boolean)
     case SERef(ref: SymRef)
     case SEExists(ref: SymRef)
     case SETypeCheck(base: SymExpr, ty: ValueTy)
@@ -247,20 +247,18 @@ trait TypeGuardDecl { self: TyChecker =>
     // case SENot(expr: SymExpr)
     def ||(that: SymExpr): SymExpr = (this, that) match
       case _ if this == that => this
-      case _                 => ???
-    // case (SEBool(false), _)                    => that
-    // case (_, SEBool(false))                    => this
-    // case (SEBool(true), _) | (_, SEBool(true)) => SEBool(true)
-    // case _                                     => SEOr(this, that)
+      case (SEBool(false), _)                    => that
+      case (_, SEBool(false))                    => this
+      case (SEBool(true), _) | (_, SEBool(true)) => SEBool(true)
+      case _                                     => SEBool(true)
     def &&(that: SymExpr): SymExpr = (this, that) match
       case _ if this == that => this
-      case _                 => ???
-    // case (SEBool(true), _)                       => that
-    // case (_, SEBool(true))                       => this
-    // case (SEBool(false), _) | (_, SEBool(false)) => SEBool(false)
-    // case _                                       => SEAnd(this, that)
+      case (SEBool(true), _)                       => that
+      case (_, SEBool(true))                       => this
+      case (SEBool(false), _) | (_, SEBool(false)) => SEBool(false)
+      case _                                       => SEBool(true)
     def has(x: Base): Boolean = this match
-      // case SEBool(b)             => false
+      case SEBool(b)             => false
       case SERef(ref)            => ref.has(x)
       case SEExists(ref)         => ref.has(x)
       case SETypeCheck(base, ty) => base.has(x)
@@ -270,7 +268,7 @@ trait TypeGuardDecl { self: TyChecker =>
     // case SEAnd(left, right)    => left.has(x) || right.has(x)
     // case SENot(expr)           => expr.has(x)
     def bases: Set[Base] = this match
-      // case SEBool(b)             => Set()
+      case SEBool(b)             => Set()
       case SERef(ref)            => ref.bases
       case SEExists(ref)         => ref.bases
       case SETypeCheck(base, ty) => base.bases
@@ -280,7 +278,7 @@ trait TypeGuardDecl { self: TyChecker =>
     // case SEAnd(left, right)    => left.bases ++ right.bases
     // case SENot(expr)           => expr.bases
     def kill(bases: Set[Base]): Option[SymExpr] = this match
-      // case SEBool(b) => Some(this)
+      case SEBool(b) => Some(this)
       case SERef(ref) =>
         ref.killRef(ref, bases, true).map(SERef(_)) // FIXME: check later
       case SEExists(ref) => ref.killRef(ref, bases, true).map(SEExists(_))
@@ -561,7 +559,7 @@ trait TypeGuardDecl { self: TyChecker =>
   given Rule[SymExpr] = (app, expr) =>
     import SymExpr.*
     expr match
-      // case SEBool(bool)  => app >> bool
+      case SEBool(bool)  => app >> bool
       case SERef(ref)    => app >> ref
       case SEExists(ref) => app >> "(exists " >> ref >> ")"
       case SETypeCheck(expr, ty) =>
