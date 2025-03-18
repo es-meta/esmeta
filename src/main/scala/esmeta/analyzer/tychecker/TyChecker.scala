@@ -241,6 +241,22 @@ class TyChecker(
           filename = s"$ANALYZE_LOG_DIR/guards",
           silent = silent,
         )
+
+        if (useFullSyntaxKill) {
+          dumpFile(
+            name = "impure functions",
+            data = impureFuncs.map(_.name).toList.sorted.mkString(LINE_SEP),
+            filename = s"$ANALYZE_LOG_DIR/impure",
+            silent = silent,
+          )
+          dumpFile(
+            name = "pure functions",
+            data = cfg.funcs.filterNot(impureFuncs.contains).map(_.name).toList.sorted.mkString(LINE_SEP),
+            filename = s"$ANALYZE_LOG_DIR/pure",
+            silent = silent,
+          )
+        }
+
         // val provPath = s"$ANALYZE_LOG_DIR/provenance/"
         // mkdir(provPath, true)
         // mkdir(s"$provPath/guards", true)
