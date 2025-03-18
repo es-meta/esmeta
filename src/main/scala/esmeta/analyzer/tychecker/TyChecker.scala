@@ -478,40 +478,39 @@ class TyChecker(
 
   /** For Expriement: Imitating Kent's work */
 
+  lazy val synCallGraph: Map[Func, Set[Func]] = 
+    cfg.funcs.map { func =>
+      val callees = func.nodes.flatMap {
+        case call: Call =>
+          call.inst.fold(Set[Func]()) {
+            case ICall(_, fexpr, _) =>
+              fexpr match
+                case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
+                case ECont(fname)   => cfg.funcs.filter(_.name == fname)
+                case _              => Set()
+            case ISdoCall(_, base, _, _) =>
+              base match
+                case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
+                case ECont(fname)   => cfg.funcs.filter(_.name == fname)
+                case _              => Set()
+            case _ => Set()
+          }
+        case _ => Set()
+      }
+      for callee <- callees yield callee -> func
+    }.flatMap(identity).groupMap(_._1)(_._2).map((k, v) => k -> v.toSet)
+
   lazy val impureFuncs =
     def basicImpureFuncs: Set[Func] =
       cfg.funcs.filter(_.mutableLocals.nonEmpty).toSet
-    var visited = Set[Func]()
-    def bfs(mque: scala.collection.mutable.Queue[Func]): Unit =
-      if mque.nonEmpty then
-        val func = mque.dequeue()
-        func.nodes.foreach {
-          case call: Call =>
-            call.inst.fold(()) { inst =>
-              val callee = inst match
-                case ICall(_, fexpr, _) =>
-                  fexpr match
-                    case EClo(fname, _) => Some(fname)
-                    case ECont(fname)   => Some(fname)
-                    case _              => None
-                case ISdoCall(_, base, _, _) =>
-                  base match
-                    case EClo(fname, _) => Some(fname)
-                    case ECont(fname)   => Some(fname)
-                    case _              => None
-                case _ => None
-              callee match
-                case Some(fname) =>
-                  cfg.funcs.filter(_.name == fname).foreach { f =>
-                    visited += f
-                    if !visited.contains(f) then mque.enqueue(f)
-                  }
-                case _ => ()
-            }
-          case _ => ()
-        }
-        bfs(mque)
-    bfs(scala.collection.mutable.Queue.from(basicImpureFuncs))
+    var visited = basicImpureFuncs
+    val queue = scala.collection.mutable.Queue.from(basicImpureFuncs)
+    while queue.nonEmpty do
+      val func = queue.dequeue()
+      for callee <- synCallGraph.getOrElse(func, Set()) do
+        if !visited.contains(callee) then
+          visited += callee
+          queue.enqueue(callee)
     println(
       s"${visited.size} functions are impure while ${cfg.funcs.size} functions exist.",
     )
