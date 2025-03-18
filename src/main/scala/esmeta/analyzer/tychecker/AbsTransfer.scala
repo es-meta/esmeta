@@ -102,13 +102,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       import DemandType.*
       val kind = DemandType(ty)
       if (inferTypeGuard) {
-        // This additional guard is inferred here because of the performance reason
-        val newGuard = (for {
-          ref <- toSymRef(expr, v)
-          r <- toBase(ref -> kind.ty, np)
-        } yield TypeGuard(kind -> TypeConstr(r))).fold(v.guard) { guard =>
-          v.guard && guard
-        }
         refine(v.guard.evaluate(v.ty, kind.ty))(st)
       } else {
         v.guard.get(kind) match
