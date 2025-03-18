@@ -243,11 +243,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       // keep caller state to restore it
       contTarget match
         case Some(target) =>
-          analyzer += target -> getCalleeState(callerSt, locals)
+          analyzer += target -> getCalleeState(callerSt, locals, callee)
         case None =>
           for {
             (calleeView, newLocals) <- getCalleeEntries(callerNp, locals)
-            calleeSt = getCalleeState(callerSt, newLocals)
+            calleeSt = getCalleeState(callerSt, newLocals, callee)
             calleeNp = NodePoint(callee, callee.entry, calleeView)
           } {
             // add callee to worklist
@@ -396,7 +396,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         } yield ()
       case IAssign(x: Local, expr) =>
         for {
-          v <- transfer(expr)
+          given AbsState <- get
+          tv <- transfer(expr)
+          v = if useSyntacticKill && np.isMutable(x) then AbsValue(tv.ty) else tv
           _ <- modify(_.update(x, v, refine = false))
         } yield ()
       case IAssign(Field(x: Var, EStr(f)), expr) =>

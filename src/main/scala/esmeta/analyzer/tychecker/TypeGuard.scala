@@ -246,13 +246,13 @@ trait TypeGuardDecl { self: TyChecker =>
     // case SEAnd(left: SymExpr, right: SymExpr)
     // case SENot(expr: SymExpr)
     def ||(that: SymExpr): SymExpr = (this, that) match
-      case _ if this == that => this
+      case _ if this == that                     => this
       case (SEBool(false), _)                    => that
       case (_, SEBool(false))                    => this
       case (SEBool(true), _) | (_, SEBool(true)) => SEBool(true)
       case _                                     => SEBool(true)
     def &&(that: SymExpr): SymExpr = (this, that) match
-      case _ if this == that => this
+      case _ if this == that                       => this
       case (SEBool(true), _)                       => that
       case (_, SEBool(true))                       => this
       case (SEBool(false), _) | (_, SEBool(false)) => SEBool(false)

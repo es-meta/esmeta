@@ -17,6 +17,7 @@ class TyChecker(
   val targetPattern: Option[String] = None,
   val inferTypeGuard: Boolean = true,
   val useProvenance: Boolean = false,
+  val useSyntacticKill: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
@@ -105,6 +106,7 @@ class TyChecker(
             "typeSens" -> typeSens,
             "inferTypeGuard" -> inferTypeGuard,
             "useProvenance" -> useProvenance,
+            "useSyntacticKill" -> useSyntacticKill,
           ),
           "duration" -> f"${time}%,d ms",
           "error" -> errors.size,
@@ -328,6 +330,7 @@ class TyChecker(
   def getCalleeState(
     callerSt: AbsState,
     locals: List[(Local, AbsValue)],
+    callee: Func,
   ): AbsState =
     import SymExpr.*, SymTy.*
     given AbsState = callerSt
@@ -335,10 +338,11 @@ class TyChecker(
       val idxLocals = locals.zipWithIndex
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
-      } yield (
-        x -> AbsValue(SSym(sym)),
-        sym -> value.ty,
-      )).unzip
+      } yield {
+        if useSyntacticKill && callee.mutable.contains(x) then
+          (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
+        else (x -> AbsValue(SSym(sym)), sym -> value.ty)
+      }).unzip
       AbsState(true, newLocals.toMap, symEnv.toMap, TypeConstr(), Effect())
     } else AbsState(true, locals.toMap, Map(), TypeConstr(), Effect())
 
@@ -358,7 +362,7 @@ class TyChecker(
     }
     val locals = pairs.map { (x, v) => x -> AbsValue(v) }
     val view = if (typeSens) View(pairs.map(_._2)) else emptyView
-    List(view -> getCalleeState(AbsState.Empty, locals))
+    List(view -> getCalleeState(AbsState.Empty, locals, func))
 
   /** initialization of ECMAScript environment */
   lazy val init: Initialize = cfg.init
@@ -451,6 +455,27 @@ class TyChecker(
       val (param, ty) = pair
       app >> param >> ": " >> ty
     (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
+
+  /** For Expriement: Imitating Kent's work */
+  extension (func: Func) {
+    def mutable: Set[Ref] = func.nodes.flatMap(_.mutable)
+  }
+  extension (node: Node) {
+    def mutable: Set[Ref] = node match
+      case block: Block => block.insts.flatMap(_.mutable).toSet
+      case _            => Set()
+  }
+  extension (inst: NormalInst) {
+    def mutable: Set[Ref] = inst match
+      case IAssign(ref, _) => Set(ref)
+      // case IExpand(base, expr) => XXX: Unsound
+      // case IDelete(base, expr) => XXX: Unsound
+      case IPush(_, ERef(list: Local), _) => Set(list)
+      case _                              => Set()
+  }
+  extension (np: NodePoint[_]) {
+    def isMutable = np.func.mutable.contains
+  }
 }
 
 object TyChecker:

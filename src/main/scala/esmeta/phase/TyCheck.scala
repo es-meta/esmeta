@@ -24,6 +24,7 @@ case object TyCheck extends Phase[CFG, Unit] {
       targetPattern = config.target,
       inferTypeGuard = config.inferTypeGuard,
       useProvenance = config.useProvenance,
+      useSyntacticKill = config.useSyntacticKill,
       typeSens = config.typeSens,
       config = TyChecker.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
@@ -90,6 +91,11 @@ case object TyCheck extends Phase[CFG, Unit] {
       BoolOption(_.useProvenance = _),
       "turn on provenance tracking.",
     ),
+    (
+      "syntactic-kill",
+      BoolOption(_.useSyntacticKill = _),
+      "use syntactic kill for type checking(as Kent's work).",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -102,5 +108,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var typeSens: Boolean = false,
     var inferTypeGuard: Boolean = true,
     var useProvenance: Boolean = false,
+    var useSyntacticKill: Boolean = false,
   )
 }
