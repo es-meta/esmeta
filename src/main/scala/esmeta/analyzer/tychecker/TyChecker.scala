@@ -125,6 +125,18 @@ class TyChecker(
             "locals" -> refinedLocals,
             "avg. depth" -> refinedAvgDepth,
           )
+        if (detail && useProvenance)
+          info :+= "provenance" -> Map(
+            "size" -> provCnt,
+            "avg. size" -> provAvgSize,
+            "avg. depth" -> provAvgDepth,
+            "avg. leaf" -> provAvgLeaf,
+          )
+          info :+= "tables" -> Map(
+            "size table" -> provSizeTable.toList.sortBy(_._1),
+            "depth table" -> provDepthTable.toList.sortBy(_._1),
+            "leaf table" -> provLeafTable.toList.sortBy(_._1),
+          )
         if (inferTypeGuard) info :+= "guards" -> typeGuards.size
         Yaml(info: _*)
       },
@@ -241,6 +253,15 @@ class TyChecker(
           filename = s"$ANALYZE_LOG_DIR/guards",
           silent = silent,
         )
+        if (useProvenance) {
+
+          dumpFile(
+            name = "provenance information",
+            data = provString,
+            filename = s"$ANALYZE_LOG_DIR/provenance-logs",
+            silent = silent,
+          )
+        }
 
         if (useFullSyntaxKill) {
           dumpFile(
@@ -283,7 +304,6 @@ class TyChecker(
 
   /** refined targets */
   var refined: Map[RefinementTarget, (Set[Local], Int)] = Map()
-  var provenances: Map[(RefinementTarget, Base), (ValueTy, Provenance)] = Map()
   def refinedTargets: Int = refined.size
   def refinedLocals: Int = refined.values.map(_._1.size).sum
   def refinedAvgDepth: Double =
@@ -299,6 +319,32 @@ class TyChecker(
           app >> LINE_SEP
         app
     (new Appender >> refined).toString
+
+  /** provenance information */
+  var provenances: Map[(RefinementTarget, Base, ValueTy), Provenance] = Map()
+  def provCnt = provenances.size
+  def provAvgSize = provenances.values.map(_.size).sum.toDouble / provCnt
+  def provAvgDepth = provenances.values.map(_.depth).sum.toDouble / provCnt
+  def provAvgLeaf = provenances.values.map(_.leafCnt).sum.toDouble / provCnt
+  def provSizeTable =
+    provenances.groupMap(_._2.size)(_._1).view.mapValues(_.size).toMap
+  def provDepthTable =
+    provenances.groupMap(_._2.depth)(_._1).view.mapValues(_.size).toMap
+  def provLeafTable = 
+    provenances.groupMap(_._2.leafCnt)(_._1).view.mapValues(_.size).toMap
+  def provString: String =
+    given Rule[Map[(RefinementTarget, Base, ValueTy), Provenance]] =
+      import SymTy.given, TypeGuard.given, ValueTy.given
+      (app, refined) =>
+        val sorted = refined.toList.sortBy { (t, _) => (t._1.func, t._1.node.id, t._3.toString()) }
+        for (((target, base, ty), prov) <- sorted)
+          app >> target >> "["
+          app >> base >> "]"
+          app >> ": " >> ty
+          app >> "->" >> LINE_SEP >> prov
+          app >> LINE_SEP
+        app
+    (new Appender >> provenances).toString
 
   /** inferred type guards */
   def getTypeGuards: List[(Func, AbsValue)] =

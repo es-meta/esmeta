@@ -111,9 +111,11 @@ trait TypeGuardDecl { self: TyChecker =>
   enum RefinementTarget:
     case BranchTarget(branch: Branch, isTrue: Boolean)
     case AssertTarget(block: Block, idx: Int)
+    case IDKTarget(nd: Node)
     def node: Node = this match
       case BranchTarget(branch, _) => branch
       case AssertTarget(block, _)  => block
+      case IDKTarget(nd)           => nd
     def func: Func = cfg.funcOf(node)
 
   case class DemandType(private val _ty: ValueTy) {
@@ -329,6 +331,7 @@ trait TypeGuardDecl { self: TyChecker =>
     def ty: ValueTy
     def size: Int
     def depth: Int
+    def leafCnt: Int
 
     // simple explanation is bigger (imprecise)
     def <=(that: Provenance): Boolean = {
@@ -482,6 +485,7 @@ trait TypeGuardDecl { self: TyChecker =>
   case class Leaf(node: Node, ty: ValueTy) extends Provenance { // TODO: change to expression & node
     def size: Int = 1
     def depth: Int = 1
+    def leafCnt: Int = 1
 
     override def toString =
       s"Leaf(${cfg.funcOf(node).nameWithId}:${node.id}, $ty)"
@@ -491,6 +495,7 @@ trait TypeGuardDecl { self: TyChecker =>
     extends Provenance {
     def size: Int = child.size + 1
     def depth: Int = child.depth + 1
+    def leafCnt: Int = child.leafCnt
 
     override def toString =
       s"CallPath(${cfg.funcOf(call).nameWithId}:${call.id}, $ty, ${child.toString})"
@@ -499,23 +504,25 @@ trait TypeGuardDecl { self: TyChecker =>
         .toTree(indent + 1)}"
   }
   case class Join(child: Set[Provenance]) extends Provenance {
-    lazy val ty: ValueTy = child.map(_.ty).reduce(_ || _)
-    def size: Int = child.map(_.size).sum + 1
-    def depth: Int = child.map(_.depth).max + 1
+    lazy val ty: ValueTy = child.toList.map(_.ty).reduce(_ || _)
+    def size: Int = child.toList.map(_.size).sum + 1
+    def depth: Int = child.toList.map(_.depth).max + 1
+    def leafCnt: Int = child.toList.map(_.leafCnt).sum
 
-    override def toString = s"Join(${child.map(_.toString)})"
+    override def toString = s"Join(${child.toList.map(_.toString)})"
     def toTree(indent: Int): String =
-      s"${"  " * indent}Join($ty)\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
+      s"${"  " * indent}Join($ty)\n${child.toList.map(_.toTree(indent + 1)).mkString("\n")}"
   }
 
   case class Meet(child: Set[Provenance]) extends Provenance {
-    lazy val ty: ValueTy = child.map(_.ty).reduce(_ && _)
-    def size: Int = child.map(_.size).sum + 1
-    def depth: Int = child.map(_.depth).max + 1
+    lazy val ty: ValueTy = child.toList.map(_.ty).reduce(_ && _)
+    def size: Int = child.toList.map(_.size).sum + 1
+    def depth: Int = child.toList.map(_.depth).max + 1
+    def leafCnt: Int = child.toList.map(_.leafCnt).sum
 
-    override def toString = s"Meet(${child.map(_.toString)})"
+    override def toString = s"Meet(${child.toList.map(_.toString)})"
     def toTree(indent: Int): String =
-      s"${"  " * indent}Meet($ty)\n${child.map(_.toTree(indent + 1)).mkString("\n")}"
+      s"${"  " * indent}Meet($ty)\n${child.toList.map(_.toTree(indent + 1)).mkString("\n")}"
   }
 
   case class RefinePoint(target: RefinementTarget, child: Provenance)
@@ -523,6 +530,7 @@ trait TypeGuardDecl { self: TyChecker =>
     lazy val ty: ValueTy = child.ty
     def size: Int = child.size + 1
     def depth: Int = child.depth + 1
+    def leafCnt: Int = child.leafCnt
 
     override def toString = s"RefinePoint($target, $child)"
     def toTree(indent: Int): String =
@@ -534,6 +542,7 @@ trait TypeGuardDecl { self: TyChecker =>
       val INF = 1e8.toInt
       def size: Int = INF
       def depth: Int = INF
+      def leafCnt: Int = INF
 
       override def toString = "Bot"
       def toTree(indent: Int): String = s"${"  " * indent}$this"
@@ -542,6 +551,7 @@ trait TypeGuardDecl { self: TyChecker =>
       lazy val ty: ValueTy = BotT
       def size: Int = 0
       def depth: Int = 0
+      def leafCnt: Int = 0
 
       override def toString = "Top"
       def toTree(indent: Int): String = s"${"  " * indent}$this"
@@ -610,11 +620,14 @@ trait TypeGuardDecl { self: TyChecker =>
         app >> (if (isTrue) "T" else "F")
       case AssertTarget(block, idx) =>
         app >> idx
+      case IDKTarget(nd) =>
+        app >> "IDK"
   given Ordering[RefinementTarget] = Ordering.by { target =>
     import RefinementTarget.*
     target match
       case BranchTarget(branch, isTrue) => (branch.id, if (isTrue) 1 else 0)
       case AssertTarget(block, idx)     => (block.id, idx)
+      case IDKTarget(nd)                => (nd.id, 0)
   }
 
   object ProvPrinter {
