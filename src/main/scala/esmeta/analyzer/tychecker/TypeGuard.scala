@@ -123,7 +123,7 @@ trait TypeGuardDecl { self: TyChecker =>
   }
 
   object DemandType {
-    val set: Set[ValueTy] =
+    val set: Set[ValueTy] = if(useBooleanGuard) Set(TrueT, FalseT) else
       Set(
         TrueT,
         FalseT,
@@ -137,7 +137,10 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def apply(ty: ValueTy): DemandType =
       if (DemandType.set.contains(ty)) new DemandType(ty)
-      else throw notSupported(s"Unsupported DemandType: $ty")
+      else {
+        Thread.dumpStack()
+        throw notSupported(s"Unsupported DemandType: $ty")
+      }
 
     def from(givenTy: ValueTy): Set[DemandType] =
       DemandType.set

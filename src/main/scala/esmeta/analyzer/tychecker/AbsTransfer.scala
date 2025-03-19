@@ -136,6 +136,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           case Some(constr) => refine(constr)(st) // for default type guards
           case None =>
             ty match // syntactic refinement
+              case _ if noRefine => st
               case TrueT  => syntacticRefine(expr, true)(st)
               case FalseT => syntacticRefine(expr, true)(st)
               case _      => throw new Exception(s"Unsupported type: $ty")
@@ -1780,7 +1781,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               )
             case _ => ObjectT
           val prov = Provenance(refined)(using func.entry)
-          val guard =
+          val guard = if (useBooleanGuard) TypeGuard() else
             TypeGuard(
               DemandType(NormalT) -> TypeConstr(0 -> (refined, prov)),
             )
@@ -1789,7 +1790,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "NewPromiseCapability" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val prov = Provenance(ConstructorT)(using func.entry)
-          val guard = TypeGuard(
+          val guard = if (useBooleanGuard) TypeGuard() else TypeGuard(
             DemandType(NormalT) -> TypeConstr(0 -> (ConstructorT, prov)),
           )
           AbsValue(STy(retTy), guard)

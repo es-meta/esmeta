@@ -16,9 +16,11 @@ class TyChecker(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
   val inferTypeGuard: Boolean = true,
+  val useBooleanGuard: Boolean = false,
   val useProvenance: Boolean = false,
   val useBasicSyntaxKill: Boolean = false,
   val useFullSyntaxKill: Boolean = false,
+  val noRefine: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
@@ -180,6 +182,10 @@ class TyChecker(
         if (detail) refinedLocals else 0, // refined locals
         if (detail) refinedAvgDepth else 0, // refined avg. depth
         if (inferTypeGuard) typeGuards.size else 0, // guards
+        if (detail && useProvenance) provCnt else 0, // provenance
+        if (detail && useProvenance) provAvgSize else 0, // provenance avg. size
+        if (detail && useProvenance) provAvgDepth else 0, // provenance avg. depth
+        if (detail && useProvenance) provAvgLeaf else 0, // provenance avg. leaf
       ).mkString("\t"),
       filename = s"$ANALYZE_LOG_DIR/summary",
       silent = silent,
