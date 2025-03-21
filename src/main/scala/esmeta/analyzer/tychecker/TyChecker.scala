@@ -269,6 +269,15 @@ class TyChecker(
           )
         }
 
+        if (useBasicSyntaxKill) {
+          dumpFile(
+            name = "mutated locals",
+            data = cfg.funcs.map(f => f.nameWithId -> f.mutableLocals.mkString(", ")).mkString(LINE_SEP),
+            filename = s"$ANALYZE_LOG_DIR/mutated",
+            silent = silent,
+          )
+        }
+
         if (useFullSyntaxKill) {
           dumpFile(
             name = "impure functions",
@@ -569,24 +578,31 @@ class TyChecker(
     visited
 
   extension (inst: NormalInst) {
-    def mutable: Set[Ref] = inst match
-      case IAssign(ref, _) => Set(ref)
-      // case IExpand(base, expr) => XXX: Unsound
-      // case IDelete(base, expr) => XXX: Unsound
-      case IPush(_, ERef(list: Local), _) => Set(list)
-      case _                              => Set()
+    def mutable: Set[Local] = 
+      def toBase(ref: Ref): Option[Local] = ref match
+        case Field(base, expr) => toBase(base)
+        case l: Local => Some(l)
+        case _ => None
+      inst match
+        case IAssign(ref, _) => toBase(ref).toSet
+        case IPush(_, ERef(list: Local), _) => Set(list)
+        // case IExpand(base, expr) => XXX: Unsound
+        // case IDelete(base, expr) => XXX: Unsound
+        case _                              => Set()
   }
   extension (node: Node) {
-    def mutable: Set[Ref] = node match
+    def mutable: Set[Local] = node match
       case block: Block => block.insts.flatMap(_.mutable).toSet
       case _            => Set()
   }
   extension (func: Func) {
-    def mutableLocals = func.nodes.flatMap(_.mutable)
+    def mutableLocals: Set[Base] = func.nodes.flatMap(_.mutable)
     def canMakeSideEffect = impureFuncs.contains(func)
   }
   extension (np: NodePoint[_]) {
-    def isMutable: Ref => Boolean = np.func.mutableLocals.contains
+    def isMutable(ref: Ref): Boolean = ref match
+      case l: Local => np.func.mutableLocals.contains(l)
+      case _        => false
     def canMakeSideEffect: Boolean = np.func.canMakeSideEffect
   }
 }

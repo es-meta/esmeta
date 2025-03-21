@@ -98,6 +98,9 @@ trait AbsValueDecl { self: TyChecker =>
         }
       }
 
+    def killMutable(using np: NodePoint[_], st: AbsState) = 
+      this.copy(guard = this.guard.kill(np.func.mutableLocals))
+
     /** get lexical result */
     def getLexical(method: String)(using AbsState): AbsValue = {
       val ty = this.ty

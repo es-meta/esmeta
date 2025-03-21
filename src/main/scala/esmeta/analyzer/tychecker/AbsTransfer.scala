@@ -92,8 +92,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         refinedTy = refinedSt.get(x).ty(using refinedSt)
         if refinedTy != ty
       } do {
-        // println(s"log: $target, $x, $ty, $refinedTy")
-        // println(s"constr: $constr")
         constr.map.get(x) match
           // local variable is directly refined
           case Some((bty, prov)) if ty != bty => 
@@ -257,7 +255,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         }
         for {
           nextNp <- getAfterCallNp(callerNp)
-          newSt = callerSt.define(call.lhs, newRetV)
+          newSt = callerSt.define(call.lhs, newRetV.killMutable(using callerNp))
         } analyzer += nextNp -> newSt
       }
       // get locals
@@ -543,7 +541,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         given AbsState <- get
         guard <- if (inferTypeGuard) getTypeGuard(expr) else pure(TypeGuard())
         newV = if (inferTypeGuard) v.addGuard(guard) else v
-      } yield newV)(st)
+      } yield 
+        if(!useBasicSyntaxKill) newV 
+        else newV.killMutable
+      )(st)
       // No propagation if the result of the expression is bottom
       if (v.isBottom) (v, AbsState.Bot) else (v, newSt)
     }
@@ -1301,7 +1302,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case ((e, v), i) => i -> reduce(e, v)
       }.toMap
       val newV = instantiate(call, value, map)
-      if (inferTypeGuard) newV.lift
+      if(inferTypeGuard && useBasicSyntaxKill) newV.lift.killMutable(using callerNp)
+      else if (inferTypeGuard) newV.lift
       else newV
 
     /** instantiation of abstract values */
