@@ -261,11 +261,28 @@ class TyChecker(
           silent = silent,
         )
         if (useProvenance) {
-
           dumpFile(
             name = "provenance information",
             data = provString,
             filename = s"$ANALYZE_LOG_DIR/provenance-logs",
+            silent = silent,
+          )
+          dumpFile(
+            name = "provenance graph",
+            data = sizeAndDepth,
+            filename = s"$ANALYZE_LOG_DIR/provenance-size-depth",
+            silent = silent,
+          )
+          dumpFile(
+            name = "provenance graph",
+            data = depthAndLeaf,
+            filename = s"$ANALYZE_LOG_DIR/provenance-depth-leaf",
+            silent = silent,
+          )
+          dumpFile(
+            name = "provenance graph",
+            data = sizeAndLeaf,
+            filename = s"$ANALYZE_LOG_DIR/provenance-size-leaf",
             silent = silent,
           )
         }
@@ -370,6 +387,10 @@ class TyChecker(
           app >> LINE_SEP
         app
     (new Appender >> provenances).toString
+  def provList = provenances.values.toList
+  def sizeAndDepth = provList.map(p => (p.size, p.depth)).groupMapReduce(identity)(_ => 1)(_ + _).map{case ((size, depth), cnt) => s"$size,$depth,$cnt"}.mkString(LINE_SEP)
+  def depthAndLeaf = provList.map(p => (p.depth, p.leafCnt)).groupMapReduce(identity)(_ => 1)(_ + _).map{case ((depth, leaf), cnt) => s"$depth,$leaf,$cnt"}.mkString(LINE_SEP)
+  def sizeAndLeaf = provList.map(p => (p.size, p.leafCnt)).groupMapReduce(identity)(_ => 1)(_ + _).map{case ((size, leaf), cnt) => s"$size,$leaf,$cnt"}.mkString(LINE_SEP)
 
   /** inferred type guards */
   def getTypeGuards: List[(Func, AbsValue)] =

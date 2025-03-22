@@ -488,8 +488,8 @@ trait TypeGuardDecl { self: TyChecker =>
   }
 
   case class Leaf(node: Node, ty: ValueTy) extends Provenance { // TODO: change to expression & node
-    def size: Int = 1
-    def depth: Int = 1
+    def size: Int = 0
+    def depth: Int = 0
     def leafCnt: Int = 1
 
     override def toString =
@@ -533,8 +533,8 @@ trait TypeGuardDecl { self: TyChecker =>
   case class RefinePoint(target: RefinementTarget, child: Provenance)
     extends Provenance {
     lazy val ty: ValueTy = child.ty
-    def size: Int = child.size + 1
-    def depth: Int = child.depth + 1
+    def size: Int = child.size
+    def depth: Int = child.depth
     def leafCnt: Int = child.leafCnt
 
     override def toString = s"RefinePoint($target, $child)"
