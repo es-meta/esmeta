@@ -136,7 +136,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             ty match // syntactic refinement
               case _ if noRefine => st
               case TrueT  => syntacticRefine(expr, true)(st)
-              case FalseT => syntacticRefine(expr, true)(st)
+              case FalseT => syntacticRefine(expr, false)(st)
               case _      => throw new Exception(s"Unsupported type: $ty")
       }
 
@@ -430,13 +430,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState <- get
           ty <- get(_.get(x).ty)
           record = ty.record.update(f, v.ty, refine = false)
+          effect <- get(_.effect)
           newEffect = Effect({
             record.bases match
               case Inf => Map()
               case Fin(set) =>
                 val baseTys = set.map(ManualInfo.tyModel.baseOf(_))
                 baseTys.map { baseTy => baseTy -> Set(f) }.toMap
-          })
+          }) ⊔ effect
+          // _ = println(s"Effect updated to $newEffect")
           _ <- modify(_.kill(newEffect))
           _ <- modify(
             _.update(x, AbsValue(ty.copied(record = record)), refine = false),
@@ -1299,7 +1301,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val call = callerNp.node
       val argsInfo = analyzer.argsInfo.getOrElse(callerNp, Nil)
       val map = argsInfo.zipWithIndex.map {
-        case ((e, v), i) => i -> reduce(e, v)
+        case ((e, v), i) => i -> (if inferTypeGuard then reduce(e, v) else v)
       }.toMap
       val newV = instantiate(call, value, map)
       if(inferTypeGuard && useBasicSyntaxKill) newV.lift.killMutable(using callerNp)
