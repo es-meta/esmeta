@@ -136,11 +136,12 @@ trait TypeGuardDecl { self: TyChecker =>
       )
 
     def apply(ty: ValueTy): DemandType =
-      if (DemandType.set.contains(ty)) new DemandType(ty)
-      else {
-        Thread.dumpStack()
-        throw notSupported(s"Unsupported DemandType: $ty")
-      }
+      // if (DemandType.set.contains(ty)) new DemandType(ty)
+      // else {
+        // Thread.dumpStack()
+        // throw notSupported(s"Unsupported DemandType: $ty")
+      // }
+      new DemandType(ty)
 
     def from(givenTy: ValueTy): Set[DemandType] =
       DemandType.set
@@ -431,6 +432,7 @@ trait TypeGuardDecl { self: TyChecker =>
         case _           => this
 
     def canonical: Provenance =
+      return this
       this match
         case Join(set) =>
           val group = set

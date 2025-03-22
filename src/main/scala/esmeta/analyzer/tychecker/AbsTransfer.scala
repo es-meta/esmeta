@@ -1783,7 +1783,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               )
             case _ => ObjectT
           val prov = Provenance(refined)(using func.entry)
-          val guard = if (useBooleanGuard) TypeGuard() else
+          val guard = 
             TypeGuard(
               DemandType(NormalT) -> TypeConstr(0 -> (refined, prov)),
             )
@@ -1792,7 +1792,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         "NewPromiseCapability" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val prov = Provenance(ConstructorT)(using func.entry)
-          val guard = if (useBooleanGuard) TypeGuard() else TypeGuard(
+          val guard = TypeGuard(
             DemandType(NormalT) -> TypeConstr(0 -> (ConstructorT, prov)),
           )
           AbsValue(STy(retTy), guard)

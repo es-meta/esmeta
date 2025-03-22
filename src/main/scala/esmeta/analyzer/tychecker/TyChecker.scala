@@ -260,7 +260,6 @@ class TyChecker(
           silent = silent,
         )
         if (useProvenance) {
-
           dumpFile(
             name = "provenance information",
             data = provString,
@@ -351,7 +350,7 @@ class TyChecker(
     given Rule[Map[(RefinementTarget, Base, ValueTy), Provenance]] =
       import SymTy.given, TypeGuard.given, ValueTy.given
       (app, refined) =>
-        val sorted = refined.toList.sortBy { (t, _) => (t._1.func, t._1.node.id, t._3.toString()) }
+        val sorted = refined.toList.sortBy { (t, p) => p.size }
         for (((target, base, ty), prov) <- sorted)
           app >> target >> "["
           app >> base >> "]"
