@@ -58,9 +58,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               if (detail) logRefined(BranchTarget(br, true), constr, newSt, rst)
               thenNode.map(analyzer += getNextNp(np, _) -> rst)
             if (v.ty.bool.contains(false))
-              val rst = refine(c, v, FalseT, Some(BranchTarget(br, false)))(newSt)
+              val rst =
+                refine(c, v, FalseT, Some(BranchTarget(br, false)))(newSt)
               val constr = v.guard.get(DemandType(FalseT))
-              if (detail) logRefined(BranchTarget(br, false), constr, newSt, rst)
+              if (detail)
+                logRefined(BranchTarget(br, false), constr, newSt, rst)
               elseNode.map(analyzer += getNextNp(np, _) -> rst)
           })(st)
 
@@ -80,11 +82,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       else refined += target -> (xs.toSet, constr.fold(0)(_.depth))
 
     def logProvenance(
-      target: RefinementTarget, 
+      target: RefinementTarget,
       constr: TypeConstr,
       st: AbsState,
       refinedSt: AbsState,
-      refinedTo: ValueTy
+      refinedTo: ValueTy,
     ): Unit = {
       for {
         (x, v) <- st.locals
@@ -94,24 +96,26 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       } do {
         constr.map.get(x) match
           // local variable is directly refined
-          case Some((bty, prov)) if ty != bty => 
+          case Some((bty, prov)) if ty != bty =>
             provenances += (target, x, refinedTo) -> prov.usedForRefine(target)
           case _ => ()
-      } 
+      }
 
       for {
-        (x, v) <- st.symEnv 
+        (x, v) <- st.symEnv
         ty = v
         refinedTy = refinedSt.get(x)
         if refinedTy != ty
       } do {
-        constr.map.get(x) match 
+        constr.map.get(x) match
           // symbol is directly refined
-          case Some((bty, prov)) if ty != bty => 
-            refinedSt.locals.foreach { (local, v) => 
+          case Some((bty, prov)) if ty != bty =>
+            refinedSt.locals.foreach { (local, v) =>
               // local variable is indirectly refined
-              if st.get(local).symty.bases.contains(x) then 
-                provenances += (target, local, refinedTo) -> prov.usedForRefine(target)
+              if st.get(local).symty.bases.contains(x) then
+                provenances += (target, local, refinedTo) -> prov.usedForRefine(
+                  target,
+                )
             }
           case _ => ()
       }
@@ -121,7 +125,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       expr: Expr,
       v: AbsValue,
       ty: ValueTy,
-      target: Option[RefinementTarget] = None
+      target: Option[RefinementTarget] = None,
     )(using st: AbsState, np: NodePoint[_]): Updater = st =>
       import DemandType.*
       val kind = DemandType(ty)
@@ -135,9 +139,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           case None =>
             ty match // syntactic refinement
               case _ if noRefine => st
-              case TrueT  => syntacticRefine(expr, true)(st)
-              case FalseT => syntacticRefine(expr, false)(st)
-              case _      => throw new Exception(s"Unsupported type: $ty")
+              case TrueT         => syntacticRefine(expr, true)(st)
+              case FalseT        => syntacticRefine(expr, false)(st)
+              case _ => throw new Exception(s"Unsupported type: $ty")
       }
 
     /** get next node point */
@@ -479,8 +483,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           constr = v.guard.get(DemandType(TrueT))
           block = np.node match
             case block: Block => Some(block)
-            case _             => None
-          _ <- modify(refine(expr, v, TrueT, block.map(b => RefinementTarget.AssertTarget(b, idx)))(using st))
+            case _            => None
+          _ <- modify(
+            refine(
+              expr,
+              v,
+              TrueT,
+              block.map(b => RefinementTarget.AssertTarget(b, idx)),
+            )(using st),
+          )
           refinedSt <- get
           given AbsState = refinedSt
           _ = if (detail) np.node match
@@ -543,10 +554,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         given AbsState <- get
         guard <- if (inferTypeGuard) getTypeGuard(expr) else pure(TypeGuard())
         newV = if (inferTypeGuard) v.addGuard(guard) else v
-      } yield 
-        if(!useBasicSyntaxKill) newV 
-        else newV.killMutable
-      )(st)
+      } yield
+        if (!useBasicSyntaxKill) newV
+        else newV.killMutable)(st)
       // No propagation if the result of the expression is bottom
       if (v.isBottom) (v, AbsState.Bot) else (v, newSt)
     }
@@ -753,7 +763,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             if (lbools.contains(true)) {
               val block = np.node match
                 case block: Block => Some(block)
-                case _             => None
+                case _            => None
               val (r, _) = transfer(right)(refine(left, l, TrueT)(st))
               bools ++= r.ty.bool.set
             }
@@ -1304,7 +1314,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case ((e, v), i) => i -> (if inferTypeGuard then reduce(e, v) else v)
       }.toMap
       val newV = instantiate(call, value, map)
-      if(inferTypeGuard && useBasicSyntaxKill) newV.lift.killMutable(using callerNp)
+      if (inferTypeGuard && useBasicSyntaxKill)
+        newV.lift.killMutable(using callerNp)
       else if (inferTypeGuard) newV.lift
       else newV
 
@@ -1495,20 +1506,23 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       given AbsState = getResult(np)
       val refined = refinedValue.ty
 
-      join(for {
-        (dty, constr) <- value.guard.map
-        if refined <= dty.ty
-      } yield 
-        if (detail) refineWithLog(RefinementTarget.IDKTarget(np.node), constr, refined)
-        else refine(constr))
+      join(
+        for {
+          (dty, constr) <- value.guard.map
+          if refined <= dty.ty
+        } yield
+          if (detail)
+            refineWithLog(RefinementTarget.IDKTarget(np.node), constr, refined)
+          else refine(constr),
+      )
 
     def refineWithLog(
-      target: RefinementTarget, 
+      target: RefinementTarget,
       constr: TypeConstr,
-      refinedTo: ValueTy 
-    )(using np: NodePoint[_]): Updater = 
+      refinedTo: ValueTy,
+    )(using np: NodePoint[_]): Updater =
       for {
-        st <- get 
+        st <- get
         _ <- refine(constr)
         refinedSt <- get
       } yield {
@@ -1785,18 +1799,23 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               )
             case _ => ObjectT
           val prov = Provenance(refined)(using func.entry)
-          val guard = if (useBooleanGuard) TypeGuard() else
-            TypeGuard(
-              DemandType(NormalT) -> TypeConstr(0 -> (refined, prov)),
-            )
+          val guard =
+            if (useBooleanGuard) TypeGuard()
+            else
+              TypeGuard(
+                DemandType(NormalT) -> TypeConstr(0 -> (refined, prov)),
+              )
           AbsValue(STy(retTy), guard)
         },
         "NewPromiseCapability" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val prov = Provenance(ConstructorT)(using func.entry)
-          val guard = if (useBooleanGuard) TypeGuard() else TypeGuard(
-            DemandType(NormalT) -> TypeConstr(0 -> (ConstructorT, prov)),
-          )
+          val guard =
+            if (useBooleanGuard) TypeGuard()
+            else
+              TypeGuard(
+                DemandType(NormalT) -> TypeConstr(0 -> (ConstructorT, prov)),
+              )
           AbsValue(STy(retTy), guard)
         },
         "CreateListFromArrayLike" -> { (func, vs, retTy, st) =>

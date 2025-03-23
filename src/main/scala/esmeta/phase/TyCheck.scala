@@ -105,10 +105,10 @@ case object TyCheck extends Phase[CFG, Unit] {
       "use boolean guard for type checking.",
     ),
     (
-      "no-refine", 
+      "no-refine",
       BoolOption(_.noRefine = _),
       "do not refine the type of variables.",
-    )
+    ),
   )
   case class Config(
     var target: Option[String] = None,

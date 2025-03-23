@@ -184,7 +184,8 @@ class TyChecker(
         if (inferTypeGuard) typeGuards.size else 0, // guards
         if (detail && useProvenance) provCnt else 0, // provenance
         if (detail && useProvenance) provAvgSize else 0, // provenance avg. size
-        if (detail && useProvenance) provAvgDepth else 0, // provenance avg. depth
+        if (detail && useProvenance) provAvgDepth
+        else 0, // provenance avg. depth
         if (detail && useProvenance) provAvgLeaf else 0, // provenance avg. leaf
       ).mkString("\t"),
       filename = s"$ANALYZE_LOG_DIR/summary",
@@ -272,7 +273,9 @@ class TyChecker(
         if (useBasicSyntaxKill) {
           dumpFile(
             name = "mutated locals",
-            data = cfg.funcs.map(f => f.nameWithId -> f.mutableLocals.mkString(", ")).mkString(LINE_SEP),
+            data = cfg.funcs
+              .map(f => f.nameWithId -> f.mutableLocals.mkString(", "))
+              .mkString(LINE_SEP),
             filename = s"$ANALYZE_LOG_DIR/mutated",
             silent = silent,
           )
@@ -287,7 +290,12 @@ class TyChecker(
           )
           dumpFile(
             name = "pure functions",
-            data = cfg.funcs.filterNot(impureFuncs.contains).map(_.name).toList.sorted.mkString(LINE_SEP),
+            data = cfg.funcs
+              .filterNot(impureFuncs.contains)
+              .map(_.name)
+              .toList
+              .sorted
+              .mkString(LINE_SEP),
             filename = s"$ANALYZE_LOG_DIR/pure",
             silent = silent,
           )
@@ -345,13 +353,15 @@ class TyChecker(
     provenances.groupMap(_._2.size)(_._1).view.mapValues(_.size).toMap
   def provDepthTable =
     provenances.groupMap(_._2.depth)(_._1).view.mapValues(_.size).toMap
-  def provLeafTable = 
+  def provLeafTable =
     provenances.groupMap(_._2.leafCnt)(_._1).view.mapValues(_.size).toMap
   def provString: String =
     given Rule[Map[(RefinementTarget, Base, ValueTy), Provenance]] =
       import SymTy.given, TypeGuard.given, ValueTy.given
       (app, refined) =>
-        val sorted = refined.toList.sortBy { (t, _) => (t._1.func, t._1.node.id, t._3.toString()) }
+        val sorted = refined.toList.sortBy { (t, _) =>
+          (t._1.func, t._1.node.id, t._3.toString())
+        }
         for (((target, base, ty), prov) <- sorted)
           app >> target >> "["
           app >> base >> "]"
@@ -539,27 +549,31 @@ class TyChecker(
 
   /** For Expriement: Imitating Kent's work */
 
-  lazy val synCallGraph: Map[Func, Set[Func]] = 
-    cfg.funcs.map { func =>
-      val callees = func.nodes.flatMap {
-        case call: Call =>
-          call.inst.fold(Set[Func]()) {
-            case ICall(_, fexpr, _) =>
-              fexpr match
-                case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
-                case ECont(fname)   => cfg.funcs.filter(_.name == fname)
-                case _              => Set()
-            case ISdoCall(_, base, _, _) =>
-              base match
-                case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
-                case ECont(fname)   => cfg.funcs.filter(_.name == fname)
-                case _              => Set()
-            case _ => Set()
-          }
-        case _ => Set()
+  lazy val synCallGraph: Map[Func, Set[Func]] =
+    cfg.funcs
+      .map { func =>
+        val callees = func.nodes.flatMap {
+          case call: Call =>
+            call.inst.fold(Set[Func]()) {
+              case ICall(_, fexpr, _) =>
+                fexpr match
+                  case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
+                  case ECont(fname)   => cfg.funcs.filter(_.name == fname)
+                  case _              => Set()
+              case ISdoCall(_, base, _, _) =>
+                base match
+                  case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
+                  case ECont(fname)   => cfg.funcs.filter(_.name == fname)
+                  case _              => Set()
+              case _ => Set()
+            }
+          case _ => Set()
+        }
+        for callee <- callees yield callee -> func
       }
-      for callee <- callees yield callee -> func
-    }.flatMap(identity).groupMap(_._1)(_._2).map((k, v) => k -> v.toSet)
+      .flatMap(identity)
+      .groupMap(_._1)(_._2)
+      .map((k, v) => k -> v.toSet)
 
   lazy val impureFuncs =
     def basicImpureFuncs: Set[Func] =
@@ -578,17 +592,17 @@ class TyChecker(
     visited
 
   extension (inst: NormalInst) {
-    def mutable: Set[Local] = 
+    def mutable: Set[Local] =
       def toBase(ref: Ref): Option[Local] = ref match
         case Field(base, expr) => toBase(base)
-        case l: Local => Some(l)
-        case _ => None
+        case l: Local          => Some(l)
+        case _                 => None
       inst match
-        case IAssign(ref, _) => toBase(ref).toSet
+        case IAssign(ref, _)                => toBase(ref).toSet
         case IPush(_, ERef(list: Local), _) => Set(list)
         // case IExpand(base, expr) => XXX: Unsound
         // case IDelete(base, expr) => XXX: Unsound
-        case _                              => Set()
+        case _ => Set()
   }
   extension (node: Node) {
     def mutable: Set[Local] = node match
