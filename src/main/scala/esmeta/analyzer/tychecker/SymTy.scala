@@ -86,6 +86,10 @@ trait SymTyDecl { self: TyChecker =>
           f <- f.kill(bases, update)
         } yield SField(b, f)
 
+    def isSymbolic: Boolean = this match
+      case STy(_) => false
+      case _      => true
+
     /** partial order in same state */
     def ⊑(that: SymTy)(using st: AbsState): Boolean =
       (this ⊑ that)(st, st)

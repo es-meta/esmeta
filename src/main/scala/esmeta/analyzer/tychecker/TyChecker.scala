@@ -464,7 +464,7 @@ class TyChecker(
   } yield x -> AbsValue(t.toValue)
 
   /** arguments information for each callsite */
-  protected var argsInfo: Map[NodePoint[Call], List[(Expr, AbsValue)]] = Map()
+  var argsInfo: Map[NodePoint[Call], List[AbsValue]] = Map()
 
   /** unused ignore set */
   protected var _unusedSet: Set[String] = ignore.names

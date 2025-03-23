@@ -181,7 +181,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             st <- get
             given AbsState = st
             fty = fv.ty
-            vs <- join(args.map(transfer))
+            vs <- join(args.map(transfer(_, forArg = true)))
           } yield {
             val cloRes = fty.clo match
               case CloTopTy           => AnyT
@@ -213,7 +213,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case ISdoCall(_, base, method, args) =>
           for {
             bv <- transfer(base)
-            vs <- join(args.map(transfer))
+            vs <- join(args.map(transfer(_, forArg = true)))
             st <- get
             given AbsState = st
             bty = bv.ty
@@ -244,8 +244,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     ): Unit = {
       given AbsState = callerSt
       callInfo += callerNp -> callerSt
-      val argsInfo = (args zip vs)
-      analyzer.argsInfo += callerNp -> argsInfo
+      analyzer.argsInfo += callerNp -> vs
       if (canUseReturnTy(callee)) {
         val call = callerNp.node
         val retTy = callee.retTy.ty.toValue
@@ -546,11 +545,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         }
 
     /** transfer function for expressions */
+    def transfer(expr: Expr)(using np: NodePoint[Node]): Result[AbsValue] =
+      transfer(expr, forArg = false)
+
+    /** transfer function for expressions */
     def transfer(
       expr: Expr,
+      forArg: Boolean,
     )(using np: NodePoint[Node]): Result[AbsValue] = st => {
       val (v, newSt) = (for {
-        v <- basicTransfer(expr)
+        v <- basicTransfer(expr, forArg)
         given AbsState <- get
         guard <- if (inferTypeGuard) getTypeGuard(expr) else pure(TypeGuard())
         newV = if (inferTypeGuard) v.addGuard(guard) else v
@@ -564,6 +568,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** transfer function for expressions */
     def basicTransfer(
       expr: Expr,
+      forArg: Boolean,
     )(using np: NodePoint[Node]): Result[AbsValue] = expr match {
       case EParse(code, rule) =>
         for {
@@ -606,7 +611,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         } yield v.trim(isStarting)
       case ERef(ref) =>
         for {
-          v <- transfer(ref)
+          v <- transfer(ref, forArg)
         } yield v
       case unary @ EUnary(_, expr) =>
         for {
@@ -1137,8 +1142,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     }
 
     /** transfer function for references */
+    def transfer(ref: Ref)(using np: NodePoint[Node]): Result[AbsValue] =
+      transfer(ref, forArg = false)
+
+    /** transfer function for references */
     def transfer(
       ref: Ref,
+      forArg: Boolean,
     )(using np: NodePoint[Node]): Result[AbsValue] = ref match
       // a precise type of `the active function object` in built-in functions
       case Field(
@@ -1160,10 +1170,17 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               pure(AbsValue(ty))
             } else transfer(base)
         } yield v
-      case x: Var =>
+      case x: Global =>
         for {
           v <- get(_.get(x))
         } yield v
+      case x: Local =>
+        for {
+          v <- get(_.get(x))
+        } yield {
+          if (!forArg || v.isSymbolic) v
+          else AbsValue(SymTy.SVar(x), v.guard)
+        }
       case field @ Field(base, expr) =>
         for {
           b <- transfer(base)
@@ -1309,9 +1326,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       import DemandType.*
       given callerSt: AbsState = callInfo(callerNp)
       val call = callerNp.node
-      val argsInfo = analyzer.argsInfo.getOrElse(callerNp, Nil)
-      val map = argsInfo.zipWithIndex.map {
-        case ((e, v), i) => i -> (if inferTypeGuard then reduce(e, v) else v)
+      val vs = analyzer.argsInfo.getOrElse(callerNp, Nil)
+      val map = vs.zipWithIndex.map {
+        case (v, i) => i -> v
       }.toMap
       val newV = instantiate(call, value, map)
       if (inferTypeGuard && useBasicSyntaxKill)
