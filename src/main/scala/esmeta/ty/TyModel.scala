@@ -88,6 +88,20 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     else None
   }
 
+  def getBaseFieldMap(map: Map[String, FieldMap]): Map[String, FieldMap] =
+    map.foldLeft(Map[String, FieldMap]()) {
+      case (m, (t, fm)) =>
+        val base = baseOf(t)
+        m + (base -> m.get(base).fold(fm)(_ || fm))
+    }
+
+  def checkValidWithBaseFieldMap(
+    t: String,
+    baseFieldMap: Map[String, FieldMap],
+  ): Boolean = baseFieldMap.get(baseOf(t)).fold(true) { fm =>
+    fm.map.forall((field, binding) => !(getField(t, field) && binding).isBottom)
+  }
+
   /** check if a type is a strict (proper) subtype of another */
   def isStrictSubTy(
     lmap: Map[String, FieldMap],

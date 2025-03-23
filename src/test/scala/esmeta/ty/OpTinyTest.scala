@@ -17,6 +17,13 @@ class OpTinyTest extends TyTest {
       (AbruptT && ReturnT) -> ReturnT,
       (ConstructorT && RecordT("ECMAScriptFunctionObject")) ->
       RecordT("ECMAScriptFunctionObject"),
+      (
+        RecordT("IdentifierReferenceRecord", "UnresolvableReferenceRecord") &&
+        RecordT(
+          "ReferenceRecord",
+          Map("Base" -> (ESValueT || RecordT("EnvironmentRecord"))),
+        )
+      ) -> RecordT("IdentifierReferenceRecord"),
     )
 
     checkEqual("order")(
