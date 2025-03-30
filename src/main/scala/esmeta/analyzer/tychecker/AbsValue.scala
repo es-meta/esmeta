@@ -98,9 +98,6 @@ trait AbsValueDecl { self: TyChecker =>
         }
       }
 
-    def killMutable(using np: NodePoint[_], st: AbsState) =
-      this.copy(guard = this.guard.kill(np.func.mutableLocals))
-
     def isSymbolic: Boolean = symty.isSymbolic
 
     /** get lexical result */

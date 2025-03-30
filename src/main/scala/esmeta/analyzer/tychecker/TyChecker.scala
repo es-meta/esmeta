@@ -16,11 +16,7 @@ class TyChecker(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
   val inferTypeGuard: Boolean = true,
-  val useBooleanGuard: Boolean = false,
   val useProvenance: Boolean = false,
-  val useBasicSyntaxKill: Boolean = false,
-  val useFullSyntaxKill: Boolean = false,
-  val noRefine: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
@@ -109,8 +105,6 @@ class TyChecker(
             "typeSens" -> typeSens,
             "inferTypeGuard" -> inferTypeGuard,
             "useProvenance" -> useProvenance,
-            "useBaseSyntaxKill" -> useBasicSyntaxKill,
-            "useFullSyntaxKill" -> useFullSyntaxKill,
           ),
           "duration" -> f"${time}%,d ms",
           "error" -> errors.size,
@@ -287,37 +281,6 @@ class TyChecker(
           )
         }
 
-        if (useBasicSyntaxKill) {
-          dumpFile(
-            name = "mutated locals",
-            data = cfg.funcs
-              .map(f => f.nameWithId -> f.mutableLocals.mkString(", "))
-              .mkString(LINE_SEP),
-            filename = s"$ANALYZE_LOG_DIR/mutated",
-            silent = silent,
-          )
-        }
-
-        if (useFullSyntaxKill) {
-          dumpFile(
-            name = "impure functions",
-            data = impureFuncs.map(_.name).toList.sorted.mkString(LINE_SEP),
-            filename = s"$ANALYZE_LOG_DIR/impure",
-            silent = silent,
-          )
-          dumpFile(
-            name = "pure functions",
-            data = cfg.funcs
-              .filterNot(impureFuncs.contains)
-              .map(_.name)
-              .toList
-              .sorted
-              .mkString(LINE_SEP),
-            filename = s"$ANALYZE_LOG_DIR/pure",
-            silent = silent,
-          )
-        }
-
         // val provPath = s"$ANALYZE_LOG_DIR/provenance/"
         // mkdir(provPath, true)
         // mkdir(s"$provPath/guards", true)
@@ -388,9 +351,21 @@ class TyChecker(
         app
     (new Appender >> provenances).toString
   def provList = provenances.values.toList
-  def sizeAndDepth = provList.map(p => (p.size, p.depth)).groupMapReduce(identity)(_ => 1)(_ + _).map{case ((size, depth), cnt) => s"$size,$depth,$cnt"}.mkString(LINE_SEP)
-  def depthAndLeaf = provList.map(p => (p.depth, p.leafCnt)).groupMapReduce(identity)(_ => 1)(_ + _).map{case ((depth, leaf), cnt) => s"$depth,$leaf,$cnt"}.mkString(LINE_SEP)
-  def sizeAndLeaf = provList.map(p => (p.size, p.leafCnt)).groupMapReduce(identity)(_ => 1)(_ + _).map{case ((size, leaf), cnt) => s"$size,$leaf,$cnt"}.mkString(LINE_SEP)
+  def sizeAndDepth = provList
+    .map(p => (p.size, p.depth))
+    .groupMapReduce(identity)(_ => 1)(_ + _)
+    .map { case ((size, depth), cnt) => s"$size,$depth,$cnt" }
+    .mkString(LINE_SEP)
+  def depthAndLeaf = provList
+    .map(p => (p.depth, p.leafCnt))
+    .groupMapReduce(identity)(_ => 1)(_ + _)
+    .map { case ((depth, leaf), cnt) => s"$depth,$leaf,$cnt" }
+    .mkString(LINE_SEP)
+  def sizeAndLeaf = provList
+    .map(p => (p.size, p.leafCnt))
+    .groupMapReduce(identity)(_ => 1)(_ + _)
+    .map { case ((size, leaf), cnt) => s"$size,$leaf,$cnt" }
+    .mkString(LINE_SEP)
 
   /** inferred type guards */
   def getTypeGuards: List[(Func, AbsValue)] =
@@ -449,11 +424,7 @@ class TyChecker(
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
       } yield {
-        if useFullSyntaxKill && callee.canMakeSideEffect then
-          (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
-        else if useBasicSyntaxKill && callee.mutableLocals.contains(x) then
-          (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
-        else (x -> AbsValue(SSym(sym)), sym -> value.ty)
+        (x -> AbsValue(SSym(sym)), sym -> value.ty)
       }).unzip
       AbsState(true, newLocals.toMap, symEnv.toMap, TypeConstr(), Effect())
     } else AbsState(true, locals.toMap, Map(), TypeConstr(), Effect())
@@ -567,79 +538,6 @@ class TyChecker(
       val (param, ty) = pair
       app >> param >> ": " >> ty
     (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
-
-  /** For Expriement: Imitating Kent's work */
-
-  lazy val synCallGraph: Map[Func, Set[Func]] =
-    cfg.funcs
-      .map { func =>
-        val callees = func.nodes.flatMap {
-          case call: Call =>
-            call.inst.fold(Set[Func]()) {
-              case ICall(_, fexpr, _) =>
-                fexpr match
-                  case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
-                  case ECont(fname)   => cfg.funcs.filter(_.name == fname)
-                  case _              => Set()
-              case ISdoCall(_, base, _, _) =>
-                base match
-                  case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
-                  case ECont(fname)   => cfg.funcs.filter(_.name == fname)
-                  case _              => Set()
-              case _ => Set()
-            }
-          case _ => Set()
-        }
-        for callee <- callees yield callee -> func
-      }
-      .flatMap(identity)
-      .groupMap(_._1)(_._2)
-      .map((k, v) => k -> v.toSet)
-
-  lazy val impureFuncs =
-    def basicImpureFuncs: Set[Func] =
-      cfg.funcs.filter(_.mutableLocals.nonEmpty).toSet
-    var visited = basicImpureFuncs
-    val queue = scala.collection.mutable.Queue.from(basicImpureFuncs)
-    while queue.nonEmpty do
-      val func = queue.dequeue()
-      for callee <- synCallGraph.getOrElse(func, Set()) do
-        if !visited.contains(callee) then
-          visited += callee
-          queue.enqueue(callee)
-    println(
-      s"${visited.size} functions are impure while ${cfg.funcs.size} functions exist.",
-    )
-    visited
-
-  extension (inst: NormalInst) {
-    def mutable: Set[Local] =
-      def toBase(ref: Ref): Option[Local] = ref match
-        case Field(base, expr) => toBase(base)
-        case l: Local          => Some(l)
-        case _                 => None
-      inst match
-        case IAssign(ref, _)                => toBase(ref).toSet
-        case IPush(_, ERef(list: Local), _) => Set(list)
-        // case IExpand(base, expr) => XXX: Unsound
-        // case IDelete(base, expr) => XXX: Unsound
-        case _ => Set()
-  }
-  extension (node: Node) {
-    def mutable: Set[Local] = node match
-      case block: Block => block.insts.flatMap(_.mutable).toSet
-      case _            => Set()
-  }
-  extension (func: Func) {
-    def mutableLocals: Set[Base] = func.nodes.flatMap(_.mutable)
-    def canMakeSideEffect = impureFuncs.contains(func)
-  }
-  extension (np: NodePoint[_]) {
-    def isMutable(ref: Ref): Boolean = ref match
-      case l: Local => np.func.mutableLocals.contains(l)
-      case _        => false
-    def canMakeSideEffect: Boolean = np.func.canMakeSideEffect
-  }
 }
 
 object TyChecker:

@@ -138,7 +138,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           case Some(constr) => refine(constr)(st) // for default type guards
           case None =>
             ty match // syntactic refinement
-              case _ if noRefine => st
               case TrueT         => syntacticRefine(expr, true)(st)
               case FalseT        => syntacticRefine(expr, false)(st)
               case _ => throw new Exception(s"Unsupported type: $ty")
@@ -258,7 +257,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         }
         for {
           nextNp <- getAfterCallNp(callerNp)
-          newSt = callerSt.define(call.lhs, newRetV.killMutable(using callerNp))
+          newSt = callerSt.define(call.lhs, newRetV)
         } analyzer += nextNp -> newSt
       }
       // get locals
@@ -420,11 +419,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case IAssign(x: Local, expr) =>
         for {
           given AbsState <- get
-          tv <- transfer(expr)
-          v =
-            if useFullSyntaxKill && np.canMakeSideEffect then AbsValue(tv.ty)
-            else if useBasicSyntaxKill && np.isMutable(x) then AbsValue(tv.ty)
-            else tv
+          v <- transfer(expr)
           _ <- modify(_.update(x, v, refine = false))
         } yield ()
       case IAssign(Field(x: Var, EStr(f)), expr) =>
@@ -558,9 +553,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         given AbsState <- get
         guard <- if (inferTypeGuard) getTypeGuard(expr) else pure(TypeGuard())
         newV = if (inferTypeGuard) v.addGuard(guard) else v
-      } yield
-        if (!useBasicSyntaxKill) newV
-        else newV.killMutable)(st)
+      } yield newV)(st)
       // No propagation if the result of the expression is bottom
       if (v.isBottom) (v, AbsState.Bot) else (v, newSt)
     }
@@ -1331,9 +1324,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case (v, i) => i -> v
       }.toMap
       val newV = instantiate(call, value, map)
-      if (inferTypeGuard && useBasicSyntaxKill)
-        newV.lift.killMutable(using callerNp)
-      else if (inferTypeGuard) newV.lift
+      if (inferTypeGuard) newV.lift
       else newV
 
     /** instantiation of abstract values */
@@ -1816,23 +1807,17 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               )
             case _ => ObjectT
           val prov = Provenance(refined)(using func.entry)
-          val guard =
-            if (useBooleanGuard) TypeGuard()
-            else
-              TypeGuard(
-                DemandType(NormalT) -> TypeConstr(0 -> (refined, prov)),
-              )
+          val guard = TypeGuard(
+            DemandType(NormalT) -> TypeConstr(0 -> (refined, prov)),
+          )
           AbsValue(STy(retTy), guard)
         },
         "NewPromiseCapability" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val prov = Provenance(ConstructorT)(using func.entry)
-          val guard =
-            if (useBooleanGuard) TypeGuard()
-            else
-              TypeGuard(
-                DemandType(NormalT) -> TypeConstr(0 -> (ConstructorT, prov)),
-              )
+          val guard = TypeGuard(
+            DemandType(NormalT) -> TypeConstr(0 -> (ConstructorT, prov)),
+          )
           AbsValue(STy(retTy), guard)
         },
         "CreateListFromArrayLike" -> { (func, vs, retTy, st) =>

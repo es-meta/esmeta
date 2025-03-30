@@ -123,19 +123,16 @@ trait TypeGuardDecl { self: TyChecker =>
   }
 
   object DemandType {
-    val set: Set[ValueTy] =
-      if (useBooleanGuard) Set(TrueT, FalseT)
-      else
-        Set(
-          TrueT,
-          FalseT,
-          NormalT,
-          AbruptT,
-          NormalT(TrueT),
-          NormalT(FalseT),
-          ENUMT_SYNC,
-          ENUMT_ASYNC,
-        )
+    val set: Set[ValueTy] = Set(
+      TrueT,
+      FalseT,
+      NormalT,
+      AbruptT,
+      NormalT(TrueT),
+      NormalT(FalseT),
+      ENUMT_SYNC,
+      ENUMT_ASYNC,
+    )
 
     def apply(ty: ValueTy): DemandType =
       if (DemandType.set.contains(ty)) new DemandType(ty)
