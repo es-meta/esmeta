@@ -90,6 +90,10 @@ trait SymTyDecl { self: TyChecker =>
       case STy(_) => false
       case _      => true
 
+    def refine(ty: ValueTy)(using st: AbsState): SymTy = 
+      if this.ty <= ty then this 
+      else STy(this.ty && ty)
+
     /** partial order in same state */
     def ⊑(that: SymTy)(using st: AbsState): Boolean =
       (this ⊑ that)(st, st)

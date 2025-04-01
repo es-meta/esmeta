@@ -85,6 +85,9 @@ trait AbsValueDecl { self: TyChecker =>
       val inGuard = guard.bases
       inSymty ++ inGuard
 
+    def refine(ty: ValueTy)(using AbsState): AbsValue = 
+      AbsValue(symty.refine(ty), guard.refine(ty))
+
     def lift(using st: AbsState): AbsValue =
       AbsValue(symty, guard.lift(this.ty))
 
@@ -440,7 +443,7 @@ trait AbsValueDecl { self: TyChecker =>
     ): Boolean =
       val AbsValue(lsymty, lguard) = l
       val AbsValue(rsymty, rguard) = r
-      (lsymty ⊑ rsymty)(lst, rst) && lguard <= rguard
+      (lsymty ⊑ rsymty)(lst, rst) && (lguard <= rguard)(l.ty(using lst), r.ty(using rst))
 
     def joinHelper(
       l: AbsValue,
@@ -450,9 +453,7 @@ trait AbsValueDecl { self: TyChecker =>
     ): AbsValue =
       val AbsValue(lsymty, lguard) = l
       val AbsValue(rsymty, rguard) = r
-      val luty = l.ty(using lst)
-      val ruty = r.ty(using rst)
-      val guard = (lguard || rguard)(luty, ruty)
+      val guard = (lguard || rguard)(l.ty(using lst), r.ty(using rst))
       AbsValue((lsymty ⊔ rsymty)(lst, rst), guard)
 
     def meetHelper(

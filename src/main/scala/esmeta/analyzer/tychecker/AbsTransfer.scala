@@ -54,15 +54,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           (for { v <- transfer(c); newSt <- get } yield {
             if (v.ty.bool.contains(true))
               val rst = refine(c, v, TrueT, Some(BranchTarget(br, true)))(newSt)
-              val constr = v.guard.get(DemandType(TrueT))
-              if (detail) logRefined(BranchTarget(br, true), constr, newSt, rst)
+              val constr = v.guard(TrueT)
+              if (detail) logRefined(BranchTarget(br, true), Some(constr), newSt, rst)
               thenNode.map(analyzer += getNextNp(np, _) -> rst)
             if (v.ty.bool.contains(false))
               val rst =
                 refine(c, v, FalseT, Some(BranchTarget(br, false)))(newSt)
-              val constr = v.guard.get(DemandType(FalseT))
+              val constr = v.guard(FalseT)
               if (detail)
-                logRefined(BranchTarget(br, false), constr, newSt, rst)
+                logRefined(BranchTarget(br, false), Some(constr), newSt, rst)
               elseNode.map(analyzer += getNextNp(np, _) -> rst)
           })(st)
 
@@ -130,13 +130,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       import DemandType.*
       val kind = DemandType(ty)
       if (inferTypeGuard) {
-        val const = v.guard.evaluate(v.ty, kind.ty)
+        val const = v.guard(kind)
         if (detail && target.isDefined) refineWithLog(target.get, const, ty)(st)
         else refine(const)(st)
       } else {
-        v.guard.get(kind) match
-          case Some(constr) => refine(constr)(st) // for default type guards
-          case None =>
+        v.guard(kind.ty) match
+          case constr if !constr.isTop => refine(constr)(st) // for default type guards
+          case _ =>
             ty match // syntactic refinement
               case TrueT         => syntacticRefine(expr, true)(st)
               case FalseT        => syntacticRefine(expr, false)(st)
@@ -474,7 +474,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- transfer(expr)
           st <- get
-          constr = v.guard.get(DemandType(TrueT))
+          constr = v.guard(TrueT)
           block = np.node match
             case block: Block => Some(block)
             case _            => None
@@ -492,7 +492,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             case block: Block =>
               logRefined(
                 RefinementTarget.AssertTarget(block, idx),
-                constr,
+                Some(constr),
                 st,
                 refinedSt,
               )
@@ -887,8 +887,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             val guard = (for {
               dty <- List(DemandType(TrueT), DemandType(FalseT))
               constr = {
-                lguard(dty) &&
-                rguard(dty)
+                lguard(dty.ty) &&
+                rguard(dty.ty)
               }
               newConstr = constr.lift
               if newConstr.nonTop
@@ -1053,8 +1053,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             given AbsState <- get
             ty = v.ty
             guard = v.guard
-            lt = guard(DemandType(TrueT))
-            lf = guard(DemandType(FalseT))
+            lt = guard(TrueT)
+            lf = guard(FalseT)
           } yield {
             var guard: Map[DemandType, TypeConstr] = Map()
             guard += DemandType(TrueT) -> lf.lift
@@ -1071,20 +1071,20 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             rty = rv.ty
             hasT = lty.bool.contains(true)
             lguard = lv.guard
-            lt = lguard(DemandType(TrueT))
-            lf = lguard(DemandType(FalseT))
+            lt = lguard(TrueT)
+            lf = lguard(FalseT)
           } yield {
             var guard: Map[DemandType, TypeConstr] = Map()
             val refinedSt = if (lf.isTop) st else refine(lf)(st)
             val (thenConstr, _) = (for {
               rv <- transfer(r)
-              rt = rv.guard(DemandType(TrueT))
+              rt = rv.guard(TrueT)
             } yield if (hasT) lt || rt else rt)(refinedSt)
             if (thenConstr.nonTop)
               guard += DemandType(TrueT) -> thenConstr.lift
             val (elseConstr, _) = (for {
               rv <- transfer(r)
-              rf = rv.guard(DemandType(FalseT))
+              rf = rv.guard(FalseT)
               hasF = lty.bool.contains(false)
             } yield lf && rf)(refinedSt)
             if (elseConstr.nonTop)
@@ -1101,20 +1101,20 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             rty = rv.ty
             hasF = lty.bool.contains(false)
             lguard = lv.guard
-            lt = lguard(DemandType(TrueT))
-            lf = lguard(DemandType(FalseT))
+            lt = lguard(TrueT)
+            lf = lguard(FalseT)
           } yield {
             var guard: Map[DemandType, TypeConstr] = Map()
             val refinedSt = if (lt.isTop) st else refine(lt)(st)
             val (thenConstr, _) = (for {
               rv <- transfer(r)
-              rt = rv.guard(DemandType(TrueT))
+              rt = rv.guard(TrueT)
             } yield lt && rt)(refinedSt)
             if (thenConstr.nonTop)
               guard += DemandType(TrueT) -> thenConstr.lift
             val (elseConstr, _) = (for {
               rv <- transfer(r)
-              rf = rv.guard(DemandType(FalseT))
+              rf = rv.guard(FalseT)
             } yield if (hasF) lf || rf else rf)(refinedSt)
             if (elseConstr.nonTop)
               guard += DemandType(FalseT) -> elseConstr.lift
