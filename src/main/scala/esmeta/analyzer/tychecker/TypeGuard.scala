@@ -15,18 +15,18 @@ trait TypeGuardDecl { self: TyChecker =>
   case class TypeGuard(map: Map[DemandType, TypeConstr] = Map()) {
     def isEmpty: Boolean = map.isEmpty
     def nonEmpty: Boolean = !isEmpty
-    def dtys: Set[DemandType] = 
+    def dtys: Set[DemandType] =
       if !map.isEmpty then DemandType.from(map.keySet.map(_.ty).reduce(_ || _))
       else Set.empty
 
-    def apply(ty: ValueTy): TypeConstr = 
+    def apply(ty: ValueTy): TypeConstr =
       val constrs = for {
         dty <- DemandType.from(ty)
         constr <- map.get(dty)
       } yield constr
       constrs.fold(TypeConstr())(_ && _)
 
-    def update(ty: ValueTy, constr: TypeConstr): TypeGuard = 
+    def update(ty: ValueTy, constr: TypeConstr): TypeGuard =
       val constrs = for {
         dty <- DemandType.from(ty)
         if constr.nonTop
@@ -36,12 +36,13 @@ trait TypeGuardDecl { self: TyChecker =>
       }
       TypeGuard(constrs.toMap)
 
-    def update(pairs: (ValueTy, TypeConstr)*): TypeGuard = 
-      pairs.foldLeft(this) { case (acc, (ty, constr)) =>
-        acc.update(ty, constr)
+    def update(pairs: (ValueTy, TypeConstr)*): TypeGuard =
+      pairs.foldLeft(this) {
+        case (acc, (ty, constr)) =>
+          acc.update(ty, constr)
       }
 
-    def refine(ty: ValueTy): TypeGuard = 
+    def refine(ty: ValueTy): TypeGuard =
       val constrs = for {
         dty <- DemandType.from(ty)
         if !(ty && dty).isBottom
@@ -50,31 +51,37 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def lookup(field: ValueTy)(ty: ValueTy): TypeGuard = field.str match
       case Inf => TypeGuard()
-      case Fin(set) if !set.isEmpty => set.map(lookup(_)).reduce((x, y) => (x || y)(ty, ty))
+      case Fin(set) if !set.isEmpty =>
+        set.map(lookup(_)).reduce((x, y) => (x || y)(ty, ty))
       case _ => TypeGuard()
 
-    def lookup(field: String): TypeGuard = 
+    def lookup(field: String): TypeGuard =
       val mapping = for {
-        dty <- DemandType.set 
+        dty <- DemandType.set
         constr <- map.get(DemandType(dty))
       } yield dty.record(field).value -> constr // TODO: Is this sound?
-      mapping.foldLeft(TypeGuard()) { case (acc, (ty, constr)) => acc.update(ty, constr) }
+      mapping.foldLeft(TypeGuard()) {
+        case (acc, (ty, constr)) => acc.update(ty, constr)
+      }
 
     def fieldUpdate(field: ValueTy)(ty: ValueTy): TypeGuard = field.str match
       case Inf => TypeGuard()
-      case Fin(set) if !set.isEmpty => set.map(fieldUpdate(_, ty)).reduce((x, y) => (x || y)(ty, ty))
+      case Fin(set) if !set.isEmpty =>
+        set.map(fieldUpdate(_, ty)).reduce((x, y) => (x || y)(ty, ty))
       case _ => TypeGuard()
 
-    def fieldUpdate(field: String, ty: ValueTy): TypeGuard = 
+    def fieldUpdate(field: String, ty: ValueTy): TypeGuard =
       val mapping = for {
-        dty <- DemandType.set 
+        dty <- DemandType.set
         constr <- map.get(DemandType(dty))
-      } yield dty.copied(record = dty.record.update(field, ty, refine = true)) -> constr.update(field, ty)
+      } yield dty.copied(record =
+        dty.record.update(field, ty, refine = true),
+      ) -> constr.update(field, ty)
       TypeGuard().update(mapping.toSeq*)
 
-    def toNormal: TypeGuard = 
+    def toNormal: TypeGuard =
       val mapping = for {
-        dty <- this.map.keys 
+        dty <- this.map.keys
         constr <- this.map.get(dty)
       } yield NormalT(dty) -> constr
       TypeGuard().update(mapping.toSeq*)
@@ -113,11 +120,11 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def <=(that: TypeGuard)(lty: ValueTy, rty: ValueTy): Boolean =
       val t = for {
-        dty <- DemandType.from(lty || rty) 
+        dty <- DemandType.from(lty || rty)
         check = (this(dty), that(dty)) match
           case _ if (lty && dty).isBottom => true
           case _ if (rty && dty).isBottom => false
-          case (l, r)                          => (l <= r)
+          case (l, r)                     => (l <= r)
       } yield check
       t.forall(identity(_))
 
@@ -252,11 +259,16 @@ trait TypeGuardDecl { self: TyChecker =>
       map.keySet.collect { case s: Sym => s } ++
       sexpr.fold(Set[Base]())(_.bases)
 
-    def update(field: String, ty: ValueTy): TypeConstr = 
-      TypeConstr(this.map.map {
-        case (x, (lty, lprov)) => 
-          x -> (lty.copied(record = lty.record.update(field, ty, refine = true)), lprov)
-      }, sexpr) // will deprecate this later
+    def update(field: String, ty: ValueTy): TypeConstr =
+      TypeConstr(
+        this.map.map {
+          case (x, (lty, lprov)) =>
+            x -> (lty.copied(record =
+              lty.record.update(field, ty, refine = true),
+            ), lprov)
+        },
+        sexpr,
+      ) // will deprecate this later
 
     def kill(bases: Set[Base])(using AbsState): TypeConstr =
       this.copy(

@@ -55,7 +55,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             if (v.ty.bool.contains(true))
               val rst = refine(c, v, TrueT, Some(BranchTarget(br, true)))(newSt)
               val constr = v.guard(TrueT)
-              if (detail) logRefined(BranchTarget(br, true), Some(constr), newSt, rst)
+              if (detail)
+                logRefined(BranchTarget(br, true), Some(constr), newSt, rst)
               thenNode.map(analyzer += getNextNp(np, _) -> rst)
             if (v.ty.bool.contains(false))
               val rst =
@@ -135,7 +136,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         else refine(const)(st)
       } else {
         v.guard(kind.ty) match
-          case constr if !constr.isTop => refine(constr)(st) // for default type guards
+          case constr if !constr.isTop =>
+            refine(constr)(st) // for default type guards
           case _ =>
             ty match // syntactic refinement
               case TrueT         => syntacticRefine(expr, true)(st)
