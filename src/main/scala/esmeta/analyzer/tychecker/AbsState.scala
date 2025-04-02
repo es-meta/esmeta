@@ -60,22 +60,16 @@ trait AbsStateDecl { self: TyChecker =>
       case _ if this.isBottom => that
       case _ if that.isBottom => this
       case _ =>
-        val (l, r) =
-          if (this.constr != that.constr)
-            val lxs = this.getImprecBases(that)
-            val rxs = that.getImprecBases(this)
-            (this.kill(lxs, update = false), that.kill(rxs, update = false))
-          else (this, that)
         val newLocals = (for {
-          x <- (l.locals.keySet ++ r.locals.keySet).toList
-          v = AbsValue.joinHelper(l.get(x), l, r.get(x), r)
+          x <- (this.locals.keySet ++ that.locals.keySet).toList
+          v = AbsValue.joinHelper(this.get(x), this, that.get(x), that)
         } yield x -> v).toMap
         val newSymEnv = (for {
-          sym <- (l.symEnv.keySet ++ r.symEnv.keySet).toList
-          ty = l.get(sym) || r.get(sym)
+          sym <- (this.symEnv.keySet ++ that.symEnv.keySet).toList
+          ty = this.get(sym) || that.get(sym)
         } yield sym -> ty).toMap
-        val newConstr = l.constr || r.constr
-        val newEffect = l.effect ⊔ r.effect
+        val newConstr = this.constr || that.constr
+        val newEffect = this.effect ⊔ that.effect
         AbsState(true, newLocals, newSymEnv, newConstr, newEffect)
 
     /** get imprecise bases compared with another state */
