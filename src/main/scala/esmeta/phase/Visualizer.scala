@@ -192,11 +192,11 @@ object DumpStepToNodeId {
           next
             .foreach(walk(_, node.loc, stepToNodeId, abruptMap))
         case Branch(_, _, cond, isAbruptNode, thenNode, elseNode) =>
-          if (isAbruptNode && node.loc.isDefined)
+          if (isAbruptNode && node.loc.isDefined && thenNode.isDefined)
             abruptMap.getOrElseUpdate(
               node.loc.get.stepString,
               MMap(),
-            ) += (node.loc.get.start -> node.id)
+            ) += (node.loc.get.start -> thenNode.get.id)
           else if (!isCompTCheck(cond)) {
             thenNode.foreach(tn =>
               (node.loc, tn.loc) match
@@ -278,7 +278,7 @@ object DumpNodeIdToProgId {
             )
 
             val cpToProgId =
-              featIdToProgId.getOrElse(featId, MMap.empty)
+              featIdToProgId.getOrElseUpdate(featId, MMap.empty)
             cpToProgId.getOrElseUpdate(pathStr, (script, stepCnt))
 
             val min = featIdToProgId.getOrElseUpdate("minimal", MMap.empty)
