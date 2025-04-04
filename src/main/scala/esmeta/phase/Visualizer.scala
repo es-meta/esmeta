@@ -360,16 +360,6 @@ object DumpNodeIdToTest262 {
         nodeIdToTest262 += (node.id -> featIdToProgId)
     }
 
-    readJson[Map[Int, String]](TEST262_ID_MAPPING).foreach {
-      case (id, test262) =>
-        dumpJson(
-          name = s"test262IdToTest262Name for $id",
-          data = test262,
-          filename = s"$VISUALIZER_LOG_DIR/test262IdToTest262/${id}.json",
-          silent = true,
-        )
-    }
-
     nodeIdToTest262.foreach {
       case (nodeId, featIdToProgId) =>
         dumpJson(
