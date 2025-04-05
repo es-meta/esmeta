@@ -16,51 +16,18 @@ import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*;
 import io.circe.parser.decode;
 
-/** `dump` phase */
-case object Dump extends Phase[CFG, Unit] {
-  val name = "dump"
-  val help = "dump grammar"
+/** `dump-debugger` phase */
+case object DumpDebugger extends Phase[CFG, Unit] {
+  val name = "dump-debugger"
+  val help = "dump resources for standalone debugger"
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit = {
+
     dumpAndCheck("program")(cfg.program.asJson.spaces2)
-    val newFuncs = dumpAndCheck("funcs")(cfg.program.funcs).get
-
-    for {
-      f <- cfg.program.funcs
-      newF <- newFuncs.find(_.name == f.name)
-    } do {
-      class LocChecker extends IRUnitWalker {
-        var list = List.empty[Option[Loc]]
-        override def walk(inst: Inst): Unit = {
-          list :+ inst.langOpt.flatMap(_.loc)
-          super.walk(inst)
-        }
-        override def walk(expr: Expr): Unit = {
-          list :+ expr.langOpt.flatMap(_.loc)
-          super.walk(expr)
-        }
-      }
-      val x = LocChecker()
-      val y = LocChecker()
-      x.walk(f)
-      y.walk(newF)
-      assert(x.list.length == y.list.length)
-      x.list.zip(y.list).foreach {
-        case a -> b =>
-          assert(a == b)
-      }
-
-      class IllegalFinder extends IRUnitWalker {
-
-        override def walk(var1: Name): Unit = {
-          assert(var1.name != "false")
-        }
-      }
-    }
-
+    dumpAndCheck("funcs")(cfg.program.funcs).get
     dumpAndCheck("grammar")(cfg.spec.grammar)
     dumpAndCheck("tyModel.decls")(cfg.spec.tyModel)
     dumpAndCheck("spec.tables")(cfg.spec.tables)

@@ -192,19 +192,20 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
   )
 }
 
-/** debugger related command */
-case object CmdDump extends Command("dump", CmdBuildCFG >> Dump) {
-  def help = "dump some esmeta data to json."
+/** `dump-debugger` command */
+case object CmdDumpDebugger
+  extends Command("dump-debugger", CmdBuildCFG >> DumpDebugger) {
+  def help = "dump the resources required by the standalone debugger"
   val examples = List(
-    "esmeta dump                          # dump data to data.json",
+    "esmeta dump-debugger                         # dump data to data.json",
   )
 }
 
-/** `visualizer` command */
+/** `dump-visualizer` command */
 case object CmdVisualizer
-  extends Command("visualizer", CmdBuildCFG >> Visualizer) {
-  def help = "dump resources needed for visualizer"
+  extends Command("dump-visualizer", CmdBuildCFG >> DumpVisualizer) {
+  def help = "dump the resources required by the visualizer"
   val examples = List(
-    "esmeta visualizer                         # dump resources for visualizer",
+    "esmeta dump-visualizer                      # dump resources for visualizer",
   )
 }

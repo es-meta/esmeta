@@ -14,7 +14,7 @@ import esmeta.util.{BasicParsers}
 import io.circe.*, io.circe.syntax.*
 import scala.collection.mutable.{Map => MMap, Set => MSet}
 import scala.collection.mutable.ListBuffer
-import esmeta.phase.Visualizer.name
+import esmeta.phase.DumpVisualizer.name
 import esmeta.es.util.Coverage.NodeViewInfo
 import esmeta.cfg.Func
 import esmeta.error.ESMetaError
@@ -22,9 +22,9 @@ import _root_.esmeta.es.util.Node
 import esmeta.interpreter.Interpreter
 import cats.instances.order
 
-/** `web` phase */
-case object Visualizer extends Phase[CFG, Unit] {
-  val name = "visualizer"
+/** `dump-visualizer` phase */
+case object DumpVisualizer extends Phase[CFG, Unit] {
+  val name = "dump-visualizer"
   val help = "dump resources for visualizer"
   def apply(
     cfg: CFG,

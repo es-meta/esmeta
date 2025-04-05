@@ -79,7 +79,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdFuzz,
     CmdInject,
     CmdMutate,
-    CmdDump,
+    CmdDumpDebugger,
     CmdVisualizer,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
@@ -105,8 +105,8 @@ object ESMeta extends Git(BASE_DIR) {
     Fuzz,
     Inject,
     Mutate,
-    Dump,
-    Visualizer,
+    DumpDebugger,
+    DumpVisualizer,
   )
 
   /** command options */
