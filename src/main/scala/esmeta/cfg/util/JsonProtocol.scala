@@ -79,9 +79,7 @@ class JsonProtocol(cfg: CFG) extends BasicJsonProtocol {
   val irFuncToCode: Encoder[CFG] = Encoder.instance { (cfg: CFG) =>
     Map
       .from(
-        cfg.program.funcs.map { f =>
-          f.name -> f.algo.map(_.code)
-        },
+        cfg.program.funcs.flatMap(f => f.algo.map(algo => f.name -> algo.code)),
       )
       .asJson
   }
