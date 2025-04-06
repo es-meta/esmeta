@@ -65,13 +65,13 @@ object DumpSecIdToFuncInfo {
     dumpJson(
       name = "secIdToFuncId",
       data = secIdToFuncId,
-      filename = s"$VISUALIZER_LOG_DIR/secIdToFuncId.json",
+      filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFuncId.json",
       silent = true,
     )
     dumpJson(
       name = "secIdToFuncName",
       data = secIdToFuncName,
-      filename = s"$VISUALIZER_LOG_DIR/secIdToFuncName.json",
+      filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFuncName.json",
       silent = true,
     )
     (secIdToFuncId, secIdToFuncName)
@@ -152,7 +152,7 @@ object DumpStepToNodeId {
       dumpJson(
         name = s"stepToNodeId for ${func.name}",
         data = stepToNodeId,
-        filename = s"$VISUALIZER_LOG_DIR/stepToNodeId/${func.id}.json",
+        filename = s"$DUMP_VISUALIZER_LOG_DIR/stepToNodeId/${func.id}.json",
         silent = true,
       )
     }
@@ -315,7 +315,7 @@ object DumpNodeIdToProgId {
       dumpJson(
         name = s"progIdToScript for $progId",
         data = codeWithOutUseStrict,
-        filename = s"$VISUALIZER_LOG_DIR/progIdToScript/${progId}.json",
+        filename = s"$DUMP_VISUALIZER_LOG_DIR/progIdToScript/${progId}.json",
         silent = true,
       )
     }
@@ -325,7 +325,7 @@ object DumpNodeIdToProgId {
         dumpJson(
           name = s"nodeIdToProgId for $nodeId",
           data = featIdToProgId,
-          filename = s"$VISUALIZER_LOG_DIR/nodeIdToProgId/${nodeId}.json",
+          filename = s"$DUMP_VISUALIZER_LOG_DIR/nodeIdToProgId/${nodeId}.json",
           silent = true,
         )
     }
@@ -365,7 +365,7 @@ object DumpNodeIdToTest262 {
         dumpJson(
           name = s"nodeIdToTest262 for $nodeId",
           data = featIdToProgId,
-          filename = s"$VISUALIZER_LOG_DIR/nodeIdToTest262/${nodeId}.json",
+          filename = s"$DUMP_VISUALIZER_LOG_DIR/nodeIdToTest262/${nodeId}.json",
           silent = true,
         )
     }

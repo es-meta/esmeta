@@ -39,6 +39,64 @@ case object DumpDebugger extends Phase[CFG, Unit] {
         },
       ),
     )
+    dumpAndCheck("irToSpecNameMap") {
+      import esmeta.web.routes.{SdoInfoJsonProtocol, given}
+
+      object MethodNameParser extends BasicParsers {
+        // override protected val whiteSpace: Regex = "".r
+        lazy val funcName =
+          ("Record[" ~> "\\w+".r <~ "]") ~ ("." ~> "\\w+".r) ^^ {
+            case t ~ n => (t, n)
+          }
+      }
+
+      extension (func: Func) {
+
+        def methodNameRaw: Option[(String, String)] = MethodNameParser.parseAll(
+          MethodNameParser.funcName,
+          func.name,
+        ) match {
+          case MethodNameParser.Success(result, _) => Some(result)
+          case _                                   => None
+        }
+
+        def methodName = func.kind match
+          case FuncKind.InternalMeth =>
+            func.methodNameRaw.map((t, n) => (t, s"[[${n}]]"))
+          case FuncKind.ConcMeth => func.methodNameRaw
+          case _                 => None
+      }
+
+      cfg.fnameMap.flatMap {
+        case (name, f) if f.irFunc.algo.isEmpty => None
+        case (name, f) =>
+          val algo = f.irFunc.algo.get
+          Some {
+            Json.arr(
+              name.asJson,
+              Json
+                .obj(
+                  // name is unused
+                  "name" -> algo.normalizedName.asJson,
+                  "htmlId" -> algo.elem.parent().id().asJson,
+                  "isBuiltIn" -> f.isBuiltin.asJson,
+                  "isSdo" -> f.isSDO.asJson,
+                  "sdoInfo" -> f.sdoInfo.asJson(using
+                    SdoInfoJsonProtocol.encoder(using cfg),
+                  ),
+                  "isMethod" -> f.isMethod.asJson,
+                  "sdoInfo" -> f.sdoInfo.asJson(using
+                    SdoInfoJsonProtocol.encoder(using cfg),
+                  ),
+                  "methodInfo" -> f.irFunc.methodName.asJson,
+                )
+                .asJson,
+            )
+          }
+      }.toList
+      // .asJson
+      // .spaces2
+    }
 
   }
 
@@ -48,7 +106,7 @@ case object DumpDebugger extends Phase[CFG, Unit] {
 
     print("dump ...")
     val (elapsed, json) = time { data.asJson }
-    dumpFile(json.spaces2, s"$DUMP_LOG_DIR/$tag.json")
+    dumpFile(json.spaces2, s"$DUMP_DEBUGGER_LOG_DIR/$tag.json")
     print("\rdump f...")
 
     val jsonString = json.toString
