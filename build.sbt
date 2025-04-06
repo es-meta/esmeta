@@ -159,7 +159,6 @@ lazy val root = project
 
     // libraries
     libraryDependencies ++= Seq(
-      "org.typelevel" %% "cats-core" % "2.12.0", // to derive recursive codecs
       "io.circe" %% "circe-core" % "0.14.1",
       "io.circe" %% "circe-generic" % "0.14.1",
       "io.circe" %% "circe-parser" % "0.14.1",
