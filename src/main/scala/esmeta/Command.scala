@@ -202,7 +202,7 @@ case object CmdDumpDebugger
 }
 
 /** `dump-visualizer` command */
-case object CmdVisualizer
+case object CmdDumpVisualizer
   extends Command("dump-visualizer", CmdBuildCFG >> DumpVisualizer) {
   def help = "dump the resources required by the visualizer"
   val examples = List(
