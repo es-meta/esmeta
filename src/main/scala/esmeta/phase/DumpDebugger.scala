@@ -26,25 +26,27 @@ case object DumpDebugger extends Phase[CFG, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
-    dumpAndCheck("program")(cfg.program.asJson.spaces2)
+    val cfgProto = CFGJsonProtocol(cfg)
+    dumpAndCheck("program")(cfg.program)
     dumpAndCheck("funcs")(cfg.program.funcs)
     dumpAndCheck("grammar")(cfg.spec.grammar)
     dumpAndCheck("tyModel.decls")(cfg.spec.tyModel)
     dumpAndCheck("spec.tables")(cfg.spec.tables)
     dumpAndCheck("spec.version")(cfg.spec.version)
-    dumpAndCheck("irFuncToCode")(
-      cfg.asJson(using CFGJsonProtocol(cfg).irFuncToCode),
-    )
-    dumpAndCheck("irToSpecNameMap")(
-      cfg.asJson(using CFGJsonProtocol(cfg).irToSpecNameMapEncoder),
-    )
+    dump("irFuncToCode")(cfg)(using cfgProto.irFuncToCode)
+    dump("irToSpecNameMap")(cfg)(using cfgProto.irToSpecNameMapEncoder)
   end apply
+
+  private def dump[T: Encoder](tag: String)(data: T): (Long, Json) = {
+    val tuple @ (_, json) = time { data.asJson }
+    dumpFile(json.noSpaces, s"$DUMP_DEBUGGER_LOG_DIR/$tag.json")
+    tuple
+  }
 
   private def dumpAndCheck[T: Encoder: Decoder](
     tag: String,
   )(data: T): Try[T] = Try {
-    val (elapsed, json) = time { data.asJson }
-    dumpFile(json.noSpaces, s"$DUMP_DEBUGGER_LOG_DIR/$tag.json")
+    val (elapsed, json) = dump(tag)(data)
     val jsonString = json.toString
 
     time { decode[T](jsonString) } match {
