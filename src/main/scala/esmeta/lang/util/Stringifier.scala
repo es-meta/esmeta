@@ -3,13 +3,14 @@ package esmeta.lang.util
 import esmeta.LINE_SEP
 import esmeta.lang.*
 import esmeta.ty.*
-import esmeta.ty.util.Stringifier.tyRule
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** stringifier for metalanguage */
 class Stringifier(detail: Boolean, location: Boolean) {
+  val tyStringifier = TyElem.getStringifier(false, false)
+
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
@@ -757,7 +758,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // types
   given typeRule: Rule[Type] = (app, ty) =>
-    given Rule[Ty] = tyRule
+    given Rule[Ty] = tyStringifier.tyRule
     ty.ty match
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
       case ty: ValueTy    => valueTyRule(false, false)(app, ty)
