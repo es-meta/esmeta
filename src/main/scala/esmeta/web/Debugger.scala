@@ -749,8 +749,7 @@ class Debugger(st: State) extends Interpreter(st) {
     val irFunc = func.irFunc
     val code = irFunc.algo
       .map(_.code)
-      .orElse(fallback)
-      .flatMap(_.get(irFunc.name))
+      .orElse(fallback.flatMap(_.get(irFunc.name)))
       .getOrElse("")
     (
       func.id,
