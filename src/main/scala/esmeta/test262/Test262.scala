@@ -147,7 +147,7 @@ case class Test262(
     if (total)
       dumpJson(
         targetTests.map(_.relName).zipWithIndex.map(_.swap).toMap,
-        s"$TEST262TEST_LOG_DIR/test262-test-id-mapping.json",
+        s"$TEST262TEST_LOG_DIR/test262IdToTest262.json",
       )
 
     // open log file
