@@ -727,7 +727,8 @@ class Debugger(st: State) extends Interpreter(st) {
       .map(getInfo(_))
 
   /** context information */
-  def ctxtInfo(cid: Int, fallback: Option[Map[String, String]] = none) =
+  def ctxtInfo(cid: Int, fallback: Option[Map[String, String]] = None) =
+    // XXX fallback is for standalone debugger, please keep it
     def paramInfo(p: Param) = (
       p.lhs.name,
       p.optional,
