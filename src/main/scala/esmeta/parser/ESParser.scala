@@ -74,7 +74,7 @@ case class ESParser(
   // debugger welcome message
   val debugWelcome: String =
     """Please type command:
-      |  - "s" or "skip" to the skip the current target
+      |  - "j" or "jump" to the skip the current target
       |  - "q" or "quit" to quit the debugging mode
       |  - other commands to perform one step""".stripMargin
   //
@@ -125,23 +125,19 @@ case class ESParser(
     idx: Int,
     rhs: Rhs,
   ): FLAParser[Ast] =
-    val pre: String = s"$name[$idx]: $name "
-    val cursor = Range(0, pre.length + 7).map(_ => " ").reduce(_ + _) + "^"
+    val pre: String = s"$name[$idx]: $name [*] "
     log(if (rhs.available(argsSet)) {
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
-      rhs.symbols
-        .drop(1)
-        .foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
-        case cs =>
-          (base: Ast) =>
-            val children = Some(base) :: cs.reverse
-            withLoc(
-              syntactic(name, args, idx, children.toVector),
-              base,
-              cs.flatten.headOption.getOrElse(base),
-            )
+      rhs.symbols.drop(1).foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
+        cs => (base: Ast) =>
+          val children = Some(base) :: cs.reverse
+          withLoc(
+            syntactic(name, args, idx, children.toVector),
+            base,
+            cs.flatten.headOption.getOrElse(base),
+          )
       }
-    } else MISMATCH)(s"$pre${rhs.symbols.drop(1)}$LINE_SEP$cursor")
+    } else MISMATCH)(s"$pre${rhs.symbols.drop(1).mkString(" ")}")
 
   // get parsers
   private def getParsers(
@@ -151,14 +147,13 @@ case class ESParser(
     idx: Int,
     rhs: Rhs,
   ): LAParser[Ast] =
-    val pre: String = s"$name[$idx]: "
-    val cursor = Range(0, pre.length + 7).map(_ => " ").reduce(_ + _) + "^"
+    val pre: String = s"$name[$idx]: [*] "
     log(if (rhs.available(argsSet)) {
       val base: LAParser[List[Option[Ast]]] = MATCH ^^^ Nil
       rhs.symbols.foldLeft(base)(appendParser(name, _, _, argsSet)) ^^ {
         case cs => syntactic(name, args, idx, cs.toVector.reverse)
       }
-    } else MISMATCH)(s"$pre$rhs$LINE_SEP$cursor")
+    } else MISMATCH)(s"$pre$rhs$LINE_SEP")
 
   // append a parser
   private def appendParser(
@@ -224,7 +219,7 @@ case class ESParser(
       else res
     val parser = Parser { in => aux(trie, in, Failure("", in)) }
     // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`
-    parser ||| ("?." <~ not("\\d".r))
+    ("?." <~ not("\\d".r)) ||| parser
 
   // automatic semicolon insertion
   private def insertSemicolon(reader: EPackratReader[Char]): Option[String] = {
@@ -238,12 +233,21 @@ case class ESParser(
 
         // Interactive debugging for semicolon insertion
         if (debug && keepLog) {
+          println(s"----------------------------------------")
+          println(s"trying to insert a semicolon")
+          println(s"at line: $line, column: $column:")
+          println
           lines.zipWithIndex.foreach {
             case (x, i) => println(f"$i%4d: $x")
           }
-          stop(s"line: $line, column: $column") match {
-            case "q" => keepLog = false
-            case _   =>
+          stop(s"""----------------------------------------
+                  |Please type command:
+                  | - "q" or "quit" to quit the debugging mode
+                  | - other commands to parse again after inserting a semicolon
+                  |----------------------------------------
+                  |parser> """.stripMargin) match {
+            case "q" | "quit" => keepLog = false
+            case _            => keepLog = true
           }
         }
 
@@ -366,17 +370,23 @@ case class ESParser(
             insertSemicolon(reader) match {
               case Some(str) =>
                 if (debug && keepLog) {
-                  println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                  println("----------------------------------------")
+                  println("result after inserting a semicolon:")
+                  println
                   str
                     .replace("\r\n", "\n")
                     .split(Array('\n', '\r'))
                     .zipWithIndex
-                    .foreach {
-                      case (x, i) => println(f"$i%4d: $x")
-                    }
+                    .foreach { case (x, i) => println(f"$i%4d: $x") }
                 }
                 Right(CharSequenceReader(str))
-              case None => Left(f)
+              case None =>
+                if (debug && keepLog) {
+                  println("----------------------------------------")
+                  println("cannot insert a semicolon")
+                  println("----------------------------------------")
+                }
+                Left(f)
             }
           case r => Left(r)
         }
@@ -446,7 +456,7 @@ case class ESParser(
   lazy val noLineTerminator: LAParser[String] = log(
     LAParser(
       follow => strNoLineTerminator,
-      emptyFirst,
+      FirstTerms(nts = Map("noLineTerminator" -> strNoLineTerminator)),
     ),
   )("noLineTerminator")
 

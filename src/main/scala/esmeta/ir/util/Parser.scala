@@ -189,12 +189,12 @@ trait Parsers extends TyParsers {
 
   // abstract syntax tree (AST) expressions
   lazy val astExpr: Parser[AstExpr] =
-    ("|" ~> word <~ "|") ~ parseParams ~
+    ("|" ~> word <~ "|") ~ ("(" ~> expr <~ ")") ^^ {
+      case n ~ e => ELexical(n, e)
+    } ||| ("|" ~> word <~ "|") ~ parseParams ~
     ("<" ~> int <~ ">") ~
     (opt("(" ~> repsep(opt(expr), ",") <~ ")") ^^ { _.getOrElse(Nil) }) ^^ {
       case n ~ as ~ i ~ es => ESyntactic(n, as, i, es.toVector)
-    } ||| ("|" ~> word <~ "|") ~ ("(" ~> expr <~ ")") ^^ {
-      case n ~ e => ELexical(n, e)
     }
   lazy val parseParams: Parser[List[Boolean]] =
     opt("[" ~> rep(simpleBool) <~ "]") ^^ { _.getOrElse(Nil) }

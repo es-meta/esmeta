@@ -3,7 +3,6 @@ package esmeta.analyzer.tychecker
 import esmeta.cfg.*
 import esmeta.ir.{Func => _, *}
 import esmeta.ty.*
-import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.{*, given}
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -297,9 +296,7 @@ trait TypeGuardDecl { self: TyChecker =>
   // -----------------------------------------------------------------------------
   // helpers
   // -----------------------------------------------------------------------------
-  import TyStringifier.given
-  val irStringifier = IRElem.getStringifier(true, false)
-  import irStringifier.given
+  import tyStringifier.given
   given Rule[SymBase] = (app, base) =>
     base match
       case sym: Sym     => app >> "#" >> sym.toString

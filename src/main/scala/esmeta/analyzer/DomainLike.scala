@@ -27,17 +27,6 @@ trait DomainLikeDecl { self: Analyzer =>
     override def toString: String = stringify(this)(using domain.rule)
   }
 
-  /** Symbolic types */
-  trait SymTyLike extends DomainElemLike[SymTy] { self: SymTy =>
-
-    /** abstract domain */
-    def domain = SymTy
-
-    /** get string of symbolic type */
-    def getString: String
-  }
-  val SymTy: DomainLike[SymTy]
-
   /** abstract values */
   trait AbsValueLike extends DomainElemLike[AbsValue] { self: AbsValue =>
 

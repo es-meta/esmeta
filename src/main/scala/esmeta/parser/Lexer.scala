@@ -46,7 +46,7 @@ trait Lexer extends UnicodeParsers {
   lazy val Skip = rep(WhiteSpace | LineTerminator | Comment) ^^ { _.mkString }
   lazy val strNoLineTerminator =
     val lines = LineTerminatorCPs.map(_.toChar).mkString("[", "", "]").r
-    "" <~ guard(Skip.filter(s => lines.findFirstIn(s).isEmpty))
+    guard(Skip.filter(s => lines.findFirstIn(s).isEmpty))
 
   // lexers
   lazy val lexers: Map[(String, Int), Lexer] = (for {

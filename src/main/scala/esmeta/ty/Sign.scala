@@ -61,6 +61,11 @@ case class Sign(neg: Boolean, zero: Boolean, pos: Boolean)
     else if value < 0 then neg
     else pos
 
+  def contains(value: BigInt): Boolean =
+    if value == 0 then zero
+    else if value < 0 then neg
+    else pos
+
   def isZero: Boolean = this match
     case Sign(false, true, false) => true
     case _                        => false

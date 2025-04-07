@@ -309,7 +309,7 @@ object ESValueParser extends UnicodeParsers with RegexParsers {
     lazy val Hex4Digits: S =
       MV.Hex4Digits ^^ { case x => Character.toChars(x.toInt).mkString }
     lazy val UnicodeEscapeSequence: S =
-      "u" ~> SV.Hex4Digits |||
+      "u" ~> SV.Hex4Digits |
       "u{" ~> MV.CodePoint <~ "}" ^^ { case n => cp2str(n) }
     lazy val TemplateEscapeSequence: S =
       SV.CharacterEscapeSequence |

@@ -3,7 +3,7 @@ package esmeta.ir.util
 import esmeta.LINE_SEP
 import esmeta.ir.*
 import esmeta.lang.Syntax
-import esmeta.ty.util.{Stringifier => TyStringifier}
+import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -11,7 +11,8 @@ import scala.collection.mutable.ListBuffer
 
 /** stringifier for IR */
 class Stringifier(detail: Boolean, location: Boolean) {
-  import TyStringifier.{*, given}
+  val tyStringifier = TyElem.getStringifier(false, false)
+  import tyStringifier.{*, given}
 
   // elements
   given elemRule: Rule[IRElem] = (app, elem) =>

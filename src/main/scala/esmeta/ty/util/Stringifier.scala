@@ -1,35 +1,43 @@
 package esmeta.ty.util
 
 import esmeta.LINE_SEP
+import esmeta.ir.{IRElem, LangEdge}
+import esmeta.lang.Syntax
 import esmeta.state.{Number, Math}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.Math.zero
 
 /** stringifier for types */
-object Stringifier {
+class Stringifier(
+  detail: Boolean,
+  location: Boolean,
+) {
+
+  private lazy val irStringifier = IRElem.getStringifier(detail, location)
 
   /** type elements */
   given elemRule: Rule[TyElem] = (app, elem) =>
     elem match
-      case elem: TyModel     => tyModelRule(app, elem)
-      case elem: TyDecl      => tyDeclRule(app, elem)
-      case elem: TyDecl.Elem => tyDeclElemRule(app, elem)
-      case elem: FieldMap    => fieldMapRule(using false)(app, elem)
-      case elem: Binding     => bindingRule(app, elem)
-      case elem: Ty          => tyRule(app, elem)
-      case elem: CloTy       => cloTyRule(app, elem)
-      case elem: RecordTy    => recordTyRule(app, elem)
-      case elem: ListTy      => listTyRule(app, elem)
-      case elem: AstTy       => astTyRule(app, elem)
-      case elem: MapTy       => mapTyRule(app, elem)
-      case elem: IntTy       => intRule(app, elem)
-      case elem: MathTy      => mathTyRule(app, elem)
-      case elem: InfinityTy  => infinityTyRule(app, elem)
-      case elem: NumberTy    => numberTyRule(app, elem)
-      case elem: BoolTy      => boolTyRule(app, elem)
+      case elem: TyModel        => tyModelRule(app, elem)
+      case elem: TyDecl         => tyDeclRule(app, elem)
+      case elem: TyDecl.Elem    => tyDeclElemRule(app, elem)
+      case elem: FieldMap       => fieldMapRule(using false)(app, elem)
+      case elem: Binding        => bindingRule(app, elem)
+      case elem: Ty             => tyRule(app, elem)
+      case elem: CloTy          => cloTyRule(app, elem)
+      case elem: RecordTy       => recordTyRule(app, elem)
+      case elem: ListTy         => listTyRule(app, elem)
+      case elem: AstTy          => astTyRule(app, elem)
+      case elem: MapTy          => mapTyRule(app, elem)
+      case elem: IntTy          => intRule(app, elem)
+      case elem: MathTy         => mathTyRule(app, elem)
+      case elem: InfinityTy     => infinityTyRule(app, elem)
+      case elem: NumberTy       => numberTyRule(app, elem)
+      case elem: BoolTy         => boolTyRule(app, elem)
+      case elem: TypeError      => errorRule(app, elem)
+      case elem: TypeErrorPoint => tpRule(app, elem)
 
   /** type models */
   given tyModelRule: Rule[TyModel] = (app, model) =>
@@ -299,6 +307,64 @@ object Stringifier {
       case Top              => app >> "Map"
       case Bot              => app >> ""
       case Elem(key, value) => app >> "Map[" >> key >> " -> " >> value >> "]"
+
+  // specification type errors
+  given errorRule: Rule[TypeError] = (app, error) =>
+    import irStringifier.given
+    app >> "[" >> error.getClass.getSimpleName >> "] " >> error.point
+    error match
+      case ParamTypeMismatch(point, argTy) =>
+        app :> "- expected: " >> point.param.ty
+        app :> "- actual  : " >> argTy
+      case ReturnTypeMismatch(point, retTy) =>
+        app :> "- expected: " >> point.func.retTy
+        app :> "- actual  : " >> retTy
+      case ArityMismatch(point, actual) =>
+        val (from, to) = point.func.arity
+        app :> "- expected: " >> "[" >> from >> ", " >> to >> "]"
+        app :> "- actual  : " >> actual
+      case InvalidBaseError(point, baseTy) =>
+        app :> "- base    : " >> baseTy
+      case UnaryOpTypeMismatch(point, operandTy) =>
+        app :> "- operand : " >> operandTy
+      case BinaryOpTypeMismatch(point, lhsTy, rhsTy) =>
+        app :> "- left    : " >> lhsTy
+        app :> "- right   : " >> rhsTy
+
+  // type error points
+  given tpRule: Rule[TypeErrorPoint] = (app, tp) =>
+    import irStringifier.given
+    given Rule[Option[Syntax]] = addLocRule
+    app >> tp.node.simpleString >> " "
+    tp match
+      case CallPoint(caller, callsite, callee) =>
+        app >> "function call from "
+        app >> caller.name >> callsite.callInst.langOpt
+        app >> " to " >> callee.name
+      case aap @ ArgAssignPoint(cp, idx) =>
+        val param = aap.param
+        app >> "argument assignment to "
+        app >> (idx + 1).toOrdinal >> " parameter _" >> param.lhs.name >> "_"
+        app >> " when " >> cp
+      case InternalReturnPoint(func, node, irReturn) =>
+        app >> "return statement in " >> func.name >> irReturn.langOpt
+      case FieldBasePoint(fieldPoint) =>
+        app >> "base in" >> fieldPoint
+      case FieldPoint(func, node, field) =>
+        app >> "field lookup in " >> func.name >> field
+      case UnaryOpPoint(func, node, unary) =>
+        app >> "unary operation (" >> unary.uop >> ") in " >> func.name
+        app >> unary
+      case BinaryOpPoint(func, node, binary) =>
+        app >> "binary operation (" >> binary.bop >> ") in " >> func.name
+        app >> binary
+
+  private val addLocRule: Rule[Option[Syntax]] = (app, opt) =>
+    for {
+      syntax <- opt
+      loc <- syntax.loc
+    } app >> " " >> loc.toString
+    app
 
   // rule for bounded set lattice
   private given bsetRule[T: Ordering](using Rule[T]): Rule[BSet[T]] =

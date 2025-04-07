@@ -7,14 +7,27 @@ jobs:
   test262test:
     runs-on: ubuntu-latest
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         submodules: true
+
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+        cache: sbt
+
+    - name: Setup SBT
+      uses: sbt/setup-sbt@v1
+
     - name: Run test
       env:
         ESMETA_HOME: ${{ github.workspace }}
       run: sbt test262EvalTest
+
     - name: Report Status
       if: failure()
       uses: 8398a7/action-slack@v3

@@ -8,7 +8,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods.*
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.*
-import akka.http.scaladsl.server.Directives.*
+import akka.http.scaladsl.server.Directives.{cors => _, *}
 import StatusCodes.*
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.*
 import ch.megard.akka.http.cors.scaladsl.settings.*

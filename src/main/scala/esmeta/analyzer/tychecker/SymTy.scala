@@ -5,13 +5,14 @@ import esmeta.interpreter.Interpreter
 import esmeta.ir.{Name, BOp, COp, VOp, MOp, UOp, Local, IRElem}
 import esmeta.state.*
 import esmeta.ty.{*, given}
-import esmeta.ty.util.{Stringifier => TyStringifier}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 trait SymTyDecl { self: TyChecker =>
-  enum SymTy extends SymTyLike {
+  import tyStringifier.given
+
+  enum SymTy {
     case STy(ty: ValueTy)
     case SRef(ref: SymRef)
     case SNormal(symty: SymTy)
@@ -95,8 +96,6 @@ trait SymTyDecl { self: TyChecker =>
     def getString = s"${this}"
   }
   object SymTy extends DomainLike[SymTy] {
-    import TyStringifier.given
-
     override def Top: SymTy = STy(ValueTy.Top)
 
     override def Bot: SymTy = STy(ValueTy.Bot)

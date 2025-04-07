@@ -5,8 +5,7 @@ import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.ir.{Func => _, *, given}
-import esmeta.ty.*
-import esmeta.ty.util.{Stringifier => TyStringifier}
+import esmeta.ty.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -31,9 +30,11 @@ class TyChecker(
   with AbsStateDecl
   with AbsRetDecl
   with AbsTransferDecl
-  with TypeErrorDecl
   with TypeGuardDecl
   with ViewDecl {
+
+  val tyStringifier = TyElem.getStringifier(false, false)
+  import tyStringifier.given
 
   npMap = getInitNpMap(targetFuncs)
 
@@ -141,7 +142,7 @@ class TyChecker(
     dumpFile(
       name = "detected type errors",
       data = errors.toList.sorted
-        .map(_.toString(detail = true))
+        .map(_.toString)
         .mkString(LINE_SEP + LINE_SEP),
       filename = s"$ANALYZE_LOG_DIR/errors",
       silent = silent,
@@ -347,7 +348,7 @@ class TyChecker(
   /** detected type errors */
   def errors: Set[TypeError] = errorMap.values.toSet
   protected def addError(error: TypeError): Unit =
-    errorMap += error.point.noView -> error
+    errorMap += error.point -> error
   private var errorMap: Map[TypeErrorPoint, TypeError] = Map()
 
   /** detected type errors after filtering with ignore set */
@@ -399,7 +400,6 @@ class TyChecker(
   /** type analysis result string */
   def typesString: String =
     given getRule: Rule[Iterable[Func]] = (app, funcs) =>
-      import TyStringifier.given
       given Rule[Iterable[(String, ValueTy)]] = iterableRule("(", ", ", ")")
       app >> "-" * 80
       for (func <- funcs) {
@@ -418,7 +418,6 @@ class TyChecker(
       }
       app
     given paramRule: Rule[(String, ValueTy)] = (app, pair) =>
-      import TyStringifier.given
       val (param, ty) = pair
       app >> param >> ": " >> ty
     (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString

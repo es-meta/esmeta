@@ -147,9 +147,10 @@ ThisBuild / assemblyPrependShellScript := Some(
   defaultUniversalScript(shebang = false),
 )
 
-// Akka
-val AkkaVersion = "2.6.19"
-val AkkaHttpVersion = "10.2.8"
+// library versions
+val CirceVersion = "0.14.10"
+val AkkaVersion = "2.10.0"
+val AkkaHttpVersion = "10.7.0"
 
 // project root
 lazy val root = project
@@ -159,17 +160,17 @@ lazy val root = project
 
     // libraries
     libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % "0.14.1",
-      "io.circe" %% "circe-generic" % "0.14.1",
-      "io.circe" %% "circe-parser" % "0.14.1",
-      "org.scalatest" %% "scalatest" % "3.2.11" % Test,
-      "org.apache.commons" % "commons-text" % "1.9",
-      "org.jsoup" % "jsoup" % "1.14.3",
-      "org.jline" % "jline" % "3.13.3",
-      "org.graalvm.polyglot" % "js" % "24.1.1" pomOnly (),
-      ("org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2")
+      "io.circe" %% "circe-core" % CirceVersion,
+      "io.circe" %% "circe-generic" % CirceVersion,
+      "io.circe" %% "circe-parser" % CirceVersion,
+      "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+      "org.apache.commons" % "commons-text" % "1.13.0",
+      "org.jsoup" % "jsoup" % "1.18.3",
+      "org.jline" % "jline" % "3.29.0",
+      "org.graalvm.polyglot" % "js" % "24.1.2" pomOnly (),
+      ("org.scala-lang.modules" %% "scala-parser-combinators" % "2.4.0")
         .cross(CrossVersion.for3Use2_13),
-      ("org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.4")
+      ("org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0")
         .cross(CrossVersion.for3Use2_13),
       ("com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion)
         .cross(CrossVersion.for3Use2_13),
@@ -177,9 +178,10 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       ("com.typesafe.akka" %% "akka-http" % AkkaHttpVersion)
         .cross(CrossVersion.for3Use2_13),
-      ("ch.megard" %% "akka-http-cors" % "1.1.2")
+      ("ch.megard" %% "akka-http-cors" % "1.2.0")
         .cross(CrossVersion.for3Use2_13), // cors
     ),
+    resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is
     // essentially a project-local cache.  There is only one lib_managed/ in

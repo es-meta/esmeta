@@ -13,7 +13,6 @@ abstract class Analyzer
   extends AbsTransferLikeDecl
   with ControlPointDecl
   with DomainLikeDecl
-  with TypeErrorDecl
   with ViewLikeDecl
   with util.Decl
   with repl.Decl {
@@ -39,9 +38,6 @@ abstract class Analyzer
 
   /** check reachability of return points */
   def reachable(rp: ReturnPoint): Boolean
-
-  /** symbolic types */
-  type SymTy <: SymTyLike
 
   /** abstract states */
   type AbsState <: AbsStateLike

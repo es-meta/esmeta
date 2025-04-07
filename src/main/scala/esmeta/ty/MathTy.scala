@@ -170,10 +170,18 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
       case _ => Top
 
   /** inclusion check */
-  def contains(math: Math): Boolean = this.canon match
-    case MathSignTy(sign) => sign.contains(math.decimal)
-    case MathIntTy(int)   => math.decimal.isWhole && int.contains(math.toInt)
-    case MathSetTy(set)   => set.contains(math)
+  def contains(math: Math): Boolean =
+    import scala.math.BigInt
+    this.canon match
+      case MathSignTy(sign) => sign.contains(math.decimal)
+      case MathIntTy(int) =>
+        math.decimal.isWhole && int.contains(math.decimal.toBigInt)
+      case MathSetTy(set) => set.contains(math)
+
+  def contains(bint: esmeta.state.BigInt): Boolean = this.canon match
+    case MathSignTy(sign) => sign.contains(bint.bigInt)
+    case MathIntTy(int)   => int.contains(bint.bigInt)
+    case MathSetTy(set)   => set.exists(_.decimal == bint.bigInt)
 
   /** get single value */
   def getSingle: Flat[Math] =
@@ -261,7 +269,7 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
       else this
     case MathSetTy(set) =>
       if (set.forall(_.decimal.isWhole))
-        MathIntTy(set.map(x => x.decimal.toLong))
+        MathIntTy(set.map(x => x.decimal.toBigInt))
       else this
     case i @ MathIntTy(_) => i
 
@@ -302,7 +310,7 @@ object MathSetTy:
   def apply(seq: Math*): MathSetTy = MathSetTy(seq.toSet)
 
 object MathIntTy:
-  def apply(ints: Iterable[Long]): MathIntTy = MathIntTy(IntSetTy(ints.toSet))
+  def apply(ints: Iterable[BigInt]): MathIntTy = MathIntTy(IntSetTy(ints.toSet))
 
 object MathTy extends Parser.From(Parser.mathTy) {
   // Top & Bot
