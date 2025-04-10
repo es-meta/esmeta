@@ -205,7 +205,8 @@ case object CmdDumpDebugger
 /** `dump-visualizer` command */
 case object CmdDumpVisualizer
   extends Command("dump-visualizer", CmdBuildCFG >> DumpVisualizer) {
-  def help = "dumps the resources required by the visualizer. (for internal use)"
+  def help =
+    "dumps the resources required by the visualizer. (for internal use)"
   val examples = List(
     "esmeta dump-visualizer                      # dump resources for visualizer",
   )
