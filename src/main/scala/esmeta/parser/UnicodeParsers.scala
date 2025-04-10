@@ -38,7 +38,7 @@ trait UnicodeParsers extends BasicParsers with EPackratParsers {
   lazy val NoLineTerminatorCPs = WhiteSpaceCPs -- LineTerminatorCPs
   lazy val StrWhiteSpaceCharCPs = WhiteSpaceCPs ++ LineTerminatorCPs
 
-  protected inline def toCodePoint(s: String): Int = s.codePoints.toArray.head
+  protected inline def toCodePoint(s: String): Int = s.codePointAt(0)
 
   protected inline def toParser(seq: Int*): Parser[String] = toParser(seq.toSet)
   protected inline def toParser(cp: Int): Parser[String] =

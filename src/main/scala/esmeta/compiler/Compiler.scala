@@ -24,12 +24,14 @@ object Compiler:
   def apply(
     spec: Spec,
     log: Boolean = false,
-  ): Program = new Compiler(spec, log).result
+    opt: Boolean = false,
+  ): Program = new Compiler(spec, log, opt).result
 
 /** extensible helper of compiler from metalangauge to IR */
 class Compiler(
   spec: Spec,
   log: Boolean = false,
+  opt: Boolean = false,
 ) {
 
   /** compiled specification */
@@ -251,8 +253,11 @@ class Compiler(
       lazy val e = expr.fold(EUndef())(compile(fb, _))
       (expr, fb.returnContext, fb.needReturnComp) match
         case (Some(ReturnIfAbruptExpression(expr, check)), None, true) =>
-          val e = returnIfAbrupt(fb, compile(fb, expr), check, true)
-          fb.addInst(IReturn(e))
+          if (check && !opt)
+            val e = returnIfAbrupt(fb, compile(fb, expr), check, false, true)
+          else
+            val e = returnIfAbrupt(fb, compile(fb, expr), check, true)
+            fb.addInst(IReturn(e))
         case (_, None, true) =>
           val e = expr.fold(EUndef())(compile(fb, _))
           val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
@@ -1202,7 +1207,8 @@ class Compiler(
     fb: FuncBuilder,
     expr: Expr,
     check: Boolean,
-    imeediateReturn: Boolean = false,
+    immediateReturn: Boolean = false,
+    returnAbrupt: Boolean = false,
   ): Expr =
     val (x, xExpr) = expr match
       case ERef(local: Local) => (local, expr)
@@ -1211,13 +1217,15 @@ class Compiler(
       if (check) IAssert(ETypeCheck(xExpr, IRType(CompT)))
       else IAssert(ETypeCheck(xExpr, IRType(NormalT))),
     )
-    if (!imeediateReturn)
+    if (!immediateReturn)
       fb.addInst(
         if (check)
           IIf(
             ETypeCheck(xExpr, IRType(AbruptT)),
             IReturn(xExpr),
-            IAssign(x, ERef(Field(x, EStr("Value")))),
+            if (returnAbrupt) IReturn(xExpr)
+            else IAssign(x, ERef(Field(x, EStr("Value")))),
+            true,
           )
         else IAssign(x, ERef(Field(x, EStr("Value")))),
       )

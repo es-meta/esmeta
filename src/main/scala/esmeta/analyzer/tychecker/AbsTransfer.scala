@@ -48,7 +48,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               else modify(_.define(call.lhs, v))
           } yield ())(st)
           call.next.foreach(to => analyzer += getNextNp(np, to) -> newSt)
-        case br @ Branch(_, kind, c, thenNode, elseNode) =>
+        case br @ Branch(_, kind, c, _, thenNode, elseNode) =>
           import RefinementTarget.*
           import RefinementKind.*
           (for { v <- transfer(c); newSt <- get } yield {

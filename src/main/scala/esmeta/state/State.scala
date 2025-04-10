@@ -26,7 +26,7 @@ case class State(
   /** current function */
   def func: Func = context.cursor.func
 
-  /** local enviornment */
+  /** local environment */
   def locals: MMap[Local, Value] = context.locals
 
   /** safe getter */

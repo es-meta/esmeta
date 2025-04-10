@@ -191,3 +191,23 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
     "esmeta mutate a.js -mutate:mutator=random    # use random mutator.",
   )
 }
+
+/** `dump-debugger` command */
+case object CmdDumpDebugger
+  extends Command("dump-debugger", CmdBuildCFG >> DumpDebugger) {
+  def help =
+    "dumps the resources required by the standalone debugger. (for internal use)"
+  val examples = List(
+    "esmeta dump-debugger                         # dump data to data.json",
+  )
+}
+
+/** `dump-visualizer` command */
+case object CmdDumpVisualizer
+  extends Command("dump-visualizer", CmdBuildCFG >> DumpVisualizer) {
+  def help =
+    "dumps the resources required by the visualizer. (for internal use)"
+  val examples = List(
+    "esmeta dump-visualizer                      # dump resources for visualizer",
+  )
+}

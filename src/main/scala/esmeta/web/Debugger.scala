@@ -12,7 +12,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 /** debugger extension of IR interpreter */
-class Debugger(st: State) extends Interpreter(st, log = true) {
+class Debugger(st: State) extends Interpreter(st) {
   // ---------------------------------------------------------------------------
   // shortcuts
   // ---------------------------------------------------------------------------
@@ -26,18 +26,25 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   // overrides IR interpreter
   // ---------------------------------------------------------------------------
   // transition for node to more fine-grained execution within block node
-  override def step: Boolean = (super.step, cursor) match
-    case (_, _: ExitCursor) if !st.callStack.isEmpty =>
-      saveBpCounts // save counter
-      val res = step
-      triggerBreaks // trigger breakpoints
-      res
-    case (res, _) => res
+  override def step: Boolean = {
+    val ret = super.step
+    cursor match {
+      case _: ExitCursor if st.callStack.nonEmpty =>
+        triggerBreaks
+        saveBpCounts
+      case _: ExitCursor =>
+      case _: NodeCursor =>
+    }
+    ret
+  }
+
   override def eval(node: Node): Unit = {
     saveBpCounts // save counter
     (cursor, node) match
       case (cursor: NodeCursor, block @ Block(_, insts, next)) =>
-        eval(insts(cursor.idx))
+        val targetInst = insts(cursor.idx)
+        countStep(cfg.funcOf(node).id, targetInst.loc)
+        eval(targetInst)
         cursor.idx += 1
         if (cursor.idx == insts.length) {
           cursor.idx -= 1
@@ -47,59 +54,300 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     triggerBreaks // trigger breakpoints
   }
 
+  override def eval(expr: Expr): Value = expr match {
+    case _: AllocExpr =>
+      val addr = super.eval(expr)
+      provenance._2 match {
+        case Some(provAddr) if provAddr == addr => provenance = (stepCnt, None)
+        case _                                  =>
+      }
+      addr
+    case _ => super.eval(expr)
+  }
+
   // ---------------------------------------------------------------------------
   // execution control
   // ---------------------------------------------------------------------------
 
+  /** ToDo : eliminate unnecessary mutable variables */
+  private var wasExited: Boolean = false
+  private var provenance: (Int, Option[Addr]) = (0, None)
+
   /** step result */
   enum StepResult:
-    case Breaked, Terminated, Succeed
+    case Breaked, Terminated, Succeed, ReachedFront
 
   // step until given predicate
   // TODO handle yet
   @tailrec
-  final def stepUntil(pred: => Boolean): StepResult =
-    if (!isBreaked) {
-      val keep = step
-      if (pred && keep) stepUntil(pred)
-      else if (keep) StepResult.Succeed
-      else StepResult.Terminated
-    } else StepResult.Breaked
+  final def stepWhile(
+    pred: => Boolean,
+    ignoreBreak: Boolean = false,
+  ): StepResult =
+    val (prevLoc, prevStackSize) = getSpecInfo
+    val keep = step
+    val (curLoc, curStackSize) = getSpecInfo
 
-  private def getIrInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
+    wasExited =
+      prevStackSize > curStackSize || (wasExited && prevLoc._2 == curLoc._2)
+    val break = isBreaked && !ignoreBreak
+
+    if (pred && keep && !break) stepWhile(pred, ignoreBreak)
+    else if (break)
+      StepResult.Breaked
+    else if (keep)
+      StepResult.Succeed
+    else
+      StepResult.Terminated
+
+  final def stepUntil(
+    pred: => Boolean,
+    ignoreBreak: Boolean = false,
+  ) = stepWhile(!pred, ignoreBreak)
+
+  def stepExactly(
+    count: Int,
+    ignoreBreak: Boolean = false,
+    fn: Option[() => Unit] = None,
+  ): StepResult = {
+    // XXX should throw exception if count is negative?
+    if count <= 0 then
+      return if stepCnt == 0 then StepResult.ReachedFront
+      else StepResult.Succeed
+    stepWhile(
+      {
+        fn.map(_())
+        val current = stepCnt
+        current < count
+      },
+      ignoreBreak,
+    )
+  }
+
+  private def stepExactlyFrom(
+    to: Int,
+    ignoreBreak: Boolean = false,
+    from: Option[Int] = None,
+    fn: Option[() => Unit] = None,
+  ): StepResult =
+    reset
+    from.foreach(stepExactly(_, ignoreBreak))
+    stepExactly(to, ignoreBreak, fn)
+
+  private def reset: Unit =
+    val newDOpt = for {
+      sourceText <- st.sourceText
+    } yield Debugger(cfg.init.from(sourceText))
+    val newD = newDOpt.get
+    this.st.context = newD.st.context
+    this.st.callStack = newD.st.callStack
+    this.st.heap.map.clear()
+    this.st.heap.map ++= newD.st.heap.map
+    this.st.heap.size = newD.st.heap.size
+    this.st.globals.clear()
+    this.st.globals ++= newD.st.globals
+    this.stepCnt = 0
+
+  // ir step
+  final def irStep(ignoreBreak: Boolean = false) = {
+    val (prevCursor, _) = getIrInfo
+    stepUntil(
+      {
+        val (curCursor, _) = getIrInfo
+        prevCursor != curCursor
+      },
+      ignoreBreak,
+    )
+  }
+
+  // ir step over
+  final def irStepOver(ignoreBreak: Boolean = false) =
+    val (prevCursor, prevStackSize) = getIrInfo
+    stepUntil(
+      {
+        val (curCursor, stackSize) = getIrInfo
+        prevCursor != curCursor && prevStackSize >= stackSize
+      },
+      ignoreBreak,
+    )
+
+  // ir step over
+  final def irStepOut(ignoreBreak: Boolean = false) =
+    val (prevCursor, prevStackSize) = getIrInfo
+    stepUntil(
+      {
+        val (curCursor, stackSize) = getIrInfo
+        prevCursor != curCursor && prevStackSize > stackSize
+      },
+      ignoreBreak,
+    )
 
   // spec step
-  final def specStep = {
-    val (prevLoc, _) = getIrInfo
-    stepUntil { prevLoc._2.isDefined && prevLoc == getIrInfo._1 }
+  final def specStep(ignoreBreak: Boolean = false) = {
+    val (prevLoc, _) = getSpecInfo
+    stepUntil(
+      {
+        (prevLoc._2.isEmpty ||
+        prevLoc != getSpecInfo._1
+        // ) && !isExitCursor
+        )
+      },
+      ignoreBreak,
+    )
   }
 
   // spec step over
-  final def specStepOver =
-    val (prevLoc, prevStackSize) = getIrInfo
-    stepUntil {
-      val (loc, stackSize) = getIrInfo
-      (prevLoc._2.isDefined && prevLoc == loc) || (prevStackSize < stackSize)
-    }
+  final def specStepOver(ignoreBreak: Boolean = false) =
+    val (prevLoc, prevStackSize) = getSpecInfo
+    stepUntil(
+      {
+        val (loc, stackSize) = getSpecInfo
+        (prevLoc._2.isEmpty || prevLoc != loc) &&
+        (prevStackSize >= stackSize)
+        // && !isExitCursor
+      },
+      ignoreBreak,
+    )
 
   // spec step out
-  final def specStepOut =
-    val (_, prevStackSize) = getIrInfo
-    stepUntil { prevStackSize <= getIrInfo._2 }
+  final def specStepOut(ignoreBreak: Boolean = false) =
+    val (_, prevStackSize) = getSpecInfo
+    stepUntil(
+      {
+        val (_, stackSize) = getSpecInfo
+        (prevStackSize > stackSize) // && !isExitCursor
+      },
+      ignoreBreak,
+    )
 
-  // es steps from ast span info
-  private def getEsInfo =
-    val ctxts = st.context :: st.callStack.map(_.context)
-    val callStackSize = ctxts.count(_.isEsCall)
-    val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
-    ((ls, le), callStackSize)
+  // spec step back
+  final def specStepBack(ignoreBreak: Boolean = false) = {
+    val ((curLoc, curStackSize), curIter) = (getSpecInfo, stepCnt)
+
+    var target: Int = 0
+    var breakFlag: Boolean = false
+
+    val calcTarget = () => {
+      val (iterLoc, iterStackSize) = getSpecInfo
+      val iterCond = curLoc._2.isDefined && curLoc == iterLoc
+      if (!iterCond) {
+        target = stepCnt
+        breakpoints.foreach {
+          case SpecBreakpoint(fid, steps, true)
+              if st.context.func.id == fid && iterLoc._2.contains(
+                steps,
+              ) =>
+            breakFlag = true
+          case _ => breakFlag = false
+        }
+      }
+    }
+
+    stepExactlyFrom(curIter - 1, true, fn = Some(calcTarget))
+    val result = stepExactlyFrom(target, true)
+    if (breakFlag && !ignoreBreak) StepResult.Breaked else result
+  }
+
+  // spec step back over
+  final def specStepBackOver(ignoreBreak: Boolean = false) = {
+    val (curLoc, curStackSize) = getSpecInfo
+    val currentIter = stepCnt
+
+    var target: Int = 0
+    val calcTarget = () => {
+      val (iterLoc, iterStackSize) = getSpecInfo
+      val cond =
+        (curLoc._2.isDefined && curLoc == iterLoc) || (curStackSize < iterStackSize)
+      if !cond then target = stepCnt
+    }
+
+    var breakFlag: Boolean = false
+    val calcBp = () => {
+      val (iterLoc, iterStackSize) = getSpecInfo
+      val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
+      breakpoints.foreach {
+        case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
+          if (
+            st.context.func.id == fid && iterLoc._2.contains(
+              steps,
+            )
+          )
+            breakFlag = true
+            target = stepCnt
+        case _ =>
+      }
+    }
+
+    stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
+    if (!ignoreBreak)
+      stepExactlyFrom(
+        currentIter - 1,
+        true,
+        from = Some(target),
+        fn = Some(calcBp),
+      )
+    val result = stepExactlyFrom(target, true)
+    if (breakFlag) StepResult.Breaked else result
+  }
+
+  // spec step back out
+  final def specStepBackOut(ignoreBreak: Boolean = false) = {
+    val (curLoc, curStackSize) = getSpecInfo
+    val currentIter = stepCnt
+
+    var target: Int = 0
+    var breakFlag: Boolean = false
+
+    val calcTarget = () => {
+      if !(curStackSize <= getSpecInfo._2) then target = stepCnt
+    }
+
+    val calcBp = () => {
+      val (iterLoc, iterStackSize) = getSpecInfo
+      val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
+      breakpoints.foreach {
+        case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
+          if (
+            st.context.func.id == fid && iterLoc._2.contains(
+              steps,
+            )
+          )
+            breakFlag = true
+            target = stepCnt
+        case _ =>
+      }
+    }
+
+    stepExactlyFrom(currentIter - 1, true, fn = Some(calcTarget))
+    if (!ignoreBreak)
+      stepExactlyFrom(
+        currentIter - 1,
+        true,
+        from = Some(target),
+        fn = Some(calcBp),
+      )
+    val result = stepExactlyFrom(target, true)
+    if (breakFlag) StepResult.Breaked else result
+  }
 
   // es step
-  final def esStep =
+  final def esAstStep =
     val (prevLoc, _) = getEsInfo
     stepUntil {
       val (loc, _) = getEsInfo
-      (loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1)
+      isEsEvaluation &&
+      (prevLoc != loc) &&
+      isAtFirst
+    }
+
+  // es step
+  final def esStatementStep =
+    val (prevLoc, _) = getEsInfo
+    stepUntil {
+      val (loc, _) = getEsInfo
+      isEsEvaluation &&
+      isSingleStatementListItem &&
+      isAtFirst
     }
 
   // es step over
@@ -107,7 +355,10 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     val (prevLoc, prevStackSize) = getEsInfo
     stepUntil {
       val (loc, stackSize) = getEsInfo
-      (loc._1 == -1 || loc._1 != loc._2 || loc._1 == prevLoc._1 || prevStackSize < stackSize)
+      isEsEvaluation &&
+      isSingleStatementListItem &&
+      isAtFirst &&
+      prevStackSize >= stackSize
     }
 
   // es step out
@@ -115,11 +366,67 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
     val (_, prevStackSize) = getEsInfo
     stepUntil {
       val (loc, stackSize) = getEsInfo
-      loc._1 == -1 || prevStackSize <= stackSize
+      isEsEvaluation &&
+      isSingleStatementListItem &&
+      isAtFirst &&
+      prevStackSize > stackSize
     }
 
   // continue
-  final def continue: StepResult = stepUntil { true }
+  final def continue: StepResult = stepWhile { true }
+
+  // rewind
+  final def rewind: StepResult = {
+    val (curLoc, curStackSize) = getSpecInfo
+    val currentIter = stepCnt
+    var target: Int = 0
+    var breakFlag: Boolean = false
+
+    val calcBp = () => {
+      val (iterLoc, iterStackSize) = getSpecInfo
+      val sameStep = (curLoc._2.isDefined && curLoc == iterLoc)
+      breakpoints.foreach {
+        case SpecBreakpoint(fid, steps, enabled) if enabled && !sameStep =>
+          if (
+            st.context.func.id == fid && iterLoc._2.contains(
+              steps,
+            )
+          )
+            breakFlag = true
+            target = stepCnt
+        case _ =>
+      }
+    }
+
+    stepExactlyFrom(currentIter - 1, true, fn = Some(calcBp))
+    if (breakFlag)
+      stepExactlyFrom(target, true)
+      StepResult.Breaked
+    else
+      reset
+      StepResult.Succeed
+  }
+
+  final def stepBackToProvenance(addr: Addr): StepResult = {
+    provenance = (0, Some(addr))
+    stepExactlyFrom(stepCnt, true)
+    stepExactlyFrom(provenance._1, true)
+  }
+
+  final def iterPlus(ignoreBreak: Boolean = false) = {
+    val tarstepCnt = stepCnt + 1
+    stepUntil(
+      {
+        stepCnt == tarstepCnt
+      },
+      ignoreBreak,
+    )
+  }
+
+  final def iterMinus(ignoreBreak: Boolean = false) = {
+    val tarstepCnt = stepCnt - 1
+    stepExactlyFrom(tarstepCnt)
+  }
 
   // ---------------------------------------------------------------------------
   // breakpoints
@@ -183,6 +490,22 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // breakpoints
   private val breakpoints: ListBuffer[Breakpoint] = ListBuffer()
+  private def disableBps(): List[Int] = {
+    val enabledIndices = breakpoints.zipWithIndex.collect {
+      case (bp, idx) if bp.enabled => idx
+    }.toList
+    breakpoints.foreach(_.enabled = false)
+    enabledIndices
+  }
+  private def enableBps(enableIndices: List[Int]): Unit = {
+    enableIndices.foreach(idx => breakpoints(idx).enabled = true)
+  }
+  protected def ignoreBps[T](action: => T): T = {
+    val enabledIndices = disableBps()
+    val result = action
+    enableBps(enabledIndices)
+    result
+  }
 
   // trigger breakpoints
   private def triggerBreaks: Unit =
@@ -204,7 +527,7 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   // remove breakpoint
   final def rmBreakAll: Unit = breakpoints.clear
-  final def rmBreak(idx: Int): Unit = breakpoints.remove(idx.toInt)
+  final def rmBreak(idx: Int): Unit = breakpoints.remove(idx)
 
   // toggle breakpoints
   final def toggleBreakAll: Unit = for { bp <- breakpoints } bp.toggle()
@@ -216,8 +539,69 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
   }
 
   // ---------------------------------------------------------------------------
+  // step auxiliaries
+  // ---------------------------------------------------------------------------
+
+  private def getIrInfo = (cursor, st.callStack.size)
+
+  private def getSpecInfo = ((irFunc.name, cursor.stepsOpt), st.callStack.size)
+
+  // es steps from ast span info
+  private def getEsInfo =
+    val ctxts = st.context :: st.callStack.map(_.context)
+    val esCallStackSize = {
+      val stackAddr = st(GLOBAL_EXECUTION_STACK).asAddr
+      val stackSize = st.heap.map(stackAddr).size
+      stackSize
+    }
+    val (ls, le) = ctxts.flatMap(_.esLocOpt).headOption.getOrElse((-1, -1))
+    ((ls, le), esCallStackSize)
+
+  /* check if function is .Evaluation of SDO */
+  def isEsEvaluation =
+    st.context.func.isSDO && st.context.name.endsWith("Evaluation")
+
+  /* check if ast is single StatementListItem */
+  def isSingleStatementListItem: Boolean = {
+    // TODO should get these constants in a better way?
+    val STATEMENT = "Statement"
+    val DECLARATION = "Declaration"
+    st.context.astOpt.flatMap(_.parent).map(_.name) match
+      case Some(name) =>
+        name == STATEMENT || name == DECLARATION
+      case None => false
+  }
+
+  def isAtFirst = cursor match
+    case NodeCursor(func, node, 0) => func.entry == node
+    case _                         => false
+
+  def isExitCursor = cursor match
+    case _: ExitCursor => true
+    case _             => false
+
+  // ---------------------------------------------------------------------------
   // debugger info
   // ---------------------------------------------------------------------------
+
+  extension (node: Node) {
+
+    /** get location in spec of node */
+    def stepsOpt: List[List[Int]] =
+
+      def instList: List[Inst] = node match
+        case Block(_, insts, _) => insts.toList
+        case node: NodeWithInst => node.inst.fold(Nil)(_ :: Nil)
+      def langOpt: List[Syntax] = instList.flatMap(_.langOpt)
+      for {
+        lang <- langOpt
+        loc <- lang.loc
+      } yield loc.steps
+
+  }
+
+  // XXX temporary info for debugging debugger itself
+  def nodeStepsOpt(node: Node): List[List[Int]] = node.stepsOpt
 
   /** extension for cursor */
   extension (cursor: Cursor) {
@@ -271,23 +655,80 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
 
   /** heap information */
   def heapInfo = st.heap.map.map {
-    case (addr, obj) => (addr.toString, obj.toString)
+    case (addr, obj) =>
+      import io.circe.*
+      import io.circe.syntax.*
+      (
+        addr.toString,
+        obj match
+          case RecordObj(tname, map) =>
+            Json.obj(
+              "type" -> Json.fromString("RecordObj"),
+              "tname" -> Json.fromString(tname),
+              "map" -> Json.fromFields(map.map {
+                case (k, v) => (k, v.toString.asJson)
+              }),
+              "stringform" -> Json.fromString(obj.toString),
+            )
+          case MapObj(map) =>
+            Json.obj(
+              "type" -> Json.fromString("MapObj"),
+              "map" -> Json.fromFields(map.map {
+                case (k, v) => (k.toString, v.toString.asJson)
+              }),
+              "stringform" -> Json.fromString(obj.toString),
+            )
+          case ListObj(values) =>
+            Json.obj(
+              "type" -> Json.fromString("ListObj"),
+              "values" -> Json.arr((values.map(_.toString.asJson))*),
+              "stringform" -> Json.fromString(obj.toString),
+            )
+          case YetObj(tname, msg) =>
+            Json.obj(
+              "type" -> Json.fromString("YetObj"),
+              "tname" -> Json.fromString(tname),
+              "msg" -> Json.fromString(msg),
+              "stringform" -> Json.fromString(obj.toString),
+            ),
+      )
   }
 
   /** call stack information */
   def callStackInfo =
-    def getInfo(c: Context) = (
-      c.func.id,
-      c.name,
-      c.cursor.stepsOpt.getOrElse(List()),
-      c.locals.collect {
-        case (Name(name), v) => (name, v.toString)
-      }.toList,
-    )
-    (st.context :: st.callStack.map(_.context)).map(getInfo(_))
+    def getInfo(c: Context, wasExited: Boolean = false) =
+      (
+        c.func.id,
+        c.name,
+        c.cursor.stepsOpt.getOrElse(List()),
+        wasExited,
+        c.locals.collect {
+          case (Name(name), v) => (name, v.toString)
+        }.toList ++ c.retVal.map { case (_, v) => ("return", v.toString) }, {
+          val dynamic = c.visited
+          val static = cfg.depGraph.deps(cfg.funcMap(c.func.id))
+          // what to do?
+
+          val currentNode = c.cursor match
+            case NodeCursor(_, node, _) => Some(node)
+            case ExitCursor(_)          => None
+
+          val intersection = currentNode match
+            case Some(node) => dynamic intersect static.getOrElse(node, Set())
+            case None       => dynamic
+
+          (intersection ++ currentNode).flatMap(_.stepsOpt).toList
+        },
+        // st.cfg.depGraph.getStringForm()
+      )
+
+    getInfo(st.context, wasExited) :: st.callStack
+      .map(_.context)
+      .map(getInfo(_))
 
   /** context information */
-  def ctxtInfo(cid: Int) =
+  def ctxtInfo(cid: Int, fallback: Option[Map[String, String]] = None) =
+    // XXX fallback is for standalone debugger, please keep it
     def paramInfo(p: Param) = (
       p.lhs.name,
       p.optional,
@@ -306,7 +747,10 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       case _: ExitCursor       => (-1, true)
     val func = ctxt.func
     val irFunc = func.irFunc
-    val code = irFunc.algo.map(_.code).getOrElse("")
+    val code = irFunc.algo
+      .map(_.code)
+      .orElse(fallback.flatMap(_.get(irFunc.name)))
+      .getOrElse("")
     (
       func.id,
       irFunc.kind.ordinal,
@@ -316,4 +760,5 @@ class Debugger(st: State) extends Interpreter(st, log = true) {
       code,
       (os, oe),
     )
+
 }

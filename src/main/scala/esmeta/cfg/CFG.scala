@@ -56,6 +56,8 @@ case class CFG(
     node <- func.nodes
   } yield node -> func).toMap
 
+  lazy val depGraph = new DepGraph(this)
+
   /** get a type model */
   lazy val tyModel: TyModel = spec.tyModel
 

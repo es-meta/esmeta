@@ -7,6 +7,8 @@ import esmeta.ty.util.{Parsers => TyParsers}
 import esmeta.util.BaseUtils.*
 import esmeta.util.{Locational, BasicParsers}
 
+import esmeta.util.Loc
+
 /** IR parser */
 object Parser extends Parsers
 
@@ -22,13 +24,21 @@ trait Parsers extends TyParsers {
   given func: Parser[Func] = {
     (main <~ "def") ~
     funcKind ~
-    "[<>\\w|:\\.\\[\\],@]+".r ~
+    funcName ~
     params ~
     retTy ~
     ("=" ~> inst) ^^ {
       case m ~ k ~ n ~ ps ~ rty ~ b => Func(m, k, n, ps, rty, b)
     }
   }.named("ir.Func")
+
+  lazy val funcName: Parser[String] =
+    // no space
+    ("""[<>\w|:\.\[\],@\/`]+""".r |||
+    // intrinsic functions contain space
+    (("""[<>\w|:\.\[\],@\/]+?(\.get|\.set)\s[<>\w|:\.\[\],@\/]+""".r) ^^ {
+      case (a) => a
+    }))
 
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 
@@ -60,23 +70,26 @@ trait Parsers extends TyParsers {
     opt(":" ~> irType) ^^ { _.getOrElse(UnknownType) }
 
   // instructions
-  given inst: Parser[Inst] = withLoc {
-    "{" ~> rep(inst) <~ "}" ^^ {
-      ISeq(_)
+  given inst: Parser[Inst] = {
+    withLoc('i') {
+      "{" ~> rep(inst) <~ "}" ^^ {
+        ISeq(_)
+      }
     } | branchInst | callInst | normalInst
   }.named("ir.Inst")
 
-  lazy val callInst: Parser[CallInst] =
+  lazy val callInst: Parser[CallInst] = withLoc('i') {
     lazy val args: Parser[List[Expr]] = ("(" ~> repsep(expr, ",") <~ ")")
     ("call" ~> local <~ "=") ~ expr ~ args ^^ {
       case lhs ~ f ~ as => ICall(lhs, f, as)
     } | ("sdo-call" ~> local <~ "=") ~ expr ~ ("->" ~> word) ~ args ^^ {
       case lhs ~ a ~ m ~ as => ISdoCall(lhs, a, m, as)
     }
+  }
 
   given normalInsts: Parser[List[NormalInst]] =
     rep(normalInst).named("List[ir.NormalInst]")
-  lazy val normalInst: Parser[NormalInst] =
+  lazy val normalInst: Parser[NormalInst] = withLoc('i') {
     "let" ~> name ~ ("=" ~> expr) ^^ {
       case x ~ e => ILet(x, e)
     } | "expand" ~> ref ^? {
@@ -102,8 +115,9 @@ trait Parsers extends TyParsers {
     } | expr ^^ {
       case e => IExpr(e)
     }
+  }
 
-  given branchInst: Parser[BranchInst] = {
+  given branchInst: Parser[BranchInst] = withLoc('i') {
     ("if " ~> expr) ~ inst ~ opt("else" ~> inst) ^^ {
       case (c ~ t ~ Some(e)) => IIf(c, t, e)
       case (c ~ t ~ None)    => IIf(c, t, ISeq(Nil))
@@ -113,11 +127,13 @@ trait Parsers extends TyParsers {
   }.named("ir.BranchInst")
 
   // expressions
-  given expr: Parser[Expr] = {
+  given expr: Parser[Expr] = withLoc('e') {
     "(" ~ "parse" ~> expr ~ expr <~ ")" ^^ {
       case c ~ r => EParse(c, r)
-    } | "(" ~ "grammar-symbol" ~> ("|" ~> word <~ "|") ~ parseParams <~ ")" ^^ {
-      case x ~ ps => EGrammarSymbol(x, ps)
+    } | "(" ~ "grammar-symbol" ~> ("|" ~> opt(
+      word,
+    ) <~ "|") ~ parseParams <~ ")" ^^ {
+      case x ~ ps => EGrammarSymbol(x.getOrElse(""), ps)
     } | "(" ~ "source-text" ~> expr <~ ")" ^^ {
       ESourceText(_)
     } | "(" ~ "yet" ~> string <~ ")" ^^ {
@@ -160,7 +176,15 @@ trait Parsers extends TyParsers {
       case e => EDebug(e)
     } | "(" ~ "random" ~ ")" ^^^ {
       ERandom()
-    } | astExpr | allocExpr | literal | ref ^^ { ERef(_) }
+    } | astExpr | allocExpr | ((ref ^^ {
+      // temp fix
+      case Name("true")      => EBool(true)
+      case Name("false")     => EBool(false)
+      case Name("undefined") => EUndef()
+      case Name("null")      => ENull()
+      case Name("NaN")       => ENumber(Double.NaN)
+      case a                 => ERef(a)
+    }) ||| literal)
   }.named("ir.Expr")
 
   // abstract syntax tree (AST) expressions
@@ -303,8 +327,10 @@ trait Parsers extends TyParsers {
   }.named("ir.COp")
 
   // references
-  given ref: Parser[Ref] = {
-    val field = "." ~> ident ^^ { EStr(_) } | "[" ~> expr <~ "]"
+  given ref: Parser[Ref] = withLoc('r') {
+    val field = "." ~> name ^^ {
+      case Name(str) => EStr(str)
+    } | "[" ~> expr <~ "]"
     x ~ rep(field) ^^ { case x ~ es => es.foldLeft[Ref](x)(Field(_, _)) }
   }.named("ir.Ref")
 
@@ -326,8 +352,10 @@ trait Parsers extends TyParsers {
   }.named("ir.Type")
 
   // helper for locations
-  private def withLoc(parser: Parser[Inst]): Parser[Inst] =
-    parser ~ opt("@" ~> loc) ^^ {
+  private def withLoc[T <: LangEdge](
+    tag: Char,
+  )(parser: Parser[T]): Parser[T] =
+    parser ~ ((s"@@$tag" ~> (loc ^^ Some.apply)) | (s"@@@$tag" ~> "" ^^^ None) | "" ^^^ None) ^^ {
       case i ~ l =>
         i.langOpt = Some(new Syntax { loc = l })
         i

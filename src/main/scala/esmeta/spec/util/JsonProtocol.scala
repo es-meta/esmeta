@@ -100,39 +100,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Algorithm] = deriveDecoder
   given Encoder[Algorithm] = deriveEncoder
   // algorithm heads
-  given Decoder[Head] =
-    decoderWithDiscriminator("algorithm head", headDiscriminators)
-  private lazy val headDiscriminators
-    : List[(String, HCursor => Decoder.Result[Head])] = List(
-    "isHostDefined" -> (_.as[AbstractOperationHead]),
-    "baseTy" -> (_.as[NumericMethodHead]),
-    "withParams" -> (_.as[SyntaxDirectedOperationHead]),
-    "concMethodName" -> (_.as[ConcreteMethodHead]),
-    "receiverParam" -> (_.as[InternalMethodHead]),
-    "path" -> (_.as[BuiltinHead]),
-  )
-  given Encoder[Head] = Encoder.instance {
-    case head: AbstractOperationHead       => head.asJson
-    case head: NumericMethodHead           => head.asJson
-    case head: SyntaxDirectedOperationHead => head.asJson
-    case head: ConcreteMethodHead          => head.asJson
-    case head: InternalMethodHead          => head.asJson
-    case head: BuiltinHead                 => head.asJson
-  }
-  given Decoder[AbstractOperationHead] = deriveDecoder
-  given Encoder[AbstractOperationHead] = deriveEncoder
-  given Decoder[NumericMethodHead] = deriveDecoder
-  given Encoder[NumericMethodHead] = deriveEncoder
-  given Decoder[SyntaxDirectedOperationHead] = deriveDecoder
-  given Encoder[SyntaxDirectedOperationHead] = deriveEncoder
+  given Decoder[Head] = deriveDecoder
+  given Encoder[Head] = deriveEncoder
   given Decoder[SdoHeadTarget] = deriveDecoder
   given Encoder[SdoHeadTarget] = deriveEncoder
-  given Decoder[ConcreteMethodHead] = deriveDecoder
-  given Encoder[ConcreteMethodHead] = deriveEncoder
-  given Decoder[InternalMethodHead] = deriveDecoder
-  given Encoder[InternalMethodHead] = deriveEncoder
-  given Decoder[BuiltinHead] = deriveDecoder
-  given Encoder[BuiltinHead] = deriveEncoder
   given Decoder[BuiltinPath] = deriveDecoder
   given Encoder[BuiltinPath] = deriveEncoder
   // algorithm parameters
@@ -140,4 +111,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[Param] = deriveEncoder
   given Decoder[ParamKind] = deriveDecoder
   given Encoder[ParamKind] = deriveEncoder
+
+  // type models
+  given Decoder[TyModel] = deriveDecoder
+  given Encoder[TyModel] = deriveEncoder
 }

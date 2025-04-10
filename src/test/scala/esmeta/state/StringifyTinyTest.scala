@@ -22,6 +22,7 @@ class StringifyTinyTest extends StateTest {
       |  context: {
       |    cursor: Func[0]:Block[0]:0 @ f
       |    local-vars: {}
+      |    visited: []
       |  }
       |  call-stack: []
       |  globals: {}
@@ -42,16 +43,20 @@ class StringifyTinyTest extends StateTest {
     lazy val ctxtSingle = Context(func, MMap(Name("x") -> Math(42)))
     lazy val ctxtMulti =
       Context(func, MMap(Name("x") -> Math(42), Name("y") -> Str("abc")))
+    lazy val ctxtVisited = Context(func, MMap(Name("x") -> Math(42)))
+    ctxtVisited.visited ++= List(Block(0), Block(7))
     checkStringify("Context")(
       ctxt -> """{
       |  cursor: Func[0]:Block[0]:0 @ f
       |  local-vars: {}
+      |  visited: []
       |}""".stripMargin,
       ctxtSingle -> """{
       |  cursor: Func[0]:Block[0]:0 @ f
       |  local-vars: {
       |    x -> 42
       |  }
+      |  visited: []
       |}""".stripMargin,
       ctxtMulti -> """{
       |  cursor: Func[0]:Block[0]:0 @ f
@@ -59,6 +64,17 @@ class StringifyTinyTest extends StateTest {
       |    x -> 42
       |    y -> "abc"
       |  }
+      |  visited: []
+      |}""".stripMargin,
+      ctxtVisited -> """{
+      |  cursor: Func[0]:Block[0]:0 @ f
+      |  local-vars: {
+      |    x -> 42
+      |  }
+      |  visited: [
+      |    0,
+      |    7,
+      |  ]
       |}""".stripMargin,
     )
     // -------------------------------------------------------------------------

@@ -32,13 +32,13 @@ case class GlobalObject(cfg: CFG) {
       // test262
       "$262" -> DataProperty(intrAddr("$262"), T, F, T),
     )
-    for {
+    val wellKnowns = for {
       row <- spec.tables(WELL_KNOWN_INTRINSICS).rows
       List(intrCell, globCell) = row.take(2).map(_.trim) if globCell != ""
       intrKey = intrCell.replace("%", "")
       globKey = globCell.replace("`", "")
-    } { nmap ::= globKey -> DataProperty(intrAddr(intrKey), T, F, T) }
-
+    } yield { globKey -> DataProperty(intrAddr(intrKey), T, F, T) }
+    nmap = wellKnowns ++ nmap
     getMapObjects(GLOBAL, GLOBAL, nmap)
   }
 }

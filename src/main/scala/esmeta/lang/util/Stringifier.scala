@@ -9,6 +9,8 @@ import esmeta.util.BaseUtils.*
 
 /** stringifier for metalanguage */
 class Stringifier(detail: Boolean, location: Boolean) {
+  val tyStringifier = TyElem.getStringifier(false, false)
+
   // elements
   given elemRule: Rule[LangElem] = (app, elem) =>
     elem match {
@@ -756,6 +758,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // types
   given typeRule: Rule[Type] = (app, ty) =>
+    given Rule[Ty] = tyStringifier.tyRule
     ty.ty match
       case UnknownTy(msg) => app >> msg.getOrElse("unknown")
       case ty: ValueTy    => valueTyRule(false, false)(app, ty)

@@ -127,6 +127,9 @@ case class Test262(
     detail: Boolean = false,
     useProgress: Boolean = false,
     useCoverage: Boolean = false,
+    kFs: Int = 0,
+    cp: Boolean = false,
+    allTests: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
     concurrent: CP = CP.Single,
     verbose: Boolean = false,
@@ -139,6 +142,13 @@ case class Test262(
 
     // get target tests and removed tests
     val (targetTests, removed) = testFilter(tests, withYet)
+
+    // dump test id to path for -test262test:all-tests
+    if (allTests)
+      dumpJson(
+        targetTests.map(_.relName).zipWithIndex.map(_.swap).toMap,
+        s"$TEST262TEST_LOG_DIR/test262IdToTest262.json",
+      )
 
     // open log file
     val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
@@ -159,6 +169,11 @@ case class Test262(
     lazy val cov = Coverage(
       cfg = cfg,
       timeLimit = timeLimit,
+      kFs = kFs,
+      cp = cp,
+      all = allTests,
+      isTargetNode = (_, st) => !inHarness(st),
+      isTargetBranch = (_, st) => !inHarness(st),
     )
 
     // run tests with logging
@@ -280,6 +295,16 @@ case class Test262(
       timeLimit = timeLimit,
     )
 
+  // check whether program point is in harness
+  private def inHarness(st: State): Boolean = (for {
+    ast <- st.context.astOpt.orElse(
+      st.callStack.view.flatMap(_.context.astOpt).headOption,
+    )
+    loc <- ast.loc
+    filename <- loc.filename
+    if filename.contains("test262/harness")
+  } yield true).getOrElse(false)
+
   // logging mode for tests
   private def logForTests(
     name: String,
@@ -293,6 +318,7 @@ case class Test262(
   ): Unit =
     val summary: Summary = progressBar.summary
     val logDir = s"$TEST262TEST_LOG_DIR/$name-$dateStr"
+    val symlink = s"$TEST262TEST_LOG_DIR/recent"
 
     // setting for logging
     if (log)
@@ -313,5 +339,6 @@ case class Test262(
 
     // post job
     postJob(logDir)
+    if exists(logDir) then createSymLink(symlink, logDir, overwrite = true)
 }
 object Test262 extends Git(TEST262_DIR)

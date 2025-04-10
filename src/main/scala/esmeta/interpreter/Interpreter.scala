@@ -24,6 +24,7 @@ import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
+import esmeta.util.Loc
 
 /** extensible helper of IR interpreter with a CFG */
 class Interpreter(
@@ -58,7 +59,7 @@ class Interpreter(
     try {
       // text-based logging
       if (log)
-        pw.println(st.getCursorString)
+        pw.println(st.getCursorString + s" StepCnt : $stepCnt")
         if (detail) pw.println(st.context)
         pw.flush
 
@@ -85,7 +86,10 @@ class Interpreter(
 
   /** transition for cursors */
   def eval(cursor: Cursor): Boolean = cursor match
-    case NodeCursor(_, node, _) => eval(node); true
+    case NodeCursor(_, node, _) =>
+      st.context.visited += node
+      eval(node)
+      true
     case ExitCursor(func) =>
       st.callStack match
         case Nil =>
@@ -100,18 +104,23 @@ class Interpreter(
 
   /** transition for nodes */
   def eval(node: Node): Unit =
+    val fid = cfg.funcOf(node).id
     node match {
       case Block(_, insts, _) =>
         for (inst <- insts) {
+          countStep(fid, inst.loc)
           eval(inst)
           st.context.moveInst
         }
         st.context.moveNode
       case branch: Branch =>
+        countStep(fid, branch.loc)
         eval(branch.cond) match
           case Bool(bool) => moveBranch(branch, bool)
           case v          => throw NoBoolean(v)
-      case call: Call => eval(call)
+      case call: Call =>
+        countStep(fid, call.loc)
+        eval(call)
     }
 
   /** transition for normal instructions */
@@ -409,8 +418,32 @@ class Interpreter(
   /** grammar */
   private def grammar = cfg.grammar
 
-  /** itereration count */
+  /** iteration count */
   private var iter = 0
+
+  /** count of passed instruction */
+  case class StepLocation(fid: Int, loc: Loc)
+  private var prevLoc: Option[StepLocation] = None
+  protected var stepCnt: Int = 0
+
+  private def convertLocation(
+    fid: Int,
+    loc: Option[Loc],
+  ): Option[StepLocation] = loc match
+    case None       => None
+    case Some(sLoc) => Some(StepLocation(fid, sLoc))
+
+  protected def countStep(fid: Int, loc: Option[Loc]): Unit =
+    val curLoc = convertLocation(fid, loc)
+    (prevLoc, curLoc) match
+      case (None, Some(_)) => stepCnt += 1
+      case (Some(_), None) => stepCnt += 1
+      case (Some(l1), Some(l2))
+          if l1.fid != l2.fid || l1.loc.steps != l2.loc.steps =>
+        stepCnt += 1
+      case _ =>
+    prevLoc = curLoc
+  def getStepCnt = stepCnt
 
   /** logging */
   private lazy val pw: PrintWriter =
@@ -420,7 +453,7 @@ class Interpreter(
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
   // create a new context
-  private def createContext(
+  protected def createContext(
     call: Call,
     func: Func,
     locals: MMap[Local, Value],
@@ -428,7 +461,7 @@ class Interpreter(
   ): Context = createContext(call, func, locals, Some(prevCtxt))
 
   // create a new context
-  private def createContext(
+  protected def createContext(
     call: Call,
     func: Func,
     locals: MMap[Local, Value],
@@ -447,7 +480,9 @@ class Interpreter(
           loc <- ast.loc
         } yield Nearest(name, idx, ast.subIdx, loc)
         Context(func, locals, feature :: prevFeatureStack, nearest)
-      case Some(head: BuiltinHead) => Context(func, locals)
+      case Some(head: BuiltinHead) =>
+        val feature = BuiltinFeature(func, head)
+        Context(func, locals, feature :: prevFeatureStack, prevNearest)
       case _ =>
         Context(
           func,

@@ -4,7 +4,8 @@ package util
 
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import io.circe.*, io.circe.syntax.*
+import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
+import esmeta.error.ESMetaError
 
 object JsonProtocol extends BasicJsonProtocol {
   val stringifier = LangElem.getStringifier(true, false)
@@ -36,4 +37,6 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Block] = decoderWithParser(Block.from)
   given Encoder[Step] = encoderWithStringifier(stringify)
   given Decoder[Step] = decoderWithParser(Step.from)
+  given Encoder[Directive] = deriveEncoder
+  given Decoder[Directive] = deriveDecoder
 }

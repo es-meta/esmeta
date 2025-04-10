@@ -107,7 +107,7 @@ class Stringifier(
   /** unknown types */
   given unknownTyRule: Rule[UnknownTy] = (app, ty) =>
     app >> "Unknown"
-    ty.msg.fold(app)(app >> "[\"" >> _ >> "\"]")
+    ty.msg.fold(app)(app >> "[\"" >> normStr(_) >> "\"]")
 
   // predefined types
   private lazy val predTys: List[(ValueTy, String)] = List(

@@ -22,11 +22,13 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
           "path" -> path.map(_.toString).asJson,
         )
     }
+
   given nodeViewDecoder: Decoder[NodeView] = deriveDecoder
   given nodeViewEncoder: Encoder[NodeView] =
     Encoder.instance(nv =>
       Json.obj(
         "node" -> Json.obj(
+          "name" -> nv.node.name.asJson,
           "inst" -> nv.node.toString.asJson,
           "func" -> cfg.funcOf(nv.node).name.asJson,
         ),
