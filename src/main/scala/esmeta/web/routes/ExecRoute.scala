@@ -15,7 +15,7 @@ object ExecRoute {
   given Conversion[Debugger#StepResult, String] = _.ordinal.toString
 
   /** helper function for steps with ignoreBreak flag */
-  private def ignoreBreakWrapper(handler: Boolean => Debugger#StepResult) =
+  private def withDecodedBoolean(handler: Boolean => Debugger#StepResult) =
     entity(as[String]) { raw =>
       decode[Boolean](raw) match {
         case Left(err) => ??? // TODO handle error
@@ -81,24 +81,24 @@ object ExecRoute {
         },
         // spec step
         path("specStep") {
-          ignoreBreakWrapper(debugger.specStep)
+          withDecodedBoolean(debugger.specStep)
         },
         // spec step-over
         path("specStepOver") {
-          ignoreBreakWrapper(debugger.specStepOver)
+          withDecodedBoolean(debugger.specStepOver)
         },
         // spec step-out
         path("specStepOut") {
-          ignoreBreakWrapper(debugger.specStepOut)
+          withDecodedBoolean(debugger.specStepOut)
         },
         path("specStepBack") {
-          ignoreBreakWrapper(debugger.specStepBack)
+          withDecodedBoolean(debugger.specStepBack)
         },
         path("specStepBackOver") {
-          ignoreBreakWrapper(debugger.specStepBackOver)
+          withDecodedBoolean(debugger.specStepBackOver)
         },
         path("specStepBackOut") {
-          ignoreBreakWrapper(debugger.specStepBackOut)
+          withDecodedBoolean(debugger.specStepBackOut)
         },
         // spec continue
         path("specContinue") {
@@ -113,21 +113,21 @@ object ExecRoute {
         },
         // IR-ES steps
         path("irStep") {
-          ignoreBreakWrapper(debugger.irStep)
+          withDecodedBoolean(debugger.irStep)
         },
         // spec step-over
         path("irStepOver") {
-          ignoreBreakWrapper(debugger.irStepOver)
+          withDecodedBoolean(debugger.irStepOver)
         },
         // spec step-out
         path("irStepOut") {
-          ignoreBreakWrapper(debugger.irStepOut)
+          withDecodedBoolean(debugger.irStepOut)
         },
         path("iterPlus") {
-          ignoreBreakWrapper(debugger.iterPlus)
+          withDecodedBoolean(debugger.iterPlus)
         },
         path("iterMinus") {
-          ignoreBreakWrapper(debugger.iterMinus)
+          withDecodedBoolean(debugger.iterMinus)
         },
 
         // ECMAScript ast steps
