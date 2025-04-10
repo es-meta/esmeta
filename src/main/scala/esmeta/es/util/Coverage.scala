@@ -21,7 +21,7 @@ case class Coverage(
   kFs: Int = 0,
   cp: Boolean = false,
   timeLimit: Option[Int] = None,
-  total: Boolean = false,
+  all: Boolean = false,
   isTargetNode: (Node, State) => Boolean = (_, _) => true,
   isTargetBranch: (Branch, State) => Boolean = (_, _) => true,
 ) {
@@ -43,8 +43,8 @@ case class Coverage(
   private var condViewMap: Map[Cond, Map[View, Set[Script]]] = Map()
   private var condViews: Set[CondView] = Set()
 
-  // meta-info for test262test total coverage
-  private val pathMap: Map[String, Int] = if (total) {
+  // meta-info for -test262test:all-tests
+  private val pathMap: Map[String, Int] = if (all) {
     import esmeta.TEST262TEST_LOG_DIR
     readJson[Map[Int, String]](
       s"$TEST262TEST_LOG_DIR/test262-test-id-mapping.json",
@@ -120,7 +120,7 @@ case class Coverage(
       getScripts(nodeView) match
         case None => update(nodeView, script); updated = true; covered = true
         case Some(scripts) =>
-          if (total) {
+          if (all) {
             update(nodeView, script)
             updated = true
           } else {
@@ -141,7 +141,7 @@ case class Coverage(
         case None =>
           update(condView, nearest, script); updated = true; covered = true
         case Some(scripts) =>
-          if (total) {
+          if (all) {
             update(condView, nearest, script)
             updated = true
           } else {
@@ -155,7 +155,7 @@ case class Coverage(
             }
           }
 
-    if (!total && updated)
+    if (!all && updated)
       _minimalInfo += script.name -> ScriptInfo(
         // TODO ConformTest.createTest(cfg, finalSt),
         touchedNodeViews.keys,
@@ -338,7 +338,7 @@ case class Coverage(
     view: View,
     script: Script,
   ): Map[View, Set[Script]] =
-    if (!total) {
+    if (!all) {
       // decrease counter of original script
       map.get(view).flatMap(_.headOption).foreach { origScript =>
         val count = counter(origScript) - 1
@@ -381,7 +381,7 @@ case class Coverage(
       (nodeView, idx) <- ordered.zipWithIndex
       scripts <- getScripts(nodeView)
     } yield
-      if (total) NodeViewInfo(idx, nodeView, encode(scripts, pathMap))
+      if (all) NodeViewInfo(idx, nodeView, encode(scripts, pathMap))
       else NodeViewInfo(idx, nodeView, scripts.head.name)
 
   // get JSON for branch coverage

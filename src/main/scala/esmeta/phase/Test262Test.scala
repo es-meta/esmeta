@@ -52,7 +52,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       config.coverage,
       config.kFs,
       config.cp,
-      config.total,
+      config.allTests,
       config.timeLimit,
       config.concurrent,
     )
@@ -96,9 +96,10 @@ case object Test262Test extends Phase[CFG, Summary] {
       "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
     ),
     (
-      "total-coverage",
-      BoolOption((c, b) => { c.coverage ||= b; c.total = b }),
-      "measure node/branch coverage in CFG of ECMA-262 with total test set.",
+      "all-tests",
+      BoolOption((c, b) => { c.coverage ||= b; c.allTests = b }),
+      "collect all Test262 tests instead of a single minimal test for each" +
+      "covered test requirement (default: false).",
     ),
     (
       "timeout",
@@ -135,7 +136,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     var coverage: Boolean = false,
     var cp: Boolean = false,
     var kFs: Int = 0,
-    var total: Boolean = false,
+    var allTests: Boolean = false,
     var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,

@@ -129,7 +129,7 @@ case class Test262(
     useCoverage: Boolean = false,
     kFs: Int = 0,
     cp: Boolean = false,
-    total: Boolean = false,
+    allTests: Boolean = false,
     timeLimit: Option[Int] = None, // default: no limit
     concurrent: CP = CP.Single,
     verbose: Boolean = false,
@@ -143,8 +143,8 @@ case class Test262(
     // get target tests and removed tests
     val (targetTests, removed) = testFilter(tests, withYet)
 
-    // dump test id to path for test262test total coverage
-    if (total)
+    // dump test id to path for -test262test:all-tests
+    if (allTests)
       dumpJson(
         targetTests.map(_.relName).zipWithIndex.map(_.swap).toMap,
         s"$TEST262TEST_LOG_DIR/test262IdToTest262.json",
@@ -171,7 +171,7 @@ case class Test262(
       timeLimit = timeLimit,
       kFs = kFs,
       cp = cp,
-      total = total,
+      all = allTests,
       isTargetNode = (_, st) => !inHarness(st),
       isTargetBranch = (_, st) => !inHarness(st),
     )
