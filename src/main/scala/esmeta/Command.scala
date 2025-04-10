@@ -195,7 +195,8 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
 /** `dump-debugger` command */
 case object CmdDumpDebugger
   extends Command("dump-debugger", CmdBuildCFG >> DumpDebugger) {
-  def help = "dump the resources required by the standalone debugger"
+  def help =
+    "dumps the resources required by the standalone debugger. (for internal use)"
   val examples = List(
     "esmeta dump-debugger                         # dump data to data.json",
   )
@@ -204,7 +205,7 @@ case object CmdDumpDebugger
 /** `dump-visualizer` command */
 case object CmdDumpVisualizer
   extends Command("dump-visualizer", CmdBuildCFG >> DumpVisualizer) {
-  def help = "dump the resources required by the visualizer"
+  def help = "dumps the resources required by the visualizer. (for internal use)"
   val examples = List(
     "esmeta dump-visualizer                      # dump resources for visualizer",
   )
