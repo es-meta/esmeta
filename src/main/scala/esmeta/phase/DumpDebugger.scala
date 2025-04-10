@@ -32,13 +32,13 @@ case object DumpDebugger extends Phase[CFG, Unit] {
 
     dumpThenRead("program")(cfg.program) tap { program =>
       check("program")(
-        program == Some(IRSerializer.walk(cfg.program)),
+        program == Some(IRSerializationSanitizer.walk(cfg.program)),
       )
     }
 
     dumpThenRead("funcs")(cfg.program.funcs) tap { _funcsOpt =>
       val funcs = _funcsOpt.getOrElse(Nil)
-      val serialized = cfg.program.funcs.map(IRSerializer.walk)
+      val serialized = cfg.program.funcs.map(IRSerializationSanitizer.walk)
       check("funcs") { funcs == serialized }
     }
 
@@ -127,7 +127,7 @@ case object DumpDebugger extends Phase[CFG, Unit] {
   }
 
   /** removes informations that are lost in serialization */
-  object IRSerializer extends IRWalker {
+  object IRSerializationSanitizer extends IRWalker {
 
     override def walk(func: Func): Func =
       val Func(main, kind, name, params, retTy, body, _) = func
