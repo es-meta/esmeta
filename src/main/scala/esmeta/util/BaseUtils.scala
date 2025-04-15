@@ -241,6 +241,9 @@ object BaseUtils {
         )
   }
 
+  enum ArticleOption { case No, Single, Plural }
+  import ArticleOption.*
+
   /** extensions for integers */
   extension (str: String) {
     def toIntFromOrdinal: Option[Int] = optional(str match
@@ -255,14 +258,20 @@ object BaseUtils {
       case "ninth"   => 9
       case _         => str.dropRight(2).toInt,
     )
-    def indefArticle: String = str.headOption.fold("")(c =>
-      if ("[aeiou]".r.matches(c.toLower.toString)) "an"
-      else "a",
-    )
+    def indefArticle: String = str
+      .find(_.isLetter)
+      .fold("")(c =>
+        if ("[aeiou]".r.matches(c.toLower.toString)) "an"
+        else "a",
+      )
     def pluralPostfix: String = "s" // TODO
     def withIndefArticle: String = str.indefArticle + " " + str
     def withArticle(plural: Boolean = false): String =
       if (plural) str + str.pluralPostfix
       else str.indefArticle + " " + str
+    def withArticle(option: ArticleOption): String = option match
+      case No     => str
+      case Single => str.indefArticle + " " + str
+      case Plural => str + str.pluralPostfix
   }
 }

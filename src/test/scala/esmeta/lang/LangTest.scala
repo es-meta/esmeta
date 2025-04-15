@@ -1,6 +1,7 @@
 package esmeta.lang
 
 import esmeta.ESMetaTest
+import esmeta.ty.*
 
 /** test for metalangauge */
 trait LangTest extends ESMetaTest {
@@ -268,7 +269,7 @@ object LangTest {
 
   // algorithm conditions
   lazy val exprCond = ExpressionCondition(refExpr)
-  lazy val instanceOfCond = TypeCheckCondition(refExpr, false, List(ty))
+  lazy val typeCheckCond = TypeCheckCondition(refExpr, false, List(ty))
   lazy val notTypeCheckCond = TypeCheckCondition(refExpr, true, List(ty))
   lazy val eitherTypeCheckCond =
     TypeCheckCondition(refExpr, false, List(ty, ty, ty))
@@ -278,7 +279,7 @@ object LangTest {
   lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
   lazy val hasBindingCond = HasBindingCondition(x, false, refExpr)
   lazy val noHasBindingCond = HasBindingCondition(x, true, refExpr)
-  lazy val prodCond = ProductionCondition(nt, "A", "B")
+  lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
   lazy val finiteCond =
     PredicateCondition(refExpr, false, PredicateConditionOperator.Finite)
   lazy val abruptCond =
@@ -355,5 +356,5 @@ object LangTest {
   lazy val propIntr = Intrinsic("Array", List("prototype", "toString"))
 
   // algorithm types
-  lazy val ty = UnknownType("Base")
+  lazy val ty = Type(RecordT("Base"))
 }
