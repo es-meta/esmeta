@@ -782,6 +782,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
     for ((pred, name) <- predTys if pred <= ty)
       tys :+= name.withArticle(article); ty --= pred
 
+    // closures
+    if (!ty.clo.isBottom) then tys :+= "abstract closure".withArticle(article)
+
+    // math values
+    if (!ty.math.isBottom) tys :+= "math value".withArticle(article)
+
+    // grammar symbol
+    if (!ty.grammarSymbol.isBottom) then
+      tys :+= "grammar symbol".withArticle(article)
+
     // named records
     ty.record match {
       case RecordTy.Top => app >> "Record".withArticle(article)
