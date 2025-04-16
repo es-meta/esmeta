@@ -1,7 +1,9 @@
 package esmeta.lang
 
 import esmeta.ESMetaTest
+import esmeta.spec
 import esmeta.ty.*
+import scala.collection.mutable.{Set as MSet}
 
 /** test for metalangauge */
 trait LangTest extends ESMetaTest {
@@ -357,4 +359,48 @@ object LangTest {
 
   // algorithm types
   lazy val ty = Type(RecordT("Base"))
+
+  def collectTypes(h: spec.Head): List[Type] = {
+    val types = MSet.empty[Type]
+    val _ = {
+      h match
+        case spec.AbstractOperationHead(isHostDefined, name, params, retTy) =>
+          for {
+            param <- params
+          } types += param.ty
+          types += retTy
+        case spec.NumericMethodHead(baseTy, name, params, retTy) =>
+          for {
+            param <- params
+          } types += param.ty
+          types += retTy
+        case spec.SyntaxDirectedOperationHead(
+              target,
+              methodName,
+              isStatic,
+              withParams,
+              retTy,
+            ) =>
+          for {
+            param <- withParams
+          } types += param.ty
+          types += retTy
+        case spec.ConcreteMethodHead(concMethodName, receiver, params, retTy) =>
+          for {
+            param <- params
+          } types += param.ty
+          types += retTy
+        case spec.InternalMethodHead(methodName, receiver, params, retTy) =>
+          for {
+            param <- params
+          } types += param.ty
+          types += retTy
+        case spec.BuiltinHead(path, params, retTy) =>
+          for {
+            param <- params
+          } types += param.ty
+          types += retTy
+    };
+    types.toList
+  }
 }
