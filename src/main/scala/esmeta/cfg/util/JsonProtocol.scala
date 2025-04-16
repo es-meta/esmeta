@@ -75,15 +75,6 @@ class JsonProtocol(cfg: CFG) extends BasicJsonProtocol {
         )
   }
 
-  /** Mapping of IRFunc to Metalang code */
-  val irFuncToCode: Encoder[CFG] = Encoder.instance { (cfg: CFG) =>
-    Map
-      .from(
-        cfg.program.funcs.flatMap(f => f.algo.map(algo => f.name -> algo.code)),
-      )
-      .asJson
-  }
-
   /** Mapping of IRFunc to Metalang metadata */
   val irToSpecNameMapEncoder: Encoder[CFG] = Encoder.instance { (cfg: CFG) =>
     cfg.fnameMap

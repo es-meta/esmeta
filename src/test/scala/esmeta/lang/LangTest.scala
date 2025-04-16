@@ -373,6 +373,7 @@ object LangTest {
           for {
             param <- params
           } types += param.ty
+          types += baseTy
           types += retTy
         case spec.SyntaxDirectedOperationHead(
               target,
@@ -384,6 +385,10 @@ object LangTest {
           for {
             param <- withParams
           } types += param.ty
+          for {
+            param <- target.toList
+            rhsParam <- param.rhsParams
+          } types += rhsParam.ty
           types += retTy
         case spec.ConcreteMethodHead(concMethodName, receiver, params, retTy) =>
           for {
@@ -394,6 +399,7 @@ object LangTest {
           for {
             param <- params
           } types += param.ty
+          types += receiver.ty
           types += retTy
         case spec.BuiltinHead(path, params, retTy) =>
           for {
