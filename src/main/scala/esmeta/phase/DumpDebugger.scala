@@ -99,32 +99,4 @@ case object DumpDebugger extends Phase[CFG, Unit] {
   val options: List[PhaseOption[Config]] = List()
   case class Config()
 
-  extension (inst: Inst) {
-
-    def flatten: Inst = {
-      inst match
-        case INop() => ISeq(Nil)
-        case IIf(cond, thenInst, elseInst, isAbruptInst) =>
-          IIf(
-            cond,
-            thenInst.flatten,
-            elseInst.flatten,
-            isAbruptInst,
-          )
-        case IWhile(cond, body) =>
-          IWhile(
-            cond,
-            body.flatten,
-          )
-        case ISeq(insts) =>
-          ISeq(
-            insts.flatMap(_.flatten match
-              case ISeq(insts) => insts
-              case inst        => List(inst),
-            ),
-          )
-        case _ => inst
-
-    }
-  }
 }
