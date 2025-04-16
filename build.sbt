@@ -69,6 +69,7 @@ lazy val langTest = taskKey[Unit]("Launch lang tests")
 lazy val langStringifyTest =
   taskKey[Unit]("Launch stringify tests for lang (tiny)")
 lazy val langJsonTest = taskKey[Unit]("Launch JSON tests for lang (tiny)")
+lazy val langTypeTest = taskKey[Unit]("Launch type tests for lang (small)")
 
 // ty
 lazy val tyTest = taskKey[Unit]("Launch ty tests")
@@ -245,6 +246,7 @@ lazy val root = project
       .toTask(" *.lang.Stringify*Test")
       .value,
     langJsonTest := (Test / testOnly).toTask(" *.lang.Json*Test").value,
+    langTypeTest := (Test / testOnly).toTask(" *.lang.Type*Test").value,
     // ty
     tyTest := (Test / testOnly).toTask(" *.ty.*Test").value,
     tyContainsTest := (Test / testOnly).toTask(" *.ty.Contains*Test").value,
