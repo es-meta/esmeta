@@ -1,7 +1,9 @@
 package esmeta.lang
 
 import esmeta.ESMetaTest
+import esmeta.spec
 import esmeta.ty.*
+import scala.collection.mutable.{Set as MSet}
 
 /** test for metalangauge */
 trait LangTest extends ESMetaTest {

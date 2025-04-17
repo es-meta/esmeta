@@ -842,6 +842,19 @@ class Stringifier(detail: Boolean, location: Boolean) {
       }
     }
 
+    // TODO more precise
+    // closures
+    if (!ty.clo.isBottom) tys :+= "abstract closure".withArticle(article)
+
+    // TODO more precise
+    // math values
+    if (!ty.math.isBottom) tys :+= "math value".withArticle(article)
+
+    // TODO more precise
+    // grammar symbol
+    if (!ty.grammarSymbol.isBottom)
+      tys :+= "grammar symbol".withArticle(article)
+
     // lists
     ty.list match
       case ListTy.Top => tys :+= "a List"
@@ -857,8 +870,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         for (name <- set.toList.sorted)
           tys :+= s"|$name| Parse Node".withArticle(article)
 
+    // TODO more precise
     // enums
-    for (name <- ty.enumv.toList.sorted) tys :+= s"~$name~"
+    ty.enumv match
+      case Inf => tys :+= "enum value".withArticle(article)
+      case Fin(set) =>
+        for (name <- set.toList.sorted) tys :+= s"~$name~"
 
     // numbers
     if (!ty.number.isBottom) tys :+= "Number".withArticle(article)

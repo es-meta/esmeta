@@ -2,14 +2,14 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.cfg.util.{JsonProtocol as CFGJsonProtocol}
+import esmeta.dump.util.{
+  JsonProtocol as DumpJsonProtocol,
+  SerializationSanitizer,
+}
 import esmeta.ir.{Type as IRType, *}
-import esmeta.ir.util.JsonProtocol.given
 import esmeta.ir.util.{UnitWalker as IRUnitWalker, Walker as IRWalker}
 import esmeta.spec.{Algorithm, Grammar, Spec, Table}
-import esmeta.spec.util.JsonProtocol.given
 import esmeta.lang.{Type as LangType}
-import esmeta.lang.util.JsonProtocol.given
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -28,26 +28,27 @@ case object DumpDebugger extends Phase[CFG, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
-    val cfgProto = CFGJsonProtocol(cfg)
 
-    dumpThenRead("program")(cfg.program) tap { program =>
-      check("program")(
-        program == Some(IRSerializationSanitizer.walk(cfg.program)),
-      )
-    }
+    import DumpJsonProtocol.given
 
     dumpThenRead("funcs")(cfg.program.funcs) tap { _funcsOpt =>
       val funcs = _funcsOpt.getOrElse(Nil)
-      val serialized = cfg.program.funcs.map(IRSerializationSanitizer.walk)
-      check("funcs") { funcs == serialized }
+      println(s"[O] funcs size: ${funcs.size}")
+      val serialized = cfg.program.funcs.map(SerializationSanitizer.walk)
+      check("funcs.name") { funcs.map(_.name) == serialized.map(_.name) }
+      check("funcs.kind") { funcs.map(_.kind) == serialized.map(_.kind) }
+      check("funcs.main") { funcs.map(_.main) == serialized.map(_.main) }
+      check("funcs.params") { funcs.map(_.params) == serialized.map(_.params) }
+      check("funcs.retTy") { funcs.map(_.retTy) == serialized.map(_.retTy) }
+      check("funcs.body") { funcs.map(_.body) == serialized.map(_.body) }
     }
 
     dumpThenRead("grammar")(cfg.spec.grammar) tap { grammar =>
       check("grammar")(grammar == Some(cfg.spec.grammar))
     }
 
-    dumpThenRead("tyModel.decls")(cfg.spec.tyModel) tap { tyModel =>
-      check("tyModel.decls")(tyModel == Some(cfg.tyModel))
+    dumpThenRead("tyModel.decls")(cfg.spec.tyModel) tap { tm =>
+      check("tyModel.decls")(tm == Some(cfg.spec.tyModel))
     }
 
     dumpThenRead("spec.tables")(cfg.spec.tables) tap { tables =>
@@ -58,14 +59,15 @@ case object DumpDebugger extends Phase[CFG, Unit] {
       check("spec.version")(version == Some(cfg.spec.version))
     }
 
-    dump("irFuncToCode")(cfg)(using cfgProto.irFuncToCode)
-    dump("irToSpecNameMap")(cfg)(using cfgProto.irToSpecNameMapEncoder)
+    dump("irToSpecNameMap")(cfg)(using
+      DumpJsonProtocol.ofCFG(cfg).irToSpecNameMapEncoder,
+    )
 
   end apply
 
   private def dump[T: Encoder](tag: String)(data: T): (Long, Json) = {
     val tuple @ (_, json) = time { data.asJson }
-    dumpFile(json.noSpaces, s"$DUMP_DEBUGGER_LOG_DIR/$tag.json")
+    dumpFile(json.spaces2, s"$DUMP_DEBUGGER_LOG_DIR/$tag.json")
     tuple
   }
 
@@ -96,71 +98,5 @@ case object DumpDebugger extends Phase[CFG, Unit] {
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List()
   case class Config()
-
-  extension (inst: Inst) {
-
-    def flatten: Inst = {
-      inst match
-        case INop() => ISeq(Nil)
-        case IIf(cond, thenInst, elseInst, isAbruptInst) =>
-          IIf(
-            cond,
-            thenInst.flatten,
-            elseInst.flatten,
-            isAbruptInst,
-          )
-        case IWhile(cond, body) =>
-          IWhile(
-            cond,
-            body.flatten,
-          )
-        case ISeq(insts) =>
-          ISeq(
-            insts.flatMap(_.flatten match
-              case ISeq(insts) => insts
-              case inst        => List(inst),
-            ),
-          )
-        case _ => inst
-
-    }
-  }
-
-  /** removes informations that are lost in serialization */
-  object IRSerializationSanitizer extends IRWalker {
-
-    override def walk(func: Func): Func =
-      val Func(main, kind, name, params, retTy, body, _) = func
-      Func(
-        main,
-        kind,
-        name,
-        params.map(walk),
-        walk(retTy),
-        walk(body),
-        None,
-      )
-
-    override def walk(param: Param): Param = {
-      val Param(lhs, ty, optional, _) = param
-      Param(lhs, walk(ty), optional, None)
-    }
-
-    override def walk(inst: Inst): Inst = inst match
-      case IIf(cond, thenInst, elseInst, isAbruptInst) =>
-        IIf(
-          walk(cond),
-          walk(thenInst),
-          walk(elseInst),
-          false, // as default
-        )
-      case IWhile(cond, body) => IWhile(walk(cond), walk(body))
-      case ISeq(insts)        => ISeq(insts.map(walk))
-      case _                  => super.walk(inst)
-
-    override def walk(ty: IRType): IRType = ty match
-      case IRType(ty, _) => IRType(ty, None)
-
-  }
 
 }
