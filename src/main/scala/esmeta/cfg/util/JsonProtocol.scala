@@ -88,14 +88,14 @@ class JsonProtocol(cfg: CFG) extends BasicJsonProtocol {
               Json
                 .obj(
                   // name is unused
-                  "name" -> algo.normalizedName.asJson,
-                  "htmlId" -> algo.elem.parent().id().asJson,
-                  "isBuiltIn" -> f.isBuiltin.asJson,
-                  "isSdo" -> f.isSDO.asJson,
-                  "sdoInfo" -> f.sdoInfo.asJson,
-                  "isMethod" -> f.isMethod.asJson,
-                  "sdoInfo" -> f.sdoInfo.asJson,
-                  "methodInfo" -> f.irFunc.methodName.asJson,
+                  // "name" -> algo.normalizedName.asJson,
+                  // "htmlId" -> algo.elem.parent().id().asJson,
+                  // "isBuiltIn" -> f.isBuiltin.asJson,
+                  // "isSdo" -> f.isSDO.asJson,
+                  // "sdoInfo" -> f.sdoInfo.asJson,
+                  // "isMethod" -> f.isMethod.asJson,
+                  // "sdoInfo" -> f.sdoInfo.asJson,
+                  // "methodInfo" -> f.irFunc.methodName.asJson,
                 )
                 .asJson,
             )

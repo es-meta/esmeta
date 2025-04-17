@@ -49,33 +49,34 @@ object DumpSecIdToFuncInfo {
     val secIdToFuncId: MMap[String, Int] = MMap.empty
     val secIdToFuncName: MMap[String, String] = MMap.empty
 
-    for {
-      func <- cfg.funcs
-      irFunc = func.irFunc
-      algo <- func.irFunc.algo
-      sectionId = algo.elem.parent.id
-    } {
-      val secId =
-        if (func.isSDO && func.sdoInfo.isDefined)
-          s"$sectionId|${extractSDO(func.sdoInfo.get, cfg)}"
-        else sectionId
+    // for {
+    //   func <- cfg.funcs
+    //   irFunc = func.irFunc
+    //   algo <- func.irFunc.algo
+    //   sectionId = algo.elem.parent.id
+    // } {
+    //   val secId =
+    //     if (func.isSDO && func.sdoInfo.isDefined)
+    //       s"$sectionId|${extractSDO(func.sdoInfo.get, cfg)}"
+    //     else sectionId
 
-      secIdToFuncId += (secId -> func.id)
-      secIdToFuncName += (secId -> convertFuncName(func, cfg))
-    }
-    dumpJson(
-      name = "secIdToFuncId",
-      data = secIdToFuncId,
-      filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFuncId.json",
-      silent = true,
-    )
-    dumpJson(
-      name = "secIdToFuncName",
-      data = secIdToFuncName,
-      filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFuncName.json",
-      silent = true,
-    )
-    (secIdToFuncId, secIdToFuncName)
+    //   secIdToFuncId += (secId -> func.id)
+    //   secIdToFuncName += (secId -> convertFuncName(func, cfg))
+    // }
+    // dumpJson(
+    //   name = "secIdToFuncId",
+    //   data = secIdToFuncId,
+    //   filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFuncId.json",
+    //   silent = true,
+    // )
+    // dumpJson(
+    //   name = "secIdToFuncName",
+    //   data = secIdToFuncName,
+    //   filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFuncName.json",
+    //   silent = true,
+    // )
+    // (secIdToFuncId, secIdToFuncName)
+    ???
 
   def convertFuncName(func: Func, cfg: CFG): String =
     if (func.isMethod)
@@ -128,35 +129,36 @@ object DumpStepToNodeId {
   import esmeta.util.{given_Ordering_Pos}
 
   def apply(cfg: CFG): Unit =
-    for {
-      func <- cfg.funcs
-      algo <- func.irFunc.algo
-      sectionId = algo.elem.parent.id
-    } {
-      val stepToNodeId: MMap[String, MSet[Int]] = MMap.empty
-      val abruptMap: MMap[String, MMap[Pos, Int]] = MMap.empty
-      walk(func.entry, None, stepToNodeId, abruptMap)
+    // for {
+    //   func <- cfg.funcs
+    //   algo <- func.irFunc.algo
+    //   sectionId = algo.elem.parent.id
+    // } {
+    //   val stepToNodeId: MMap[String, MSet[Int]] = MMap.empty
+    //   val abruptMap: MMap[String, MMap[Pos, Int]] = MMap.empty
+    //   walk(func.entry, None, stepToNodeId, abruptMap)
 
-      abruptMap.foreach {
-        case (step, posSet) =>
-          posSet.toSeq
-            .sorted(Ordering.by[(Pos, Int), Pos](_._1))
-            .zipWithIndex
-            .foreach {
-              case ((pos, nodeId), idx) =>
-                stepToNodeId.getOrElseUpdate(
-                  s"${step}|?${idx + 1}",
-                  MSet.empty,
-                ) += nodeId
-            }
-      }
-      dumpJson(
-        name = s"stepToNodeId for ${func.name}",
-        data = stepToNodeId,
-        filename = s"$DUMP_VISUALIZER_LOG_DIR/stepToNodeId/${func.id}.json",
-        silent = true,
-      )
-    }
+    //   abruptMap.foreach {
+    //     case (step, posSet) =>
+    //       posSet.toSeq
+    //         .sorted(Ordering.by[(Pos, Int), Pos](_._1))
+    //         .zipWithIndex
+    //         .foreach {
+    //           case ((pos, nodeId), idx) =>
+    //             stepToNodeId.getOrElseUpdate(
+    //               s"${step}|?${idx + 1}",
+    //               MSet.empty,
+    //             ) += nodeId
+    //         }
+    //   }
+    //   dumpJson(
+    //     name = s"stepToNodeId for ${func.name}",
+    //     data = stepToNodeId,
+    //     filename = s"$DUMP_VISUALIZER_LOG_DIR/stepToNodeId/${func.id}.json",
+    //     silent = true,
+    //   )
+    // }
+    ???
 
   val visited: MSet[Int] = MSet.empty
   private def walk(
