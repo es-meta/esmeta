@@ -155,6 +155,7 @@ val AkkaHttpVersion = "10.7.1"
 
 // project root
 lazy val root = project
+  .enablePlugins(ScalaJSPlugin)
   .in(file("."))
   .settings(
     name := "esmeta",
@@ -326,3 +327,67 @@ formatCheck := Def
     Compile / scalafmtSbtCheck,
   )
   .value
+
+import org.scalajs.linker.interface.{
+  ModuleKind,
+  ModuleSplitStyle,
+  ModuleInitializer,
+  OutputPatterns,
+}
+
+lazy val bundle = taskKey[Unit]("bundle JS files")
+bundle := Def
+  .sequential(
+    root / Compile / clean,
+    worker / Compile / clean,
+    worker / Compile / fullLinkJS,
+  )
+  .value
+
+lazy val worker = (project in file("worker"))
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(root)
+  .settings(
+    name := "esmeta-worker",
+    scalaVersion := "3.3.3",
+    scalacOptions ++= Seq(
+      "-encoding",
+      "utf-8",
+      "-deprecation",
+      "-feature",
+      // disable import suggestions related bug: https://github.com/scala/scala3/issues/12876
+      "-Ximport-suggestion-timeout",
+      "0",
+    ),
+
+    // if  we are creating a library, false
+    scalaJSUseMainModuleInitializer := false,
+    scalaJSLinkerConfig ~= {
+      _.withModuleKind(ModuleKind.ESModule)
+        .withOutputPatterns(OutputPatterns.fromJSFile("%s.mjs"))
+
+    },
+    libraryDependencies ++= Seq(
+      ("org.scala-lang.modules" %%% "scala-parser-combinators" % "2.4.0")
+        .cross(CrossVersion.for3Use2_13),
+      "io.circe" %%% "circe-core" % CirceVersion,
+      "io.circe" %%% "circe-generic" % CirceVersion,
+      "io.circe" %%% "circe-parser" % CirceVersion,
+    ),
+  )
+
+enablePlugins(BuildInfoPlugin)
+
+buildInfoKeys := {
+  val UNICODE_VERSION = "15.1.0";
+  val resourcesDir = (Compile / resourceDirectory).value;
+  val unicodeDir = resourcesDir / "unicode";
+  val manualsDir = resourcesDir / "manuals";
+  Seq[BuildInfoKey](
+    "unicodeVersion" -> UNICODE_VERSION,
+    "idStart" -> IO.read(unicodeDir / s"ID_Start_$UNICODE_VERSION.json"),
+    "idContinue" -> IO.read(unicodeDir / s"ID_Continue_$UNICODE_VERSION.json"),
+    "tyModel" -> IO.read(manualsDir / "types"),
+  )
+}
+buildInfoPackage := "esmeta"
