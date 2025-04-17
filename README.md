@@ -93,6 +93,8 @@ It supports the following commands:
 - `inject` injects assertions to check final state of an ECMAScript file.
 - `mutate` mutates an ECMAScript program.
 - `analyze` analyzes an ECMAScript file using meta-level static analysis. (temporarily removed)
+- `dump-debugger` dumps the resources required by the standalone debugger. (for internal use)
+- `dump-visualizer` dumps the resources required by the visualizer. (for internal use)
 
 and global options:
 - `-silent` does not show final results.
@@ -200,26 +202,39 @@ $ esmeta test262-test tests/test262/test/language/expressions/addition
 
 ## Supported Features
 
-ESMeta supports other features utilizing mechanized specifications, including 1)
-interactive execution of ECMAScript/JavaScript file with a double debugger, 2)
-conformance test synthesizer, 3) type analysis of ECMA-262, and 4) meta-level
+ESMeta supports other features utilizing mechanized specifications, including 1) TODO, 2)
+interactive execution of ECMAScript/JavaScript file with a double debugger, 3)
+conformance test synthesizer, 4) type analysis of ECMA-262, and 5) meta-level
 static analysis for ECMAScript/JavaScript files.  All of them utilize mechanized
 specifications from ECMA-262. Thus, ESMeta always extracts mechanized
 specifications as control-flow graphs before performing these features.
+
+### Specifications Exemplified with Specification Visualizer
+
+[**Specification Visualizer**](https://example.com) is a Chrome Extension that helps users understand specifications by displaying rich information alongside the ecma-262 web documentation, collected through pre-fuzzing/measurement using ESMeta. This allows users to see helpful examples directly within the ecma-262 web documents. It provides the following features: <!-- TODO alpha/beta 얘기 넣어야 할지도 -->
+
+- Viewing minimal JavaScript program that passes through specific algorithm steps or control flow branches (ReturnIfAbrupt, denoted as ?) in the specification
+- Filtering displayed JS code to a maximum of 1-FCPS nodes and viewing fc paths
+- Viewing conformance tests (from test262) that pass through selected steps
+- One-click debugging capability to execute the displayed minimal JS code, resuming from the selected step
 
 ### Interactive Execution with ECMAScript Double Debugger
 
 **ECMAScript Double Debugger** extends the ECMAScript/JavaScript interpreter in
 ESMeta to help you understand how a JavaScript Program runs according to
-ECMA-262. Currently, it is in an **alpha stage** and supports only basic
+ECMA-262. Currently, it is in an **beta stage** and supports only basic
 features such as:
 
 - Step-by-step execution of ECMA-262 algorithms
 - Line-by-line execution of ECMAScript/JavaScript code
 - Breakpoints by abstract algorithm names in ECMA-262
-- Visualization of ECMA-262 internal states
+- Inspection of ECMA-262 internal states
+- Seeing JavaScript state from the refined ECMA-262 state
+- Step backward, or even trace back to the provenance of specification record
 
-You can start it with the following instructions:
+You can access the standalone debugger for the latest official release of specification directly at [es-meta.github.io/playground/](https://es-meta.github.io/playground/). Using this link gives you immediate access without having to install ESMeta, Scala, or any other dependencies on your system.
+
+If needed, you can also set up and run the debugger locally with the following instructions:
 ```bash
 # turn on server of the double debugger
 $ esmeta web
@@ -228,6 +243,7 @@ $ esmeta web
 $ cd client && npm install && npm start
 ```
 
+<!-- TODO change video -->
 **A short [introduction video](https://youtu.be/syfZ3v6JNg8) is also available.**
 
 <img width="1150" alt="debugger" src="https://user-images.githubusercontent.com/7039121/151577359-7d6a90af-7940-4904-912e-dd9113b8ba2f.png">
