@@ -49,7 +49,7 @@ case object ConformTest extends Phase[CFG, Unit] {
       val assertion = readFile(s"$assertionDir/$name.js")
       val isNormal = assertion.split(LINE_SEP).head.contains("[EXIT] normal")
       if (nodeEngine.isValid(code)) for {
-        transpiled <- JSTrans.transpile(
+        transpiled <- JSTrans.transpileSrv(
           codeWithUseStrict,
           Some(transpiler),
         ) match

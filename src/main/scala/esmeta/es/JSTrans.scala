@@ -77,6 +77,12 @@ object JSTrans {
       case _ => throw new Exception("Invalid transpiler specified.")
     execScript(transpileCmd(transpilerCode), src)
 
+  def transpileSrv(src: String, cmd: Option[String]): Try[String] =
+    JSTransServer.query(src, cmd, diff = false) match {
+      case "none" => Failure(new Exception("transpile failure"))
+      case result => Success(result)
+    }
+
   def checkTranspileDiff(code: String, cmd: Option[String]): Boolean =
     val transpilerCode = cmd match
       case Some("swc") | Some("Swc")             => "checkDiffSwc"
@@ -113,7 +119,8 @@ object JSTrans {
     cmd: Option[String],
   ): Option[Boolean] =
     try {
-      val diffResult = JSTransServer.queryDiff(code, cmd).split(LINE_SEP).last
+      val diffResult =
+        JSTransServer.query(code, cmd, diff = true).split(LINE_SEP).last
       if diffResult == "true" then Some(true)
       else if diffResult == "false" then Some(false)
       else if diffResult == "none" then None
@@ -135,7 +142,7 @@ object JSTransServer {
 
   val backend = DefaultSyncBackend()
 
-  def queryDiff(code: String, cmd: Option[String]): String = {
+  def query(code: String, cmd: Option[String], diff: Boolean): String = {
     val version = cmd match
       case Some("swc") | Some("Swc") | Some("swcES2015") | Some("SwcES2015") =>
         "swc@1.3.10"
@@ -153,7 +160,8 @@ object JSTransServer {
         "&notcompress=true&target=es2015"
       case _ => ""
     val url =
-      s"$serverUrl?codeOrFilePath=$encodedCode&version=$version&diff=true" + additionalOptions
+      s"$serverUrl?codeOrFilePath=$encodedCode&version=$version" +
+      (if diff then "&diff=true" else "") + additionalOptions
     val request = basicRequest.get(uri"$url")
 
     val response = request.send(backend)
