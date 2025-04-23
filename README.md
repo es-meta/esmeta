@@ -22,6 +22,7 @@ automatically generates language-based tools.
     + [Parsing and Executing ECMAScript files](#parsing-and-executing-ecmascript-files)
     + [Executing Test262 tests](#executing-test262-tests)
   * [Supported Features](#supported-features)
+    + [Specification Exemplified with ECMA Visualizer](#specification-exemplified-with-ecma-visualizer)
     + [Interactive Execution with ECMAScript Double Debugger](#interactive-execution-with-ecmascript-double-debugger)
     + [Conformance Test Synthesizer from ECMA-262](#conformance-test-synthesizer-from-ecma-262)
     + [Type Analysis on ECMA-262](#type-analysis-on-ecma-262)
@@ -209,7 +210,7 @@ static analysis for ECMAScript/JavaScript files.  All of them utilize mechanized
 specifications from ECMA-262. Thus, ESMeta always extracts mechanized
 specifications as control-flow graphs before performing these features.
 
-### Specifications Exemplified with ECMA Visualizer
+### Specification Exemplified with ECMA Visualizer
 > **A short [introduction video](https://youtu.be/4XMjJPNmuBM) for ECMA Visualizer and Double Debugger is available.**
 
 [**ECMA Visualizer**](https://chromewebstore.google.com/detail/nlfpedidieegejndiikebcgclhggaocd) is a Chrome Extension that helps users understand specifications by displaying rich information alongside the ecma-262 web documentation, collected through pre-fuzzing/measurement using ESMeta. This allows users to see helpful examples directly within the ecma-262 web documents. It provides the following features:
