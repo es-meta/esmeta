@@ -213,6 +213,8 @@ specifications as control-flow graphs before performing these features.
 ### Specification Exemplified with ECMA Visualizer
 > **A short [introduction video](https://youtu.be/4XMjJPNmuBM) for ECMA Visualizer and Double Debugger is available.**
 
+<img width="1150" alt="ecma-visualizer" src="https://github.com/user-attachments/assets/733403f5-03cc-4465-a773-e57d46d35180" />
+
 [**ECMA Visualizer**](https://chromewebstore.google.com/detail/nlfpedidieegejndiikebcgclhggaocd) is a Chrome Extension that helps users understand specifications by displaying rich information alongside the ecma-262 web documentation, collected through pre-fuzzing/measurement using ESMeta. This allows users to see helpful examples directly within the ecma-262 web documents. It provides the following features:
 
 - Viewing minimal JavaScript program that passes through specific algorithm steps or control flow branches (`ReturnIfAbrupt`, denoted as `?`) in the specification
