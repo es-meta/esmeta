@@ -202,23 +202,26 @@ $ esmeta test262-test tests/test262/test/language/expressions/addition
 
 ## Supported Features
 
-ESMeta supports other features utilizing mechanized specifications, including 1) TODO, 2)
+ESMeta supports other features utilizing mechanized specifications, including 1) exemplify specification with ECMA Visualizer, 2)
 interactive execution of ECMAScript/JavaScript file with a double debugger, 3)
 conformance test synthesizer, 4) type analysis of ECMA-262, and 5) meta-level
 static analysis for ECMAScript/JavaScript files.  All of them utilize mechanized
 specifications from ECMA-262. Thus, ESMeta always extracts mechanized
 specifications as control-flow graphs before performing these features.
 
-### Specifications Exemplified with Specification Visualizer
+### Specifications Exemplified with ECMA Visualizer
+> **A short [introduction video](https://youtu.be/4XMjJPNmuBM) for ECMA Visualizer and Double Debugger is available.**
 
-[**Specification Visualizer**](https://example.com) is a Chrome Extension that helps users understand specifications by displaying rich information alongside the ecma-262 web documentation, collected through pre-fuzzing/measurement using ESMeta. This allows users to see helpful examples directly within the ecma-262 web documents. It provides the following features: <!-- TODO alpha/beta 얘기 넣어야 할지도 -->
+[**ECMA Visualizer**](https://chromewebstore.google.com/detail/nlfpedidieegejndiikebcgclhggaocd) is a Chrome Extension that helps users understand specifications by displaying rich information alongside the ecma-262 web documentation, collected through pre-fuzzing/measurement using ESMeta. This allows users to see helpful examples directly within the ecma-262 web documents. It provides the following features:
 
-- Viewing minimal JavaScript program that passes through specific algorithm steps or control flow branches (ReturnIfAbrupt, denoted as ?) in the specification
-- Filtering displayed JS code to a maximum of 1-FCPS nodes and viewing fc paths
+- Viewing minimal JavaScript program that passes through specific algorithm steps or control flow branches (`ReturnIfAbrupt`, denoted as `?`) in the specification
 - Viewing conformance tests (from test262) that pass through selected steps
+- Filtering displayed JS code using callpath
 - One-click debugging capability to execute the displayed minimal JS code, resuming from the selected step
 
 ### Interactive Execution with ECMAScript Double Debugger
+
+> **A short [introduction video](https://youtu.be/4XMjJPNmuBM) for ECMA Visualizer and Double Debugger is available.**
 
 **ECMAScript Double Debugger** extends the ECMAScript/JavaScript interpreter in
 ESMeta to help you understand how a JavaScript Program runs according to
@@ -243,10 +246,7 @@ $ esmeta web
 $ cd client && npm install && npm start
 ```
 
-<!-- TODO change video -->
-**A short [introduction video](https://youtu.be/syfZ3v6JNg8) is also available.**
-
-<img width="1150" alt="debugger" src="https://user-images.githubusercontent.com/7039121/151577359-7d6a90af-7940-4904-912e-dd9113b8ba2f.png">
+<img width="1150" alt="debugger" src="https://github.com/user-attachments/assets/6c5f29a3-6d8a-458d-a4ed-478bb00666d7">
 
 We will enhance it with the following features:
 - Add more debugger features:
