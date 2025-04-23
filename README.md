@@ -22,6 +22,7 @@ automatically generates language-based tools.
     + [Parsing and Executing ECMAScript files](#parsing-and-executing-ecmascript-files)
     + [Executing Test262 tests](#executing-test262-tests)
   * [Supported Features](#supported-features)
+    + [Specification Exemplified with ECMA Visualizer](#specification-exemplified-with-ecma-visualizer)
     + [Interactive Execution with ECMAScript Double Debugger](#interactive-execution-with-ecmascript-double-debugger)
     + [Conformance Test Synthesizer from ECMA-262](#conformance-test-synthesizer-from-ecma-262)
     + [Type Analysis on ECMA-262](#type-analysis-on-ecma-262)
@@ -93,6 +94,8 @@ It supports the following commands:
 - `inject` injects assertions to check final state of an ECMAScript file.
 - `mutate` mutates an ECMAScript program.
 - `analyze` analyzes an ECMAScript file using meta-level static analysis. (temporarily removed)
+- `dump-debugger` dumps the resources required by the standalone debugger. (for internal use)
+- `dump-visualizer` dumps the resources required by the visualizer. (for internal use)
 
 and global options:
 - `-silent` does not show final results.
@@ -200,26 +203,44 @@ $ esmeta test262-test tests/test262/test/language/expressions/addition
 
 ## Supported Features
 
-ESMeta supports other features utilizing mechanized specifications, including 1)
-interactive execution of ECMAScript/JavaScript file with a double debugger, 2)
-conformance test synthesizer, 3) type analysis of ECMA-262, and 4) meta-level
+ESMeta supports other features utilizing mechanized specifications, including 1) exemplify specification with ECMA Visualizer, 2)
+interactive execution of ECMAScript/JavaScript file with a double debugger, 3)
+conformance test synthesizer, 4) type analysis of ECMA-262, and 5) meta-level
 static analysis for ECMAScript/JavaScript files.  All of them utilize mechanized
 specifications from ECMA-262. Thus, ESMeta always extracts mechanized
 specifications as control-flow graphs before performing these features.
 
+### Specification Exemplified with ECMA Visualizer
+> **A short [introduction video](https://youtu.be/4XMjJPNmuBM) for ECMA Visualizer and Double Debugger is available.**
+
+<img width="1150" alt="ecma-visualizer" src="https://github.com/user-attachments/assets/733403f5-03cc-4465-a773-e57d46d35180" />
+
+[**ECMA Visualizer**](https://chromewebstore.google.com/detail/nlfpedidieegejndiikebcgclhggaocd) is a Chrome Extension that helps users understand specifications by displaying rich information alongside the ecma-262 web documentation, collected through pre-fuzzing/measurement using ESMeta. This allows users to see helpful examples directly within the ecma-262 web documents. It provides the following features:
+
+- Viewing minimal JavaScript program that passes through specific algorithm steps or control flow branches (`ReturnIfAbrupt`, denoted as `?`) in the specification
+- Viewing conformance tests (from test262) that pass through selected steps
+- Filtering displayed JS code using callpath
+- One-click debugging capability to execute the displayed minimal JS code, resuming from the selected step
+
 ### Interactive Execution with ECMAScript Double Debugger
+
+> **A short [introduction video](https://youtu.be/4XMjJPNmuBM) for ECMA Visualizer and Double Debugger is available.**
 
 **ECMAScript Double Debugger** extends the ECMAScript/JavaScript interpreter in
 ESMeta to help you understand how a JavaScript Program runs according to
-ECMA-262. Currently, it is in an **alpha stage** and supports only basic
+ECMA-262. Currently, it is in an **beta stage** and supports only basic
 features such as:
 
 - Step-by-step execution of ECMA-262 algorithms
 - Line-by-line execution of ECMAScript/JavaScript code
 - Breakpoints by abstract algorithm names in ECMA-262
-- Visualization of ECMA-262 internal states
+- Inspection of ECMA-262 internal states
+- Seeing JavaScript state from the refined ECMA-262 state
+- Step backward, or even trace back to the provenance of specification record
 
-You can start it with the following instructions:
+You can access the standalone debugger for the latest official release of specification directly at [es-meta.github.io/playground/](https://es-meta.github.io/playground/). Using this link gives you immediate access without having to install ESMeta, Scala, or any other dependencies on your system.
+
+If needed, you can also set up and run the debugger locally with the following instructions:
 ```bash
 # turn on server of the double debugger
 $ esmeta web
@@ -228,17 +249,12 @@ $ esmeta web
 $ cd client && npm install && npm start
 ```
 
-**A short [introduction video](https://youtu.be/syfZ3v6JNg8) is also available.**
-
-<img width="1150" alt="debugger" src="https://user-images.githubusercontent.com/7039121/151577359-7d6a90af-7940-4904-912e-dd9113b8ba2f.png">
+<img width="1150" alt="debugger" src="https://github.com/user-attachments/assets/6c5f29a3-6d8a-458d-a4ed-478bb00666d7">
 
 We will enhance it with the following features:
 - Add more debugger features:
-  - Show a JavaScript state by refining an ECMAScript state.
   - Record timestamps during execution for resume & suspend steps (especially for Generator).
   - ...
-- Show relevant [Test262](https://github.com/tc39/test262) tests for each
-  algorithm step in the specification viewer.
 - Show the type of each variable using the type analysis result.
 - Live-edit of `ecma262/spec.html` in the specification viewer.
 
@@ -420,6 +436,8 @@ analyzer REPL.
 
 ### Publications
 
+- **[FSE 2025 Demo] JSSpecVis: A JavaScript Language Specification Visualization Tool**
+  ([old repo](https://github.com/ku-plrg/js-spec-vis))
 - **[PLDI 2023] [Feature-Sensitive Coverage for Conformance Testing of Programming Language Implementations](https://doi.org/10.1145/3591240)**
   ([old repo](https://github.com/jestfs/jestfs))
 - **[ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097)**
