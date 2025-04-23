@@ -211,6 +211,9 @@ specifications from ECMA-262. Thus, ESMeta always extracts mechanized
 specifications as control-flow graphs before performing these features.
 
 ### Specification Exemplified with ECMA Visualizer
+
+> [!NOTE]
+>
 > **A short [introduction video](https://youtu.be/4XMjJPNmuBM) for ECMA Visualizer and Double Debugger is available.**
 
 <img width="1150" alt="ecma-visualizer" src="https://github.com/user-attachments/assets/733403f5-03cc-4465-a773-e57d46d35180" />
@@ -224,6 +227,8 @@ specifications as control-flow graphs before performing these features.
 
 ### Interactive Execution with ECMAScript Double Debugger
 
+> [!NOTE]
+>
 > **A short [introduction video](https://youtu.be/4XMjJPNmuBM) for ECMA Visualizer and Double Debugger is available.**
 
 **ECMAScript Double Debugger** extends the ECMAScript/JavaScript interpreter in
