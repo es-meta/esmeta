@@ -253,11 +253,8 @@ $ cd client && npm install && npm start
 
 We will enhance it with the following features:
 - Add more debugger features:
-  - Show a JavaScript state by refining an ECMAScript state.
   - Record timestamps during execution for resume & suspend steps (especially for Generator).
   - ...
-- Show relevant [Test262](https://github.com/tc39/test262) tests for each
-  algorithm step in the specification viewer.
 - Show the type of each variable using the type analysis result.
 - Live-edit of `ecma262/spec.html` in the specification viewer.
 
@@ -439,6 +436,8 @@ analyzer REPL.
 
 ### Publications
 
+- **[FSE 2025 Demo] JSSpecVis: A JavaScript Language Specification Visualization Tool**
+  ([old repo](https://github.com/ku-plrg/js-spec-vis))
 - **[PLDI 2023] [Feature-Sensitive Coverage for Conformance Testing of Programming Language Implementations](https://doi.org/10.1145/3591240)**
   ([old repo](https://github.com/jestfs/jestfs))
 - **[ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097)**
