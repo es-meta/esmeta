@@ -233,8 +233,7 @@ specifications as control-flow graphs before performing these features.
 
 **ECMAScript Double Debugger** extends the ECMAScript/JavaScript interpreter in
 ESMeta to help you understand how a JavaScript Program runs according to
-ECMA-262. Currently, it is in an **beta stage** and supports only basic
-features such as:
+ECMA-262. Currently, it is in an **beta stage** and supports following features:
 
 - Step-by-step execution of ECMA-262 algorithms
 - Line-by-line execution of ECMAScript/JavaScript code
