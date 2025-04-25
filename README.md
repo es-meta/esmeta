@@ -468,6 +468,6 @@ analyzer REPL.
 
 See the following video for more details:
 
-[<p align="center"><img src="http://img.youtube.com/vi/JGxc-KIUnQY/maxresdefault.jpg" width="500"></p>](https://youtu.be/JGxc-KIUnQY)
+<p align="center"><img src="http://img.youtube.com/vi/JGxc-KIUnQY/maxresdefault.jpg" width="500"></p>
 
 - link: [https://youtu.be/JGxc-KIUnQY](https://youtu.be/JGxc-KIUnQY)
