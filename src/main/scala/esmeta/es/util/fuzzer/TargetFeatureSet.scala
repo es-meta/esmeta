@@ -135,7 +135,7 @@ case class TargetFeatureData(
   ): Option[UpdateResult] =
     val transProb =
       if (hits + misses) > 10 then
-        if (hits == misses) then 1 else hits.toDouble / (hits + misses)
+        if (misses == 0) then 1 else hits.toDouble / (hits + misses)
       else 0.0
     status match
       case TargetFeatureStatus.Noticed =>
