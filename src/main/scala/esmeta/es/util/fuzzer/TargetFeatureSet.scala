@@ -179,7 +179,7 @@ case class SelectiveConfig(
   targetTrans: String = "swc",
 ) {
   assert(
-    promotionThreshold < demotionThreshold,
+    promotionThreshold <= demotionThreshold,
     "Promotion threshold should be less than demotion threshold",
   )
   assert(
