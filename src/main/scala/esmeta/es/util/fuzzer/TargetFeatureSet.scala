@@ -134,7 +134,8 @@ case class TargetFeatureData(
     config: SelectiveConfig,
   ): Option[UpdateResult] =
     val transProb =
-      if (hits + misses) > 10 then hits.toDouble / (hits + misses)
+      if (hits + misses) > 10 then
+        if (hits == misses) then 1 else hits.toDouble / (hits + misses)
       else 0.0
     status match
       case TargetFeatureStatus.Noticed =>
@@ -143,7 +144,7 @@ case class TargetFeatureData(
           Some(UpdateResult.Demoted)
         else None
       case TargetFeatureStatus.Ignored =>
-        if transProb > 1 - config.promotionThreshold then
+        if transProb >= 1 - config.promotionThreshold then
           status = TargetFeatureStatus.Noticed
           Some(UpdateResult.Promoted)
         else None

@@ -681,7 +681,5 @@ object Coverage {
     println(s"|TR1 - TR2| = ${tr1 - trIntersect}")
     println(s"|TR2 - TR1| = ${tr2 - trIntersect}")
 
-    println(condViewIntersect.take(10))
-
   }
 }
