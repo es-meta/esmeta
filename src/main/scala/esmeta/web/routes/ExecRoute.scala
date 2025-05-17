@@ -11,9 +11,6 @@ import io.circe.*, io.circe.parser.*, io.circe.syntax.*
 // exec router
 object ExecRoute {
 
-  /** conversion for HTTP response */
-  given Conversion[Debugger#StepResult, String] = _.ordinal.toString
-
   /** helper function for steps with ignoreBreak flag */
   private def withDecodedBoolean(handler: Boolean => Debugger#StepResult) =
     entity(as[String]) { raw =>
@@ -21,7 +18,7 @@ object ExecRoute {
         case Left(err) => ??? // TODO handle error
         case Right(ignoreBreak) =>
           complete(
-            HttpEntity(ContentTypes.`application/json`, handler(ignoreBreak)),
+            handler(ignoreBreak).withAdditional().asHttpEntity,
           )
       }
     }
@@ -39,10 +36,9 @@ object ExecRoute {
               case Right((sourceText, bpData)) =>
                 initDebugger(cfg, sourceText)
                 for { data <- bpData } debugger.addBreak(data)
-                val reprinted = debugger.st.sourceText match
-                  case Some(value) => value.asJson.noSpaces
-                  case None        => "null"
-                complete(HttpEntity(ContentTypes.`application/json`, reprinted))
+                complete(
+                  debugger.StepResult.ReachedFront.withAdditional().asHttpEntity,
+                )
           }
         },
         // step back to provenance
@@ -56,12 +52,12 @@ object ExecRoute {
                 // ToDo - support named address
                 // ToDo - handle NumberFormatException
                 complete(
-                  HttpEntity(
-                    ContentTypes.`application/json`,
-                    debugger.stepBackToProvenance(
+                  debugger
+                    .stepBackToProvenance(
                       DynamicAddr(addr.filter(_.isDigit).toLong),
-                    ),
-                  ),
+                    )
+                    .withAdditional()
+                    .asHttpEntity,
                 )
           }
         },
@@ -76,7 +72,7 @@ object ExecRoute {
                 initDebugger(cfg, sourceText)
                 for { data <- bpData } debugger.addBreak
                 debugger.stepExactly(iterCount, true)
-            complete(HttpEntity(ContentTypes.`application/json`, "null"))
+            complete(Json.Null.asHttpEntity)
           }
         },
         // spec step
@@ -103,12 +99,12 @@ object ExecRoute {
         // spec continue
         path("specContinue") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.continue),
+            debugger.continue.withAdditional().asHttpEntity,
           )
         },
         path("specRewind") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.rewind),
+            debugger.rewind.withAdditional().asHttpEntity,
           )
         },
         // IR-ES steps
@@ -133,31 +129,51 @@ object ExecRoute {
         // ECMAScript ast steps
         path("esAstStep") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.esAstStep),
+            debugger.esAstStep.withAdditional().asHttpEntity,
           )
         },
         // ECMAScript steps
         path("esStatementStep") {
           complete(
-            HttpEntity(
-              ContentTypes.`application/json`,
-              debugger.esStatementStep,
-            ),
+            debugger.esStatementStep.withAdditional().asHttpEntity,
           )
         },
         // ECMAScript step-over
         path("esStepOver") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.esStepOver),
+            debugger.esStepOver.withAdditional().asHttpEntity,
           )
         },
         //  step-out
         path("esStepOut") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.esStepOut),
+            debugger.esStepOut.withAdditional().asHttpEntity,
           )
         },
       )
     }
+  }
+
+  extension (stepResult: Debugger#StepResult) {
+    def withAdditional(
+      includeHeap: Boolean = false,
+      includeReprint: Boolean = true,
+    ): Json =
+      Json.fromFields(
+        List(
+          "result" -> stepResult.ordinal.asJson,
+          "callstack" -> debugger.callStackInfo.asJson,
+          "stepCnt" -> debugger.getStepCnt.asJson,
+          "iter" -> debugger.getIter.asJson,
+        ) ++
+        List(
+          if (includeHeap) {
+            Some("heap" -> debugger.heapInfo.asJson)
+          } else None,
+          if (includeReprint) {
+            Some("reprint" -> debugger.st.sourceText.asJson)
+          } else None,
+        ).flatten,
+      )
   }
 }

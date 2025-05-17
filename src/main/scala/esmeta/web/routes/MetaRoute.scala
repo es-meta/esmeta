@@ -19,36 +19,5 @@ object MetaRoute {
         )
       }
     },
-    path("iter") {
-      get {
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            _debugger match
-              case None    => "null"
-              case Some(d) => d.getStepCnt.asJson.noSpaces,
-          ),
-        )
-      }
-    },
-    path("debugString") {
-      get {
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            _debugger match
-              case None => ("no debugger").toString.asJson.noSpaces
-              case Some(d) => {
-                val pairs = d.st.context.func.nodes.toList
-                  .map(node =>
-                    node.id.toString() -> d.nodeStepsOpt(node).asJson,
-                  )
-                  .toSeq
-                Json.obj(pairs*).spaces2
-              },
-          ),
-        )
-      }
-    },
   )
 }

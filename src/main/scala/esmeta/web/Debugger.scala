@@ -696,15 +696,25 @@ class Debugger(st: State) extends Interpreter(st) {
 
   /** call stack information */
   def callStackInfo =
-    def getInfo(c: Context, wasExited: Boolean = false) =
+    def getInfo(
+      c: Context,
+      wasExited: Boolean = false,
+    ) =
+      val (nid, isExit) = c.cursor match
+        case NodeCursor(_, n, _) => (n.id, false)
+        case _: ExitCursor       => (-1, true)
       (
         c.func.id,
-        c.name,
+        // c.name,
         c.cursor.stepsOpt.getOrElse(List()),
         wasExited,
-        c.locals.collect {
-          case (Name(name), v) => (name, v.toString)
-        }.toList ++ c.retVal.map { case (_, v) => ("return", v.toString) }, {
+        (
+          c.locals.collect {
+            case (Name(name), v) => (name, v.toString)
+          }.toList,
+          c.retVal.toList.map { case (_, v) => v.toString },
+        ),
+        locally {
           val dynamic = c.visited
           val static = cfg.depGraph.deps(cfg.funcMap(c.func.id))
           // what to do?
@@ -719,46 +729,15 @@ class Debugger(st: State) extends Interpreter(st) {
 
           (intersection ++ currentNode).flatMap(_.stepsOpt).toList
         },
-        // st.cfg.depGraph.getStringForm()
+        func.toDot(nid, isExit),
+        c.astOpt
+          .flatMap(_.loc)
+          .map(loc => (loc.start.offset, loc.end.offset))
+          .getOrElse((-1, -1)),
       )
 
     getInfo(st.context, wasExited) :: st.callStack
       .map(_.context)
       .map(getInfo(_))
-
-  /** context information */
-  def ctxtInfo(cid: Int, fallback: Option[Map[String, String]] = None) =
-    // XXX fallback is for standalone debugger, please keep it
-    def paramInfo(p: Param) = (
-      p.lhs.name,
-      p.optional,
-      p.ty.toString,
-    )
-
-    val ctxts = (st.context :: st.callStack.map(_.context)).drop(cid)
-    val (os, oe) = ctxts.flatMap(_.astOpt) match
-      case curr :: _ if curr.loc.isDefined =>
-        val loc = curr.loc.get
-        (loc.start.offset, loc.end.offset)
-      case _ => (-1, -1)
-    val ctxt = ctxts.head
-    val (nid, isExit) = ctxt.cursor match
-      case NodeCursor(_, n, _) => (n.id, false)
-      case _: ExitCursor       => (-1, true)
-    val func = ctxt.func
-    val irFunc = func.irFunc
-    val code = irFunc.algo
-      .map(_.code)
-      .orElse(fallback.flatMap(_.get(irFunc.name)))
-      .getOrElse("")
-    (
-      func.id,
-      irFunc.kind.ordinal,
-      irFunc.name,
-      irFunc.params.map(paramInfo(_)),
-      func.toDot(nid, isExit),
-      code,
-      (os, oe),
-    )
 
 }

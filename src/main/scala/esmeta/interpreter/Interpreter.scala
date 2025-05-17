@@ -420,6 +420,7 @@ class Interpreter(
 
   /** iteration count */
   private var iter = 0
+  def getIter = iter
 
   /** count of passed instruction */
   case class StepLocation(fid: Int, loc: Loc)
