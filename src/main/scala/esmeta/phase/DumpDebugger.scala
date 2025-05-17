@@ -59,9 +59,7 @@ case object DumpDebugger extends Phase[CFG, Unit] {
       check("spec.version")(version == Some(cfg.spec.version))
     }
 
-    dump("irToSpecNameMap")(cfg)(using
-      DumpJsonProtocol.ofCFG(cfg).irToSpecNameMapEncoder,
-    )
+    dump("funcs.cfg")(cfg)(using DumpJsonProtocol.ofCFG(cfg).cfgToFuncEncoder)
 
   end apply
 
