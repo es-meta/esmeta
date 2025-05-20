@@ -12,6 +12,7 @@ object Transpiler:
     val stringified = transpiledAst.toString
     assert(ast =:= ast)
     println("printing " ++ transpiledAst.toCode)
+    println(s"those two nodes diverged from: ${ast >/< transpiledAst}");
     transpiledAst
   }
 
