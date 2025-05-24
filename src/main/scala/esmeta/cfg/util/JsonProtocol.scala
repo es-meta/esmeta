@@ -76,30 +76,45 @@ class JsonProtocol(cfg: CFG) extends BasicJsonProtocol {
   }
 
   /** Mapping of IRFunc to Metalang metadata */
-  val irToSpecNameMapEncoder: Encoder[CFG] = Encoder.instance { (cfg: CFG) =>
+  val funcToSpecInfoEncoder: Encoder[Func] = Encoder.instance { (f: Func) =>
+    f.irFunc.algo match
+      case None => Json.Null
+      case Some(algo) =>
+        Json
+          .obj(
+            // name is unused
+            "normalizedName" -> algo.normalizedName.asJson,
+            "htmlId" -> algo.elem.parent().id().asJson,
+            "isBuiltIn" -> f.isBuiltin.asJson,
+            "isSdo" -> f.isSDO.asJson,
+            "sdoInfo" -> f.sdoInfo.asJson,
+            "isMethod" -> f.isMethod.asJson,
+            "methodInfo" -> f.irFunc.methodName.asJson,
+          )
+  }
+
+  val cfgToFuncEncoder: Encoder[CFG] = Encoder.instance { (cfg: CFG) =>
     cfg.fnameMap
-      .flatMap {
-        case (name, f) if f.irFunc.algo.isEmpty => None
+      .map {
         case (name, f) =>
-          val algo = f.irFunc.algo.get
-          Some {
-            Json.arr(
-              name.asJson,
-              Json
-                .obj(
-                  // name is unused
-                  "name" -> algo.normalizedName.asJson,
-                  "htmlId" -> algo.elem.parent().id().asJson,
-                  "isBuiltIn" -> f.isBuiltin.asJson,
-                  "isSdo" -> f.isSDO.asJson,
-                  "sdoInfo" -> f.sdoInfo.asJson,
-                  "isMethod" -> f.isMethod.asJson,
-                  "sdoInfo" -> f.sdoInfo.asJson,
-                  "methodInfo" -> f.irFunc.methodName.asJson,
-                )
-                .asJson,
-            )
-          }
+          (
+            f.id,
+            (
+              f.name,
+              f.kind.ordinal,
+              f.params.map((p: esmeta.ir.Param) =>
+                (
+                  p.lhs.name,
+                  p.optional,
+                  p.ty.toString,
+                ),
+              ),
+              f.irFunc.algo
+                .map(_.code)
+                .getOrElse(""),
+              f.asJson(using funcToSpecInfoEncoder),
+            ),
+          )
       }
       .toList
       .asJson

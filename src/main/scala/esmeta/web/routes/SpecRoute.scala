@@ -22,36 +22,16 @@ object SpecRoute {
     path("func") {
       get {
         complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            cfg.fnameMap
-              .map { case (name, f) => (f.id, name) }
-              .toList
-              .asJson
-              .noSpaces,
-          ),
+          cfg
+            .asJson(using CFGJsonProtocol(cfg).cfgToFuncEncoder)
+            .asHttpEntity,
         )
       }
     },
     path("version") {
       get {
         complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            cfg.spec.version.asJson.noSpaces,
-          ),
-        )
-      }
-    },
-    path("irToSpecNameMap") {
-      get {
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            cfg
-              .asJson(using CFGJsonProtocol(cfg).irToSpecNameMapEncoder)
-              .noSpaces,
-          ),
+          cfg.spec.version.asJson.asHttpEntity,
         )
       }
     },

@@ -19,7 +19,9 @@ object BreakpointRoute {
             case Left(err) => ??? // TODO handle error
             case Right(data) =>
               debugger.addBreak(data)
-              complete(HttpEntity(ContentTypes.`application/json`, "null"))
+              complete(
+                Json.Null.asHttpEntity,
+              )
         }
       },
       // remove breakpoint
@@ -29,7 +31,7 @@ object BreakpointRoute {
             case Right(idx)              => debugger.rmBreak(idx)
             case Left(_) if raw == "all" => debugger.rmBreakAll
             case Left(err)               => ??? // TODO handle error
-          complete(HttpEntity(ContentTypes.`application/json`, "null"))
+          complete(Json.Null.asHttpEntity)
         }
       },
       // toggle breakpoint
@@ -39,7 +41,7 @@ object BreakpointRoute {
             case Right(idx)              => debugger.toggleBreak(idx)
             case Left(_) if raw == "all" => debugger.toggleBreakAll
             case _                       => ??? // TODO handle error
-          complete(HttpEntity(ContentTypes.`application/json`, "null"))
+          complete(Json.Null.asHttpEntity)
         }
       },
     )
