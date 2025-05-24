@@ -12,7 +12,7 @@ import esmeta.util.BasicJsonProtocol
 
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
-object JsonProtocol extends BasicJsonProtocol {
+object DebuggerJsonProtocol extends BasicJsonProtocol {
 
   import esmeta.lang.util.JsonProtocol.given
   import esmeta.ir.util.JsonProtocol.given

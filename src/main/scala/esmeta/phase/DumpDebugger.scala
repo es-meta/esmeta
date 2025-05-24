@@ -3,7 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.dump.util.{
-  JsonProtocol as DumpJsonProtocol,
+  DebuggerJsonProtocol as DumpJsonProtocol,
   SerializationSanitizer,
 }
 import esmeta.ir.{Type as IRType, *}

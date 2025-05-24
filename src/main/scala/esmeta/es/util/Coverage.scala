@@ -1,6 +1,6 @@
 package esmeta.es.util
 
-import esmeta.LINE_SEP
+import esmeta.{LINE_SEP, TEST262TEST_LOG_DIR}
 import esmeta.cfg.*
 import esmeta.injector.*
 import esmeta.interpreter.*
@@ -45,9 +45,8 @@ case class Coverage(
 
   // meta-info for -test262test:all-tests
   private val pathMap: Map[String, Int] = if (all) {
-    import esmeta.TEST262TEST_LOG_DIR
     readJson[Map[Int, String]](
-      s"$TEST262TEST_LOG_DIR/test262-test-id-mapping.json",
+      s"$TEST262TEST_LOG_DIR/test262IdToTest262.json",
     ).map(_.swap)
   } else Map()
 
