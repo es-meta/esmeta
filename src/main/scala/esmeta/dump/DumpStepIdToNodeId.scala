@@ -34,7 +34,7 @@ object DumpStepToNodeId {
       dumpJson(
         name = s"stepToNodeId for ${func.name}",
         data = stepToNodeId,
-        filename = s"$DUMP_VISUALIZER_LOG_DIR/stepToNodeId/${func.id}.json",
+        filename = s"$DUMP_VISUALIZER_LOG_DIR/stepIdToNodeId/${func.id}.json",
         silent = true,
       )
     }

@@ -9,9 +9,11 @@ import io.circe.*, io.circe.syntax.*
 import scala.collection.mutable.{ListBuffer, Map as MMap, Set as MSet}
 
 object DumpSecIdToFuncInfo {
-  def apply(cfg: CFG): (MMap[String, Int], MMap[String, String]) =
-    val secIdToFuncId: MMap[String, Int] = MMap.empty
-    val secIdToFuncName: MMap[String, String] = MMap.empty
+  def apply(cfg: CFG): Unit =
+    given CFG = cfg
+
+    // secId to funcid, visual funcName, fallback id (closures)
+    val secIdToFuncInfo: MMap[String, (Int, String, List[Int])] = MMap.empty
 
     for {
       func <- cfg.funcs
@@ -24,26 +26,31 @@ object DumpSecIdToFuncInfo {
           s"$sectionId|${extractSDO(func.sdoInfo.get, cfg)}"
         else sectionId
 
-      secIdToFuncId += (secId -> func.id)
-      secIdToFuncName += (secId -> convertFuncName(func, cfg))
-    }
-    dumpJson(
-      name = "secIdToFuncId",
-      data = secIdToFuncId,
-      filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFuncId.json",
-      silent = true,
-    )
-    dumpJson(
-      name = "secIdToFuncName",
-      data = secIdToFuncName,
-      filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFuncName.json",
-      silent = true,
-    )
-    (secIdToFuncId, secIdToFuncName)
+      val prev = secIdToFuncInfo.get(secId)
+      val curr = prev
+        .map {
+          case (prevId, prevName, fallbackIds) =>
+            if (func.isClo || func.isCont) then
+              (prevId, prevName, fallbackIds :+ func.id)
+            else (func.id, convertFuncName(func), fallbackIds :+ prevId)
+        }
+        .getOrElse(
+          (func.id, convertFuncName(func), Nil),
+        )
 
-  def convertFuncName(func: Func, cfg: CFG): String =
+      secIdToFuncInfo += (secId -> curr)
+    }
+
+    dumpJson(
+      name = "secIdToFunc",
+      data = secIdToFuncInfo,
+      filename = s"$DUMP_VISUALIZER_LOG_DIR/secIdToFunc.json",
+      silent = true,
+    )
+
+  def convertFuncName(func: Func)(using cfg: CFG): String =
     if (func.isMethod)
-      val parsed = parseFuncName(func)
+      val parsed = parseMethodName(func)
       if (func.kind == FuncKind.InternalMeth) s"[[$parsed]]" else parsed
     else if (func.isBuiltin) func.name.substring("INTRINSICS.".length)
     else if (func.isSDO) {
@@ -64,7 +71,7 @@ object DumpSecIdToFuncInfo {
           buffer.mkString(" ")
     } else func.name
 
-  def parseFuncName(func: Func): String =
+  def parseMethodName(func: Func): String =
     JsonParser.parseAll(JsonParser.methodName, func.name) match {
       case JsonParser.Success(result, _) => result._2
       case _ => throw ESMetaError(s"invalid method name ${func.name}")
