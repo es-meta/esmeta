@@ -150,8 +150,8 @@ ThisBuild / assemblyPrependShellScript := Some(
 
 // library versions
 val CirceVersion = "0.14.10"
-val AkkaVersion = "2.10.0"
-val AkkaHttpVersion = "10.7.0"
+val AkkaVersion = "2.10.5"
+val AkkaHttpVersion = "10.7.1"
 
 // project root
 lazy val root = project
@@ -173,14 +173,9 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       ("org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0")
         .cross(CrossVersion.for3Use2_13),
-      ("com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion)
-        .cross(CrossVersion.for3Use2_13),
-      ("com.typesafe.akka" %% "akka-stream" % AkkaVersion)
-        .cross(CrossVersion.for3Use2_13),
-      ("com.typesafe.akka" %% "akka-http" % AkkaHttpVersion)
-        .cross(CrossVersion.for3Use2_13),
-      ("ch.megard" %% "akka-http-cors" % "1.2.0")
-        .cross(CrossVersion.for3Use2_13), // cors
+      "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
+      "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
+      "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
     ),
     resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
 
