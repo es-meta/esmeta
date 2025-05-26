@@ -12,15 +12,15 @@ class BackEdgeWalker(fb: FuncBuilder) extends UnitWalker {
     walk(elem)
     this.overriden = false
     elem
-  override def walk(inst: Inst): Unit = if (overriden || inst.langOpt.isEmpty)
+  override def walk(inst: Inst): Unit = if (overriden || inst.loc.isEmpty)
     inst.setLangOpt(fb.langs.headOption)
     super.walk(inst)
 
-  override def walk(expr: Expr): Unit = if (overriden || expr.langOpt.isEmpty)
+  override def walk(expr: Expr): Unit = if (overriden || expr.loc.isEmpty)
     expr.setLangOpt(fb.langs.headOption)
     super.walk(expr)
 
-  override def walk(ref: Ref): Unit = if (overriden || ref.langOpt.isEmpty)
+  override def walk(ref: Ref): Unit = if (overriden || ref.loc.isEmpty)
     ref.setLangOpt(fb.langs.headOption)
     super.walk(ref)
 }

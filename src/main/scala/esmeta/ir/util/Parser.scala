@@ -356,8 +356,8 @@ trait Parsers extends TyParsers {
     tag: Char,
   )(parser: Parser[T]): Parser[T] =
     parser ~ ((s"@@$tag" ~> (loc ^^ Some.apply)) | (s"@@@$tag" ~> "" ^^^ None) | "" ^^^ None) ^^ {
-      case i ~ l =>
-        i.langOpt = Some(new Syntax { loc = l })
+      case i ~ lOpt =>
+        for (l <- lOpt) do i.langOpt = Some(new Syntax { loc = Some(l) })
         i
     }
 
