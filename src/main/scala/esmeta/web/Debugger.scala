@@ -793,6 +793,8 @@ class Debugger(st: State) extends Interpreter(st) {
 }
 
 object Debugger {
+  import esmeta.web.util.JsonProtocol as WebJsonProtocol
+  import io.circe.*, io.circe.syntax.*
 
   /** step options */
   case class StepOptions(ignoreBreak: Boolean)
@@ -800,4 +802,26 @@ object Debugger {
   /** step result */
   enum StepResult:
     case Breaked, Terminated, Succeed, ReachedFront
+
+    def withAdditional(
+      reprint: Boolean = false,
+    )(using WebJsonProtocol): Json =
+      val webJsonProtocol = summon[WebJsonProtocol]
+      import webJsonProtocol.given
+      Json.fromFields(
+        List(
+          "result" -> this.ordinal.asJson,
+          "callstack" -> debugger.callStackInfo.asJson,
+          "stepCnt" -> debugger.getStepCnt.asJson,
+          "instCnt" -> debugger.getInstCnt.asJson,
+          "heap" -> debugger.heapInfo.asJson,
+        ) ++ {
+          if (reprint) then
+            List(
+              "reprint" -> debugger.st.sourceText.asJson,
+              "ast" -> debugger.st.cachedAst.asJson,
+            )
+          else Nil
+        },
+      )
 }

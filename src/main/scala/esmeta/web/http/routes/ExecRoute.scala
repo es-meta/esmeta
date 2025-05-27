@@ -5,7 +5,7 @@ import esmeta.es.Ast
 import esmeta.state.DynamicAddr
 import esmeta.web.*
 import esmeta.web.http.*
-import esmeta.web.util.JsonProtocol
+import esmeta.web.util.JsonProtocol as WebJsonProtocol
 
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.Directives.*
@@ -17,7 +17,8 @@ object ExecRoute {
   // root router
   def apply(cfg: CFG): Route = {
     given CFG = cfg
-    val webJsonProtocol = JsonProtocol(cfg)
+    val webJsonProtocol = WebJsonProtocol(cfg)
+    given WebJsonProtocol = webJsonProtocol
     import webJsonProtocol.given
 
     /** helper function for steps with ignoreBreak flag */
