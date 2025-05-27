@@ -1,48 +1,58 @@
 package esmeta.web.routes
 
+import esmeta.cfg.CFG
+import esmeta.es.Ast
+import esmeta.state.DynamicAddr
+import esmeta.web.*
+import esmeta.web.util.JsonProtocol
+
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
-import esmeta.cfg.CFG
-import esmeta.state.DynamicAddr
-import esmeta.web.*
 import io.circe.*, io.circe.parser.*, io.circe.syntax.*
 
 // exec router
 object ExecRoute {
+  // root router
+  def apply(cfg: CFG): Route = {
+    val webJsonProtocol = JsonProtocol(cfg)
+    import webJsonProtocol.given
 
-  /** conversion for HTTP response */
-  given Conversion[Debugger#StepResult, String] = _.ordinal.toString
-
-  /** helper function for steps with ignoreBreak flag */
-  private def withDecodedBoolean(handler: Boolean => Debugger#StepResult) =
-    entity(as[String]) { raw =>
-      decode[Boolean](raw) match {
-        case Left(err) => ??? // TODO handle error
-        case Right(ignoreBreak) =>
-          complete(
-            HttpEntity(ContentTypes.`application/json`, handler(ignoreBreak)),
-          )
+    /** helper function for steps with ignoreBreak flag */
+    def withStepOptions(
+      handler: Debugger.StepOptions => Debugger#StepResult,
+    ) = {
+      entity(as[String]) { raw =>
+        decode[Boolean](raw) match {
+          case Left(err) => ??? // TODO handle error
+          case Right(ignoreBreak) =>
+            complete(
+              handler(Debugger.StepOptions(ignoreBreak))
+                .withAdditional()
+                .asHttpEntity,
+            )
+        }
       }
     }
 
-  // root router
-  def apply(cfg: CFG): Route = {
     post {
       concat(
         path("run") {
           entity(as[String]) { raw =>
-            decode[(String, List[(Boolean, Int, List[Int], Boolean)])](
+            decode[(String, List[(Boolean, String, List[Int], Boolean)])](
               raw,
             ) match
               case Left(err) => ??? // TODO handle error
               case Right((sourceText, bpData)) =>
                 initDebugger(cfg, sourceText)
                 for { data <- bpData } debugger.addBreak(data)
-                val reprinted = debugger.st.sourceText match
-                  case Some(value) => value.asJson.noSpaces
-                  case None        => "null"
-                complete(HttpEntity(ContentTypes.`application/json`, reprinted))
+                complete(
+                  debugger.StepResult.ReachedFront
+                    .withAdditional(
+                      reprint = true,
+                    )
+                    .asHttpEntity,
+                )
           }
         },
         // step back to provenance
@@ -56,108 +66,88 @@ object ExecRoute {
                 // ToDo - support named address
                 // ToDo - handle NumberFormatException
                 complete(
-                  HttpEntity(
-                    ContentTypes.`application/json`,
-                    debugger.stepBackToProvenance(
+                  debugger
+                    .stepBackToProvenance(
                       DynamicAddr(addr.filter(_.isDigit).toLong),
-                    ),
-                  ),
+                    )
+                    .withAdditional()
+                    .asHttpEntity,
                 )
           }
         },
         // resume from iter count
         path("resumeFromIter") {
           entity(as[String]) { raw =>
-            decode[(String, List[(Boolean, Int, List[Int], Boolean)], Int)](
+            decode[(String, List[(Boolean, String, List[Int], Boolean)], Int)](
               raw,
             ) match
               case Left(err) => ??? // TODO handle error
               case Right((sourceText, bpData, iterCount)) =>
                 initDebugger(cfg, sourceText)
-                for { data <- bpData } debugger.addBreak
-                debugger.stepExactly(iterCount, true)
-            complete(HttpEntity(ContentTypes.`application/json`, "null"))
+                for { data <- bpData } debugger.addBreak(data)
+                complete(
+                  debugger
+                    .stepExactly(iterCount, true)
+                    .withAdditional(reprint = true)
+                    .asHttpEntity,
+                )
           }
         },
+
         // spec step
-        path("specStep") {
-          withDecodedBoolean(debugger.specStep)
-        },
+        path("specStep")(withStepOptions(debugger.specStep)),
         // spec step-over
-        path("specStepOver") {
-          withDecodedBoolean(debugger.specStepOver)
-        },
+        path("specStepOver")(withStepOptions(debugger.specStepOver)),
         // spec step-out
-        path("specStepOut") {
-          withDecodedBoolean(debugger.specStepOut)
-        },
-        path("specStepBack") {
-          withDecodedBoolean(debugger.specStepBack)
-        },
-        path("specStepBackOver") {
-          withDecodedBoolean(debugger.specStepBackOver)
-        },
-        path("specStepBackOut") {
-          withDecodedBoolean(debugger.specStepBackOut)
-        },
+        path("specStepOut")(withStepOptions(debugger.specStepOut)),
+        path("specStepBack")(withStepOptions(debugger.specStepBack)),
+        path("specStepBackOver")(withStepOptions(debugger.specStepBackOver)),
+        path("specStepBackOut")(withStepOptions(debugger.specStepBackOut)),
         // spec continue
         path("specContinue") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.continue),
+            debugger.continue.withAdditional().asHttpEntity,
           )
         },
         path("specRewind") {
           complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.rewind),
+            debugger.rewind.withAdditional().asHttpEntity,
           )
         },
-        // IR-ES steps
-        path("irStep") {
-          withDecodedBoolean(debugger.irStep)
-        },
-        // spec step-over
-        path("irStepOver") {
-          withDecodedBoolean(debugger.irStepOver)
-        },
-        // spec step-out
-        path("irStepOut") {
-          withDecodedBoolean(debugger.irStepOut)
-        },
-        path("iterPlus") {
-          withDecodedBoolean(debugger.iterPlus)
-        },
-        path("iterMinus") {
-          withDecodedBoolean(debugger.iterMinus)
-        },
+        path("irStep")(withStepOptions(debugger.irStep)),
+        path("irStepOver")(withStepOptions(debugger.irStepOver)),
+        path("irStepOut")(withStepOptions(debugger.irStepOut)),
+        path("stepCntPlus")(withStepOptions(debugger.stepCntPlus)),
+        path("stepCntMinus")(withStepOptions(debugger.stepCntMinus)),
+        path("instCntPlus")(withStepOptions(debugger.instCntPlus)),
+        path("instCntMinus")(withStepOptions(debugger.instCntMinus)),
 
-        // ECMAScript ast steps
-        path("esAstStep") {
-          complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.esAstStep),
-          )
-        },
-        // ECMAScript steps
-        path("esStatementStep") {
-          complete(
-            HttpEntity(
-              ContentTypes.`application/json`,
-              debugger.esStatementStep,
-            ),
-          )
-        },
-        // ECMAScript step-over
-        path("esStepOver") {
-          complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.esStepOver),
-          )
-        },
-        //  step-out
-        path("esStepOut") {
-          complete(
-            HttpEntity(ContentTypes.`application/json`, debugger.esStepOut),
-          )
-        },
+        // ECMAScript-level steps
+        path("esAstStep")(withStepOptions(debugger.esAstStep)),
+        path("esStatementStep")(withStepOptions(debugger.esStatementStep)),
+        path("esStepOver")(withStepOptions(debugger.esStepOver)),
+        path("esStepOut")(withStepOptions(debugger.esStepOut)),
       )
     }
   }
+  extension (stepResult: Debugger#StepResult) {
+    def withAdditional(
+      reprint: Boolean = false,
+    )(using Encoder[Ast]): Json =
+      Json.fromFields(
+        List(
+          "result" -> stepResult.ordinal.asJson,
+          "callstack" -> debugger.callStackInfo.asJson,
+          "stepCnt" -> debugger.getStepCnt.asJson,
+          "instCnt" -> debugger.getInstCnt.asJson,
+          "heap" -> debugger.heapInfo.asJson,
+        ) ++ (if (reprint) then
+                List(
+                  "reprint" -> debugger.st.sourceText.asJson,
+                  "ast" -> debugger.st.cachedAst.asJson,
+                )
+              else Nil),
+      )
+  }
+
 }

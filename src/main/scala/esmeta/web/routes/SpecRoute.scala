@@ -1,18 +1,14 @@
 package esmeta.web.routes
 
+import esmeta.cfg.CFG
+import esmeta.spec.util.JsonProtocol.given
+import esmeta.web.*
+import esmeta.web.util.JsonProtocol
+
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import io.circe.*, io.circe.syntax.*
-import esmeta.cfg.{CFG, SdoInfo}
-import esmeta.cfg.util.{JsonProtocol as CFGJsonProtocol}
-import esmeta.ir.{Func, FuncKind}
-import esmeta.ir.util.{Parser}
-import esmeta.spec.{Terminal, Nonterminal}
-import esmeta.spec.util.JsonProtocol.given
-import esmeta.util.{BasicParsers}
-import esmeta.web.*
-import scala.util.Try
 
 /** spec router */
 object SpecRoute {
@@ -22,36 +18,16 @@ object SpecRoute {
     path("func") {
       get {
         complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            cfg.fnameMap
-              .map { case (name, f) => (f.id, name) }
-              .toList
-              .asJson
-              .noSpaces,
-          ),
+          cfg
+            .asJson(using JsonProtocol(cfg).cfgToFuncEncoder)
+            .asHttpEntity,
         )
       }
     },
     path("version") {
       get {
         complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            cfg.spec.version.asJson.noSpaces,
-          ),
-        )
-      }
-    },
-    path("irToSpecNameMap") {
-      get {
-        complete(
-          HttpEntity(
-            ContentTypes.`application/json`,
-            cfg
-              .asJson(using CFGJsonProtocol(cfg).irToSpecNameMapEncoder)
-              .noSpaces,
-          ),
+          cfg.spec.version.asJson.asHttpEntity,
         )
       }
     },
