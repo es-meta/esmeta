@@ -558,20 +558,19 @@ class Debugger(st: State) extends Interpreter(st) {
     val bp = // TODO revert ESBreakpoint
       SpecBreakpoint(algoName, steps, enabled)
 
-    if (
-        (for {
-          func <- cfg.funcs
-          algo <- func.irFunc.algo
-          if (algoName == algo.name)
-        } yield for {
-          node <- func.nodes
-          loc <- node.loc
-          if (loc.steps == steps)
-        } yield {
-          loc
-        }).flatten.nonEmpty
-      )
-    then
+    val exists = (for {
+      func <- cfg.funcs
+      algo <- func.irFunc.algo
+      if (algoName == algo.name)
+    } yield for {
+      node <- func.nodes
+      loc <- node.loc
+      if (loc.steps == steps)
+    } yield {
+      loc
+    }).flatten.nonEmpty;
+
+    if exists then
       breakpoints += bp
       true
     else false
