@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import esmeta.web.WebServer
+import esmeta.web.http.WebServer
 
 /** `web` phase */
 case object Web extends Phase[CFG, Unit] {

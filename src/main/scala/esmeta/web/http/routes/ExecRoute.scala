@@ -1,9 +1,10 @@
-package esmeta.web.routes
+package esmeta.web.http.routes
 
 import esmeta.cfg.CFG
 import esmeta.es.Ast
 import esmeta.state.DynamicAddr
 import esmeta.web.*
+import esmeta.web.http.*
 import esmeta.web.util.JsonProtocol
 
 import akka.http.scaladsl.model.*

@@ -1,6 +1,7 @@
-package esmeta.web.routes
+package esmeta.web.http.routes
 
 import esmeta.web.*
+import esmeta.web.http.*
 
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.Directives.*
