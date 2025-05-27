@@ -2,8 +2,8 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.dump.util.{
-  DebuggerJsonProtocol as DumpJsonProtocol,
+import esmeta.dump.debugger.util.{
+  JsonProtocol as DumpJsonProtocol,
   SerializationSanitizer,
 }
 import esmeta.ir.{Type as IRType, *}

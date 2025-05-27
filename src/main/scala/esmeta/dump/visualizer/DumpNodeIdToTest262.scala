@@ -2,7 +2,7 @@ package esmeta.dump.visualizer
 
 import esmeta.*
 import esmeta.cfg.*
-import esmeta.dump.util.VisualizerJsonProtocol
+import esmeta.dump.visualizer.util.*
 import esmeta.error.ESMetaError
 import esmeta.spec.*
 import esmeta.state.*

@@ -1,7 +1,7 @@
 package esmeta.dump.debugger.util
 
 import esmeta.*
-import esmeta.dump.DUMMY_BODY
+import esmeta.dump.debugger.DUMMY_BODY
 import esmeta.ir.{Type as IRType, *}
 import esmeta.ir.util.Walker as IRWalker
 

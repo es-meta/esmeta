@@ -2,7 +2,7 @@ package esmeta.dump.debugger.util
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.dump.*
+import esmeta.dump.debugger.DUMMY_BODY
 import esmeta.lang.*
 import esmeta.ir.*
 import esmeta.spec.*
