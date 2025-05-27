@@ -62,7 +62,6 @@ class JsonProtocol(cfg: esmeta.cfg.CFG) extends BasicJsonProtocol {
       case Some(algo) =>
         Json
           .obj(
-            // name is unused
             "normalizedName" -> algo.normalizedName.asJson,
             "name" -> algo.name.asJson,
             "htmlId" -> algo.elem.parent().id().asJson,
