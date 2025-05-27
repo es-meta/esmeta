@@ -13,6 +13,7 @@ import esmeta.lang.{Type as LangType}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.web.util.JsonProtocol as WebJsonProtocol
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*;
 import io.circe.parser.decode;
 import scala.util.Try
@@ -29,7 +30,8 @@ case object DumpDebugger extends Phase[CFG, Unit] {
     config: Config,
   ): Unit =
 
-    import DumpJsonProtocol.given
+    val dumpJsonProtocol = DumpJsonProtocol(cfg)
+    import dumpJsonProtocol.given
 
     dumpThenRead("funcs")(cfg.program.funcs) tap { _funcsOpt =>
       val funcs = _funcsOpt.getOrElse(Nil)
@@ -59,9 +61,7 @@ case object DumpDebugger extends Phase[CFG, Unit] {
       check("spec.version")(version == Some(cfg.spec.version))
     }
 
-    dump("irToSpecNameMap")(cfg)(using
-      DumpJsonProtocol.ofCFG(cfg).irToSpecNameMapEncoder,
-    )
+    dump("funcs.cfg")(cfg)(using dumpJsonProtocol.cfgToFuncEncoder)
 
   end apply
 
