@@ -31,7 +31,7 @@ object ExecRoute {
           case Right(ignoreBreak) =>
             complete(
               handler(Debugger.StepOptions(ignoreBreak))
-                .withAdditional()
+                .withAdditional(debugger)
                 .asHttpEntity,
             )
         }
@@ -52,6 +52,7 @@ object ExecRoute {
                 complete(
                   Debugger.StepResult.ReachedFront
                     .withAdditional(
+                      debugger,
                       reprint = true,
                     )
                     .asHttpEntity,
@@ -73,7 +74,7 @@ object ExecRoute {
                     .stepBackToProvenance(
                       DynamicAddr(addr.filter(_.isDigit).toLong),
                     )
-                    .withAdditional()
+                    .withAdditional(debugger)
                     .asHttpEntity,
                 )
           }
@@ -91,7 +92,7 @@ object ExecRoute {
                 complete(
                   debugger
                     .stepExactly(iterCount, true)
-                    .withAdditional(reprint = true)
+                    .withAdditional(debugger, reprint = true)
                     .asHttpEntity,
                 )
           }
@@ -109,12 +110,12 @@ object ExecRoute {
         // spec continue
         path("specContinue") {
           complete(
-            debugger.continue.withAdditional().asHttpEntity,
+            debugger.continue.withAdditional(debugger).asHttpEntity,
           )
         },
         path("specRewind") {
           complete(
-            debugger.rewind.withAdditional().asHttpEntity,
+            debugger.rewind.withAdditional(debugger).asHttpEntity,
           )
         },
         path("irStep")(withStepOptions(debugger.irStep)),

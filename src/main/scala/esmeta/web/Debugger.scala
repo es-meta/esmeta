@@ -559,18 +559,19 @@ class Debugger(st: State) extends Interpreter(st) {
       SpecBreakpoint(algoName, steps, enabled)
 
     if (
-      (for {
-        func <- cfg.funcs
-        algo <- func.irFunc.algo
-        if (algoName == algo.name)
-      } yield for {
-        node <- func.nodes
-        loc <- node.loc
-        if (loc.steps == steps)
-      } yield {
-        loc
-      }).flatten.nonEmpty
-    ) then
+        (for {
+          func <- cfg.funcs
+          algo <- func.irFunc.algo
+          if (algoName == algo.name)
+        } yield for {
+          node <- func.nodes
+          loc <- node.loc
+          if (loc.steps == steps)
+        } yield {
+          loc
+        }).flatten.nonEmpty
+      )
+    then
       breakpoints += bp
       true
     else false
@@ -804,6 +805,7 @@ object Debugger {
     case Breaked, Terminated, Succeed, ReachedFront
 
     def withAdditional(
+      debugger: Debugger,
       reprint: Boolean = false,
     )(using WebJsonProtocol): Json =
       val webJsonProtocol = summon[WebJsonProtocol]
