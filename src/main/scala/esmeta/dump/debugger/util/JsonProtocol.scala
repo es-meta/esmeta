@@ -1,4 +1,4 @@
-package esmeta.dump.util
+package esmeta.dump.debugger.util
 
 import esmeta.*
 import esmeta.cfg.CFG
@@ -11,7 +11,7 @@ import esmeta.util.BasicJsonProtocol
 import esmeta.web.util.JsonProtocol as WebJsonProtocol
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
-class DebuggerJsonProtocol(cfg: CFG) extends WebJsonProtocol(cfg) {
+class JsonProtocol(cfg: CFG) extends WebJsonProtocol(cfg) {
 
   import esmeta.lang.util.JsonProtocol.given
   import esmeta.ir.util.JsonProtocol.given

@@ -1,4 +1,4 @@
-package esmeta.dump.util
+package esmeta.dump.visualizer.util
 
 import esmeta.cfg.*
 import esmeta.dump.*
