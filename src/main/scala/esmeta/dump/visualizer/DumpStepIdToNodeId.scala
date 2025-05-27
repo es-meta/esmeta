@@ -1,4 +1,4 @@
-package esmeta.dump
+package esmeta.dump.visualizer
 
 import esmeta.DUMP_VISUALIZER_LOG_DIR
 import esmeta.cfg.*

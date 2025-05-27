@@ -1,4 +1,4 @@
-package esmeta.dump
+package esmeta.dump.visualizer
 
 import esmeta.cfg.Func
 import esmeta.lang.NoteStep;

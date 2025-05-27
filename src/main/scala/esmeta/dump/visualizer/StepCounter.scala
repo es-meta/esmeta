@@ -1,4 +1,4 @@
-package esmeta.dump
+package esmeta.dump.visualizer
 
 import esmeta.cfg.Node
 import esmeta.dump.util.VisualizerJsonProtocol
