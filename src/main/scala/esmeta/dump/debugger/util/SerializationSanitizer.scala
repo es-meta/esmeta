@@ -1,4 +1,4 @@
-package esmeta.dump.util
+package esmeta.dump.debugger.util
 
 import esmeta.*
 import esmeta.dump.DUMMY_BODY
