@@ -2,23 +2,20 @@ package esmeta.dump.util
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.cfg.util.{JsonProtocol as CFGJsonProtocol}
 import esmeta.dump.*
 import esmeta.lang.*
 import esmeta.ir.*
 import esmeta.spec.*
 import esmeta.ty.*
 import esmeta.util.BasicJsonProtocol
-
+import esmeta.web.util.JsonProtocol as WebJsonProtocol
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
-object DebuggerJsonProtocol extends BasicJsonProtocol {
+class DebuggerJsonProtocol(cfg: CFG) extends WebJsonProtocol(cfg) {
 
   import esmeta.lang.util.JsonProtocol.given
   import esmeta.ir.util.JsonProtocol.given
   import esmeta.spec.util.JsonProtocol.given
-
-  def ofCFG(cfg: CFG) = CFGJsonProtocol(cfg)
 
   val algorithmOmittedDecoder: Decoder[Algorithm] = Decoder.instance { c =>
     for {
