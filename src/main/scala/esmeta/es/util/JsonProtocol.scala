@@ -1,9 +1,9 @@
 package esmeta.es.util
 
 import esmeta.cfg.*
+import esmeta.state.util.{JsonProtocol as StateJsonProtocol}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.util.{JsonProtocol => StateJsonProtocol}
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
 class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
