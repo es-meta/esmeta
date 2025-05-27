@@ -16,12 +16,13 @@ import io.circe.*, io.circe.parser.*, io.circe.syntax.*
 object ExecRoute {
   // root router
   def apply(cfg: CFG): Route = {
+    given CFG = cfg
     val webJsonProtocol = JsonProtocol(cfg)
     import webJsonProtocol.given
 
     /** helper function for steps with ignoreBreak flag */
     def withStepOptions(
-      handler: Debugger.StepOptions => Debugger#StepResult,
+      handler: Debugger.StepOptions => Debugger.StepResult,
     ) = {
       entity(as[String]) { raw =>
         decode[Boolean](raw) match {
@@ -48,7 +49,7 @@ object ExecRoute {
                 initDebugger(cfg, sourceText)
                 for { data <- bpData } debugger.addBreak(data)
                 complete(
-                  debugger.StepResult.ReachedFront
+                  Debugger.StepResult.ReachedFront
                     .withAdditional(
                       reprint = true,
                     )
@@ -130,25 +131,6 @@ object ExecRoute {
         path("esStepOut")(withStepOptions(debugger.esStepOut)),
       )
     }
-  }
-  extension (stepResult: Debugger#StepResult) {
-    def withAdditional(
-      reprint: Boolean = false,
-    )(using Encoder[Ast]): Json =
-      Json.fromFields(
-        List(
-          "result" -> stepResult.ordinal.asJson,
-          "callstack" -> debugger.callStackInfo.asJson,
-          "stepCnt" -> debugger.getStepCnt.asJson,
-          "instCnt" -> debugger.getInstCnt.asJson,
-          "heap" -> debugger.heapInfo.asJson,
-        ) ++ (if (reprint) then
-                List(
-                  "reprint" -> debugger.st.sourceText.asJson,
-                  "ast" -> debugger.st.cachedAst.asJson,
-                )
-              else Nil),
-      )
   }
 
 }

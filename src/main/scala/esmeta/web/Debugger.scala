@@ -80,10 +80,6 @@ class Debugger(st: State) extends Interpreter(st) {
   var instCnt: Int = 0
   def getInstCnt: Int = instCnt
 
-  /** step result */
-  enum StepResult:
-    case Breaked, Terminated, Succeed, ReachedFront
-
   // step until given predicate
   // TODO handle yet
   @tailrec
@@ -800,4 +796,8 @@ object Debugger {
 
   /** step options */
   case class StepOptions(ignoreBreak: Boolean)
+
+  /** step result */
+  enum StepResult:
+    case Breaked, Terminated, Succeed, ReachedFront
 }
