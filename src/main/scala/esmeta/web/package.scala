@@ -8,6 +8,3 @@ def initDebugger(cfg: CFG, sourceText: String): Unit =
 def initDebugger(debugger: Debugger): Unit =
   _debugger = Some(debugger)
 private var _debugger: Option[Debugger] = None
-
-/** web server host */
-val ESMETA_HOST = sys.env.getOrElse("ESMETA_HOST", "localhost")
