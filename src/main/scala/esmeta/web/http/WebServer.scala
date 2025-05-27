@@ -1,7 +1,8 @@
-package esmeta.web
+package esmeta.web.http
 
 import esmeta.cfg.CFG
-import esmeta.web.routes.*
+import esmeta.web.*
+
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
 import akka.http.scaladsl.Http
@@ -17,6 +18,7 @@ import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.*
 import scala.io.StdIn
 import scala.util.{Failure, Success}
+import esmeta.web.http.routes.{BreakpointRoute, ExecRoute, MetaRoute, SpecRoute}
 
 class WebServer(cfg: CFG, port: Int) {
   var shutdownByUser = false;
