@@ -1,10 +1,11 @@
 package esmeta.web.routes
 
+import esmeta.web.*
+
 import akka.http.scaladsl.model.*
 import akka.http.scaladsl.server.Directives.*
 import akka.http.scaladsl.server.Route
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
-import esmeta.web.*
 
 /** breakpoint router */
 object BreakpointRoute {
@@ -15,11 +16,12 @@ object BreakpointRoute {
       // TODO add steps
       post {
         entity(as[String]) { raw =>
-          decode[(Boolean, Int, List[Int], Boolean)](raw) match
+          decode[(Boolean, String, List[Int], Boolean)](raw) match
             case Left(err) => ??? // TODO handle error
             case Right(data) =>
-              debugger.addBreak(data)
-              complete(HttpEntity(ContentTypes.`application/json`, "null"))
+              complete(
+                debugger.addBreak(data).asJson.asHttpEntity,
+              )
         }
       },
       // remove breakpoint
@@ -29,7 +31,7 @@ object BreakpointRoute {
             case Right(idx)              => debugger.rmBreak(idx)
             case Left(_) if raw == "all" => debugger.rmBreakAll
             case Left(err)               => ??? // TODO handle error
-          complete(HttpEntity(ContentTypes.`application/json`, "null"))
+          complete(Json.Null.asHttpEntity)
         }
       },
       // toggle breakpoint
@@ -39,7 +41,7 @@ object BreakpointRoute {
             case Right(idx)              => debugger.toggleBreak(idx)
             case Left(_) if raw == "all" => debugger.toggleBreakAll
             case _                       => ??? // TODO handle error
-          complete(HttpEntity(ContentTypes.`application/json`, "null"))
+          complete(Json.Null.asHttpEntity)
         }
       },
     )
