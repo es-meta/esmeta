@@ -105,6 +105,7 @@ class Compiler(
   val shorthands = Set(
     "IfAbruptCloseIterator",
     "IfAbruptRejectPromise",
+    "IfAbruptCloseAsyncIterator",
   )
 
   private def isObject(tname: String): Boolean =
