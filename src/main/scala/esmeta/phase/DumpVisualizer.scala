@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.*
-import esmeta.dump.*
+import esmeta.dump.visualizer.*
 
 /** `dump-visualizer` phase */
 case object DumpVisualizer extends Phase[CFG, Unit] {
