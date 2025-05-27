@@ -11,7 +11,7 @@ import esmeta.util.BasicJsonProtocol
 import esmeta.web.util.JsonProtocol as WebJsonProtocol
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
-class JsonProtocol(cfg: CFG) extends WebJsonProtocol(cfg) {
+object JsonProtocol extends BasicJsonProtocol {
 
   import esmeta.lang.util.JsonProtocol.given
   import esmeta.ir.util.JsonProtocol.given
