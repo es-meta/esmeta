@@ -55,8 +55,27 @@ case class ESParser(
     val parser =
       if (prod.kind == ProductionKind.Syntactic)
         // TODO handle in a more general way for indirect left-recursion
-        if (name == "CoalesceExpressionHead") handleLR
-        else getParser(prod)
+        // comment out previous code
+        // if (name == "CoalesceExpressionHead") handleLR
+        // else getParser(prod)
+        val core: ESParser[Ast] =
+          if (name == "CoalesceExpressionHead") handleLR
+          else getParser(prod)
+
+        // 새 branch
+        val hole: ESParser[Ast] = memo { args =>
+          val tok =
+            "@@[" ~> Skip ~> (ident <~ (Skip ~> ":" <~ Skip) <~ name) <~ Skip <~ "]"
+          val first = FirstTerms(ts = Set("@@["))
+          LAParser(
+            follow =>
+              (Skip ~> tok) <~ +follow.parser ^^ {
+                Hole(name, args, _, Map()) // TODO args
+              },
+            first,
+          )
+        }
+        (args: List[Boolean]) => hole(args) | core(args)
       else (args: List[Boolean]) => nt(name, lexers(name, 0 /* TODO args */ ))
     name -> parser
   }).toMap
@@ -196,12 +215,13 @@ case class ESParser(
 
   // a terminal lexer
   protected val TERMINAL: EPackratParser[String] =
+    val holeTs: Set[String] = Set("@@[")
     val ts = (for {
       prod <- grammar.prods
       if prod.kind == ProductionKind.Syntactic
       rhs <- prod.rhsVec
       t <- rhs.symbols.collect { case Terminal(t) => t }
-    } yield t).toSet
+    } yield t).toSet ++ holeTs
     // XXX `x ?.1 : y` is `x ? .1 : y` but not `x ?. 1 : y`
     val trie = Trie(ts - "?.")
     def aux(

@@ -1,7 +1,7 @@
 package esmeta.web.util
 
 import esmeta.cfg.*
-import esmeta.es.{Ast, Lexical, Syntactic}
+import esmeta.es.{Ast, Hole, Lexical, Syntactic}
 import esmeta.ir.{Func as IRFunc, FuncKind}
 import esmeta.util.*
 import esmeta.util.BasicJsonProtocol
@@ -103,6 +103,7 @@ class JsonProtocol(cfg: esmeta.cfg.CFG) extends BasicJsonProtocol {
   }
 
   given astEncoder: Encoder[Ast] = Encoder.instance {
+    case _: Hole => ???
     case lex @ Lexical(name, str) =>
       Json.obj(
         "Lexical" -> Json.obj(

@@ -12,6 +12,7 @@ trait Walker extends BasicWalker {
   def walk(ast: Ast): Ast = ast match
     case ast: Syntactic => walk(ast)
     case ast: Lexical   => walk(ast)
+    case ast: Hole      => walk(ast)
 
   /** syntactic productions */
   def walk(ast: Syntactic): Syntactic =
@@ -20,4 +21,7 @@ trait Walker extends BasicWalker {
 
   /** lexical productions */
   def walk(ast: Lexical): Lexical = ast
+
+  /** partial proudctions */
+  def walk(ast: Hole): Hole = ast
 }
