@@ -200,6 +200,7 @@ class Interpreter(
             case None => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
+        case _: Hole => ???
   }
 
   /** transition for expressions */

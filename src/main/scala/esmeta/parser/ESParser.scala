@@ -64,12 +64,14 @@ case class ESParser(
 
         // 새 branch
         val hole: ESParser[Ast] = memo { args =>
-          val tok = "@@[" ~> name <~ "]"
+          val tok =
+            "@@[" ~> Skip ~> (ident <~ (Skip ~> ":" <~ Skip) <~ name) <~ Skip <~ "]"
           val first = FirstTerms(ts = Set("@@["))
           LAParser(
             follow =>
-              (Skip ~> tok) <~ +follow.parser ^^^
-              syntactic(name, args, -1, Vector()), // TODO
+              (Skip ~> tok) <~ +follow.parser ^^ {
+                Hole(name, args, _, Map()) // TODO args
+              },
             first,
           )
         }
@@ -214,11 +216,6 @@ case class ESParser(
   // a terminal lexer
   protected val TERMINAL: EPackratParser[String] =
     val holeTs: Set[String] = Set("@@[")
-    // (for {
-    //   prod <- grammar.prods
-    //   if prod.kind == ProductionKind.Syntactic
-    // } yield s"@@[${prod.lhs.name}]").toSet
-
     val ts = (for {
       prod <- grammar.prods
       if prod.kind == ProductionKind.Syntactic
