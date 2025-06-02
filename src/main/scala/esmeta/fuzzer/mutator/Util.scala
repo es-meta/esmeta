@@ -30,8 +30,10 @@ object Util {
     def walk(ast: Ast): List[Ast] = ast match
       case ast: Lexical   => walk(ast)
       case ast: Syntactic => walk(ast)
+      case ast: Hole      => walk(ast)
     def walk(ast: Lexical): List[Lexical] = List(ast)
     def walk(ast: Syntactic): List[Syntactic]
+    def walk(ast: Hole): List[Hole] = List(ast)
   }
 
   private type Childrens = List[Vector[Option[Ast]]]

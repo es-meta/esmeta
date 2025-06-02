@@ -44,6 +44,9 @@ class Stringifier(
             if (symbol.getNt.isDefined) cs.headOption match
               case Some(hd) => hd.map(aux); cs = cs.tail
               case _        => raise(s"invalid AST: $origAst")
+      case Hole(prod, _, label, _) =>
+        // TODO key-values
+        app >> "@[" >> label >> " : " >> prod >> "]"
     aux(origAst)
     app
 
@@ -61,4 +64,10 @@ class Stringifier(
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
         if (detail && ast.loc.isDefined) app >> ast.loc.get else app
+      case Hole(name, args, label, attrs) =>
+        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+        given Rule[List[Boolean]] = iterableRule()
+        app >> "@@[" >> label >> " : " >> "|" >> name >> "|" >> "[" >> args >> "]"
+        if (attrs.nonEmpty) app >> "{" >> attrs.mkString(", ") >> "}"
+        app >> "]"
 }
