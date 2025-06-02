@@ -25,6 +25,7 @@ sealed trait Ast extends ESElem with Locational {
   def idx: Int = this match
     case lex: Lexical               => 0
     case Syntactic(_, _, rhsIdx, _) => rhsIdx
+    case h: Hole                    => ???
 
   /** validity check */
   def valid(grammar: Grammar): Boolean = AstValidityChecker(grammar, this)
@@ -33,6 +34,7 @@ sealed trait Ast extends ESElem with Locational {
   def getArgs: List[Boolean] = this match
     case lex: Lexical   => Nil
     case syn: Syntactic => syn.args
+    case _: Hole        => ???
 
   /** production chains */
   lazy val chains: List[Ast] = this :: (this match
@@ -41,6 +43,7 @@ sealed trait Ast extends ESElem with Locational {
       syn.children.flatten match
         case Vector(child) => this :: child.chains
         case _             => List(this)
+    case _: Hole => ???
   )
 
   /** types */
@@ -50,6 +53,7 @@ sealed trait Ast extends ESElem with Locational {
       syn.children.flatten match
         case Vector(child) => child.types
         case _             => Set()
+    case _: Hole => ???
   ) + name
 
   /** flatten statements */
@@ -68,6 +72,7 @@ sealed trait Ast extends ESElem with Locational {
         for { child <- syn.children.flatten } child.clearLoc
         syn.loc = None; syn
       case lex: Lexical => lex.loc = None; lex
+      case hole: Hole   => hole.loc = None; hole
 
   /** set location including children */
   def setChildLoc(locOpt: Option[Loc]): Ast = this match
@@ -75,6 +80,7 @@ sealed trait Ast extends ESElem with Locational {
       for { child <- syn.children.flatten } child.setChildLoc(locOpt)
       syn.loc = locOpt; syn
     case lex: Lexical => lex.loc = locOpt; lex
+    case hole: Hole   => hole.loc = locOpt; hole
 
   /** safe getter */
   def get(field: Value)(using cfg: CFG): Option[Ast] = (this, field) match
@@ -123,9 +129,19 @@ sealed trait Ast extends ESElem with Locational {
           case (acc, _)           => acc
         }
       }
+    case _: Hole => ???
 
   /** not use case class' hash code */
   override def hashCode: Int = super.hashCode
+}
+
+case class Hole(
+  name: String,
+  args: List[Boolean],
+  label: String, // e1 …
+  attrs: Map[String, String], // key -> value
+) extends Ast {
+  def children: Vector[Option[Ast]] = Vector.empty
 }
 
 /** ASTs constructed by syntactic productions */

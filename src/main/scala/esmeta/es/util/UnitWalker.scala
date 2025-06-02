@@ -12,6 +12,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(ast: Ast): Unit = ast match
     case ast: Syntactic => walk(ast)
     case ast: Lexical   => walk(ast)
+    case ast: Hole      => walk(ast)
 
   /** syntactic productions */
   def walk(ast: Syntactic): Unit =
@@ -19,4 +20,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** lexical productions */
   def walk(ast: Lexical): Unit = {}
+
+  /** partial productions */
+  def walk(ast: Hole): Unit = {}
 }
