@@ -1170,9 +1170,9 @@ INTRINSICS.AsyncFromSyncIteratorPrototype.return
 INTRINSICS.AsyncFromSyncIteratorPrototype.throw
 INTRINSICS.AsyncFunction
 INTRINSICS.AsyncGeneratorFunction
-INTRINSICS.AsyncGeneratorFunction.prototype.prototype.next
-INTRINSICS.AsyncGeneratorFunction.prototype.prototype.return
-INTRINSICS.AsyncGeneratorFunction.prototype.prototype.throw
+INTRINSICS.AsyncGeneratorPrototype.next
+INTRINSICS.AsyncGeneratorPrototype.return
+INTRINSICS.AsyncGeneratorPrototype.throw
 INTRINSICS.AsyncIteratorPrototype[@@asyncIterator]
 INTRINSICS.Atomics.isLockFree
 INTRINSICS.Atomics.load
@@ -1255,9 +1255,9 @@ INTRINSICS.Function.prototype.call
 INTRINSICS.Function.prototype.toString
 INTRINSICS.Function.prototype[@@hasInstance]
 INTRINSICS.GeneratorFunction
-INTRINSICS.GeneratorFunction.prototype.prototype.next
-INTRINSICS.GeneratorFunction.prototype.prototype.return
-INTRINSICS.GeneratorFunction.prototype.prototype.throw
+INTRINSICS.GeneratorPrototype.next
+INTRINSICS.GeneratorPrototype.return
+INTRINSICS.GeneratorPrototype.throw
 INTRINSICS.IteratorPrototype[@@iterator]
 INTRINSICS.Map
 INTRINSICS.Map.groupBy

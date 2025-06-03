@@ -1,8 +1,8 @@
 diff --git a/spec.html b/spec.html
-index dc31c1a3..38978a55 100644
+index 83f68e9c..53f66d11 100644
 --- a/spec.html
 +++ b/spec.html
-@@ -23970,6 +23970,7 @@
+@@ -23989,6 +23989,7 @@
          1. Perform ? FunctionDeclarationInstantiation(_functionObject_, _argumentsList_).
          1. Let _G_ be ? OrdinaryCreateFromConstructor(_functionObject_, *"%GeneratorFunction.prototype.prototype%"*, « [[GeneratorState]], [[GeneratorContext]], [[GeneratorBrand]] »).
          1. Set _G_.[[GeneratorBrand]] to ~empty~.
@@ -10,7 +10,7 @@ index dc31c1a3..38978a55 100644
          1. Perform GeneratorStart(_G_, |FunctionBody|).
          1. Return Completion Record { [[Type]]: ~return~, [[Value]]: _G_, [[Target]]: ~empty~ }.
        </emu-alg>
-@@ -24197,6 +24198,7 @@
+@@ -24216,6 +24217,7 @@
          1. Perform ? FunctionDeclarationInstantiation(_functionObject_, _argumentsList_).
          1. Let _generator_ be ? OrdinaryCreateFromConstructor(_functionObject_, *"%AsyncGeneratorFunction.prototype.prototype%"*, « [[AsyncGeneratorState]], [[AsyncGeneratorContext]], [[AsyncGeneratorQueue]], [[GeneratorBrand]] »).
          1. Set _generator_.[[GeneratorBrand]] to ~empty~.
@@ -18,7 +18,7 @@ index dc31c1a3..38978a55 100644
          1. Perform AsyncGeneratorStart(_generator_, |FunctionBody|).
          1. Return Completion Record { [[Type]]: ~return~, [[Value]]: _generator_, [[Target]]: ~empty~ }.
        </emu-alg>
-@@ -28928,7 +28930,7 @@
+@@ -28947,7 +28949,7 @@
                1. Let _F_ be _thisEnvRec_.[[FunctionObject]].
                1. Set _inFunction_ to *true*.
                1. Set _inMethod_ to _thisEnvRec_.HasSuperBinding().
@@ -27,7 +27,7 @@ index dc31c1a3..38978a55 100644
                1. Let _classFieldInitializerName_ be _F_.[[ClassFieldInitializerName]].
                1. If _classFieldInitializerName_ is not ~empty~, set _inClassFieldInitializer_ to *true*.
            1. Perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
-@@ -42050,7 +42052,7 @@ THH:mm:ss.sss
+@@ -42073,7 +42075,7 @@ THH:mm:ss.sss
                  1. Perform ? GeneratorYield(CreateIterResultObject(_result_, *false*)).
                  1. NOTE: The number of elements in _entries_ may have increased while execution of this abstract operation was paused by Yield.
                  1. Set _numEntries_ to the number of elements in _entries_.
@@ -36,7 +36,7 @@ index dc31c1a3..38978a55 100644
            1. Return CreateIteratorFromClosure(_closure_, *"%MapIteratorPrototype%"*, %MapIteratorPrototype%).
          </emu-alg>
        </emu-clause>
-@@ -42339,7 +42341,7 @@ THH:mm:ss.sss
+@@ -42362,7 +42364,7 @@ THH:mm:ss.sss
                    1. Perform ? GeneratorYield(CreateIterResultObject(_e_, *false*)).
                  1. NOTE: The number of elements in _entries_ may have increased while execution of this abstract operation was paused by Yield.
                  1. Set _numEntries_ to the number of elements in _entries_.
@@ -45,3 +45,6 @@ index dc31c1a3..38978a55 100644
            1. Return CreateIteratorFromClosure(_closure_, *"%SetIteratorPrototype%"*, %SetIteratorPrototype%).
          </emu-alg>
        </emu-clause>
+-- 
+2.49.0
+

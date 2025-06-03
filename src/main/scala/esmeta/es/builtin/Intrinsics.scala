@@ -57,7 +57,21 @@ case class Intrinsics(cfg: CFG) {
   val names: Set[String] = intrinsics.keySet ++ yets.keySet
 
   /** get intrinsic map */
-  val obj: MapObj = MapObj(names.toList.map(x => Str(s"%$x%") -> intrAddr(x)))
+  val obj: MapObj = MapObj(
+    // TODO remove this ad-hoc alias list when ecma262/#3238 is handled
+    List(
+      Str("%GeneratorFunction.prototype.prototype%") -> intrAddr(
+        "GeneratorPrototype",
+      ),
+      Str("%GeneratorFunction.prototype.prototype.next%") -> intrAddr(
+        "GeneratorPrototype.next",
+      ),
+      Str("%AsyncGeneratorFunction.prototype.prototype%") -> intrAddr(
+        "AsyncGeneratorPrototype",
+      ),
+    ) :::
+    names.toList.map(x => Str(s"%$x%") -> intrAddr(x)),
+  )
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
@@ -772,7 +786,7 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(
         "constructor" -> DataProperty(intrAddr("GeneratorFunction"), F, F, T),
         "prototype" -> DataProperty(
-          intrAddr("GeneratorFunction.prototype.prototype"),
+          intrAddr("GeneratorPrototype"),
           F,
           F,
           T,
@@ -803,7 +817,7 @@ case class Intrinsics(cfg: CFG) {
         DataProperty(intrAddr("AsyncGeneratorFunction"), F, F, T),
         "prototype" ->
         DataProperty(
-          intrAddr("AsyncGeneratorFunction.prototype.prototype"),
+          intrAddr("AsyncGeneratorPrototype"),
           F,
           F,
           T,
@@ -811,8 +825,8 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("AsyncGeneratorFunction"), F, F, T),
       ),
     ),
-    // Generator.prototype == GeneratorFunction.prototype.prototype
-    "GeneratorFunction.prototype.prototype" -> Struct(
+    // Generator.prototype == GeneratorFunction.prototype.prototype == GeneratorPrototype
+    "GeneratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
@@ -823,7 +837,7 @@ case class Intrinsics(cfg: CFG) {
         DataProperty(intrAddr("GeneratorFunction.prototype"), F, F, T),
         // XXX need to be documented
         "next" -> DataProperty(
-          intrAddr("GeneratorFunction.prototype.prototype.next"),
+          intrAddr("GeneratorPrototype.next"),
           T,
           F,
           T,
@@ -831,8 +845,8 @@ case class Intrinsics(cfg: CFG) {
         "@@toStringTag" -> DataProperty(Str("Generator"), F, F, T),
       ),
     ),
-    // AsyncGenerator.prototype == AsyncGeneratorFunction.prototype.prototype
-    "AsyncGeneratorFunction.prototype.prototype" -> Struct(
+    // AsyncGenerator.prototype == AsyncGeneratorFunction.prototype.prototype == AsyncGeneratorPrototype
+    "AsyncGeneratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
