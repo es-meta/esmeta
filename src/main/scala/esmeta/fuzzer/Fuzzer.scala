@@ -33,6 +33,7 @@ object Fuzzer {
     init: Option[String] = None, // initial pool directory path given by user
     kFs: Int = 0,
     cp: Boolean = false,
+    inst: Boolean = false,
   ): Coverage = new Fuzzer(
     cfg,
     log,
@@ -45,6 +46,7 @@ object Fuzzer {
     init,
     kFs,
     cp,
+    inst,
   ).result
 
   // debugging levels
@@ -66,6 +68,7 @@ class Fuzzer(
   init: Option[String],
   kFs: Int,
   cp: Boolean,
+  inst: Boolean,
 ) {
   import Fuzzer.*
 
@@ -96,7 +99,7 @@ class Fuzzer(
         } {
           debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
           i += 1
-          add(code)
+          add(code, Some(0))
         }
       },
     )
@@ -157,7 +160,7 @@ class Fuzzer(
     for ((mutatorName, mutatedCode, info) <- mutants)
       debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-      val result = add(mutatedCode, info)
+      val result = add(mutatedCode, info, Some(iter))
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
@@ -186,20 +189,22 @@ class Fuzzer(
     else CandInfo(interp = optional(cov.run(code)))
 
   /** add new program */
-  def add(code: String): Boolean = add(code, getCandInfo(code))
+  def add(code: String, iter: Option[Int] = None): Boolean =
+    add(code, getCandInfo(code), iter)
 
   /** add new program with precomputed info */
-  def add(code: String, info: CandInfo): Boolean = handleResult(Try {
-    if (info.visited) fail("ALREADY VISITED")
-    visited += code
-    if (info.invalid) fail("INVALID PROGRAM")
-    val script = toScript(code)
-    val interp = info.interp.getOrElse(fail("Interp Fail"))
-    val finalState = interp.result
-    val (_, updated, covered) = cov.check(script, interp)
-    if (!updated) fail("NO UPDATE")
-    covered
-  })
+  def add(code: String, info: CandInfo, iter: Option[Int]): Boolean =
+    handleResult(Try {
+      if (info.visited) fail("ALREADY VISITED")
+      visited += code
+      if (info.invalid) fail("INVALID PROGRAM")
+      val script = toScript(code)
+      val interp = info.interp.getOrElse(fail("Interp Fail"))
+      val finalState = interp.result
+      val (_, updated, covered) = cov.check(script, interp, iter)
+      if (!updated) fail("NO UPDATE")
+      covered
+    })
 
   /** handle add result */
   def handleResult(result: Try[Boolean]): Boolean = {

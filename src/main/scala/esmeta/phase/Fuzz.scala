@@ -39,6 +39,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
       kFs = config.kFs,
       cp = config.cp,
       init = config.init,
+      inst = config.inst,
     )
 
     for (dirname <- config.out) cov.dumpToWithDetail(dirname)
@@ -107,6 +108,11 @@ case object Fuzz extends Phase[CFG, Coverage] {
       NumOption((c, k) => c.kFs = k),
       "set the k-value for feature sensitivity (default: 0).",
     ),
+    (
+      "inst",
+      BoolOption((c, b) => c.inst = b),
+      "instrument the fuzzer to monitor coverage",
+    ),
   )
   case class Config(
     var log: Boolean = false,
@@ -120,5 +126,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var init: Option[String] = None,
     var kFs: Int = 0,
     var cp: Boolean = false,
+    var inst: Boolean = false,
   )
 }
