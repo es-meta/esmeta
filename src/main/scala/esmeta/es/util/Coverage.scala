@@ -37,6 +37,9 @@ case class Coverage(
   // meta-info of each script
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
 
+  // covered condition metadata while fuzzing
+  private var coveredCondMetadata: Map[Cond, (Int, String)] = Map()
+
   // mapping from nodes/conditions to scripts
   private var nodeViewMap: Map[Node, Map[View, Set[Script]]] = Map()
   private var nodeViews: Set[NodeView] = Set()
@@ -102,7 +105,11 @@ case class Coverage(
       Interp(initSt, kFs, cp, timeLimit, isTargetNode, isTargetBranch)
     interp.result; interp
 
-  def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
+  def check(
+    script: Script,
+    interp: Interp,
+    iter: Option[Int] = None,
+  ): (State, Boolean, Boolean) = {
     val Script(code, _) = script
     val finalSt = interp.result
 
@@ -137,8 +144,11 @@ case class Coverage(
     for ((condView, nearest) <- interp.touchedCondViews)
       touchedCondViews += condView -> nearest
       getScripts(condView) match
-        case None =>
+        case None => {
           update(condView, nearest, script); updated = true; covered = true
+          coveredCondMetadata +=
+            condView.cond -> (iter.getOrElse(-1), script.code)
+        }
         case Some(scripts) =>
           if (all) {
             update(condView, nearest, script)
@@ -221,6 +231,14 @@ case class Coverage(
       noSpace = false,
     )
     log("Dumped branch coverage")
+
+    dumpJson(
+      name = "covered condition metadata",
+      data = coveredCondMetadata.toList.sortBy(_._1.id),
+      filename = s"$baseDir/covered-condition-metadata.json",
+      noSpace = false,
+    )
+    log("Dumped covered condition metadata")
 
     if (withScripts)
       dumpDir[Script](
