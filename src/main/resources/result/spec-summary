@@ -1,4 +1,4 @@
-- version: fdde1c9051a76b579610ba2756e16772018effd6
+- version: f5529cab7c58e9cb2512c1c86c004bf903e25ef4
 - grammar:
   - productions: 374
     - lexical: 162
@@ -15,5 +15,5 @@
   - known: 7142
   - yet: 188
   - unknown: 625
-- tables: 94
+- tables: 93
 - type model: 94

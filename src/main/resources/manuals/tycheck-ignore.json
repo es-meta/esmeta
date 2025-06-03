@@ -17,7 +17,6 @@
   "GeneratorBody[0,0].EvaluateGeneratorBody",
   "GetFunctionRealm",
   "GetViewByteLength",
-  "INTRINSICS.Array.prototype.toSpliced",
   "INTRINSICS.AsyncFunction",
   "INTRINSICS.AsyncGeneratorFunction",
   "INTRINSICS.Atomics.add",
