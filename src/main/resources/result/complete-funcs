@@ -367,6 +367,7 @@ CallExpression[7,0].Evaluation
 CallExpression[7,0].HasCallInTailPosition
 CanBeHeldWeakly
 CanonicalNumericIndexString
+CanonicalizeKeyedCollectionKey
 CaseBlock[0,0].CaseBlockEvaluation
 CaseBlock[0,0].ContainsDuplicateLabels
 CaseBlock[0,0].ContainsUndefinedBreakTarget
@@ -1386,6 +1387,10 @@ INTRINSICS.Set.prototype.add
 INTRINSICS.Set.prototype.entries
 INTRINSICS.Set.prototype.forEach
 INTRINSICS.Set.prototype.has
+INTRINSICS.Set.prototype.intersection
+INTRINSICS.Set.prototype.isDisjointFrom
+INTRINSICS.Set.prototype.isSubsetOf
+INTRINSICS.Set.prototype.isSupersetOf
 INTRINSICS.Set.prototype.values
 INTRINSICS.SetIteratorPrototype.next
 INTRINSICS.SharedArrayBuffer
@@ -2201,6 +2206,9 @@ Script[0,0].VarScopedDeclarations
 Script[0,1].ScriptIsStrict
 SerializeJSONProperty
 Set
+SetDataHas
+SetDataIndex
+SetDataSize
 SetDefaultGlobalBindings
 SetFunctionLength
 SetImmutablePrototype
