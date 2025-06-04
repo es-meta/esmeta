@@ -1601,7 +1601,6 @@ IsExtensible
 IsFixedLengthArrayBuffer
 IsGenericDescriptor
 IsInTailPosition
-IsIntegralNumber
 IsLabelledFunction
 IsLessThan
 IsLooselyEqual
