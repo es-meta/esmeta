@@ -1605,7 +1605,6 @@ IsLooselyEqual
 IsNoTearConfiguration
 IsPrivateReference
 IsPromise
-IsPropertyKey
 IsPropertyReference
 IsRegExp
 IsSharedArrayBuffer
