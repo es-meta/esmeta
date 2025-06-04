@@ -604,8 +604,8 @@ CreateDataPropertyOrThrow
 CreateDynamicFunction
 CreateForInIterator
 CreateIntrinsics
-CreateIterResultObject
 CreateIteratorFromClosure
+CreateIteratorResultObject
 CreateListFromArrayLike
 CreateListIteratorRecord
 CreateListIteratorRecord:clo0
