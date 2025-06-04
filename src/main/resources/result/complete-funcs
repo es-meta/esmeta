@@ -1173,7 +1173,7 @@ INTRINSICS.AsyncGeneratorFunction
 INTRINSICS.AsyncGeneratorPrototype.next
 INTRINSICS.AsyncGeneratorPrototype.return
 INTRINSICS.AsyncGeneratorPrototype.throw
-INTRINSICS.AsyncIteratorPrototype[@@asyncIterator]
+INTRINSICS.AsyncIteratorPrototype[%Symbol.asyncIterator%]
 INTRINSICS.Atomics.isLockFree
 INTRINSICS.Atomics.load
 INTRINSICS.Atomics.notify
@@ -1239,7 +1239,7 @@ INTRINSICS.Date.prototype.toJSON
 INTRINSICS.Date.prototype.toString
 INTRINSICS.Date.prototype.toTimeString
 INTRINSICS.Date.prototype.valueOf
-INTRINSICS.Date.prototype[@@toPrimitive]
+INTRINSICS.Date.prototype[%Symbol.toPrimitive%]
 INTRINSICS.Error
 INTRINSICS.Error.prototype.toString
 INTRINSICS.EvalError
@@ -1253,12 +1253,12 @@ INTRINSICS.Function.prototype.apply
 INTRINSICS.Function.prototype.bind
 INTRINSICS.Function.prototype.call
 INTRINSICS.Function.prototype.toString
-INTRINSICS.Function.prototype[@@hasInstance]
+INTRINSICS.Function.prototype[%Symbol.hasInstance%]
 INTRINSICS.GeneratorFunction
 INTRINSICS.GeneratorPrototype.next
 INTRINSICS.GeneratorPrototype.return
 INTRINSICS.GeneratorPrototype.throw
-INTRINSICS.IteratorPrototype[@@iterator]
+INTRINSICS.IteratorPrototype[%Symbol.iterator%]
 INTRINSICS.Map
 INTRINSICS.Map.groupBy
 INTRINSICS.Map.prototype.clear
@@ -1376,11 +1376,11 @@ INTRINSICS.RegExp
 INTRINSICS.RegExp.prototype.exec
 INTRINSICS.RegExp.prototype.test
 INTRINSICS.RegExp.prototype.toString
-INTRINSICS.RegExp.prototype[@@matchAll]
-INTRINSICS.RegExp.prototype[@@match]
-INTRINSICS.RegExp.prototype[@@replace]
-INTRINSICS.RegExp.prototype[@@search]
-INTRINSICS.RegExp.prototype[@@split]
+INTRINSICS.RegExp.prototype[%Symbol.match%]
+INTRINSICS.RegExp.prototype[%Symbol.matchAll%]
+INTRINSICS.RegExp.prototype[%Symbol.replace%]
+INTRINSICS.RegExp.prototype[%Symbol.search%]
+INTRINSICS.RegExp.prototype[%Symbol.split%]
 INTRINSICS.RegExpStringIteratorPrototype.next
 INTRINSICS.Set
 INTRINSICS.Set.prototype.add
@@ -1424,15 +1424,15 @@ INTRINSICS.String.prototype.trim
 INTRINSICS.String.prototype.trimEnd
 INTRINSICS.String.prototype.trimStart
 INTRINSICS.String.prototype.valueOf
-INTRINSICS.String.prototype[@@iterator]
-INTRINSICS.String.prototype[@@iterator]:clo0
+INTRINSICS.String.prototype[%Symbol.iterator%]
+INTRINSICS.String.prototype[%Symbol.iterator%]:clo0
 INTRINSICS.String.raw
 INTRINSICS.StringIteratorPrototype.next
 INTRINSICS.Symbol
 INTRINSICS.Symbol.keyFor
 INTRINSICS.Symbol.prototype.toString
 INTRINSICS.Symbol.prototype.valueOf
-INTRINSICS.Symbol.prototype[@@toPrimitive]
+INTRINSICS.Symbol.prototype[%Symbol.toPrimitive%]
 INTRINSICS.SyntaxError
 INTRINSICS.ThrowTypeError
 INTRINSICS.TypeError
@@ -1487,15 +1487,15 @@ INTRINSICS.get ArrayBuffer.prototype.byteLength
 INTRINSICS.get ArrayBuffer.prototype.detached
 INTRINSICS.get ArrayBuffer.prototype.maxByteLength
 INTRINSICS.get ArrayBuffer.prototype.resizable
-INTRINSICS.get ArrayBuffer[@@species]
-INTRINSICS.get Array[@@species]
+INTRINSICS.get ArrayBuffer[%Symbol.species%]
+INTRINSICS.get Array[%Symbol.species%]
 INTRINSICS.get DataView.prototype.buffer
 INTRINSICS.get DataView.prototype.byteLength
 INTRINSICS.get DataView.prototype.byteOffset
 INTRINSICS.get Map.prototype.size
-INTRINSICS.get Map[@@species]
+INTRINSICS.get Map[%Symbol.species%]
 INTRINSICS.get Object.prototype.__proto__
-INTRINSICS.get Promise[@@species]
+INTRINSICS.get Promise[%Symbol.species%]
 INTRINSICS.get RegExp.prototype.dotAll
 INTRINSICS.get RegExp.prototype.global
 INTRINSICS.get RegExp.prototype.hasIndices
@@ -1505,19 +1505,19 @@ INTRINSICS.get RegExp.prototype.source
 INTRINSICS.get RegExp.prototype.sticky
 INTRINSICS.get RegExp.prototype.unicode
 INTRINSICS.get RegExp.prototype.unicodeSets
-INTRINSICS.get RegExp[@@species]
+INTRINSICS.get RegExp[%Symbol.species%]
 INTRINSICS.get Set.prototype.size
-INTRINSICS.get Set[@@species]
+INTRINSICS.get Set[%Symbol.species%]
 INTRINSICS.get SharedArrayBuffer.prototype.byteLength
 INTRINSICS.get SharedArrayBuffer.prototype.growable
 INTRINSICS.get SharedArrayBuffer.prototype.maxByteLength
-INTRINSICS.get SharedArrayBuffer[@@species]
+INTRINSICS.get SharedArrayBuffer[%Symbol.species%]
 INTRINSICS.get Symbol.prototype.description
 INTRINSICS.get TypedArray.prototype.buffer
 INTRINSICS.get TypedArray.prototype.byteLength
 INTRINSICS.get TypedArray.prototype.byteOffset
-INTRINSICS.get TypedArray.prototype[@@toStringTag]
-INTRINSICS.get TypedArray[@@species]
+INTRINSICS.get TypedArray.prototype[%Symbol.toStringTag%]
+INTRINSICS.get TypedArray[%Symbol.species%]
 INTRINSICS.isFinite
 INTRINSICS.isNaN
 INTRINSICS.print

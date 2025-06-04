@@ -272,7 +272,9 @@ trait Parsers extends LangParsers {
       opt("%") ~> name <~ opt("%") ^^ { Base(_) }
     lazy val access: Parser[Path => Path] =
       "." ~> name ^^ { case n => NormalAccess(_, n) } |
-      "[" ~> "@@" ~> name <~ "]" ^^ { case s => SymbolAccess(_, s) }
+      "[" ~> "%Symbol." ~> name <~ "%" <~ "]" ^^ {
+        case s => SymbolAccess(_, s)
+      }
     pre ~ base ~ rep(access) <~ (guard("(") | not(".".r)) ^^ {
       case p ~ b ~ as => p(as.foldLeft(b) { case (b, a) => a(b) })
     } | yet ^^ { YetPath(_) }

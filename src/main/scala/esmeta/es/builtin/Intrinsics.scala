@@ -143,8 +143,8 @@ case class Intrinsics(cfg: CFG) {
         "length" -> DataProperty(Number(0.0), F, F, T),
         "name" -> DataProperty(Str(""), F, F, T),
         "constructor" -> DataProperty(intrAddr("Function"), T, F, T),
-        "@@hasInstance" -> DataProperty(
-          intrAddr("Function.prototype[@@hasInstance]"),
+        "%Symbol.hasInstance%" -> DataProperty(
+          intrAddr("Function.prototype[%Symbol.hasInstance%]"),
           F,
           F,
           F,
@@ -206,9 +206,14 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("Symbol"), T, F, T),
-        "@@toPrimitive" ->
-        DataProperty(intrAddr("Symbol.prototype[@@toPrimitive]"), F, F, T),
-        "@@toStringTag" -> DataProperty(Str("Symbol"), F, F, T),
+        "%Symbol.toPrimitive%" ->
+        DataProperty(
+          intrAddr("Symbol.prototype[%Symbol.toPrimitive%]"),
+          F,
+          F,
+          T,
+        ),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Symbol"), F, F, T),
       ),
     ),
     "Error" -> Struct(
@@ -288,7 +293,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("BigInt"), T, F, T),
-        "@@toStringTag" -> DataProperty(Str("BigInt"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("BigInt"), F, F, T),
       ),
     ),
     "Math" -> Struct(
@@ -306,7 +311,7 @@ case class Intrinsics(cfg: CFG) {
         "PI" -> DataProperty(Number(3.1415926535897932), F, F, F),
         "SQRT1_2" -> DataProperty(Number(0.7071067811865476), F, F, F),
         "SQRT2" -> DataProperty(Number(1.4142135623730951), F, F, F),
-        "@@toStringTag" -> DataProperty(Str("Math"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Math"), F, F, T),
       ),
     ),
     "Math.hypot" -> Struct(
@@ -459,7 +464,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
-        "@@toStringTag" -> DataProperty(Str("String Iterator"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("String Iterator"), F, F, T),
       ),
     ),
     "RegExp" -> Struct(
@@ -500,10 +505,10 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(
         "length" -> DataProperty(Number(0.0), T, F, F),
         "constructor" -> DataProperty(intrAddr("Array"), T, F, T),
-        "@@iterator" ->
+        "%Symbol.iterator%" ->
         DataProperty(intrAddr("Array.prototype.values"), T, F, T),
-        "@@unscopables" ->
-        DataProperty(intrAddr("Array.prototype[@@unscopables]"), F, F, T),
+        "%Symbol.unscopables%" ->
+        DataProperty(intrAddr("Array.prototype[%Symbol.unscopables%]"), F, F, T),
       ),
     ),
     "Array.prototype.concat" -> Struct(
@@ -524,7 +529,7 @@ case class Intrinsics(cfg: CFG) {
         "length" -> DataProperty(Number(1.0), F, F, T),
       ),
     ),
-    "Array.prototype[@@unscopables]" -> Struct(
+    "Array.prototype[%Symbol.unscopables%]" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
@@ -556,7 +561,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
-        "@@toStringTag" -> DataProperty(Str("Array Iterator"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Array Iterator"), F, F, T),
       ),
     ),
     "Map" -> Struct(
@@ -576,9 +581,9 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("Map"), T, F, T),
-        "@@iterator" ->
+        "%Symbol.iterator%" ->
         DataProperty(intrAddr("Map.prototype.entries"), T, F, T),
-        "@@toStringTag" -> DataProperty(Str("Map"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Map"), F, F, T),
       ),
     ),
     "MapIteratorPrototype" -> Struct(
@@ -588,7 +593,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
-        "@@toStringTag" -> DataProperty(Str("Map Iterator"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Map Iterator"), F, F, T),
       ),
     ),
     "Set" -> Struct(
@@ -609,8 +614,13 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(
         "constructor" -> DataProperty(intrAddr("Set"), T, F, T),
         "keys" -> DataProperty(intrAddr("Set.prototype.values"), T, F, T),
-        "@@iterator" -> DataProperty(intrAddr("Set.prototype.values"), T, F, T),
-        "@@toStringTag" -> DataProperty(Str("Set"), F, F, T),
+        "%Symbol.iterator%" -> DataProperty(
+          intrAddr("Set.prototype.values"),
+          T,
+          F,
+          T,
+        ),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Set"), F, F, T),
       ),
     ),
     "SetIteratorPrototype" -> Struct(
@@ -620,7 +630,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("IteratorPrototype"),
       ),
       nmap = List(
-        "@@toStringTag" -> DataProperty(Str("Set Iterator"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Set Iterator"), F, F, T),
       ),
     ),
     "WeakMap" -> Struct(
@@ -640,7 +650,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("WeakMap"), T, F, T),
-        "@@toStringTag" -> DataProperty(Str("WeakMap"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("WeakMap"), F, F, T),
       ),
     ),
     "WeakSet" -> Struct(
@@ -660,7 +670,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("WeakSet"), T, F, T),
-        "@@toStringTag" -> DataProperty(Str("WeakSet"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("WeakSet"), F, F, T),
       ),
     ),
     "ArrayBuffer" -> Struct(
@@ -680,7 +690,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("ArrayBuffer"), T, F, T),
-        "@@toStringTag" -> DataProperty(Str("ArrayBuffer"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("ArrayBuffer"), F, F, T),
       ),
     ),
     "JSON" -> Struct(
@@ -690,7 +700,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "@@toStringTag" -> DataProperty(Str("JSON"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("JSON"), F, F, T),
       ),
     ),
     "JSON.parse" -> Struct(
@@ -713,9 +723,9 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("Map"), T, F, T),
-        "@@iterator" ->
+        "%Symbol.iterator%" ->
         DataProperty(intrAddr("Map.prototype.entries"), T, F, T),
-        "@@toStringTag" -> DataProperty(Str("Map"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Map"), F, F, T),
       ),
     ),
     "IteratorPrototype" -> Struct(
@@ -762,7 +772,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("Promise"), T, F, T),
-        "@@toStringTag" -> DataProperty(Str("Promise"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Promise"), F, F, T),
       ),
     ),
     "GeneratorFunction" -> Struct(
@@ -791,7 +801,12 @@ case class Intrinsics(cfg: CFG) {
           F,
           T,
         ),
-        "@@toStringTag" -> DataProperty(Str("GeneratorFunction"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(
+          Str("GeneratorFunction"),
+          F,
+          F,
+          T,
+        ),
       ),
     ),
     "AsyncGeneratorFunction" -> Struct(
@@ -822,7 +837,12 @@ case class Intrinsics(cfg: CFG) {
           F,
           T,
         ),
-        "@@toStringTag" -> DataProperty(Str("AsyncGeneratorFunction"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(
+          Str("AsyncGeneratorFunction"),
+          F,
+          F,
+          T,
+        ),
       ),
     ),
     // Generator.prototype == GeneratorFunction.prototype.prototype == GeneratorPrototype
@@ -842,7 +862,7 @@ case class Intrinsics(cfg: CFG) {
           F,
           T,
         ),
-        "@@toStringTag" -> DataProperty(Str("Generator"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Generator"), F, F, T),
       ),
     ),
     // AsyncGenerator.prototype == AsyncGeneratorFunction.prototype.prototype == AsyncGeneratorPrototype
@@ -855,7 +875,7 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(
         "constructor" ->
         DataProperty(intrAddr("AsyncGeneratorFunction.prototype"), F, F, T),
-        "@@toStringTag" -> DataProperty(Str("AsyncGenerator"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("AsyncGenerator"), F, F, T),
       ),
     ),
     "AsyncFunction" -> Struct(
@@ -879,7 +899,7 @@ case class Intrinsics(cfg: CFG) {
       ),
       nmap = List(
         "constructor" -> DataProperty(intrAddr("AsyncFunction"), F, F, T),
-        "@@toStringTag" -> DataProperty(Str("AsyncFunction"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("AsyncFunction"), F, F, T),
       ),
     ),
     "Reflect" -> Struct(
@@ -889,7 +909,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "@@toStringTag" -> DataProperty(Str("Reflect"), F, F, T),
+        "%Symbol.toStringTag%" -> DataProperty(Str("Reflect"), F, F, T),
       ),
     ),
     "Proxy" -> Struct(

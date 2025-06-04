@@ -602,7 +602,7 @@ trait Parsers extends IndentParsers {
     strLiteral <~ opt("\\([^)]*\\)".r) |
     fieldLiteral |
     errObjLiteral |
-    "@@" ~> word ^^ { SymbolLiteral(_) } |
+    "%Symbol." ~> word <~ "%" ^^ { SymbolLiteral(_) } |
     "+∞" ^^! PositiveInfinityMathValueLiteral() |
     "-∞" ^^! NegativeInfinityMathValueLiteral() |
     opt(int) ~ "π" ^^ {
@@ -1222,7 +1222,9 @@ trait Parsers extends IndentParsers {
   // metalanguage intrinsics
   // ---------------------------------------------------------------------------
   given intr: PL[Intrinsic] = {
-    opt("the intrinsic function") ~ "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
+    opt("the intrinsic function") ~ "%" ~> not("Symbol.") ~> (word ~ rep(
+      "." ~> word,
+    )) <~ "%" ^^ {
       case b ~ ps => Intrinsic(b, ps)
     }
   }.named("lang.Intrinsic")

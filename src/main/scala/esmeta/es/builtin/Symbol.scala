@@ -12,7 +12,9 @@ case class Symbol(cfg: CFG) {
 
   private lazy val symbols: List[String] = (for {
     row <- spec.tables(WELL_KNOWN_SYMBOLS).rows
-    symbolField <- row.headOption.map(_.stripPrefix("@@"))
+    symbolField <- row.headOption.map(
+      _.stripPrefix("%Symbol.").stripSuffix("%"),
+    )
   } yield symbolField)
 
   /** get symbol record */

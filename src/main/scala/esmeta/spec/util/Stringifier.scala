@@ -201,7 +201,7 @@ object Stringifier {
       case Getter(base)             => app >> "get " >> base
       case Setter(base)             => app >> "set " >> base
       case SymbolAccess(base, symbol) =>
-        app >> base >> "[@@" >> symbol >> "]"
+        app >> base >> "[%Symbol." >> symbol >> "%]"
       case YetPath(name) => app >> "yet:" >> name.replace(" ", "")
 
   // for syntax-directed operation head targets

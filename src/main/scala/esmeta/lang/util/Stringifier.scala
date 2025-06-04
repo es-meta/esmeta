@@ -504,7 +504,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           .replace("*", "\\*")
         app >> "*\"" >> replaced >> "\"*"
       case FieldLiteral(name) => app >> "[[" >> name >> "]]"
-      case SymbolLiteral(sym) => app >> "@@" >> sym
+      case SymbolLiteral(sym) => app >> "%Symbol." >> sym >> "%"
       case ProductionLiteral(lhs, rhs) =>
         app >> "<emu-grammar>" >> lhs >> " : " >> rhs >> "</emu-grammar>"
       case ErrorObjectLiteral(name) =>
