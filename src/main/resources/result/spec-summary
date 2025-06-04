@@ -1,4 +1,4 @@
-- version: 977a6c4ff9ce6343364b5222a8d7de2db9a2cca1
+- version: 052defa71cdbeae7d62cb893830446e4ae059311
 - grammar:
   - productions: 374
     - lexical: 162
@@ -8,8 +8,8 @@
 - algorithms: 2772 (88.49%)
   - complete: 2453
   - incomplete: 319
-- algorithm steps: 20501 (96.92%)
-  - complete: 19869
+- algorithm steps: 20503 (96.92%)
+  - complete: 19871
   - incomplete: 632
 - types: 7329 (97.43%)
   - known: 7141
