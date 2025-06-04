@@ -612,7 +612,6 @@ CreateMapIterator
 CreateMapIterator:clo0
 CreateNonEnumerableDataPropertyOrThrow
 CreatePerIterationEnvironment
-CreateRealm
 CreateRegExpStringIterator
 CreateRegExpStringIterator:clo0
 CreateResolvingFunctions
@@ -1572,7 +1571,6 @@ ImportsList[1,0].BoundNames
 ImportsList[1,0].ImportEntriesForModule
 InLeapYear
 InitializeBoundName
-InitializeHostDefinedRealm
 InitializeInstanceElements
 InitializeReferencedBinding
 InitializeTypedArrayFromArrayBuffer
@@ -2207,7 +2205,6 @@ SetDefaultGlobalBindings
 SetFunctionLength
 SetImmutablePrototype
 SetIntegrityLevel
-SetRealmGlobalObject
 SetTypedArrayFromArrayLike
 SetTypedArrayFromTypedArray
 ShiftExpression[1,0].AssignmentTargetType

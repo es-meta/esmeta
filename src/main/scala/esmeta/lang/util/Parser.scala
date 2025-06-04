@@ -1112,7 +1112,13 @@ trait Parsers extends IndentParsers {
     case r ~ n =>
       val ref = PropertyReference(r, FieldProperty("initialized"))
       IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
-  }
+  } | {
+    // InitializeHostDefinedRealm
+    "the host requires use of an exotic object to serve as _realm_'s global object" |
+    "the host requires that the `this` binding in _realm_'s global scope return an object other than the global object"
+  } ^^! getExprCond(
+    FalseLiteral(),
+  )
 
   // ---------------------------------------------------------------------------
   // metalanguage references
