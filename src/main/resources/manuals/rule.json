@@ -73,6 +73,7 @@
     "Let _privateName_ be the Private Name in _names_ whose [[Description]] is _privateIdentifier_.": "{ let idx = 0 while (< idx (sizeof names)) { let elem = names[idx] if (= elem.Description privateIdentifier) let privateName = elem idx = (+ idx 1) } }",
     "Let _realmRec_ be a new Realm Record.": "let realmRec = @REALM",
     "Let _result_ be the Completion Record that is <emu-meta effects=\"user-code\">the result of evaluating</emu-meta> _F_ in a manner that conforms to the specification of _F_. If _thisArgument_ is ~uninitialized~, the *this* value is uninitialized; otherwise, _thisArgument_ provides the *this* value. _argumentsList_ provides the named parameters. _newTarget_ provides the NewTarget value.": "if (= thisArgument ~uninitialized~) call result = F.__CODE__(undefined, argumentsList, newTarget) else call result = F.__CODE__(thisArgument, argumentsList, undefined)",
+    "Let _strict_ be IsStrict(the syntactic production that is being evaluated).": "let strict = true",
     "Let _sourceText_ be the source code of a script.": "let sourceText = @SOURCE_TEXT",
     "Perform any necessary implementation-defined initialization of _calleeContext_.": "nop",
     "Remove the own property with name _P_ from _O_.": "delete O.__MAP__[P]",

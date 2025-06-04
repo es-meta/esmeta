@@ -1527,6 +1527,7 @@ INTRINSICS.yet:`Promise.any`RejectElementFunction
 IdentifierName[0,0].IdentifierCodePoints
 IdentifierName[0,0].StringValue
 IdentifierName[1,0].StringValue
+IdentifierReference[0,0].AssignmentTargetType
 IdentifierReference[0,0].ContainsArguments
 IdentifierReference[0,0].Evaluation
 IdentifierReference[1,0].AssignmentTargetType
@@ -1608,6 +1609,7 @@ IsPropertyKey
 IsPropertyReference
 IsRegExp
 IsSharedArrayBuffer
+IsStrict
 IsStrictlyEqual
 IsStringWellFormedUnicode
 IsSuperReference
@@ -2194,12 +2196,12 @@ ScriptBody[0,0].VarDeclaredNames
 ScriptBody[0,0].VarScopedDeclarations
 ScriptEvaluation
 Script[0,0].Evaluation
-Script[0,0].IsStrict
 Script[0,0].LexicallyDeclaredNames
 Script[0,0].LexicallyScopedDeclarations
+Script[0,0].ScriptIsStrict
 Script[0,0].VarDeclaredNames
 Script[0,0].VarScopedDeclarations
-Script[0,1].IsStrict
+Script[0,1].ScriptIsStrict
 SerializeJSONProperty
 Set
 SetDefaultGlobalBindings
@@ -2330,6 +2332,7 @@ StrUnsignedDecimalLiteral[3,1].StringNumericValue
 StringCreate
 StringGetOwnProperty
 StringIndexOf
+StringLastIndexOf
 StringNumericLiteral[0,0].StringNumericValue
 StringNumericLiteral[0,1].StringNumericValue
 StringNumericLiteral[1,0].StringNumericValue
