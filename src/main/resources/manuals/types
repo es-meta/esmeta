@@ -610,7 +610,7 @@ type Iterator extends Object
 
 // https://tc39.es/ecma262/#script-record
 type ScriptRecord {
-  Realm: Record[RealmRecord] | Undefined;
+  Realm: Record[RealmRecord];
   ECMAScriptCode: Ast[Script];
   LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecord] }]];
   HostDefined: Enum[~empty~];
