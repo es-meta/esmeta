@@ -772,7 +772,8 @@ trait Parsers extends IndentParsers {
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
-    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs ^^ {
+    // handle emu-meta tag
+    tagged("(this)?[A-Z][a-zA-Z0-9/]*".r) ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractOperationExpression(x, as)
     }
 
