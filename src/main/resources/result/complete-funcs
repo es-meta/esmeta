@@ -1353,6 +1353,7 @@ INTRINSICS.Promise.prototype.then
 INTRINSICS.Promise.race
 INTRINSICS.Promise.reject
 INTRINSICS.Promise.resolve
+INTRINSICS.Promise.try
 INTRINSICS.Promise.withResolvers
 INTRINSICS.Proxy
 INTRINSICS.Proxy.revocable
@@ -2181,6 +2182,7 @@ RequireObjectCoercible
 ResolveBinding
 ResolvePrivateIdentifier
 ResolveThisBinding
+ReturnCompletion
 ReturnStatement[0,0].Evaluation
 ReturnStatement[0,0].HasCallInTailPosition
 ReturnStatement[1,0].Evaluation
