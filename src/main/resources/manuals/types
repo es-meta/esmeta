@@ -828,7 +828,7 @@ type Generator extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-asyncgenerator-intances
 type AsyncGenerator extends OrdinaryObject {
-  AsyncGeneratorState: Enum[~suspended-start~, ~suspended-yield~, ~executing~, ~awaiting-return~, ~completed~];
+  AsyncGeneratorState: Enum[~suspended-start~, ~suspended-yield~, ~executing~, ~draining-queue~, ~completed~];
   AsyncGeneratorContext: Record[ExecutionContext];
   AsyncGeneratorQueue: List[Record[AsyncGeneratorRequest]];
   GeneratorBrand: String | Enum[~empty~];
