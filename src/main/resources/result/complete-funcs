@@ -2188,6 +2188,7 @@ ReturnStatement[1,0].HasCallInTailPosition
 RevalidateAtomicAccess
 RunJobs
 RunJobs:clo0
+SameType
 SameValue
 SameValueNonNumber
 SameValueZero
