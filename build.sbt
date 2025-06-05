@@ -149,7 +149,8 @@ ThisBuild / assemblyPrependShellScript := Some(
 )
 
 // library versions
-val CirceVersion = "0.14.10"
+val CirceVersion = "0.14.7"
+val CirceYamlVersion = "0.16.0"
 val AkkaVersion = "2.10.5"
 val AkkaHttpVersion = "10.7.1"
 
@@ -164,6 +165,7 @@ lazy val root = project
       "io.circe" %% "circe-core" % CirceVersion,
       "io.circe" %% "circe-generic" % CirceVersion,
       "io.circe" %% "circe-parser" % CirceVersion,
+      "io.circe" %% "circe-yaml-scalayaml" % CirceYamlVersion,
       "org.scalatest" %% "scalatest" % "3.2.19" % Test,
       "org.apache.commons" % "commons-text" % "1.13.0",
       "org.jsoup" % "jsoup" % "1.18.3",
