@@ -1,8 +1,8 @@
 diff --git a/spec.html b/spec.html
-index 21c03878..0e2fdbf1 100644
+index 7d72456f..e5159c66 100644
 --- a/spec.html
 +++ b/spec.html
-@@ -29065,7 +29065,7 @@
+@@ -29080,7 +29080,7 @@
                1. Let _F_ be _thisEnvRec_.[[FunctionObject]].
                1. Set _inFunction_ to *true*.
                1. Set _inMethod_ to _thisEnvRec_.HasSuperBinding().
@@ -11,7 +11,7 @@ index 21c03878..0e2fdbf1 100644
                1. Let _classFieldInitializerName_ be _F_.[[ClassFieldInitializerName]].
                1. If _classFieldInitializerName_ is not ~empty~, set _inClassFieldInitializer_ to *true*.
            1. Perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
-@@ -42181,7 +42181,7 @@ THH:mm:ss.sss
+@@ -42196,7 +42196,7 @@ THH:mm:ss.sss
                  1. Perform ? GeneratorYield(CreateIteratorResultObject(_result_, *false*)).
                  1. NOTE: The number of elements in _entries_ may have increased while execution of this abstract operation was paused by Yield.
                  1. Set _numEntries_ to the number of elements in _entries_.
@@ -20,7 +20,7 @@ index 21c03878..0e2fdbf1 100644
            1. Return CreateIteratorFromClosure(_closure_, *"%MapIteratorPrototype%"*, %MapIteratorPrototype%).
          </emu-alg>
        </emu-clause>
-@@ -42811,7 +42811,7 @@ THH:mm:ss.sss
+@@ -42826,7 +42826,7 @@ THH:mm:ss.sss
                    1. Perform ? GeneratorYield(CreateIteratorResultObject(_e_, *false*)).
                  1. NOTE: The number of elements in _entries_ may have increased while execution of this abstract operation was paused by Yield.
                  1. Set _numEntries_ to the number of elements in _entries_.
@@ -29,7 +29,7 @@ index 21c03878..0e2fdbf1 100644
            1. Return CreateIteratorFromClosure(_closure_, *"%SetIteratorPrototype%"*, %SetIteratorPrototype%).
          </emu-alg>
        </emu-clause>
-@@ -48289,7 +48289,7 @@ THH:mm:ss.sss
+@@ -48304,7 +48304,7 @@ THH:mm:ss.sss
            1. Let _internalSlotsList_ be « [[GeneratorState]], [[GeneratorContext]], [[GeneratorBrand]] ».
            1. Let _generator_ be OrdinaryObjectCreate(_generatorPrototype_, _internalSlotsList_).
            1. Set _generator_.[[GeneratorBrand]] to _generatorBrand_.
