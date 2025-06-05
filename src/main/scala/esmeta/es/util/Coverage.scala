@@ -1,6 +1,6 @@
 package esmeta.es.util
 
-import esmeta.{LINE_SEP, TEST262TEST_LOG_DIR, FUZZ_LOG_DIR}
+import esmeta.{LINE_SEP, TEST262TEST_LOG_DIR}
 import esmeta.cfg.*
 import esmeta.injector.*
 import esmeta.interpreter.*
@@ -10,12 +10,10 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.Interp
 import esmeta.state.*
 import esmeta.util.*
-import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 import scala.collection.immutable.BitSet
 import java.util.Base64
-import java.io.PrintWriter
 
 /** coverage measurement of cfg */
 case class Coverage(
@@ -75,10 +73,6 @@ case class Coverage(
   def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
 
   private lazy val scriptParser = cfg.scriptParser
-
-  private lazy val pw: PrintWriter = getPrintWriter(
-    s"$FUZZ_LOG_DIR/fuzz-$dateStr/coverage-info.tsv",
-  )
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
@@ -149,15 +143,6 @@ case class Coverage(
       getScripts(condView) match
         case None => {
           update(condView, nearest, script); updated = true; covered = true
-          val covInfo = List(
-            cfg.funcOf(cfg.nodeMap(condView.cond.id)).name,
-            condView.cond.branch.loc
-              .flatMap(loc => Some(loc.stepString))
-              .getOrElse("NOT_FOUND"),
-            condView.cond.cond,
-            iter.getOrElse(-1),
-          )
-          pw.println(covInfo.mkString("\t"))
         }
         case Some(scripts) =>
           if (all) {
