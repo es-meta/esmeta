@@ -123,19 +123,21 @@ case class Coverage(
       getScripts(nodeView) match
         case None => update(nodeView, script); updated = true; covered = true
         case Some(scripts) =>
-          if (all) {
-            update(nodeView, script)
-            updated = true
-          } else {
-            val originalScript = scripts.head
-            if (originalScript.code.length > code.length) {
-              update(nodeView, script)
-              updated = true
-              blockingScripts += originalScript
-            } else {
-              blockingScripts += script
-            }
-          }
+          // !FIXME: Temporarily ignored to choose minimal script
+          // if (all) {
+          //   update(nodeView, script)
+          //   updated = true
+          // } else {
+          //   val originalScript = scripts.head
+          //   if (originalScript.code.length > code.length) {
+          //     update(nodeView, script)
+          //     updated = true
+          //     blockingScripts += originalScript
+          //   } else {
+          //     blockingScripts += script
+          //   }
+          // }
+          update(nodeView, script); updated = true
 
     // update branch coverage
     for ((condView, nearest) <- interp.touchedCondViews)
@@ -145,19 +147,21 @@ case class Coverage(
           update(condView, nearest, script); updated = true; covered = true
         }
         case Some(scripts) =>
-          if (all) {
-            update(condView, nearest, script)
-            updated = true
-          } else {
-            val originalScript = scripts.head
-            if (originalScript.code.length > code.length) {
-              update(condView, nearest, script)
-              updated = true
-              blockingScripts += originalScript
-            } else {
-              blockingScripts += script
-            }
-          }
+          // !FIXME: Temporarily ignored to choose minimal script
+          // if (all) {
+          //   update(condView, nearest, script)
+          //   updated = true
+          // } else {
+          //   val originalScript = scripts.head
+          //   if (originalScript.code.length > code.length) {
+          //     update(condView, nearest, script)
+          //     updated = true
+          //     blockingScripts += originalScript
+          //   } else {
+          //     blockingScripts += script
+          //   }
+          // }
+          update(condView, nearest, script); updated = true
 
     if (!all && updated)
       _minimalInfo += script.name -> ScriptInfo(
