@@ -461,7 +461,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
         "%Symbol.toStringTag%" -> DataProperty(Str("String Iterator"), F, F, T),
@@ -558,7 +558,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
         "%Symbol.toStringTag%" -> DataProperty(Str("Array Iterator"), F, F, T),
@@ -590,7 +590,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
         "%Symbol.toStringTag%" -> DataProperty(Str("Map Iterator"), F, F, T),
@@ -627,7 +627,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
         "%Symbol.toStringTag%" -> DataProperty(Str("Set Iterator"), F, F, T),
@@ -728,7 +728,7 @@ case class Intrinsics(cfg: CFG) {
         "%Symbol.toStringTag%" -> DataProperty(Str("Map"), F, F, T),
       ),
     ),
-    "IteratorPrototype" -> Struct(
+    "Iterator.prototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
@@ -738,7 +738,7 @@ case class Intrinsics(cfg: CFG) {
     "ForInIteratorPrototype" -> Struct(
       typeName = "OrdinaryObject",
       imap = List(
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("Iterator.prototype"),
       ),
     ),
     "AsyncIteratorPrototype" -> Struct(
@@ -850,7 +850,7 @@ case class Intrinsics(cfg: CFG) {
       typeName = "OrdinaryObject",
       imap = List(
         "Extensible" -> Bool(true),
-        "Prototype" -> intrAddr("IteratorPrototype"),
+        "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
         "constructor" ->
@@ -954,6 +954,26 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(
         "length" -> DataProperty(Number(0.0), F, F, F),
         "name" -> DataProperty(Str(""), F, F, F),
+      ),
+    ),
+    "Iterator" -> Struct(
+      typeName = "OrdinaryObject",
+      imap = List(
+        "Extensible" -> Bool(true),
+        "Prototype" -> intrAddr("Function.prototype"),
+      ),
+      nmap = List(
+        "%Symbol.toStringTag%" -> DataProperty(Str("Iterator"), F, F, T),
+      ),
+    ),
+    "IteratorHelperPrototype" -> Struct(
+      typeName = "OrdinaryObject",
+      imap = List(
+        "Extensible" -> Bool(true),
+        "Prototype" -> intrAddr("Iterator.prototype"),
+      ),
+      nmap = List(
+        "%Symbol.toStringTag%" -> DataProperty(Str("Iterator Helper"), F, F, T),
       ),
     ),
   )
