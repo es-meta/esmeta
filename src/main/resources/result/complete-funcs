@@ -1074,6 +1074,8 @@ GetGeneratorKind
 GetGlobalObject
 GetIdentifierReference
 GetIterator
+GetIteratorDirect
+GetIteratorFlattenable
 GetIteratorFromMethod
 GetMethod
 GetModuleNamespace
@@ -1258,7 +1260,27 @@ INTRINSICS.GeneratorFunction
 INTRINSICS.GeneratorPrototype.next
 INTRINSICS.GeneratorPrototype.return
 INTRINSICS.GeneratorPrototype.throw
-INTRINSICS.IteratorPrototype[%Symbol.iterator%]
+INTRINSICS.Iterator
+INTRINSICS.Iterator.from
+INTRINSICS.Iterator.prototype.drop
+INTRINSICS.Iterator.prototype.drop:clo0
+INTRINSICS.Iterator.prototype.every
+INTRINSICS.Iterator.prototype.filter
+INTRINSICS.Iterator.prototype.filter:clo0
+INTRINSICS.Iterator.prototype.find
+INTRINSICS.Iterator.prototype.flatMap
+INTRINSICS.Iterator.prototype.flatMap:clo0
+INTRINSICS.Iterator.prototype.forEach
+INTRINSICS.Iterator.prototype.map
+INTRINSICS.Iterator.prototype.map:clo0
+INTRINSICS.Iterator.prototype.reduce
+INTRINSICS.Iterator.prototype.some
+INTRINSICS.Iterator.prototype.take
+INTRINSICS.Iterator.prototype.take:clo0
+INTRINSICS.Iterator.prototype.toArray
+INTRINSICS.Iterator.prototype[%Symbol.iterator%]
+INTRINSICS.IteratorHelperPrototype.next
+INTRINSICS.IteratorHelperPrototype.return
 INTRINSICS.Map
 INTRINSICS.Map.groupBy
 INTRINSICS.Map.prototype.clear
@@ -1479,6 +1501,8 @@ INTRINSICS.WeakRef.prototype.deref
 INTRINSICS.WeakSet
 INTRINSICS.WeakSet.prototype.add
 INTRINSICS.WeakSet.prototype.has
+INTRINSICS.WrapForValidIteratorPrototype.next
+INTRINSICS.WrapForValidIteratorPrototype.return
 INTRINSICS.decodeURI
 INTRINSICS.decodeURIComponent
 INTRINSICS.encodeURI
@@ -1493,6 +1517,8 @@ INTRINSICS.get Array[%Symbol.species%]
 INTRINSICS.get DataView.prototype.buffer
 INTRINSICS.get DataView.prototype.byteLength
 INTRINSICS.get DataView.prototype.byteOffset
+INTRINSICS.get Iterator.prototype.constructor
+INTRINSICS.get Iterator.prototype[%Symbol.toStringTag%]
 INTRINSICS.get Map.prototype.size
 INTRINSICS.get Map[%Symbol.species%]
 INTRINSICS.get Object.prototype.__proto__
@@ -1522,6 +1548,8 @@ INTRINSICS.get TypedArray[%Symbol.species%]
 INTRINSICS.isFinite
 INTRINSICS.isNaN
 INTRINSICS.print
+INTRINSICS.set Iterator.prototype.constructor
+INTRINSICS.set Iterator.prototype[%Symbol.toStringTag%]
 INTRINSICS.set Object.prototype.__proto__
 INTRINSICS.yet:PromiseRejectFunction
 INTRINSICS.yet:PromiseResolveFunction
@@ -2217,6 +2245,7 @@ SetImmutablePrototype
 SetIntegrityLevel
 SetTypedArrayFromArrayLike
 SetTypedArrayFromTypedArray
+SetterThatIgnoresPrototypeProperties
 ShiftExpression[1,0].AssignmentTargetType
 ShiftExpression[1,0].Evaluation
 ShiftExpression[1,0].HasCallInTailPosition

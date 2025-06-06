@@ -1,19 +1,19 @@
-- version: 2e161460ba8d084b734bb90e2379f43ceb3e8140
+- version: 961f269c227b7892c21487d82b28d3e8b86e0d4f
 - grammar:
   - productions: 373
     - lexical: 162
     - numeric string: 16
     - syntactic: 195
   - extended productions for web: 29
-- algorithms: 2786 (88.37%)
-  - complete: 2462
+- algorithms: 2810 (88.47%)
+  - complete: 2486
   - incomplete: 324
-- algorithm steps: 20799 (96.93%)
-  - complete: 20161
+- algorithm steps: 21142 (96.98%)
+  - complete: 20504
   - incomplete: 638
-- types: 7368 (97.45%)
-  - known: 7180
-  - yet: 188
-  - unknown: 633
+- types: 7442 (97.46%)
+  - known: 7253
+  - yet: 189
+  - unknown: 654
 - tables: 93
 - type model: 94
