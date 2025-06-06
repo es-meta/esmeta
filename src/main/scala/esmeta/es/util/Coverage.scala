@@ -37,6 +37,9 @@ case class Coverage(
   // meta-info of each script
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
 
+  // covered condition metadata while fuzzing
+  private var coveredCondMetadata: Map[Cond, (Int, String)] = Map()
+
   // mapping from nodes/conditions to scripts
   private var nodeViewMap: Map[Node, Map[View, Set[Script]]] = Map()
   private var nodeViews: Set[NodeView] = Set()
@@ -145,6 +148,8 @@ case class Coverage(
       getScripts(condView) match
         case None => {
           update(condView, nearest, script); updated = true; covered = true
+          coveredCondMetadata +=
+            condView.cond -> (iter.getOrElse(-1), script.code)
         }
         case Some(scripts) =>
           // !FIXME: Temporarily ignored to choose minimal script
@@ -230,6 +235,14 @@ case class Coverage(
       noSpace = false,
     )
     log("Dumped branch coverage")
+
+    dumpJson(
+      name = "covered condition metadata",
+      data = coveredCondMetadata.toList.sortBy(_._1.id),
+      filename = s"$baseDir/covered-condition-metadata.json",
+      noSpace = false,
+    )
+    log("Dumped covered condition metadata")
 
     if (withScripts)
       dumpDir[Script](

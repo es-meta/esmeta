@@ -5,6 +5,7 @@ import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.state.util.{JsonProtocol => StateJsonProtocol}
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
+import esmeta.dump.DumpSecIdToFuncInfo.convertFuncName
 
 class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   import Coverage.*
@@ -53,4 +54,25 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   // coverage constructor
   given coverageConstructorDecoder: Decoder[CoverageConstructor] = deriveDecoder
   given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
+
+  // covered condition metadata
+  given coveredCondMetadataDecoder: Decoder[(Cond, (Int, String))] =
+    deriveDecoder
+  given coveredCondMetadataEncoder: Encoder[(Cond, (Int, String))] =
+    Encoder.instance((k, v) =>
+      Json.obj(
+        "condition" -> k.toString.asJson,
+        "location" -> Json.obj(
+          "function" -> convertFuncName(cfg.funcOf(cfg.nodeMap(k.id)))(using
+            cfg,
+          ).asJson,
+          "step" -> k.branch.loc
+            .flatMap(loc => Some(loc.stepString))
+            .getOrElse("NOT_FOUND")
+            .asJson,
+        ),
+        "iter" -> v._1.asJson,
+        "script" -> v._2.asJson,
+      ),
+    )
 }
