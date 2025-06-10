@@ -58,18 +58,6 @@ case class Intrinsics(cfg: CFG) {
 
   /** get intrinsic map */
   val obj: MapObj = MapObj(
-    // TODO remove this ad-hoc alias list when ecma262/#3238 is handled
-    List(
-      Str("%GeneratorFunction.prototype.prototype%") -> intrAddr(
-        "GeneratorPrototype",
-      ),
-      Str("%GeneratorFunction.prototype.prototype.next%") -> intrAddr(
-        "GeneratorPrototype.next",
-      ),
-      Str("%AsyncGeneratorFunction.prototype.prototype%") -> intrAddr(
-        "AsyncGeneratorPrototype",
-      ),
-    ) :::
     names.toList.map(x => Str(s"%$x%") -> intrAddr(x)),
   )
 
