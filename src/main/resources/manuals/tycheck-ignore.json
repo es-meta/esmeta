@@ -3,18 +3,15 @@
   "AsyncGeneratorYield",
   "ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody",
   "CompareTypedArrayElements",
-  "CreateAsyncIteratorFromClosure",
   "DoWait",
+  "EvaluateImportCall",
+  "FinishLoadingImportedModule",
   "FunctionBody[0,0].EvaluateFunctionBody",
-  "GetFunctionRealm",
   "GetViewByteLength",
   "INTRINSICS.Atomics.notify",
-  "MakeMatchIndicesIndexPairArray",
   "Record[SourceTextModuleRecord].ExecuteModule",
+  "Record[SourceTextModuleRecord].GetExportedNames",
+  "Record[SourceTextModuleRecord].InitializeEnvironment",
   "Record[SourceTextModuleRecord].ResolveExport",
-  "SuperCall[0,0].Evaluation",
-  "TypedArrayGetElement",
-  "TypedArrayLength",
-  "TypedArraySetElement",
-  "YieldExpression[2,0].Evaluation"
+  "TypedArrayLength"
 ]
