@@ -1,10 +1,10 @@
 let realm = @REALM
-let varNames = realm.GlobalEnv.VarNames
+let objRec = realm.GlobalEnv.ObjectRecord.BindingObject.__MAP__
 let map = realm.GlobalObject.__MAP__
-assert (contains varNames "assert")
-assert (contains varNames "Test262Error")
-assert (contains varNames "$DONOTEVALUATE")
-assert (contains varNames "$ERROR")
+assert (exists objRec.assert)
+assert (exists objRec.Test262Error)
+assert (exists objRec["$DONOTEVALUATE"])
+assert (exists objRec["$ERROR"])
 assert map.x0.Value
 assert map.x1.Value
 assert map.x2.Value

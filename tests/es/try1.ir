@@ -1,7 +1,7 @@
 let realm = @REALM
-let varNames = realm.GlobalEnv.VarNames
+let objRec = realm.GlobalEnv.ObjectRecord.BindingObject.__MAP__
 let map = realm.GlobalObject.__MAP__
-assert (contains varNames "x")
+assert (exists objRec.x)
 assert (= map.x.Value 42.0f)
 assert (= map.x.Writable true)
 assert (= map.x.Enumerable true)

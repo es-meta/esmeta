@@ -226,7 +226,6 @@ type GlobalEnvironmentRecord extends EnvironmentRecord {
   DeclarativeRecord: Record[DeclarativeEnvironmentRecord];
   GlobalThisValue: Record[Object];
   ObjectRecord: Record[ObjectEnvironmentRecord];
-  VarNames: List[String];
 }
 
 // https://tc39.es/ecma262/2025/#sec-module-environment-records

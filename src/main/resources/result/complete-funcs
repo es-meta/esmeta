@@ -1122,7 +1122,6 @@ HasLexicalDeclaration
 HasOwnProperty
 HasProperty
 HasRestrictedGlobalProperty
-HasVarDeclaration
 HexLeadSurrogate[0,0].CharacterValue
 HexNonSurrogate[0,0].CharacterValue
 HexTrailSurrogate[0,0].CharacterValue
