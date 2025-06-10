@@ -14,6 +14,7 @@ AdditiveExpression[2,0].IsFunctionDefinition
 AdvanceStringIndex
 AgentCanSuspend
 AgentSignifier
+AllImportAttributesSupported
 AllocateTypedArray
 AllocateTypedArrayBuffer
 Alternative[0,0].CompileSubpattern
@@ -148,6 +149,7 @@ AsyncConciseBody[0,0].VarDeclaredNames
 AsyncConciseBody[0,0].VarScopedDeclarations
 AsyncFromSyncIteratorContinuation
 AsyncFromSyncIteratorContinuation:clo0
+AsyncFromSyncIteratorContinuation:clo1
 AsyncFunctionBody[0,0].EvaluateAsyncFunctionBody
 AsyncFunctionBody[0,0].EvaluateBody
 AsyncFunctionDeclaration[0,0].BoundNames
@@ -234,7 +236,10 @@ AsyncModuleExecutionRejected
 AtomEscape[0,0].CompileAtom
 AtomEscape[3,0].CompileAtom
 Atom[5,0].CompileAtom
+Atom[6,0].CompileAtom
 AtomicReadModifyWrite
+AttributeKey[0,0].PropName
+AttributeKey[1,0].PropName
 Await
 Await:clo0
 Await:clo0:cont0
@@ -262,6 +267,7 @@ BigInt::unsignedRightShift
 BinaryAnd
 BinaryOr
 BinaryXor
+BindThisValue
 BindingElementList[1,0].BoundNames
 BindingElementList[1,0].ContainsExpression
 BindingElementList[1,0].IteratorBindingInitialization
@@ -367,6 +373,7 @@ CallExpression[7,0].AssignmentTargetType
 CallExpression[7,0].Evaluation
 CallExpression[7,0].HasCallInTailPosition
 CanBeHeldWeakly
+CanDeclareGlobalVar
 CanonicalNumericIndexString
 CanonicalizeKeyedCollectionKey
 CaseBlock[0,0].CaseBlockEvaluation
@@ -602,8 +609,12 @@ CreateAsyncIteratorFromClosure
 CreateBuiltinFunction
 CreateDataProperty
 CreateDataPropertyOrThrow
+CreateDefaultExportSyntheticModule
+CreateDefaultExportSyntheticModule:clo0
 CreateDynamicFunction
 CreateForInIterator
+CreateGlobalFunctionBinding
+CreateGlobalVarBinding
 CreateIntrinsics
 CreateIteratorFromClosure
 CreateIteratorResultObject
@@ -711,6 +722,13 @@ ExportDeclaration[0,0].ExportedNames
 ExportDeclaration[0,0].IsConstantDeclaration
 ExportDeclaration[0,0].LexicallyScopedDeclarations
 ExportDeclaration[0,0].ModuleRequests
+ExportDeclaration[0,1].BoundNames
+ExportDeclaration[0,1].Evaluation
+ExportDeclaration[0,1].ExportEntries
+ExportDeclaration[0,1].ExportedBindings
+ExportDeclaration[0,1].ExportedNames
+ExportDeclaration[0,1].LexicallyScopedDeclarations
+ExportDeclaration[0,1].ModuleRequests
 ExportDeclaration[1,0].BoundNames
 ExportDeclaration[1,0].Evaluation
 ExportDeclaration[1,0].ExportEntries
@@ -780,6 +798,7 @@ FieldDefinition[0,1].ComputedPropertyContains
 FieldDefinition[0,1].PrivateBoundIdentifiers
 FieldDefinition[0,1].PropName
 FindViaPredicate
+FinishLoadingImportedModule
 ForBinding[0,0].IsDestructuring
 ForBinding[1,0].IsDestructuring
 ForBodyEvaluation
@@ -1086,6 +1105,7 @@ GetNewTarget
 GetOwnPropertyKeys
 GetPromiseResolve
 GetStringIndex
+GetSuperBase
 GetSuperConstructor
 GetTemplateObject
 GetThisEnvironment
@@ -1098,8 +1118,11 @@ GlobalDeclarationInstantiation
 GroupBy
 GroupName[0,0].CapturingGroupName
 HasEitherUnicodeFlag
+HasLexicalDeclaration
 HasOwnProperty
 HasProperty
+HasRestrictedGlobalProperty
+HasVarDeclaration
 HexLeadSurrogate[0,0].CharacterValue
 HexNonSurrogate[0,0].CharacterValue
 HexTrailSurrogate[0,0].CharacterValue
@@ -1249,7 +1272,6 @@ INTRINSICS.EvalError
 INTRINSICS.FinalizationRegistry
 INTRINSICS.FinalizationRegistry.prototype.register
 INTRINSICS.FinalizationRegistry.prototype.unregister
-INTRINSICS.ForInIteratorPrototype.next
 INTRINSICS.Function
 INTRINSICS.Function.prototype
 INTRINSICS.Function.prototype.apply
@@ -1586,6 +1608,7 @@ IfStatement[1,0].HasCallInTailPosition
 IfStatement[1,0].VarDeclaredNames
 IfStatement[1,0].VarScopedDeclarations
 ImportCall[0,0].Evaluation
+ImportCall[1,0].Evaluation
 ImportClause[3,0].BoundNames
 ImportClause[3,0].ImportEntriesForModule
 ImportClause[4,0].BoundNames
@@ -1593,8 +1616,15 @@ ImportClause[4,0].ImportEntriesForModule
 ImportDeclaration[0,0].BoundNames
 ImportDeclaration[0,0].ImportEntries
 ImportDeclaration[0,0].ModuleRequests
+ImportDeclaration[0,1].BoundNames
+ImportDeclaration[0,1].ImportEntries
+ImportDeclaration[0,1].ModuleRequests
 ImportDeclaration[1,0].BoundNames
 ImportDeclaration[1,0].ImportEntries
+ImportDeclaration[1,0].ModuleRequests
+ImportDeclaration[1,1].BoundNames
+ImportDeclaration[1,1].ImportEntries
+ImportDeclaration[1,1].ModuleRequests
 ImportMeta[0,0].AssignmentTargetType
 ImportMeta[0,0].Evaluation
 ImportSpecifier[0,0].ImportEntriesForModule
@@ -1612,6 +1642,7 @@ InitializeTypedArrayFromArrayBuffer
 InitializeTypedArrayFromArrayLike
 InitializeTypedArrayFromTypedArray
 Initializer[0,0].EvaluateBody
+InnerModuleLoading
 InstallErrorCause
 InstanceofOperator
 InternalizeJSONProperty
@@ -1649,7 +1680,6 @@ IsTypedArrayFixedLength
 IsUnclampedIntegerElementType
 IsUnresolvableReference
 IsUnsignedElementType
-IsValidIntegerIndex
 IterationStatement[0,0].LoopEvaluation
 IterationStatement[1,0].LoopEvaluation
 IterationStatement[2,0].LoopEvaluation
@@ -1849,7 +1879,7 @@ ModuleItem[2,0].ExportedNames
 ModuleItem[2,0].ImportEntries
 ModuleItem[2,0].LexicallyDeclaredNames
 ModuleItem[2,0].ModuleRequests
-ModuleSpecifier[0,0].ModuleRequests
+ModuleRequestsEqual
 Module[0,0].Evaluation
 Module[0,0].ExportEntries
 Module[0,0].ImportEntries
@@ -1982,6 +2012,7 @@ ParenthesizedExpression[0,0].Evaluation
 ParenthesizedExpression[0,0].HasCallInTailPosition
 ParenthesizedExpression[0,0].NamedEvaluation
 ParseHexOctet
+ParseJSONModule
 ParseScript
 Pattern[0,0].CompilePattern
 PerformPromiseAll
@@ -2092,25 +2123,17 @@ Record[DeclarativeEnvironmentRecord].SetMutableBinding
 Record[DeclarativeEnvironmentRecord].WithBaseObject
 Record[ECMAScriptFunctionObject].Call
 Record[ECMAScriptFunctionObject].Construct
-Record[FunctionEnvironmentRecord].BindThisValue
-Record[FunctionEnvironmentRecord].GetSuperBase
 Record[FunctionEnvironmentRecord].GetThisBinding
 Record[FunctionEnvironmentRecord].HasSuperBinding
 Record[FunctionEnvironmentRecord].HasThisBinding
-Record[GlobalEnvironmentRecord].CanDeclareGlobalVar
-Record[GlobalEnvironmentRecord].CreateGlobalFunctionBinding
-Record[GlobalEnvironmentRecord].CreateGlobalVarBinding
 Record[GlobalEnvironmentRecord].CreateImmutableBinding
 Record[GlobalEnvironmentRecord].CreateMutableBinding
 Record[GlobalEnvironmentRecord].DeleteBinding
 Record[GlobalEnvironmentRecord].GetBindingValue
 Record[GlobalEnvironmentRecord].GetThisBinding
 Record[GlobalEnvironmentRecord].HasBinding
-Record[GlobalEnvironmentRecord].HasLexicalDeclaration
-Record[GlobalEnvironmentRecord].HasRestrictedGlobalProperty
 Record[GlobalEnvironmentRecord].HasSuperBinding
 Record[GlobalEnvironmentRecord].HasThisBinding
-Record[GlobalEnvironmentRecord].HasVarDeclaration
 Record[GlobalEnvironmentRecord].SetMutableBinding
 Record[GlobalEnvironmentRecord].WithBaseObject
 Record[ImmutablePrototypeExoticObject].SetPrototypeOf
@@ -2163,6 +2186,11 @@ Record[ProxyExoticObject].SetPrototypeOf
 Record[StringExoticObject].DefineOwnProperty
 Record[StringExoticObject].GetOwnProperty
 Record[StringExoticObject].OwnPropertyKeys
+Record[SyntheticModuleRecord].Evaluate
+Record[SyntheticModuleRecord].GetExportedNames
+Record[SyntheticModuleRecord].Link
+Record[SyntheticModuleRecord].LoadRequestedModules
+Record[SyntheticModuleRecord].ResolveExport
 Record[TypedArray].DefineOwnProperty
 Record[TypedArray].Delete
 Record[TypedArray].Get
@@ -2246,6 +2274,7 @@ SetDefaultGlobalBindings
 SetFunctionLength
 SetImmutablePrototype
 SetIntegrityLevel
+SetSyntheticModuleExport
 SetTypedArrayFromArrayLike
 SetTypedArrayFromTypedArray
 SetterThatIgnoresPrototypeProperties
@@ -2368,7 +2397,6 @@ StrUnsignedDecimalLiteral[0,0].StringNumericValue
 StrUnsignedDecimalLiteral[3,0].StringNumericValue
 StrUnsignedDecimalLiteral[3,1].StringNumericValue
 StringCreate
-StringGetOwnProperty
 StringIndexOf
 StringLastIndexOf
 StringNumericLiteral[0,0].StringNumericValue
@@ -2547,6 +2575,9 @@ WhileStatement[0,0].HasCallInTailPosition
 WhileStatement[0,0].VarDeclaredNames
 WhileStatement[0,0].VarScopedDeclarations
 WhileStatement[0,0].WhileLoopEvaluation
+WithClause[0,0].WithClauseToAttributes
+WithEntries[0,0].WithClauseToAttributes
+WithEntries[1,0].WithClauseToAttributes
 WithStatement[0,0].ContainsDuplicateLabels
 WithStatement[0,0].ContainsUndefinedBreakTarget
 WithStatement[0,0].ContainsUndefinedContinueTarget

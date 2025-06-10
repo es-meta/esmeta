@@ -201,8 +201,6 @@ type ObjectEnvironmentRecord extends EnvironmentRecord {
 
 // https://tc39.es/ecma262/2024/#sec-function-environment-records
 type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
-  def BindThisValue;
-  def GetSuperBase;
   def GetThisBinding;
   def HasSuperBinding;
   def HasThisBinding;
@@ -212,23 +210,16 @@ type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
   ThisValue: ESValue;
 }
 
-// https://tc39.es/ecma262/2024/#sec-global-environment-records
+// https://tc39.es/ecma262/2025/#sec-global-environment-records
 type GlobalEnvironmentRecord extends EnvironmentRecord {
-  def CanDeclareGlobalFunction;
-  def CanDeclareGlobalVar;
-  def CreateGlobalFunctionBinding;
-  def CreateGlobalVarBinding;
   def CreateImmutableBinding;
   def CreateMutableBinding;
   def DeleteBinding;
   def GetBindingValue;
   def GetThisBinding;
   def HasBinding;
-  def HasLexicalDeclaration;
-  def HasRestrictedGlobalProperty;
   def HasSuperBinding;
   def HasThisBinding;
-  def HasVarDeclaration;
   def InitializeBinding;
   def SetMutableBinding;
   def WithBaseObject;
@@ -238,7 +229,7 @@ type GlobalEnvironmentRecord extends EnvironmentRecord {
   VarNames: List[String];
 }
 
-// https://tc39.es/ecma262/2024/#sec-module-environment-records
+// https://tc39.es/ecma262/2025/#sec-module-environment-records
 type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
   def CreateImportBinding;
   def GetBindingValue;
