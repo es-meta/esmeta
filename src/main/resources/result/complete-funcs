@@ -232,6 +232,7 @@ AsyncMethod[0,0].PrivateBoundIdentifiers
 AsyncMethod[0,0].PropName
 AsyncModuleExecutionRejected
 AtomEscape[0,0].CompileAtom
+AtomEscape[3,0].CompileAtom
 Atom[5,0].CompileAtom
 AtomicReadModifyWrite
 Await
@@ -1644,6 +1645,7 @@ IsStrictlyEqual
 IsStringWellFormedUnicode
 IsSuperReference
 IsTimeZoneOffsetString
+IsTypedArrayFixedLength
 IsUnclampedIntegerElementType
 IsUnresolvableReference
 IsUnsignedElementType
@@ -2166,6 +2168,7 @@ Record[TypedArray].Delete
 Record[TypedArray].Get
 Record[TypedArray].GetOwnProperty
 Record[TypedArray].HasProperty
+Record[TypedArray].PreventExtensions
 Record[TypedArray].Set
 RegExpAlloc
 RegExpCreate
