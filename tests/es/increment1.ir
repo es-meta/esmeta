@@ -1,15 +1,17 @@
-let varNames = @REALM.GlobalEnv.VarNames
+let objRec = @REALM.GlobalEnv.ObjectRecord.BindingObject.__MAP__
 let map = @REALM.GlobalObject.__MAP__
 let x = map.x
 let y = map.y
 
-assert (contains varNames "x")
+assert(= objRec map)
+
+assert (exists objRec.x)
 assert (= x.Value 2.0f)
 assert (= x.Writable true)
 assert (= x.Enumerable true)
 assert (= x.Configurable false)
 
-assert (contains varNames "y")
+assert (exists objRec.y)
 assert (= y.Value 43.0f)
 assert (= y.Writable true)
 assert (= y.Enumerable true)
