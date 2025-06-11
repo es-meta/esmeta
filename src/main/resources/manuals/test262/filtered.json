@@ -179,7 +179,8 @@
     "language/statements/with/12.10.1-14-s",
     "language/statements/with/12.10.1-15-s",
     "language/statements/with/12.10.1-16-s",
-    "language/statements/with/12.10.1-7-s"
+    "language/statements/with/12.10.1-7-s",
+    "staging/sm/regress/regress-640075"
   ],
   "non-strict": [
     "built-ins/Function/S15.3.2.1_A3_T8",
@@ -350,26 +351,6 @@
     "language/expressions/assignment/target-member-computed-reference",
     "language/expressions/assignment/target-super-computed-reference",
     "language/expressions/member-expression/computed-reference-null-or-undefined"
-  ],
-  "early-error": [
-    "staging/sm/regress/regress-640075"
-  ],
-  "tc39/ecma262#3457": [
-    "built-ins/Iterator/prototype/drop/return-is-forwarded",
-    "built-ins/Iterator/prototype/take/return-is-forwarded",
-    "built-ins/Iterator/prototype/drop/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/take/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/every/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/filter/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/find/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/flatMap/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/forEach/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/map/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/reduce/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/some/argument-validation-failure-closes-underlying",
-    "built-ins/Iterator/prototype/filter/return-is-forwarded",
-    "built-ins/Iterator/prototype/flatMap/return-is-forwarded-to-underlying-iterator",
-    "built-ins/Iterator/prototype/map/return-is-forwarded-to-underlying-iterator"
   ],
   "tc39/ecma262#3009": [
     "built-ins/String/prototype/search/cstm-search-on-bigint-primitive",
