@@ -26,5 +26,6 @@ object NotSupported:
     case Type extends Category("type")
     case Long extends Category("long")
     case Wrong extends Category("wrong")
+    case Staging extends Category("staging")
     case YetCategorized extends Category("yet-categorized")
   }

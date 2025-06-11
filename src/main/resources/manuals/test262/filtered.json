@@ -179,8 +179,7 @@
     "language/statements/with/12.10.1-14-s",
     "language/statements/with/12.10.1-15-s",
     "language/statements/with/12.10.1-16-s",
-    "language/statements/with/12.10.1-7-s",
-    "staging/sm/regress/regress-640075"
+    "language/statements/with/12.10.1-7-s"
   ],
   "non-strict": [
     "built-ins/Function/S15.3.2.1_A3_T8",
@@ -352,7 +351,7 @@
     "language/expressions/assignment/target-super-computed-reference",
     "language/expressions/member-expression/computed-reference-null-or-undefined"
   ],
-  "tc39/ecma262#3009": [
+  "pending until tc39/ecma262#3009 merged": [
     "built-ins/String/prototype/search/cstm-search-on-bigint-primitive",
     "built-ins/String/prototype/search/cstm-search-on-boolean-primitive",
     "built-ins/String/prototype/search/cstm-search-on-number-primitive",
