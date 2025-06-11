@@ -603,7 +603,6 @@ CoverCallExpressionAndAsyncArrowHead[0,0].BoundNames
 CoverCallExpressionAndAsyncArrowHead[0,0].IsSimpleParameterList
 CreateArrayFromList
 CreateArrayIterator
-CreateArrayIterator:clo0
 CreateAsyncFromSyncIterator
 CreateAsyncIteratorFromClosure
 CreateBuiltinFunction
@@ -626,7 +625,6 @@ CreateMapIterator:clo0
 CreateNonEnumerableDataPropertyOrThrow
 CreatePerIterationEnvironment
 CreateRegExpStringIterator
-CreateRegExpStringIterator:clo0
 CreateResolvingFunctions
 CreateSetIterator
 CreateSetIterator:clo0
@@ -1216,6 +1214,7 @@ INTRINSICS.Boolean.prototype.valueOf
 INTRINSICS.DataView
 INTRINSICS.DataView.prototype.getBigInt64
 INTRINSICS.DataView.prototype.getBigUint64
+INTRINSICS.DataView.prototype.getFloat16
 INTRINSICS.DataView.prototype.getFloat32
 INTRINSICS.DataView.prototype.getFloat64
 INTRINSICS.DataView.prototype.getInt16
@@ -1226,6 +1225,7 @@ INTRINSICS.DataView.prototype.getUint32
 INTRINSICS.DataView.prototype.getUint8
 INTRINSICS.DataView.prototype.setBigInt64
 INTRINSICS.DataView.prototype.setBigUint64
+INTRINSICS.DataView.prototype.setFloat16
 INTRINSICS.DataView.prototype.setFloat32
 INTRINSICS.DataView.prototype.setFloat64
 INTRINSICS.DataView.prototype.setInt16
@@ -1303,6 +1303,7 @@ INTRINSICS.Iterator.prototype.toArray
 INTRINSICS.Iterator.prototype[%Symbol.iterator%]
 INTRINSICS.IteratorHelperPrototype.next
 INTRINSICS.IteratorHelperPrototype.return
+INTRINSICS.JSON.parse
 INTRINSICS.Map
 INTRINSICS.Map.groupBy
 INTRINSICS.Map.prototype.clear
@@ -1426,7 +1427,6 @@ INTRINSICS.RegExp.prototype[%Symbol.matchAll%]
 INTRINSICS.RegExp.prototype[%Symbol.replace%]
 INTRINSICS.RegExp.prototype[%Symbol.search%]
 INTRINSICS.RegExp.prototype[%Symbol.split%]
-INTRINSICS.RegExpStringIteratorPrototype.next
 INTRINSICS.Set
 INTRINSICS.Set.prototype.add
 INTRINSICS.Set.prototype.entries
@@ -1634,6 +1634,7 @@ ImportedLocalNames
 ImportsList[1,0].BoundNames
 ImportsList[1,0].ImportEntriesForModule
 InLeapYear
+IncrementModuleAsyncEvaluationCount
 InitializeBoundName
 InitializeInstanceElements
 InitializeReferencedBinding

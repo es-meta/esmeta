@@ -1119,7 +1119,11 @@ trait Parsers extends IndentParsers {
     "the host requires that the `this` binding in _realm_'s global scope return an object other than the global object"
   } ^^! getExprCond(
     FalseLiteral(),
-  )
+  ) | {
+    // PropertyDefinitionEvaluation
+    // TODO remove when ParseJson is supported
+    "this |PropertyDefinition| is contained within a |Script| that is being evaluated for ParseJSON (see step <emu-xref href=\"#step-json-parse-eval\"></emu-xref> of ParseJSON)"
+  } ^^! getExprCond(FalseLiteral())
 
   // ---------------------------------------------------------------------------
   // metalanguage references
