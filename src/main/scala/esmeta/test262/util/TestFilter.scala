@@ -75,6 +75,8 @@ case class TestFilter(spec: Spec) {
     YetCategorized -> ((test: Test) =>
       !withYet && manualYetCategorized.contains(removedExt(test.relName)),
     ),
+    // Tests in staging do not count towards the test262 coverage requirement for ...
+    Staging -> ((test: Test) => test.relName.startsWith("staging/")),
     // manually filtered tests categorized based on failure reasons
     test => manualFilterMap.get(removedExt(test.relName)),
   )
