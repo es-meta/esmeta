@@ -58,6 +58,7 @@ val yets: Map[String, ValueTy] =
     "Uint32Array" -> ConstructorT,
     "BigInt64Array" -> ConstructorT,
     "BigUint64Array" -> ConstructorT,
+    "Float16Array" -> ConstructorT,
     "Float32Array" -> ConstructorT,
     "Float64Array" -> ConstructorT,
     // 25. Structured Data
