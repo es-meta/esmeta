@@ -411,6 +411,13 @@ type ArgumentsExoticObject extends ExoticObject {
   ParameterMap: Record[Object];
 }
 
+// https://tc39.es/ecma262/#sec-properties-of-array-iterator-instances
+type ArrayIteratorInstance extends OrdinaryObject {
+  IteratedArrayLike: Record[Object] | Undefined;
+  ArrayLikeNextIndex: Int[0+];
+  ArrayLikeIterationKind: Enum[~key+value~] | Enum[~key~] | Enum[~value~];
+}
+
 // https://tc39.es/ecma262/#sec-typedarray-exotic-objects
 type TypedArray extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
