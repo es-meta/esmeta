@@ -99,7 +99,7 @@ class Fuzzer(
         } {
           debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
           i += 1
-          add(code, Some(0))
+          add(code, Some(InstInfo(0, code, "INITIAL_POOL", synthesizer)))
         }
       },
     )
@@ -160,7 +160,11 @@ class Fuzzer(
     for ((mutatorName, mutatedCode, info) <- mutants)
       debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-      val result = add(mutatedCode, info, Some(iter))
+      val result = add(
+        mutatedCode,
+        info,
+        Some(InstInfo(iter, mutatedCode, code, mutatorName)),
+      )
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
@@ -189,11 +193,11 @@ class Fuzzer(
     else CandInfo(interp = optional(cov.run(code)))
 
   /** add new program */
-  def add(code: String, iter: Option[Int] = None): Boolean =
-    add(code, getCandInfo(code), iter)
+  def add(code: String, instInfo: Option[InstInfo] = None): Boolean =
+    add(code, getCandInfo(code), instInfo)
 
   /** add new program with precomputed info */
-  def add(code: String, info: CandInfo, iter: Option[Int]): Boolean =
+  def add(code: String, info: CandInfo, instInfo: Option[InstInfo]): Boolean =
     handleResult(Try {
       if (info.visited) fail("ALREADY VISITED")
       visited += code
@@ -201,7 +205,7 @@ class Fuzzer(
       val script = toScript(code)
       val interp = info.interp.getOrElse(fail("Interp Fail"))
       val finalState = interp.result
-      val (_, updated, covered) = cov.check(script, interp, iter)
+      val (_, updated, covered) = cov.check(script, interp, instInfo)
       if (!updated) fail("NO UPDATE")
       covered
     })

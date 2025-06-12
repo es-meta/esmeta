@@ -4,6 +4,7 @@ import esmeta.{LINE_SEP, TEST262TEST_LOG_DIR}
 import esmeta.cfg.*
 import esmeta.injector.*
 import esmeta.interpreter.*
+import esmeta.fuzzer.InstInfo
 import esmeta.ir.{Expr, EParse, EBool}
 import esmeta.es.*
 import esmeta.es.util.*
@@ -38,7 +39,7 @@ case class Coverage(
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
 
   // covered condition metadata while fuzzing
-  private var coveredCondMetadata: Map[Cond, (Int, String)] = Map()
+  private var coveredCondMetadata: Map[Cond, InstInfo] = Map()
 
   // mapping from nodes/conditions to scripts
   private var nodeViewMap: Map[Node, Map[View, Set[Script]]] = Map()
@@ -108,7 +109,7 @@ case class Coverage(
   def check(
     script: Script,
     interp: Interp,
-    iter: Option[Int] = None,
+    instInfo: Option[InstInfo] = None,
   ): (State, Boolean, Boolean) = {
     val Script(code, _) = script
     val finalSt = interp.result
@@ -144,11 +145,12 @@ case class Coverage(
     for ((condView, nearest) <- interp.touchedCondViews)
       touchedCondViews += condView -> nearest
       getScripts(condView) match
-        case None => {
+        case None =>
           update(condView, nearest, script); updated = true; covered = true
-          coveredCondMetadata +=
-            condView.cond -> (iter.getOrElse(-1), script.code)
-        }
+          instInfo match
+            case Some(instInfo) =>
+              coveredCondMetadata += condView.cond -> instInfo
+            case None => ()
         case Some(scripts) =>
           if (all) {
             update(condView, nearest, script)

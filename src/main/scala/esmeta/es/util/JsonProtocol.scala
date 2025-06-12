@@ -3,6 +3,7 @@ package esmeta.es.util
 import esmeta.cfg.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import esmeta.fuzzer.InstInfo
 import esmeta.state.util.{JsonProtocol => StateJsonProtocol}
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 import esmeta.dump.DumpSecIdToFuncInfo.convertFuncName
@@ -56,23 +57,25 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
 
   // covered condition metadata
-  given coveredCondMetadataDecoder: Decoder[(Cond, (Int, String))] =
-    deriveDecoder
-  given coveredCondMetadataEncoder: Encoder[(Cond, (Int, String))] =
-    Encoder.instance((k, v) =>
+  given coveredCondMetadataEncoder: Encoder[(Cond, InstInfo)] =
+    Encoder.instance((cond, instInfo) =>
       Json.obj(
-        "condition" -> k.toString.asJson,
+        "condition" -> cond.toString.asJson,
         "location" -> Json.obj(
-          "function" -> convertFuncName(cfg.funcOf(cfg.nodeMap(k.id)))(using
-            cfg,
-          ).asJson,
-          "step" -> k.branch.loc
+          "function" -> convertFuncName(
+            cfg.funcOf(cfg.nodeMap(cond.id)),
+          )(using cfg).asJson,
+          "step" -> cond.branch.loc
             .flatMap(loc => Some(loc.stepString))
             .getOrElse("NOT_FOUND")
             .asJson,
         ),
-        "iter" -> v._1.asJson,
-        "script" -> v._2.asJson,
+        "iter" -> instInfo.iter.asJson,
+        "script" -> instInfo.cur.asJson,
+        "mutation" -> Json.obj(
+          "prev" -> instInfo.prev.asJson,
+          "mutator" -> instInfo.mutatorName.asJson,
+        ),
       ),
     )
 }
