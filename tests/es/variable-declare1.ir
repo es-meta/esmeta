@@ -1,4 +1,4 @@
-assert (contains @REALM.GlobalEnv.VarNames "x")
+assert (exists @REALM.GlobalEnv.ObjectRecord.BindingObject.__MAP__.x)
 assert (= @REALM.GlobalObject.__MAP__.x.Value undefined)
 assert (= @REALM.GlobalObject.__MAP__.x.Writable true)
 assert (= @REALM.GlobalObject.__MAP__.x.Enumerable true)

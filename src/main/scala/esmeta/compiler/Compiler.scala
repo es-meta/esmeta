@@ -119,11 +119,11 @@ class Compiler(
     else None
 
   /* set of function names not to compile */
-  // TODO why "INTRINSICS.Array.prototype[@@unscopables]" is excluded?
+  // TODO why "INTRINSICS.Array.prototype[%Symbol.unscopables%]" is excluded?
   val excluded =
     manualFuncMap.keySet ++
     shorthands +
-    "INTRINSICS.Array.prototype[@@unscopables]"
+    "INTRINSICS.Array.prototype[%Symbol.unscopables%]"
 
   /* get function kind */
   def getKind(head: Head): FuncKind = {

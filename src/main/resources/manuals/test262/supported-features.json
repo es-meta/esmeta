@@ -83,6 +83,7 @@
   "generators",
   "globalThis",
   "import.meta",
+  "iterator-helpers",
   "json-superset",
   "let",
   "logical-assignment-operators",

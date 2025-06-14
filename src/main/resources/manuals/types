@@ -201,8 +201,6 @@ type ObjectEnvironmentRecord extends EnvironmentRecord {
 
 // https://tc39.es/ecma262/2024/#sec-function-environment-records
 type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
-  def BindThisValue;
-  def GetSuperBase;
   def GetThisBinding;
   def HasSuperBinding;
   def HasThisBinding;
@@ -212,33 +210,25 @@ type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
   ThisValue: ESValue;
 }
 
-// https://tc39.es/ecma262/2024/#sec-global-environment-records
+// https://tc39.es/ecma262/2025/#sec-global-environment-records
 type GlobalEnvironmentRecord extends EnvironmentRecord {
-  def CanDeclareGlobalFunction;
-  def CanDeclareGlobalVar;
-  def CreateGlobalFunctionBinding;
-  def CreateGlobalVarBinding;
   def CreateImmutableBinding;
   def CreateMutableBinding;
   def DeleteBinding;
   def GetBindingValue;
   def GetThisBinding;
   def HasBinding;
-  def HasLexicalDeclaration;
-  def HasRestrictedGlobalProperty;
   def HasSuperBinding;
   def HasThisBinding;
-  def HasVarDeclaration;
   def InitializeBinding;
   def SetMutableBinding;
   def WithBaseObject;
   DeclarativeRecord: Record[DeclarativeEnvironmentRecord];
   GlobalThisValue: Record[Object];
   ObjectRecord: Record[ObjectEnvironmentRecord];
-  VarNames: List[String];
 }
 
-// https://tc39.es/ecma262/2024/#sec-module-environment-records
+// https://tc39.es/ecma262/2025/#sec-module-environment-records
 type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
   def CreateImportBinding;
   def GetBindingValue;
@@ -419,6 +409,13 @@ type ArgumentsExoticObject extends ExoticObject {
   def Delete;
   def OwnPropertyKeys = Record[OrdinaryObject].OwnPropertyKeys;
   ParameterMap: Record[Object];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-array-iterator-instances
+type ArrayIteratorInstance extends OrdinaryObject {
+  IteratedArrayLike: Record[Object] | Undefined;
+  ArrayLikeNextIndex: Int[0+];
+  ArrayLikeIterationKind: Enum[~key+value~] | Enum[~key~] | Enum[~value~];
 }
 
 // https://tc39.es/ecma262/#sec-typedarray-exotic-objects
@@ -610,7 +607,7 @@ type Iterator extends Object
 
 // https://tc39.es/ecma262/#script-record
 type ScriptRecord {
-  Realm: Record[RealmRecord] | Undefined;
+  Realm: Record[RealmRecord];
   ECMAScriptCode: Ast[Script];
   LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecord] }]];
   HostDefined: Enum[~empty~];
@@ -828,7 +825,7 @@ type Generator extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-asyncgenerator-intances
 type AsyncGenerator extends OrdinaryObject {
-  AsyncGeneratorState: Enum[~suspended-start~, ~suspended-yield~, ~executing~, ~awaiting-return~, ~completed~];
+  AsyncGeneratorState: Enum[~suspended-start~, ~suspended-yield~, ~executing~, ~draining-queue~, ~completed~];
   AsyncGeneratorContext: Record[ExecutionContext];
   AsyncGeneratorQueue: List[Record[AsyncGeneratorRequest]];
   GeneratorBrand: String | Enum[~empty~];
