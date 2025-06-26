@@ -857,13 +857,6 @@ case class Intrinsics(cfg: CFG) {
       nmap = List(
         "constructor" ->
         DataProperty(intrAddr("GeneratorFunction.prototype"), F, F, T),
-        // XXX need to be documented
-        // "next" -> DataProperty(
-        //   intrAddr("GeneratorPrototype.next"),
-        //   T,
-        //   F,
-        //   T,
-        // ),
         "%Symbol.toStringTag%" -> DataProperty(Str("Generator"), F, F, T),
       ),
     ),
