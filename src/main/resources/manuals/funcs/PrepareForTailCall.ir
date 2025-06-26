@@ -3,7 +3,6 @@ def PrepareForTailCall(): Enum[~unused~] = {
   assert true
 
   // 1. Discard all resources associated with the current execution context
-  // NOTE maybe `nop` be better option?
   let context = @EXECUTION_STACK[0]
   context.LexicalEnvironment = undefined
   context.VariableEnvironment = undefined
