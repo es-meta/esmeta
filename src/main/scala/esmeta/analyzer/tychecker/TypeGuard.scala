@@ -302,34 +302,48 @@ trait TypeGuardDecl { self: TyChecker =>
       case sym: Sym     => app >> "#" >> sym.toString
       case local: Local => app >> local.toString
   given Ordering[SymBase] = Ordering.by(_.toString)
-  given Rule[SymExpr] = (app, expr) =>
-    import SymExpr.*
-    expr match
-      case SEBool(bool)  => app >> bool
-      case SERef(ref)    => app >> ref
-      case SEExists(ref) => app >> "(exists " >> ref >> ")"
-      case SETypeCheck(expr, ty) =>
-        app >> "(? " >> expr >> ": " >> ty >> ")"
-      case SETypeOf(base) =>
-        app >> "(typeof " >> base >> ")"
-      case SEEq(left, right) =>
-        app >> "(=" >> " " >> left >> " " >> right >> ")"
-      case SEOr(left, right) =>
-        app >> "(|| " >> left >> " " >> right >> ")"
-      case SEAnd(left, right) =>
-        app >> "(&& " >> left >> " " >> right >> ")"
-      case SENot(expr) =>
-        app >> "(! " >> expr >> ")"
-  given Rule[SymRef] = (app, ref) =>
+  given symRefRule: Rule[SymRef] =
     import SymExpr.*, SymRef.*, SymTy.*
     lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-    ref match
-      case SBase(x) => app >> x
-      case SField(base, STy(x)) if !x.isBottom =>
-        x.getSingle match
-          case One(f: String) => app >> base >> "." >> f
-          case _              => app >> base >> "[" >> x >> "]"
-      case SField(base, field) => app >> base >> "[" >> field >> "]"
+
+    new Rule[SymRef]:
+      override def apply(app: Appender, ref: SymRef): Appender =
+        def loop(a: Appender, r: SymRef): Appender = r match
+          case SBase(x) => a >> x
+          case SField(base, STy(x)) if !x.isBottom =>
+            x.getSingle match
+              case One(f: String) =>
+                loop(a, base) >> "." >> f
+              case _ =>
+                loop(a, base) >> "[" >> x >> "]"
+          case SField(base, field) =>
+            loop(a, base) >> "[" >> field >> "]"
+        loop(app, ref)
+
+  given symExprRule: Rule[SymExpr] =
+    import SymExpr.*
+
+    new Rule[SymExpr]:
+      override def apply(app: Appender, e: SymExpr): Appender =
+        def loop(a: Appender, expr: SymExpr): Appender = expr match
+          case SEBool(bool)  => a >> bool
+          case SERef(ref)    => a >> ref
+          case SEExists(ref) => a >> "(exists " >> ref >> ")"
+          case SETypeCheck(ex, ty) =>
+            loop(a >> "(? ", ex) >> ": " >> ty >> ")"
+          case SETypeOf(base) => loop(a >> "(typeof ", base) >> ")"
+          case SEEq(l, r) =>
+            val a1 = loop(a >> "(= ", l)
+            loop(a1 >> " ", r) >> ")"
+          case SEOr(l, r) =>
+            val a1 = loop(a >> "(|| ", l)
+            loop(a1 >> " ", r) >> ")"
+          case SEAnd(l, r) =>
+            val a1 = loop(a >> "(&& ", l)
+            loop(a1 >> " ", r) >> ")"
+          case SENot(ex) => loop(a >> "(! ", ex) >> ")"
+        loop(app, e)
+
   given Rule[Provenance] = (app, prov) =>
     val Provenance(map) = prov
     if (map.nonEmpty) (app >> " <from> ").wrap("{", "}") {

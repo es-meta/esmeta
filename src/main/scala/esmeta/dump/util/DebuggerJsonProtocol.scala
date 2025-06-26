@@ -54,7 +54,4 @@ object DebuggerJsonProtocol extends BasicJsonProtocol {
   given Decoder[Grammar] = summon
   given Encoder[Grammar] = summon
 
-  given Decoder[lang.Type] = summon
-  given Encoder[lang.Type] = summon
-
 }

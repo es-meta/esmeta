@@ -65,18 +65,22 @@ class BuiltinSynthesizer(
         Some((s"${getString(base)}.prototype", s"[Symbol.$symbol]"))
       case _ => None
 
+  private given builtinPathRule: Rule[BuiltinPath] =
+    new Rule[BuiltinPath]:
+      override def apply(app: Appender, path: BuiltinPath): Appender =
+        def loop(a: Appender, p: BuiltinPath): Appender = p match
+          case Base(name)               => a >> name
+          case NormalAccess(base, name) => loop(a, base) >> "." >> name
+          case Getter(base)             => loop(a, base)
+          case Setter(base)             => loop(a, base)
+          case SymbolAccess(base, symbol) =>
+            loop(a, base) >> "[Symbol." >> symbol >> "]"
+          case YetPath(name) => a >> "yet:" >> name.replace(" ", "")
+        loop(app, path)
+
   // get string of builtin path
   private def getString(path: BuiltinPath): String =
     (new Appender >> path).toString
-  private given builtinPathRule: Rule[BuiltinPath] = (app, path) =>
-    path match
-      case Base(name)               => app >> name
-      case NormalAccess(base, name) => app >> base >> "." >> name
-      case Getter(base)             => app >> base
-      case Setter(base)             => app >> base
-      case SymbolAccess(base, symbol) =>
-        app >> base >> "[Symbol." >> symbol >> "]"
-      case YetPath(name) => app >> "yet:" >> name.replace(" ", "")
 
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic =

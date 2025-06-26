@@ -43,7 +43,7 @@ class QueueWorklist[T](init: Iterable[T]) extends Worklist[T] {
 // priority-queue-based worklist
 class PriorityQueueWorklist[T](init: Iterable[T])(using ord: Ordering[T])
   extends Worklist[T] {
-  private var pq = PriorityQueue[T]()(ord.reverse)
+  private var pq = PriorityQueue[T]()(using ord.reverse)
   init.foreach(this += _)
 
   protected def add(x: T): Unit = pq.enqueue(x)

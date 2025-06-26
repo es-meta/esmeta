@@ -27,10 +27,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     // Implementation for General AbsTransfer
     // =========================================================================
     /** transfer function for node points */
-    def apply(np: NodePoint[_]): Unit =
+    def apply(np: NodePoint[?]): Unit =
       // record current control point for alarm
       val st = getResult(np)
-      given NodePoint[_] = np
+      given NodePoint[?] = np
       given AbsState = st
       val NodePoint(func, node, view) = np
       node match
@@ -84,7 +84,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       expr: Expr,
       v: AbsValue,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = st =>
+    )(using np: NodePoint[?]): Updater = st =>
       import RefinementKind.*
       if (inferTypeGuard) {
         // new analysis system
@@ -135,7 +135,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** transfer function for call instructions */
     def transfer(
       call: Call,
-    )(using np: NodePoint[_]): Result[AbsValue] = {
+    )(using np: NodePoint[?]): Result[AbsValue] = {
       val callerNp = NodePoint(np.func, call, np.view)
       call.callInst match {
         case ICall(_, fexpr, args) =>
@@ -358,13 +358,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** transfer function for normal instructions */
     def transfer(
       inst: NormalInst,
-    )(using np: NodePoint[_]): Updater = transfer(inst, -1)
+    )(using np: NodePoint[?]): Updater = transfer(inst, -1)
 
     /** transfer function for normal instructions */
     def transfer(
       inst: NormalInst,
       idx: Int,
-    )(using np: NodePoint[_]): Updater = inst match {
+    )(using np: NodePoint[?]): Updater = inst match {
       case IExpr(expr) =>
         for {
           v <- transfer(expr)
@@ -715,7 +715,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     def withCur(pred: SymPred)(using st: AbsState): SymPred = st.pred && pred
 
     /** get a type guard */
-    def getTypeGuard(expr: Expr)(using np: NodePoint[_]): Result[TypeGuard] = {
+    def getTypeGuard(expr: Expr)(using np: NodePoint[?]): Result[TypeGuard] = {
       import RefinementKind.*
       expr match {
         case EBool(bool) =>
@@ -1170,7 +1170,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case Or      => left || right
         case Xor     => left ^^ right
         case Add     => left + right
-        case Sub     => left sub right
+        case Sub     => left.sub(right)
         case Div     => left / right
         case Mul     => left * right
         case Mod     => left % right
@@ -1202,7 +1202,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       given AbsState = st
       vop match
         case VOp.Min =>
-          val math = vs.map(_.ty.math).reduce(_ min _)
+          val math = vs.map(_.ty.math).reduce((x, y) => x.min(y))
           val inf = vs.map(_.ty.infinity).reduce(_ || _)
           AbsValue(
             ValueTy(
@@ -1212,7 +1212,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           )
 
         case VOp.Max =>
-          val math = vs.map(_.ty.math).reduce(_ max _)
+          val math = vs.map(_.ty.math).reduce((x, y) => x.max(y))
           val inf = vs.map(_.ty.infinity).reduce(_ || _)
           AbsValue(
             ValueTy(
@@ -1352,7 +1352,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     def refine(
       cond: Expr,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = cond match {
+    )(using np: NodePoint[?]): Updater = cond match {
       // refine inequality
       case EBinary(BOp.Lt, l, r) =>
         def toLocal(e: Expr): Option[Local] = e match
@@ -1445,7 +1445,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     def refine(
       value: AbsValue,
       refinedValue: AbsValue,
-    )(using np: NodePoint[_]): Updater =
+    )(using np: NodePoint[?]): Updater =
       import RefinementKind.*
       given AbsState = getResult(np)
       val refined = refinedValue.ty
@@ -1458,7 +1458,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** refine types using symbolic predicates */
     def refine(
       pred: SymPred,
-    )(using np: NodePoint[_]): Updater =
+    )(using np: NodePoint[?]): Updater =
       val SymPred(map, expr) = pred
       val alias: Map[SymBase, SymBase] = expr.fold(Map()) {
         case (SEEq(SETypeOf(SERef(SBase(x))), SETypeOf(SERef(SBase(y)))), _) =>
@@ -1497,7 +1497,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** refine types using symbolic expressions */
     def refine(
       expr: SymExpr,
-    )(using np: NodePoint[_]): Updater =
+    )(using np: NodePoint[?]): Updater =
       for {
         _ <- modify(expr match {
           case _ => st => st // TODO
@@ -1508,7 +1508,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     def refine(
       ref: SymBase,
       ty: ValueTy,
-    )(using np: NodePoint[_]): Updater = ref match
+    )(using np: NodePoint[?]): Updater = ref match
       case sym: Sym =>
         st =>
           val refinedTy = st.symEnv.get(sym).fold(ty)(_ && ty)
@@ -1527,7 +1527,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       expr: Expr,
       kind: RefinementKind,
     )(using
-      np: NodePoint[_],
+      np: NodePoint[?],
       st: AbsState,
     ): Option[(SymBase, (ValueTy, Provenance))] =
       getRefiner(pair).map { (base, ty) => base -> (ty, Provenance(np.func)) }
@@ -1558,7 +1558,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       x: Local,
       expr: Expr,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = for {
+    )(using np: NodePoint[?]): Updater = for {
       rv <- transfer(expr)
       lv <- transfer(x)
       given AbsState <- get
@@ -1576,7 +1576,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       field: String,
       expr: Expr,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = for {
+    )(using np: NodePoint[?]): Updater = for {
       rv <- transfer(expr)
       given AbsState <- get
       _ <- refineField(x, field, Binding(rv.ty), positive)
@@ -1587,7 +1587,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       field: String,
       rbinding: Binding,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = for {
+    )(using np: NodePoint[?]): Updater = for {
       lv <- transfer(x)
       given AbsState <- get
       lty = lv.ty
@@ -1606,7 +1606,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       x: Local,
       field: String,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater =
+    )(using np: NodePoint[?]): Updater =
       refineField(x, field, Binding.Exist, positive)
 
     /** refine types with `typeof` constraints */
@@ -1614,7 +1614,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       x: Local,
       expr: Expr,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = for {
+    )(using np: NodePoint[?]): Updater = for {
       lv <- transfer(x)
       rv <- transfer(expr)
       given AbsState <- get
@@ -1633,7 +1633,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       ref: Ref,
       ty: ValueTy,
       positive: Boolean,
-    )(using np: NodePoint[_]): Updater = for {
+    )(using np: NodePoint[?]): Updater = for {
       v <- transfer(ref)
       given AbsState <- get
       refinedV =

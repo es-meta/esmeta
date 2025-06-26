@@ -114,6 +114,33 @@ class Stringifier(
     ESValueT -> "ESValue",
   )
 
+  given intRulePrimitiveEarly: Rule[Int] = (app, i) => app >> i
+  given bigIntRulePrimitiveEarly: Rule[BigInt] = (app, bi) => app >> bi
+  given Ordering[BigInt] = Ordering.BigInt
+
+  given mathRuleEarly: Rule[Math] = (app, m) => app >> m.toString
+  given Ordering[Math] = Ordering.by(_.decimal)
+
+  given numberRuleEarly: Rule[Number] = (app, n) =>
+    n match
+      case Number(Double.PositiveInfinity) => app >> "+INF"
+      case Number(Double.NegativeInfinity) => app >> "-INF"
+      case Number(d) if d.isNaN            => app >> "NaN"
+      case Number(d)                       => app >> d
+  given Ordering[Number] = Ordering.by(_.double)
+
+  given setRuleIntEarly: Rule[Set[Int]] = setRule("[", ", ", "]")
+  given setRuleBigIntEarly: Rule[Set[BigInt]] = setRule("[", ", ", "]")
+  given setRuleMathEarly: Rule[Set[Math]] = setRule("[", ", ", "]")
+
+  given bsetRuleIntEarly: Rule[BSet[Int]] = bsetRule[Int]
+  given bsetRuleStringEarly: Rule[BSet[String]] = bsetRule[String]
+  given bsetRuleBigIntEarly: Rule[BSet[BigInt]] = bsetRule[BigInt]
+  given bsetRuleMathEarly: Rule[BSet[Math]] = bsetRule[Math]
+
+  given setRuleStringEarly: Rule[Set[String]] = setRule("[", ", ", "]")
+  given setRuleNumberEarly: Rule[Set[Number]] = setRule("[", ", ", "]")
+
   /** value types */
   given valueTyRule: Rule[ValueTy] = (app, origTy) =>
     var ty: ValueTy = origTy
@@ -411,19 +438,5 @@ class Stringifier(
       this
   }
 
-  // rule for math
-  private given mathRule: Rule[Math] = (app, math) => app >> math.toString
-  given Ordering[Math] = Ordering.by(_.decimal)
-
-  // rule for number
-  private given numberRule: Rule[Number] = (app, number) =>
-    number match
-      case Number(Double.PositiveInfinity) => app >> "+INF"
-      case Number(Double.NegativeInfinity) => app >> "-INF"
-      case Number(n) if n.isNaN            => app >> "NaN"
-      case Number(n)                       => app >> n
-  given Ordering[Number] = Ordering.by(_.double)
-
-  // separator for type disjuction
   private val OR = " | "
 }

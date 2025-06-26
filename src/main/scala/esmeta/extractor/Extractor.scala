@@ -134,8 +134,8 @@ class Extractor(
     var parent = elem.parent
     // TODO more general rules
     if (
-      (parent.id endsWith "statement-rules") ||
-      (parent.id endsWith "expression-rules")
+      (parent.id.endsWith("statement-rules")) ||
+      (parent.id.endsWith("expression-rules"))
     ) parent = parent.parent
 
     // checks whether it is an algorithm that should be ignored

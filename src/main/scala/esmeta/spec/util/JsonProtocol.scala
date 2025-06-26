@@ -41,7 +41,34 @@ object JsonProtocol extends BasicJsonProtocol {
   // alternatives or right-hand-sides (RHSs) of productions */
   given Decoder[RhsCond] = deriveDecoder
   given Encoder[RhsCond] = deriveEncoder
-  // symbols
+
+  // ---------------------------------------------------------------------------
+  // Symbol primitives (encoders/decoders)
+  // ---------------------------------------------------------------------------
+  given Decoder[Terminal] = deriveDecoder
+  given Encoder[Terminal] = deriveEncoder
+  given Decoder[Nonterminal] = deriveDecoder
+  given Encoder[Nonterminal] = deriveEncoder
+  given Decoder[NonterminalArgument] = deriveDecoder
+  given Encoder[NonterminalArgument] = deriveEncoder
+  given Decoder[NonterminalArgumentKind] = deriveDecoder
+  given Encoder[NonterminalArgumentKind] = deriveEncoder
+  given Decoder[Optional] = deriveDecoder
+  given Encoder[Optional] = deriveEncoder
+  given Decoder[ButNot] = deriveDecoder
+  given Encoder[ButNot] = deriveEncoder
+  given Decoder[ButOnlyIf] = deriveDecoder
+  given Encoder[ButOnlyIf] = deriveEncoder
+  given Decoder[Lookahead] = deriveDecoder
+  given Encoder[Lookahead] = deriveEncoder
+  given Decoder[CodePoint] = deriveDecoder
+  given Encoder[CodePoint] = deriveEncoder
+  given Decoder[CodePointAbbr] = deriveDecoder
+  given Encoder[CodePointAbbr] = deriveEncoder
+  given Decoder[UnicodeSet] = deriveDecoder
+  given Encoder[UnicodeSet] = deriveEncoder
+
+  // symbols (must come AFTER primitive symbol encoders/decoders)
   given Decoder[Symbol] =
     decoderWithDiscriminator("symbol", symbolDiscriminators)
   private lazy val symbolDiscriminators
@@ -71,28 +98,6 @@ object JsonProtocol extends BasicJsonProtocol {
     case symbol: CodePointAbbr => symbol.asJson
     case symbol: UnicodeSet    => symbol.asJson
   }
-  given Decoder[Terminal] = deriveDecoder
-  given Encoder[Terminal] = deriveEncoder
-  given Decoder[Nonterminal] = deriveDecoder
-  given Encoder[Nonterminal] = deriveEncoder
-  given Decoder[NonterminalArgument] = deriveDecoder
-  given Encoder[NonterminalArgument] = deriveEncoder
-  given Decoder[NonterminalArgumentKind] = deriveDecoder
-  given Encoder[NonterminalArgumentKind] = deriveEncoder
-  given Decoder[Optional] = deriveDecoder
-  given Encoder[Optional] = deriveEncoder
-  given Decoder[ButNot] = deriveDecoder
-  given Encoder[ButNot] = deriveEncoder
-  given Decoder[ButOnlyIf] = deriveDecoder
-  given Encoder[ButOnlyIf] = deriveEncoder
-  given Decoder[Lookahead] = deriveDecoder
-  given Encoder[Lookahead] = deriveEncoder
-  given Decoder[CodePoint] = deriveDecoder
-  given Encoder[CodePoint] = deriveEncoder
-  given Decoder[CodePointAbbr] = deriveDecoder
-  given Encoder[CodePointAbbr] = deriveEncoder
-  given Decoder[UnicodeSet] = deriveDecoder
-  given Encoder[UnicodeSet] = deriveEncoder
 
   // ---------------------------------------------------------------------------
   // Algorithms

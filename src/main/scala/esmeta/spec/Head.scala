@@ -55,12 +55,12 @@ sealed trait Head extends SpecElem {
     case head: BuiltinHead =>
       val str = head.path.toString
       val patched =
-        if (str startsWith "Generator.prototype")
+        if (str.startsWith("Generator.prototype"))
           str.replace(
             "Generator.prototype",
             "GeneratorFunction.prototype.prototype",
           )
-        else if (str startsWith "AsyncGenerator.prototype")
+        else if (str.startsWith("AsyncGenerator.prototype"))
           str.replace(
             "AsyncGenerator.prototype",
             "AsyncGeneratorFunction.prototype.prototype",

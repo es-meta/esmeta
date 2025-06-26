@@ -20,6 +20,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: ConversionExpressionOperator =>
         convExprOpRule(false)(app, elem)
       case elem: BinaryExpressionOperator  => binExprOpRule(app, elem)
+      case elem: BitwiseExpressionOperator => bitExprOpRule(app, elem)
       case elem: UnaryExpressionOperator   => unExprOpRule(app, elem)
       case elem: XRefExpressionOperator    => xrefExprOpRule(app, elem)
       case elem: BinaryConditionOperator   => binCondOpRule(app, elem)
@@ -39,6 +40,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case syn: Type       => typeRule(app, syn)
       case syn: Property   => propRule(app, syn)
       case syn: Intrinsic  => intrRule(app, syn)
+      case syn: Directive  => directiveRule(app, syn)
     }
 
   // blocks
@@ -229,7 +231,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
   private def endWithExprRule: Rule[Expression] = (app, expr) => {
     expr match {
-      case multi: MultilineExpression => app >> expr
+      case multi: MultilineExpression => multilineExprRule(app, multi)
       case _                          => app >> expr >> "."
     }
   }
@@ -310,7 +312,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case YetExpression(str, block) =>
         app >> str
         block.fold(app)(app >> _)
-      case multi: MultilineExpression => app >> multi
+      case multi: MultilineExpression => multilineExprRule(app, multi)
     }
   }
 

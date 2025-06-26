@@ -16,7 +16,7 @@ class ContainsTinyTest extends TyTest {
   case class Neg(name: String, heap: Heap) {
     def neg(ps: (Ty, Value)*): Unit =
       given Heap = heap
-      checkContains(name, expected = false)(ps: _*)
+      checkContains(name, expected = false)(ps*)
   }
 
   // check containment of values for types

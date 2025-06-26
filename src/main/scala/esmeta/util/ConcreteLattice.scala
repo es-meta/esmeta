@@ -3,7 +3,7 @@ package esmeta.util
 import esmeta.util.BaseUtils.{warn, error}
 
 /** lattice with concrete values */
-trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
+trait ConcreteLattice[+A, L[_] <: ConcreteLattice[?, L]] {
 
   /** top check */
   def isTop: Boolean

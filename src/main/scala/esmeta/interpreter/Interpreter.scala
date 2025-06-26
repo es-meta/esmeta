@@ -561,7 +561,7 @@ object Interpreter {
       case (Div, Number(l), Number(r))  => Number(l / r)
       case (Mod, Number(l), Number(r))  => Number(l % r)
       case (UMod, Number(l), Number(r)) => Number(l %% r)
-      case (Lt, Number(l), Number(r)) if (l equals -0.0) && (r equals 0.0) =>
+      case (Lt, Number(l), Number(r)) if (l.equals(-0.0)) && (r.equals(0.0)) =>
         Bool(true)
       case (Lt, Number(l), Number(r)) => Bool(l < r)
 
@@ -630,7 +630,7 @@ object Interpreter {
       case (Xor, Bool(l), Bool(r)) => Bool(l ^ r)
 
       // equality operations
-      case (Eq, Number(l), Number(r))     => Bool(l equals r)
+      case (Eq, Number(l), Number(r))     => Bool(l.equals(r))
       case (Eq, AstValue(l), AstValue(r)) => Bool(l eq r)
       case (Eq, l, r)                     => Bool(l == r)
 

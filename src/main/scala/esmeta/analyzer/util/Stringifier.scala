@@ -26,9 +26,7 @@ trait StringifierDecl { self: Self =>
     import irStringifier.given
 
     /** elements */
-    given elemRule: Rule[AnalyzerElem] = (app, elem) =>
-      elem match
-        case elem: ControlPoint => cpRule(app, elem)
+    given Rule[View] = viewRule(detail)
 
     // control points
     given cpRule: Rule[ControlPoint] = (app, cp) =>
@@ -40,6 +38,8 @@ trait StringifierDecl { self: Self =>
       if (cp.view.isEmpty) app
       else app >> ":" >> cp.view
 
-    given Rule[View] = viewRule(detail)
+    given elemRule: Rule[AnalyzerElem] = (app, elem) =>
+      elem match
+        case elem: ControlPoint => cpRule(app, elem)
   }
 }

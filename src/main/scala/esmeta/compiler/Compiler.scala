@@ -109,9 +109,9 @@ class Compiler(
   )
 
   private def isObject(tname: String): Boolean =
-    tname endsWith "Object"
+    tname.endsWith("Object")
   private def isEnvRec(tname: String): Boolean =
-    tname endsWith "EnvironmentRecord"
+    tname.endsWith("EnvironmentRecord")
   private def getMapTy(tname: String): Option[(Ty, Ty)] =
     if (isObject(tname))
       Some((StrT || SymbolT) -> RecordT("PropertyDescriptor"))
@@ -611,7 +611,8 @@ class Compiler(
       case GetItemsExpression(nt, expr @ NonterminalLiteral(_, name, flags)) =>
         val n = compile(fb, nt)
         val e = compile(fb, expr)
-        val args = List(e, n, EGrammarSymbol(name, flags.map(_ startsWith "+")))
+        val args =
+          List(e, n, EGrammarSymbol(name, flags.map(_.startsWith("+"))))
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, AUX_GET_ITEMS, args))
         xExpr
@@ -827,7 +828,7 @@ class Compiler(
       if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)
     case CodeLiteral(code) => EStr(code)
     case GrammarSymbolLiteral(name, flags) =>
-      EGrammarSymbol(name, flags.map(_ startsWith "+"))
+      EGrammarSymbol(name, flags.map(_.startsWith("+")))
     case NonterminalLiteral(ordinal, name, flags) =>
       val ntNames = fb.ntBindings.map(_._1)
       // TODO ClassTail[0,3].Contains
@@ -836,7 +837,7 @@ class Compiler(
         xs(ordinal.getOrElse(1) - 1) match
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMath(idx))
-      } else EGrammarSymbol(name, flags.map(_ startsWith "+"))
+      } else EGrammarSymbol(name, flags.map(_.startsWith("+")))
     case EnumLiteral(name)   => EEnum(name)
     case StringLiteral(s)    => EStr(s)
     case FieldLiteral(field) => EStr(field)

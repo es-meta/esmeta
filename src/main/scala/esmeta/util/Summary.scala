@@ -92,17 +92,12 @@ case class Summary(
       app :> f"- pass-rate: ${simpleString(detail = false)}"
       app.toString
 
+  private given elemRuleSimple: Rule[Elem] = (app, elem) => app >> elem.size
+  private given Rule[(Reason, Elem)] = (app, pair) =>
+    val (reason, elem) = pair
+    app >> reason >> " -> " >> elem
   private given Rule[(String, Int)] = {
     case (app, (name, count)) => app >> f"- $name: $count%,d"
-  }
-  private given Rule[(Reason, Elem)] = {
-    case (app, (reason, elem @ Elem(seq, map))) =>
-      app >> reason -> elem.size
-      if (!map.isEmpty)
-        var pairs = map.toList.sortBy(-_._2.size)
-        if (!seq.isEmpty) pairs :+= "others" -> Elem(seq)
-        app.wrapIterable("", "", "")(pairs)
-      app
   }
 }
 

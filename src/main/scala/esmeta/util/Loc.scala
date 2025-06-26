@@ -25,7 +25,7 @@ trait Locational {
   def mergeLoc(that: Locational): Option[Loc] = for {
     lloc <- this.loc
     rloc <- that.loc
-    loc <- lloc merge rloc
+    loc <- lloc.merge(rloc)
   } yield loc
 }
 
@@ -89,8 +89,8 @@ case class Pos(
   override def toString: String = s"$line:$column($offset)"
 }
 
-/** ordering of locations */
-given Ordering[Loc] = Ordering.by(loc => (loc.start, loc.end))
-
 /** ordering of positions */
 given Ordering[Pos] = Ordering.by(pos => (pos.line, pos.column))
+
+/** ordering of locations */
+given Ordering[Loc] = Ordering.by(loc => (loc.start, loc.end))

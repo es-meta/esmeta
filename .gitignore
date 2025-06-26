@@ -40,3 +40,8 @@ tests/result/test262
 ## local .bashrc/.zshrc files
 .bashrc
 .zshrc
+
+## GitHub ignore
+*.~ignore
+*.mdc
+Dockerfile

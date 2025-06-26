@@ -31,5 +31,5 @@ object ValidityChecker {
 
   /** Check the validity of code using engines */
   private def checkValid(result: Try[Any]): Boolean =
-    result.failed.filter(_.getMessage contains MESSAGE).isSuccess
+    result.failed.filter(_.getMessage.contains(MESSAGE)).isSuccess
 }

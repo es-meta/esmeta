@@ -50,7 +50,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case ListBuffer(inst) => app >> inst
           case _                => app.wrap(for (inst <- insts) app :> inst)
         next.map(x => app >> " -> " >> x.id)
-      case other: NodeWithInst => app >> other
+      case other: NodeWithInst => nodeWithInstRule(app, other)
     app
 
   // nodes with instruction backward edge

@@ -51,9 +51,9 @@ object Test {
     val lines =
       try source.getLines.toList
       finally source.close()
-    val test = lines.dropWhile((x) => !(x contains "/*---")) match {
+    val test = lines.dropWhile((x) => !(x.contains("/*---"))) match {
       case Nil       => Nil
-      case _ :: rest => rest.takeWhile((x) => !(x contains "---*/"))
+      case _ :: rest => rest.takeWhile((x) => !(x.contains("---*/")))
     }
     val (negative, flags, includes, locales, features, _, _, es5) =
       test.foldLeft(
@@ -81,13 +81,13 @@ object Test {
               ),
               line,
             ) => {
-          val isES5n = if (line contains "es5id:") true else isES5
-          val isNegn = if (line contains "negative:") true else isNeg
+          val isES5n = if (line.contains("es5id:")) true else isES5
+          val isNegn = if (line.contains("negative:")) true else isNeg
           val negativen =
-            if ((line contains "type:") && isNeg) Some(line.split(' ').last)
+            if ((line.contains("type:")) && isNeg) Some(line.split(' ').last)
             else negative
           val flagsn =
-            if (line contains "flags:")
+            if (line.contains("flags:"))
               line
                 .dropWhile(_ != '[')
                 .tail
@@ -96,7 +96,7 @@ object Test {
                 .toList
             else flags
           val (includesn, isIncluden) =
-            if (line contains "includes:") line.dropWhile(_ != '[') match {
+            if (line.contains("includes:")) line.dropWhile(_ != '[') match {
               case "" => (List(), true)
               case s =>
                 (
@@ -106,11 +106,11 @@ object Test {
             }
             else (includes, isInclude)
           val includesn2 =
-            if (isInclude && (line contains ".js"))
+            if (isInclude && (line.contains(".js")))
               includesn :+ (line.split(' ').last)
             else includesn
           val localesn =
-            if (line contains "locale:")
+            if (line.contains("locale:"))
               line
                 .dropWhile(_ != '[')
                 .tail
@@ -119,7 +119,7 @@ object Test {
                 .toList
             else locales
           val featuresn =
-            if (line contains "features:") line.dropWhile(_ != '[') match {
+            if (line.contains("features:")) line.dropWhile(_ != '[') match {
               case "" => List()
               case s => s.tail.takeWhile(_ != ']').split(",").map(_.trim).toList
             }

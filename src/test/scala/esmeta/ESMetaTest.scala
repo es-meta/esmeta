@@ -163,7 +163,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
     decoder: Decoder[T],
   ): Unit = checkJson(desc)(cases.map {
     case (obj, str) => obj -> Json.fromString(str)
-  }: _*)
+  }*)
 
   // get score
   def getScore(res: Map[String, Result]): (Int, Int) = (

@@ -122,7 +122,7 @@ def symbolAddr(name: String): NamedAddr = intrAddr(symbolName(name))
 
 /** descriptor name */
 def descName(name: String, key: String): String =
-  if (key startsWith "@@") s"$DESCRIPTOR.$name[$key]"
+  if (key.startsWith("@@")) s"$DESCRIPTOR.$name[$key]"
   else s"$DESCRIPTOR.$name.$key"
 
 /** descriptor address */
@@ -138,7 +138,7 @@ def getMapObjects(
   var map = Map[Addr, Obj]()
   map += mapAddr(name) -> MapObj(nmap.map {
     case (k, _) => // handle symbol
-      val key = if k startsWith "@@" then symbolAddr(k.drop(2)) else Str(k)
+      val key = if (k.startsWith("@@")) symbolAddr(k.drop(2)) else Str(k)
       key -> descAddr(descBase, k)
   })
   map ++= nmap.map { case (k, prop) => descAddr(descBase, k) -> prop.toObject }

@@ -13,7 +13,7 @@ def mergeStmt(l: Vector[Ast]): Ast =
       val list = rest.foldLeft(init) {
         case (x, y) =>
           Syntactic("StatementList", Nil, 1, Vector(Some(x), Some(y)))
-            .setLoc(x mergeLoc y)
+            .setLoc(x.mergeLoc(y))
       }
       Some(Syntactic("ScriptBody", Nil, 0, Vector(Some(list))))
     case _ => None
