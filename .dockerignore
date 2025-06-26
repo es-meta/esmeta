@@ -1,0 +1,15 @@
+# Dots
+.bloop/
+.bsp/
+.metals/
+.vscode/
+.github/
+.idea/
+.cursor/
+.cursorrules
+.cursorignore
+.cursorignorerules
+
+logs/
+target/
+tests/

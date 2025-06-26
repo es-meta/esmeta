@@ -41,7 +41,10 @@ tests/result/test262
 .bashrc
 .zshrc
 
-## GitHub ignore
-*.~ignore
-*.mdc
-Dockerfile
+## cursor
+.cursorignore
+.cursor/
+
+# docker
+*.tar.gz
+*.tar
