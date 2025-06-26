@@ -1121,7 +1121,7 @@ trait Parsers extends IndentParsers {
     FalseLiteral(),
   ) | {
     // PropertyDefinitionEvaluation
-    // TODO remove when ParseJson is supported
+    // NOTE if JSON.parse is supported, then the next line should be handled properly
     "this |PropertyDefinition| is contained within a |Script| that is being evaluated for ParseJSON (see step <emu-xref href=\"#step-json-parse-eval\"></emu-xref> of ParseJSON)"
   } ^^! getExprCond(FalseLiteral())
 
