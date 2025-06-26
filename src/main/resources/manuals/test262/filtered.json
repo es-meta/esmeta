@@ -310,10 +310,10 @@
     "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise"
   ],
   "large": [
-    "language/identifiers/start-unicode-16.0.0.js",
-    "language/identifiers/start-unicode-16.0.0-escaped.js",
-    "language/identifiers/start-unicode-16.0.0-class.js",
-    "language/identifiers/start-unicode-16.0.0-class-escaped.js",
+    "language/identifiers/start-unicode-16.0.0",
+    "language/identifiers/start-unicode-16.0.0-escaped",
+    "language/identifiers/start-unicode-16.0.0-class",
+    "language/identifiers/start-unicode-16.0.0-class-escaped",
     "language/identifiers/start-unicode-15.0.0-class-escaped",
     "language/identifiers/start-unicode-15.0.0-escaped",
     "language/identifiers/start-unicode-15.0.0",
