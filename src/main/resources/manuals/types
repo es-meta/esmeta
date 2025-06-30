@@ -69,8 +69,7 @@ type ThrowCompletion extends AbruptCompletion {
 // https://tc39.es/ecma262/#table-reference-record-fields
 type ReferenceRecord {
   Base: ESValue | Record[EnvironmentRecord] | Enum[~unresolvable~];
-  // TODO: `Record[Symbol] | String` to `ESValue` in latest version
-  ReferencedName: Record[Symbol | PrivateName] | String;
+  ReferencedName: ESValue | Record[PrivateName];
   Strict: Boolean;
   ThisValue: ESValue | Enum[~empty~];
 }
@@ -170,7 +169,7 @@ type EnvironmentRecord {
   __MAP__: Map[String -> Record[Binding]];
 }
 
-// https://tc39.es/ecma262/2024/#sec-declarative-environment-records
+// https://tc39.es/ecma262/#sec-declarative-environment-records
 type DeclarativeEnvironmentRecord extends EnvironmentRecord {
   def CreateImmutableBinding;
   def CreateMutableBinding;
@@ -184,7 +183,7 @@ type DeclarativeEnvironmentRecord extends EnvironmentRecord {
   def WithBaseObject;
 }
 
-// https://tc39.es/ecma262/2024/#sec-object-environment-records
+// https://tc39.es/ecma262/#sec-object-environment-records
 type ObjectEnvironmentRecord extends EnvironmentRecord {
   def CreateMutableBinding;
   def DeleteBinding;
@@ -199,7 +198,7 @@ type ObjectEnvironmentRecord extends EnvironmentRecord {
   IsWithEnvironment: Boolean;
 }
 
-// https://tc39.es/ecma262/2024/#sec-function-environment-records
+// https://tc39.es/ecma262/#sec-function-environment-records
 type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
   def GetThisBinding;
   def HasSuperBinding;
@@ -210,7 +209,7 @@ type FunctionEnvironmentRecord extends DeclarativeEnvironmentRecord {
   ThisValue: ESValue;
 }
 
-// https://tc39.es/ecma262/2025/#sec-global-environment-records
+// https://tc39.es/ecma262/#sec-global-environment-records
 type GlobalEnvironmentRecord extends EnvironmentRecord {
   def CreateImmutableBinding;
   def CreateMutableBinding;
@@ -228,7 +227,7 @@ type GlobalEnvironmentRecord extends EnvironmentRecord {
   ObjectRecord: Record[ObjectEnvironmentRecord];
 }
 
-// https://tc39.es/ecma262/2025/#sec-module-environment-records
+// https://tc39.es/ecma262/#sec-module-environment-records
 type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
   def CreateImportBinding;
   def GetBindingValue;
@@ -257,7 +256,7 @@ type MutableBinding extends Binding {
 // Objects
 // -----------------------------------------------------------------------------
 
-// https://tc39.es/ecma262/2024/#sec-object-internal-methods-and-internal-slots
+// https://tc39.es/ecma262/#sec-object-internal-methods-and-internal-slots
 type Object {
   abstract def GetPrototypeOf;
   abstract def SetPrototypeOf;
@@ -276,13 +275,13 @@ type Object {
   __MAP__: Map[Record[Symbol] | String -> Record[PropertyDescriptor]];
 }
 
-// https://tc39.es/ecma262/2024/#function-object
+// https://tc39.es/ecma262/#function-object
 type FunctionObject = Object { Call; }
 
-// https://tc39.es/ecma262/2024/#constructor
+// https://tc39.es/ecma262/#constructor
 type Constructor = FunctionObject { Construct; }
 
-// https://tc39.es/ecma262/2024/#ordinary-object
+// https://tc39.es/ecma262/#ordinary-object
 type OrdinaryObject extends Object {
   def GetPrototypeOf;
   def SetPrototypeOf;
@@ -300,7 +299,7 @@ type OrdinaryObject extends Object {
   ParameterMap?: Record[Object] | Undefined;
 }
 
-// https://tc39.es/ecma262/2024/#sec-ecmascript-function-objects
+// https://tc39.es/ecma262/#sec-ecmascript-function-objects
 type ECMAScriptFunctionObject extends OrdinaryObject {
   def Call;
   def Construct?;
@@ -321,7 +320,7 @@ type ECMAScriptFunctionObject extends OrdinaryObject {
   IsClassConstructor: Boolean;
 }
 
-// https://tc39.es/ecma262/2024/#sec-built-in-function-objects
+// https://tc39.es/ecma262/#sec-built-in-function-objects
 type BuiltinFunctionObject extends OrdinaryObject {
   def Call;
   def Construct?;
@@ -330,7 +329,7 @@ type BuiltinFunctionObject extends OrdinaryObject {
   __CODE__: Clo[(ESValue, List[ESValue], Record[Constructor] | Undefined) => Normal[ESValue] | Throw];
 }
 
-// https://tc39.es/ecma262/2024/#sec-promise.all-resolve-element-functions
+// https://tc39.es/ecma262/#sec-promise.all-resolve-element-functions
 type PromiseAllResolveElementFunction extends BuiltinFunctionObject {
   Index: Int[0+];
   Values: List[ESValue];
@@ -343,7 +342,7 @@ type ExoticObject extends Object {
   Prototype?: Record[Object] | Null;
 }
 
-// https://tc39.es/ecma262/2024/#sec-bound-function-exotic-objects
+// https://tc39.es/ecma262/#sec-bound-function-exotic-objects
 type BoundFunctionExoticObject extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
@@ -363,7 +362,7 @@ type BoundFunctionExoticObject extends ExoticObject {
   BoundArguments: List[ESValue];
 }
 
-// https://tc39.es/ecma262/2024/#sec-array-exotic-objects
+// https://tc39.es/ecma262/#sec-array-exotic-objects
 type Array extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
@@ -379,7 +378,7 @@ type Array extends ExoticObject {
   Prototype: Record[Object];
 }
 
-// https://tc39.es/ecma262/2024/#sec-string-exotic-objects
+// https://tc39.es/ecma262/#sec-string-exotic-objects
 type StringExoticObject extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
@@ -395,7 +394,7 @@ type StringExoticObject extends ExoticObject {
   StringData: String;
 }
 
-// https://tc39.es/ecma262/2024/#sec-arguments-exotic-objects
+// https://tc39.es/ecma262/#sec-arguments-exotic-objects
 type ArgumentsExoticObject extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
