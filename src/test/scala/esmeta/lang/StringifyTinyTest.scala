@@ -325,7 +325,7 @@ class StringifyTinyTest extends LangTest {
       strWithStar -> """*"abc\*"*""",
       strWithBasckSlash -> """*"abc\\"*""",
       fieldLit -> "[[Value]]",
-      sym -> "@@iterator",
+      sym -> "%Symbol.iterator%",
       errObj -> "a newly created *TypeError* object",
       PositiveInfinityMathValueLiteral() -> "+∞",
       NegativeInfinityMathValueLiteral() -> "-∞",

@@ -1,0 +1,34 @@
+diff --git a/spec.html b/spec.html
+index 7685cdd7..b7d5a7c8 100644
+--- a/spec.html
++++ b/spec.html
+@@ -29851,7 +29851,7 @@
+               1. Let _F_ be _thisEnvRec_.[[FunctionObject]].
+               1. Set _inFunction_ to *true*.
+               1. Set _inMethod_ to _thisEnvRec_.HasSuperBinding().
+-              1. If _F_.[[ConstructorKind]] is ~derived~, set _inDerivedConstructor_ to *true*.
++              1. If IsConstructor(_F_) is *true* and _F_.[[ConstructorKind]] is ~derived~, set _inDerivedConstructor_ to *true*.
+               1. Let _classFieldInitializerName_ be _F_.[[ClassFieldInitializerName]].
+               1. If _classFieldInitializerName_ is not ~empty~, set _inClassFieldInitializer_ to *true*.
+           1. Perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
+@@ -43269,7 +43269,7 @@ THH:mm:ss.sss
+                 1. Perform ? GeneratorYield(CreateIteratorResultObject(_result_, *false*)).
+                 1. NOTE: The number of elements in _entries_ may have increased while execution of this abstract operation was paused by GeneratorYield.
+                 1. Set _numEntries_ to the number of elements in _entries_.
+-            1. Return *undefined*.
++            1. Return NormalCompletion(*undefined*).
+           1. Return CreateIteratorFromClosure(_closure_, *"%MapIteratorPrototype%"*, %MapIteratorPrototype%).
+         </emu-alg>
+       </emu-clause>
+@@ -43899,7 +43899,7 @@ THH:mm:ss.sss
+                   1. Perform ? GeneratorYield(CreateIteratorResultObject(_e_, *false*)).
+                 1. NOTE: The number of elements in _entries_ may have increased while execution of this abstract operation was paused by GeneratorYield.
+                 1. Set _numEntries_ to the number of elements in _entries_.
+-            1. Return *undefined*.
++            1. Return NormalCompletion(*undefined*).
+           1. Return CreateIteratorFromClosure(_closure_, *"%SetIteratorPrototype%"*, %SetIteratorPrototype%).
+         </emu-alg>
+       </emu-clause>
+-- 
+2.49.0
+

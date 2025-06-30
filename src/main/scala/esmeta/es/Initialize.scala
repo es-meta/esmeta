@@ -143,7 +143,9 @@ class Initialize(cfg: CFG) {
         case NormalAccess(b, n) if !(yets contains b.toString) =>
           Some((b.toString, n, Str(n), n, T, F))
         case SymbolAccess(b, n) if !(yets contains b.toString) =>
-          Some((b.toString, s"@@$n", symbolAddr(n), s"[Symbol.$n]", T, F))
+          Some(
+            (b.toString, s"%Symbol.$n%", symbolAddr(n), s"[Symbol.$n]", T, F),
+          )
         case Getter(path) =>
           path.getData match
             case Some((base, prop, propV, propName, _, _)) =>

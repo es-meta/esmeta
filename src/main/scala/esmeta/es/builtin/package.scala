@@ -58,6 +58,7 @@ val yets: Map[String, ValueTy] =
     "Uint32Array" -> ConstructorT,
     "BigInt64Array" -> ConstructorT,
     "BigUint64Array" -> ConstructorT,
+    "Float16Array" -> ConstructorT,
     "Float32Array" -> ConstructorT,
     "Float64Array" -> ConstructorT,
     // 25. Structured Data
@@ -122,7 +123,8 @@ def symbolAddr(name: String): NamedAddr = intrAddr(symbolName(name))
 
 /** descriptor name */
 def descName(name: String, key: String): String =
-  if (key startsWith "@@") s"$DESCRIPTOR.$name[$key]"
+  if ((key startsWith "%Symbol.") && (key endsWith "%"))
+    s"$DESCRIPTOR.$name[$key]"
   else s"$DESCRIPTOR.$name.$key"
 
 /** descriptor address */
@@ -138,7 +140,10 @@ def getMapObjects(
   var map = Map[Addr, Obj]()
   map += mapAddr(name) -> MapObj(nmap.map {
     case (k, _) => // handle symbol
-      val key = if k startsWith "@@" then symbolAddr(k.drop(2)) else Str(k)
+      val key =
+        if ((k startsWith "%Symbol.") && (k endsWith "%")) then
+          symbolAddr(k.substring("%Symbol.".length(), k.length - 1))
+        else Str(k)
       key -> descAddr(descBase, k)
   })
   map ++= nmap.map { case (k, prop) => descAddr(descBase, k) -> prop.toObject }

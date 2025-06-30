@@ -602,7 +602,7 @@ trait Parsers extends IndentParsers {
     strLiteral <~ opt("\\([^)]*\\)".r) |
     fieldLiteral |
     errObjLiteral |
-    "@@" ~> word ^^ { SymbolLiteral(_) } |
+    "%Symbol." ~> word <~ "%" ^^ { SymbolLiteral(_) } |
     "+∞" ^^! PositiveInfinityMathValueLiteral() |
     "-∞" ^^! NegativeInfinityMathValueLiteral() |
     opt(int) ~ "π" ^^ {
@@ -772,7 +772,8 @@ trait Parsers extends IndentParsers {
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
-    "(this)?[A-Z][a-zA-Z0-9/]*".r ~ invokeArgs ^^ {
+    // handle emu-meta tag
+    tagged("(this)?[A-Z][a-zA-Z0-9/]*".r) ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractOperationExpression(x, as)
     }
 
@@ -1112,7 +1113,17 @@ trait Parsers extends IndentParsers {
     case r ~ n =>
       val ref = PropertyReference(r, FieldProperty("initialized"))
       IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
-  }
+  } | {
+    // InitializeHostDefinedRealm
+    "the host requires use of an exotic object to serve as _realm_'s global object" |
+    "the host requires that the `this` binding in _realm_'s global scope return an object other than the global object"
+  } ^^! getExprCond(
+    FalseLiteral(),
+  ) | {
+    // PropertyDefinitionEvaluation
+    // NOTE if JSON.parse is supported, then the next line should be handled properly
+    "this |PropertyDefinition| is contained within a |Script| that is being evaluated for ParseJSON (see step <emu-xref href=\"#step-json-parse-eval\"></emu-xref> of ParseJSON)"
+  } ^^! getExprCond(FalseLiteral())
 
   // ---------------------------------------------------------------------------
   // metalanguage references
@@ -1216,7 +1227,9 @@ trait Parsers extends IndentParsers {
   // metalanguage intrinsics
   // ---------------------------------------------------------------------------
   given intr: PL[Intrinsic] = {
-    opt("the intrinsic function") ~ "%" ~> (word ~ rep("." ~> word)) <~ "%" ^^ {
+    opt("the intrinsic function") ~ "%" ~> not("Symbol.") ~> (word ~ rep(
+      "." ~> word,
+    )) <~ "%" ^^ {
       case b ~ ps => Intrinsic(b, ps)
     }
   }.named("lang.Intrinsic")

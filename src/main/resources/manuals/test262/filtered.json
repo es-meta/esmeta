@@ -310,6 +310,10 @@
     "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise"
   ],
   "large": [
+    "language/identifiers/start-unicode-16.0.0",
+    "language/identifiers/start-unicode-16.0.0-escaped",
+    "language/identifiers/start-unicode-16.0.0-class",
+    "language/identifiers/start-unicode-16.0.0-class-escaped",
     "language/identifiers/start-unicode-15.0.0-class-escaped",
     "language/identifiers/start-unicode-15.0.0-escaped",
     "language/identifiers/start-unicode-15.0.0",
@@ -346,5 +350,31 @@
     "language/expressions/assignment/target-member-computed-reference",
     "language/expressions/assignment/target-super-computed-reference",
     "language/expressions/member-expression/computed-reference-null-or-undefined"
+  ],
+  "pending until tc39/ecma262#3009 merged": [
+    "built-ins/String/prototype/search/cstm-search-on-bigint-primitive",
+    "built-ins/String/prototype/search/cstm-search-on-boolean-primitive",
+    "built-ins/String/prototype/search/cstm-search-on-number-primitive",
+    "built-ins/String/prototype/search/cstm-search-on-string-primitive",
+    "built-ins/String/prototype/match/cstm-matcher-on-string-primitive",
+    "built-ins/String/prototype/match/cstm-matcher-on-boolean-primitive",
+    "built-ins/String/prototype/match/cstm-matcher-on-bigint-primitive",
+    "built-ins/String/prototype/match/cstm-matcher-on-number-primitive",
+    "built-ins/String/prototype/matchAll/cstm-matchall-on-bigint-primitive",
+    "built-ins/String/prototype/matchAll/cstm-matchall-on-number-primitive",
+    "built-ins/String/prototype/matchAll/cstm-matchall-on-string-primitive",
+    "built-ins/String/prototype/matchAll/cstm-matchall-on-string-primitive",
+    "built-ins/String/prototype/replaceAll/cstm-replaceall-on-bigint-primitive",
+    "built-ins/String/prototype/replaceAll/cstm-replaceall-on-boolean-primitive",
+    "built-ins/String/prototype/replaceAll/cstm-replaceall-on-number-primitive",
+    "built-ins/String/prototype/replaceAll/cstm-replaceall-on-string-primitive",
+    "built-ins/String/prototype/split/cstm-split-on-string-primitive",
+    "built-ins/String/prototype/split/cstm-split-on-bigint-primitive",
+    "built-ins/String/prototype/split/cstm-split-on-boolean-primitive",
+    "built-ins/String/prototype/split/cstm-split-on-number-primitive",
+    "built-ins/String/prototype/replace/cstm-replace-on-string-primitive",
+    "built-ins/String/prototype/replace/cstm-replace-on-bigint-primitive",
+    "built-ins/String/prototype/replace/cstm-replace-on-boolean-primitive",
+    "built-ins/String/prototype/replace/cstm-replace-on-number-primitive"
   ]
 }
