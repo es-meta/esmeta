@@ -1181,6 +1181,7 @@ INTRINSICS.Array.prototype.toString
 INTRINSICS.Array.prototype.unshift
 INTRINSICS.Array.prototype.values
 INTRINSICS.Array.prototype.with
+INTRINSICS.Array.prototype[%Symbol.unscopables%]
 INTRINSICS.ArrayBuffer
 INTRINSICS.ArrayBuffer.isView
 INTRINSICS.ArrayBuffer.prototype.resize
