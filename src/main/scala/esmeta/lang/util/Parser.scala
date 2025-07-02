@@ -55,8 +55,8 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given step: PL[Step] = {
     letStep |
-    setEvalStateStep |
     setStep |
+    setEvalStateStep |
     setFieldsWithIntrinsicsStep |
     performStep |
     performBlockStep |
@@ -85,14 +85,35 @@ trait Parsers extends IndentParsers {
 
   // let steps
   lazy val letStep: PL[LetStep] =
-    ("let" ~> variable <~ "be") ~ opt(
-      "the" ~> langType <~ "that is the value of",
-    ) ~ endWithExpr ^^ { case x ~ _ ~ e => LetStep(x, e) }
+    ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
 
   // set steps
   lazy val setStep: PL[SetStep] =
     ("set" ~> ref <~ ("as" | "to")) ~ endWithExpr ^^ {
       case r ~ e => SetStep(r, e)
+    }
+
+  // set the code evaluation state steps
+  lazy val setEvalStateStep: PL[SetEvaluationStateStep] =
+    lazy val param: P[Option[Variable]] =
+      "for that execution context" ^^^ None |
+      "with a" ~ opt(langType) ~> variable ^^ { Some(_) } // TODO handle type
+    lazy val body: P[Step] =
+      "the following steps will be performed:" ~> step |
+      // closure-based
+      "," ~> variable <~ "will be called with no arguments." ^^ {
+        case e => ReturnStep(Some(InvokeAbstractClosureExpression(e, Nil)))
+      } |
+      // Await
+      ", the following steps of the algorithm" ~
+      "that invoked Await will be performed," ~
+      "with" ~> variable <~ "available" ~ end ^^ {
+        case x => ReturnStep(Some(ReferenceExpression(x)))
+      }
+
+    ("set the code evaluation state of" ~> variable) ~
+    ("such that when evaluation is resumed" ~> param) ~ body ^^ {
+      case c ~ p ~ b => SetEvaluationStateStep(c, p, b)
     }
 
   // set fields with intrinsics
@@ -218,7 +239,7 @@ trait Parsers extends IndentParsers {
 
   // repeat steps
   lazy val repeatStep: PL[RepeatStep] =
-    ("repeat" ~ ",") ~> opt(("until" | "while") ~> cond <~ ",") ~ step ^^ {
+    ("repeat" ~ ",") ~> opt("while" ~> cond <~ ",") ~ step ^^ {
       case c ~ s => RepeatStep(c, s)
     }
 
@@ -261,29 +282,6 @@ trait Parsers extends IndentParsers {
       "at the top of the execution context stack" ^^^ None
     ) <~ "as the running execution context"
     remove ~ restore <~ end ^^ { case x ~ y => RemoveContextStep(x, y) }
-
-  // set the code evaluation state steps
-  lazy val setEvalStateStep: PL[SetEvaluationStateStep] =
-    lazy val param: P[Option[Variable]] =
-      "for that execution context" ^^^ None |
-      "with a" ~ opt(langType) ~> variable ^^ { Some(_) } // TODO handle type
-    lazy val body: P[Step] =
-      "the following steps will be performed:" ~> step |
-      // closure-based
-      "," ~> variable <~ "will be called with no arguments." ^^ {
-        case e => ReturnStep(Some(InvokeAbstractClosureExpression(e, Nil)))
-      } |
-      // Await
-      ", the following steps of the algorithm" ~
-      "that invoked Await will be performed," ~
-      "with" ~> variable <~ "available" ~ end ^^ {
-        case x => ReturnStep(Some(ReferenceExpression(x)))
-      }
-
-    ("set the code evaluation state of" ~> variable) ~
-    ("such that when evaluation is resumed" ~> param) ~ body ^^ {
-      case c ~ p ~ b => SetEvaluationStateStep(c, p, b)
-    }
 
   // resume the suspended evaluation steps
   lazy val resumeStep: PL[ResumeEvaluationStep] =
