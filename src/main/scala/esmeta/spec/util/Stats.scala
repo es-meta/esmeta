@@ -28,9 +28,9 @@ class Stats(spec: Spec) {
       pass + other.pass,
       total + other.total,
     )
+    def isEmpty: Boolean = total == 0
     def fail: Int = total - pass
-    override def toString =
-      if total != 0 then s"${ratioString(pass, total)}" else ""
+    override def toString = if (total != 0) ratioString(pass, total) else ""
   private object PassStat:
     def apply(b: Boolean): PassStat = PassStat(if (b) 1 else 0, 1)
 
@@ -85,26 +85,23 @@ class Stats(spec: Spec) {
 
       // get yet steps
       val printYet = yet && stat.fail != 0 && !elem.children.toList
-        .filter(
-          _.tagName == "emu-alg",
-        )
+        .filter(_.tagName == "emu-alg")
         .isEmpty
       val yetStepStr =
-        if printYet then
+        if (printYet)
           // get algos in same emu-clause
           val algos = spec.algorithms.filter(_.elem.getId == elem.id)
-
           // get yet steps
           algos
             .map(_.incompleteSteps)
             .flatten
-            .map(newline(indent + 2) + _.toString(false))
+            .map(newline(indent + 1) + "1. " + _.toString(false))
             .fold("")(_ + _)
         else ""
 
       // final result
-      if elem.tagName == "body" then stat.toString
-      else if elem.tagName == "emu-clause" then
+      if (elem.tagName == "body") stat.toString
+      else if (elem.tagName == "emu-clause" && !stat.isEmpty)
         s"${newline(indent)}- ${elem.id}:${stat}${yetStepStr}"
       else ""
     }
@@ -122,7 +119,7 @@ class Stats(spec: Spec) {
     ): String =
       val elemStr = getElementString(elem, pstat, yet, indent)
       val children = elem.children.toList
-      if !children.isEmpty then
+      if (!children.isEmpty)
         children
           .map(getString(_, pstat, yet, indent + 1))
           .fold(elemStr)(_ + _)
