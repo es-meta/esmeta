@@ -198,7 +198,7 @@ case class Test262(
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,
       // dump coverage
-      postJob = logDir => if (useCoverage) cov.dumpTo(logDir),
+      postJob = logDir => if (useCoverage) cov.dumpToWithDetail(logDir),
     )
 
     // close log file
