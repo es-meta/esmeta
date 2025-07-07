@@ -105,7 +105,7 @@ class Fuzzer(
         } {
           debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
           i += 1
-          add(code)
+          add(code, Some(InstInfo(0, code, "INITIAL_POOL", synthesizer)))
         }
       },
     )
@@ -166,7 +166,11 @@ class Fuzzer(
     for ((mutatorName, mutatedCode, info) <- mutants)
       debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-      val result = add(mutatedCode, info)
+      val result = add(
+        mutatedCode,
+        info,
+        Some(InstInfo(iter, mutatedCode, code, mutatorName)),
+      )
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
@@ -195,21 +199,23 @@ class Fuzzer(
     else CandInfo(interp = optional(cov.run(code)))
 
   /** add new program */
-  def add(code: String): Boolean = add(code, getCandInfo(code))
+  def add(code: String, instInfo: Option[InstInfo]): Boolean =
+    add(code, getCandInfo(code), instInfo)
 
   /** add new program with precomputed info */
-  def add(code: String, info: CandInfo): Boolean = handleResult(Try {
-    if (info.visited) fail("ALREADY VISITED")
-    visited += code
-    if (info.invalid) fail("INVALID PROGRAM")
-    val script = toScript(code)
-    val interp = info.interp.getOrElse(fail("Interp Fail"))
-    val finalState = interp.result
-    if (tyCheck) collector.add(code, finalState.typeErrors)
-    val (_, updated, covered) = cov.check(script, interp)
-    if (!updated) fail("NO UPDATE")
-    covered
-  })
+  def add(code: String, info: CandInfo, instInfo: Option[InstInfo]): Boolean =
+    handleResult(Try {
+      if (info.visited) fail("ALREADY VISITED")
+      visited += code
+      if (info.invalid) fail("INVALID PROGRAM")
+      val script = toScript(code)
+      val interp = info.interp.getOrElse(fail("Interp Fail"))
+      val finalState = interp.result
+      if (tyCheck) collector.add(code, finalState.typeErrors)
+      val (_, updated, covered) = cov.check(script, interp, instInfo)
+      if (!updated) fail("NO UPDATE")
+      covered
+    })
 
   /** handle add result */
   def handleResult(result: Try[Boolean]): Boolean = {
