@@ -50,6 +50,7 @@ class Stringifier(
         for (symbol <- nameMap(name).rhsVec(rhsIdx).symbols) symbol match
           case Terminal(term)                          => app >> term >> " "
           case Empty | NoLineTerminator | _: Lookahead =>
+          case Optional(sym) if sym.getNt.isEmpty      =>
           case _ =>
             if (symbol.getNt.isDefined) cs.headOption match
               case Some(hd) => hd.map(aux); cs = cs.tail
