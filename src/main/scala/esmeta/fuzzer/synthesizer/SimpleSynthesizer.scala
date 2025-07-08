@@ -57,15 +57,7 @@ class SimpleSynthesizer(
   // ---------------------------------------------------------------------------
   // cache for shortest AST for each grammar node
   private lazy val cache: Map[Node, (Ast, String)] =
-    val original = fixpoint(Map(), topological, auxNode)
-    original.map((node, script) =>
-      node match
-        case SynNode(_, "CoverCallExpressionAndAsyncArrowHead", _) =>
-          (node, original(getSyn("AsyncArrowHead", List())))
-        case RhsNode(_, "CoverCallExpressionAndAsyncArrowHead", _, _) =>
-          (node, original(getRhs("AsyncArrowHead", List(), 0)))
-        case _ => (node, script),
-    )
+    fixpoint(Map(), topological, auxNode)
 
   private lazy val scriptCovered = getCoveredFrom(getSyn("Script", Nil))
 
