@@ -15,6 +15,7 @@ import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 import scala.collection.immutable.BitSet
+import scala.math.BigInt
 import java.util.Base64
 
 /** coverage measurement of cfg */
@@ -42,6 +43,11 @@ case class Coverage(
 
   // covered condition metadata while fuzzing
   private var coveredCondMetadata: Map[Cond, InstInfo] = Map()
+
+  // branch visit frequency
+  def branchFreq: Map[Branch, BigInt] = _branchFreq
+  private var _branchFreq: Map[Branch, BigInt] = Map()
+  def targetBranchViews(node: Branch): Iterable[View] = nodeViewMap(node).keys
 
   // mapping from nodes/conditions to scripts
   private var nodeViewMap: Map[Node, Map[View, Set[Script]]] = Map()
@@ -164,6 +170,10 @@ case class Coverage(
               blockingScripts += script
             }
           }
+
+    // update branch visit frequency
+    for ((branch, cnt) <- interp.branchFreq)
+      _branchFreq += branch -> (_branchFreq.getOrElse(branch, BigInt(0)) + cnt)
 
     if (!all && updated)
       _minimalInfo += script.name -> ScriptInfo(
@@ -462,9 +472,17 @@ object Coverage {
   ) extends Interpreter(initSt, tyCheck = tyCheck, timeLimit = timeLimit) {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
+    var branchFreq: Map[Branch, BigInt] = Map()
 
     // override eval for node
     override def eval(node: Node): Unit =
+      // record branch visit frequency
+      node match
+        case branch: Branch =>
+          branchFreq += branch -> (
+            branchFreq.getOrElse(branch, BigInt(0)) + BigInt(1)
+          )
+        case _ => ()
       // record touched nodes if it is a target node
       if (isTargetNode(node, st))
         touchedNodeViews += NodeView(node, getView(node)) -> getNearest
