@@ -256,7 +256,8 @@ class Fuzzer(
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
     RandomSelector -> 2,
-    BranchSelector -> 8,
+    BranchSelector -> 5,
+    FrequencySelector -> 3,
   )
 
   /** selector stat */
