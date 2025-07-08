@@ -259,10 +259,9 @@ class Fuzzer(
   val cov: Coverage = Coverage(cfg, tyCheck, kFs, cp, timeLimit)
 
   /** target selector */
-  val selector: TargetSelector = WeightedSelector(
+  def selector: TargetSelector = WeightedSelector(
     RandomSelector -> 2,
-    BranchSelector -> 5,
-    FrequencySelector -> 3,
+    BranchSelector -> 8,
   )
 
   /** selector stat */
