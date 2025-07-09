@@ -5,6 +5,8 @@ import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.web.http.WebServer
+import zio.*
+import zio.http.*
 
 /** `web` phase */
 case object Web extends Phase[CFG, Unit] {
@@ -14,7 +16,11 @@ case object Web extends Phase[CFG, Unit] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Unit = WebServer(cfg, config.port).run
+  ): Unit = Unsafe.unsafe { implicit unsafe =>
+    val webServer = WebServer(cfg, config.port)
+    val scopedEffect = ZIO.scoped(webServer.entry)
+    Runtime.default.unsafe.run(scopedEffect)
+  }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

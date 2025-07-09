@@ -1,14 +1,14 @@
 package esmeta.web.http
 
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
-import io.circe.Json
+import io.circe.*, io.circe.syntax.*
+import zio.*
+import zio.http.*
 
 /** web server host */
 val ESMETA_HOST = sys.env.getOrElse("ESMETA_HOST", "localhost")
 
-extension (json: Json) {
-  inline def asHttpEntity = HttpEntity(
-    ContentTypes.`application/json`,
-    json.noSpaces,
-  )
+extension [T: Encoder](t: T) {
+  inline def asJsonResponse = Response
+    .text(t.asJson.noSpaces)
+    .addHeader(Header.ContentType(MediaType.application.json))
 }
