@@ -21,10 +21,15 @@ case class DebuggerServiceLive(
   private def withDebugger[A](f: Debugger => A): IO[Response, A] =
     debuggerRef.get.flatMap {
       case Some(debugger) => ZIO.succeed(f(debugger))
-      case None => ZIO.fail(Response.badRequest("Debugger not initialized. Call /run first."))
+      case None =>
+        ZIO.fail(
+          Response.badRequest("Debugger not initialized. Call /run first."),
+        )
     }
 
-  def addBreak(data: (Boolean, String, List[Int], Boolean)): IO[Response, Boolean] =
+  def addBreak(
+    data: (Boolean, String, List[Int], Boolean),
+  ): IO[Response, Boolean] =
     lock.withPermit(withDebugger(_.addBreak(data)))
 
   def removeBreak(idx: Int): IO[Response, Unit] =
@@ -45,27 +50,38 @@ case class DebuggerServiceLive(
     val (sourceText, bpData) = body
     val debugger = Debugger(cfg.init.from(sourceText))
     for {
-      _ <- ZIO.foreachDiscard(bpData)(data => ZIO.succeed(debugger.addBreak(data)))
+      _ <- ZIO.foreachDiscard(bpData)(data =>
+        ZIO.succeed(debugger.addBreak(data)),
+      )
       _ <- debuggerRef.set(Some(debugger))
-    } yield Debugger.StepResult.ReachedFront.withAdditional(debugger, reprint = true)
+    } yield Debugger.StepResult.ReachedFront
+      .withAdditional(debugger, reprint = true)
   }
 
-  def resumeFromIter(body: models.ResumeFromIterRequest): IO[Response, Json] = lock.withPermit {
-    val (sourceText : String, bpData, iterCount) = body
-    val debugger = Debugger(cfg.init.from(sourceText))
-    for {
-      _ <- ZIO.foreachDiscard(bpData)(data => ZIO.succeed(debugger.addBreak(data)))
-      _ <- debuggerRef.set(Some(debugger))
-      result = debugger.stepExactly(iterCount, true).withAdditional(debugger, reprint = true)
-    } yield result
-  }
+  def resumeFromIter(body: models.ResumeFromIterRequest): IO[Response, Json] =
+    lock.withPermit {
+      val (sourceText: String, bpData, iterCount) = body
+      val debugger = Debugger(cfg.init.from(sourceText))
+      for {
+        _ <- ZIO.foreachDiscard(bpData)(data =>
+          ZIO.succeed(debugger.addBreak(data)),
+        )
+        _ <- debuggerRef.set(Some(debugger))
+        result = debugger
+          .stepExactly(iterCount, true)
+          .withAdditional(debugger, reprint = true)
+      } yield result
+    }
 
   def backToProvenance(addrStr: String): IO[Response, Json] = lock.withPermit {
     for {
-      addrLong <- ZIO.fromOption(addrStr.filter(_.isDigit).toLongOption)
-                    .mapError(_ => Response.badRequest("Invalid address format"))
+      addrLong <- ZIO
+        .fromOption(addrStr.filter(_.isDigit).toLongOption)
+        .mapError(_ => Response.badRequest("Invalid address format"))
       addr = DynamicAddr(addrLong)
-      result <- withDebugger(d => d.stepBackToProvenance(addr).withAdditional(d))
+      result <- withDebugger(d =>
+        d.stepBackToProvenance(addr).withAdditional(d),
+      )
     } yield result
   }
 
@@ -75,11 +91,11 @@ case class DebuggerServiceLive(
   ): IO[Response, Json] = lock.withPermit {
     withDebugger(d => op(d)(options).withAdditional(d))
   }
-  
+
   def continue: IO[Response, Json] = lock.withPermit {
     withDebugger(d => d.continue.withAdditional(d))
   }
-  
+
   def rewind: IO[Response, Json] = lock.withPermit {
     withDebugger(d => d.rewind.withAdditional(d))
   }
