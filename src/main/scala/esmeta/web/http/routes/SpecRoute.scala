@@ -5,32 +5,17 @@ import esmeta.spec.util.JsonProtocol.given
 import esmeta.web.*
 import esmeta.web.http.*
 import esmeta.web.util.JsonProtocol
+import io.circe.*, io.circe.syntax.*, io.circe.parser.*
+import zio.*
+import zio.http.*
 
-import akka.http.scaladsl.model.*
-import akka.http.scaladsl.server.Directives.*
-import akka.http.scaladsl.server.Route
-import io.circe.*, io.circe.syntax.*
-
-/** spec router */
 object SpecRoute {
-
-  /** root router */
-  def apply(cfg: CFG): Route = concat(
-    path("func") {
-      get {
-        complete(
-          cfg
-            .asJson(using JsonProtocol(cfg).cfgToFuncEncoder)
-            .asHttpEntity,
-        )
-      }
+  def apply(cfg: CFG) = Routes(
+    Method.GET / "func" -> handler { (req: Request) =>
+      cfg.asJsonResponse(using JsonProtocol(cfg).cfgToFuncEncoder)
     },
-    path("version") {
-      get {
-        complete(
-          cfg.spec.version.asJson.asHttpEntity,
-        )
-      }
+    Method.GET / "version" -> handler { (req: Request) =>
+      cfg.spec.version.asJsonResponse
     },
   )
 }

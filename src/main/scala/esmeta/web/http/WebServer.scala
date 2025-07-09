@@ -9,7 +9,7 @@ class WebServer(cfg: CFG, port: Int) {
 
   val serverConfig = Server.Config.default.binding(ESMETA_HOST, port)
 
-  val allRoutes: Routes[Any, Response] = MetaRoute.routes
+  val allRoutes: Routes[Any, Response] = MetaRoute() ++ SpecRoute(cfg)
 
   val corsConfig = Middleware.CorsConfig(
     allowedOrigin = (_ => Some(Header.AccessControlAllowOrigin.All)),
