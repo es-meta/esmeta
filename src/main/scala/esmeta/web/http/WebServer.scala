@@ -4,12 +4,15 @@ import esmeta.cfg.CFG
 import esmeta.web.http.routes.*
 import zio.*
 import zio.http.*
+import zio.http.codec.PathCodec.literal
 
 class WebServer(cfg: CFG, port: Int) {
 
   val serverConfig = Server.Config.default.binding(ESMETA_HOST, port)
 
-  val allRoutes: Routes[Any, Response] = MetaRoute() ++ SpecRoute(cfg)
+  val allRoutes: Routes[Any, Response] =
+    (literal("meta") / MetaRoute()) ++
+    (literal("spec") / SpecRoute(cfg))
 
   val corsConfig = Middleware.CorsConfig(
     allowedOrigin = (_ => Some(Header.AccessControlAllowOrigin.All)),
