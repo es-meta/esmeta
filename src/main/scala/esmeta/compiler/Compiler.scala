@@ -226,6 +226,9 @@ class Compiler(
       fb.addInst(ILet(compile(x), compile(fb, expr)))
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
+    case SetAsStep(ref, verb, id) =>
+      val expr = EClo(spec.getAlgoById(id).head.fname, Nil)
+      fb.addInst(IAssign(compile(fb, ref), expr))
     case SetFieldsWithIntrinsicsStep(ref) =>
       fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
     case IfStep(cond, thenStep, elseStep) =>

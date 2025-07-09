@@ -79,10 +79,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case SetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " to " >> expr
+      case SetAsStep(x, verb, id) =>
+        given Rule[Expression] = endWithExprRule
+        app >> First("set ") >> x >> " as " >> verb >> " in "
+        xrefRule(app, id) >> "."
       case SetFieldsWithIntrinsicsStep(ref) =>
         app >> First("set fields of ") >> ref >> " with the values listed in "
-        app >> "<emu-xref href=\"#table-well-known-intrinsic-objects\">"
-        app >> "</emu-xref>."
+        xrefRule(app, "table-well-known-intrinsic-objects") >> "."
       case IfStep(cond, thenStep, elseStep) =>
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
@@ -281,7 +284,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case IntrinsicExpression(intr) =>
         app >> intr
       case XRefExpression(kind, id) =>
-        app >> kind >> " <emu-xref href=\"#" >> id >> "\"></emu-xref>"
+        xrefRule(app >> kind >> " ", id)
       case expr: CalcExpression =>
         calcExprRule(app, expr)
       case ClampExpression(target, lower, upper) =>
@@ -942,4 +945,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (neg) res + "not " else res
   private def hasStr(neg: Boolean): String =
     if (neg) " does not have " else " has "
+
+  // xref
+  private def xrefRule: Rule[String] = (app, id) =>
+    app >> "<emu-xref href=\"#" >> id >> "\"></emu-xref>"
 }

@@ -56,6 +56,7 @@ trait Parsers extends IndentParsers {
   given step: PL[Step] = {
     letStep |
     setStep |
+    setAsStep |
     setEvalStateStep |
     setFieldsWithIntrinsicsStep |
     performStep |
@@ -89,8 +90,13 @@ trait Parsers extends IndentParsers {
 
   // set steps
   lazy val setStep: PL[SetStep] =
-    ("set" ~> ref <~ ("as" | "to")) ~ endWithExpr ^^ {
-      case r ~ e => SetStep(r, e)
+    ("set" ~> ref) ~ ("to" ~> endWithExpr) ^^ { case r ~ e => SetStep(r, e) }
+
+  // set-as steps
+  lazy val setAsStep: PL[SetAsStep] =
+    val verb = "specified" | "described"
+    ("set" ~> ref) ~ ("as" ~> verb) ~ ("in" ~> xrefId <~ end) ^^ {
+      case r ~ v ~ x => SetAsStep(r, v, x)
     }
 
   // set the code evaluation state steps
@@ -550,8 +556,6 @@ trait Parsers extends IndentParsers {
   lazy val xrefExpr: PL[XRefExpression] =
     import XRefExpressionOperator.*
     lazy val xrefOp: P[XRefExpressionOperator] = {
-      "specified in" |
-      "described in" |
       "the definition specified in" |
       "the algorithm steps defined in" |
       "the ordinary object internal method defined in"
@@ -561,9 +565,7 @@ trait Parsers extends IndentParsers {
       "the number of non-optional parameters of" ~
       "the function definition in"
     } ^^^ ParamLength
-    xrefOp ~ (
-      "<emu-xref href=\"#" ~> "[a-z-.]+".r <~ "\"[a-z ]*>".r ~ tagEnd
-    ) ^^ { case op ~ id => XRefExpression(op, id) }
+    xrefOp ~ xrefId ^^ { case op ~ id => XRefExpression(op, id) }
 
   // the sole element expressions
   lazy val soleExpr: PL[SoleElementExpression] =
@@ -1404,10 +1406,26 @@ trait Parsers extends IndentParsers {
     multiParser | parser
 
   // html tags
-  private lazy val tagStart: Parser[String] = "<[^>]+>".r
-  private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r
+  case class Tagged[T](content: T, tag: String, fields: Map[String, String])
   private def tagged[T](parser: Parser[T]): Parser[T] =
+    val tagStart: Parser[String] = "<[^>]+>".r
+    val tagEnd: Parser[String] = "</[a-z-]+>".r
     opt(tagStart) ~> parser <~ opt(tagEnd)
+  private def withTag[T](parser: Parser[T]): Parser[Tagged[T]] =
+    val name = "[a-z-]+".r
+    val str = "\"[^\"]*\"".r
+    val fields = rep(name ~ opt("=" ~> str)) ^^ {
+      _.map { case f ~ v => f -> v.fold("")(_.drop(1).dropRight(1)) }.toMap
+    }
+    ("<" ~> name) ~ (fields <~ ">") ~ parser ~ ("</" ~> name <~ ">") ^? {
+      case l ~ fs ~ c ~ r if l == r => Tagged(c, l, fs)
+    }
+
+  lazy val xrefId: P[String] = withTag("") ^? {
+    case Tagged("", "emu-xref", fs)
+        if fs.get("href").exists(_.startsWith("#")) =>
+      fs("href").drop(1)
+  }
 
   // nonterminals
   private lazy val nt: Parser[String] = "|" ~> word <~ "|"

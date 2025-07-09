@@ -12,6 +12,9 @@ case class LetStep(variable: Variable, expr: Expression) extends Step
 // set steps
 case class SetStep(ref: Reference, expr: Expression) extends Step
 
+// set-as steps
+case class SetAsStep(ref: Reference, verb: String, id: String) extends Step
+
 // if-then-else steps
 case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
   extends Step

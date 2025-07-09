@@ -43,6 +43,7 @@ class StringifyTinyTest extends LangTest {
       |  1. Let _x_ be a new Abstract Closure with parameters (_x_, _x_) that captures _x_ and performs the following steps when called:
       |    1. Let _x_ be _x_.""".stripMargin,
       setStep -> "set _x_ to _x_ + _x_.",
+      setAsStep -> "set _x_ as specified in <emu-xref href=\"#id\"></emu-xref>.",
       setFieldsWithIntrinsicsStep -> "set fields of _x_ with the values listed in <emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>.",
       ifStep -> "if _x_ < _x_ + _x_, let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """
