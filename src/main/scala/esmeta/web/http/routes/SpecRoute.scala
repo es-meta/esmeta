@@ -12,10 +12,12 @@ import zio.http.*
 object SpecRoute {
   def apply(cfg: CFG) = Routes(
     Method.GET / "func" -> handler { (req: Request) =>
-      cfg.asJsonResponse(using JsonProtocol(cfg).cfgToFuncEncoder)
+      Response.json(
+        cfg.asJson(using JsonProtocol(cfg).cfgToFuncEncoder).noSpaces,
+      )
     },
     Method.GET / "version" -> handler { (req: Request) =>
-      cfg.spec.version.asJsonResponse
+      Response.json(cfg.spec.version.asJson.noSpaces)
     },
   )
 }

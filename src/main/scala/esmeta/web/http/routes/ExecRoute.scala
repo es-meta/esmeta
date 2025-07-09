@@ -1,138 +1,120 @@
+// esmeta/web/http/routes/ExecRoute.scala
 package esmeta.web.http.routes
 
-import esmeta.cfg.CFG
-import esmeta.es.Ast
-import esmeta.state.DynamicAddr
-import esmeta.web.*
+import esmeta.web.Debugger
+import esmeta.web.Debugger.*
 import esmeta.web.http.*
-import esmeta.web.util.JsonProtocol as WebJsonProtocol
+import esmeta.web.services.DebuggerService
+import esmeta.web.util.JsonProtocol
+import io.circe.*, io.circe.syntax.*, io.circe.generic.auto.*
+import io.circe.parser.decode
+import zio.*, zio.http.*
 
-import akka.http.scaladsl.model.*
-import akka.http.scaladsl.server.Directives.*
-import akka.http.scaladsl.server.Route
-import io.circe.*, io.circe.parser.*, io.circe.syntax.*
-
-// exec router
 object ExecRoute {
-  // root router
-  def apply(cfg: CFG): Route = {
-    given CFG = cfg
-    val webJsonProtocol = WebJsonProtocol(cfg)
-    given WebJsonProtocol = webJsonProtocol
-    import webJsonProtocol.given
 
-    /** helper function for steps with ignoreBreak flag */
-    def withStepOptions(
-      handler: Debugger.StepOptions => Debugger.StepResult,
-    ) = {
-      entity(as[String]) { raw =>
-        decode[Boolean](raw) match {
-          case Left(err) => ??? // TODO handle error
-          case Right(ignoreBreak) =>
-            complete(
-              handler(Debugger.StepOptions(ignoreBreak))
-                .withAdditional(debugger)
-                .asHttpEntity,
-            )
-        }
-      }
-    }
-
-    post {
-      concat(
-        path("run") {
-          entity(as[String]) { raw =>
-            decode[(String, List[(Boolean, String, List[Int], Boolean)])](
-              raw,
-            ) match
-              case Left(err) => ??? // TODO handle error
-              case Right((sourceText, bpData)) =>
-                initDebugger(cfg, sourceText)
-                for { data <- bpData } debugger.addBreak(data)
-                complete(
-                  Debugger.StepResult.ReachedFront
-                    .withAdditional(
-                      debugger,
-                      reprint = true,
-                    )
-                    .asHttpEntity,
-                )
-          }
-        },
-        // step back to provenance
-        path("backToProvenance") {
-          entity(as[String]) { raw =>
-            decode[String](
-              raw,
-            ) match
-              case Left(err)   => ??? // TODO handle error
-              case Right(addr) =>
-                // ToDo - support named address
-                // ToDo - handle NumberFormatException
-                complete(
-                  debugger
-                    .stepBackToProvenance(
-                      DynamicAddr(addr.filter(_.isDigit).toLong),
-                    )
-                    .withAdditional(debugger)
-                    .asHttpEntity,
-                )
-          }
-        },
-        // resume from iter count
-        path("resumeFromIter") {
-          entity(as[String]) { raw =>
-            decode[(String, List[(Boolean, String, List[Int], Boolean)], Int)](
-              raw,
-            ) match
-              case Left(err) => ??? // TODO handle error
-              case Right((sourceText, bpData, iterCount)) =>
-                initDebugger(cfg, sourceText)
-                for { data <- bpData } debugger.addBreak(data)
-                complete(
-                  debugger
-                    .stepExactly(iterCount, true)
-                    .withAdditional(debugger, reprint = true)
-                    .asHttpEntity,
-                )
-          }
-        },
-
-        // spec step
-        path("specStep")(withStepOptions(debugger.specStep)),
-        // spec step-over
-        path("specStepOver")(withStepOptions(debugger.specStepOver)),
-        // spec step-out
-        path("specStepOut")(withStepOptions(debugger.specStepOut)),
-        path("specStepBack")(withStepOptions(debugger.specStepBack)),
-        path("specStepBackOver")(withStepOptions(debugger.specStepBackOver)),
-        path("specStepBackOut")(withStepOptions(debugger.specStepBackOut)),
-        // spec continue
-        path("specContinue") {
-          complete(
-            debugger.continue.withAdditional(debugger).asHttpEntity,
+  private def stepHandler(
+    serviceCall: (DebuggerService, Debugger.StepOptions) => IO[Response, Json],
+  ): Handler[DebuggerService, Response, Request, Response] = {
+    handler { (req: Request) =>
+      for {
+        rawBody <- req.body.asString.mapError(err =>
+          Response.badRequest(
+            s"Invalid JSON for step option: ${err.getMessage}",
+          ),
+        )
+        ignoreBreak <- ZIO
+          .fromEither(decode[Boolean](rawBody))
+          .mapError(err =>
+            Response.badRequest(
+              s"Invalid JSON for step option: ${err.getMessage}",
+            ),
           )
-        },
-        path("specRewind") {
-          complete(
-            debugger.rewind.withAdditional(debugger).asHttpEntity,
-          )
-        },
-        path("irStep")(withStepOptions(debugger.irStep)),
-        path("irStepOver")(withStepOptions(debugger.irStepOver)),
-        path("irStepOut")(withStepOptions(debugger.irStepOut)),
-        path("stepCntPlus")(withStepOptions(debugger.stepCntPlus)),
-        path("stepCntMinus")(withStepOptions(debugger.stepCntMinus)),
-        path("instCntPlus")(withStepOptions(debugger.instCntPlus)),
-        path("instCntMinus")(withStepOptions(debugger.instCntMinus)),
-
-        // ECMAScript-level steps
-        path("esAstStep")(withStepOptions(debugger.esAstStep)),
-        path("esStatementStep")(withStepOptions(debugger.esStatementStep)),
-        path("esStepOver")(withStepOptions(debugger.esStepOver)),
-        path("esStepOut")(withStepOptions(debugger.esStepOut)),
-      )
+        options = Debugger.StepOptions(ignoreBreak)
+        service <- ZIO.service[DebuggerService]
+        result <- serviceCall(service, options)
+      } yield Response.json(result.noSpaces)
     }
   }
 
+  private def simpleHandler(
+    serviceCall: DebuggerService => IO[Response, Json],
+  ): Handler[DebuggerService, Response, Request, Response] = {
+    handler { (_: Request) =>
+      for {
+        service <- ZIO.service[DebuggerService]
+        result <- serviceCall(service)
+      } yield Response.json(result.noSpaces)
+    }
+  }
+
+  def apply()(using JsonProtocol): Routes[DebuggerService, Response] = Routes(
+    Method.POST / "run" -> handler { (req: Request) =>
+      for {
+        body <- req.body.asString.flatMap { rawString =>
+          ZIO
+            .fromEither(decode[models.RunRequest](rawString))
+            .mapError(err =>
+              Response.badRequest(s"Invalid body: ${err.getMessage}"),
+            )
+        }
+        service <- ZIO.service[DebuggerService]
+        result <- service.run(body)
+      } yield Response.json(result.asJson.noSpaces)
+    },
+    Method.POST / "backToProvenance" -> handler { (req: Request) =>
+      for {
+        addr <- req.body.asString.mapError(e =>
+          Response.badRequest(s"Invalid body: $e"),
+        )
+        service <- ZIO.service[DebuggerService]
+        result <- service.backToProvenance(addr)
+      } yield Response.json(result.asJson.noSpaces)
+    },
+    Method.POST / "resumeFromIter" -> handler { (req: Request) =>
+      for {
+        body <- req.body.asString.flatMap { rawString =>
+          ZIO
+            .fromEither(decode[models.ResumeFromIterRequest](rawString))
+            .mapError(err =>
+              Response.badRequest(s"Invalid body: ${err.getMessage}"),
+            )
+        }
+        service <- ZIO.service[DebuggerService]
+        result <- service.resumeFromIter(body)
+      } yield Response.json(result.asJson.noSpaces)
+    },
+
+    // spec steps
+    Method.POST / "specStep" -> stepHandler(_.step(_.specStep, _)),
+    Method.POST / "specStepOver" -> stepHandler(_.step(_.specStepOver, _)),
+    Method.POST / "specStepOut" -> stepHandler(_.step(_.specStepOut, _)),
+    Method.POST / "specStepBack" -> stepHandler(_.step(_.specStepBack, _)),
+    Method.POST / "specStepBackOver" -> stepHandler(
+      _.step(_.specStepBackOver, _),
+    ),
+    Method.POST / "specStepBackOut" -> stepHandler(
+      _.step(_.specStepBackOut, _),
+    ),
+
+    // simple continue/rewind
+    Method.POST / "specContinue" -> simpleHandler(_.continue),
+    Method.POST / "specRewind" -> simpleHandler(_.rewind),
+
+    // ir steps
+    Method.POST / "irStep" -> stepHandler(_.step(_.irStep, _)),
+    Method.POST / "irStepOver" -> stepHandler(_.step(_.irStepOver, _)),
+    Method.POST / "irStepOut" -> stepHandler(_.step(_.irStepOut, _)),
+    Method.POST / "stepCntPlus" -> stepHandler(_.step(_.stepCntPlus, _)),
+    Method.POST / "stepCntMinus" -> stepHandler(_.step(_.stepCntMinus, _)),
+    Method.POST / "instCntPlus" -> stepHandler(_.step(_.instCntPlus, _)),
+    Method.POST / "instCntMinus" -> stepHandler(_.step(_.instCntMinus, _)),
+
+    // ES steps
+    Method.POST / "esAstStep" -> stepHandler(_.step(_.esAstStep, _)),
+    Method.POST / "esStatementStep" -> stepHandler(
+      _.step(_.esStatementStep, _),
+    ),
+    Method.POST / "esStepOver" -> stepHandler(_.step(_.esStepOver, _)),
+    Method.POST / "esStepOut" -> stepHandler(_.step(_.esStepOut, _)),
+  ).handleError(_ => Response.internalServerError)
 }

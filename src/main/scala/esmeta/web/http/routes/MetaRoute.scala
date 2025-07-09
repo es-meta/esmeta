@@ -10,7 +10,7 @@ object MetaRoute {
   def apply() = Routes(
     Method.GET / "version" -> handler { (req: Request) =>
       val name = req.queryOrElse[String]("name", "World")
-      esmeta.VERSION.asJsonResponse
+      Response.json(esmeta.VERSION.asJson.noSpaces)
     },
   )
 }

@@ -16,10 +16,15 @@ case object Web extends Phase[CFG, Unit] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Unit = Unsafe.unsafe { implicit unsafe =>
+  ): Unit = {
     val webServer = WebServer(cfg, config.port)
-    val scopedEffect = ZIO.scoped(webServer.entry)
-    Runtime.default.unsafe.run(scopedEffect)
+    val effectWithDependencies = ZIO.scoped(webServer.entry)
+    val layersToProvide = webServer.serverLayer ++ webServer.appLayers
+    val executableEffect = effectWithDependencies.provide(layersToProvide)
+
+    Unsafe.unsafe { implicit unsafe =>
+      Runtime.default.unsafe.run(executableEffect)
+    }
   }
 
   def defaultConfig: Config = Config()

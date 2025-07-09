@@ -2,17 +2,22 @@ package esmeta.web.http
 
 import esmeta.cfg.CFG
 import esmeta.web.http.routes.*
-import zio.*
-import zio.http.*
+import esmeta.web.services.DebuggerService
+import esmeta.web.util.JsonProtocol
+import zio.*, zio.http.*
 import zio.http.codec.PathCodec.literal
 
 class WebServer(cfg: CFG, port: Int) {
 
+  given JsonProtocol = JsonProtocol(cfg)
+
   val serverConfig = Server.Config.default.binding(ESMETA_HOST, port)
 
-  val allRoutes: Routes[Any, Response] =
-    (literal("meta") / MetaRoute()) ++
-    (literal("spec") / SpecRoute(cfg))
+  val allRoutes: Routes[DebuggerService, Response] =
+    literal("meta") / MetaRoute() ++
+    literal("spec") / SpecRoute(cfg) ++
+    literal("exec") / ExecRoute() ++
+    literal("breakpoint") / BreakpointRoute()
 
   val corsConfig = Middleware.CorsConfig(
     allowedOrigin = (_ => Some(Header.AccessControlAllowOrigin.All)),
@@ -26,7 +31,7 @@ class WebServer(cfg: CFG, port: Int) {
     ),
   )
 
-  val routesWithMiddleware: Routes[Any, Response] =
+  val routesWithMiddleware: Routes[DebuggerService, Response] =
     allRoutes @@ Middleware.cors(corsConfig)
 
   val serverLayer: TaskLayer[Server & Driver] =
@@ -34,10 +39,14 @@ class WebServer(cfg: CFG, port: Int) {
       new RuntimeException("should never fail"),
     )
 
-  val entry: ZIO[Any, Throwable, Unit] = for {
+  val appLayers: ULayer[DebuggerService] =
+    ZLayer.succeed(cfg) >>> DebuggerService.layer
+
+  val entry: ZIO[DebuggerService, Throwable, Unit] = for {
     serverFiber <- Server
       .serve(routesWithMiddleware)
-      .provide(serverLayer)
+      // .provide(serverLayer)
+      .provide(serverLayer, appLayers)
       .fork
     addr = serverConfig.address
     _ <- Console.printLine(
