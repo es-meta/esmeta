@@ -178,7 +178,6 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       "org.http4s" %% "http4s-ember-server" % Http4sVersion,
       "org.http4s" %% "http4s-dsl" % Http4sVersion,
-      "ch.qos.logback" % "logback-classic" % LogbackVersion % Runtime,
     ),
     resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
 
