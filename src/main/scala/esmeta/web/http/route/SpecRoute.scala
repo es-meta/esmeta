@@ -1,4 +1,4 @@
-package esmeta.web.http.routes
+package esmeta.web.http.route
 
 import esmeta.cfg.CFG
 import esmeta.spec.util.JsonProtocol.given

@@ -1,7 +1,9 @@
 package esmeta.web.http
 
 import esmeta.cfg.CFG
-import esmeta.web.http.routes.*
+import esmeta.web.http.route.*
+import esmeta.web.service.*
+import esmeta.web.util.JsonProtocol
 import cats.effect.*
 import com.comcast.ip4s.{Host, Port}
 import org.http4s.{HttpApp, HttpRoutes}
@@ -10,35 +12,41 @@ import org.http4s.server.{Router, Server}
 import org.http4s.server.middleware.CORS
 
 class WebServer(cfg: CFG, hostStr: String, portInt: Int) extends IOApp.Simple {
+  override def run: IO[Unit] = for {
+    service <- DebuggerService.of(cfg)
 
-  val allRoutes: HttpRoutes[IO] = Router(
-    "/meta" -> MetaRoute(),
-    "/spec" -> SpecRoute(cfg),
-    // TODO "/exec" -> ...
-    // TODO "/breakpoint" -> ...
-  )
+    given JsonProtocol = JsonProtocol(cfg)
 
-  val httpApp: HttpApp[IO] = CORS.policy.withAllowOriginAll.apply(allRoutes).orNotFound
+    allRoutes: HttpRoutes[IO] = Router(
+      "/meta" -> MetaRoute(),
+      "/spec" -> SpecRoute(cfg),
+      "/exec" -> ExecRoute(service).routes,
+      "/breakpoint" -> BreakpointRoute(service).routes,
+    )
 
-  private val host: Host = Host
-    .fromString(hostStr)
-    .getOrElse(throw new IllegalArgumentException(s"Invalid host: $hostStr"))
+    httpApp: HttpApp[IO] = CORS.policy.withAllowOriginAll(allRoutes).orNotFound
 
-  private val port: Port = Port
-    .fromInt(portInt)
-    .getOrElse(throw new IllegalArgumentException(s"Invalid port: $portInt"))
+    host <- IO.fromOption(Host.fromString(hostStr))(
+      new IllegalArgumentException(s"Invalid host: $hostStr"),
+    )
+    port <- IO.fromOption(Port.fromInt(portInt))(
+      new IllegalArgumentException(s"Invalid port: $portInt"),
+    )
 
-  val serverResource: Resource[IO, Server] = EmberServerBuilder.default[IO].withHost(host).withPort(port).withHttpApp(httpApp).build
-
-  override def run: IO[Unit] = {
-    val program = serverResource.use { server =>
-      for {
-        _ <- IO.println(s"Server started at ${server.address}. Press ENTER to shut down.")
-        _ <- IO.readLine
-        _ <- IO.println("Shutting down...")
-      } yield ()
-    }
-
-    program
-  }
+    _ <- EmberServerBuilder
+      .default[IO]
+      .withHost(host)
+      .withPort(port)
+      .withHttpApp(httpApp)
+      .build
+      .use { server =>
+        for {
+          _ <- IO.println(
+            s"Server started at ${server.address}. Press ENTER to shut down.",
+          )
+          _ <- IO.readLine
+          _ <- IO.println("Shutting down...")
+        } yield ()
+      }
+  } yield ()
 }
