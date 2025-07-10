@@ -4,7 +4,7 @@ import esmeta.cfg.CFG
 import esmeta.state.DynamicAddr
 import esmeta.web.Debugger
 import esmeta.web.http.models
-import cats.effect.{IO}
+import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.effect.std.Semaphore
 import io.circe.Json

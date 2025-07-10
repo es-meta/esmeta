@@ -1,14 +1,14 @@
 package esmeta.web.service
 
-import cats.effect.IO
-import cats.effect.kernel.{Ref}
-import cats.syntax.all.*
-import cats.effect.std.{Semaphore}
 import esmeta.cfg.CFG
 import esmeta.state.DynamicAddr
 import esmeta.web.Debugger
 import esmeta.web.http.models
 import esmeta.web.util.JsonProtocol
+import cats.effect.IO
+import cats.effect.kernel.Ref
+import cats.effect.std.Semaphore
+import cats.syntax.all.*
 import io.circe.Json
 
 case class DebuggerServiceLive(
