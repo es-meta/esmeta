@@ -153,7 +153,6 @@ val CirceVersion = "0.14.7"
 val CirceYamlVersion = "0.16.0"
 val ZioHttpVersion = "3.3.2"
 val Http4sVersion = "0.23.30"
-val LogbackVersion = "1.5.6"
 
 // project root
 lazy val root = project
