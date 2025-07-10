@@ -5,8 +5,7 @@ import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import esmeta.web.http.WebServer
-import zio.*
-import zio.http.*
+import cats.effect.unsafe.implicits.global
 
 /** `web` phase */
 case object Web extends Phase[CFG, Unit] {
@@ -16,16 +15,11 @@ case object Web extends Phase[CFG, Unit] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Unit = {
-    val webServer = WebServer(cfg, config.port)
-    val effectWithDependencies = ZIO.scoped(webServer.entry)
-    val layersToProvide = webServer.serverLayer ++ webServer.appLayers
-    val executableEffect = effectWithDependencies.provide(layersToProvide)
+  ): Unit =
+    /** web server host */
+    val ESMETA_HOST = sys.env.getOrElse("ESMETA_HOST", "localhost")
 
-    Unsafe.unsafe { implicit unsafe =>
-      Runtime.default.unsafe.run(executableEffect)
-    }
-  }
+    WebServer(cfg, ESMETA_HOST, config.port).run.unsafeRunSync()
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

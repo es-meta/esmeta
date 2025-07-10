@@ -152,6 +152,8 @@ ThisBuild / assemblyPrependShellScript := Some(
 val CirceVersion = "0.14.7"
 val CirceYamlVersion = "0.16.0"
 val ZioHttpVersion = "3.3.2"
+val Http4sVersion = "0.23.30"
+val LogbackVersion = "1.5.6"
 
 // project root
 lazy val root = project
@@ -174,7 +176,9 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       ("org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0")
         .cross(CrossVersion.for3Use2_13),
-      "dev.zio" %% "zio-http" % ZioHttpVersion,
+      "org.http4s" %% "http4s-ember-server" % Http4sVersion,
+      "org.http4s" %% "http4s-dsl" % Http4sVersion,
+      "ch.qos.logback" % "logback-classic" % LogbackVersion % Runtime,
     ),
     resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
 

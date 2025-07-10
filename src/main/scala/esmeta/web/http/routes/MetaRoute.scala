@@ -2,15 +2,14 @@ package esmeta.web.http.routes
 
 import esmeta.web.*
 import esmeta.web.http.*
+import cats.effect.*
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
-import zio.*
-import zio.http.*
+import org.http4s.dsl.io.*
+import org.http4s.{HttpApp, HttpRoutes}
 
 object MetaRoute {
-  def apply() = Routes(
-    Method.GET / "version" -> handler { (req: Request) =>
-      val name = req.queryOrElse[String]("name", "World")
-      Response.json(esmeta.VERSION.asJson.noSpaces)
-    },
-  )
+  def apply() = HttpRoutes.of[IO] {
+    case GET -> Root / "version" =>
+      esmeta.VERSION.asJsonOk
+  }
 }
