@@ -178,7 +178,6 @@ lazy val root = project
       "org.http4s" %% "http4s-ember-server" % Http4sVersion,
       "org.http4s" %% "http4s-dsl" % Http4sVersion,
     ),
-    resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is
     // essentially a project-local cache.  There is only one lib_managed/ in
