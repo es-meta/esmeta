@@ -16,18 +16,23 @@ case object Web extends Phase[CFG, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
-    /** web server host */
-    val ESMETA_HOST = sys.env.getOrElse("ESMETA_HOST", "localhost")
-
-    WebServer(cfg, ESMETA_HOST, config.port).run.unsafeRunSync()
+    WebServer(cfg, config.host, config.port).run.unsafeRunSync()
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
+    (
+      "host",
+      StrOption((c, s) => c.host = s),
+      "web server host (default: env variable ESMETA_HOST, localhost as fallback)",
+    ),
     (
       "port",
       NumOption((c, i) => c.port = i),
       "web server port (default: 8080).",
     ),
   )
-  case class Config(var port: Int = 8080)
+  case class Config(
+    var host: String = sys.env.getOrElse("ESMETA_HOST", "localhost"),
+    var port: Int = 8080,
+  )
 }
