@@ -2,8 +2,8 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.dump.util.{
-  DebuggerJsonProtocol as DumpJsonProtocol,
+import esmeta.dump.debugger.util.{
+  JsonProtocol as DumpJsonProtocol,
   SerializationSanitizer,
 }
 import esmeta.ir.{Type as IRType, *}
@@ -13,6 +13,7 @@ import esmeta.lang.{Type as LangType}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.web.util.JsonProtocol as WebJsonProtocol;
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*;
 import io.circe.parser.decode;
 import scala.util.Try
@@ -27,8 +28,13 @@ case object DumpDebugger extends Phase[CFG, Unit] {
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
-  ): Unit =
+  ): Unit = { dumpStatic(cfg); dumpDynamic(cfg) }
 
+  private def dumpDynamic(cfg: CFG): Unit = {
+    dump("funcs.cfg")(cfg)(using WebJsonProtocol(cfg).cfgToFuncEncoder)
+  }
+
+  private def dumpStatic(cfg: CFG): Unit = {
     import DumpJsonProtocol.given
 
     dumpThenRead("funcs")(cfg.program.funcs) tap { _funcsOpt =>
@@ -58,12 +64,7 @@ case object DumpDebugger extends Phase[CFG, Unit] {
     dumpThenRead("spec.version")(cfg.spec.version) tap { version =>
       check("spec.version")(version == Some(cfg.spec.version))
     }
-
-    dump("irToSpecNameMap")(cfg)(using
-      DumpJsonProtocol.ofCFG(cfg).irToSpecNameMapEncoder,
-    )
-
-  end apply
+  }
 
   private def dump[T: Encoder](tag: String)(data: T): (Long, Json) = {
     val tuple @ (_, json) = time { data.asJson }

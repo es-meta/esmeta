@@ -1,7 +1,7 @@
-package esmeta.dump.util
+package esmeta.dump.visualizer.util
 
 import esmeta.cfg.*
-import esmeta.dump.*
+import esmeta.dump.visualizer.*
 import esmeta.error.ESMetaError
 import esmeta.spec.*
 import esmeta.state.*

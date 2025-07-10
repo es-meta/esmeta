@@ -1,7 +1,6 @@
-package esmeta.dump
+package esmeta.dump.visualizer.util
 
 import esmeta.cfg.Node
-import esmeta.dump.util.VisualizerJsonProtocol
 import esmeta.interpreter.Interpreter
 import esmeta.state.State
 

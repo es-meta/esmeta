@@ -151,8 +151,8 @@ ThisBuild / assemblyPrependShellScript := Some(
 // library versions
 val CirceVersion = "0.14.7"
 val CirceYamlVersion = "0.16.0"
-val AkkaVersion = "2.10.5"
-val AkkaHttpVersion = "10.7.1"
+val ZioHttpVersion = "3.3.2"
+val Http4sVersion = "0.23.30"
 
 // project root
 lazy val root = project
@@ -175,11 +175,9 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       ("org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0")
         .cross(CrossVersion.for3Use2_13),
-      "com.typesafe.akka" %% "akka-actor-typed" % AkkaVersion,
-      "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
-      "com.typesafe.akka" %% "akka-http" % AkkaHttpVersion,
+      "org.http4s" %% "http4s-ember-server" % Http4sVersion,
+      "org.http4s" %% "http4s-dsl" % Http4sVersion,
     ),
-    resolvers += "Akka library repository".at("https://repo.akka.io/maven"),
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is
     // essentially a project-local cache.  There is only one lib_managed/ in
