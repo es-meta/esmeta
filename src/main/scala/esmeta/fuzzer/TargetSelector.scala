@@ -47,23 +47,6 @@ object BranchSelector extends TargetSelector {
   val names = List("BranchTarget")
 }
 
-/** frequency based mutation target selector */
-object FrequencySelector extends TargetSelector {
-  def apply(
-    pool: Iterable[Script],
-    cov: Coverage,
-  ): (String, Script, Option[CondView]) = if (!cov.branchFreq.isEmpty) {
-    val rareBranch = cov.branchFreq.minBy(_._2)._1
-    val view = choose(cov.targetBranchViews(rareBranch))
-    val nodeView = NodeView(rareBranch, view)
-    cov.getScript(nodeView).fold(RandomSelector(pool, cov)) {
-      (names.head, _, None)
-    }
-  } else RandomSelector(pool, cov)
-
-  val names = List("FrequencyTarget")
-}
-
 /** random mutation target selector */
 object RandomSelector extends TargetSelector {
   def apply(
