@@ -73,9 +73,6 @@ class Fuzzer(
   lazy val grammar = cfg.grammar
   lazy val scriptParser = cfg.scriptParser
 
-  private var _prevBranchCov = -1
-  private var _phaseChanged = false
-
   /** generated ECMAScript programs */
   lazy val result: Coverage = {
     if (log) {
@@ -140,9 +137,6 @@ class Fuzzer(
     if (log) {
       val bound = logInterval * 1000
       if (interval > bound)
-        if (_phaseChanged || cov.branchCov == _prevBranchCov)
-          _phaseChanged = true
-        else _prevBranchCov = cov.branchCov
         if (debug == NO_DEBUG) logging else time("Logging", logging)
         startInterval += bound
     }
@@ -260,16 +254,9 @@ class Fuzzer(
   )
 
   /** target selector */
-  def selector: TargetSelector =
-    if _phaseChanged then lateSelector else earlySelector
-  val earlySelector: TargetSelector = WeightedSelector(
+  val selector: TargetSelector = WeightedSelector(
     RandomSelector -> 2,
     BranchSelector -> 8,
-  )
-  val lateSelector: TargetSelector = WeightedSelector(
-    RandomSelector -> 2,
-    BranchSelector -> 5,
-    FrequencySelector -> 3,
   )
 
   /** selector stat */
