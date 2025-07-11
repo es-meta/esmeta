@@ -23,6 +23,7 @@ import scala.util.*
 object Fuzzer {
   def apply(
     cfg: CFG,
+    tyCheck: Boolean,
     log: Boolean = false, // logging mode on/off
     logInterval: Int = 600, // default is 600 s (10 m).
     debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no-debug
@@ -35,6 +36,7 @@ object Fuzzer {
     cp: Boolean = false,
   ): Coverage = new Fuzzer(
     cfg,
+    tyCheck,
     log,
     logInterval,
     debug,
@@ -56,6 +58,7 @@ object Fuzzer {
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   cfg: CFG,
+  tyCheck: Boolean,
   log: Boolean,
   logInterval: Int,
   debug: Int,
@@ -240,12 +243,7 @@ class Fuzzer(
     ).asJson
 
   /** coverage */
-  val cov: Coverage = Coverage(
-    cfg,
-    kFs,
-    cp,
-    timeLimit,
-  )
+  val cov: Coverage = Coverage(cfg, tyCheck, kFs, cp, timeLimit)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(

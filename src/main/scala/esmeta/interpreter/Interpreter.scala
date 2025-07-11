@@ -28,6 +28,7 @@ import scala.math.{BigInt => SBigInt}
 /** extensible helper of IR interpreter with a CFG */
 class Interpreter(
   val st: State,
+  val tyCheck: Boolean = false,
   val log: Boolean = false,
   val detail: Boolean = false,
   val logPW: Option[PrintWriter] = None,
@@ -40,6 +41,12 @@ class Interpreter(
 
   /** iteration cycle */
   lazy val ITER_CYCLE: Int = 100_000
+
+  /** detected type errors */
+  def errors: Set[TypeError] = errorMap.values.toSet
+  protected def addError(error: TypeError): Unit =
+    errorMap += error.point -> error
+  private var errorMap: Map[TypeErrorPoint, TypeError] = Map()
 
   /** final state */
   lazy val result: State =
@@ -137,7 +144,17 @@ class Interpreter(
       val addr = eval(list).asAddr
       st.context.locals += lhs -> st.pop(addr, front)
     case ret @ IReturn(expr) =>
-      st.context.retVal = Some(ret, eval(expr))
+      val retVal = eval(expr)
+      if (tyCheck)
+        val retTy = st.context.func.irFunc.retTy.ty
+        if (retTy.isDefined && !retTy.contains(retVal, st)) {
+          val node = st.context.cursor match
+            case NodeCursor(_, node, _) => node
+            case _                      => raise("cursor is not node cursor")
+          val irp = InternalReturnPoint(st.context.func, node, ret)
+          addError(ReturnTypeMismatch(irp, st.typeOf(retVal)))
+        }
+      st.context.retVal = Some(ret, retVal)
     case IAssert(expr) =>
       optional(eval(expr)) match
         case None             => /* skip not yet compiled assertions */
@@ -374,6 +391,14 @@ class Interpreter(
           case _       => throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
         map += param.lhs -> arg
+        if (tyCheck)
+          val paramTy = param.ty.ty
+          val idx = params.indexOf(param)
+          if (func.isMethod && idx == 0) ()
+          else if (paramTy.isDefined && !paramTy.contains(arg, st))
+            val callPoint = CallPoint(st.context.func, caller, func)
+            val aap = ArgAssignPoint(callPoint, idx)
+            addError(ParamTypeMismatch(aap, st.typeOf(arg)))
         aux(pl, al)
     }
     aux(params, args)
@@ -497,11 +522,12 @@ class Interpreter(
 object Interpreter {
   def apply(
     st: State,
+    tyCheck: Boolean = false,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, log, detail, logPW, timeLimit).result
+  ): State = new Interpreter(st, tyCheck, log, detail, logPW, timeLimit).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {
