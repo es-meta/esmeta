@@ -46,6 +46,7 @@ case object Test262Test extends Phase[CFG, Summary] {
     val summary = test262.evalTest(
       targets,
       config.features,
+      config.tyCheck,
       config.log,
       config.detail,
       config.progress,
@@ -74,6 +75,11 @@ case object Test262Test extends Phase[CFG, Summary] {
       "features",
       StrListOption((c, s) => c.features = Some(s)),
       "set the target features of Test262.",
+    ),
+    (
+      "type-check",
+      BoolOption(_.tyCheck = _),
+      "test with dynamic type checking.",
     ),
     (
       "progress",
@@ -133,16 +139,17 @@ case object Test262Test extends Phase[CFG, Summary] {
   )
   case class Config(
     var target: Option[String] = None,
+    var features: Option[List[String]] = None,
+    var tyCheck: Boolean = false,
+    var progress: Boolean = false,
     var coverage: Boolean = false,
     var cp: Boolean = false,
     var kFs: Int = 0,
     var allTests: Boolean = false,
-    var progress: Boolean = false,
     var timeLimit: Option[Int] = None,
     var withYet: Boolean = false,
     var log: Boolean = false,
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
-    var features: Option[List[String]] = None,
   )
 }

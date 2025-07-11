@@ -8,6 +8,7 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
 import esmeta.parser.ESParser
+import esmeta.ty.{*, given}
 import esmeta.state.*
 import esmeta.test262.util.*
 import esmeta.util.*
@@ -16,6 +17,7 @@ import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
+import scala.collection.mutable.{Map => MMap}
 
 /** data in Test262 */
 case class Test262(
@@ -62,6 +64,14 @@ case class Test262(
 
   /** specification */
   val spec = cfg.spec
+
+  /** detected type errors */
+  def errors: Set[TypeError] = errorMap.keys.toSet
+  protected def addError(error: TypeError, filename: String): Unit =
+    errorMap.get(error) match
+      case None      => errorMap += error -> Set(filename)
+      case Some(set) => errorMap += error -> (set + filename)
+  private var errorMap: Map[TypeError, Set[String]] = Map()
 
   /** load test262 */
   def loadTest(filename: String): Code =
@@ -123,6 +133,7 @@ case class Test262(
   def evalTest(
     paths: Option[List[String]] = None,
     features: Option[List[String]] = None,
+    tyCheck: Boolean = false,
     log: Boolean = false,
     detail: Boolean = false,
     useProgress: Boolean = false,
@@ -152,6 +163,10 @@ case class Test262(
 
     // open log file
     val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
+
+    // stringifier for dynamic type checking
+    val tyStringifier = TyElem.getStringifier(true, false)
+    import tyStringifier.given
 
     // get progress bar for extracted tests
     val progressBar = getProgressBar(
@@ -189,7 +204,14 @@ case class Test262(
         val filename = test.path
         val st =
           if (!useCoverage)
-            evalFile(filename, log && !multiple, detail, Some(logPW), timeLimit)
+            evalFile(
+              filename,
+              tyCheck,
+              log && !multiple,
+              detail,
+              Some(logPW),
+              timeLimit,
+            )
           else {
             val (ast, code) = loadTest(filename)
             cov.runAndCheck(Script(code, filename), ast)._1
@@ -198,7 +220,17 @@ case class Test262(
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,
       // dump coverage
-      postJob = logDir => if (useCoverage) cov.dumpTo(logDir),
+      postJob = logDir =>
+        if (tyCheck)
+          dumpFile(
+            name = "detected type errors",
+            data = errorMap.toVector
+              .sortBy(-_._2.size)
+              .map(_._1.toString)
+              .mkString(LINE_SEP + LINE_SEP),
+            filename = s"$logDir/tycheck/errors",
+          )
+        if (useCoverage) cov.dumpTo(logDir),
     )
 
     // close log file
@@ -269,31 +301,38 @@ case class Test262(
   // eval ECMAScript code
   private def evalFile(
     filename: String,
+    tyCheck: Boolean,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
     val (ast, code) = loadTest(filename)
-    eval(code, ast, log, detail, logPW, timeLimit)
+    eval(code, ast, filename, tyCheck, log, detail, logPW, timeLimit)
 
   // eval ECMAScript code
   private def eval(
     code: String,
     ast: Ast,
+    filename: String,
+    tyCheck: Boolean,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
     val st = cfg.init.from(code, ast)
-    Interpreter(
+    val interp = new Interpreter(
       st = st,
+      tyCheck = tyCheck,
       log = log,
       detail = detail,
       logPW = logPW,
       timeLimit = timeLimit,
     )
+    val finalSt = interp.result
+    if (tyCheck) interp.errors.foreach(addError(_, filename))
+    finalSt
 
   // check whether program point is in harness
   private def inHarness(st: State): Boolean = (for {
