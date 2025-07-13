@@ -16,6 +16,7 @@ import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
+import org.apache.commons.math3.distribution.BetaDistribution
 import scala.collection.mutable.{ListBuffer, Map => MMap}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.*
@@ -112,11 +113,9 @@ class Fuzzer(
     println(s"- the initial program pool consists of ${pool.size} programs.")
     time(
       "- repeatedly trying to fuzz new programs to increase coverage", {
-        if (log) {
-          startTime = System.currentTimeMillis
-          startInterval = System.currentTimeMillis
-          logging
-        }
+        startTime = System.currentTimeMillis
+        startInterval = System.currentTimeMillis
+        if (log) logging
         trial match
           case Some(count) => for (_ <- Range(0, count)) if (!timeout) fuzz
           case None        => while (!timeout) fuzz
@@ -137,18 +136,49 @@ class Fuzzer(
   /** current program pool */
   def pool: Set[Script] = cov.minimalScripts
 
+  /** update mutator weights using thompson sampling */
+  private var _prevMutatorStat: Map[String, Counter] = Map()
+  private var _mutatorWeights: Map[String, Int] = Map(
+    "NearestMutator" -> 6,
+    "RandomMutator" -> 3,
+    "StatementInserter" -> 1,
+    "Remover" -> 1,
+    "SpecStringMutator" -> 1,
+  )
+
+  def recentMutatorStat: MMap[String, Counter] = mutatorStat.mapValuesInPlace {
+    (mutatorName, counter) =>
+      val prevCounter = _prevMutatorStat.getOrElse(mutatorName, Counter())
+      Counter(counter.pass - prevCounter.pass, counter.fail - prevCounter.fail)
+  }
+
+  private def updateMutatorWeights() =
+    val samples = (for {
+      (mutatorName, counter) <- recentMutatorStat
+      Counter(pass, fail) = counter
+      (alpha, beta) = (pass + 1.0, fail + 1.0)
+      betaDist: BetaDistribution = new BetaDistribution(alpha, beta)
+      sample: Double = betaDist.sample
+    } yield mutatorName -> sample).toMap
+    _mutatorWeights = samples.transform { (_, sample) =>
+      (math.max(0.001, sample) * 1000).toInt
+    }
+    _prevMutatorStat = mutatorStat.toMap
+
   /** one trial to fuzz new programs to increase coverage */
   def fuzz: Unit = {
     iter += 1
 
     val startTime = System.currentTimeMillis
     debugging(("-" * 40) + f"  iter: $iter%10d  " + ("-" * 40))
-    if (log) {
-      val bound = logInterval * 1000
-      if (interval > bound)
-        if (debug == NO_DEBUG) logging else time("Logging", logging)
-        startInterval += bound
-    }
+    val bound = logInterval * 1000
+    if (interval > bound)
+      updateMutatorWeights()
+      if (log) {
+        if (debug == NO_DEBUG) logging
+        else time("Logging", logging)
+      }
+      startInterval += bound
     val (selectorName, script, condView) = selector(pool, cov)
     val selectorInfo = selectorName + condView.map(" - " + _).getOrElse("")
     val code = script.code
@@ -270,6 +300,7 @@ class Fuzzer(
   /** mutator */
   given CFG = cfg
   val mutator: Mutator = WeightedMutator(
+    _mutatorWeights,
     NearestMutator(),
     RandomMutator(),
     StatementInserter(),

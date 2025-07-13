@@ -19,9 +19,6 @@ class RandomMutator(using cfg: CFG)(
   /** synthesizer */
   val synthesizer = synBuilder(cfg.grammar)
 
-  /** default weight for RandomMutator is 3 */
-  def calculateWeight(ast: Ast): Int = 3
-
   val names = List("RandomMutator")
 
   /** mutate programs */

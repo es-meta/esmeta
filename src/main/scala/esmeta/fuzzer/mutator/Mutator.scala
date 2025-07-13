@@ -16,9 +16,6 @@ trait Mutator(using val cfg: CFG) {
   lazy val esParser: ESParser = cfg.esParser
   lazy val scriptParser: AstFrom = esParser("Script")
 
-  /*placeholder for weight*/
-  def calculateWeight(ast: Ast): Int
-
   /** mutate string */
   def apply(code: String): Result = apply(code, 1, None).head
   def apply(code: String, n: Int): Seq[Result] = apply(code, n, None)
