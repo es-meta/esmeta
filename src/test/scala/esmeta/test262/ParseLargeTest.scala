@@ -9,6 +9,7 @@ class ParseLargeTest extends Test262Test {
   def init: Unit = check(name) {
     val summary = Test262Test.test262.parseTest(
       concurrent = CP.Auto,
+      log = true,
       verbose = true,
     )
     val f = summary.failCount

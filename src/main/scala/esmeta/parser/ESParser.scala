@@ -164,7 +164,9 @@ case class ESParser(
     optional: Boolean = false,
   ): LAParser[List[Option[Ast]]] = symbol match
     case Terminal(")") if name == "DoWhileStatement" => prev <~ doWhileCloseT
-    case Terminal(term)                              => prev <~ t(term)
+    case Terminal(term) =>
+      if (optional) prev <~ opt(t(term))
+      else prev <~ t(term)
     case symbol: NtBase =>
       lazy val parser = symbol match
         case Nonterminal(name, args) =>

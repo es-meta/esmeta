@@ -64,7 +64,6 @@ case class TestFilter(spec: Spec) {
       test.flags.contains("module") ||
       test.relName.startsWith("language/module-code/") ||
       test.relName.startsWith("language/import/") ||
-      test.relName.startsWith("language/expressions/dynamic-import/") ||
       test.relName.startsWith("language/expressions/import.meta/"),
     ),
     // fixtures
