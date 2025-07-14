@@ -245,7 +245,6 @@ Await:clo0
 Await:clo0:cont0
 Await:clo1
 Await:clo1:cont0
-Await:cont2
 AwaitExpression[0,0].Evaluation
 BigInt::add
 BigInt::bitwiseAND
