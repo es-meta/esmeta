@@ -9,6 +9,7 @@ class EvalLargeTest extends Test262Test {
   def init: Unit = check(name) {
     val summary = Test262Test.test262.evalTest(
       concurrent = CP.Auto,
+      log = true,
       verbose = true,
     )
     val f = summary.failCount

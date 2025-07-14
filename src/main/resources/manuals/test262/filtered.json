@@ -231,6 +231,8 @@
     "language/eval-code/indirect/var-env-var-init-global-exstng",
     "language/eval-code/indirect/var-env-var-init-global-new",
     "language/eval-code/indirect/var-env-var-non-strict",
+    "language/expressions/dynamic-import/eval-self-once-script",
+    "language/expressions/dynamic-import/returns-promise",
     "language/expressions/this/S11.1.1_A4.1",
     "language/function-code/10.4.3-1-13-s",
     "language/function-code/10.4.3-1-13-s",
