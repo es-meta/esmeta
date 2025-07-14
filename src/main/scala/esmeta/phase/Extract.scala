@@ -5,6 +5,7 @@ import esmeta.extractor.Extractor
 import esmeta.lang.Step
 import esmeta.lang.util.ParserForEval.{getParseCount, getCacheCount}
 import esmeta.spec.*
+import esmeta.spec.util.GitHubAction
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -25,6 +26,12 @@ case object Extract extends Phase[Unit, Spec] {
       println(f"- # of actual parsing: $getParseCount%,d")
       println(f"- # of using cached result: $getCacheCount%,d")
     if (config.log) log(spec)
+    if (config.warnAction) {
+      val s = config.ignoreYetSteps.map(readJson[List[String]]).getOrElse(Nil)
+      val t = config.ignoreYetTypes.map(readJson[List[String]]).getOrElse(Nil)
+      GitHubAction.report(spec)
+      GitHubAction.warnYets(spec, s, t)
+    }
     spec
   } else {
     runREPL
@@ -36,22 +43,20 @@ case object Extract extends Phase[Unit, Spec] {
     mkdir(EXTRACT_LOG_DIR)
 
     val yetSteps = spec.incompleteSteps
-    dumpFile(
+    dumpJson(
       name = "not yet supported steps",
       data = yetSteps
-        .map(_.toString(detail = false, location = false))
-        .sorted
-        .mkString(LINE_SEP),
+        .map(_.toString(detail = true, location = false))
+        .sorted,
       filename = s"$EXTRACT_LOG_DIR/yet-steps",
     )
 
     val yetTypes = spec.yetTypes
-    dumpFile(
+    dumpJson(
       name = "not yet parsed types",
       data = yetTypes
         .map(_.toString)
-        .sorted
-        .mkString(LINE_SEP),
+        .sorted,
       filename = s"$EXTRACT_LOG_DIR/yet-types",
     )
 
@@ -123,11 +128,30 @@ case object Extract extends Phase[Unit, Spec] {
       BoolOption(_.repl = _),
       "use a REPL for metalanguage parser.",
     ),
+    (
+      "warn-action",
+      BoolOption(_.warnAction = _),
+      "print workflow commands to warn novel yet-steps GitHub action ",
+    ),
+    (
+      "ignore-yet-steps",
+      StrOption((c, s) => c.ignoreYetSteps = Some(s)),
+      "(should be used with warn-action) yet steps to ignore.",
+    ),
+    (
+      "ignore-yet-types",
+      StrOption((c, s) => c.ignoreYetTypes = Some(s)),
+      "(should be used with warn-action) yet types to ignore.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
     var log: Boolean = false,
     var eval: Boolean = false,
     var repl: Boolean = false,
+    // options for
+    var warnAction: Boolean = false,
+    var ignoreYetSteps: Option[String] = None,
+    var ignoreYetTypes: Option[String] = None,
   )
 }

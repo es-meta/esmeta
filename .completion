@@ -14,7 +14,7 @@ _esmeta_completions() {
   cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject mutate dump-debugger dump-visualizer"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
-  extractOpt="-extract:target -extract:log -extract:eval -extract:repl"
+  extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:warn-action -extract:ignore-yet-steps -extract:ignore-yet-types"
   compileOpt="-compile:log -compile:log-with-loc -compile:opt"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
   tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:detail-log -tycheck:type-sens -tycheck:infer-guard"

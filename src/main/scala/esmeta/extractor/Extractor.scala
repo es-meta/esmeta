@@ -111,11 +111,14 @@ class Extractor(
 
   /** extracts an algorithm */
   def extractAlgorithm(elem: Element): List[Algorithm] = for {
-    head <- extractHeads(elem)
+    (head, parentElem) <- extractHeads(elem)
     code = elem.html.unescapeHtml
     body = parser.parseBy(parser.step)(code)
     algo = Algorithm(head, body, code)
-    _ = algo.elem = elem
+    _ = {
+      algo.elem = elem;
+      algo.headElem = parentElem.getFirstChildElem;
+    }
   } yield algo
 
   /** TODO ignores elements whose parents' ids are in this list */
@@ -130,7 +133,7 @@ class Extractor(
   )
 
   /** extracts algorithm heads */
-  def extractHeads(elem: Element): List[Head] = {
+  def extractHeads(elem: Element): List[(Head, Element)] = {
     var parent = elem.parent
     // TODO more general rules
     if (
@@ -145,7 +148,7 @@ class Extractor(
     if (parent.tagName != "emu-clause") return Nil
 
     // consider algorithm head types using `type` attributes
-    parent.attr("type") match {
+    val heads = parent.attr("type") match {
       case "abstract operation" =>
         extractAbsOpHead(parent, elem, false)
       case "implementation-defined abstract operation" =>
@@ -165,6 +168,7 @@ class Extractor(
       case _ =>
         extractUnusualHead(parent, elem)
     }
+    heads.map(_ -> parent)
   }
 
   /** extracts tables */
