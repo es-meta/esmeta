@@ -305,10 +305,6 @@
     "language/types/number/8.5.1",
     "language/types/number/S8.5_A13_T2"
   ],
-  "wrong": [
-    "built-ins/AsyncGeneratorPrototype/return/return-state-completed-broken-promise",
-    "built-ins/AsyncGeneratorPrototype/return/return-suspendedStart-broken-promise"
-  ],
   "large": [
     "language/identifiers/start-unicode-16.0.0",
     "language/identifiers/start-unicode-16.0.0-escaped",
@@ -343,13 +339,6 @@
     "language/expressions/does-not-equals/bigint-and-number-extremes",
     "language/expressions/equals/bigint-and-number-extremes",
     "language/expressions/modulus/S11.5.3_A4_T7"
-  ],
-  "order": [
-    "language/expressions/assignment/destructuring/iterator-destructuring-property-reference-target-evaluation-order",
-    "language/expressions/assignment/destructuring/keyed-destructuring-property-reference-target-evaluation-order",
-    "language/expressions/assignment/target-member-computed-reference",
-    "language/expressions/assignment/target-super-computed-reference",
-    "language/expressions/member-expression/computed-reference-null-or-undefined"
   ],
   "pending until tc39/ecma262#3009 merged": [
     "built-ins/String/prototype/search/cstm-search-on-bigint-primitive",
