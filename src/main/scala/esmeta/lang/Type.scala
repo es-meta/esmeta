@@ -13,6 +13,9 @@ case class Type(ty: Ty) extends Syntax {
 
   /** normalized type name */
   lazy val normalizedName: String = Type.normalizeName(name)
+
+  /** check whether it is an unknown type */
+  def isUnknown: Boolean = ty.isInstanceOf[UnknownTy]
 }
 object Type extends Parser.From(Parser.langTypeWithUnknown) {
 

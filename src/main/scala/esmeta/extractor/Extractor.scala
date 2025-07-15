@@ -221,13 +221,7 @@ class Extractor(
         rhsName <- rhs.allNames
         syntax = lhsName + ":" + rhsName
         (idx, subIdx) = idxMap(syntax)
-        rhsParams = rhs.params
-        target = SyntaxDirectedOperationHead.Target(
-          lhsName,
-          idx,
-          subIdx,
-          rhsParams,
-        )
+        target = SyntaxDirectedOperationHead.Target(lhsName, idx, subIdx)
       } yield generator(Some(target))
     } else {
       // special 'Default' case: assigned to special LHS named "Default")

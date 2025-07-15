@@ -129,14 +129,30 @@ class StringifyTinyTest extends SpecTest {
     // Algorithm Head
     // -------------------------------------------------------------------------
     checkStringify("Head")(
-      aoHead -> "StringIndexOf(string, searchValue, fromIndex): unknown",
-      numHead -> "Number::unaryMinus(x): unknown",
-      sdoHead1 -> "[SYNTAX] <DEFAULT>.VarDeclaredNames[S](withParam): unknown",
-      sdoHead2 -> "[SYNTAX] ForStatement[0, 5](Expression0, Expression1, Expression2, Statement).VarDeclaredNames[S](withParam): unknown",
-      sdoHead3 -> "[SYNTAX] AdditiveExpression[1, 0](AdditiveExpression, MultiplicativeExpression).Evaluation[R](): unknown",
-      concMethodHead -> "[METHOD] HasBinding(envRec)(N): unknown",
-      methodHead -> "[INTERNAL] SetPrototypeOf(O)(V): unknown",
-      builtinHead -> "[BUILTIN] Boolean(value): unknown",
+      aoHead -> """[abstract operation] StringIndexOf(
+      |  _string_: a String,
+      |  _searchValue_: a String,
+      |  _fromIndex_: a Number,
+      |): unknown""".stripMargin,
+      numHead -> """[numeric method] Number::unaryMinus(
+      |  _x_: a Number,
+      |): unknown""".stripMargin,
+      sdoHead1 -> """[sdo] (static) <DEFAULT>.VarDeclaredNames(
+      |  _withParam_,
+      |): unknown""".stripMargin,
+      sdoHead2 -> """[sdo] (static) ForStatement[0, 5].VarDeclaredNames(
+      |  _withParam_,
+      |): unknown""".stripMargin,
+      sdoHead3 -> "[sdo] (runtime) AdditiveExpression[1, 0].Evaluation(): unknown",
+      concMethodHead -> """[concrete method] HasBinding(_envRec_)(
+      |  _N_: a String,
+      |): unknown""".stripMargin,
+      methodHead -> """[internal method] SetPrototypeOf(_O_)(
+      |  _V_: an Object or *null*,
+      |): unknown""".stripMargin,
+      builtinHead -> """[builtin] Boolean(
+      |  _value_,
+      |): unknown""".stripMargin,
     )
 
     // built-in algorithm paths

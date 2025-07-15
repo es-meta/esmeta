@@ -68,36 +68,14 @@ object SpecTest {
     UnknownType,
   )
   lazy val sdoHead2 = SyntaxDirectedOperationHead(
-    Some(
-      Target(
-        "ForStatement",
-        0,
-        5,
-        List(
-          Param("Expression0", UnknownType),
-          Param("Expression1", UnknownType),
-          Param("Expression2", UnknownType),
-          Param("Statement", UnknownType),
-        ),
-      ),
-    ),
+    Some(Target("ForStatement", 0, 5)),
     "VarDeclaredNames",
     true,
     List(Param("withParam", UnknownType)),
     UnknownType,
   )
   lazy val sdoHead3 = SyntaxDirectedOperationHead(
-    Some(
-      Target(
-        "AdditiveExpression",
-        1,
-        0,
-        List(
-          Param("AdditiveExpression", UnknownType),
-          Param("MultiplicativeExpression", UnknownType),
-        ),
-      ),
-    ),
+    Some(Target("AdditiveExpression", 1, 0)),
     "Evaluation",
     false,
     List(),
@@ -111,7 +89,7 @@ object SpecTest {
   )
   lazy val methodHead = InternalMethodHead(
     "SetPrototypeOf",
-    Param("O", Type(ObjectT)),
+    Param("O", UnknownType),
     List(
       Param("V", Type(ObjectT || NullT)),
     ),

@@ -45,7 +45,7 @@ sealed trait Head extends SpecElem {
     case head: SyntaxDirectedOperationHead =>
       val Target = SyntaxDirectedOperationHead.Target
       val pre = head.target.fold("<DEFAULT>") {
-        case Target(lhsName, idx, subIdx, _) => s"$lhsName[$idx,$subIdx]"
+        case Target(lhsName, idx, subIdx) => s"$lhsName[$idx,$subIdx]"
       }
       s"$pre.${head.methodName}"
     case head: ConcreteMethodHead =>
@@ -86,7 +86,6 @@ object SyntaxDirectedOperationHead:
     lhsName: String,
     idx: Int,
     subIdx: Int,
-    rhsParams: List[Param],
   ) extends SpecElem
 type SdoHeadTarget = SyntaxDirectedOperationHead.Target
 
