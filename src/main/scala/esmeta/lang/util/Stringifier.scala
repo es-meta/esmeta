@@ -173,13 +173,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
             app >> "at the top of the execution context stack"
           case Some(ctxt) => app >> ctxt
         app >> " as the running execution context."
-      case SetEvaluationStateStep(context, param, step) =>
-        app >> First("set the code evaluation state of ") >> context >> " "
-        app >> "such that when evaluation is resumed "
-        param match
-          case None    => app >> "for that execution context "
-          case Some(p) => app >> "with a " >> p >> " "
-        app >> "the following steps will be performed:" >> step
+      case SetEvaluationStateStep(context, func, args) =>
+        given Rule[List[Expression]] = argsRule(showNoArg = true)
+        app >> First("set the code evaluation state of ") >> context
+        app >> " such that when evaluation is resumed"
+        app >> " for that execution context, "
+        app >> func >> " will be called" >> args >> "."
       case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> """<emu-meta effects="user-code">"""
@@ -568,21 +567,26 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> base >> args
       case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         // handle Evaluation
         if (name == "Evaluation") app >> "the result of evaluating " >> base
         // XXX handle Contains, Contains always takes one argument
         else if (name == "Contains") app >> base >> " Contains " >> args.head
         // Otherwise
         else {
-          app >> name >> " of " >> base
-          if (!args.isEmpty) {
-            app >> " with argument" >> (if (args.length > 1) "s " else " ")
-            app >> args
-          }
+          given Rule[List[Expression]] = argsRule(showNoArg = false)
+          app >> name >> " of " >> base >> args
         }
         app
     }
+
+  def argsRule(showNoArg: Boolean): Rule[List[Expression]] = (app, args) => {
+    given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+    if (!args.isEmpty)
+      app >> " with argument" >> (if (args.length > 1) "s " else " ")
+      app >> args
+    else if (showNoArg) app >> " with no arguments"
+    else app
+  }
 
   // conditions
   given condRule: Rule[Condition] = withLoc { (app, cond) =>

@@ -90,9 +90,10 @@ object LangTest {
   lazy val removeFirstStep = RemoveFirstStep(refExpr)
   lazy val removeCtxtStep = RemoveContextStep(x, None)
   lazy val removeCtxtWithRestoreStep = RemoveContextStep(x, Some(x))
-  lazy val setEvalStateStep = SetEvaluationStateStep(x, None, blockStep)
-  lazy val setEvalStateParamStep =
-    SetEvaluationStateStep(x, Some(x), blockStep)
+  lazy val setEvalStateStep = SetEvaluationStateStep(x, x, Nil)
+  lazy val setEvalStateArgStep = SetEvaluationStateStep(x, x, List(refExpr))
+  lazy val setEvalStateArgsStep =
+    SetEvaluationStateStep(x, x, List(refExpr, refExpr))
   lazy val resumeStep = ResumeEvaluationStep(x, None, None, List(subStep))
   lazy val resumeArgStep =
     ResumeEvaluationStep(x, Some(refExpr), None, List(subStep))

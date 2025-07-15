@@ -99,27 +99,12 @@ trait Parsers extends IndentParsers {
       case r ~ v ~ x => SetAsStep(r, v, x)
     }
 
-  // set the code evaluation state steps
+  // set-eval-state steps
   lazy val setEvalStateStep: PL[SetEvaluationStateStep] =
-    lazy val param: P[Option[Variable]] =
-      "for that execution context" ^^^ None |
-      "with a" ~ opt(langType) ~> variable ^^ { Some(_) } // TODO handle type
-    lazy val body: P[Step] =
-      "the following steps will be performed:" ~> step |
-      // closure-based
-      "," ~> variable <~ "will be called with no arguments." ^^ {
-        case e => ReturnStep(Some(InvokeAbstractClosureExpression(e, Nil)))
-      } |
-      // Await
-      ", the following steps of the algorithm" ~
-      "that invoked Await will be performed," ~
-      "with" ~> variable <~ "available" ~ end ^^ {
-        case x => ReturnStep(Some(ReferenceExpression(x)))
-      }
-
-    ("set the code evaluation state of" ~> variable) ~
-    ("such that when evaluation is resumed" ~> param) ~ body ^^ {
-      case c ~ p ~ b => SetEvaluationStateStep(c, p, b)
+    ("set the code evaluation state of " ~> ref <~
+    "such that when evaluation is resumed for that execution context,") ~
+    (variable <~ "will be called") ~ (argsPart <~ ".") ^^ {
+      case c ~ f ~ a => SetEvaluationStateStep(c, f, a)
     }
 
   // set fields with intrinsics
@@ -805,8 +790,6 @@ trait Parsers extends IndentParsers {
         not(component),
       ) ~> camel)
     lazy val base = ("of" ~> expr)
-    lazy val argsPart =
-      "with" ~ ("arguments" | "argument") ~> repsep(expr, sep("and"))
 
     // normal SDO
     lazy val normalSDOExpr =
@@ -1462,6 +1445,12 @@ trait Parsers extends IndentParsers {
     ("are both" | "are") ^^^ false
   private def hasNeg: Parser[Boolean] =
     "does not have" ^^^ true | "has" ^^^ false
+
+  // arguments part
+  lazy val argsPart = "with" ~> (
+    "no arguments" ^^^ Nil |
+    ("arguments" | "argument") ~> repsep(expr, sep("and"))
+  )
 
   // helper for creating expressions, conditions
   private def getRefExpr(r: Reference): Expression = ReferenceExpression(r)

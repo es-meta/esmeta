@@ -107,8 +107,8 @@ trait Walker extends BasicWalker {
     case RemoveFirstStep(expr)   => RemoveFirstStep(walk(expr))
     case RemoveContextStep(remove, restore) =>
       RemoveContextStep(walk(remove), walkOpt(restore, walk))
-    case SetEvaluationStateStep(base, p, body) =>
-      SetEvaluationStateStep(walk(base), walkOpt(p, walk), walk(body))
+    case SetEvaluationStateStep(base, func, args) =>
+      SetEvaluationStateStep(walk(base), walk(func), walkList(args, walk))
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
       ResumeEvaluationStep(
         walk(b),

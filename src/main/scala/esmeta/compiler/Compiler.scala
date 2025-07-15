@@ -70,12 +70,6 @@ class Compiler(
   /** grammar */
   def grammar: Grammar = spec.grammar
 
-  /** list of function names which need to replace return step return to resumed
-    * step since they have no note step for that return
-    */
-  val fixReturnAOs =
-    List("GeneratorStart", "AsyncBlockStart", "AsyncGeneratorStart")
-
   /** list of function names which need to replace head to built-in when
     * creating closure (ex: Await)
     */
@@ -211,7 +205,7 @@ class Compiler(
       case _ if noReturnComp contains name          => false
       case _                                        => retTy.isCompletion
     val fb =
-      FuncBuilder(spec, kind, name, params, retTy, algo, None, needReturnComp)
+      FuncBuilder(spec, kind, name, params, retTy, algo, needReturnComp)
     val prefix = algo.head match
       case head: BuiltinHead => getBuiltinPrefix(fb, head.params)
       case _                 => Nil
@@ -248,14 +242,14 @@ class Compiler(
           )
     case ReturnStep(expr) =>
       lazy val e = expr.fold(EUndef())(compile(fb, _))
-      (expr, fb.returnContext, fb.needReturnComp) match
-        case (Some(ReturnIfAbruptExpression(expr, check)), None, true) =>
+      (expr, fb.needReturnComp) match
+        case (Some(ReturnIfAbruptExpression(expr, check)), true) =>
           if (check && !opt)
             val e = returnIfAbrupt(fb, compile(fb, expr), check, false, true)
           else
             val e = returnIfAbrupt(fb, compile(fb, expr), check, true)
             fb.addInst(IReturn(e))
-        case (_, None, true) =>
+        case (_, true) =>
           val e = expr.fold(EUndef())(compile(fb, _))
           val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
           val (y, yExpr) = fb.newTIdWithExpr
@@ -271,9 +265,7 @@ class Compiler(
             ICall(y, EClo("NormalCompletion", Nil), List(x)),
             IReturn(yExpr),
           )
-        case (_, None, false) =>
-          fb.addInst(IReturn(e))
-        case (_, Some(context), _) => fb.addReturnToResume(context, e)
+        case (_, false) => fb.addInst(IReturn(e))
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
     case ForEachStep(ty, variable, expr, true, body) =>
@@ -444,22 +436,23 @@ class Compiler(
     case RemoveContextStep(_, _) =>
       val x = fb.newTId
       fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
-    case SetEvaluationStateStep(context, paramOpt, body) =>
+    case SetEvaluationStateStep(context, func, args) =>
       val ctxt = compile(fb, context)
       val contName = fb.nextContName
-      addFunc(
-        fb = FuncBuilder(
-          spec,
-          FuncKind.Cont,
-          contName,
-          toParams(paramOpt),
-          fb.retTy,
-          fb.algo,
-          if (fixReturnAOs contains fb.name) Some(ctxt) else None,
-          fb.needReturnComp,
-        ),
-        body = body,
+      val contFB = FuncBuilder(
+        spec,
+        FuncKind.Cont,
+        contName,
+        Nil,
+        fb.retTy,
+        fb.algo,
+        fb.needReturnComp,
       )
+      val inst = contFB.newScope {
+        val x = compile(contFB, InvokeAbstractClosureExpression(func, args))
+        contFB.addReturnToResume(ctxt, x)
+      }
+      funcs += contFB.getFunc(inst)
       fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
       val ctxt = compile(fb, context)
@@ -477,7 +470,6 @@ class Compiler(
           ps,
           fb.retTy,
           fb.algo,
-          None,
           fb.needReturnComp,
         ),
         body = bodyStep,
@@ -502,7 +494,6 @@ class Compiler(
           List(toParam(param)),
           fb.retTy,
           fb.algo,
-          if (fixReturnAOs contains fb.name) Some(ctxt) else None,
           fb.needReturnComp,
         ),
         body = BlockStep(StepBlock(steps)),
@@ -742,7 +733,7 @@ class Compiler(
               params.map(x => IRParam(compile(x), IRUnknownType, false)),
             )
         val retTy = IRUnknownType
-        val cloFB = FuncBuilder(spec, ck, cn, ps, retTy, fb.algo, None, true)
+        val cloFB = FuncBuilder(spec, ck, cn, ps, retTy, fb.algo, true)
         val prefix =
           if (hasPrefix)
             getBuiltinPrefix(cloFB, params.map(x => Param(x.name, UnknownType)))

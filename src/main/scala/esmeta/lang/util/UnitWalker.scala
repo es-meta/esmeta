@@ -84,8 +84,8 @@ trait UnitWalker extends BasicUnitWalker {
     case RemoveFirstStep(expr)   => walk(expr)
     case RemoveContextStep(remove, restore) =>
       walk(remove); walkOpt(restore, walk)
-    case SetEvaluationStateStep(base, p, body) =>
-      walk(base); walkOpt(p, walk); walk(body)
+    case SetEvaluationStateStep(base, func, args) =>
+      walk(base); walk(func); walkList(args, walk)
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
       walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walk); walkList(steps, walk)
     case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>

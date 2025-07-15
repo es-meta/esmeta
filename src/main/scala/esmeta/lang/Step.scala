@@ -15,6 +15,13 @@ case class SetStep(ref: Reference, expr: Expression) extends Step
 // set-as steps
 case class SetAsStep(ref: Reference, verb: String, id: String) extends Step
 
+// set-eval-state steps
+case class SetEvaluationStateStep(
+  context: Reference,
+  func: Variable,
+  args: List[Expression],
+) extends Step
+
 // if-then-else steps
 case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
   extends Step
@@ -99,13 +106,6 @@ case class RemoveFirstStep(expr: Expression) extends Step
 case class RemoveContextStep(
   removeContext: Reference,
   restoreContext: Option[Reference],
-) extends Step
-
-// set the code evaluation state steps
-case class SetEvaluationStateStep(
-  context: Reference,
-  param: Option[Variable], // TODO handle type
-  body: Step,
 ) extends Step
 
 // resume the suspended evaluation steps
