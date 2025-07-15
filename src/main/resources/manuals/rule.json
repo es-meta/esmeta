@@ -3,7 +3,6 @@
     "If control reaches here, then _genContext_ is the running execution context again.": "(= genContext @EXECUTION_STACK[0])",
     "The execution context stack has at least two elements.": "(< 1 (sizeof @EXECUTION_STACK))",
     "The execution context stack is empty.": "(= (sizeof @EXECUTION_STACK) 0)",
-    "_O_ has all of the internal slots of a For-In Iterator Instance (<emu-xref href=\"#sec-properties-of-for-in-iterator-instances\"></emu-xref>).": "(? O: Record[ForInIterator])",
     "The execution context stack is not empty.": "(! (= (sizeof @EXECUTION_STACK) 0))",
     "This is an attempt to change the value of an immutable binding.": "true",
     "When we reach this step, _asyncContext_ has already been removed from the execution context stack and _prevContext_ is the currently running execution context.": "(&& (= prevContext @EXECUTION_STACK[0]) (! (= asyncContext @EXECUTION_STACK[0])))",
@@ -28,7 +27,6 @@
   },
   "inst": {
     "<emu-not-ref>Record</emu-not-ref> that the binding for _N_ in _envRec_ has been initialized.": "envRec.__MAP__[N].initialized = true",
-    "Append the pair (a two element List) consisting of _nextKey_ and _desc_ to the end of _descriptors_.": "push descriptors < (list [nextKey, desc])",
     "Append to _internalSlotsList_ the elements of _additionalInternalSlotsList_.": "call interanlSlotsList = clo<\"__APPEND_LIST__\">(internalSlotsList, additionalInternalSlotsList)",
     "Change its bound value to _V_.": "envRec.__MAP__[N].BoundValue = V",
     "Create a mutable binding in _envRec_ for _N_ and record that it is uninitialized. If _D_ is *true*, record that the newly created binding may be deleted by a subsequent DeleteBinding call.": "{ envRec.__MAP__[N] = (record [MutableBinding] { \"initialized\" : false, \"mutable\" : true, \"strict\" : false })  if (= D true) envRec.__MAP__[N].maybeDeleted = true }",
@@ -89,7 +87,6 @@
     "Return the value currently bound to _N_ in _envRec_.": "return envRec.__MAP__[N].BoundValue",
     "Set _P_'s essential internal methods, except for [[Call]] and [[Construct]], to the definitions specified in <emu-xref href=\"#sec-proxy-object-internal-methods-and-internal-slots\"></emu-xref>.": "{ P.GetPrototypeOf = clo<\"Record[ProxyExoticObject].GetPrototypeOf\"> P.SetPrototypeOf = clo<\"Record[ProxyExoticObject].SetPrototypeOf\"> P.IsExtensible = clo<\"Record[ProxyExoticObject].IsExtensible\"> P.PreventExtensions = clo<\"Record[ProxyExoticObject].PreventExtensions\"> P.GetOwnProperty = clo<\"Record[ProxyExoticObject].GetOwnProperty\"> P.DefineOwnProperty = clo<\"Record[ProxyExoticObject].DefineOwnProperty\"> P.HasProperty = clo<\"Record[ProxyExoticObject].HasProperty\"> P.Get = clo<\"Record[ProxyExoticObject].Get\"> P.Set = clo<\"Record[ProxyExoticObject].Set\"> P.Delete = clo<\"Record[ProxyExoticObject].Delete\"> P.OwnPropertyKeys = clo<\"Record[ProxyExoticObject].OwnPropertyKeys\"> }",
     "Set _obj_'s essential internal methods to the default ordinary object definitions specified in <emu-xref href=\"#sec-ordinary-object-internal-methods-and-internal-slots\"></emu-xref>.": "nop",
-    "Set the bound value for _N_ in _envRec_ to _V_.": "envRec.__MAP__[N].BoundValue = V",
-    "_op_ is `|`. Let _result_ be the result of applying the bitwise inclusive OR operation to _lbits_ and _rbits_.": "let result = (| lbits rbits)"
+    "Set the bound value for _N_ in _envRec_ to _V_.": "envRec.__MAP__[N].BoundValue = V"
   }
 }

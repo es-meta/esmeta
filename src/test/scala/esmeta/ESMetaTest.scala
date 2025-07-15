@@ -220,7 +220,8 @@ object ESMetaTest {
   // extract specifications
   lazy val spec = Extractor()
   lazy val grammar = spec.grammar
-  lazy val program = Compiler(spec)
+  lazy val compiler = new Compiler(spec)
+  lazy val program = compiler.result
   lazy val cfg = CFGBuilder(program)
   def getCFG(target: String): CFG = CFGBuilder(Compiler(Extractor(target)))
 }

@@ -13,6 +13,16 @@ class ValiditySmallTest extends CompilerTest {
   def init: Unit = {
     lazy val cur = ESMetaTest.program.completeFuncs.map(_.name).toSet
     check("compilation") { cur }
+    check("no unused manual rules") {
+      val unusedRules = ESMetaTest.compiler.unusedRules
+      if (unusedRules.nonEmpty)
+        fail(
+          "there are unused manual rules:" + unusedRules.toList
+            .map(rule => LINE_SEP + "* " + rule)
+            .sorted
+            .mkString,
+        )
+    }
     val path = s"$RESULT_DIR/complete-funcs"
     val prev = optional(readFile(path).split(LINE_SEP).toSet).getOrElse(cur)
     check("complete IR functions") { assert(prev subsetOf cur) }
