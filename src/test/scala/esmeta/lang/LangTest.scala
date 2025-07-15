@@ -26,7 +26,27 @@ object LangTest {
     LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
   lazy val setStep = SetStep(x, addExpr)
   lazy val setAsStep = SetAsStep(x, "specified", "id")
-  lazy val setFieldsWithIntrinsicsStep = SetFieldsWithIntrinsicsStep(x, "Yes!")
+  lazy val setEvalStateStep = SetEvaluationStateStep(x, x, Nil)
+  lazy val setEvalStateArgStep = SetEvaluationStateStep(x, x, List(refExpr))
+  lazy val setEvalStateArgsStep =
+    SetEvaluationStateStep(x, x, List(refExpr, refExpr))
+  lazy val performStep = PerformStep(invokeAOExpr)
+  lazy val invokeShorthandStep = InvokeShorthandStep(
+    "IfAbruptCloseIterator",
+    List(refExpr, refExpr),
+  )
+
+  // special steps rarely used in the spec
+  lazy val setFieldsWithIntrinsicsStep =
+    SetFieldsWithIntrinsicsStep(x, "More description.")
+  lazy val performBlockStep = PerformBlockStep(
+    StepBlock(List(SubStep(None, letStep), SubStep(None, setStep))),
+    "possibly interleaving parsing and error detection",
+  )
+
+  // ---------------------------------------------------------------------------
+  // TODO refactor following code
+  // ---------------------------------------------------------------------------
   lazy val ifStep = IfStep(binaryCondLt, letStep, None)
   lazy val ifBlockStep =
     IfStep(binaryCondLt, blockStep, None)
@@ -75,7 +95,6 @@ object LangTest {
     letStep,
   )
   lazy val throwStep = ThrowStep("ReferenceError")
-  lazy val performStep = PerformStep(invokeAOExpr)
   lazy val appendStep = AppendStep(refExpr, fieldRef)
   lazy val prependStep = PrependStep(refExpr, fieldRef)
   lazy val repeatStep = RepeatStep(None, letStep)
@@ -90,10 +109,6 @@ object LangTest {
   lazy val removeFirstStep = RemoveFirstStep(refExpr)
   lazy val removeCtxtStep = RemoveContextStep(x, None)
   lazy val removeCtxtWithRestoreStep = RemoveContextStep(x, Some(x))
-  lazy val setEvalStateStep = SetEvaluationStateStep(x, x, Nil)
-  lazy val setEvalStateArgStep = SetEvaluationStateStep(x, x, List(refExpr))
-  lazy val setEvalStateArgsStep =
-    SetEvaluationStateStep(x, x, List(refExpr, refExpr))
   lazy val resumeStep = ResumeEvaluationStep(x, None, None, List(subStep))
   lazy val resumeArgStep =
     ResumeEvaluationStep(x, Some(refExpr), None, List(subStep))

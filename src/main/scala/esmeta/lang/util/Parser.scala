@@ -58,9 +58,9 @@ trait Parsers extends IndentParsers {
     setStep |
     setAsStep |
     setEvalStateStep |
-    setFieldsWithIntrinsicsStep |
     performStep |
-    performBlockStep |
+    invokeShorthandStep |
+    // -------------------------------------------------------------------------
     returnToResumedStep |
     returnStep |
     assertStep |
@@ -81,7 +81,8 @@ trait Parsers extends IndentParsers {
     forEachStep |
     resumeStep |
     resumeYieldStep |
-    blockStep
+    blockStep |
+    specialStep
   }.named("lang.Step")
 
   // let steps
@@ -107,13 +108,38 @@ trait Parsers extends IndentParsers {
       case c ~ f ~ a => SetEvaluationStateStep(c, f, a)
     }
 
-  // set fields with intrinsics
+  // perform steps
+  lazy val performStep: PL[PerformStep] =
+    "perform" ~> expr <~ end ^^ { PerformStep(_) }
+
+  // invoke shorthand steps
+  lazy val invokeShorthandStep: PL[InvokeShorthandStep] =
+    opName ~ invokeArgs <~ end ^^ { case f ~ as => InvokeShorthandStep(f, as) }
+
+  // ---------------------------------------------------------------------------
+  // special steps rarely used in the spec
+  // ---------------------------------------------------------------------------
+  lazy val specialStep: PL[Step] = {
+    setFieldsWithIntrinsicsStep |
+    performBlockStep
+  }.named("lang.Step")
+
+  // set fields with intrinsics (CreateIntrinsics)
   lazy val setFieldsWithIntrinsicsStep: PL[SetFieldsWithIntrinsicsStep] = (
     "set fields of" ~> ref <~
       "with the values listed in" ~
       "<emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>."
   ) ~ ".*".r ^^ { case x ~ d => SetFieldsWithIntrinsicsStep(x, d) }
 
+  // perform block steps (PerformEval)
+  lazy val performBlockStep: PL[PerformBlockStep] =
+    "perform the following substeps" ~
+    "in an implementation-defined order" ~> opt("," ~> "[^:]*".r) ~
+    (":" ~> stepBlock) ^^ { case d ~ b => PerformBlockStep(b, d.getOrElse("")) }
+
+  // ---------------------------------------------------------------------------
+  // TODO refactor following code
+  // ---------------------------------------------------------------------------
   // if-then-else steps
   lazy val ifStep: PL[IfStep] = {
     ("if" ~> cond <~ "," ~ opt("then")) ~
@@ -202,18 +228,6 @@ trait Parsers extends IndentParsers {
     "throw" ~> ("a" | "an") ~> errorName <~ "exception" <~ end ^^ {
       ThrowStep(_)
     }
-
-  // perform steps
-  lazy val performStep: PL[PerformStep] =
-    opt("perform" | "call") ~> (invokeExpr | returnIfAbruptExpr) <~ end ^^ {
-      PerformStep(_)
-    }
-
-  // perform block steps
-  lazy val performBlockStep: PL[PerformBlockStep] =
-    "perform the following substeps" ~
-    "in an implementation-defined order" ~
-    ".*".r ~> stepBlock ^^ { PerformBlockStep(_) }
 
   // append steps
   // NOTE: ("append" ~> expr) ~ ("to" ~> ref) <~ end
@@ -757,9 +771,12 @@ trait Parsers extends IndentParsers {
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
     // handle emu-meta tag
-    tagged("(this)?[A-Z][a-zA-Z0-9/]*".r) ~ invokeArgs ^^ {
+    tagged(opName) ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractOperationExpression(x, as)
     }
+
+  // names for operations
+  lazy val opName: Parser[String] = "(this)?[A-Z][a-zA-Z0-9/]*".r
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: PL[InvokeNumericMethodExpression] =

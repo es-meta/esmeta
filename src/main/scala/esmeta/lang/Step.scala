@@ -22,6 +22,29 @@ case class SetEvaluationStateStep(
   args: List[Expression],
 ) extends Step
 
+// perform steps
+case class PerformStep(expr: Expression) extends Step
+
+// invoke shorthand steps
+case class InvokeShorthandStep(
+  name: String,
+  args: List[Expression],
+) extends Step
+
+// -----------------------------------------------------------------------------
+// special steps rarely used in the spec
+// -----------------------------------------------------------------------------
+// set fields with intrinsics
+case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
+  extends Step
+
+// perform block steps
+case class PerformBlockStep(step: StepBlock, desc: String) extends Step
+
+// -----------------------------------------------------------------------------
+// TODO refactor following definitions
+// -----------------------------------------------------------------------------
+
 // if-then-else steps
 case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
   extends Step
@@ -71,12 +94,6 @@ case class ForEachParseNodeStep(
 
 // throw steps
 case class ThrowStep(name: String) extends Step
-
-// perform steps
-case class PerformStep(expr: Expression) extends Step
-
-// perform block steps
-case class PerformBlockStep(step: StepBlock) extends Step
 
 // append steps
 case class AppendStep(elem: Expression, ref: Reference) extends Step
@@ -130,10 +147,6 @@ case class ReturnToResumeStep(
   context: Reference,
   returnStep: ReturnStep,
 ) extends Step
-
-// set fields with intrinsics
-case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
-  extends Step
 
 // block steps
 case class BlockStep(block: StepBlock) extends Step

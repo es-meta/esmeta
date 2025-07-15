@@ -223,8 +223,38 @@ class Compiler(
     case SetAsStep(ref, verb, id) =>
       val expr = EClo(spec.getAlgoById(id).head.fname, Nil)
       fb.addInst(IAssign(compile(fb, ref), expr))
+    case SetEvaluationStateStep(context, func, args) =>
+      val ctxt = compile(fb, context)
+      val contName = fb.nextContName
+      val contFB = FuncBuilder(
+        spec,
+        FuncKind.Cont,
+        contName,
+        Nil,
+        fb.retTy,
+        fb.algo,
+        fb.needReturnComp,
+      )
+      val inst = contFB.newScope {
+        val x = compile(contFB, InvokeAbstractClosureExpression(func, args))
+        contFB.addReturnToResume(ctxt, x)
+      }
+      funcs += contFB.getFunc(inst)
+      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+    case PerformStep(expr) =>
+      val e = compile(fb, expr)
+      if (!e.isPure) fb.addInst(IExpr(e))
+    case InvokeShorthandStep(name, args) =>
+      val as = args.map(compile(fb, _))
+      val e = compileShorthand(fb, name, as)
+      if (!e.isPure) fb.addInst(IExpr(e))
     case SetFieldsWithIntrinsicsStep(ref, _) =>
       fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
+    case PerformBlockStep(block, desc) =>
+      for (substep <- block.steps) compile(fb, substep.step)
+    // -----------------------------------------------------------------------
+    // TODO refactor following code
+    // -----------------------------------------------------------------------
     case IfStep(cond, thenStep, elseStep) =>
       import CompoundConditionOperator.*
       // apply shortcircuit for invoke expression
@@ -397,11 +427,6 @@ class Compiler(
         ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
         IReturn(yExpr),
       )
-    case PerformStep(expr) =>
-      val e = compile(fb, expr)
-      if (!e.isPure) fb.addInst(IExpr(e))
-    case PerformBlockStep(StepBlock(steps)) =>
-      for (substep <- steps) compile(fb, substep.step)
     case AppendStep(expr, ref) =>
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
     case PrependStep(expr, ref) =>
@@ -436,24 +461,6 @@ class Compiler(
     case RemoveContextStep(_, _) =>
       val x = fb.newTId
       fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
-    case SetEvaluationStateStep(context, func, args) =>
-      val ctxt = compile(fb, context)
-      val contName = fb.nextContName
-      val contFB = FuncBuilder(
-        spec,
-        FuncKind.Cont,
-        contName,
-        Nil,
-        fb.retTy,
-        fb.algo,
-        fb.needReturnComp,
-      )
-      val inst = contFB.newScope {
-        val x = compile(contFB, InvokeAbstractClosureExpression(func, args))
-        contFB.addReturnToResume(ctxt, x)
-      }
-      funcs += contFB.getFunc(inst)
-      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
       val ctxt = compile(fb, context)
       val returnCont = toStrRef(ctxt, "ReturnCont")

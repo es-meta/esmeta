@@ -44,7 +44,20 @@ class JsonTinyTest extends LangTest {
       |  1. Let _x_ be a new Abstract Closure with parameters (_x_, _x_) that captures _x_ and performs the following steps when called:
       |    1. Let _x_ be _x_.""".stripMargin,
       setStep -> "set _x_ to _x_ + _x_.",
-      setFieldsWithIntrinsicsStep -> "set fields of _x_ with the values listed in <emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>. Yes!",
+      setAsStep -> "set _x_ as specified in <emu-xref href=\"#id\"></emu-xref>.",
+      setEvalStateStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with no arguments.",
+      setEvalStateArgStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with argument _x_.",
+      setEvalStateArgsStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with arguments _x_ and _x_.",
+      performStep -> "perform ToObject(_x_ + _x_, -_x_).",
+      invokeShorthandStep -> "IfAbruptCloseIterator(_x_, _x_).",
+      // special steps rarely used in the spec
+      setFieldsWithIntrinsicsStep -> "set fields of _x_ with the values listed in <emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>. More description.",
+      performBlockStep -> """perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
+      |  1. Let _x_ be _x_.
+      |  1. Set _x_ to _x_ + _x_.""".stripMargin,
+      // -----------------------------------------------------------------------
+      // TODO refactor following code
+      // -----------------------------------------------------------------------
       ifStep -> "if _x_ < _x_ + _x_, let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """
       |  1. If _x_ < _x_ + _x_, then
@@ -89,7 +102,6 @@ class JsonTinyTest extends LangTest {
         "let _x_ be _x_."
       ),
       throwStep -> "throw a *ReferenceError* exception.",
-      performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       appendStep -> "append _x_ to _x_.[[Value]].",
       prependStep -> "prepend _x_ to _x_.[[Value]].",
       repeatStep -> "repeat, let _x_ be _x_.",
@@ -104,9 +116,6 @@ class JsonTinyTest extends LangTest {
       removeFirstStep -> "remove the first element from _x_.",
       removeCtxtStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
       removeCtxtWithRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
-      setEvalStateStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with no arguments.",
-      setEvalStateArgStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with argument _x_.",
-      setEvalStateArgsStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with arguments _x_ and _x_.",
       toBlockStep(resumeStep) -> """
       |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>.
       |  1. Let _x_ be _x_.""".stripMargin,

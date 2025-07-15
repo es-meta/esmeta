@@ -139,10 +139,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("throw a *") >> expr >> "* exception."
       case PerformStep(expr) =>
         app >> First("perform ") >> expr >> "."
-      case PerformBlockStep(block) =>
+      case InvokeShorthandStep(name, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> name >> args >> "."
+      case PerformBlockStep(block, desc) =>
         app >> First("perform ")
-        app >> "the following substeps in an implementation-defined order:"
-        app >> block
+        app >> "the following substeps in an implementation-defined order"
+        if (desc.nonEmpty) app >> ", " >> desc
+        app >> ":" >> block
       case AppendStep(expr, ref) =>
         app >> First("append ") >> expr >> " to " >> ref >> "."
       case PrependStep(expr, ref) =>
