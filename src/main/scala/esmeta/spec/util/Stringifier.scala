@@ -11,7 +11,7 @@ import esmeta.util.BaseUtils.*
 /** stringifier for specifications */
 object Stringifier {
   // stringifier for metalanguage
-  val langStringifier = LangElem.getStringifier(false, false)
+  val langStringifier = LangElem.getStringifier(true, false)
   import langStringifier.{given, *}
   val tyStringifier = TyElem.getStringifier(false, false)
   import tyStringifier.{*, given}
@@ -162,16 +162,19 @@ object Stringifier {
     )
 
   // for algorithms
-  given algoRule: Rule[Algorithm] = (app, algo) => ??? // TODO
+  given algoRule: Rule[Algorithm] = (app, algo) => {
+    val Algorithm(head, body, code) = algo
+    app >> head >> body
+  }
 
   // for algorithm heads
   given headRule: Rule[Head] = (app, head) =>
-    given Rule[List[Param]] = iterableRule("(", ", ", ")")
+    given Rule[List[Param]] = _.wrapIterable("(", ",", ")")(_)
     head match
       case AbstractOperationHead(isHostDefined, name, params, rty) =>
-        app >> name >> params >> ": " >> rty
+        app >> "[abstract operation] " >> name >> params >> ": " >> rty
       case NumericMethodHead(ty, name, params, rty) =>
-        app >> ty.ty >> "::" >> name >> params >> ": " >> rty
+        app >> "[numeric method] " >> ty.ty >> "::" >> name >> params >> ": " >> rty
       case SyntaxDirectedOperationHead(
             target,
             methodName,
@@ -180,18 +183,16 @@ object Stringifier {
             rty,
           ) =>
         given Rule[Option[SdoHeadTarget]] = optionRule("<DEFAULT>")
-        app >> "[SYNTAX] " >> target >> "." >> methodName
-        if (isStatic) app >> "[" >> "S" >> "]"
-        else app >> "[" >> "R" >> "]"
-        app >> withParams >> ": " >> rty
+        app >> "[sdo] (" >> (if (isStatic) "static" else "runtime") >> ") "
+        app >> target >> "." >> methodName >> withParams >> ": " >> rty
       case method @ ConcreteMethodHead(methodName, receiver, params, rty) =>
-        app >> "[METHOD] " >> methodName >> "(" >> receiver >> ")"
+        app >> "[concrete method] " >> methodName >> "(" >> receiver >> ")"
         app >> params >> ": " >> rty
       case InternalMethodHead(methodName, receiver, params, rty) =>
-        app >> "[INTERNAL] " >> methodName >> "(" >> receiver >> ")"
+        app >> "[internal method] " >> methodName >> "(" >> receiver >> ")"
         app >> params >> ": " >> rty
       case BuiltinHead(path, params, rty) =>
-        app >> "[BUILTIN] " >> path >> params >> ": " >> rty
+        app >> "[builtin] " >> path >> params >> ": " >> rty
 
   given builtinPathRule: Rule[BuiltinPath] = (app, path) =>
     import BuiltinPath.*
@@ -207,14 +208,28 @@ object Stringifier {
   // for syntax-directed operation head targets
   given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>
     given Rule[List[Param]] = iterableRule("(", ", ", ")")
-    val SdoHeadTarget(lhsName, idx, subIdx, rhsParams) = target
-    app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]" >> rhsParams
+    val SdoHeadTarget(lhsName, idx, subIdx) = target
+    app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]"
 
-  // TODO: for algorithm parameters
-  given paramRule: Rule[Param] = (app, param) => app >> param.name
+  // for algorithm parameters
+  given paramRule: Rule[Param] = (app, param) =>
+    val Param(name, ty, kind) = param
+    app >> kind >> "_" >> name >> "_"
+    if (ty.isUnknown) app
+    else app >> ": " >> ty
 
-  // TODO: for algorithm parameter kinds
-  given paramKindRule: Rule[ParamKind] = (app, param) => ???
+  // for algorithm parameters
+  lazy val rhsParamRule: Rule[Param] = (app, param) =>
+    val Param(name, ty, kind) = param
+    app >> kind >> name
+
+  // for algorithm parameter kinds
+  given paramKindRule: Rule[ParamKind] = (app, param) =>
+    import ParamKind.*
+    param match
+      case Normal   => app
+      case Optional => app >> "optional "
+      case Variadic => app >> "..."
 
   // TODO: for tables
   given tableRule: Rule[Table] = (app, table) => ???

@@ -11,4 +11,4 @@ case class Param(
 ) extends SpecElem
 object Param extends Parser.From(Parser.param)
 enum ParamKind extends SpecElem:
-  case Normal, Optional, Variadic, Ellipsis
+  case Normal, Optional, Variadic

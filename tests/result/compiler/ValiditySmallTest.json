@@ -1,4 +1,5 @@
 {
   "compilation" : true,
-  "complete IR functions" : true
+  "complete IR functions" : true,
+  "no unused manual rules" : true
 }

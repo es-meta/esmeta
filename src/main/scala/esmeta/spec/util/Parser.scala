@@ -202,8 +202,7 @@ trait Parsers extends LangParsers {
 
   // algorithm parameter kinds
   lazy val paramKind: Parser[ParamKind] =
-    import ParamKind.*
-    "optional" ^^^ Optional | "..." ^^^ Variadic | "…" ~ "," ^^^ Ellipsis
+    "optional" ^^^ ParamKind.Optional | "..." ^^^ ParamKind.Variadic
 
   // algorithm parameter description
   lazy val paramDesc: Parser[Param] =

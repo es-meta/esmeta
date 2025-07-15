@@ -34,10 +34,6 @@ class TypeSmallTest extends LangTest {
           for {
             param <- withParams
           } types += param.ty
-          for {
-            param <- target.toList
-            rhsParam <- param.rhsParams
-          } types += rhsParam.ty
           types += rty
         case spec.ConcreteMethodHead(concMethodName, receiver, params, retTy) =>
           for { param <- params } types += param.ty

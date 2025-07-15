@@ -137,44 +137,41 @@ class Compiler(
   /** get prefix instructions for builtin functions */
   def getBuiltinPrefix(fb: FuncBuilder, ps: List[Param]): List[Inst] =
     import ParamKind.*
-    if (ps.exists(_.kind == Ellipsis)) Nil
-    else {
-      // add bindings for original arguments
-      val argsLen = ESizeOf(toERef(NAME_ARGS_LIST))
-      var remaining = ps.count(_.kind == Normal)
-      fb.builtinBindings = ps.map(_.name).toSet
-      ILet(NAME_ARGS, ERecord("", Nil)) :: ps.flatMap {
-        case Param(name, _, Variadic) if remaining == 0 =>
-          List(ILet(Name(name), ENAME_ARGS_LIST))
-        case Param(name, _, Variadic) =>
-          val (x, xExpr) = fb.newTIdWithExpr
-          List(
-            ILet(Name(name), EList(Nil)),
-            IWhile(
-              lessThan(EMath(BigDecimal(remaining, UNLIMITED)), argsLen),
-              ISeq(
-                List(
-                  IPop(x, ENAME_ARGS_LIST, true),
-                  IPush(xExpr, toERef(Name(name)), false),
-                ),
+    // add bindings for original arguments
+    val argsLen = ESizeOf(toERef(NAME_ARGS_LIST))
+    var remaining = ps.count(_.kind == Normal)
+    fb.builtinBindings = ps.map(_.name).toSet
+    ILet(NAME_ARGS, ERecord("", Nil)) :: ps.flatMap {
+      case Param(name, _, Variadic) if remaining == 0 =>
+        List(ILet(Name(name), ENAME_ARGS_LIST))
+      case Param(name, _, Variadic) =>
+        val (x, xExpr) = fb.newTIdWithExpr
+        List(
+          ILet(Name(name), EList(Nil)),
+          IWhile(
+            lessThan(EMath(BigDecimal(remaining, UNLIMITED)), argsLen),
+            ISeq(
+              List(
+                IPop(x, ENAME_ARGS_LIST, true),
+                IPush(xExpr, toERef(Name(name)), false),
               ),
             ),
-          )
-        case Param(name, _, kind) =>
-          if (kind == Normal) remaining -= 1
-          List(
-            IIf(
-              lessThan(zero, argsLen),
-              ISeq(
-                List(
-                  IPop(Name(name), ENAME_ARGS_LIST, true),
-                  IExpand(NAME_ARGS, EStr(name)),
-                ),
+          ),
+        )
+      case Param(name, _, kind) =>
+        if (kind == Normal) remaining -= 1
+        List(
+          IIf(
+            lessThan(zero, argsLen),
+            ISeq(
+              List(
+                IPop(Name(name), ENAME_ARGS_LIST, true),
+                IExpand(NAME_ARGS, EStr(name)),
               ),
-              ILet(Name(name), EUndef()),
             ),
-          )
-      }
+            ILet(Name(name), EUndef()),
+          ),
+        )
     }
 
   /** compile with a new scope and convert it into an instruction */
