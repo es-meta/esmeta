@@ -223,7 +223,7 @@ class Compiler(
     case SetAsStep(ref, verb, id) =>
       val expr = EClo(spec.getAlgoById(id).head.fname, Nil)
       fb.addInst(IAssign(compile(fb, ref), expr))
-    case SetFieldsWithIntrinsicsStep(ref) =>
+    case SetFieldsWithIntrinsicsStep(ref, _) =>
       fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
     case IfStep(cond, thenStep, elseStep) =>
       import CompoundConditionOperator.*

@@ -108,12 +108,11 @@ trait Parsers extends IndentParsers {
     }
 
   // set fields with intrinsics
-  lazy val setFieldsWithIntrinsicsStep: PL[SetFieldsWithIntrinsicsStep] =
-    "set fields of" ~> ref <~ (
+  lazy val setFieldsWithIntrinsicsStep: PL[SetFieldsWithIntrinsicsStep] = (
+    "set fields of" ~> ref <~
       "with the values listed in" ~
-      "<emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>." ~
-      ".*".r
-    ) ^^ { SetFieldsWithIntrinsicsStep(_) }
+      "<emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>."
+  ) ~ ".*".r ^^ { case x ~ d => SetFieldsWithIntrinsicsStep(x, d) }
 
   // if-then-else steps
   lazy val ifStep: PL[IfStep] = {

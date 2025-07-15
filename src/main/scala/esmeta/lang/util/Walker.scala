@@ -55,8 +55,8 @@ trait Walker extends BasicWalker {
       SetStep(walk(x), walk(expr))
     case SetAsStep(x, verb, id) =>
       SetAsStep(walk(x), walk(verb), walk(id))
-    case SetFieldsWithIntrinsicsStep(ref) =>
-      SetFieldsWithIntrinsicsStep(walk(ref))
+    case SetFieldsWithIntrinsicsStep(ref, desc) =>
+      SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
     case IfStep(cond, thenStep, elseStep) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk))
     case ReturnStep(expr) =>

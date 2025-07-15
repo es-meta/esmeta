@@ -83,9 +83,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " as " >> verb >> " in "
         xrefRule(app, id) >> "."
-      case SetFieldsWithIntrinsicsStep(ref) =>
+      case SetFieldsWithIntrinsicsStep(ref, desc) =>
         app >> First("set fields of ") >> ref >> " with the values listed in "
         xrefRule(app, "table-well-known-intrinsic-objects") >> "."
+        app >> " " >> desc
       case IfStep(cond, thenStep, elseStep) =>
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"

@@ -55,8 +55,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(x); walk(expr)
     case SetAsStep(x, verb, id) =>
       walk(x); walk(verb); walk(id)
-    case SetFieldsWithIntrinsicsStep(ref) =>
-      walk(ref)
+    case SetFieldsWithIntrinsicsStep(ref, desc) =>
+      walk(ref); walk(desc)
     case IfStep(cond, thenStep, elseStep) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk)
     case ReturnStep(expr) =>

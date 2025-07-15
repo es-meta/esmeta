@@ -26,7 +26,7 @@ object LangTest {
     LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
   lazy val setStep = SetStep(x, addExpr)
   lazy val setAsStep = SetAsStep(x, "specified", "id")
-  lazy val setFieldsWithIntrinsicsStep = SetFieldsWithIntrinsicsStep(x)
+  lazy val setFieldsWithIntrinsicsStep = SetFieldsWithIntrinsicsStep(x, "Yes!")
   lazy val ifStep = IfStep(binaryCondLt, letStep, None)
   lazy val ifBlockStep =
     IfStep(binaryCondLt, blockStep, None)
