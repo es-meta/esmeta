@@ -57,12 +57,21 @@ case object Extract extends Phase[Unit, Spec] {
 
     dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/grammar")
 
-    // dump algorithms
     dumpDir(
       name = "algorithms",
       iterable = spec.algorithms,
       dirname = s"$EXTRACT_LOG_DIR/algos",
       getName = algo => s"${algo.normalizedName}.algo",
+    )
+
+    dumpFile(
+      name = "algorithms whose string form is not equal to the original prose",
+      data = spec.algorithms
+        .filter(algo => algo.normalizedCode != algo.body.toString)
+        .map(algo => s"$EXTRACT_LOG_DIR/algos/${algo.normalizedName}.algo")
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/yet-equal-algos",
     )
 
     dumpFile(

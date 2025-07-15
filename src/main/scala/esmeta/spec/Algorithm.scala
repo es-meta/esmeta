@@ -1,5 +1,6 @@
 package esmeta.spec
 
+import esmeta.LINE_SEP
 import esmeta.lang.*
 import esmeta.lang.util.*
 import esmeta.spec.util.*
@@ -37,4 +38,25 @@ case class Algorithm(
   /** get complete algorithm steps */
   lazy val completeSteps: List[Step] =
     steps.filter(!_.isInstanceOf[YetStep])
+
+  /** normalized code */
+  lazy val normalizedCode = Algorithm.normalizeCode(code)
+}
+object Algorithm {
+
+  /** normalize code by removing unnecessary indents and trailing spaces */
+  def normalizeCode(code: String): String = {
+    // find the indentation level
+    val level = code.linesIterator
+      .filter(_.nonEmpty)
+      .map(_.takeWhile(_.isWhitespace).length / 2)
+      .nextOption
+      .getOrElse(0)
+    val numDrops = (level - 1) * 2
+    // normalize the code
+    code.linesIterator
+      .map(_.drop(numDrops))
+      .mkString(LINE_SEP)
+      .replaceAll("\\s+$", "") // remove trailing spaces
+  }
 }
