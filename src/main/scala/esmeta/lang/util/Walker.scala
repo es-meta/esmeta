@@ -125,8 +125,6 @@ trait Walker extends BasicWalker {
         walk(param),
         walkList(steps, walk),
       )
-    case ReturnToResumeStep(base, retStep) =>
-      ReturnToResumeStep(walk(base), walk(retStep).asInstanceOf[ReturnStep])
     case BlockStep(block) => BlockStep(walk(block))
     case YetStep(expr)    => YetStep(walk(expr))
   }

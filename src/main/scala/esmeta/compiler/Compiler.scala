@@ -507,9 +507,6 @@ class Compiler(
       )
       fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
       fb.addReturnToResume(compile(fb, context), compile(fb, arg))
-    case ReturnToResumeStep(context, retStep) =>
-      val arg = retStep.expr.fold(EUndef())(compile(fb, _))
-      fb.addReturnToResume(compile(fb, context), arg)
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>

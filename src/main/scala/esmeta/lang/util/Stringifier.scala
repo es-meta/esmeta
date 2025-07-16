@@ -207,12 +207,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the Completion Record with which it is resumed."
         for (step <- steps) app :> "1. " >> step
         app
-      case ReturnToResumeStep(context, retStep) =>
-        given Rule[Step] = stepWithUpperRule(true)
-        app >> retStep
-        app :> "1. NOTE: This returns to the evaluation of the operation "
-        app >> "that had most previously resumed evaluation of "
-        app >> context >> "."
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>

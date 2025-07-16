@@ -116,8 +116,6 @@ object LangTest {
     ResumeEvaluationStep(x, None, Some(x), List(subStep))
   lazy val resumeYieldStep =
     ResumeYieldStep(x, refExpr, x, x, List(subStep))
-  lazy val returnToResumeStep =
-    ReturnToResumeStep(x, returnStep)
   lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
   lazy val yetStep = YetStep(yetExpr)
 

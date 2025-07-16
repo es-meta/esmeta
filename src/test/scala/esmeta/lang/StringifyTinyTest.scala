@@ -127,9 +127,6 @@ class StringifyTinyTest extends LangTest {
       toBlockStep(resumeYieldStep) -> """
       |  1. Resume _x_ passing _x_. If _x_ is ever resumed again, let _x_ be the Completion Record with which it is resumed.
       |  1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(returnToResumeStep) -> """
-      |  1. Return _x_.
-      |  1. NOTE: This returns to the evaluation of the operation that had most previously resumed evaluation of _x_.""".stripMargin,
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
     )

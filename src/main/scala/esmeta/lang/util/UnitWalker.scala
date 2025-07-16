@@ -92,8 +92,6 @@ trait UnitWalker extends BasicUnitWalker {
     case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
       walk(callerCtxt); walk(arg); walk(genCtxt); walk(param);
       walkList(steps, walk)
-    case ReturnToResumeStep(base, retStep) =>
-      walk(base); walk(retStep)
     case BlockStep(block) => walk(block)
     case YetStep(expr)    => walk(expr)
   }

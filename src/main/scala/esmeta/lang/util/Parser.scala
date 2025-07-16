@@ -61,7 +61,6 @@ trait Parsers extends IndentParsers {
     performStep |
     invokeShorthandStep |
     // -------------------------------------------------------------------------
-    returnToResumedStep |
     returnStep |
     assertStep |
     throwStep |
@@ -319,14 +318,6 @@ trait Parsers extends IndentParsers {
     callerCtxt ~ arg ~ genCtxt ~ param ~ rep1(subStep) ^^ {
       case c ~ e ~ r ~ v ~ subs => ResumeYieldStep(c, e, r, v, subs)
     }
-
-  // return to resumed steps
-  lazy val returnToResumedStep: PL[ReturnToResumeStep] =
-    val context: P[Variable] = {
-      next ~ "1. NOTE: This returns to the evaluation of the operation" ~
-      "that had most previously resumed evaluation of"
-    } ~> variable <~ "."
-    returnStep ~ context ^^ { case a ~ c => ReturnToResumeStep(c, a) }
 
   // block steps
   lazy val blockStep: PL[BlockStep] = stepBlock ^^ { BlockStep(_) }
