@@ -65,6 +65,24 @@ trait Walker extends BasicWalker {
     case AssertStep(cond)           => AssertStep(walk(cond))
     case IfStep(cond, thenStep, elseStep, config) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk), walk(config))
+    case ForEachStep(ty, elem, expr, forward, body) =>
+      ForEachStep(
+        walkOpt(ty, walk),
+        walk(elem),
+        walk(expr),
+        forward,
+        walk(body),
+      )
+    case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
+      ForEachIntegerStep(
+        walk(x),
+        walk(low),
+        walk(lowInc),
+        walk(high),
+        walk(highInc),
+        ascending,
+        walk(body),
+      )
     case ReturnStep(expr) => ReturnStep(walk(expr))
     case ThrowStep(expr)  => ThrowStep(walk(expr))
     // -------------------------------------------------------------------------
@@ -77,22 +95,6 @@ trait Walker extends BasicWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case ForEachStep(ty, elem, expr, ascending, body) =>
-      ForEachStep(
-        walkOpt(ty, walk),
-        walk(elem),
-        walk(expr),
-        ascending,
-        walk(body),
-      )
-    case ForEachIntegerStep(x, low, high, ascending, body) =>
-      ForEachIntegerStep(
-        walk(x),
-        walk(low),
-        walk(high),
-        ascending,
-        walk(body),
-      )
     case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
       ForEachOwnPropertyKeyStep(
         walk(key),

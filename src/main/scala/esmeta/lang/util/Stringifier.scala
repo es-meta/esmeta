@@ -126,6 +126,23 @@ class Stringifier(detail: Boolean, location: Boolean) {
             app >> " " >> keyword.toFirstUpper
             app >> (if (comma) ", " else " ") >> step
         }
+      case ForEachStep(ty, elem, expr, forward, body) =>
+        app >> First("for each ")
+        given Rule[Type] = getTypeRule(ArticleOption.No)
+        ty match
+          case Some(ty) => app >> ty >> " "
+          case None     => app >> "element "
+        app >> elem >> " of " >> expr >> ", "
+        if (!forward) app >> "in reverse List order, "
+        if (body.isInstanceOf[BlockStep]) app >> "do"
+        app >> body
+      case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
+        def op(inc: Boolean): String = if (inc) " ≤ " else " < "
+        app >> First("for each integer ") >> x >> " such that "
+        app >> low >> op(lowInc) >> x >> op(highInc) >> high >> ", in "
+        app >> (if (ascending) "ascending" else "descending") >> " order, "
+        if (body.isInstanceOf[BlockStep]) app >> "do"
+        app >> body
       case ReturnStep(expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("return ") >> expr
@@ -147,20 +164,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       // -----------------------------------------------------------------------
       // TODO refactor following code
       // -----------------------------------------------------------------------
-      case ForEachStep(ty, elem, expr, ascending, body) =>
-        app >> First("for each ")
-        given Rule[Type] = getTypeRule(ArticleOption.No)
-        ty.map(app >> _ >> " ")
-        app >> elem >> " of " >> expr >> ", "
-        if (!ascending) app >> "in reverse List order, "
-        if (body.isInstanceOf[BlockStep]) app >> "do"
-        app >> body
-      case ForEachIntegerStep(x, low, high, ascending, body) =>
-        app >> First("for each integer ") >> x >> " such that " >> low
-        app >> " ≤ " >> x >> " ≤ " >> high >> ", in "
-        app >> (if (ascending) "ascending" else "descending") >> " order, "
-        if (body.isInstanceOf[BlockStep]) app >> "do"
-        app >> body
       case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
         import ForEachOwnPropertyKeyStepOrder.*
         app >> First("for each own property key ") >> key >> " of " >> obj

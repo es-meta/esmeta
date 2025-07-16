@@ -69,6 +69,17 @@ object LangTest {
     IfStep(exprCond, blockStep, Some(ifElseStep), ElseConfig(comma = F))
   lazy val returnStep = ReturnStep(refExpr)
   lazy val throwStep = ThrowStep("ReferenceError")
+  lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, T, letStep)
+  lazy val forEachReverseStep =
+    ForEachStep(Some(ty), x, refExpr, F, letStep)
+  lazy val forEachStepNoType =
+    ForEachStep(None, x, refExpr, T, letStep)
+  lazy val forEachIntStep =
+    ForEachIntegerStep(x, two, T, six, T, T, letStep)
+  lazy val forEachIntNotIncStep =
+    ForEachIntegerStep(x, two, F, six, F, T, letStep)
+  lazy val forEachIntDescStep =
+    ForEachIntegerStep(x, two, T, six, T, F, letStep)
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -83,25 +94,6 @@ object LangTest {
   // ---------------------------------------------------------------------------
   // TODO refactor following code
   // ---------------------------------------------------------------------------
-  lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, T, letStep)
-  lazy val forEachReverseStep =
-    ForEachStep(Some(ty), x, refExpr, F, letStep)
-  lazy val forEachStepNoType =
-    ForEachStep(None, x, refExpr, T, letStep)
-  lazy val forEachIntStepTrue = ForEachIntegerStep(
-    x,
-    DecimalMathValueLiteral(BigDecimal(2)),
-    DecimalMathValueLiteral(BigDecimal(5)),
-    T,
-    letStep,
-  )
-  lazy val forEachIntStepFalse = ForEachIntegerStep(
-    x,
-    DecimalMathValueLiteral(BigDecimal(2)),
-    DecimalMathValueLiteral(BigDecimal(5)),
-    F,
-    letStep,
-  )
   lazy val forEachAscOPKStep = ForEachOwnPropertyKeyStep(
     x,
     x,
@@ -390,4 +382,7 @@ object LangTest {
 
   // algorithm types
   lazy val ty = Type(RecordT("Base"))
+
+  lazy val two = DecimalMathValueLiteral(BigDecimal(2))
+  lazy val six = DecimalMathValueLiteral(BigDecimal(6))
 }

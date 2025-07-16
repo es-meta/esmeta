@@ -92,6 +92,26 @@ object IfStep:
     comma: Boolean = true,
   )
 
+// for-each steps
+case class ForEachStep(
+  ty: Option[Type],
+  variable: Variable,
+  expr: Expression,
+  forward: Boolean,
+  body: Step,
+) extends Step
+
+// for-each steps for integers
+case class ForEachIntegerStep(
+  variable: Variable,
+  low: Expression,
+  lowInclusive: Boolean,
+  high: Expression,
+  highInclusive: Boolean,
+  ascending: Boolean,
+  body: Step,
+) extends Step
+
 // return steps
 case class ReturnStep(expr: Expression) extends Step
 
@@ -111,24 +131,6 @@ case class PerformBlockStep(step: StepBlock, desc: String) extends Step
 // -----------------------------------------------------------------------------
 // TODO refactor following definitions
 // -----------------------------------------------------------------------------
-
-// for-each steps
-case class ForEachStep(
-  ty: Option[Type],
-  variable: Variable,
-  expr: Expression,
-  ascending: Boolean,
-  body: Step,
-) extends Step
-
-// for-each steps for integers
-case class ForEachIntegerStep(
-  variable: Variable,
-  low: Expression,
-  high: Expression,
-  ascending: Boolean,
-  body: Step,
-) extends Step
 
 // for-each steps for OwnPropertyKey
 case class ForEachOwnPropertyKeyStep(

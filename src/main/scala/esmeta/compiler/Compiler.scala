@@ -291,6 +291,69 @@ class Compiler(
       fb.addInst(IPop(fb.newTId, EGLOBAL_EXECUTION_STACK, true))
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
+    case IfStep(cond, thenStep, elseStep, _) =>
+      import CompoundConditionOperator.*
+      // apply shortcircuit for invoke expression
+      val condExpr = cond match
+        case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
+          val (x, _) = fb.newTIdWithExpr
+          fb.addInst(compileShortCircuit(fb, x, cond, thenStep, elseStep))
+        case _ =>
+          fb.addInst(
+            IIf(
+              compile(fb, cond),
+              compileWithScope(fb, thenStep),
+              elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+            ),
+          )
+    case ForEachStep(ty, variable, expr, forward, body) =>
+      val (i, iExpr) = fb.newTIdWithExpr
+      val (list, listExpr) = fb.newTIdWithExpr
+      fb.addInst(
+        IAssign(list, compile(fb, expr)),
+        IAssign(i, if (forward) zero else dec(ESizeOf(listExpr))),
+        IWhile(
+          if (forward) lessThan(iExpr, ESizeOf(listExpr))
+          else not(lessThan(iExpr, zero)),
+          fb.newScope {
+            val x = compile(variable)
+            fb.addInst(ILet(x, toERef(list, iExpr)))
+            ty.fold(compile(fb, body)) { ty =>
+              fb.addInst(
+                IIf(
+                  ETypeCheck(ERef(x), compile(ty)),
+                  compileWithScope(fb, body),
+                  emptyInst,
+                ),
+              )
+            }
+            fb.addInst(IAssign(i, if (forward) inc(iExpr) else dec(iExpr)))
+          },
+        ),
+      )
+    case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
+      val (start, startInc, end, endInc) =
+        if (ascending) (low, lowInc, high, highInc)
+        else (high, highInc, low, lowInc)
+      val (i, iExpr) = compileWithExpr(x)
+      val (y, yExpr) = fb.newTIdWithExpr
+      val s = compile(fb, start)
+      val e = compile(fb, end)
+      fb.addInst(
+        ILet(i, if (startInc) s else if (ascending) dec(s) else inc(s)),
+        IAssign(y, e),
+        IWhile(
+          if (ascending)
+            if (endInc) not(lessThan(yExpr, iExpr))
+            else lessThan(iExpr, yExpr)
+          else if (endInc) not(lessThan(iExpr, yExpr))
+          else lessThan(yExpr, iExpr),
+          fb.newScope {
+            compile(fb, body)
+            fb.addInst(IAssign(i, if (ascending) inc(iExpr) else dec(iExpr)))
+          },
+        ),
+      )
     case ReturnStep(ReturnIfAbruptExpression(expr, check)) if fb.needRetComp =>
       val e = compile(fb, expr)
       if (check && !opt) returnIfAbrupt(fb, e, check, false, true)
@@ -327,88 +390,6 @@ class Compiler(
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case IfStep(cond, thenStep, elseStep, _) =>
-      import CompoundConditionOperator.*
-      // apply shortcircuit for invoke expression
-      val condExpr = cond match
-        case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
-          val (x, _) = fb.newTIdWithExpr
-          fb.addInst(compileShortCircuit(fb, x, cond, thenStep, elseStep))
-        case _ =>
-          fb.addInst(
-            IIf(
-              compile(fb, cond),
-              compileWithScope(fb, thenStep),
-              elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-            ),
-          )
-    case ForEachStep(ty, variable, expr, true, body) =>
-      val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
-      fb.addInst(
-        IAssign(list, compile(fb, expr)),
-        IAssign(i, zero),
-      )
-      fb.addInst(
-        IWhile(
-          lessThan(iExpr, ESizeOf(listExpr)),
-          fb.newScope {
-            val x = compile(variable)
-            fb.addInst(ILet(x, toERef(list, iExpr)))
-            ty.fold(compile(fb, body)) { ty =>
-              fb.addInst(
-                IIf(
-                  ETypeCheck(ERef(x), compile(ty)),
-                  compileWithScope(fb, body),
-                  emptyInst,
-                ),
-              )
-            }
-            fb.addInst(IAssign(i, inc(iExpr)))
-          },
-        ),
-      )
-    case ForEachStep(ty, variable, expr, false, body) =>
-      val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
-      fb.addInst(
-        IAssign(list, compile(fb, expr)),
-        IAssign(i, ESizeOf(listExpr)),
-      )
-      fb.addInst(
-        IWhile(
-          lessThan(zero, iExpr),
-          fb.newScope {
-            fb.addInst(IAssign(i, sub(iExpr, one)))
-            val x = compile(variable)
-            fb.addInst(ILet(x, toERef(list, iExpr)))
-            ty.fold(compile(fb, body)) { ty =>
-              fb.addInst(
-                IIf(
-                  ETypeCheck(ERef(x), compile(ty)),
-                  compileWithScope(fb, body),
-                  emptyInst,
-                ),
-              )
-            }
-          },
-        ),
-      )
-    case ForEachIntegerStep(x, low, high, ascending, body) =>
-      val (start, end) = if (ascending) (low, high) else (high, low)
-      val (i, iExpr) = compileWithExpr(x)
-      fb.addInst(ILet(i, compile(fb, start)))
-      fb.addInst(
-        IWhile(
-          if (ascending) not(lessThan(compile(fb, end), iExpr))
-          else not(lessThan(iExpr, compile(fb, end))),
-          fb.newScope {
-            compile(fb, body)
-            val op = if (ascending) add(_, _) else sub(_, _)
-            fb.addInst(IAssign(i, op(iExpr, one)))
-          },
-        ),
-      )
     case ForEachOwnPropertyKeyStep(x, obj, cond, ascending, order, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr

@@ -68,6 +68,8 @@ trait Parsers extends IndentParsers {
     removeCtxtStep |
     assertStep |
     ifStep |
+    forEachStep |
+    forEachIntStep |
     returnStep |
     throwStep |
     // -------------------------------------------------------------------------
@@ -75,9 +77,7 @@ trait Parsers extends IndentParsers {
     noteStep |
     suspendStep |
     forEachOwnPropertyKeyStep |
-    forEachIntStep |
     forEachParseNodeStep |
-    forEachStep |
     resumeStep |
     resumeYieldStep |
     blockStep |
@@ -191,6 +191,28 @@ trait Parsers extends IndentParsers {
         IfStep(c, t, e, config)
     }
 
+  // for-each steps
+  lazy val forEachStep: PL[ForEachStep] =
+    val elemType = langType ^^ { Some(_) } | opt("element") ^^^ None
+    val backward = exists("in reverse List order,")
+    ("for each" ~> elemType) ~ variable ~
+    ("of" ~> expr) ~ ("," ~> backward) ~
+    (opt("do") ~> step) ^^ {
+      case t ~ r ~ e ~ b ~ s => ForEachStep(t, r, e, !b, s)
+    }
+
+  // for-each steps for integers
+  lazy val forEachIntStep: PL[ForEachIntegerStep] =
+    import MathOpExpressionOperator.Sub
+    lazy val op = "≤" ^^^ true | "<" ^^^ false
+    lazy val interval = "such that" ~> calcExpr ~ op ~ variable ~ op ~ calcExpr
+    lazy val ascending = "ascending" ^^^ true | "descending" ^^^ false
+    ("for each integer" ~> variable) ~ interval ~
+    (", in" ~> ascending <~ "order,") ~ (opt("do") ~> step) ^^ {
+      case x ~ (l ~ li ~ _ ~ hi ~ h) ~ asc ~ body =>
+        ForEachIntegerStep(x, l, li, h, hi, asc, body)
+    }
+
   // return steps
   lazy val returnStep: PL[ReturnStep] =
     "return" ~> endWithExpr ^^ { ReturnStep(_) }
@@ -224,40 +246,6 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // TODO refactor following code
   // ---------------------------------------------------------------------------
-
-  // for-each steps
-  lazy val forEachStep: PL[ForEachStep] =
-    lazy val ascending: Parser[Boolean] =
-      opt("in reverse List order,") ^^ { !_.isDefined }
-    ("for each" ~ opt("element") ~> opt(langType)) ~ variable ~
-    ("of" ~> expr) ~ ("," ~> ascending) ~ (opt("do") ~> step) ^^ {
-      case t ~ r ~ e ~ a ~ s =>
-        ForEachStep(t, r, e, a, s)
-    }
-
-  // for-each steps for integers
-  lazy val forEachIntStep: PL[ForEachIntegerStep] =
-    import MathOpExpressionOperator.Sub
-    lazy val upper: Parser[Expression] =
-      "≤" ~> calcExpr |
-      "<" ~> calcExpr ^^ { e => MathOpExpression(Sub, List(e, one)) }
-    lazy val interval: Parser[(Expression, Expression)] =
-      ("starting with" ~> expr) ~ ("such that" ~ variable ~> (
-        "≤" ^^^ { (x: CalcExpression) => x } |
-        "<" ^^^ { BinaryExpression(_, BinaryExpressionOperator.Sub, one) }
-      ) ~ calcExpr) ^^ {
-        case l ~ (f ~ h) => (l, f(h))
-      } | ("such that" ~> calcExpr <~ "≤" ~ variable) ~ upper ^^ {
-        case l ~ h => (l, h)
-      }
-    lazy val ascending: Parser[Boolean] = opt(
-      ", in" ~> ("ascending" ^^^ true | "descending" ^^^ false) <~ "order,",
-    ) ^^ { _.getOrElse(true) }
-    ("for each" ~ "(non-negative )?integer".r ~> variable) ~
-    interval ~ ascending ~ (opt("do") ~> step) ^^ {
-      case x ~ (low, high) ~ asc ~ body =>
-        ForEachIntegerStep(x, low, high, asc, body)
-    }
 
   // for-each steps for OwnPropertyKey
   lazy val forEachOwnPropertyKeyStep: PL[ForEachOwnPropertyKeyStep] =
@@ -1238,7 +1226,7 @@ trait Parsers extends IndentParsers {
     "else",
     "otherwise",
     "for",
-    "while",
+    "repeat",
     "return",
     "throw",
   )

@@ -65,6 +65,10 @@ trait UnitWalker extends BasicUnitWalker {
     case AssertStep(cond)                => walk(cond)
     case IfStep(cond, thenStep, elseStep, config) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk); walk(config)
+    case ForEachStep(ty, elem, expr, forward, body) =>
+      walkOpt(ty, walk); walk(elem); walk(expr); walk(forward); walk(body)
+    case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
+      walk(x); walk(low); walk(lowInc); walk(high); walk(highInc); walk(body)
     case ReturnStep(expr) => walk(expr)
     case ThrowStep(expr)  => walk(expr)
     // -------------------------------------------------------------------------
@@ -77,10 +81,6 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case ForEachStep(ty, elem, expr, ascending, body) =>
-      walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
-    case ForEachIntegerStep(x, low, high, ascending, body) =>
-      walk(x); walk(low); walk(high); walk(body)
     case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
       walk(key); walk(obj); walk(cond); walk(body)
     case ForEachParseNodeStep(x, expr, body) =>

@@ -84,6 +84,12 @@ class StringifyTinyTest extends LangTest {
       |    1. Let _x_ be _x_.
       |  1. Else,
       |    1. Let _x_ be _x_.""".stripMargin,
+      forEachStep -> "for each Base _x_ of _x_, let _x_ be _x_.",
+      forEachReverseStep -> "for each Base _x_ of _x_, in reverse List order, let _x_ be _x_.",
+      forEachStepNoType -> "for each element _x_ of _x_, let _x_ be _x_.",
+      forEachIntStep -> "for each integer _x_ such that 2 ≤ _x_ ≤ 6, in ascending order, let _x_ be _x_.",
+      forEachIntNotIncStep -> "for each integer _x_ such that 2 < _x_ < 6, in ascending order, let _x_ be _x_.",
+      forEachIntDescStep -> "for each integer _x_ such that 2 ≤ _x_ ≤ 6, in descending order, let _x_ be _x_.",
       returnStep -> "return _x_.",
       throwStep -> "throw a *ReferenceError* exception.",
       // -----------------------------------------------------------------------
@@ -96,17 +102,6 @@ class StringifyTinyTest extends LangTest {
       // -----------------------------------------------------------------------
       // TODO refactor following code
       // -----------------------------------------------------------------------
-      forEachStep -> "for each Base _x_ of _x_, let _x_ be _x_.",
-      forEachReverseStep -> "for each Base _x_ of _x_, in reverse List order, let _x_ be _x_.",
-      forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
-      forEachIntStepTrue -> (
-        "for each integer _x_ such that 2 ≤ _x_ ≤ 5, in ascending order, " +
-        "let _x_ be _x_."
-      ),
-      forEachIntStepFalse -> (
-        "for each integer _x_ such that 2 ≤ _x_ ≤ 5, in descending order, " +
-        "let _x_ be _x_."
-      ),
       forEachAscOPKStep -> (
         "for each own property key _x_ of _x_ such that _x_ and _x_, in ascending numeric index order, " +
         "let _x_ be _x_."
