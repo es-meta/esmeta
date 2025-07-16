@@ -776,7 +776,15 @@ trait Parsers extends IndentParsers {
     }
 
   // names for operations
-  lazy val opName: Parser[String] = "(this)?[A-Z][a-zA-Z0-9/]*".r
+  lazy val opName: Parser[String] =
+    "[a-zA-Z][a-zA-Z0-9/]*".r.filter(!mathFuncNames.contains(_))
+  lazy val mathFuncNames: Set[String] = Set(
+    "max",
+    "min",
+    "abs",
+    "floor",
+    "truncate",
+  )
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: PL[InvokeNumericMethodExpression] =
