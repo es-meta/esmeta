@@ -39,7 +39,7 @@ object ManualInfo {
   /** type model */
   lazy val tyModel: TyModel =
     import esmeta.ty.util.JsonProtocol.given
-    TyModel.fromFile(s"$MANUALS_DIR/types")
+    TyModel.from(esmeta.BuildInfo.tyModel)
 
   /** get test262 manual configuration */
   lazy val test262Config: ManualConfig = ManualConfig(

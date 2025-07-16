@@ -64,7 +64,6 @@ class JsonProtocol(cfg: esmeta.cfg.CFG) extends BasicJsonProtocol {
           .obj(
             "normalizedName" -> algo.normalizedName.asJson,
             "name" -> algo.name.asJson,
-            "htmlId" -> algo.elem.parent().id().asJson,
             "isBuiltIn" -> f.isBuiltin.asJson,
             "isSdo" -> f.isSDO.asJson,
             "isClo" -> f.isClo.asJson,
