@@ -63,9 +63,10 @@ trait Parsers extends IndentParsers {
     returnStep |
     assertStep |
     throwStep |
-    // -------------------------------------------------------------------------
     appendStep |
     prependStep |
+    addStep |
+    // -------------------------------------------------------------------------
     repeatStep |
     pushCtxtStep |
     noteStep |
@@ -130,6 +131,20 @@ trait Parsers extends IndentParsers {
   lazy val throwStep: PL[ThrowStep] =
     lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
     "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
+
+  // append steps
+  lazy val appendStep: PL[AppendStep] =
+    "append" ~> expr ~ ("to" ~ opt("the end of") ~> ref) <~ end
+    ^^ { case e ~ r => AppendStep(e, r) }
+
+  // prepend steps
+  lazy val prependStep: PL[PrependStep] =
+    "prepend" ~> expr ~ ("to" ~> ref) <~ end
+    ^^ { case e ~ r => PrependStep(e, r) }
+
+  // add steps
+  lazy val addStep: PL[AddStep] =
+    ("add" ~> expr) ~ ("to" ~> ref) <~ end ^^ { case e ~ r => AddStep(e, r) }
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -223,18 +238,6 @@ trait Parsers extends IndentParsers {
     ("of" ~> expr <~ ",") ~ ("do" ~> step) ^^ {
       case x ~ e ~ body => ForEachParseNodeStep(x, e, body)
     }
-
-  // append steps
-  // NOTE: ("append" ~> expr) ~ ("to" ~> ref) <~ end
-  lazy val appendStep: PL[AppendStep] =
-    ("append" | "add") ~> expr ~ ((("to" ~ opt("the end of")) |
-    "as" ~ ("an" | "the last") ~ "element of" ~ opt("the list")) ~> ref) <~ end
-    ^^ { case e ~ r => AppendStep(e, r) }
-
-  // prepend steps
-  lazy val prependStep: PL[PrependStep] =
-    "prepend" ~> expr ~ ("to" ~> ref) <~ end
-    ^^ { case e ~ r => PrependStep(e, r) }
 
   // repeat steps
   lazy val repeatStep: PL[RepeatStep] =

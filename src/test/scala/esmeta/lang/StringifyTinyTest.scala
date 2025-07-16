@@ -52,6 +52,9 @@ class StringifyTinyTest extends LangTest {
       returnStep -> "return _x_.",
       assertStep -> "assert: _x_ and _x_.",
       throwStep -> "throw a *ReferenceError* exception.",
+      appendStep -> "append _x_ to _x_.[[Value]].",
+      prependStep -> "prepend _x_ to _x_.[[Value]].",
+      addStep -> "add _x_ to _x_.[[Value]].",
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
       // -----------------------------------------------------------------------
@@ -102,8 +105,6 @@ class StringifyTinyTest extends LangTest {
         "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, " +
         "let _x_ be _x_."
       ),
-      appendStep -> "append _x_ to _x_.[[Value]].",
-      prependStep -> "prepend _x_ to _x_.[[Value]].",
       repeatStep -> "repeat, let _x_ be _x_.",
       repeatCondStep -> """repeat, while _x_ and _x_,
       |  1. Let _x_ be _x_.""".stripMargin,

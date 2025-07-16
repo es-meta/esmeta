@@ -276,6 +276,15 @@ class Compiler(
         ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
         IReturn(yExpr),
       )
+    case AppendStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
+    case PrependStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
+    case AddStep(expr, ref) =>
+      // TODO: current IR does not support a set data structure.
+      // AddStep represents an element addition to a set.
+      // We need to refactor this later.
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -421,10 +430,6 @@ class Compiler(
           },
         ),
       )
-    case AppendStep(expr, ref) =>
-      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
-    case PrependStep(expr, ref) =>
-      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
     case RepeatStep(cond, body) =>
       fb.addInst(
         IWhile(

@@ -40,6 +40,15 @@ case class AssertStep(cond: Condition) extends Step
 // throw steps
 case class ThrowStep(name: String) extends Step
 
+// append steps
+case class AppendStep(elem: Expression, ref: Reference) extends Step
+
+// prepend steps
+case class PrependStep(elem: Expression, ref: Reference) extends Step
+
+// add steps
+case class AddStep(elem: Expression, ref: Reference) extends Step
+
 // -----------------------------------------------------------------------------
 // special steps rarely used in the spec
 // -----------------------------------------------------------------------------
@@ -94,12 +103,6 @@ case class ForEachParseNodeStep(
   expr: Expression,
   body: Step,
 ) extends Step
-
-// append steps
-case class AppendStep(elem: Expression, ref: Reference) extends Step
-
-// prepend steps
-case class PrependStep(elem: Expression, ref: Reference) extends Step
 
 // repeat steps
 case class RepeatStep(cond: Option[Condition], body: Step) extends Step

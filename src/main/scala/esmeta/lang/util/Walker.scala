@@ -59,6 +59,9 @@ trait Walker extends BasicWalker {
     case ReturnStep(expr)          => ReturnStep(walk(expr))
     case AssertStep(cond)          => AssertStep(walk(cond))
     case ThrowStep(expr)           => ThrowStep(walk(expr))
+    case AppendStep(expr, ref)     => AppendStep(walk(expr), walk(ref))
+    case PrependStep(expr, ref)    => PrependStep(walk(expr), walk(ref))
+    case AddStep(expr, ref)        => AddStep(walk(expr), walk(ref))
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -102,8 +105,6 @@ trait Walker extends BasicWalker {
         walk(expr),
         walk(body),
       )
-    case AppendStep(expr, ref)  => AppendStep(walk(expr), walk(ref))
-    case PrependStep(expr, ref) => PrependStep(walk(expr), walk(ref))
     case RepeatStep(cond, body) => RepeatStep(walkOpt(cond, walk), walk(body))
     case PushCtxtStep(ref)      => PushCtxtStep(walk(ref))
     case NoteStep(note)         => NoteStep(note)

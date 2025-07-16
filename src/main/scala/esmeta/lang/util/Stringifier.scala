@@ -102,6 +102,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ThrowStep(name) =>
         app >> First("throw ")
         app >> ("*" + name + "*").withIndefArticle >> " exception."
+      case AppendStep(expr, ref) =>
+        app >> First("append ") >> expr >> " to " >> ref >> "."
+      case PrependStep(expr, ref) =>
+        app >> First("prepend ") >> expr >> " to " >> ref >> "."
+      case AddStep(expr, ref) =>
+        app >> First("add ") >> expr >> " to " >> ref >> "."
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
       // -----------------------------------------------------------------------
@@ -156,10 +162,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ForEachParseNodeStep(x, expr, body) =>
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
-      case AppendStep(expr, ref) =>
-        app >> First("append ") >> expr >> " to " >> ref >> "."
-      case PrependStep(expr, ref) =>
-        app >> First("prepend ") >> expr >> " to " >> ref >> "."
       case RepeatStep(cond, body) =>
         app >> First("repeat, ")
         for { c <- cond } app >> "while " >> c >> ","

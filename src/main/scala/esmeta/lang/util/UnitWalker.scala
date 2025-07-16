@@ -59,6 +59,9 @@ trait UnitWalker extends BasicUnitWalker {
     case ReturnStep(expr)                => walk(expr)
     case AssertStep(cond)                => walk(cond)
     case ThrowStep(expr)                 => walk(expr)
+    case AppendStep(expr, ref)           => walk(expr); walk(ref)
+    case PrependStep(expr, ref)          => walk(expr); walk(ref)
+    case AddStep(expr, ref)              => walk(expr); walk(ref)
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -79,8 +82,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(key); walk(obj); walk(cond); walk(body)
     case ForEachParseNodeStep(x, expr, body) =>
       walk(x); walk(expr); walk(body)
-    case AppendStep(expr, ref)  => walk(expr); walk(ref)
-    case PrependStep(expr, ref) => walk(expr); walk(ref)
     case RepeatStep(cond, body) => walkOpt(cond, walk); walk(body)
     case PushCtxtStep(ref)      => walk(ref)
     case NoteStep(note)         =>
