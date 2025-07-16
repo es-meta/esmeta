@@ -17,7 +17,6 @@ import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
-import scala.collection.mutable.{Map => MMap}
 
 /** data in Test262 */
 case class Test262(

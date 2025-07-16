@@ -7,7 +7,6 @@ import esmeta.ty.{*, given}
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
-import scala.collection.mutable.{Map => MMap}
 
 /** `eval` phase */
 case object Eval extends Phase[CFG, State] {
