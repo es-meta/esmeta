@@ -10,6 +10,9 @@ trait LangTest extends ESMetaTest {
   def category: String = "lang"
 }
 object LangTest {
+  val T = true
+  val F = false
+
   // blocks
   def toBlockStep(steps: Step*): BlockStep =
     BlockStep(StepBlock(steps.toList.map(SubStep(None, _))))
@@ -48,6 +51,22 @@ object LangTest {
   lazy val removeCtxtRestoreTopStep = RemoveContextStep(x, StackTop)
   lazy val removeCtxtRestoreStep = RemoveContextStep(x, Context(x))
   lazy val assertStep = AssertStep(compCond)
+  import IfStep.ElseConfig
+  lazy val ifStep = IfStep(exprCond, letStep, None)
+  lazy val ifElseInlineStep =
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", T))
+  lazy val ifOtherwiseInlineStep =
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T))
+  lazy val ifOtherwiseInlineNoCommaStep =
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", F))
+  lazy val ifBlockStep =
+    IfStep(exprCond, blockStep, None)
+  lazy val ifElseStep =
+    IfStep(exprCond, blockStep, Some(blockStep), ElseConfig())
+  lazy val ifElseIfStep =
+    IfStep(exprCond, blockStep, Some(ifBlockStep), ElseConfig(comma = F))
+  lazy val ifElseIfElseStep =
+    IfStep(exprCond, blockStep, Some(ifElseStep), ElseConfig(comma = F))
   lazy val returnStep = ReturnStep(refExpr)
   lazy val throwStep = ThrowStep("ReferenceError")
 
@@ -64,39 +83,30 @@ object LangTest {
   // ---------------------------------------------------------------------------
   // TODO refactor following code
   // ---------------------------------------------------------------------------
-  lazy val ifStep = IfStep(binaryCondLt, letStep, None)
-  lazy val ifBlockStep =
-    IfStep(binaryCondLt, blockStep, None)
-  lazy val ifElseStep =
-    IfStep(binaryCondLt, blockStep, Some(blockStep))
-  lazy val ifElseIfStep =
-    IfStep(binaryCondLt, blockStep, Some(ifBlockStep))
-  lazy val ifElseIfElseStep =
-    IfStep(binaryCondLt, blockStep, Some(ifElseStep))
-  lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, true, letStep)
+  lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, T, letStep)
   lazy val forEachReverseStep =
-    ForEachStep(Some(ty), x, refExpr, false, letStep)
+    ForEachStep(Some(ty), x, refExpr, F, letStep)
   lazy val forEachStepNoType =
-    ForEachStep(None, x, refExpr, true, letStep)
+    ForEachStep(None, x, refExpr, T, letStep)
   lazy val forEachIntStepTrue = ForEachIntegerStep(
     x,
     DecimalMathValueLiteral(BigDecimal(2)),
     DecimalMathValueLiteral(BigDecimal(5)),
-    true,
+    T,
     letStep,
   )
   lazy val forEachIntStepFalse = ForEachIntegerStep(
     x,
     DecimalMathValueLiteral(BigDecimal(2)),
     DecimalMathValueLiteral(BigDecimal(5)),
-    false,
+    F,
     letStep,
   )
   lazy val forEachAscOPKStep = ForEachOwnPropertyKeyStep(
     x,
     x,
     compCond,
-    true,
+    T,
     ForEachOwnPropertyKeyStepOrder.NumericIndexOrder,
     letStep,
   )
@@ -104,7 +114,7 @@ object LangTest {
     x,
     x,
     compCond,
-    false,
+    F,
     ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
     letStep,
   )
@@ -113,8 +123,8 @@ object LangTest {
   lazy val noteStep = NoteStep(
     "At this point, it must be a numeric operation.",
   )
-  lazy val suspendStep = SuspendStep(x, false)
-  lazy val suspendAndRemoveStep = SuspendStep(x, true)
+  lazy val suspendStep = SuspendStep(x, F)
+  lazy val suspendAndRemoveStep = SuspendStep(x, T)
   lazy val resumeStep = ResumeEvaluationStep(x, None, None, List(subStep))
   lazy val resumeArgStep =
     ResumeEvaluationStep(x, Some(refExpr), None, List(subStep))
@@ -147,9 +157,9 @@ object LangTest {
   lazy val lengthExpr = LengthExpression(refExpr)
   lazy val substrExpr = SubstringExpression(refExpr, refExpr, None)
   lazy val substrExprTo = SubstringExpression(refExpr, refExpr, Some(refExpr))
-  lazy val trim = TrimExpression(refExpr, true, true)
-  lazy val trimStart = TrimExpression(refExpr, true, false)
-  lazy val trimEnd = TrimExpression(refExpr, false, true)
+  lazy val trim = TrimExpression(refExpr, T, T)
+  lazy val trimStart = TrimExpression(refExpr, T, F)
+  lazy val trimEnd = TrimExpression(refExpr, F, T)
   lazy val numberOfExpr = NumberOfExpression(refExpr)
   lazy val sourceTextExpr = SourceTextExpression(nt)
   lazy val coveredByExpr = CoveredByExpression(nt, nt)
@@ -193,8 +203,8 @@ object LangTest {
       "Contains",
       List(refExpr),
     )
-  lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, true)
-  lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, false)
+  lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, T)
+  lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
   lazy val emptyListExpr = ListExpression(Nil)
   lazy val listExpr = ListExpression(List(refExpr, refExpr))
   lazy val xrefAlgoExpr = XRefExpression(XRefExpressionOperator.Algo, "sec-x")
@@ -292,63 +302,63 @@ object LangTest {
 
   // algorithm conditions
   lazy val exprCond = ExpressionCondition(refExpr)
-  lazy val typeCheckCond = TypeCheckCondition(refExpr, false, List(ty))
-  lazy val notTypeCheckCond = TypeCheckCondition(refExpr, true, List(ty))
+  lazy val typeCheckCond = TypeCheckCondition(refExpr, F, List(ty))
+  lazy val notTypeCheckCond = TypeCheckCondition(refExpr, T, List(ty))
   lazy val eitherTypeCheckCond =
-    TypeCheckCondition(refExpr, false, List(ty, ty, ty))
+    TypeCheckCondition(refExpr, F, List(ty, ty, ty))
   lazy val neitherTypeCheckCond =
-    TypeCheckCondition(refExpr, true, List(ty, ty))
-  lazy val hasFieldCond = HasFieldCondition(x, false, fieldLit)
-  lazy val noHasFieldCond = HasFieldCondition(x, true, fieldLit)
-  lazy val hasBindingCond = HasBindingCondition(x, false, refExpr)
-  lazy val noHasBindingCond = HasBindingCondition(x, true, refExpr)
+    TypeCheckCondition(refExpr, T, List(ty, ty))
+  lazy val hasFieldCond = HasFieldCondition(x, F, fieldLit)
+  lazy val noHasFieldCond = HasFieldCondition(x, T, fieldLit)
+  lazy val hasBindingCond = HasBindingCondition(x, F, refExpr)
+  lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
   lazy val finiteCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.Finite)
+    PredicateCondition(refExpr, F, PredicateConditionOperator.Finite)
   lazy val abruptCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.Abrupt)
+    PredicateCondition(refExpr, F, PredicateConditionOperator.Abrupt)
   lazy val normalCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.Normal)
+    PredicateCondition(refExpr, F, PredicateConditionOperator.Normal)
   lazy val dupCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.Duplicated)
+    PredicateCondition(refExpr, F, PredicateConditionOperator.Duplicated)
   lazy val presentCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.Present)
+    PredicateCondition(refExpr, F, PredicateConditionOperator.Present)
   lazy val emptyCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.Empty)
+    PredicateCondition(refExpr, F, PredicateConditionOperator.Empty)
   lazy val strictCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.StrictMode)
+    PredicateCondition(refExpr, F, PredicateConditionOperator.StrictMode)
   lazy val arrayIndexCond =
-    PredicateCondition(refExpr, false, PredicateConditionOperator.ArrayIndex)
-  lazy val isCond = IsAreCondition(List(refExpr), false, List(lengthExpr))
+    PredicateCondition(refExpr, F, PredicateConditionOperator.ArrayIndex)
+  lazy val isCond = IsAreCondition(List(refExpr), F, List(lengthExpr))
   lazy val areCond =
-    IsAreCondition(List(refExpr, refExpr), true, List(TrueLiteral()))
+    IsAreCondition(List(refExpr, refExpr), T, List(TrueLiteral()))
   lazy val isEitherCond =
-    IsAreCondition(List(refExpr), false, List(TrueLiteral(), FalseLiteral()))
+    IsAreCondition(List(refExpr), F, List(TrueLiteral(), FalseLiteral()))
   lazy val isNeitherCond =
-    IsAreCondition(List(refExpr), true, List(TrueLiteral(), FalseLiteral()))
+    IsAreCondition(List(refExpr), T, List(TrueLiteral(), FalseLiteral()))
   lazy val binaryCondLt =
     BinaryCondition(refExpr, BinaryConditionOperator.LessThan, addExpr)
   lazy val inclusiveIntervalCond =
     InclusiveIntervalCondition(
       refExpr,
-      false,
+      F,
       DecimalMathValueLiteral(BigDecimal(2)),
       DecimalMathValueLiteral(BigDecimal(32)),
     )
   lazy val notInclusiveIntervalCond =
-    inclusiveIntervalCond.copy(negation = true)
+    inclusiveIntervalCond.copy(negation = T)
   lazy val containsCond =
-    ContainsCondition(refExpr, false, ContainsConditionTarget.Expr(refExpr))
+    ContainsCondition(refExpr, F, ContainsConditionTarget.Expr(refExpr))
   lazy val notContainsCond =
-    ContainsCondition(refExpr, true, ContainsConditionTarget.Expr(refExpr))
+    ContainsCondition(refExpr, T, ContainsConditionTarget.Expr(refExpr))
   lazy val containsWhoseFieldCond = ContainsCondition(
     refExpr,
-    false,
+    F,
     ContainsConditionTarget.WhoseField(Some(ty), "Field", refExpr),
   )
   lazy val containsSuchThatCond = ContainsCondition(
     refExpr,
-    false,
+    F,
     ContainsConditionTarget.SuchThat(Some(ty), x, isCond),
   )
   lazy val compCond =

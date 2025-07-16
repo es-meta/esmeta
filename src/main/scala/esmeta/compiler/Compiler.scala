@@ -327,7 +327,7 @@ class Compiler(
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case IfStep(cond, thenStep, elseStep) =>
+    case IfStep(cond, thenStep, elseStep, _) =>
       import CompoundConditionOperator.*
       // apply shortcircuit for invoke expression
       val condExpr = cond match

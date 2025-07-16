@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.extractor.Extractor
-import esmeta.lang.Step
+import esmeta.lang.*
 import esmeta.lang.util.ParserForEval.{getParseCount, getCacheCount}
 import esmeta.spec.*
 import esmeta.util.*
@@ -35,7 +35,15 @@ case object Extract extends Phase[Unit, Spec] {
   private def log(spec: Spec): Unit = {
     mkdir(EXTRACT_LOG_DIR)
 
-    val yetSteps = spec.incompleteSteps
+    val incompleteSteps = spec.incompleteSteps
+
+    var yetSteps = Vector[Step]()
+    var yetConds = Vector[Condition]()
+    for (step <- incompleteSteps) step match
+      case IfStep(cond, _, _, _) => yetConds :+= cond
+      case AssertStep(cond)      => yetConds :+= cond
+      case _                     => yetSteps :+= step
+
     dumpFile(
       name = "not yet supported steps",
       data = yetSteps
@@ -43,6 +51,15 @@ case object Extract extends Phase[Unit, Spec] {
         .sorted
         .mkString(LINE_SEP),
       filename = s"$EXTRACT_LOG_DIR/yet-steps",
+    )
+
+    dumpFile(
+      name = "not yet supported conditions",
+      data = yetConds
+        .map(_.toString(detail = false, location = false))
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/yet-conds",
     )
 
     val yetTypes = spec.yetTypes

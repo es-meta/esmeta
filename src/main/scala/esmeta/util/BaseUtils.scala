@@ -275,6 +275,12 @@ object BaseUtils {
       case No     => str
       case Single => str.indefArticle + " " + str
       case Plural => str + str.pluralPostfix
+    def toFirstUpper: String =
+      if (str.isEmpty) str
+      else str.head.toUpper.toString + str.tail
+    def toFirstLower: String =
+      if (str.isEmpty) str
+      else str.head.toLower.toString + str.tail
   }
 
   val WORDS_FOR_A = Set("URIError")

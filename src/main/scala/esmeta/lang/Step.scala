@@ -3,7 +3,15 @@ package esmeta.lang
 import esmeta.lang.util.*
 
 // metalanguage steps
-sealed trait Step extends Syntax
+sealed trait Step extends Syntax {
+
+  /** check whether it is complete */
+  def complete: Boolean = this match
+    case _: YetStep            => false
+    case IfStep(cond, _, _, _) => cond.complete
+    case AssertStep(cond)      => cond.complete
+    case _                     => true
+}
 object Step extends Parser.From(Parser.step)
 
 // let steps
@@ -43,7 +51,7 @@ case class AddStep(elem: Expression, ref: Reference) extends Step
 // remove element steps
 case class RemoveStep(
   target: RemoveStep.Target,
-  prep: String, // TODO use only "from" and remove this field
+  prep: String, // TODO: use only "from" and remove this field
   list: Expression,
 ) extends Step
 object RemoveStep:
@@ -69,6 +77,21 @@ object RemoveContextStep:
 // assertion steps
 case class AssertStep(cond: Condition) extends Step
 
+// if-then-else steps
+case class IfStep(
+  cond: Condition,
+  thenStep: Step,
+  elseStep: Option[Step],
+  elseConfig: IfStep.ElseConfig = IfStep.ElseConfig(),
+) extends Step
+object IfStep:
+  // TODO: simplify/remove config (https://github.com/tc39/ecma262/issues/3648)
+  case class ElseConfig(
+    newLine: Boolean = true,
+    keyword: String = "else", // "else" or "otherwise"
+    comma: Boolean = true,
+  )
+
 // return steps
 case class ReturnStep(expr: Expression) extends Step
 
@@ -88,10 +111,6 @@ case class PerformBlockStep(step: StepBlock, desc: String) extends Step
 // -----------------------------------------------------------------------------
 // TODO refactor following definitions
 // -----------------------------------------------------------------------------
-
-// if-then-else steps
-case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
-  extends Step
 
 // for-each steps
 case class ForEachStep(

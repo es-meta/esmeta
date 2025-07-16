@@ -63,8 +63,10 @@ trait Walker extends BasicWalker {
     case PushContextStep(ref)       => PushContextStep(walk(ref))
     case RemoveContextStep(ctxt, t) => RemoveContextStep(walk(ctxt), walk(t))
     case AssertStep(cond)           => AssertStep(walk(cond))
-    case ReturnStep(expr)           => ReturnStep(walk(expr))
-    case ThrowStep(expr)            => ThrowStep(walk(expr))
+    case IfStep(cond, thenStep, elseStep, config) =>
+      IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk), walk(config))
+    case ReturnStep(expr) => ReturnStep(walk(expr))
+    case ThrowStep(expr)  => ThrowStep(walk(expr))
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -75,8 +77,6 @@ trait Walker extends BasicWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case IfStep(cond, thenStep, elseStep) =>
-      IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk))
     case ForEachStep(ty, elem, expr, ascending, body) =>
       ForEachStep(
         walkOpt(ty, walk),
@@ -147,6 +147,10 @@ trait Walker extends BasicWalker {
       case StackTop     => StackTop
       case Context(ref) => Context(walk(ref))
     }
+
+  def walk(config: IfStep.ElseConfig): IfStep.ElseConfig =
+    val IfStep.ElseConfig(newLine, keyword, comma) = config
+    IfStep.ElseConfig(walk(newLine), walk(keyword), walk(comma))
 
   def walk(expr: Expression): Expression = expr match {
     case StringConcatExpression(exprs) =>

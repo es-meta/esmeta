@@ -67,13 +67,13 @@ trait Parsers extends IndentParsers {
     pushCtxtStep |
     removeCtxtStep |
     assertStep |
+    ifStep |
     returnStep |
     throwStep |
     // -------------------------------------------------------------------------
     repeatStep |
     noteStep |
     suspendStep |
-    ifStep |
     forEachOwnPropertyKeyStep |
     forEachIntStep |
     forEachParseNodeStep |
@@ -165,11 +165,31 @@ trait Parsers extends IndentParsers {
     restoreTarget <~ end ^^ { case x ~ t => RemoveContextStep(x, t) }
 
   // assertion steps
-  lazy val assertStep: PL[AssertStep] =
-    "assert" ~ ":" ~> (
-      (upper ~> cond <~ end) |
-      yetExpr ^^ { ExpressionCondition(_) }
-    ) ^^ { AssertStep(_) }
+  lazy val assertStep: PL[AssertStep] = "assert" ~ ":" ~> {
+    (upper ~> cond <~ end) |
+    yetCond(".")
+  } ^^ { AssertStep(_) }
+
+  // if-then-else steps
+  lazy val ifStep: PL[IfStep] =
+    val ifPart = "if" ~> (
+      (cond <~ ",") <~ opt("then") |
+      yetCond(", then")
+    ) ~ (step | yetStep)
+    val elsePart =
+      exists(subStepPrefix) ~
+      ("else" | "otherwise") ~
+      exists(",") ~
+      (step | yetStep)
+    ifPart ~ opt(elsePart) ^^ {
+      case c ~ t ~ es =>
+        import IfStep.ElseConfig
+        val (e, config) = es match
+          case Some(n ~ k ~ c ~ e) =>
+            (Some(e), ElseConfig(n, k.toFirstLower, c))
+          case None => (None, ElseConfig())
+        IfStep(c, t, e, config)
+    }
 
   // return steps
   lazy val returnStep: PL[ReturnStep] =
@@ -204,16 +224,6 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // TODO refactor following code
   // ---------------------------------------------------------------------------
-  // if-then-else steps
-  lazy val ifStep: PL[IfStep] = {
-    ("if" ~> cond <~ "," ~ opt("then")) ~
-    (step | yetStep) ~
-    opt(
-      opt(subStepPrefix) ~
-      ("else" | "otherwise") ~ opt(",") ~>
-      (step | yetStep),
-    )
-  } ^^ { case c ~ t ~ e => IfStep(c, t, e) }
 
   // for-each steps
   lazy val forEachStep: PL[ForEachStep] =
@@ -280,8 +290,8 @@ trait Parsers extends IndentParsers {
     }
 
   // note steps
-  lazy val noteStep: PL[NoteStep] =
-    note ^^ { str => NoteStep(str) }
+  lazy val noteStep: PL[NoteStep] = note ^^ { str => NoteStep(str) }
+  lazy val note: Parser[String] = "NOTE:" ~> ".*".r
 
   // suspend steps
   lazy val suspendStep: PL[SuspendStep] =
@@ -331,15 +341,16 @@ trait Parsers extends IndentParsers {
   lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // end of step
-  lazy val note = "NOTE:" ~> ".*".r
-  lazy val ignore =
-    "(" ~ "see.*\\)".r |
-    "as defined in" ~ tagged("") |
-    "; that is[^.]*".r
   lazy val end: Parser[String] =
-    opt(ignore) ~> "." <~ opt(
-      note | ("(" ~ ".*\\)".r) | "This may be.*".r,
-    ) ~ upper | ";"
+    val pre =
+      "\\(.*\\)".r |
+      "as defined in" ~ tagged("") |
+      "; that is[^.]*".r
+    val post =
+      note |
+      "\\(.*\\)".r |
+      "This may be.*".r
+    opt(pre) ~> ("." <~ upper | ";") <~ opt(post)
 
   // end with expression
   lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
@@ -629,7 +640,7 @@ trait Parsers extends IndentParsers {
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
     (opt("the code unit") ~ "0x" ~> "[0-9A-F]+".r) ~
-    opt("(" ~> "[ A-Z]+".r <~ ")") ^^ {
+    opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
       case n ~ x =>
         HexLiteral(Integer.parseInt(n, 16), x)
     }
@@ -1064,7 +1075,7 @@ trait Parsers extends IndentParsers {
     // PropertyDefinition[2,0].PropertyDefinitionEvaluation
     "this |PropertyDefinition| is contained within" ~
     "a |Script| that is being evaluated for JSON.parse" ~
-    ignore ~ guard(",")
+    guard(",")
   } ^^! getExprCond(FalseLiteral()) | {
     // CreatePerIterationEnvironment
     expr <~ "has any elements"
@@ -1127,6 +1138,12 @@ trait Parsers extends IndentParsers {
     // NOTE if JSON.parse is supported, then the next line should be handled properly
     "this |PropertyDefinition| is contained within a |Script| that is being evaluated for ParseJSON (see step <emu-xref href=\"#step-json-parse-eval\"></emu-xref> of ParseJSON)"
   } ^^! getExprCond(FalseLiteral())
+
+  // not yet supported conditions
+  def yetCond(post: String): PL[Condition] = ".+".r ^^ { str =>
+    val s = str.replaceAll(post + "$", "")
+    ExpressionCondition(YetExpression(s, None))
+  }
 
   // ---------------------------------------------------------------------------
   // metalanguage references
@@ -1210,10 +1227,21 @@ trait Parsers extends IndentParsers {
 
   lazy val postProp: PL[Property] = {
     "[" ~> expr <~ "]" ^^ { IndexProperty(_) } |||
-    ("'s" | ".") ~> camel.filter(_ != "If") ^^ { ComponentProperty(_) } |||
+    ("'s" | ".") ~> camel.filter(validProp(_)) ^^ { ComponentProperty(_) } |||
     "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
     "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
   }.named("lang.Property")
+
+  def validProp(str: String): Boolean = !noPropSet.contains(str.toLowerCase)
+  lazy val noPropSet: Set[String] = Set(
+    "if",
+    "else",
+    "otherwise",
+    "for",
+    "while",
+    "return",
+    "throw",
+  )
 
   // TODO extract component name from spec.html
   lazy val component: Parser[String] =
@@ -1481,4 +1509,7 @@ trait Parsers extends IndentParsers {
 
   // article
   private val article = opt("a " | "an " | "the ")
+
+  // check existence
+  def exists[T](p: Parser[T]): Parser[Boolean] = opt(p) ^^ { _.isDefined }
 }

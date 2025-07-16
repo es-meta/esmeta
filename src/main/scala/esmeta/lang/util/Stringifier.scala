@@ -110,6 +110,22 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " from the execution context stack" >> restoreTarget >> "."
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
+      case IfStep(cond, thenStep, elseStep, config) =>
+        val IfStep.ElseConfig(newLine, keyword, comma) = config
+        app >> First("if ") >> cond >> ", "
+        if (thenStep.isInstanceOf[BlockStep]) app >> "then"
+        app >> thenStep
+        elseStep.fold(app) { step =>
+          val k = keyword.toFirstUpper
+          if (newLine)
+            step match
+              case _: IfStep    => app :> "1. " >> k >> " " >> step
+              case _: BlockStep => app :> "1. " >> k >> "," >> step
+              case _            => app :> "1. " >> k >> ", " >> step
+          else
+            app >> " " >> keyword.toFirstUpper
+            app >> (if (comma) ", " else " ") >> step
+        }
       case ReturnStep(expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("return ") >> expr
@@ -131,16 +147,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       // -----------------------------------------------------------------------
       // TODO refactor following code
       // -----------------------------------------------------------------------
-      case IfStep(cond, thenStep, elseStep) =>
-        app >> First("if ") >> cond >> ", "
-        if (thenStep.isInstanceOf[BlockStep]) app >> "then"
-        app >> thenStep
-        elseStep match {
-          case Some(ifStep: IfStep)  => app :> "1. Else " >> ifStep
-          case Some(step: BlockStep) => app :> "1. Else," >> step
-          case Some(step)            => app :> "1. Else, " >> step
-          case None                  => app
-        }
       case ForEachStep(ty, elem, expr, ascending, body) =>
         app >> First("for each ")
         given Rule[Type] = getTypeRule(ArticleOption.No)
@@ -247,7 +253,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   private case class First(str: String)
   private def firstRule(upper: Boolean): Rule[First] = (app, first) => {
     val First(str) = first
-    app >> (if (upper) str.head.toUpper else str.head) >> str.substring(1)
+    app >> (if (upper) str.toFirstUpper else str)
   }
   private def endWithExprRule: Rule[Expression] = (app, expr) => {
     expr match {

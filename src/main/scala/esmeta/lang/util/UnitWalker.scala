@@ -63,8 +63,10 @@ trait UnitWalker extends BasicUnitWalker {
     case PushContextStep(ref)            => walk(ref)
     case RemoveContextStep(ctxt, target) => walk(ctxt); walk(target)
     case AssertStep(cond)                => walk(cond)
-    case ReturnStep(expr)                => walk(expr)
-    case ThrowStep(expr)                 => walk(expr)
+    case IfStep(cond, thenStep, elseStep, config) =>
+      walk(cond); walk(thenStep); walkOpt(elseStep, walk); walk(config)
+    case ReturnStep(expr) => walk(expr)
+    case ThrowStep(expr)  => walk(expr)
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -75,8 +77,6 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case IfStep(cond, thenStep, elseStep) =>
-      walk(cond); walk(thenStep); walkOpt(elseStep, walk)
     case ForEachStep(ty, elem, expr, ascending, body) =>
       walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
     case ForEachIntegerStep(x, low, high, ascending, body) =>
@@ -112,6 +112,10 @@ trait UnitWalker extends BasicUnitWalker {
       case StackTop     =>
       case Context(ref) => walk(ref)
     }
+
+  def walk(config: IfStep.ElseConfig): Unit =
+    val IfStep.ElseConfig(newLine, keyword, comma) = config
+    walk(newLine); walk(keyword); walk(comma)
 
   def walk(expr: Expression): Unit = expr match {
     case StringConcatExpression(exprs) =>

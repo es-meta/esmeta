@@ -60,6 +60,30 @@ class StringifyTinyTest extends LangTest {
       removeCtxtRestoreTopStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
       removeCtxtRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
       assertStep -> "assert: _x_ and _x_.",
+      ifStep -> "if _x_, let _x_ be _x_.",
+      ifElseInlineStep -> "if _x_, let _x_ be _x_. Else, let _x_ be _x_.",
+      ifOtherwiseInlineStep -> "if _x_, let _x_ be _x_. Otherwise, let _x_ be _x_.",
+      ifOtherwiseInlineNoCommaStep -> "if _x_, let _x_ be _x_. Otherwise let _x_ be _x_.",
+      toBlockStep(ifBlockStep) -> """
+      |  1. If _x_, then
+      |    1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(ifElseStep) -> """
+      |  1. If _x_, then
+      |    1. Let _x_ be _x_.
+      |  1. Else,
+      |    1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(ifElseIfStep) -> """
+      |  1. If _x_, then
+      |    1. Let _x_ be _x_.
+      |  1. Else if _x_, then
+      |    1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(ifElseIfElseStep) -> """
+      |  1. If _x_, then
+      |    1. Let _x_ be _x_.
+      |  1. Else if _x_, then
+      |    1. Let _x_ be _x_.
+      |  1. Else,
+      |    1. Let _x_ be _x_.""".stripMargin,
       returnStep -> "return _x_.",
       throwStep -> "throw a *ReferenceError* exception.",
       // -----------------------------------------------------------------------
@@ -72,27 +96,6 @@ class StringifyTinyTest extends LangTest {
       // -----------------------------------------------------------------------
       // TODO refactor following code
       // -----------------------------------------------------------------------
-      ifStep -> "if _x_ < _x_ + _x_, let _x_ be _x_.",
-      toBlockStep(ifBlockStep) -> """
-      |  1. If _x_ < _x_ + _x_, then
-      |    1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(ifElseStep) -> """
-      |  1. If _x_ < _x_ + _x_, then
-      |    1. Let _x_ be _x_.
-      |  1. Else,
-      |    1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(ifElseIfStep) -> """
-      |  1. If _x_ < _x_ + _x_, then
-      |    1. Let _x_ be _x_.
-      |  1. Else if _x_ < _x_ + _x_, then
-      |    1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(ifElseIfElseStep) -> """
-      |  1. If _x_ < _x_ + _x_, then
-      |    1. Let _x_ be _x_.
-      |  1. Else if _x_ < _x_ + _x_, then
-      |    1. Let _x_ be _x_.
-      |  1. Else,
-      |    1. Let _x_ be _x_.""".stripMargin,
       forEachStep -> "for each Base _x_ of _x_, let _x_ be _x_.",
       forEachReverseStep -> "for each Base _x_ of _x_, in reverse List order, let _x_ be _x_.",
       forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
