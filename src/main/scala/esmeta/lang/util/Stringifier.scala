@@ -99,6 +99,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("return ") >> expr
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
+      case ThrowStep(name) =>
+        app >> First("throw ")
+        app >> ("*" + name + "*").withIndefArticle >> " exception."
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
       // -----------------------------------------------------------------------
@@ -153,8 +156,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ForEachParseNodeStep(x, expr, body) =>
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
-      case ThrowStep(expr) =>
-        app >> First("throw a *") >> expr >> "* exception."
       case AppendStep(expr, ref) =>
         app >> First("append ") >> expr >> " to " >> ref >> "."
       case PrependStep(expr, ref) =>

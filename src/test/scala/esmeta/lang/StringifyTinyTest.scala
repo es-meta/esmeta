@@ -51,6 +51,7 @@ class StringifyTinyTest extends LangTest {
       invokeShorthandStep -> "IfAbruptCloseIterator(_x_, _x_).",
       returnStep -> "return _x_.",
       assertStep -> "assert: _x_ and _x_.",
+      throwStep -> "throw a *ReferenceError* exception.",
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
       // -----------------------------------------------------------------------
@@ -101,7 +102,6 @@ class StringifyTinyTest extends LangTest {
         "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, " +
         "let _x_ be _x_."
       ),
-      throwStep -> "throw a *ReferenceError* exception.",
       appendStep -> "append _x_ to _x_.[[Value]].",
       prependStep -> "prepend _x_ to _x_.[[Value]].",
       repeatStep -> "repeat, let _x_ be _x_.",

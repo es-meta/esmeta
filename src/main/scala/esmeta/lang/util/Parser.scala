@@ -62,8 +62,8 @@ trait Parsers extends IndentParsers {
     invokeShorthandStep |
     returnStep |
     assertStep |
-    // -------------------------------------------------------------------------
     throwStep |
+    // -------------------------------------------------------------------------
     appendStep |
     prependStep |
     repeatStep |
@@ -125,6 +125,11 @@ trait Parsers extends IndentParsers {
       (upper ~> cond <~ end) |
       yetExpr ^^ { ExpressionCondition(_) }
     ) ^^ { AssertStep(_) }
+
+  // throw steps
+  lazy val throwStep: PL[ThrowStep] =
+    lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
+    "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -217,14 +222,6 @@ trait Parsers extends IndentParsers {
     ("for each child node" ~> variable) ~
     ("of" ~> expr <~ ",") ~ ("do" ~> step) ^^ {
       case x ~ e ~ body => ForEachParseNodeStep(x, e, body)
-    }
-
-  // throw steps
-  lazy val throwStep: PL[ThrowStep] =
-    lazy val errorName =
-      "*" ~> word.filter(_.endsWith("Error")) <~ "*"
-    "throw" ~> ("a" | "an") ~> errorName <~ "exception" <~ end ^^ {
-      ThrowStep(_)
     }
 
   // append steps

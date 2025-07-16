@@ -267,6 +267,15 @@ class Compiler(
       fb.addInst(IReturn(compile(fb, expr)))
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
+    case ThrowStep(name) =>
+      val (x, xExpr) = fb.newTIdWithExpr
+      val (y, yExpr) = fb.newTIdWithExpr
+      val proto = EStr(Intrinsic(name, List("prototype")).toString(true, false))
+      fb.addInst(
+        ICall(x, AUX_NEW_ERROR_OBJ, List(proto)),
+        ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
+        IReturn(yExpr),
+      )
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -411,15 +420,6 @@ class Compiler(
             fb.addInst(IAssign(i, inc(iExpr)))
           },
         ),
-      )
-    case ThrowStep(name) =>
-      val (x, xExpr) = fb.newTIdWithExpr
-      val (y, yExpr) = fb.newTIdWithExpr
-      val proto = EStr(Intrinsic(name, List("prototype")).toString(true, false))
-      fb.addInst(
-        ICall(x, AUX_NEW_ERROR_OBJ, List(proto)),
-        ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
-        IReturn(yExpr),
       )
     case AppendStep(expr, ref) =>
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))

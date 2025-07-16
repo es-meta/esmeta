@@ -37,6 +37,7 @@ object LangTest {
   )
   lazy val returnStep = ReturnStep(refExpr)
   lazy val assertStep = AssertStep(compCond)
+  lazy val throwStep = ThrowStep("ReferenceError")
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -95,7 +96,6 @@ object LangTest {
     ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
     letStep,
   )
-  lazy val throwStep = ThrowStep("ReferenceError")
   lazy val appendStep = AppendStep(refExpr, fieldRef)
   lazy val prependStep = PrependStep(refExpr, fieldRef)
   lazy val repeatStep = RepeatStep(None, letStep)

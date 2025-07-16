@@ -258,12 +258,14 @@ object BaseUtils {
       case "ninth"   => 9
       case _         => str.dropRight(2).toInt,
     )
-    def indefArticle: String = str
-      .find(_.isLetter)
-      .fold("")(c =>
-        if ("[aeiou]".r.matches(c.toLower.toString)) "an"
-        else "a",
-      )
+    def indefArticle: String =
+      val word = str.trim.split("\\W+").find(_.nonEmpty).getOrElse("")
+      if (WORDS_FOR_A.contains(word)) "a"
+      else
+        word.headOption.fold("") { c =>
+          if ("[aeiou]".r.matches(c.toLower.toString)) "an"
+          else "a"
+        }
     def pluralPostfix: String = "s" // TODO
     def withIndefArticle: String = str.indefArticle + " " + str
     def withArticle(plural: Boolean = false): String =
@@ -274,4 +276,6 @@ object BaseUtils {
       case Single => str.indefArticle + " " + str
       case Plural => str + str.pluralPostfix
   }
+
+  val WORDS_FOR_A = Set("URIError")
 }
