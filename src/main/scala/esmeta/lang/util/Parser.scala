@@ -61,8 +61,8 @@ trait Parsers extends IndentParsers {
     performStep |
     invokeShorthandStep |
     returnStep |
-    // -------------------------------------------------------------------------
     assertStep |
+    // -------------------------------------------------------------------------
     throwStep |
     appendStep |
     prependStep |
@@ -119,6 +119,13 @@ trait Parsers extends IndentParsers {
   lazy val returnStep: PL[ReturnStep] =
     "return" ~> endWithExpr ^^ { ReturnStep(_) }
 
+  // assertion steps
+  lazy val assertStep: PL[AssertStep] =
+    "assert" ~ ":" ~> (
+      (upper ~> cond <~ end) |
+      yetExpr ^^ { ExpressionCondition(_) }
+    ) ^^ { AssertStep(_) }
+
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
   // ---------------------------------------------------------------------------
@@ -153,13 +160,6 @@ trait Parsers extends IndentParsers {
       (step | yetStep),
     )
   } ^^ { case c ~ t ~ e => IfStep(c, t, e) }
-
-  // assertion steps
-  lazy val assertStep: PL[AssertStep] =
-    "assert" ~ ":" ~> (
-      (upper ~> cond <~ end) |
-      ".+\\.".r ^^ { case s => ExpressionCondition(YetExpression(s, None)) }
-    ) ^^ { AssertStep(_) }
 
   // for-each steps
   lazy val forEachStep: PL[ForEachStep] =
@@ -870,7 +870,7 @@ trait Parsers extends IndentParsers {
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
-    opt("[YET]") ~> ".+".r ~ opt(block) ^^ { case s ~ b => YetExpression(s, b) }
+    ".+".r ~ opt(block) ^^ { case s ~ b => YetExpression(s, b) }
 
   // ---------------------------------------------------------------------------
   // metalanguage conditions

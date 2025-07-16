@@ -49,20 +49,27 @@ trait Walker extends BasicWalker {
     Directive(walk(name), walkList(values, walk))
 
   def walk(step: Step): Step = step match {
-    case LetStep(x, expr) =>
-      LetStep(walk(x), walk(expr))
-    case SetStep(x, expr) =>
-      SetStep(walk(x), walk(expr))
-    case SetAsStep(x, verb, id) =>
-      SetAsStep(walk(x), walk(verb), walk(id))
+    case LetStep(x, expr)       => LetStep(walk(x), walk(expr))
+    case SetStep(x, expr)       => SetStep(walk(x), walk(expr))
+    case SetAsStep(x, verb, id) => SetAsStep(walk(x), walk(verb), walk(id))
+    case SetEvaluationStateStep(base, func, args) =>
+      SetEvaluationStateStep(walk(base), walk(func), walkList(args, walk))
+    case PerformStep(expr)         => PerformStep(walk(expr))
+    case InvokeShorthandStep(x, a) => InvokeShorthandStep(x, walkList(a, walk))
+    case ReturnStep(expr)          => ReturnStep(walk(expr))
+    case AssertStep(cond)          => AssertStep(walk(cond))
+    // -------------------------------------------------------------------------
+    // special steps rarely used in the spec
+    // -------------------------------------------------------------------------
     case SetFieldsWithIntrinsicsStep(ref, desc) =>
       SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
+    case PerformBlockStep(b, d) =>
+      PerformBlockStep(walk(b), walk(d))
+    // -------------------------------------------------------------------------
+    // TODO refactor following code
+    // -------------------------------------------------------------------------
     case IfStep(cond, thenStep, elseStep) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk))
-    case ReturnStep(expr) =>
-      ReturnStep(walk(expr))
-    case AssertStep(cond) =>
-      AssertStep(walk(cond))
     case ForEachStep(ty, elem, expr, ascending, body) =>
       ForEachStep(
         walkOpt(ty, walk),
@@ -94,12 +101,9 @@ trait Walker extends BasicWalker {
         walk(expr),
         walk(body),
       )
-    case ThrowStep(expr)           => ThrowStep(walk(expr))
-    case PerformStep(expr)         => PerformStep(walk(expr))
-    case InvokeShorthandStep(x, a) => InvokeShorthandStep(x, walkList(a, walk))
-    case PerformBlockStep(b, d)    => PerformBlockStep(walk(b), walk(d))
-    case AppendStep(expr, ref)     => AppendStep(walk(expr), walk(ref))
-    case PrependStep(expr, ref)    => PrependStep(walk(expr), walk(ref))
+    case ThrowStep(expr)        => ThrowStep(walk(expr))
+    case AppendStep(expr, ref)  => AppendStep(walk(expr), walk(ref))
+    case PrependStep(expr, ref) => PrependStep(walk(expr), walk(ref))
     case RepeatStep(cond, body) => RepeatStep(walkOpt(cond, walk), walk(body))
     case PushCtxtStep(ref)      => PushCtxtStep(walk(ref))
     case NoteStep(note)         => NoteStep(note)
@@ -108,8 +112,6 @@ trait Walker extends BasicWalker {
     case RemoveFirstStep(expr)  => RemoveFirstStep(walk(expr))
     case RemoveContextStep(remove, restore) =>
       RemoveContextStep(walk(remove), walkOpt(restore, walk))
-    case SetEvaluationStateStep(base, func, args) =>
-      SetEvaluationStateStep(walk(base), walk(func), walkList(args, walk))
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
       ResumeEvaluationStep(
         walk(b),

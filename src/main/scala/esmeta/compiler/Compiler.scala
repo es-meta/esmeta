@@ -248,28 +248,6 @@ class Compiler(
       val as = args.map(compile(fb, _))
       val e = compileShorthand(fb, name, as)
       if (!e.isPure) fb.addInst(IExpr(e))
-    case SetFieldsWithIntrinsicsStep(ref, _) =>
-      fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
-    case PerformBlockStep(block, desc) =>
-      for (substep <- block.steps) compile(fb, substep.step)
-    // -----------------------------------------------------------------------
-    // TODO refactor following code
-    // -----------------------------------------------------------------------
-    case IfStep(cond, thenStep, elseStep) =>
-      import CompoundConditionOperator.*
-      // apply shortcircuit for invoke expression
-      val condExpr = cond match
-        case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
-          val (x, _) = fb.newTIdWithExpr
-          fb.addInst(compileShortCircuit(fb, x, cond, thenStep, elseStep))
-        case _ =>
-          fb.addInst(
-            IIf(
-              compile(fb, cond),
-              compileWithScope(fb, thenStep),
-              elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-            ),
-          )
     case ReturnStep(ReturnIfAbruptExpression(expr, check)) if fb.needRetComp =>
       val e = compile(fb, expr)
       if (check && !opt) returnIfAbrupt(fb, e, check, false, true)
@@ -289,6 +267,31 @@ class Compiler(
       fb.addInst(IReturn(compile(fb, expr)))
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
+    // -------------------------------------------------------------------------
+    // special steps rarely used in the spec
+    // -------------------------------------------------------------------------
+    case SetFieldsWithIntrinsicsStep(ref, _) =>
+      fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
+    case PerformBlockStep(block, desc) =>
+      for (substep <- block.steps) compile(fb, substep.step)
+    // -------------------------------------------------------------------------
+    // TODO refactor following code
+    // -------------------------------------------------------------------------
+    case IfStep(cond, thenStep, elseStep) =>
+      import CompoundConditionOperator.*
+      // apply shortcircuit for invoke expression
+      val condExpr = cond match
+        case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
+          val (x, _) = fb.newTIdWithExpr
+          fb.addInst(compileShortCircuit(fb, x, cond, thenStep, elseStep))
+        case _ =>
+          fb.addInst(
+            IIf(
+              compile(fb, cond),
+              compileWithScope(fb, thenStep),
+              elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+            ),
+          )
     case ForEachStep(ty, variable, expr, true, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr

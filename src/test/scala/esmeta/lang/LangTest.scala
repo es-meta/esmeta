@@ -36,8 +36,11 @@ object LangTest {
     List(refExpr, refExpr),
   )
   lazy val returnStep = ReturnStep(refExpr)
+  lazy val assertStep = AssertStep(compCond)
 
+  // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
+  // ---------------------------------------------------------------------------
   lazy val setFieldsWithIntrinsicsStep =
     SetFieldsWithIntrinsicsStep(x, "More description.")
   lazy val performBlockStep = PerformBlockStep(
@@ -57,7 +60,6 @@ object LangTest {
     IfStep(binaryCondLt, blockStep, Some(ifBlockStep))
   lazy val ifElseIfElseStep =
     IfStep(binaryCondLt, blockStep, Some(ifElseStep))
-  lazy val assertStep = AssertStep(compCond)
   lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, true, letStep)
   lazy val forEachReverseStep =
     ForEachStep(Some(ty), x, refExpr, false, letStep)

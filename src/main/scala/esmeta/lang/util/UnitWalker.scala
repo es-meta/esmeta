@@ -49,20 +49,27 @@ trait UnitWalker extends BasicUnitWalker {
     walk(name); walkList(values, walk)
 
   def walk(step: Step): Unit = step match {
-    case LetStep(x, expr) =>
-      walk(x); walk(expr)
-    case SetStep(x, expr) =>
-      walk(x); walk(expr)
-    case SetAsStep(x, verb, id) =>
-      walk(x); walk(verb); walk(id)
+    case LetStep(x, expr)       => walk(x); walk(expr)
+    case SetStep(x, expr)       => walk(x); walk(expr)
+    case SetAsStep(x, verb, id) => walk(x); walk(verb); walk(id)
+    case SetEvaluationStateStep(base, func, args) =>
+      walk(base); walk(func); walkList(args, walk)
+    case PerformStep(expr)               => walk(expr)
+    case InvokeShorthandStep(name, args) => walk(name); walkList(args, walk)
+    case ReturnStep(expr)                => walk(expr)
+    case AssertStep(cond)                => walk(cond)
+    // -------------------------------------------------------------------------
+    // special steps rarely used in the spec
+    // -------------------------------------------------------------------------
     case SetFieldsWithIntrinsicsStep(ref, desc) =>
       walk(ref); walk(desc)
+    case PerformBlockStep(block, desc) =>
+      walk(block); walk(desc)
+    // -------------------------------------------------------------------------
+    // TODO refactor following code
+    // -------------------------------------------------------------------------
     case IfStep(cond, thenStep, elseStep) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk)
-    case ReturnStep(expr) =>
-      walk(expr)
-    case AssertStep(cond) =>
-      walk(cond)
     case ForEachStep(ty, elem, expr, ascending, body) =>
       walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
     case ForEachIntegerStep(x, low, high, ascending, body) =>
@@ -71,22 +78,17 @@ trait UnitWalker extends BasicUnitWalker {
       walk(key); walk(obj); walk(cond); walk(body)
     case ForEachParseNodeStep(x, expr, body) =>
       walk(x); walk(expr); walk(body)
-    case ThrowStep(expr)                 => walk(expr)
-    case PerformStep(expr)               => walk(expr)
-    case InvokeShorthandStep(name, args) => walk(name); walkList(args, walk)
-    case PerformBlockStep(block, desc)   => walk(block); walk(desc)
-    case AppendStep(expr, ref)           => walk(expr); walk(ref)
-    case PrependStep(expr, ref)          => walk(expr); walk(ref)
-    case RepeatStep(cond, body)          => walkOpt(cond, walk); walk(body)
-    case PushCtxtStep(ref)               => walk(ref)
-    case NoteStep(note)                  =>
-    case SuspendStep(base, _)            => walk(base)
-    case RemoveStep(elem, list)          => walk(elem); walk(list)
-    case RemoveFirstStep(expr)           => walk(expr)
+    case ThrowStep(expr)        => walk(expr)
+    case AppendStep(expr, ref)  => walk(expr); walk(ref)
+    case PrependStep(expr, ref) => walk(expr); walk(ref)
+    case RepeatStep(cond, body) => walkOpt(cond, walk); walk(body)
+    case PushCtxtStep(ref)      => walk(ref)
+    case NoteStep(note)         =>
+    case SuspendStep(base, _)   => walk(base)
+    case RemoveStep(elem, list) => walk(elem); walk(list)
+    case RemoveFirstStep(expr)  => walk(expr)
     case RemoveContextStep(remove, restore) =>
       walk(remove); walkOpt(restore, walk)
-    case SetEvaluationStateStep(base, func, args) =>
-      walk(base); walk(func); walkList(args, walk)
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
       walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walk); walkList(steps, walk)
     case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>

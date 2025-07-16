@@ -83,10 +83,37 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " as " >> verb >> " in "
         xrefRule(app, id) >> "."
+      case SetEvaluationStateStep(context, func, args) =>
+        given Rule[List[Expression]] = argsRule(showNoArg = true)
+        app >> First("set the code evaluation state of ") >> context
+        app >> " such that when evaluation is resumed"
+        app >> " for that execution context, "
+        app >> func >> " will be called" >> args >> "."
+      case PerformStep(expr) =>
+        app >> First("perform ") >> expr >> "."
+      case InvokeShorthandStep(name, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> name >> args >> "."
+      case ReturnStep(expr) =>
+        given Rule[Expression] = endWithExprRule
+        app >> First("return ") >> expr
+      case AssertStep(cond) =>
+        app >> First("assert: ") >> cond >> "."
+      // -----------------------------------------------------------------------
+      // special steps rarely used in the spec
+      // -----------------------------------------------------------------------
       case SetFieldsWithIntrinsicsStep(ref, desc) =>
         app >> First("set fields of ") >> ref >> " with the values listed in "
         xrefRule(app, "table-well-known-intrinsic-objects") >> "."
         app >> " " >> desc
+      case PerformBlockStep(block, desc) =>
+        app >> First("perform ")
+        app >> "the following substeps in an implementation-defined order"
+        if (desc.nonEmpty) app >> ", " >> desc
+        app >> ":" >> block
+      // -----------------------------------------------------------------------
+      // TODO refactor following code
+      // -----------------------------------------------------------------------
       case IfStep(cond, thenStep, elseStep) =>
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
@@ -97,11 +124,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case Some(step)            => app :> "1. Else, " >> step
           case None                  => app
         }
-      case ReturnStep(expr) =>
-        given Rule[Expression] = endWithExprRule
-        app >> First("return ") >> expr
-      case AssertStep(cond) =>
-        app >> First("assert: ") >> cond >> "."
       case ForEachStep(ty, elem, expr, ascending, body) =>
         app >> First("for each ")
         given Rule[Type] = getTypeRule(ArticleOption.No)
@@ -133,16 +155,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " of " >> expr >> ", do" >> body
       case ThrowStep(expr) =>
         app >> First("throw a *") >> expr >> "* exception."
-      case PerformStep(expr) =>
-        app >> First("perform ") >> expr >> "."
-      case InvokeShorthandStep(name, args) =>
-        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> name >> args >> "."
-      case PerformBlockStep(block, desc) =>
-        app >> First("perform ")
-        app >> "the following substeps in an implementation-defined order"
-        if (desc.nonEmpty) app >> ", " >> desc
-        app >> ":" >> block
       case AppendStep(expr, ref) =>
         app >> First("append ") >> expr >> " to " >> ref >> "."
       case PrependStep(expr, ref) =>
@@ -174,12 +186,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
             app >> "at the top of the execution context stack"
           case Some(ctxt) => app >> ctxt
         app >> " as the running execution context."
-      case SetEvaluationStateStep(context, func, args) =>
-        given Rule[List[Expression]] = argsRule(showNoArg = true)
-        app >> First("set the code evaluation state of ") >> context
-        app >> " such that when evaluation is resumed"
-        app >> " for that execution context, "
-        app >> func >> " will be called" >> args >> "."
       case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> """<emu-meta effects="user-code">"""

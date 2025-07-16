@@ -50,7 +50,10 @@ class StringifyTinyTest extends LangTest {
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       invokeShorthandStep -> "IfAbruptCloseIterator(_x_, _x_).",
       returnStep -> "return _x_.",
+      assertStep -> "assert: _x_ and _x_.",
+      // -----------------------------------------------------------------------
       // special steps rarely used in the spec
+      // -----------------------------------------------------------------------
       setFieldsWithIntrinsicsStep -> "set fields of _x_ with the values listed in <emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>. More description.",
       performBlockStep -> """perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
       |  1. Let _x_ be _x_.
@@ -79,7 +82,6 @@ class StringifyTinyTest extends LangTest {
       |    1. Let _x_ be _x_.
       |  1. Else,
       |    1. Let _x_ be _x_.""".stripMargin,
-      assertStep -> "assert: _x_ and _x_.",
       forEachStep -> "for each Base _x_ of _x_, let _x_ be _x_.",
       forEachReverseStep -> "for each Base _x_ of _x_, in reverse List order, let _x_ be _x_.",
       forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
