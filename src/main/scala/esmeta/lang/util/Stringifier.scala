@@ -99,11 +99,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
       case ReturnStep(expr) =>
         given Rule[Expression] = endWithExprRule
-        app >> First("return")
-        expr match {
-          case None    => app >> "."
-          case Some(e) => app >> " " >> e
-        }
+        app >> First("return ") >> expr
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
       case ForEachStep(ty, elem, expr, ascending, body) =>

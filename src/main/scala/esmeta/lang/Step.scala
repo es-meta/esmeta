@@ -31,6 +31,9 @@ case class InvokeShorthandStep(
   args: List[Expression],
 ) extends Step
 
+// return steps
+case class ReturnStep(expr: Expression) extends Step
+
 // -----------------------------------------------------------------------------
 // special steps rarely used in the spec
 // -----------------------------------------------------------------------------
@@ -48,9 +51,6 @@ case class PerformBlockStep(step: StepBlock, desc: String) extends Step
 // if-then-else steps
 case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
   extends Step
-
-// return steps
-case class ReturnStep(expr: Option[Expression]) extends Step
 
 // assertion steps
 case class AssertStep(cond: Condition) extends Step

@@ -13,7 +13,7 @@ case class FuncBuilder(
   params: List[IRParam],
   retTy: IRType,
   algo: Algorithm,
-  needReturnComp: Boolean,
+  needRetComp: Boolean,
 ) {
   import FuncKind.*
 

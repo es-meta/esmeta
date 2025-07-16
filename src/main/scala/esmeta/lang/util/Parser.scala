@@ -60,8 +60,8 @@ trait Parsers extends IndentParsers {
     setEvalStateStep |
     performStep |
     invokeShorthandStep |
-    // -------------------------------------------------------------------------
     returnStep |
+    // -------------------------------------------------------------------------
     assertStep |
     throwStep |
     appendStep |
@@ -115,6 +115,10 @@ trait Parsers extends IndentParsers {
   lazy val invokeShorthandStep: PL[InvokeShorthandStep] =
     opName ~ invokeArgs <~ end ^^ { case f ~ as => InvokeShorthandStep(f, as) }
 
+  // return steps
+  lazy val returnStep: PL[ReturnStep] =
+    "return" ~> endWithExpr ^^ { ReturnStep(_) }
+
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
   // ---------------------------------------------------------------------------
@@ -149,11 +153,6 @@ trait Parsers extends IndentParsers {
       (step | yetStep),
     )
   } ^^ { case c ~ t ~ e => IfStep(c, t, e) }
-
-  // return steps
-  lazy val returnStep: PL[ReturnStep] =
-    "return" ~> end ^^! ReturnStep(None) |
-    "return" ~> endWithExpr ^^ { case e => ReturnStep(Some(e)) }
 
   // assertion steps
   lazy val assertStep: PL[AssertStep] =

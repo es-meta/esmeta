@@ -199,13 +199,13 @@ class Compiler(
     val name = algo.head.fname
     val params = algo.head.funcParams.map(compile)
     val retTy = compile(algo.retTy)
-    val needReturnComp = kind match
+    val needRetComp = kind match
       case SynDirOp if name.endsWith(".Evaluation") => true
       case Builtin                                  => true
       case _ if noReturnComp contains name          => false
       case _                                        => retTy.isCompletion
     val fb =
-      FuncBuilder(spec, kind, name, params, retTy, algo, needReturnComp)
+      FuncBuilder(spec, kind, name, params, retTy, algo, needRetComp)
     val prefix = algo.head match
       case head: BuiltinHead => getBuiltinPrefix(fb, head.params)
       case _                 => Nil
@@ -233,7 +233,7 @@ class Compiler(
         Nil,
         fb.retTy,
         fb.algo,
-        fb.needReturnComp,
+        fb.needRetComp,
       )
       val inst = contFB.newScope {
         val x = compile(contFB, InvokeAbstractClosureExpression(func, args))
@@ -270,32 +270,23 @@ class Compiler(
               elseStep.fold(emptyInst)(compileWithScope(fb, _)),
             ),
           )
+    case ReturnStep(ReturnIfAbruptExpression(expr, check)) if fb.needRetComp =>
+      val e = compile(fb, expr)
+      if (check && !opt) returnIfAbrupt(fb, e, check, false, true)
+      else fb.addInst(IReturn(returnIfAbrupt(fb, e, check, true)))
+      ()
+    case ReturnStep(expr) if fb.needRetComp =>
+      val e = compile(fb, expr)
+      val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
+      val (y, yExpr) = fb.newTIdWithExpr
+      if (!x.isLiteral)
+        fb.addInst(IIf(isCompletion(x), IReturn(x), emptyInst))
+      fb.addInst(
+        ICall(y, EClo("NormalCompletion", Nil), List(x)),
+        IReturn(yExpr),
+      )
     case ReturnStep(expr) =>
-      lazy val e = expr.fold(EUndef())(compile(fb, _))
-      (expr, fb.needReturnComp) match
-        case (Some(ReturnIfAbruptExpression(expr, check)), true) =>
-          if (check && !opt)
-            val e = returnIfAbrupt(fb, compile(fb, expr), check, false, true)
-          else
-            val e = returnIfAbrupt(fb, compile(fb, expr), check, true)
-            fb.addInst(IReturn(e))
-        case (_, true) =>
-          val e = expr.fold(EUndef())(compile(fb, _))
-          val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
-          val (y, yExpr) = fb.newTIdWithExpr
-          if (!x.isLiteral)
-            fb.addInst(
-              IIf(
-                isCompletion(x),
-                IReturn(x),
-                emptyInst,
-              ),
-            )
-          fb.addInst(
-            ICall(y, EClo("NormalCompletion", Nil), List(x)),
-            IReturn(yExpr),
-          )
-        case (_, false) => fb.addInst(IReturn(e))
+      fb.addInst(IReturn(compile(fb, expr)))
     case AssertStep(cond) =>
       fb.addInst(IAssert(compile(fb, cond)))
     case ForEachStep(ty, variable, expr, true, body) =>
@@ -477,7 +468,7 @@ class Compiler(
           ps,
           fb.retTy,
           fb.algo,
-          fb.needReturnComp,
+          fb.needRetComp,
         ),
         body = bodyStep,
       )
@@ -501,7 +492,7 @@ class Compiler(
           List(toParam(param)),
           fb.retTy,
           fb.algo,
-          fb.needReturnComp,
+          fb.needRetComp,
         ),
         body = BlockStep(StepBlock(steps)),
       )
@@ -512,7 +503,7 @@ class Compiler(
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
       var inst = instRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
-      if (fb.needReturnComp) inst = fb.returnModifier.walk(inst)
+      if (fb.needRetComp) inst = fb.returnModifier.walk(inst)
       unusedRules -= yetStr
       fb.addInst(inst)
   })

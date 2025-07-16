@@ -35,6 +35,7 @@ object LangTest {
     "IfAbruptCloseIterator",
     List(refExpr, refExpr),
   )
+  lazy val returnStep = ReturnStep(refExpr)
 
   // special steps rarely used in the spec
   lazy val setFieldsWithIntrinsicsStep =
@@ -56,8 +57,6 @@ object LangTest {
     IfStep(binaryCondLt, blockStep, Some(ifBlockStep))
   lazy val ifElseIfElseStep =
     IfStep(binaryCondLt, blockStep, Some(ifElseStep))
-  lazy val returnStep = ReturnStep(Some(refExpr))
-  lazy val returnStepNoExpr = ReturnStep(None)
   lazy val assertStep = AssertStep(compCond)
   lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, true, letStep)
   lazy val forEachReverseStep =
