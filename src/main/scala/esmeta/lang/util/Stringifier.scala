@@ -94,20 +94,28 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case InvokeShorthandStep(name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> name >> args >> "."
-      case ReturnStep(expr) =>
-        given Rule[Expression] = endWithExprRule
-        app >> First("return ") >> expr
-      case AssertStep(cond) =>
-        app >> First("assert: ") >> cond >> "."
-      case ThrowStep(name) =>
-        app >> First("throw ")
-        app >> ("*" + name + "*").withIndefArticle >> " exception."
       case AppendStep(expr, ref) =>
         app >> First("append ") >> expr >> " to " >> ref >> "."
       case PrependStep(expr, ref) =>
         app >> First("prepend ") >> expr >> " to " >> ref >> "."
       case AddStep(expr, ref) =>
         app >> First("add ") >> expr >> " to " >> ref >> "."
+      case RemoveStep(target, prep, list) =>
+        app >> First("remove ") >> target >> " " >> prep >> " " >> list >> "."
+      case PushContextStep(ref) =>
+        app >> First("push ") >> ref >> " onto the execution context stack;"
+        app >> " " >> ref >> " is now the running execution context."
+      case RemoveContextStep(context, restoreTarget) =>
+        app >> First("remove ") >> context
+        app >> " from the execution context stack" >> restoreTarget >> "."
+      case AssertStep(cond) =>
+        app >> First("assert: ") >> cond >> "."
+      case ReturnStep(expr) =>
+        given Rule[Expression] = endWithExprRule
+        app >> First("return ") >> expr
+      case ThrowStep(name) =>
+        app >> First("throw ")
+        app >> ("*" + name + "*").withIndefArticle >> " exception."
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
       // -----------------------------------------------------------------------
@@ -166,29 +174,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("repeat, ")
         for { c <- cond } app >> "while " >> c >> ","
         app >> body
-      case PushCtxtStep(ref) =>
-        app >> First("push ") >> ref >> " onto the execution context stack;"
-        app >> " " >> ref >> " is now the running execution context."
       case NoteStep(note) =>
         app >> "NOTE: " >> note
       case SuspendStep(context, remove) =>
         app >> First("suspend ") >> context
         if (remove) app >> " and remove it from the execution context stack"
         app >> "."
-      case RemoveStep(elem, list) =>
-        app >> First("remove ") >> elem >> " from " >> list >> "."
-      case RemoveFirstStep(expr) =>
-        app >> First("remove") >> " the first element from " >> expr >> "."
-      case RemoveContextStep(removeCtxt, restoreCtxt) =>
-        app >> First("remove ") >> removeCtxt
-        app >> " from the execution context stack"
-        app >> " and restore "
-        restoreCtxt match
-          case None =>
-            app >> "the execution context that is "
-            app >> "at the top of the execution context stack"
-          case Some(ctxt) => app >> ctxt
-        app >> " as the running execution context."
       case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> """<emu-meta effects="user-code">"""
@@ -218,6 +209,31 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> expr
     }
   }
+
+  given removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
+    import RemoveStep.Target
+    given Rule[Option[Expression]] = (app, expr) =>
+      expr match
+        case Some(e) => app >> e >> " elements"
+        case None    => app >> "element"
+    target match
+      case Target.First(count)  => app >> "the first " >> count
+      case Target.Last(count)   => app >> "the last " >> count
+      case Target.Element(expr) => app >> expr
+  }
+
+  given removeCtxtStepRestoreTargetRule: Rule[RemoveContextStep.RestoreTarget] =
+    (app, target) => {
+      import RemoveContextStep.RestoreTarget.*
+      target match
+        case NoRestore => app
+        case StackTop =>
+          app >> " and restore the execution context that is "
+          app >> "at the top of the execution context stack"
+          app >> " as the running execution context"
+        case Context(ref) =>
+          app >> " and restore " >> ref >> " as the running execution context"
+    }
 
   // ForEachOwnPropertyKeyStepOrder
   given ForEachOwnPropertyKeyStepOrderRule

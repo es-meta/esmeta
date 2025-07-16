@@ -31,15 +31,6 @@ case class InvokeShorthandStep(
   args: List[Expression],
 ) extends Step
 
-// return steps
-case class ReturnStep(expr: Expression) extends Step
-
-// assertion steps
-case class AssertStep(cond: Condition) extends Step
-
-// throw steps
-case class ThrowStep(name: String) extends Step
-
 // append steps
 case class AppendStep(elem: Expression, ref: Reference) extends Step
 
@@ -48,6 +39,41 @@ case class PrependStep(elem: Expression, ref: Reference) extends Step
 
 // add steps
 case class AddStep(elem: Expression, ref: Reference) extends Step
+
+// remove element steps
+case class RemoveStep(
+  target: RemoveStep.Target,
+  prep: String, // TODO use only "from" and remove this field
+  list: Expression,
+) extends Step
+object RemoveStep:
+  enum Target:
+    case First(count: Option[Expression])
+    case Last(count: Option[Expression])
+    case Element(elem: Expression)
+
+// push context steps
+case class PushContextStep(ref: Reference) extends Step
+
+// remove execution context steps
+case class RemoveContextStep(
+  context: Reference,
+  restoreTarget: RemoveContextStep.RestoreTarget,
+) extends Step
+object RemoveContextStep:
+  enum RestoreTarget:
+    case NoRestore
+    case StackTop
+    case Context(ref: Reference)
+
+// assertion steps
+case class AssertStep(cond: Condition) extends Step
+
+// return steps
+case class ReturnStep(expr: Expression) extends Step
+
+// throw steps
+case class ThrowStep(name: String) extends Step
 
 // -----------------------------------------------------------------------------
 // special steps rarely used in the spec
@@ -107,26 +133,11 @@ case class ForEachParseNodeStep(
 // repeat steps
 case class RepeatStep(cond: Option[Condition], body: Step) extends Step
 
-// push context steps
-case class PushCtxtStep(ref: Reference) extends Step
-
 // note steps
 case class NoteStep(note: String) extends Step
 
 // suspend steps
 case class SuspendStep(context: Reference, remove: Boolean) extends Step
-
-// remove element steps
-case class RemoveStep(elem: Expression, list: Expression) extends Step
-
-// remove firts element steps
-case class RemoveFirstStep(expr: Expression) extends Step
-
-// remove execution context steps
-case class RemoveContextStep(
-  removeContext: Reference,
-  restoreContext: Option[Reference],
-) extends Step
 
 // resume the suspended evaluation steps
 case class ResumeEvaluationStep(

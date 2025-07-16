@@ -248,6 +248,49 @@ class Compiler(
       val as = args.map(compile(fb, _))
       val e = compileShorthand(fb, name, as)
       if (!e.isPure) fb.addInst(IExpr(e))
+    case AppendStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
+    case PrependStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
+    case AddStep(expr, ref) =>
+      // TODO: current IR does not support a set data structure.
+      // AddStep represents an element addition to a set.
+      // We need to refactor this later.
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
+    case RemoveStep(target, prep, list) =>
+      import RemoveStep.Target.*
+      lazy val x = fb.newTId
+      lazy val l = compile(fb, list)
+      def aux(count: Option[Expression], front: Boolean): Unit = count match {
+        case None => fb.addInst(IPop(x, l, front))
+        case Some(expr) =>
+          val (i, iExpr) = fb.newTIdWithExpr
+          val (len, lenExpr) = fb.newTIdWithExpr
+          fb.addInst(
+            IAssign(i, zero),
+            IAssign(len, compile(fb, expr)),
+            IWhile(
+              lessThan(iExpr, lenExpr),
+              fb.newScope {
+                fb.addInst(
+                  IPop(x, l, front),
+                  IAssign(i, inc(iExpr)),
+                )
+              },
+            ),
+          )
+      }
+      target match
+        case First(count) => aux(count, front = true)
+        case Last(count)  => aux(count, front = false)
+        case Element(elem) =>
+          fb.addInst(ICall(x, AUX_REMOVE_ELEM, List(compile(fb, elem), l)))
+    case PushContextStep(ref) =>
+      fb.addInst(IPush(ERef(compile(fb, ref)), EGLOBAL_EXECUTION_STACK, true))
+    case RemoveContextStep(_, _) =>
+      fb.addInst(IPop(fb.newTId, EGLOBAL_EXECUTION_STACK, true))
+    case AssertStep(cond) =>
+      fb.addInst(IAssert(compile(fb, cond)))
     case ReturnStep(ReturnIfAbruptExpression(expr, check)) if fb.needRetComp =>
       val e = compile(fb, expr)
       if (check && !opt) returnIfAbrupt(fb, e, check, false, true)
@@ -265,8 +308,6 @@ class Compiler(
       )
     case ReturnStep(expr) =>
       fb.addInst(IReturn(compile(fb, expr)))
-    case AssertStep(cond) =>
-      fb.addInst(IAssert(compile(fb, cond)))
     case ThrowStep(name) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val (y, yExpr) = fb.newTIdWithExpr
@@ -276,15 +317,6 @@ class Compiler(
         ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
         IReturn(yExpr),
       )
-    case AppendStep(expr, ref) =>
-      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
-    case PrependStep(expr, ref) =>
-      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
-    case AddStep(expr, ref) =>
-      // TODO: current IR does not support a set data structure.
-      // AddStep represents an element addition to a set.
-      // We need to refactor this later.
-      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -437,27 +469,11 @@ class Compiler(
           compileWithScope(fb, body),
         ),
       )
-    case PushCtxtStep(ref) =>
-      fb.addInst(IPush(ERef(compile(fb, ref)), EGLOBAL_EXECUTION_STACK, true))
     case NoteStep(note) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, false) =>
       fb.addInst(INop()) // XXX add edge to lang element
     case SuspendStep(context, true) =>
-      val x = fb.newTId
-      fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
-    case RemoveStep(elem, list) =>
-      fb.addInst(
-        ICall(
-          fb.newTId,
-          AUX_REMOVE_ELEM,
-          List(compile(fb, elem), compile(fb, list)),
-        ),
-      )
-    case RemoveFirstStep(expr) =>
-      val x = fb.newTId
-      fb.addInst(IPop(x, compile(fb, expr), true))
-    case RemoveContextStep(_, _) =>
       val x = fb.newTId
       fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>

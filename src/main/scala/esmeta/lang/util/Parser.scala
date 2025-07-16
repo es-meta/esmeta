@@ -60,20 +60,19 @@ trait Parsers extends IndentParsers {
     setEvalStateStep |
     performStep |
     invokeShorthandStep |
-    returnStep |
-    assertStep |
-    throwStep |
     appendStep |
     prependStep |
     addStep |
+    removeStep |
+    pushCtxtStep |
+    removeCtxtStep |
+    assertStep |
+    returnStep |
+    throwStep |
     // -------------------------------------------------------------------------
     repeatStep |
-    pushCtxtStep |
     noteStep |
     suspendStep |
-    removeElemStep |
-    removeFirstStep |
-    removeCtxtStep |
     ifStep |
     forEachOwnPropertyKeyStep |
     forEachIntStep |
@@ -116,22 +115,6 @@ trait Parsers extends IndentParsers {
   lazy val invokeShorthandStep: PL[InvokeShorthandStep] =
     opName ~ invokeArgs <~ end ^^ { case f ~ as => InvokeShorthandStep(f, as) }
 
-  // return steps
-  lazy val returnStep: PL[ReturnStep] =
-    "return" ~> endWithExpr ^^ { ReturnStep(_) }
-
-  // assertion steps
-  lazy val assertStep: PL[AssertStep] =
-    "assert" ~ ":" ~> (
-      (upper ~> cond <~ end) |
-      yetExpr ^^ { ExpressionCondition(_) }
-    ) ^^ { AssertStep(_) }
-
-  // throw steps
-  lazy val throwStep: PL[ThrowStep] =
-    lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
-    "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
-
   // append steps
   lazy val appendStep: PL[AppendStep] =
     "append" ~> expr ~ ("to" ~ opt("the end of") ~> ref) <~ end
@@ -145,6 +128,57 @@ trait Parsers extends IndentParsers {
   // add steps
   lazy val addStep: PL[AddStep] =
     ("add" ~> expr) ~ ("to" ~> ref) <~ end ^^ { case e ~ r => AddStep(e, r) }
+
+  // remove step
+  lazy val removeStep: PL[RemoveStep] =
+    import RemoveStep.Target.*
+    lazy val count: Parser[Option[Expression]] =
+      expr <~ "elements" ^^ { Some(_) } |
+      "element" ^^^ None
+    lazy val target: Parser[RemoveStep.Target] =
+      "the first" ~> count ^^ { First(_) } |
+      "the last" ~> count ^^ { Last(_) } |
+      expr ^^ { Element(_) }
+    "remove" ~> target ~ ("from" | "of") ~ expr <~ end ^^ {
+      case t ~ p ~ l => RemoveStep(t, p, l)
+    }
+
+  // push context steps
+  lazy val pushCtxtStep: PL[PushContextStep] =
+    "push" ~> ref <~
+    "onto the execution context stack;" ~ ref ~
+    "is now the running execution context" ~ end
+    ^^ { case r => PushContextStep(r) }
+
+  // remove execution context step
+  lazy val removeCtxtStep: PL[RemoveContextStep] =
+    import RemoveContextStep.RestoreTarget.*
+    val restoreTarget: Parser[RemoveContextStep.RestoreTarget] = {
+      "and restore the execution context that is" ~
+      "at the top of the execution context stack" ~
+      "as the running execution context" ^^^ StackTop |
+      "and restore" ~> ref <~
+      "as the running execution context" ^^ { Context(_) } |
+      "" ^^^ NoRestore
+    }
+    ("remove" ~> ref <~ "from the execution context stack") ~
+    restoreTarget <~ end ^^ { case x ~ t => RemoveContextStep(x, t) }
+
+  // assertion steps
+  lazy val assertStep: PL[AssertStep] =
+    "assert" ~ ":" ~> (
+      (upper ~> cond <~ end) |
+      yetExpr ^^ { ExpressionCondition(_) }
+    ) ^^ { AssertStep(_) }
+
+  // return steps
+  lazy val returnStep: PL[ReturnStep] =
+    "return" ~> endWithExpr ^^ { ReturnStep(_) }
+
+  // throw steps
+  lazy val throwStep: PL[ThrowStep] =
+    lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
+    "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -245,13 +279,6 @@ trait Parsers extends IndentParsers {
       case c ~ s => RepeatStep(c, s)
     }
 
-  // push context steps
-  lazy val pushCtxtStep: PL[PushCtxtStep] =
-    "push" ~> ref <~ (
-      "onto the execution context stack;" ~ ref ~
-      "is now the running execution context" ~ end
-    ) ^^ { case r => PushCtxtStep(r) }
-
   // note steps
   lazy val noteStep: PL[NoteStep] =
     note ^^ { str => NoteStep(str) }
@@ -263,27 +290,6 @@ trait Parsers extends IndentParsers {
     "suspend" ~> baseRef ~ (remove <~ end) ^^ {
       case base ~ r => SuspendStep(base, r)
     }
-
-  // remove element step
-  lazy val removeElemStep: PL[RemoveStep] =
-    "remove" ~> expr ~ ("from" ~> expr) <~ end ^^ {
-      case e ~ l => RemoveStep(e, l)
-    }
-
-  // remove first element step
-  lazy val removeFirstStep: PL[RemoveFirstStep] =
-    "remove the first element from" ~> expr <~ end ^^ { RemoveFirstStep(_) }
-
-  // remove execution context step
-  lazy val removeCtxtStep: PL[RemoveContextStep] =
-    val remove: Parser[Variable] =
-      "remove" ~> variable <~ "from the execution context stack"
-    val restore: Parser[Option[Variable]] = "and restore" ~> (
-      variable ^^ { Some(_) } |
-      "the execution context that is" ~
-      "at the top of the execution context stack" ^^^ None
-    ) <~ "as the running execution context"
-    remove ~ restore <~ end ^^ { case x ~ y => RemoveContextStep(x, y) }
 
   // resume the suspended evaluation steps
   lazy val resumeStep: PL[ResumeEvaluationStep] =

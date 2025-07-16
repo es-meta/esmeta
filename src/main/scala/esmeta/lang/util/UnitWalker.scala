@@ -56,12 +56,15 @@ trait UnitWalker extends BasicUnitWalker {
       walk(base); walk(func); walkList(args, walk)
     case PerformStep(expr)               => walk(expr)
     case InvokeShorthandStep(name, args) => walk(name); walkList(args, walk)
-    case ReturnStep(expr)                => walk(expr)
-    case AssertStep(cond)                => walk(cond)
-    case ThrowStep(expr)                 => walk(expr)
     case AppendStep(expr, ref)           => walk(expr); walk(ref)
     case PrependStep(expr, ref)          => walk(expr); walk(ref)
     case AddStep(expr, ref)              => walk(expr); walk(ref)
+    case RemoveStep(target, p, list)     => walk(target); walk(p); walk(list)
+    case PushContextStep(ref)            => walk(ref)
+    case RemoveContextStep(ctxt, target) => walk(ctxt); walk(target)
+    case AssertStep(cond)                => walk(cond)
+    case ReturnStep(expr)                => walk(expr)
+    case ThrowStep(expr)                 => walk(expr)
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -83,13 +86,8 @@ trait UnitWalker extends BasicUnitWalker {
     case ForEachParseNodeStep(x, expr, body) =>
       walk(x); walk(expr); walk(body)
     case RepeatStep(cond, body) => walkOpt(cond, walk); walk(body)
-    case PushCtxtStep(ref)      => walk(ref)
     case NoteStep(note)         =>
     case SuspendStep(base, _)   => walk(base)
-    case RemoveStep(elem, list) => walk(elem); walk(list)
-    case RemoveFirstStep(expr)  => walk(expr)
-    case RemoveContextStep(remove, restore) =>
-      walk(remove); walkOpt(restore, walk)
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
       walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walk); walkList(steps, walk)
     case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
@@ -98,6 +96,22 @@ trait UnitWalker extends BasicUnitWalker {
     case BlockStep(block) => walk(block)
     case YetStep(expr)    => walk(expr)
   }
+
+  def walk(target: RemoveStep.Target): Unit =
+    import RemoveStep.Target.*
+    target match {
+      case First(count)  => walkOpt(count, walk)
+      case Last(count)   => walkOpt(count, walk)
+      case Element(elem) => walk(elem)
+    }
+
+  def walk(target: RemoveContextStep.RestoreTarget): Unit =
+    import RemoveContextStep.RestoreTarget.*
+    target match {
+      case NoRestore    =>
+      case StackTop     =>
+      case Context(ref) => walk(ref)
+    }
 
   def walk(expr: Expression): Unit = expr match {
     case StringConcatExpression(exprs) =>

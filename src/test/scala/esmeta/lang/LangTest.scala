@@ -35,12 +35,21 @@ object LangTest {
     "IfAbruptCloseIterator",
     List(refExpr, refExpr),
   )
-  lazy val returnStep = ReturnStep(refExpr)
-  lazy val assertStep = AssertStep(compCond)
-  lazy val throwStep = ThrowStep("ReferenceError")
   lazy val appendStep = AppendStep(refExpr, fieldRef)
   lazy val prependStep = PrependStep(refExpr, fieldRef)
   lazy val addStep = AddStep(refExpr, fieldRef)
+  import RemoveStep.Target.*
+  lazy val removeStep = RemoveStep(Element(refExpr), "from", refExpr)
+  lazy val removeFirstStep = RemoveStep(First(Some(refExpr)), "from", refExpr)
+  lazy val removeLastStep = RemoveStep(Last(None), "of", refExpr)
+  lazy val pushCtxtStep = PushContextStep(x)
+  import RemoveContextStep.RestoreTarget.*
+  lazy val removeCtxtStep = RemoveContextStep(x, NoRestore)
+  lazy val removeCtxtRestoreTopStep = RemoveContextStep(x, StackTop)
+  lazy val removeCtxtRestoreStep = RemoveContextStep(x, Context(x))
+  lazy val assertStep = AssertStep(compCond)
+  lazy val returnStep = ReturnStep(refExpr)
+  lazy val throwStep = ThrowStep("ReferenceError")
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -101,16 +110,11 @@ object LangTest {
   )
   lazy val repeatStep = RepeatStep(None, letStep)
   lazy val repeatCondStep = RepeatStep(Some(compCond), blockStep)
-  lazy val pushCtxtStep = PushCtxtStep(x)
   lazy val noteStep = NoteStep(
     "At this point, it must be a numeric operation.",
   )
   lazy val suspendStep = SuspendStep(x, false)
   lazy val suspendAndRemoveStep = SuspendStep(x, true)
-  lazy val removeStep = RemoveStep(refExpr, refExpr)
-  lazy val removeFirstStep = RemoveFirstStep(refExpr)
-  lazy val removeCtxtStep = RemoveContextStep(x, None)
-  lazy val removeCtxtWithRestoreStep = RemoveContextStep(x, Some(x))
   lazy val resumeStep = ResumeEvaluationStep(x, None, None, List(subStep))
   lazy val resumeArgStep =
     ResumeEvaluationStep(x, Some(refExpr), None, List(subStep))

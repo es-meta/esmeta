@@ -49,12 +49,19 @@ class StringifyTinyTest extends LangTest {
       setEvalStateArgsStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with arguments _x_ and _x_.",
       performStep -> "perform ToObject(_x_ + _x_, -_x_).",
       invokeShorthandStep -> "IfAbruptCloseIterator(_x_, _x_).",
-      returnStep -> "return _x_.",
-      assertStep -> "assert: _x_ and _x_.",
-      throwStep -> "throw a *ReferenceError* exception.",
       appendStep -> "append _x_ to _x_.[[Value]].",
       prependStep -> "prepend _x_ to _x_.[[Value]].",
       addStep -> "add _x_ to _x_.[[Value]].",
+      removeStep -> "remove _x_ from _x_.",
+      removeFirstStep -> "remove the first _x_ elements from _x_.",
+      removeLastStep -> "remove the last element of _x_.",
+      pushCtxtStep -> "push _x_ onto the execution context stack; _x_ is now the running execution context.",
+      removeCtxtStep -> "remove _x_ from the execution context stack.",
+      removeCtxtRestoreTopStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
+      removeCtxtRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
+      assertStep -> "assert: _x_ and _x_.",
+      returnStep -> "return _x_.",
+      throwStep -> "throw a *ReferenceError* exception.",
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
       // -----------------------------------------------------------------------
@@ -108,15 +115,9 @@ class StringifyTinyTest extends LangTest {
       repeatStep -> "repeat, let _x_ be _x_.",
       repeatCondStep -> """repeat, while _x_ and _x_,
       |  1. Let _x_ be _x_.""".stripMargin,
-      pushCtxtStep -> ("push _x_ onto the execution context stack; " +
-      "_x_ is now the running execution context."),
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       suspendStep -> "suspend _x_.",
       suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
-      removeStep -> "remove _x_ from _x_.",
-      removeFirstStep -> "remove the first element from _x_.",
-      removeCtxtStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
-      removeCtxtWithRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
       toBlockStep(resumeStep) -> """
       |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>.
       |  1. Let _x_ be _x_.""".stripMargin,
