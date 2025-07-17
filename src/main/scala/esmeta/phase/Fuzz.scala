@@ -1,6 +1,6 @@
 package esmeta.phase
 
-import esmeta.{error => _, *}
+import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
