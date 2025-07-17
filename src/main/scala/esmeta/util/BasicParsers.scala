@@ -28,7 +28,7 @@ trait BasicParsers extends JavaTokenParsers {
   // parse with error message
   def errHandle[T](parser: Parser[T], result: ParseResult[T]): T = result match
     case Success(result, _) => result
-    case err                => error(s"[$parser] $err")
+    case err                => raise(s"[$parser] $err")
 
   // parse
   def parseBy[T](parser: Parser[T])(str: String): T =

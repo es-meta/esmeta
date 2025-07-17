@@ -1,6 +1,6 @@
 package esmeta.util
 
-import esmeta.util.BaseUtils.{warn, error}
+import esmeta.util.BaseUtils.{warn, raise}
 
 /** lattice with concrete values */
 trait ConcreteLattice[+A, L[_] <: ConcreteLattice[_, L]] {
@@ -89,7 +89,7 @@ sealed trait Flat[+A] extends ConcreteLattice[A, Flat] { self =>
       case Zero       => Nil.iterator
       case One(value) => Iterator.single(value)
       case Many =>
-        if (stop) error(s"impossible to iterate infinite values")
+        if (stop) raise(s"impossible to iterate infinite values")
         else Nil.iterator
 }
 object Flat:
@@ -183,7 +183,7 @@ sealed trait BSet[+A] extends ConcreteLattice[A, BSet] { self =>
     final def iterator: Iterator[A] = self match
       case Fin(set) => set.iterator
       case Inf =>
-        if (stop) error(s"impossible to iterate infinite values")
+        if (stop) raise(s"impossible to iterate infinite values")
         else Nil.iterator
 }
 case object Inf extends BSet[Nothing]

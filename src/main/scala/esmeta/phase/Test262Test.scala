@@ -36,7 +36,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       else Some(cmdConfig.targets)
 
     if (config.timeLimit.isDefined && config.concurrent == CP.Auto)
-      error(
+      raise(
         "Turing on both time limit option (-test262-test:timeout and " +
         "the concurrent mode (-test262-test:concurrent) with " +
         "automatic thread number is not allowed.",

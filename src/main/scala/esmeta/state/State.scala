@@ -92,7 +92,7 @@ case class State(
   def exists(base: Value, field: Value): Boolean = base match
     case addr: Addr    => heap.exists(addr, field)
     case AstValue(ast) => ast.exists(field)
-    case _             => error(s"illegal field existence check: $base[$field]")
+    case _             => raise(s"illegal field existence check: $base[$field]")
 
   /** expand a field of a record object */
   def expand(base: Value, field: Value): Unit = heap.expand(base.asAddr, field)

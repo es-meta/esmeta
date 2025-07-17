@@ -216,9 +216,9 @@ class Injector(
                 case obj @ RecordObj("CompletionRecord", _) =>
                   obj(Str("Value")) match
                     case addr: Addr => addr
-                    case v          => error("not an address: $v")
+                    case v          => raise("not an address: $v")
                 case _ => addr
-            case v => error("not an address: $v")
+            case v => raise("not an address: $v")
           val len = newSt(propsAddr, Str("length")).asMath.toInt
           val array = (0 until len)
             .map(k => newSt(propsAddr, Math(k)))

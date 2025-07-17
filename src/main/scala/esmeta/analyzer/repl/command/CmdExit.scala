@@ -19,6 +19,6 @@ trait CmdExitDecl { self: Self =>
     def apply(
       cpOpt: Option[ControlPoint],
       args: List[String],
-    ): Unit = error("stop for debugging")
+    ): Unit = raise("stop for debugging")
   }
 }

@@ -122,7 +122,7 @@ trait Lexer extends UnicodeParsers {
       abbrCPs
         .getOrElse(
           abbr,
-          error(s"unknown code point abbreviation: <$abbr>"),
+          raise(s"unknown code point abbreviation: <$abbr>"),
         )
         .map(_.toChar)
         .mkString("[", "", "]")

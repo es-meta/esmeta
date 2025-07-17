@@ -1,6 +1,6 @@
 package esmeta.interpreter
 
-import esmeta.TEST_MODE
+import esmeta.{EVAL_LOG_DIR, LINE_SEP, TEST_MODE}
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.error.NotSupported.Category.{Type => _, *}
@@ -15,16 +15,15 @@ import esmeta.spec.{
   BuiltinHead,
 }
 import esmeta.ty.*
-import esmeta.util.BaseUtils.{error => _, *}
+import esmeta.util.Loc
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import esmeta.{EVAL_LOG_DIR, LINE_SEP}
 import java.io.PrintWriter
 import java.math.MathContext.DECIMAL128
 import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
-import esmeta.util.Loc
 
 /** extensible helper of IR interpreter with a CFG */
 class Interpreter(

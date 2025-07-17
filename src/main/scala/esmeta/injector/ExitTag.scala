@@ -26,7 +26,7 @@ enum ExitTag extends InjectorElem {
 object ExitTag {
   def apply(st: => State): ExitTag = try {
     def errorWith(v: Value): Nothing =
-      error(s"unexpected exit status: ${st.getString(v)}")
+      raise(s"unexpected exit status: ${st.getString(v)}")
     st(GLOBAL_RESULT) match
       case Undef => Normal
       case addr: Addr =>

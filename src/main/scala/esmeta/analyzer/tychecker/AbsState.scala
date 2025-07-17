@@ -256,7 +256,7 @@ trait AbsStateDecl { self: TyChecker =>
     /** define variables */
     def define(x: Var, value: AbsValue): AbsState = x match
       case x: Local  => this.update(x, value, refine = false)
-      case x: Global => error("do not support defining global variables")
+      case x: Global => raise("do not support defining global variables")
 
     /** identifier setter */
     def update(x: Var, value: AbsValue, refine: Boolean): AbsState = x match
