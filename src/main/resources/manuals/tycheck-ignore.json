@@ -7,6 +7,7 @@
   "EvaluateImportCall",
   "FinishLoadingImportedModule",
   "FunctionBody[0,0].EvaluateFunctionBody",
+  "FunctionDeclarationInstantiation",
   "GetViewByteLength",
   "INTRINSICS.Atomics.compareExchange",
   "INTRINSICS.Atomics.notify",

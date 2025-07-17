@@ -347,14 +347,12 @@ BreakableStatement[1,0].Evaluation
 BreakableStatement[1,0].LabelledEvaluation
 BuiltinCallOrConstruct
 Call
-CallExpression[0,0].AssignmentTargetType
 CallExpression[0,0].Evaluation
 CallExpression[0,0].HasCallInTailPosition
 CallExpression[1,0].AssignmentTargetType
 CallExpression[1,0].HasCallInTailPosition
 CallExpression[2,0].AssignmentTargetType
 CallExpression[2,0].HasCallInTailPosition
-CallExpression[3,0].AssignmentTargetType
 CallExpression[3,0].Evaluation
 CallExpression[3,0].HasCallInTailPosition
 CallExpression[4,0].AssignmentTargetType
@@ -705,6 +703,7 @@ EqualityExpression[4,0].Evaluation
 EqualityExpression[4,0].HasCallInTailPosition
 EqualityExpression[4,0].IsFunctionDefinition
 EvaluateCall
+EvaluateModuleSync
 EvaluateNew
 EvaluatePropertyAccessWithExpressionKey
 EvaluatePropertyAccessWithIdentifierKey
@@ -1281,6 +1280,7 @@ INTRINSICS.Date.prototype.toTimeString
 INTRINSICS.Date.prototype.valueOf
 INTRINSICS.Date.prototype[%Symbol.toPrimitive%]
 INTRINSICS.Error
+INTRINSICS.Error.isError
 INTRINSICS.Error.prototype.toString
 INTRINSICS.EvalError
 INTRINSICS.FinalizationRegistry
@@ -2515,7 +2515,6 @@ TryStatement[2,0].VarDeclaredNames
 TryStatement[2,0].VarScopedDeclarations
 TypedArrayByteLength
 TypedArrayCreate
-TypedArrayCreateFromConstructor
 TypedArrayElementSize
 TypedArrayElementType
 TypedArrayGetElement
