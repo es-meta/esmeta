@@ -17,7 +17,21 @@ extension (ast: Ast)
     if ast =:= other then Difference.Identical
     else
       (ast, other) match
-        case (_: Hole, _) | (_, _: Hole) => ???
+        case (l: Hole, r: Lexical) =>
+          Difference.Diff(l, r)
+        case (l: Lexical, r: Hole) =>
+          Difference.Diff(l, r)
+        case (l: Hole, r: Syntactic) =>
+          Difference.Diff(l, r)
+        case (l: Syntactic, r: Hole) =>
+          Difference.Diff(l, r)
+
+        case (l: Hole, r: Hole) =>
+          val Hole(name1, args1, label1, _) = l
+          val Hole(name2, args2, label2, _) = r
+          val cond = name1 == name2 && args1 == args2 && label1 == label2
+          if cond then Difference.Identical
+          else Difference.Diff(l, r)
 
         case (l: Syntactic, r: Lexical) => Difference.Diff(l, r)
         case (l: Lexical, r: Syntactic) => Difference.Diff(l, r)
