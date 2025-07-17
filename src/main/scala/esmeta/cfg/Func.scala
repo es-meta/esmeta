@@ -145,7 +145,7 @@ case class Func(
     for {
       pdfPath <- pdfPathOpt
       e <- getError(executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath""""))
-    } error(s"""[DOT] [$name]: exception occurred while converting to pdf:
+    } raise(s"""[DOT] [$name]: exception occurred while converting to pdf:
                |
                |$e""".stripMargin)
 

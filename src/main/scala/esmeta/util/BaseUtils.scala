@@ -27,7 +27,7 @@ object BaseUtils {
   }
 
   /** throw a simple error */
-  def error(any: Any): Nothing = throw ESMetaError(any.toString)
+  def raise(any: Any): Nothing = throw ESMetaError(any.toString)
 
   /** show a warning message */
   def warn[T](x: T, showTrace: Boolean = false): T =
@@ -212,8 +212,8 @@ object BaseUtils {
     name: String = "element",
   ): T = iter.filter(f).toList match
     case List(elem) => elem
-    case Nil        => error(s"no $name")
-    case _          => error(s"multiple ${name}s")
+    case Nil        => raise(s"no $name")
+    case _          => raise(s"multiple ${name}s")
 
   /** escape a string into a shell string */
   def escapeToShellString(string: String): String =

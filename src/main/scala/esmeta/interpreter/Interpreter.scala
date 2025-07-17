@@ -15,7 +15,7 @@ import esmeta.spec.{
   BuiltinHead,
 }
 import esmeta.ty.*
-import esmeta.util.BaseUtils.{error => _, *}
+import esmeta.util.BaseUtils.{raise => _, *}
 import esmeta.util.SystemUtils.*
 import esmeta.{EVAL_LOG_DIR, LINE_SEP}
 import java.io.PrintWriter

@@ -68,7 +68,7 @@ class TypeSmallTest extends LangTest {
         if !pass
       } yield langType
       if (failedTypes.nonEmpty) {
-        error(
+        raise(
           s"failed to stringify ${failedTypes.size} types:" +
           failedTypes.map(LINE_SEP + "* " + _.ty.toString).mkString,
         )

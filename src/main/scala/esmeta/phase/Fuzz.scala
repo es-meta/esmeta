@@ -67,7 +67,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     (
       "debug",
       NumOption((c, k) =>
-        if (k < 0 || k > 2) error("invalid debug level: please set 0 to 2")
+        if (k < 0 || k > 2) raise("invalid debug level: please set 0 to 2")
         else c.debug = k,
       ),
       "turn on debug mode with level (0: no-debug, 1: partial, 2: all)",
