@@ -104,6 +104,8 @@ class StringifyTinyTest extends TyTest {
           "R" -> BoolT,
         ),
       ) -> "Record[{ P, Q : Number, R : Boolean, S }]",
+      FunctionT -> "Record[FunctionObject]",
+      ConstructorT -> "Record[Constructor]",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
       SymbolT -> "Record[Symbol]",

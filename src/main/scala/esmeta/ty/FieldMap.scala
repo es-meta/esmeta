@@ -56,7 +56,8 @@ case class FieldMap(map: Map[String, Binding])
   def apply(field: String): Binding = map.getOrElse(field, Binding.Top)
 
   /** field update */
-  def update(field: String, binding: Binding): FieldMap =
+  def +(pair: (String, Binding)): FieldMap =
+    val (field, binding) = pair
     FieldMap(map + (field -> binding))
 
   /** fields */
@@ -71,4 +72,7 @@ case class FieldMap(map: Map[String, Binding])
 object FieldMap extends Parser.From(Parser.fieldMap) {
   lazy val Top: FieldMap = FieldMap()
   def apply(fields: (String, Binding)*): FieldMap = FieldMap(fields.toMap)
+  def init(fields: String*): FieldMap = FieldMap(
+    fields.map(_ -> Binding.Init).toMap,
+  )
 }

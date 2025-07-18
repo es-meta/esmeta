@@ -884,7 +884,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             TypeGuard(guard)
           }
         case EExists(Field(x: Local, EStr(field))) =>
-          val binding = Binding.Exist
+          val binding = Binding.Init
           for {
             lv <- transfer(x)
             given AbsState <- get
@@ -1080,7 +1080,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             Field(Global("EXECUTION_STACK"), EMath(0)),
             EStr("Function"),
           ) if np.func.isBuiltin =>
-        AbsValue(RecordT("Constructor"))
+        AbsValue(ConstructorT)
       // a precise type for intrinsic objects
       case Field(Field(base, EStr("Intrinsics")), EStr(name)) =>
         for {
@@ -1607,7 +1607,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       field: String,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater =
-      refineField(x, field, Binding.Exist, positive)
+      refineField(x, field, Binding.Init, positive)
 
     /** refine types with `typeof` constraints */
     def refineType(
@@ -1726,7 +1726,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val refined = vs(1).ty.str.getSingle match
             case One(f) =>
               ValueTy(
-                record = ObjectT.record.update(f, Binding.Exist, refine = true),
+                record = ObjectT.record.update(f, Binding.Init, refine = true),
               )
             case _ => ObjectT
           val prov = Provenance(func)

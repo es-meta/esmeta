@@ -835,6 +835,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
           m -= "ThrowCompletion"
           tys :+= "throw completion".withArticle(article)
         }
+        for (fm <- m.get("Object")) {
+          if (fm == FieldMap.init("Call"))
+            m -= "Object"
+            tys :+= "function object".withArticle(article)
+          if (fm == FieldMap.init("Call", "Construct"))
+            m -= "Object"
+            tys :+= "constructor".withArticle(article)
+        }
         for ((name, _) <- m) {
           // split camel case with a space
           tys :+= name.split("(?=[A-Z])").mkString(" ").withArticle(article)
