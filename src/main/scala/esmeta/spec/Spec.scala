@@ -1,5 +1,6 @@
 package esmeta.spec
 
+import esmeta.*
 import esmeta.compiler.Compiler
 import esmeta.lang.*
 import esmeta.parser.{ESParser, AstFrom}
@@ -8,7 +9,6 @@ import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.Git
 import esmeta.util.HtmlUtils.*
-import esmeta.{error => ESMetaError, *}
 import org.jsoup.nodes.Document
 
 /** ECMAScript specifications (ECMA-262) */
@@ -77,7 +77,7 @@ case class Spec(
   def getAlgoById(id: String): Algorithm =
     algorithms.filter(_.elem.getId == id) match
       case algo :: Nil => algo
-      case _           => error(s"no algorithms found for $id")
+      case _           => raise(s"no algorithms found for $id")
 
   /** empty check */
   def isEmpty: Boolean =

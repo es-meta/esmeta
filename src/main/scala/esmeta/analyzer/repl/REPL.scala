@@ -128,7 +128,7 @@ trait ReplDecl { self: Self =>
             }
         }
       }) {}
-    } catch { case e: EndOfFileException => error("stop for debugging") }
+    } catch { case e: EndOfFileException => raise("stop for debugging") }
 
     // original control point
     private var origCp: Option[ControlPoint] = None

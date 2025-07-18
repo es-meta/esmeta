@@ -698,7 +698,7 @@ class Compiler(
               ),
             )
             xExpr
-          case _ => error(s"invalid math operation: $expr")
+          case _ => raise(s"invalid math operation: $expr")
       case ConversionExpression(op, expr) =>
         import ConversionExpressionOperator.*
         op match
@@ -798,7 +798,7 @@ class Compiler(
       case (Sin, List(e))      => EMathOp(MOp.Sin, List(e))
       case (Sqrt, List(e))     => EMathOp(MOp.Sqrt, List(e))
       case (Tan, List(e))      => EMathOp(MOp.Tan, List(e))
-      case _ => error(s"invalid math operationr: $op with $args")
+      case _ => raise(s"invalid math operationr: $op with $args")
 
   /** compile binary operators */
   def compile(op: BinaryExpressionOperator): BOp = op match
@@ -1068,7 +1068,7 @@ class Compiler(
     val algo = spec.fnameMap(fname)
     val names = args.map {
       case ERef(name: Name) => name
-      case e                => error(s"invalid arguments for shorthands: $e")
+      case e                => raise(s"invalid arguments for shorthands: $e")
     }
     val nameMap = (algo.head.funcParams.map(p => Name(p.name)) zip names).toMap
     val renameWalker = new IRWalker {
@@ -1193,7 +1193,7 @@ class Compiler(
     val (name, f) = pair
     name -> { (fb, args) =>
       optional(f(fb, args)).getOrElse(
-        error(s"invalid arguments: $name(${args.mkString(", ")})"),
+        raise(s"invalid arguments: $name(${args.mkString(", ")})"),
       )
     }
   }

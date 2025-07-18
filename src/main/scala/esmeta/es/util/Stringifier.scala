@@ -43,7 +43,7 @@ class Stringifier(
           case _ =>
             if (symbol.getNt.isDefined) cs.headOption match
               case Some(hd) => hd.map(aux); cs = cs.tail
-              case _        => error(s"invalid AST: $origAst")
+              case _        => raise(s"invalid AST: $origAst")
     aux(origAst)
     app
 

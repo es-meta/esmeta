@@ -372,7 +372,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "square root of " >> e
       case (Tan, List(e)) =>
         app >> "tangent of " >> e
-      case _ => error(s"invalid math operationr: $op with $args")
+      case _ => raise(s"invalid math operationr: $op with $args")
 
   // multiline expressions
   given multilineExprRule: Rule[MultilineExpression] = (app, expr) =>

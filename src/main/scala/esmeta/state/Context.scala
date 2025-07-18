@@ -3,7 +3,7 @@ package esmeta.state
 import esmeta.cfg.{Func, Node, Block, Call}
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.es.Ast
-import esmeta.util.BaseUtils.error
+import esmeta.util.BaseUtils.raise
 import scala.collection.mutable.{Map => MMap}
 
 /** IR contexts */
@@ -30,7 +30,7 @@ case class Context(
   def moveNode: Unit = cursor match
     case NodeCursor(_, block: Block, _) => cursor = Cursor(block.next, func)
     case NodeCursor(_, call: Call, _)   => cursor = Cursor(call.next, func)
-    case _                              => error("cursor can't move to next")
+    case _                              => raise("cursor can't move to next")
 
   /** return variable */
   var retVal: Option[(Return, Value)] = None
