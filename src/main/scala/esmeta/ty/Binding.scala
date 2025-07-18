@@ -32,12 +32,9 @@ case class Binding(
   def ||(that: => Binding): Binding =
     if (this eq that) this
     else
-      val uninit =
-        if (this == Binding.Absent && !that.absent && !that.value.isBottom) true
-        else this.uninit || that.uninit
       Binding(
         this.value || that.value,
-        uninit,
+        this.uninit || that.uninit,
         this.absent || that.absent,
       )
 

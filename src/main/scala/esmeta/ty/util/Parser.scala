@@ -187,9 +187,12 @@ trait Parsers extends BasicParsers {
 
   private lazy val singleRecordTy: Parser[RecordTy] = {
     import RecordTy.*
-    lazy val pair = opt(word) ~ opt(fieldMap) ^^ {
-      case k ~ v => (k.getOrElse(""), v.getOrElse(FieldMap.Top))
-    }
+    lazy val pair =
+      "FunctionObject" ^^^ ("Object" -> FieldMap.init("Call")) |
+      "Constructor" ^^^ ("Object" -> FieldMap.init("Call", "Construct")) |
+      opt(word) ~ opt(fieldMap) ^^ {
+        case k ~ v => (k.getOrElse(""), v.getOrElse(FieldMap.Top))
+      }
     "Record[" ~> repsep(pair, "|") <~ "]" ^^ {
       case fs => Elem(fs.toMap)
     } | "Record" ^^^ Top

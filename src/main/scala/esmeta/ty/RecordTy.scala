@@ -23,7 +23,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   def isBottom: Boolean = this == Bot
 
   /** partial order/subset operator */
-  def <=(that: => RecordTy): Boolean = (this eq that) || {
+  def <=(that: => RecordTy): Boolean = (this == that) || {
     (this, that) match
       case (Bot, _) | (_, Top)      => true
       case (Top, _) | (_, Bot)      => false
@@ -32,7 +32,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 
   /** union type */
   def ||(that: => RecordTy): RecordTy = (this, that) match
-    case _ if this eq that   => this
+    case _ if this == that   => this
     case (Bot, _) | (_, Top) => that
     case (Top, _) | (_, Bot) => this
     case (Elem(lmap), Elem(rmap)) =>
@@ -53,7 +53,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 
   /** intersection type */
   def &&(that: => RecordTy): RecordTy = (this, that) match
-    case _ if this eq that   => this
+    case _ if this == that   => this
     case (Bot, _) | (_, Top) => this
     case (Top, _) | (_, Bot) => that
     case (Elem(lm), Elem(rm)) =>
@@ -67,13 +67,12 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
         if (isSubTy(t, ls)) t -> fm
         else normalizedOf(t).fold(t -> fm)((u, ufm) => u -> (ufm && fm))
       }
-      val lns = lmap.keySet
-      val rns = rmap.keySet
       Elem(
         (for {
-          t <- lns.filter(isSubTy(_, rns)) ++ rns.filter(isSubTy(_, lns))
-          lfm = lmap.getOrElse(t, FieldMap.Top)
-          rfm = rmap.getOrElse(t, FieldMap.Top)
+          t <- lmap.keySet ++ rmap.keySet
+          ancestors = ancestorsOf(t)
+          (l, lfm) <- ancestors.filter(lmap.contains).map(l => l -> lmap(l))
+          (r, rfm) <- ancestors.filter(rmap.contains).map(r => r -> rmap(r))
           fm = lfm && rfm
           pair <- RecordTy.update(t, fm, refine = true)
         } yield pair)
@@ -190,6 +189,8 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     apply(names.toSet)
   def apply(names: Set[String]): RecordTy =
     apply(names.toList.map(_ -> FieldMap.Top).toMap)
+  def apply(name: String, fields: List[String]): RecordTy =
+    apply(name, fields.map(_ -> AnyT).toMap)
   def apply(name: String, fields: Map[String, ValueTy]): RecordTy =
     apply(
       fields.foldLeft(Map(name -> FieldMap.Top)) {
@@ -231,34 +232,40 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     field: String,
     bind: Binding,
     refine: Boolean,
-  ): Map[String, FieldMap] =
+  ): Map[String, FieldMap] = {
     val (t, fm) = pair
-    val existCheck = bind == Binding.Exist
-    val newBind = getField(t, field) && bind
-    if (newBind.isBottom)
+    val existCheck = bind == Binding.Init
+    val refined = bind && (if (refine) get(pair, field) else getField(t, field))
+    if (refined.isBottom)
+      // TODO check why this is needed and remove it if possible
       if (!refine && !(bind <= getField(baseOf(t), field))) Map(pair)
       else Map()
     else
-      val existBased = for {
-        map <- existRefinerOf.get(t)
-        u <- map.get(field)
-        if existCheck
-      } yield Set(u)
-      val set = existBased.getOrElse(
-        for {
-          map <- refinerOf(t).get(field).toSet
-          (_, u) <- map.filter { (ty, _) =>
-            existCheck || (newBind <= Binding(ty))
-          }
-        } yield u,
-      ) + t
-      val xs = set.toList.filter(x => !set.exists(y => isStrictSubTy(y, x)))
-      val refined = if (refine) get(pair, field) && bind else newBind
-      if (refined.isBottom) Map()
-      else xs.map(x => normalize(x -> fm.update(field, refined))).toMap
+      var newFM = fm + (field -> refined)
+      getPropRefiner(field) match
+        case Some(fs) =>
+          for (f <- fs) newFM += f -> (get(pair, f) && Binding.Init)
+          Map(normalize(t -> newFM))
+        case None =>
+          val set = (
+            for {
+              map <- refinerOf(t).get(field).toSet
+              (_, u) <- map.filter { (ty, _) =>
+                existCheck || (refined <= Binding(ty))
+              }
+            } yield u,
+          ) + t
+          val xs = set.toList.filter(x => !set.exists(y => isStrictSubTy(y, x)))
+          xs.map(x => normalize(x -> newFM)).toMap
+  }
 
   /** normalized type */
   private def normalize(pair: (String, FieldMap)): (String, FieldMap) =
     val (t, fm) = pair
-    t -> FieldMap(fm.map.filter { (f, elem) => !(getField(t, f) <= elem) })
+    t -> FieldMap(fm.map.flatMap { (f, elem) =>
+      val orig = getField(t, f)
+      if (orig <= elem) None
+      else if (orig.value <= elem.value) Some(f -> elem.copy(value = AnyT))
+      else Some(f -> elem)
+    })
 }

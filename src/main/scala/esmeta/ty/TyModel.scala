@@ -52,12 +52,12 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       }
   }
 
-  /** manual refiner */
-  lazy val existRefinerOf: Map[String, Map[String, String]] = Map(
-    "Object" -> Map(
-      "Call" -> "FunctionObject",
-      "Construct" -> "Constructor",
-    ),
+  /** refiner that requires propagation */
+  def getPropRefiner(field: String): Option[List[String]] =
+    propRefinerOf.get(field)
+  lazy val propRefinerOf: Map[String, List[String]] = Map(
+    "Call" -> Nil,
+    "Construct" -> List("Call"),
   )
 
   lazy val normalizedOf: String => Option[(String, FieldMap)] = cached { t =>
@@ -67,7 +67,7 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       fs = ownFieldsOf(t)
       nfm = elems.foldLeft(fm) { (fm, elem) =>
         val f = elem.name
-        fm.update(f, getField(p, f) && fs(f))
+        fm + (f -> (getField(p, f) && fs(f)))
       }
     } yield p -> nfm
   }

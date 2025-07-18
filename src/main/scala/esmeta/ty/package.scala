@@ -61,8 +61,8 @@ def ContT(nids: Int*): ValueTy =
   if (nids.isEmpty) BotT
   else ValueTy(cont = Fin(nids.toSet))
 lazy val ObjectT: ValueTy = RecordT("Object")
-lazy val FunctionT: ValueTy = RecordT("FunctionObject")
-lazy val ConstructorT: ValueTy = RecordT("Constructor")
+lazy val FunctionT: ValueTy = RecordT("Object", List("Call"))
+lazy val ConstructorT: ValueTy = RecordT("Object", List("Call", "Construct"))
 lazy val ArrayT: ValueTy = RecordT("Array")
 lazy val TypedArrayT: ValueTy = RecordT("TypedArray")
 lazy val RegExpT: ValueTy = RecordT("RegExp")
@@ -80,6 +80,8 @@ lazy val RealmT: ValueTy = RecordT("RealmRecord")
 lazy val RecordT: ValueTy = ValueTy(record = RecordTy.Top)
 def RecordT(names: Set[String]): ValueTy = ValueTy(record = RecordTy(names))
 def RecordT(names: String*): ValueTy = RecordT(names.toSet)
+def RecordT(name: String, fields: List[String]): ValueTy =
+  ValueTy(record = RecordTy(name, fields))
 def RecordT(name: String, fields: Map[String, ValueTy]): ValueTy =
   ValueTy(record = RecordTy(name, fields))
 def RecordT(name: String, fieldMap: FieldMap): ValueTy =

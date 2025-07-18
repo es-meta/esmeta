@@ -224,9 +224,18 @@ class Stringifier(
           mayOR >> "Throw"
           if (!fm.isTop) app >> " " >> fm
         }
-        if (m.nonEmpty)
+        var preds = Vector[(String, FieldMap)]()
+        for (fm <- m.get("Object")) {
+          if (fm == FieldMap.init("Call"))
+            m -= "Object"
+            preds :+= ("FunctionObject", FieldMap())
+          if (fm == FieldMap.init("Call", "Construct"))
+            m -= "Object"
+            preds :+= ("Constructor", FieldMap())
+        }
+        if (m.nonEmpty || preds.nonEmpty)
           if (prevExists) app >> OR
-          app >> "Record[" >> m.toList.sortBy(_._1) >> "]"
+          app >> "Record[" >> (m.toList ++ preds).sortBy(_._1) >> "]"
         else app
 
   /** AST value types */

@@ -1291,10 +1291,9 @@ trait Parsers extends IndentParsers {
     "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
       case fs => RecordT("", fs.map(_.name -> AnyT).toMap)
     } | opt("an " | "a ") ~> {
-      (
+      "function object" ^^^ FunctionT |
+      "constructor" ^^^ ConstructorT | (
         "ordinary object" |
-        "function object" |
-        "constructor" |
         "ECMAScript function object" |
         "built-in function object" |
         "Array exotic object" ^^^ "Array" |
