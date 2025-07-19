@@ -70,12 +70,6 @@ class Compiler(
   /** grammar */
   def grammar: Grammar = spec.grammar
 
-  /** list of function names which need to replace return step return to resumed
-    * step since they have no note step for that return
-    */
-  val fixReturnAOs =
-    List("GeneratorStart", "AsyncBlockStart", "AsyncGeneratorStart")
-
   /** list of function names which need to replace head to built-in when
     * creating closure (ex: Await)
     */
@@ -205,13 +199,13 @@ class Compiler(
     val name = algo.head.fname
     val params = algo.head.funcParams.map(compile)
     val retTy = compile(algo.retTy)
-    val needReturnComp = kind match
+    val needRetComp = kind match
       case SynDirOp if name.endsWith(".Evaluation") => true
       case Builtin                                  => true
       case _ if noReturnComp contains name          => false
       case _                                        => retTy.isCompletion
     val fb =
-      FuncBuilder(spec, kind, name, params, retTy, algo, None, needReturnComp)
+      FuncBuilder(spec, kind, name, params, retTy, algo, needRetComp)
     val prefix = algo.head match
       case head: BuiltinHead => getBuiltinPrefix(fb, head.params)
       case _                 => Nil
@@ -226,9 +220,83 @@ class Compiler(
       fb.addInst(ILet(compile(x), compile(fb, expr)))
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
-    case SetFieldsWithIntrinsicsStep(ref) =>
-      fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
-    case IfStep(cond, thenStep, elseStep) =>
+    case SetAsStep(ref, verb, id) =>
+      val expr = EClo(spec.getAlgoById(id).head.fname, Nil)
+      fb.addInst(IAssign(compile(fb, ref), expr))
+    case SetEvaluationStateStep(context, func, args) =>
+      val ctxt = compile(fb, context)
+      val contName = fb.nextContName
+      val contFB = FuncBuilder(
+        spec,
+        FuncKind.Cont,
+        contName,
+        Nil,
+        fb.retTy,
+        fb.algo,
+        fb.needRetComp,
+      )
+      val inst = contFB.newScope {
+        val x = compile(contFB, InvokeAbstractClosureExpression(func, args))
+        contFB.addReturnToResume(ctxt, x)
+      }
+      funcs += contFB.getFunc(inst)
+      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+    case PerformStep(expr) =>
+      val e = compile(fb, expr)
+      if (!e.isPure) fb.addInst(IExpr(e))
+    case InvokeShorthandStep(name, args) =>
+      val as = args.map(compile(fb, _))
+      val e = compileShorthand(fb, name, as)
+      if (!e.isPure) fb.addInst(IExpr(e))
+    case AppendStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
+    case PrependStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
+    case AddStep(expr, ref) =>
+      // TODO: current IR does not support a set data structure.
+      // AddStep represents an element addition to a set.
+      // We need to refactor this later.
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
+    case RemoveStep(target, prep, list) =>
+      import RemoveStep.Target.*
+      lazy val x = fb.newTId
+      lazy val l = compile(fb, list)
+      def aux(count: Option[Expression], front: Boolean): Unit = count match {
+        case None => fb.addInst(IPop(x, l, front))
+        case Some(expr) =>
+          val (i, iExpr) = fb.newTIdWithExpr
+          val (len, lenExpr) = fb.newTIdWithExpr
+          fb.addInst(
+            IAssign(i, zero),
+            IAssign(len, compile(fb, expr)),
+            IWhile(
+              lessThan(iExpr, lenExpr),
+              fb.newScope {
+                fb.addInst(
+                  IPop(x, l, front),
+                  IAssign(i, inc(iExpr)),
+                )
+              },
+            ),
+          )
+      }
+      target match
+        case First(count) => aux(count, front = true)
+        case Last(count)  => aux(count, front = false)
+        case Element(elem) =>
+          fb.addInst(ICall(x, AUX_REMOVE_ELEM, List(compile(fb, elem), l)))
+    case PushContextStep(ref) =>
+      fb.addInst(IPush(ERef(compile(fb, ref)), EGLOBAL_EXECUTION_STACK, true))
+    case SuspendStep(context, false) =>
+      fb.addInst(INop())
+    case SuspendStep(context, true) =>
+      val x = fb.newTId
+      fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
+    case RemoveContextStep(_, _) =>
+      fb.addInst(IPop(fb.newTId, EGLOBAL_EXECUTION_STACK, true))
+    case AssertStep(cond) =>
+      fb.addInst(IAssert(compile(fb, cond)))
+    case IfStep(cond, thenStep, elseStep, _) =>
       import CompoundConditionOperator.*
       // apply shortcircuit for invoke expression
       val condExpr = cond match
@@ -243,46 +311,22 @@ class Compiler(
               elseStep.fold(emptyInst)(compileWithScope(fb, _)),
             ),
           )
-    case ReturnStep(expr) =>
-      lazy val e = expr.fold(EUndef())(compile(fb, _))
-      (expr, fb.returnContext, fb.needReturnComp) match
-        case (Some(ReturnIfAbruptExpression(expr, check)), None, true) =>
-          if (check && !opt)
-            val e = returnIfAbrupt(fb, compile(fb, expr), check, false, true)
-          else
-            val e = returnIfAbrupt(fb, compile(fb, expr), check, true)
-            fb.addInst(IReturn(e))
-        case (_, None, true) =>
-          val e = expr.fold(EUndef())(compile(fb, _))
-          val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
-          val (y, yExpr) = fb.newTIdWithExpr
-          if (!x.isLiteral)
-            fb.addInst(
-              IIf(
-                isCompletion(x),
-                IReturn(x),
-                emptyInst,
-              ),
-            )
-          fb.addInst(
-            ICall(y, EClo("NormalCompletion", Nil), List(x)),
-            IReturn(yExpr),
-          )
-        case (_, None, false) =>
-          fb.addInst(IReturn(e))
-        case (_, Some(context), _) => fb.addReturnToResume(context, e)
-    case AssertStep(cond) =>
-      fb.addInst(IAssert(compile(fb, cond)))
-    case ForEachStep(ty, variable, expr, true, body) =>
+    case RepeatStep(cond, body) =>
+      import RepeatStep.LoopCondition.*
+      val expr = cond match
+        case NoCondition => EBool(true)
+        case While(cond) => compile(fb, cond)
+        case Until(cond) => not(compile(fb, cond))
+      fb.addInst(IWhile(expr, compileWithScope(fb, body)))
+    case ForEachStep(ty, variable, expr, forward, body) =>
       val (i, iExpr) = fb.newTIdWithExpr
       val (list, listExpr) = fb.newTIdWithExpr
       fb.addInst(
         IAssign(list, compile(fb, expr)),
-        IAssign(i, zero),
-      )
-      fb.addInst(
+        IAssign(i, if (forward) zero else dec(ESizeOf(listExpr))),
         IWhile(
-          lessThan(iExpr, ESizeOf(listExpr)),
+          if (forward) lessThan(iExpr, ESizeOf(listExpr))
+          else not(lessThan(iExpr, zero)),
           fb.newScope {
             val x = compile(variable)
             fb.addInst(ILet(x, toERef(list, iExpr)))
@@ -295,48 +339,30 @@ class Compiler(
                 ),
               )
             }
-            fb.addInst(IAssign(i, inc(iExpr)))
+            fb.addInst(IAssign(i, if (forward) inc(iExpr) else dec(iExpr)))
           },
         ),
       )
-    case ForEachStep(ty, variable, expr, false, body) =>
-      val (i, iExpr) = fb.newTIdWithExpr
-      val (list, listExpr) = fb.newTIdWithExpr
-      fb.addInst(
-        IAssign(list, compile(fb, expr)),
-        IAssign(i, ESizeOf(listExpr)),
-      )
-      fb.addInst(
-        IWhile(
-          lessThan(zero, iExpr),
-          fb.newScope {
-            fb.addInst(IAssign(i, sub(iExpr, one)))
-            val x = compile(variable)
-            fb.addInst(ILet(x, toERef(list, iExpr)))
-            ty.fold(compile(fb, body)) { ty =>
-              fb.addInst(
-                IIf(
-                  ETypeCheck(ERef(x), compile(ty)),
-                  compileWithScope(fb, body),
-                  emptyInst,
-                ),
-              )
-            }
-          },
-        ),
-      )
-    case ForEachIntegerStep(x, low, high, ascending, body) =>
-      val (start, end) = if (ascending) (low, high) else (high, low)
+    case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
+      val (start, startInc, end, endInc) =
+        if (ascending) (low, lowInc, high, highInc)
+        else (high, highInc, low, lowInc)
       val (i, iExpr) = compileWithExpr(x)
-      fb.addInst(ILet(i, compile(fb, start)))
+      val (y, yExpr) = fb.newTIdWithExpr
+      val s = compile(fb, start)
+      val e = compile(fb, end)
       fb.addInst(
+        ILet(i, if (startInc) s else if (ascending) dec(s) else inc(s)),
+        IAssign(y, e),
         IWhile(
-          if (ascending) not(lessThan(compile(fb, end), iExpr))
-          else not(lessThan(iExpr, compile(fb, end))),
+          if (ascending)
+            if (endInc) not(lessThan(yExpr, iExpr))
+            else lessThan(iExpr, yExpr)
+          else if (endInc) not(lessThan(iExpr, yExpr))
+          else lessThan(yExpr, iExpr),
           fb.newScope {
             compile(fb, body)
-            val op = if (ascending) add(_, _) else sub(_, _)
-            fb.addInst(IAssign(i, op(iExpr, one)))
+            fb.addInst(IAssign(i, if (ascending) inc(iExpr) else dec(iExpr)))
           },
         ),
       )
@@ -393,6 +419,23 @@ class Compiler(
           },
         ),
       )
+    case ReturnStep(ReturnIfAbruptExpression(expr, check)) if fb.needRetComp =>
+      val e = compile(fb, expr)
+      if (check && !opt) returnIfAbrupt(fb, e, check, false, true)
+      else fb.addInst(IReturn(returnIfAbrupt(fb, e, check, true)))
+      ()
+    case ReturnStep(expr) if fb.needRetComp =>
+      val e = compile(fb, expr)
+      val x = if (isPure(e)) e else fb.newTIdWithExpr(e)._2
+      val (y, yExpr) = fb.newTIdWithExpr
+      if (!x.isLiteral)
+        fb.addInst(IIf(isCompletion(x), IReturn(x), emptyInst))
+      fb.addInst(
+        ICall(y, EClo("NormalCompletion", Nil), List(x)),
+        IReturn(yExpr),
+      )
+    case ReturnStep(expr) =>
+      fb.addInst(IReturn(compile(fb, expr)))
     case ThrowStep(name) =>
       val (x, xExpr) = fb.newTIdWithExpr
       val (y, yExpr) = fb.newTIdWithExpr
@@ -402,46 +445,7 @@ class Compiler(
         ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
         IReturn(yExpr),
       )
-    case PerformStep(expr) =>
-      val e = compile(fb, expr)
-      if (!e.isPure) fb.addInst(IExpr(e))
-    case PerformBlockStep(StepBlock(steps)) =>
-      for (substep <- steps) compile(fb, substep.step)
-    case AppendStep(expr, ref) =>
-      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
-    case PrependStep(expr, ref) =>
-      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
-    case RepeatStep(cond, body) =>
-      fb.addInst(
-        IWhile(
-          cond.fold(EBool(true))(compile(fb, _)),
-          compileWithScope(fb, body),
-        ),
-      )
-    case PushCtxtStep(ref) =>
-      fb.addInst(IPush(ERef(compile(fb, ref)), EGLOBAL_EXECUTION_STACK, true))
-    case NoteStep(note) =>
-      fb.addInst(INop()) // XXX add edge to lang element
-    case SuspendStep(context, false) =>
-      fb.addInst(INop()) // XXX add edge to lang element
-    case SuspendStep(context, true) =>
-      val x = fb.newTId
-      fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
-    case RemoveStep(elem, list) =>
-      fb.addInst(
-        ICall(
-          fb.newTId,
-          AUX_REMOVE_ELEM,
-          List(compile(fb, elem), compile(fb, list)),
-        ),
-      )
-    case RemoveFirstStep(expr) =>
-      val x = fb.newTId
-      fb.addInst(IPop(x, compile(fb, expr), true))
-    case RemoveContextStep(_, _) =>
-      val x = fb.newTId
-      fb.addInst(IPop(x, EGLOBAL_EXECUTION_STACK, true))
-    case SetEvaluationStateStep(context, paramOpt, body) =>
+    case ResumeStep(_, arg, context, param, steps) =>
       val ctxt = compile(fb, context)
       val contName = fb.nextContName
       addFunc(
@@ -449,22 +453,22 @@ class Compiler(
           spec,
           FuncKind.Cont,
           contName,
-          toParams(paramOpt),
+          List(toParam(param)),
           fb.retTy,
           fb.algo,
-          if (fixReturnAOs contains fb.name) Some(ctxt) else None,
-          fb.needReturnComp,
+          fb.needRetComp,
         ),
-        body = body,
+        body = BlockStep(StepBlock(steps)),
       )
       fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+      fb.addReturnToResume(compile(fb, context), compile(fb, arg))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
       val ctxt = compile(fb, context)
       val returnCont = toStrRef(ctxt, "ReturnCont")
       val (eResumeCont, eReturnCont) =
         (toStrERef(ctxt, "ResumeCont"), ERef(returnCont))
       val contName = fb.nextContName
-      val ps = toParams(paramOpt)
+      val ps = toParams(paramOpt.map(_._1))
       val bodyStep = BlockStep(StepBlock(steps))
       addFunc(
         fb = FuncBuilder(
@@ -474,8 +478,7 @@ class Compiler(
           ps,
           fb.retTy,
           fb.algo,
-          None,
-          fb.needReturnComp,
+          fb.needRetComp,
         ),
         body = bodyStep,
       )
@@ -488,35 +491,25 @@ class Compiler(
         IPush(ECont(contName), eReturnCont, true),
         ICall(fb.newTId, eResumeCont, argOpt.map(compile(fb, _)).toList),
       )
-    case ResumeYieldStep(_, arg, context, param, steps) =>
-      val ctxt = compile(fb, context)
-      val contName = fb.nextContName
-      addFunc(
-        fb = FuncBuilder(
-          spec,
-          FuncKind.Cont,
-          contName,
-          List(toParam(param)),
-          fb.retTy,
-          fb.algo,
-          if (fixReturnAOs contains fb.name) Some(ctxt) else None,
-          fb.needReturnComp,
-        ),
-        body = BlockStep(StepBlock(steps)),
-      )
-      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
-      fb.addReturnToResume(compile(fb, context), compile(fb, arg))
-    case ReturnToResumeStep(context, retStep) =>
-      val arg = retStep.expr.fold(EUndef())(compile(fb, _))
-      fb.addReturnToResume(compile(fb, context), arg)
+    case ResumeTopContextStep() =>
+      fb.addInst(INop())
+    case NoteStep(note) =>
+      fb.addInst(INop())
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
       val yetStr = yet.toString(true, false)
       var inst = instRules.get(yetStr).getOrElse(IExpr(EYet(yetStr)))
-      if (fb.needReturnComp) inst = fb.returnModifier.walk(inst)
+      if (fb.needRetComp) inst = fb.returnModifier.walk(inst)
       unusedRules -= yetStr
       fb.addInst(inst)
+    // -------------------------------------------------------------------------
+    // special steps rarely used in the spec
+    // -------------------------------------------------------------------------
+    case SetFieldsWithIntrinsicsStep(ref, _) =>
+      fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
+    case PerformBlockStep(block, desc) =>
+      for (substep <- block.steps) compile(fb, substep.step)
   })
 
   /** compile local variable */
@@ -739,7 +732,7 @@ class Compiler(
               params.map(x => IRParam(compile(x), IRUnknownType, false)),
             )
         val retTy = IRUnknownType
-        val cloFB = FuncBuilder(spec, ck, cn, ps, retTy, fb.algo, None, true)
+        val cloFB = FuncBuilder(spec, ck, cn, ps, retTy, fb.algo, true)
         val prefix =
           if (hasPrefix)
             getBuiltinPrefix(cloFB, params.map(x => Param(x.name, UnknownType)))

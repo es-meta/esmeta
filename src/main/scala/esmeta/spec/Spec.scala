@@ -42,12 +42,10 @@ case class Spec(
   } yield step
 
   /** get incomplete algorithm steps */
-  lazy val incompleteSteps: List[Step] =
-    allSteps.filter(_.isInstanceOf[YetStep])
+  lazy val incompleteSteps: List[Step] = allSteps.filter(!_.complete)
 
   /** get complete algorithm steps */
-  lazy val completeSteps: List[Step] =
-    allSteps.filter(!_.isInstanceOf[YetStep])
+  lazy val completeSteps: List[Step] = allSteps.filter(_.complete)
 
   /** get all types */
   lazy val types: List[Type] = for {

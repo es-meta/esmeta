@@ -49,51 +49,83 @@ trait UnitWalker extends BasicUnitWalker {
     walk(name); walkList(values, walk)
 
   def walk(step: Step): Unit = step match {
-    case LetStep(x, expr) =>
-      walk(x); walk(expr)
-    case SetStep(x, expr) =>
-      walk(x); walk(expr)
-    case SetFieldsWithIntrinsicsStep(ref) =>
-      walk(ref)
-    case IfStep(cond, thenStep, elseStep) =>
-      walk(cond); walk(thenStep); walkOpt(elseStep, walk)
-    case ReturnStep(expr) =>
-      walkOpt(expr, walk)
-    case AssertStep(cond) =>
-      walk(cond)
-    case ForEachStep(ty, elem, expr, ascending, body) =>
-      walkOpt(ty, walk); walk(elem); walk(expr); walk(body)
-    case ForEachIntegerStep(x, low, high, ascending, body) =>
-      walk(x); walk(low); walk(high); walk(body)
+    case LetStep(x, expr)       => walk(x); walk(expr)
+    case SetStep(x, expr)       => walk(x); walk(expr)
+    case SetAsStep(x, verb, id) => walk(x); walk(verb); walk(id)
+    case SetEvaluationStateStep(base, func, args) =>
+      walk(base); walk(func); walkList(args, walk)
+    case PerformStep(expr)               => walk(expr)
+    case InvokeShorthandStep(name, args) => walk(name); walkList(args, walk)
+    case AppendStep(expr, ref)           => walk(expr); walk(ref)
+    case PrependStep(expr, ref)          => walk(expr); walk(ref)
+    case AddStep(expr, ref)              => walk(expr); walk(ref)
+    case RemoveStep(target, p, list)     => walk(target); walk(p); walk(list)
+    case PushContextStep(ref)            => walk(ref)
+    case SuspendStep(ref, remove)        => walkOpt(ref, walk); walk(remove)
+    case RemoveContextStep(ctxt, target) => walk(ctxt); walk(target)
+    case AssertStep(cond)                => walk(cond)
+    case IfStep(cond, thenStep, elseStep, config) =>
+      walk(cond); walk(thenStep); walkOpt(elseStep, walk); walk(config)
+    case RepeatStep(cond, body) => walk(cond); walk(body)
+    case ForEachStep(ty, elem, expr, forward, body) =>
+      walkOpt(ty, walk); walk(elem); walk(expr); walk(forward); walk(body)
+    case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
+      walk(x); walk(low); walk(lowInc); walk(high); walk(highInc); walk(body)
     case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
       walk(key); walk(obj); walk(cond); walk(body)
     case ForEachParseNodeStep(x, expr, body) =>
       walk(x); walk(expr); walk(body)
-    case ThrowStep(expr)         => walk(expr)
-    case PerformStep(expr)       => walk(expr)
-    case PerformBlockStep(block) => walk(block)
-    case AppendStep(expr, ref)   => walk(expr); walk(ref)
-    case PrependStep(expr, ref)  => walk(expr); walk(ref)
-    case RepeatStep(cond, body)  => walkOpt(cond, walk); walk(body)
-    case PushCtxtStep(ref)       => walk(ref)
-    case NoteStep(note)          =>
-    case SuspendStep(base, _)    => walk(base)
-    case RemoveStep(elem, list)  => walk(elem); walk(list)
-    case RemoveFirstStep(expr)   => walk(expr)
-    case RemoveContextStep(remove, restore) =>
-      walk(remove); walkOpt(restore, walk)
-    case SetEvaluationStateStep(base, p, body) =>
-      walk(base); walkOpt(p, walk); walk(body)
-    case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
-      walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walk); walkList(steps, walk)
-    case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
+    case ReturnStep(expr) => walk(expr)
+    case ThrowStep(expr)  => walk(expr)
+    case ResumeStep(callerCtxt, arg, genCtxt, param, steps) =>
       walk(callerCtxt); walk(arg); walk(genCtxt); walk(param);
       walkList(steps, walk)
-    case ReturnToResumeStep(base, retStep) =>
-      walk(base); walk(retStep)
-    case BlockStep(block) => walk(block)
-    case YetStep(expr)    => walk(expr)
+    case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
+      walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walkPair(_, walk, walk));
+      walkList(steps, walk)
+    case ResumeTopContextStep() =>
+    case NoteStep(note)         =>
+    case BlockStep(block)       => walk(block)
+    case YetStep(expr)          => walk(expr)
+    // -------------------------------------------------------------------------
+    // special steps rarely used in the spec
+    // -------------------------------------------------------------------------
+    case SetFieldsWithIntrinsicsStep(ref, desc) =>
+      walk(ref); walk(desc)
+    case PerformBlockStep(block, desc) =>
+      walk(block); walk(desc)
+    // -------------------------------------------------------------------------
+    // TODO refactor following code
+    // -------------------------------------------------------------------------
   }
+
+  def walk(target: RemoveStep.Target): Unit =
+    import RemoveStep.Target.*
+    target match {
+      case First(count)  => walkOpt(count, walk)
+      case Last(count)   => walkOpt(count, walk)
+      case Element(elem) => walk(elem)
+    }
+
+  def walk(target: RemoveContextStep.RestoreTarget): Unit =
+    import RemoveContextStep.RestoreTarget.*
+    target match {
+      case NoRestore    =>
+      case StackTop     =>
+      case Context(ref) => walk(ref)
+    }
+
+  def walk(cond: RepeatStep.LoopCondition): Unit =
+    import RepeatStep.LoopCondition.*
+    cond match {
+      case NoCondition =>
+      case While(cond) => walk(cond)
+      case Until(cond) => walk(cond)
+    }
+
+  def walk(config: IfStep.ElseConfig): Unit =
+    val IfStep.ElseConfig(newLine, keyword, comma) = config
+    walk(newLine); walk(keyword); walk(comma)
 
   def walk(expr: Expression): Unit = expr match {
     case StringConcatExpression(exprs) =>

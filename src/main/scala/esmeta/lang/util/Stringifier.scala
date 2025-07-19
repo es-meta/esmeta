@@ -25,6 +25,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: BinaryConditionOperator   => binCondOpRule(app, elem)
       case elem: ContainsConditionTarget   => containsTargetRule(app, elem)
       case elem: CompoundConditionOperator => compCondOpRule(app, elem)
+      case elem: MathOpExpressionOperator  => mathOpRule(app, elem)
+      case elem: BitwiseExpressionOperator => bitExprOpRule(app, elem)
     }
 
   // syntax
@@ -79,40 +81,82 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case SetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " to " >> expr
-      case SetFieldsWithIntrinsicsStep(ref) =>
-        app >> First("set fields of ") >> ref >> " with the values listed in "
-        app >> "<emu-xref href=\"#table-well-known-intrinsic-objects\">"
-        app >> "</emu-xref>."
-      case IfStep(cond, thenStep, elseStep) =>
+      case SetAsStep(x, verb, id) =>
+        given Rule[Expression] = endWithExprRule
+        app >> First("set ") >> x >> " as " >> verb >> " in "
+        xrefRule(app, id) >> "."
+      case SetEvaluationStateStep(context, func, args) =>
+        given Rule[List[Expression]] = argsRule(showNoArg = true)
+        app >> First("set the code evaluation state of ") >> context
+        app >> " such that when evaluation is resumed"
+        app >> " for that execution context, "
+        app >> func >> " will be called" >> args >> "."
+      case PerformStep(expr) =>
+        app >> First("perform ") >> expr >> "."
+      case InvokeShorthandStep(name, args) =>
+        given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
+        app >> name >> args >> "."
+      case AppendStep(expr, ref) =>
+        app >> First("append ") >> expr >> " to " >> ref >> "."
+      case PrependStep(expr, ref) =>
+        app >> First("prepend ") >> expr >> " to " >> ref >> "."
+      case AddStep(expr, ref) =>
+        app >> First("add ") >> expr >> " to " >> ref >> "."
+      case RemoveStep(target, prep, list) =>
+        app >> First("remove ") >> target >> " " >> prep >> " " >> list >> "."
+      case PushContextStep(ref) =>
+        app >> First("push ") >> ref >> " onto the execution context stack;"
+        app >> " " >> ref >> " is now the running execution context."
+      case SuspendStep(xOpt, remove) =>
+        app >> First("suspend ")
+        xOpt match
+          case Some(x) => app >> x
+          case None    => app >> "the running execution context"
+        if (remove) app >> " and remove it from the execution context stack"
+        app >> "."
+      case RemoveContextStep(context, restoreTarget) =>
+        app >> First("remove ") >> context
+        app >> " from the execution context stack" >> restoreTarget >> "."
+      case AssertStep(cond) =>
+        app >> First("assert: ") >> cond >> "."
+      case IfStep(cond, thenStep, elseStep, config) =>
+        val IfStep.ElseConfig(newLine, keyword, comma) = config
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
         app >> thenStep
-        elseStep match {
-          case Some(ifStep: IfStep)  => app :> "1. Else " >> ifStep
-          case Some(step: BlockStep) => app :> "1. Else," >> step
-          case Some(step)            => app :> "1. Else, " >> step
-          case None                  => app
+        elseStep.fold(app) { step =>
+          val k = keyword.toFirstUpper
+          if (newLine)
+            step match
+              case _: IfStep    => app :> "1. " >> k >> " " >> step
+              case _: BlockStep => app :> "1. " >> k >> "," >> step
+              case _            => app :> "1. " >> k >> ", " >> step
+          else
+            app >> " " >> keyword.toFirstUpper
+            app >> (if (comma) ", " else " ") >> step
         }
-      case ReturnStep(expr) =>
-        given Rule[Expression] = endWithExprRule
-        app >> First("return")
-        expr match {
-          case None    => app >> "."
-          case Some(e) => app >> " " >> e
-        }
-      case AssertStep(cond) =>
-        app >> First("assert: ") >> cond >> "."
-      case ForEachStep(ty, elem, expr, ascending, body) =>
+      case RepeatStep(cond, body) =>
+        import RepeatStep.LoopCondition.*
+        app >> First("repeat, ")
+        cond match
+          case NoCondition =>
+          case While(c)    => app >> "while " >> c >> ","
+          case Until(c)    => app >> "until " >> c >> ","
+        app >> body
+      case ForEachStep(ty, elem, expr, forward, body) =>
         app >> First("for each ")
         given Rule[Type] = getTypeRule(ArticleOption.No)
-        ty.map(app >> _ >> " ")
+        ty match
+          case Some(ty) => app >> ty >> " "
+          case None     => app >> "element "
         app >> elem >> " of " >> expr >> ", "
-        if (!ascending) app >> "in reverse List order, "
+        if (!forward) app >> "in reverse List order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
-      case ForEachIntegerStep(x, low, high, ascending, body) =>
-        app >> First("for each integer ") >> x >> " such that " >> low
-        app >> " ≤ " >> x >> " ≤ " >> high >> ", in "
+      case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
+        def op(inc: Boolean): String = if (inc) " ≤ " else " < "
+        app >> First("for each integer ") >> x >> " such that "
+        app >> low >> op(lowInc) >> x >> op(highInc) >> high >> ", in "
         app >> (if (ascending) "ascending" else "descending") >> " order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
@@ -131,68 +175,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ForEachParseNodeStep(x, expr, body) =>
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
-      case ThrowStep(expr) =>
-        app >> First("throw a *") >> expr >> "* exception."
-      case PerformStep(expr) =>
-        app >> First("perform ") >> expr >> "."
-      case PerformBlockStep(block) =>
-        app >> First("perform ")
-        app >> "the following substeps in an implementation-defined order:"
-        app >> block
-      case AppendStep(expr, ref) =>
-        app >> First("append ") >> expr >> " to " >> ref >> "."
-      case PrependStep(expr, ref) =>
-        app >> First("prepend ") >> expr >> " to " >> ref >> "."
-      case RepeatStep(cond, body) =>
-        app >> First("repeat, ")
-        for { c <- cond } app >> "while " >> c >> ","
-        app >> body
-      case PushCtxtStep(ref) =>
-        app >> First("push ") >> ref >> " onto the execution context stack;"
-        app >> " " >> ref >> " is now the running execution context."
-      case NoteStep(note) =>
-        app >> "NOTE: " >> note
-      case SuspendStep(context, remove) =>
-        app >> First("suspend ") >> context
-        if (remove) app >> " and remove it from the execution context stack"
-        app >> "."
-      case RemoveStep(elem, list) =>
-        app >> First("remove ") >> elem >> " from " >> list >> "."
-      case RemoveFirstStep(expr) =>
-        app >> First("remove") >> " the first element from " >> expr >> "."
-      case RemoveContextStep(removeCtxt, restoreCtxt) =>
-        app >> First("remove ") >> removeCtxt
-        app >> " from the execution context stack"
-        app >> " and restore "
-        restoreCtxt match
-          case None =>
-            app >> "the execution context that is "
-            app >> "at the top of the execution context stack"
-          case Some(ctxt) => app >> ctxt
-        app >> " as the running execution context."
-      case SetEvaluationStateStep(context, param, step) =>
-        app >> First("set the code evaluation state of ") >> context >> " "
-        app >> "such that when evaluation is resumed "
-        param match
-          case None    => app >> "for that execution context "
-          case Some(p) => app >> "with a " >> p >> " "
-        app >> "the following steps will be performed:" >> step
-      case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
-        given Rule[Step] = stepWithUpperRule(true)
-        app >> """<emu-meta effects="user-code">"""
-        app >> "Resume the suspended evaluation of " >> context
-        app >> "</emu-meta>"
-        for (arg <- argOpt)
-          app >> " using " >> arg
-          app >> " as the result of the operation that suspended it"
-        app >> "."
-        for (param <- paramOpt)
-          app >> " Let " >> param
-          app >> " be the value returned by the resumed computation."
-        for (step <- body)
-          app :> "1. " >> step // TODO
-        app
-      case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
+      case ReturnStep(expr) =>
+        given Rule[Expression] = endWithExprRule
+        app >> First("return ") >> expr
+      case ThrowStep(name) =>
+        app >> First("throw ")
+        app >> ("*" + name + "*").withIndefArticle >> " exception."
+      case ResumeStep(callerCtxt, arg, genCtxt, param, steps) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> "Resume " >> callerCtxt >> " passing " >> arg >> ". "
         app >> "If " >> genCtxt >> " is ever resumed again, "
@@ -200,18 +189,69 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the Completion Record with which it is resumed."
         for (step <- steps) app :> "1. " >> step
         app
-      case ReturnToResumeStep(context, retStep) =>
+      case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
         given Rule[Step] = stepWithUpperRule(true)
-        app >> retStep
-        app :> "1. NOTE: This returns to the evaluation of the operation "
-        app >> "that had most previously resumed evaluation of "
-        app >> context >> "."
+        effect(app) {
+          app >> "Resume the suspended evaluation of " >> context
+        }
+        for (arg <- argOpt)
+          app >> " using " >> arg
+          app >> " as the result of the operation that suspended it"
+        app >> "."
+        for ((param, kind) <- paramOpt)
+          app >> " Let " >> param
+          app >> " be the " >> kind >> " returned by the resumed computation."
+        for (step <- body)
+          app :> "1. " >> step
+        app
+      case ResumeTopContextStep() =>
+        app >> "Resume the context that is now on the top of the "
+        app >> "execution context stack as the running execution context."
+      case NoteStep(note) =>
+        app >> "NOTE: " >> note
       case BlockStep(block) =>
         app >> block
       case YetStep(expr) =>
         app >> expr
+      // -----------------------------------------------------------------------
+      // special steps rarely used in the spec
+      // -----------------------------------------------------------------------
+      case SetFieldsWithIntrinsicsStep(ref, desc) =>
+        app >> First("set fields of ") >> ref >> " with the values listed in "
+        xrefRule(app, "table-well-known-intrinsic-objects") >> "."
+        app >> " " >> desc
+      case PerformBlockStep(block, desc) =>
+        app >> First("perform ")
+        app >> "the following substeps in an implementation-defined order"
+        if (desc.nonEmpty) app >> ", " >> desc
+        app >> ":" >> block
     }
   }
+
+  given removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
+    import RemoveStep.Target
+    given Rule[Option[Expression]] = (app, expr) =>
+      expr match
+        case Some(e) => app >> e >> " elements"
+        case None    => app >> "element"
+    target match
+      case Target.First(count)  => app >> "the first " >> count
+      case Target.Last(count)   => app >> "the last " >> count
+      case Target.Element(expr) => app >> expr
+  }
+
+  given removeCtxtStepRestoreTargetRule: Rule[RemoveContextStep.RestoreTarget] =
+    (app, target) => {
+      import RemoveContextStep.RestoreTarget.*
+      target match
+        case NoRestore => app
+        case StackTop =>
+          app >> " and restore the execution context that is "
+          app >> "at the top of the execution context stack"
+          app >> " as the running execution context"
+        case Context(ref) =>
+          app >> " and restore " >> ref >> " as the running execution context"
+    }
 
   // ForEachOwnPropertyKeyStepOrder
   given ForEachOwnPropertyKeyStepOrderRule
@@ -225,7 +265,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   private case class First(str: String)
   private def firstRule(upper: Boolean): Rule[First] = (app, first) => {
     val First(str) = first
-    app >> (if (upper) str.head.toUpper else str.head) >> str.substring(1)
+    app >> (if (upper) str.toFirstUpper else str)
   }
   private def endWithExprRule: Rule[Expression] = (app, expr) => {
     expr match {
@@ -281,7 +321,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case IntrinsicExpression(intr) =>
         app >> intr
       case XRefExpression(kind, id) =>
-        app >> kind >> " <emu-xref href=\"#" >> id >> "\"></emu-xref>"
+        xrefRule(app >> kind >> " ", id)
       case expr: CalcExpression =>
         calcExprRule(app, expr)
       case ClampExpression(target, lower, upper) =>
@@ -318,60 +358,60 @@ class Stringifier(detail: Boolean, location: Boolean) {
   lazy val mathOpExprRule: Rule[MathOpExpression] = (app, expr) =>
     import MathOpExpressionOperator.*
     val MathOpExpression(op, args) = expr
-    app >> "the "
+    app >> "the " >> op >> " "
     (op, args) match
       case (Neg, List(e)) =>
-        app >> "negation of " >> e
+        app >> e
       case (Add, List(l, r)) =>
-        app >> "sum of " >> l >> " and " >> r
+        app >> l >> " and " >> r
       case (Mul, List(l, r)) =>
-        app >> "product of " >> l >> " and " >> r
+        app >> l >> " and " >> r
       case (Sub, List(l, r)) =>
-        app >> "difference " >> l >> " minus " >> r
+        app >> l >> " minus " >> r
       case (Pow, List(l, r)) =>
-        app >> "raising " >> l >> " to the " >> r >> " power"
+        app >> l >> " to the " >> r >> " power"
       case (Expm1, List(e)) =>
-        app >> "subtracting 1 from the exponential function of " >> e
+        app >> e
       case (Log10, List(e)) =>
-        app >> "base 10 logarithm of " >> e
+        app >> e
       case (Log2, List(e)) =>
-        app >> "base 2 logarithm of " >> e
+        app >> e
       case (Cos, List(e)) =>
-        app >> "cosine of " >> e
+        app >> e
       case (Cbrt, List(e)) =>
-        app >> "cube root of " >> e
+        app >> e
       case (Exp, List(e)) =>
-        app >> "exponential function of " >> e
+        app >> e
       case (Cosh, List(e)) =>
-        app >> "hyperbolic cosine of " >> e
+        app >> e
       case (Sinh, List(e)) =>
-        app >> "hyperbolic sine of " >> e
+        app >> e
       case (Tanh, List(e)) =>
-        app >> "hyperbolic tangent of " >> e
+        app >> e
       case (Acos, List(e)) =>
-        app >> "inverse cosine of " >> e
+        app >> e
       case (Acosh, List(e)) =>
-        app >> "inverse hyperbolic cosine of " >> e
+        app >> e
       case (Asinh, List(e)) =>
-        app >> "inverse hyperbolic sine of " >> e
+        app >> e
       case (Atanh, List(e)) =>
-        app >> "inverse hyperbolic tangent of " >> e
+        app >> e
       case (Asin, List(e)) =>
-        app >> "inverse sine of " >> e
+        app >> e
       case (Atan2, List(x, y)) =>
-        app >> "inverse tangent of the quotient " >> x >> " / " >> y
+        app >> x >> " / " >> y
       case (Atan, List(e)) =>
-        app >> "inverse tangent of " >> e
+        app >> e
       case (Log1p, List(e)) =>
-        app >> "natural logarithm of 1 + " >> e
+        app >> e
       case (Log, List(e)) =>
-        app >> "natural logarithm of " >> e
+        app >> e
       case (Sin, List(e)) =>
-        app >> "sine of " >> e
+        app >> e
       case (Sqrt, List(e)) =>
-        app >> "square root of " >> e
+        app >> e
       case (Tan, List(e)) =>
-        app >> "tangent of " >> e
+        app >> e
       case _ => raise(s"invalid math operationr: $op with $args")
 
   // multiline expressions
@@ -565,21 +605,26 @@ class Stringifier(detail: Boolean, location: Boolean) {
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> base >> args
       case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         // handle Evaluation
         if (name == "Evaluation") app >> "the result of evaluating " >> base
         // XXX handle Contains, Contains always takes one argument
         else if (name == "Contains") app >> base >> " Contains " >> args.head
         // Otherwise
         else {
-          app >> name >> " of " >> base
-          if (!args.isEmpty) {
-            app >> " with argument" >> (if (args.length > 1) "s " else " ")
-            app >> args
-          }
+          given Rule[List[Expression]] = argsRule(showNoArg = false)
+          app >> name >> " of " >> base >> args
         }
         app
     }
+
+  def argsRule(showNoArg: Boolean): Rule[List[Expression]] = (app, args) => {
+    given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+    if (!args.isEmpty)
+      app >> " with argument" >> (if (args.length > 1) "s " else " ")
+      app >> args
+    else if (showNoArg) app >> " with no arguments"
+    else app
+  }
 
   // conditions
   given condRule: Rule[Condition] = withLoc { (app, cond) =>
@@ -713,6 +758,39 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Or    => "or"
       case Imply => "then" // XXX not used
     })
+  }
+
+  // operators for mathematical operations
+  given mathOpRule: Rule[MathOpExpressionOperator] = (app, op) => {
+    import MathOpExpressionOperator.*
+    app >> (op match
+      case Neg   => "negation of"
+      case Add   => "sum of"
+      case Mul   => "product of"
+      case Sub   => "difference"
+      case Pow   => "raising"
+      case Expm1 => "subtracting 1 from the exponential function of"
+      case Log10 => "base 10 logarithm of"
+      case Log2  => "base 2 logarithm of"
+      case Cos   => "cosine of"
+      case Cbrt  => "cube root of"
+      case Exp   => "exponential function of"
+      case Cosh  => "hyperbolic cosine of"
+      case Sinh  => "hyperbolic sine of"
+      case Tanh  => "hyperbolic tangent of"
+      case Acos  => "inverse cosine of"
+      case Acosh => "inverse hyperbolic cosine of"
+      case Asinh => "inverse hyperbolic sine of"
+      case Atanh => "inverse hyperbolic tangent of"
+      case Asin  => "inverse sine of"
+      case Atan2 => "inverse tangent of the quotient"
+      case Atan  => "inverse tangent of"
+      case Log1p => "natural logarithm of 1 +"
+      case Log   => "natural logarithm of"
+      case Sin   => "sine of"
+      case Sqrt  => "square root of"
+      case Tan   => "tangent of"
+    )
   }
 
   // references
@@ -942,4 +1020,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (neg) res + "not " else res
   private def hasStr(neg: Boolean): String =
     if (neg) " does not have " else " has "
+
+  // xref
+  private lazy val xrefRule: Rule[String] = (app, id) =>
+    app >> "<emu-xref href=\"#" >> id >> "\"></emu-xref>"
+
+  // user-code effects
+  def effect(app: Appender)(body: => Unit): Appender = {
+    app >> "<emu-meta effects=\"user-code\">"
+    body
+    app >> "</emu-meta>"
+  }
 }

@@ -33,11 +33,11 @@ case class Algorithm(
 
   /** get incomplete algorithm steps */
   lazy val incompleteSteps: List[Step] =
-    steps.filter(_.isInstanceOf[YetStep])
+    steps.filter(!_.complete)
 
   /** get complete algorithm steps */
   lazy val completeSteps: List[Step] =
-    steps.filter(!_.isInstanceOf[YetStep])
+    steps.filter(_.complete)
 
   /** normalized code */
   lazy val normalizedCode = Algorithm.normalizeCode(code)

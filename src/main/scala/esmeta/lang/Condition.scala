@@ -3,7 +3,13 @@ package esmeta.lang
 import esmeta.lang.util.*
 
 // metalanguage conditions
-sealed trait Condition extends Syntax
+sealed trait Condition extends Syntax {
+
+  /** check whether it is complete */
+  def complete: Boolean = this match
+    case ExpressionCondition(_: YetExpression) => false
+    case _                                     => true
+}
 object Condition extends Parser.From(Parser.cond)
 
 // expression conditions

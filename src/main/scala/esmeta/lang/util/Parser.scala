@@ -55,109 +55,182 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given step: PL[Step] = {
     letStep |
-    setEvalStateStep |
     setStep |
-    setFieldsWithIntrinsicsStep |
+    setAsStep |
+    setEvalStateStep |
     performStep |
-    performBlockStep |
-    returnToResumedStep |
-    returnStep |
-    assertStep |
-    throwStep |
+    invokeShorthandStep |
     appendStep |
     prependStep |
-    repeatStep |
+    addStep |
+    removeStep |
     pushCtxtStep |
-    noteStep |
     suspendStep |
-    removeElemStep |
-    removeFirstStep |
     removeCtxtStep |
+    assertStep |
     ifStep |
-    forEachOwnPropertyKeyStep |
-    forEachIntStep |
-    forEachParseNodeStep |
+    repeatStep |
     forEachStep |
+    forEachIntStep |
+    forEachOwnPropertyKeyStep |
+    forEachParseNodeStep |
+    returnStep |
+    throwStep |
     resumeStep |
-    resumeYieldStep |
-    blockStep
+    resumeEvalStep |
+    resumeTopCtxtStep |
+    noteStep |
+    blockStep |
+    specialStep
   }.named("lang.Step")
 
   // let steps
   lazy val letStep: PL[LetStep] =
-    ("let" ~> variable <~ "be") ~ opt(
-      "the" ~> langType <~ "that is the value of",
-    ) ~ endWithExpr ^^ { case x ~ _ ~ e => LetStep(x, e) }
+    ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
 
   // set steps
   lazy val setStep: PL[SetStep] =
-    ("set" ~> ref <~ ("as" | "to")) ~ endWithExpr ^^ {
-      case r ~ e => SetStep(r, e)
+    ("set" ~> ref) ~ ("to" ~> endWithExpr) ^^ { case r ~ e => SetStep(r, e) }
+
+  // set-as steps
+  lazy val setAsStep: PL[SetAsStep] =
+    val verb = "specified" | "described"
+    ("set" ~> ref) ~ ("as" ~> verb) ~ ("in" ~> xrefId <~ end) ^^ {
+      case r ~ v ~ x => SetAsStep(r, v, x)
     }
 
-  // set fields with intrinsics
-  lazy val setFieldsWithIntrinsicsStep: PL[SetFieldsWithIntrinsicsStep] =
-    "set fields of" ~> ref <~ (
-      "with the values listed in" ~
-      "<emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>." ~
-      ".*".r
-    ) ^^ { SetFieldsWithIntrinsicsStep(_) }
+  // set-eval-state steps
+  lazy val setEvalStateStep: PL[SetEvaluationStateStep] =
+    ("set the code evaluation state of " ~> ref <~
+    "such that when evaluation is resumed for that execution context,") ~
+    (variable <~ "will be called") ~ (argsPart <~ ".") ^^ {
+      case c ~ f ~ a => SetEvaluationStateStep(c, f, a)
+    }
 
-  // if-then-else steps
-  lazy val ifStep: PL[IfStep] = {
-    ("if" ~> cond <~ "," ~ opt("then")) ~
-    (step | yetStep) ~
-    opt(
-      opt(subStepPrefix) ~
-      ("else" | "otherwise") ~ opt(",") ~>
-      (step | yetStep),
-    )
-  } ^^ { case c ~ t ~ e => IfStep(c, t, e) }
+  // perform steps
+  lazy val performStep: PL[PerformStep] =
+    "perform" ~> expr <~ end ^^ { PerformStep(_) }
 
-  // return steps
-  lazy val returnStep: PL[ReturnStep] =
-    "return" ~> end ^^! ReturnStep(None) |
-    "return" ~> endWithExpr ^^ { case e => ReturnStep(Some(e)) }
+  // invoke shorthand steps
+  lazy val invokeShorthandStep: PL[InvokeShorthandStep] =
+    opName ~ invokeArgs <~ end ^^ { case f ~ as => InvokeShorthandStep(f, as) }
+
+  // append steps
+  lazy val appendStep: PL[AppendStep] =
+    "append" ~> expr ~ ("to" ~ opt("the end of") ~> ref) <~ end
+    ^^ { case e ~ r => AppendStep(e, r) }
+
+  // prepend steps
+  lazy val prependStep: PL[PrependStep] =
+    "prepend" ~> expr ~ ("to" ~> ref) <~ end
+    ^^ { case e ~ r => PrependStep(e, r) }
+
+  // add steps
+  lazy val addStep: PL[AddStep] =
+    ("add" ~> expr) ~ ("to" ~> ref) <~ end ^^ { case e ~ r => AddStep(e, r) }
+
+  // remove step
+  lazy val removeStep: PL[RemoveStep] =
+    import RemoveStep.Target.*
+    lazy val count: Parser[Option[Expression]] =
+      expr <~ "elements" ^^ { Some(_) } |
+      "element" ^^^ None
+    lazy val target: Parser[RemoveStep.Target] =
+      "the first" ~> count ^^ { First(_) } |
+      "the last" ~> count ^^ { Last(_) } |
+      expr ^^ { Element(_) }
+    "remove" ~> target ~ ("from" | "of") ~ expr <~ end ^^ {
+      case t ~ p ~ l => RemoveStep(t, p, l)
+    }
+
+  // push context steps
+  lazy val pushCtxtStep: PL[PushContextStep] =
+    "push" ~> ref <~
+    "onto the execution context stack;" ~ ref ~
+    "is now the running execution context" ~ end
+    ^^ { case r => PushContextStep(r) }
+
+  // suspend steps
+  lazy val suspendStep: PL[SuspendStep] =
+    "suspend" ~> (
+      variable ^^ { Some(_) } |
+      "the running execution context" ^^^ None
+    ) ~ opt("and remove it from the execution context stack") <~ end ^^ {
+      case x ~ r => SuspendStep(x, r.isDefined)
+    }
+
+  // remove execution context step
+  lazy val removeCtxtStep: PL[RemoveContextStep] =
+    import RemoveContextStep.RestoreTarget.*
+    val restoreTarget: Parser[RemoveContextStep.RestoreTarget] = {
+      "and restore the execution context that is" ~
+      "at the top of the execution context stack" ~
+      "as the running execution context" ^^^ StackTop |
+      "and restore" ~> ref <~
+      "as the running execution context" ^^ { Context(_) } |
+      "" ^^^ NoRestore
+    }
+    ("remove" ~> ref <~ "from the execution context stack") ~
+    restoreTarget <~ end ^^ { case x ~ t => RemoveContextStep(x, t) }
 
   // assertion steps
-  lazy val assertStep: PL[AssertStep] =
-    "assert" ~ ":" ~> (
-      (upper ~> cond <~ end) |
-      ".+\\.".r ^^ { case s => ExpressionCondition(YetExpression(s, None)) }
-    ) ^^ { AssertStep(_) }
+  lazy val assertStep: PL[AssertStep] = "assert" ~ ":" ~> {
+    (upper ~> cond <~ end) |
+    yetCond(".")
+  } ^^ { AssertStep(_) }
+
+  // if-then-else steps
+  lazy val ifStep: PL[IfStep] =
+    val ifPart = "if" ~> (
+      (cond <~ ",") <~ opt("then") |
+      yetCond(", then")
+    ) ~ (step | yetStep)
+    val elsePart =
+      exists(subStepPrefix) ~
+      ("else" | "otherwise") ~
+      exists(",") ~
+      (step | yetStep)
+    ifPart ~ opt(elsePart) ^^ {
+      case c ~ t ~ es =>
+        import IfStep.ElseConfig
+        val (e, config) = es match
+          case Some(n ~ k ~ c ~ e) =>
+            (Some(e), ElseConfig(n, k.toFirstLower, c))
+          case None => (None, ElseConfig())
+        IfStep(c, t, e, config)
+    }
+
+  // repeat steps
+  lazy val repeatStep: PL[RepeatStep] =
+    import RepeatStep.LoopCondition.*
+    ("repeat" ~ ",") ~> (
+      "while" ~> cond <~ "," ^^ { While(_) } |
+      "until" ~> cond <~ "," ^^ { Until(_) } |
+      "" ^^^ NoCondition
+    ) ~ step ^^ {
+      case c ~ s => RepeatStep(c, s)
+    }
 
   // for-each steps
   lazy val forEachStep: PL[ForEachStep] =
-    lazy val ascending: Parser[Boolean] =
-      opt("in reverse List order,") ^^ { !_.isDefined }
-    ("for each" ~ opt("element") ~> opt(langType)) ~ variable ~
-    ("of" ~> expr) ~ ("," ~> ascending) ~ (opt("do") ~> step) ^^ {
-      case t ~ r ~ e ~ a ~ s =>
-        ForEachStep(t, r, e, a, s)
+    val elemType = langType ^^ { Some(_) } | opt("element") ^^^ None
+    val backward = exists("in reverse List order,")
+    ("for each" ~> elemType) ~ variable ~
+    ("of" ~> expr) ~ ("," ~> backward) ~
+    (opt("do") ~> step) ^^ {
+      case t ~ r ~ e ~ b ~ s => ForEachStep(t, r, e, !b, s)
     }
 
   // for-each steps for integers
   lazy val forEachIntStep: PL[ForEachIntegerStep] =
     import MathOpExpressionOperator.Sub
-    lazy val upper: Parser[Expression] =
-      "≤" ~> calcExpr |
-      "<" ~> calcExpr ^^ { e => MathOpExpression(Sub, List(e, one)) }
-    lazy val interval: Parser[(Expression, Expression)] =
-      ("starting with" ~> expr) ~ ("such that" ~ variable ~> (
-        "≤" ^^^ { (x: CalcExpression) => x } |
-        "<" ^^^ { BinaryExpression(_, BinaryExpressionOperator.Sub, one) }
-      ) ~ calcExpr) ^^ {
-        case l ~ (f ~ h) => (l, f(h))
-      } | ("such that" ~> calcExpr <~ "≤" ~ variable) ~ upper ^^ {
-        case l ~ h => (l, h)
-      }
-    lazy val ascending: Parser[Boolean] = opt(
-      ", in" ~> ("ascending" ^^^ true | "descending" ^^^ false) <~ "order,",
-    ) ^^ { _.getOrElse(true) }
-    ("for each" ~ "(non-negative )?integer".r ~> variable) ~
-    interval ~ ascending ~ (opt("do") ~> step) ^^ {
-      case x ~ (low, high) ~ asc ~ body =>
-        ForEachIntegerStep(x, low, high, asc, body)
+    lazy val op = "≤" ^^^ true | "<" ^^^ false
+    lazy val interval = "such that" ~> calcExpr ~ op ~ variable ~ op ~ calcExpr
+    lazy val ascending = "ascending" ^^^ true | "descending" ^^^ false
+    ("for each integer" ~> variable) ~ interval ~
+    (", in" ~> ascending <~ "order,") ~ (opt("do") ~> step) ^^ {
+      case x ~ (l ~ li ~ _ ~ hi ~ h) ~ asc ~ body =>
+        ForEachIntegerStep(x, l, li, h, hi, asc, body)
     }
 
   // for-each steps for OwnPropertyKey
@@ -170,9 +243,7 @@ trait Parsers extends IndentParsers {
       "chronological order of property creation" ^^^ ChronologicalOrder
     ("for each own property key" ~> variable) ~
     ("of" ~> variable <~ "such that") ~
-    cond ~
-    (", in" ~> ascending) ~
-    order ~
+    cond ~ (", in" ~> ascending) ~ order ~
     ("," ~ opt("do") ~> step) ^^ {
       case k ~ x ~ c ~ a ~ o ~ b => ForEachOwnPropertyKeyStep(k, x, c, a, o, b)
     }
@@ -184,147 +255,44 @@ trait Parsers extends IndentParsers {
       case x ~ e ~ body => ForEachParseNodeStep(x, e, body)
     }
 
+  // return steps
+  lazy val returnStep: PL[ReturnStep] =
+    "return" ~> endWithExpr ^^ { ReturnStep(_) }
+
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
-    lazy val errorName =
-      "*" ~> word.filter(_.endsWith("Error")) <~ "*"
-    "throw" ~> ("a" | "an") ~> errorName <~ "exception" <~ end ^^ {
-      ThrowStep(_)
-    }
+    lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
+    "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
 
-  // perform steps
-  lazy val performStep: PL[PerformStep] =
-    opt("perform" | "call") ~> (invokeExpr | returnIfAbruptExpr) <~ end ^^ {
-      PerformStep(_)
-    }
-
-  // perform block steps
-  lazy val performBlockStep: PL[PerformBlockStep] =
-    "perform the following substeps" ~
-    "in an implementation-defined order" ~
-    ".*".r ~> stepBlock ^^ { PerformBlockStep(_) }
-
-  // append steps
-  // NOTE: ("append" ~> expr) ~ ("to" ~> ref) <~ end
-  lazy val appendStep: PL[AppendStep] =
-    ("append" | "add") ~> expr ~ ((("to" ~ opt("the end of")) |
-    "as" ~ ("an" | "the last") ~ "element of" ~ opt("the list")) ~> ref) <~ end
-    ^^ { case e ~ r => AppendStep(e, r) }
-
-  // prepend steps
-  lazy val prependStep: PL[PrependStep] =
-    "prepend" ~> expr ~ ("to" ~> ref) <~ end
-    ^^ { case e ~ r => PrependStep(e, r) }
-
-  // repeat steps
-  lazy val repeatStep: PL[RepeatStep] =
-    ("repeat" ~ ",") ~> opt(("until" | "while") ~> cond <~ ",") ~ step ^^ {
-      case c ~ s => RepeatStep(c, s)
-    }
-
-  // push context steps
-  lazy val pushCtxtStep: PL[PushCtxtStep] =
-    "push" ~> ref <~ (
-      "onto the execution context stack;" ~ ref ~
-      "is now the running execution context" ~ end
-    ) ^^ { case r => PushCtxtStep(r) }
-
-  // note steps
-  lazy val noteStep: PL[NoteStep] =
-    note ^^ { str => NoteStep(str) }
-
-  // suspend steps
-  lazy val suspendStep: PL[SuspendStep] =
-    lazy val remove: Parser[Boolean] =
-      opt("and remove it from the execution context stack") ^^ { _.isDefined }
-    "suspend" ~> baseRef ~ (remove <~ end) ^^ {
-      case base ~ r => SuspendStep(base, r)
-    }
-
-  // remove element step
-  lazy val removeElemStep: PL[RemoveStep] =
-    "remove" ~> expr ~ ("from" ~> expr) <~ end ^^ {
-      case e ~ l => RemoveStep(e, l)
-    }
-
-  // remove first element step
-  lazy val removeFirstStep: PL[RemoveFirstStep] =
-    "remove the first element from" ~> expr <~ end ^^ { RemoveFirstStep(_) }
-
-  // remove execution context step
-  lazy val removeCtxtStep: PL[RemoveContextStep] =
-    val remove: Parser[Variable] =
-      "remove" ~> variable <~ "from the execution context stack"
-    val restore: Parser[Option[Variable]] = "and restore" ~> (
-      variable ^^ { Some(_) } |
-      "the execution context that is" ~
-      "at the top of the execution context stack" ^^^ None
-    ) <~ "as the running execution context"
-    remove ~ restore <~ end ^^ { case x ~ y => RemoveContextStep(x, y) }
-
-  // set the code evaluation state steps
-  lazy val setEvalStateStep: PL[SetEvaluationStateStep] =
-    lazy val param: P[Option[Variable]] =
-      "for that execution context" ^^^ None |
-      "with a" ~ opt(langType) ~> variable ^^ { Some(_) } // TODO handle type
-    lazy val body: P[Step] =
-      "the following steps will be performed:" ~> step |
-      // closure-based
-      "," ~> variable <~ "will be called with no arguments." ^^ {
-        case e => ReturnStep(Some(InvokeAbstractClosureExpression(e, Nil)))
-      } |
-      // Await
-      ", the following steps of the algorithm" ~
-      "that invoked Await will be performed," ~
-      "with" ~> variable <~ "available" ~ end ^^ {
-        case x => ReturnStep(Some(ReferenceExpression(x)))
-      }
-
-    ("set the code evaluation state of" ~> variable) ~
-    ("such that when evaluation is resumed" ~> param) ~ body ^^ {
-      case c ~ p ~ b => SetEvaluationStateStep(c, p, b)
+  // resume steps
+  lazy val resumeStep: PL[ResumeStep] =
+    ("Resume" ~> variable) ~ ("passing" ~> expr <~ ".") ~
+    ("If" ~> variable <~ "is ever resumed again,") ~
+    ("let" ~> variable <~ "be") ~
+    ("the Completion Record with which it is resumed." ~> rep1(subStep)) ^^ {
+      case c ~ e ~ r ~ v ~ subs => ResumeStep(c, e, r, v, subs)
     }
 
   // resume the suspended evaluation steps
-  lazy val resumeStep: PL[ResumeEvaluationStep] =
-    lazy val context: P[Variable] =
-      tagged("Resume the suspended evaluation of" ~> variable)
-    lazy val arg: P[Option[Expression]] =
-      "using" ~> expr <~ "as the result of" ~
-      "the operation that suspended it." ^^ { Some(_) } |
-      "." ^^^ None
-    lazy val param: P[Option[Variable]] =
-      "Let" ~> variable <~ (
-        "be the" ~
-        ("value" | "Completion Record") ~
-        "returned by the resumed computation." ~
-        guard("\n")
-      ) ^^ { Some(_) } |
-      guard("\n") ^^^ None
-    context ~ arg ~ param ~ rep1(subStep) ^^ {
+  lazy val resumeEvalStep: PL[ResumeEvaluationStep] =
+    tagged("Resume the suspended evaluation of" ~> variable) ~ (opt(
+      "using" ~> expr <~ "as the result of the operation that suspended it",
+    ) <~ ".") ~ opt(
+      ("Let" ~> variable <~ "be the") ~
+      ("value" | "Completion Record")
+      <~ "returned by the resumed computation." ^^ { case v ~ p => v -> p },
+    ) ~ rep1(subStep) ^^ {
       case c ~ a ~ p ~ subs => ResumeEvaluationStep(c, a, p, subs)
     }
 
-  // resume steps for yield
-  lazy val resumeYieldStep: PL[ResumeYieldStep] =
-    lazy val callerCtxt: P[Variable] = "Resume" ~> variable
-    lazy val arg: P[Expression] = "passing" ~> expr <~ "."
-    lazy val genCtxt: P[Variable] =
-      "If" ~> variable <~ "is ever resumed again,"
-    lazy val param: P[Variable] =
-      "let" ~> variable <~ "be" ~
-      "the Completion Record with which it is resumed." ~ guard("\n")
-    callerCtxt ~ arg ~ genCtxt ~ param ~ rep1(subStep) ^^ {
-      case c ~ e ~ r ~ v ~ subs => ResumeYieldStep(c, e, r, v, subs)
-    }
+  // resume the top context
+  lazy val resumeTopCtxtStep: PL[ResumeTopContextStep] =
+    "Resume the context that is now on the top of the execution context stack" ~
+    "as the running execution context." ^^! { ResumeTopContextStep() }
 
-  // return to resumed steps
-  lazy val returnToResumedStep: PL[ReturnToResumeStep] =
-    val context: P[Variable] = {
-      next ~ "1. NOTE: This returns to the evaluation of the operation" ~
-      "that had most previously resumed evaluation of"
-    } ~> variable <~ "."
-    returnStep ~ context ^^ { case a ~ c => ReturnToResumeStep(c, a) }
+  // note steps
+  lazy val noteStep: PL[NoteStep] = note ^^ { str => NoteStep(str) }
+  lazy val note: Parser[String] = "NOTE:" ~> ".*".r
 
   // block steps
   lazy val blockStep: PL[BlockStep] = stepBlock ^^ { BlockStep(_) }
@@ -332,19 +300,26 @@ trait Parsers extends IndentParsers {
   // not yet supported steps
   lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
 
-  // end of step
-  lazy val note = "NOTE:" ~> ".*".r
-  lazy val ignore =
-    "(" ~ "see.*\\)".r |
-    "as defined in" ~ tagged("") |
-    "; that is[^.]*".r
-  lazy val end: Parser[String] =
-    opt(ignore) ~> "." <~ opt(
-      note | ("(" ~ ".*\\)".r) | "This may be.*".r,
-    ) ~ upper | ";"
+  // ---------------------------------------------------------------------------
+  // special steps rarely used in the spec
+  // ---------------------------------------------------------------------------
+  lazy val specialStep: PL[Step] = {
+    setFieldsWithIntrinsicsStep |
+    performBlockStep
+  }.named("lang.Step")
 
-  // end with expression
-  lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
+  // set fields with intrinsics (CreateIntrinsics)
+  lazy val setFieldsWithIntrinsicsStep: PL[SetFieldsWithIntrinsicsStep] = (
+    "set fields of" ~> ref <~
+      "with the values listed in" ~
+      "<emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>."
+  ) ~ ".*".r ^^ { case x ~ d => SetFieldsWithIntrinsicsStep(x, d) }
+
+  // perform block steps (PerformEval)
+  lazy val performBlockStep: PL[PerformBlockStep] =
+    "perform the following substeps" ~
+    "in an implementation-defined order" ~> opt("," ~> "[^:]*".r) ~
+    (":" ~> stepBlock) ^^ { case d ~ b => PerformBlockStep(b, d.getOrElse("")) }
 
   // ---------------------------------------------------------------------------
   // metalanguage expressions
@@ -552,8 +527,6 @@ trait Parsers extends IndentParsers {
   lazy val xrefExpr: PL[XRefExpression] =
     import XRefExpressionOperator.*
     lazy val xrefOp: P[XRefExpressionOperator] = {
-      "specified in" |
-      "described in" |
       "the definition specified in" |
       "the algorithm steps defined in" |
       "the ordinary object internal method defined in"
@@ -563,9 +536,7 @@ trait Parsers extends IndentParsers {
       "the number of non-optional parameters of" ~
       "the function definition in"
     } ^^^ ParamLength
-    xrefOp ~ (
-      "<emu-xref href=\"#" ~> "[a-z-.]+".r <~ "\"[a-z ]*>".r ~ tagEnd
-    ) ^^ { case op ~ id => XRefExpression(op, id) }
+    xrefOp ~ xrefId ^^ { case op ~ id => XRefExpression(op, id) }
 
   // the sole element expressions
   lazy val soleExpr: PL[SoleElementExpression] =
@@ -635,7 +606,7 @@ trait Parsers extends IndentParsers {
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
     (opt("the code unit") ~ "0x" ~> "[0-9A-F]+".r) ~
-    opt("(" ~> "[ A-Z]+".r <~ ")") ^^ {
+    opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
       case n ~ x =>
         HexLiteral(Integer.parseInt(n, 16), x)
     }
@@ -773,9 +744,20 @@ trait Parsers extends IndentParsers {
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
     // handle emu-meta tag
-    tagged("(this)?[A-Z][a-zA-Z0-9/]*".r) ~ invokeArgs ^^ {
+    tagged(opName) ~ invokeArgs ^^ {
       case x ~ as => InvokeAbstractOperationExpression(x, as)
     }
+
+  // names for operations
+  lazy val opName: Parser[String] =
+    "[a-zA-Z][a-zA-Z0-9/]*".r.filter(!mathFuncNames.contains(_))
+  lazy val mathFuncNames: Set[String] = Set(
+    "max",
+    "min",
+    "abs",
+    "floor",
+    "truncate",
+  )
 
   // numeric method invocation expression
   lazy val invokeNumericExpr: PL[InvokeNumericMethodExpression] =
@@ -805,8 +787,6 @@ trait Parsers extends IndentParsers {
         not(component),
       ) ~> camel)
     lazy val base = ("of" ~> expr)
-    lazy val argsPart =
-      "with" ~ ("arguments" | "argument") ~> repsep(expr, sep("and"))
 
     // normal SDO
     lazy val normalSDOExpr =
@@ -873,7 +853,7 @@ trait Parsers extends IndentParsers {
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
-    opt("[YET]") ~> ".+".r ~ opt(block) ^^ { case s ~ b => YetExpression(s, b) }
+    ".+".r ~ opt(block) ^^ { case s ~ b => YetExpression(s, b) }
 
   // ---------------------------------------------------------------------------
   // metalanguage conditions
@@ -1061,7 +1041,7 @@ trait Parsers extends IndentParsers {
     // PropertyDefinition[2,0].PropertyDefinitionEvaluation
     "this |PropertyDefinition| is contained within" ~
     "a |Script| that is being evaluated for JSON.parse" ~
-    ignore ~ guard(",")
+    guard(",")
   } ^^! getExprCond(FalseLiteral()) | {
     // CreatePerIterationEnvironment
     expr <~ "has any elements"
@@ -1124,6 +1104,12 @@ trait Parsers extends IndentParsers {
     // NOTE if JSON.parse is supported, then the next line should be handled properly
     "this |PropertyDefinition| is contained within a |Script| that is being evaluated for ParseJSON (see step <emu-xref href=\"#step-json-parse-eval\"></emu-xref> of ParseJSON)"
   } ^^! getExprCond(FalseLiteral())
+
+  // not yet supported conditions
+  def yetCond(post: String): PL[Condition] = ".+".r ^^ { str =>
+    val s = str.replaceAll(post + "$", "")
+    ExpressionCondition(YetExpression(s, None))
+  }
 
   // ---------------------------------------------------------------------------
   // metalanguage references
@@ -1207,10 +1193,21 @@ trait Parsers extends IndentParsers {
 
   lazy val postProp: PL[Property] = {
     "[" ~> expr <~ "]" ^^ { IndexProperty(_) } |||
-    ("'s" | ".") ~> camel.filter(_ != "If") ^^ { ComponentProperty(_) } |||
+    ("'s" | ".") ~> camel.filter(validProp(_)) ^^ { ComponentProperty(_) } |||
     "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
     "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
   }.named("lang.Property")
+
+  def validProp(str: String): Boolean = !noPropSet.contains(str.toLowerCase)
+  lazy val noPropSet: Set[String] = Set(
+    "if",
+    "else",
+    "otherwise",
+    "for",
+    "repeat",
+    "return",
+    "throw",
+  )
 
   // TODO extract component name from spec.html
   lazy val component: Parser[String] =
@@ -1397,6 +1394,21 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+  // end of step
+  private lazy val end: Parser[String] =
+    val pre =
+      "\\(.*\\)".r |
+      "as defined in" ~ tagged("") |
+      "; that is[^.]*".r
+    val post =
+      note |
+      "\\(.*\\)".r |
+      "This may be.*".r
+    opt(pre) ~> ("." <~ upper | ";") <~ opt(post)
+
+  // end with expression
+  private lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
+
   private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
@@ -1406,10 +1418,26 @@ trait Parsers extends IndentParsers {
     multiParser | parser
 
   // html tags
-  private lazy val tagStart: Parser[String] = "<[^>]+>".r
-  private lazy val tagEnd: Parser[String] = "</[a-z-]+>".r
+  case class Tagged[T](content: T, tag: String, fields: Map[String, String])
   private def tagged[T](parser: Parser[T]): Parser[T] =
+    val tagStart: Parser[String] = "<[^>]+>".r
+    val tagEnd: Parser[String] = "</[a-z-]+>".r
     opt(tagStart) ~> parser <~ opt(tagEnd)
+  private def withTag[T](parser: Parser[T]): Parser[Tagged[T]] =
+    val name = "[a-z-]+".r
+    val str = "\"[^\"]*\"".r
+    val fields = rep(name ~ opt("=" ~> str)) ^^ {
+      _.map { case f ~ v => f -> v.fold("")(_.drop(1).dropRight(1)) }.toMap
+    }
+    ("<" ~> name) ~ (fields <~ ">") ~ parser ~ ("</" ~> name <~ ">") ^? {
+      case l ~ fs ~ c ~ r if l == r => Tagged(c, l, fs)
+    }
+
+  lazy val xrefId: P[String] = withTag("") ^? {
+    case Tagged("", "emu-xref", fs)
+        if fs.get("href").exists(_.startsWith("#")) =>
+      fs("href").drop(1)
+  }
 
   // nonterminals
   private lazy val nt: Parser[String] = "|" ~> word <~ "|"
@@ -1447,6 +1475,12 @@ trait Parsers extends IndentParsers {
   private def hasNeg: Parser[Boolean] =
     "does not have" ^^^ true | "has" ^^^ false
 
+  // arguments part
+  lazy val argsPart = "with" ~> (
+    "no arguments" ^^^ Nil |
+    ("arguments" | "argument") ~> repsep(expr, sep("and"))
+  )
+
   // helper for creating expressions, conditions
   private def getRefExpr(r: Reference): Expression = ReferenceExpression(r)
   private def getExprCond(e: Expression): Condition = ExpressionCondition(e)
@@ -1456,4 +1490,7 @@ trait Parsers extends IndentParsers {
 
   // article
   private val article = opt("a " | "an " | "the ")
+
+  // check existence
+  def exists[T](p: Parser[T]): Parser[Boolean] = opt(p) ^^ { _.isDefined }
 }

@@ -3,7 +3,15 @@ package esmeta.lang
 import esmeta.lang.util.*
 
 // metalanguage steps
-sealed trait Step extends Syntax
+sealed trait Step extends Syntax {
+
+  /** check whether it is complete */
+  def complete: Boolean = this match
+    case _: YetStep            => false
+    case IfStep(cond, _, _, _) => cond.complete
+    case AssertStep(cond)      => cond.complete
+    case _                     => true
+}
 object Step extends Parser.From(Parser.step)
 
 // let steps
@@ -12,22 +20,95 @@ case class LetStep(variable: Variable, expr: Expression) extends Step
 // set steps
 case class SetStep(ref: Reference, expr: Expression) extends Step
 
-// if-then-else steps
-case class IfStep(cond: Condition, thenStep: Step, elseStep: Option[Step])
-  extends Step
+// set-as steps
+case class SetAsStep(ref: Reference, verb: String, id: String) extends Step
 
-// return steps
-case class ReturnStep(expr: Option[Expression]) extends Step
+// set-eval-state steps
+case class SetEvaluationStateStep(
+  context: Reference,
+  func: Variable,
+  args: List[Expression],
+) extends Step
+
+// perform steps
+case class PerformStep(expr: Expression) extends Step
+
+// invoke shorthand steps
+case class InvokeShorthandStep(
+  name: String,
+  args: List[Expression],
+) extends Step
+
+// append steps
+case class AppendStep(elem: Expression, ref: Reference) extends Step
+
+// prepend steps
+case class PrependStep(elem: Expression, ref: Reference) extends Step
+
+// add steps
+case class AddStep(elem: Expression, ref: Reference) extends Step
+
+// remove element steps
+case class RemoveStep(
+  target: RemoveStep.Target,
+  prep: String, // TODO: use only "from" and remove this field
+  list: Expression,
+) extends Step
+object RemoveStep:
+  enum Target:
+    case First(count: Option[Expression])
+    case Last(count: Option[Expression])
+    case Element(elem: Expression)
+
+// push context steps
+case class PushContextStep(ref: Reference) extends Step
+
+// suspend steps
+case class SuspendStep(variable: Option[Variable], remove: Boolean) extends Step
+
+// remove execution context steps
+case class RemoveContextStep(
+  context: Reference,
+  restoreTarget: RemoveContextStep.RestoreTarget,
+) extends Step
+object RemoveContextStep:
+  enum RestoreTarget:
+    case NoRestore
+    case StackTop
+    case Context(ref: Reference)
 
 // assertion steps
 case class AssertStep(cond: Condition) extends Step
+
+// if-then-else steps
+case class IfStep(
+  cond: Condition,
+  thenStep: Step,
+  elseStep: Option[Step],
+  elseConfig: IfStep.ElseConfig = IfStep.ElseConfig(),
+) extends Step
+object IfStep:
+  // TODO: simplify/remove config (https://github.com/tc39/ecma262/issues/3648)
+  case class ElseConfig(
+    newLine: Boolean = true,
+    keyword: String = "else", // "else" or "otherwise"
+    comma: Boolean = true,
+  )
+
+// repeat steps
+case class RepeatStep(cond: RepeatStep.LoopCondition, body: Step) extends Step
+object RepeatStep:
+  enum LoopCondition:
+    case NoCondition
+    case While(cond: Condition)
+    case Until(cond: Condition)
 
 // for-each steps
 case class ForEachStep(
   ty: Option[Type],
   variable: Variable,
   expr: Expression,
-  ascending: Boolean,
+  forward: Boolean,
   body: Step,
 ) extends Step
 
@@ -35,7 +116,9 @@ case class ForEachStep(
 case class ForEachIntegerStep(
   variable: Variable,
   low: Expression,
+  lowInclusive: Boolean,
   high: Expression,
+  highInclusive: Boolean,
   ascending: Boolean,
   body: Step,
 ) extends Step
@@ -59,80 +142,47 @@ case class ForEachParseNodeStep(
   body: Step,
 ) extends Step
 
+// return steps
+case class ReturnStep(expr: Expression) extends Step
+
 // throw steps
 case class ThrowStep(name: String) extends Step
 
-// perform steps
-case class PerformStep(expr: Expression) extends Step
-
-// perform block steps
-case class PerformBlockStep(step: StepBlock) extends Step
-
-// append steps
-case class AppendStep(elem: Expression, ref: Reference) extends Step
-
-// prepend steps
-case class PrependStep(elem: Expression, ref: Reference) extends Step
-
-// repeat steps
-case class RepeatStep(cond: Option[Condition], body: Step) extends Step
-
-// push context steps
-case class PushCtxtStep(ref: Reference) extends Step
-
-// note steps
-case class NoteStep(note: String) extends Step
-
-// suspend steps
-case class SuspendStep(context: Reference, remove: Boolean) extends Step
-
-// remove element steps
-case class RemoveStep(elem: Expression, list: Expression) extends Step
-
-// remove firts element steps
-case class RemoveFirstStep(expr: Expression) extends Step
-
-// remove execution context steps
-case class RemoveContextStep(
-  removeContext: Reference,
-  restoreContext: Option[Reference],
-) extends Step
-
-// set the code evaluation state steps
-case class SetEvaluationStateStep(
-  context: Reference,
-  param: Option[Variable], // TODO handle type
-  body: Step,
+// resume steps for yield
+case class ResumeStep(
+  callerContext: Reference,
+  argument: Expression,
+  generatorContext: Reference,
+  param: Variable,
+  steps: List[SubStep],
 ) extends Step
 
 // resume the suspended evaluation steps
 case class ResumeEvaluationStep(
   context: Reference,
   argument: Option[Expression],
-  param: Option[Variable], // TODO handle type
+  param: Option[(Variable, String)],
   steps: List[SubStep],
 ) extends Step
 
-// resume steps for yield
-case class ResumeYieldStep(
-  callerContext: Reference,
-  argument: Expression,
-  generatorContext: Reference,
-  param: Variable, // TODO handle type
-  steps: List[SubStep],
-) extends Step
+// resume the top context
+case class ResumeTopContextStep() extends Step
 
-// return to the resumed step
-case class ReturnToResumeStep(
-  context: Reference,
-  returnStep: ReturnStep,
-) extends Step
-
-// set fields with intrinsics
-case class SetFieldsWithIntrinsicsStep(ref: Reference) extends Step
+// note steps
+case class NoteStep(note: String) extends Step
 
 // block steps
 case class BlockStep(block: StepBlock) extends Step
 
 // not yet supported steps
 case class YetStep(expr: YetExpression) extends Step
+
+// -----------------------------------------------------------------------------
+// special steps rarely used in the spec
+// -----------------------------------------------------------------------------
+// set fields with intrinsics
+case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
+  extends Step
+
+// perform block steps
+case class PerformBlockStep(step: StepBlock, desc: String) extends Step

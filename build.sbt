@@ -68,7 +68,6 @@ lazy val specJsonTest = taskKey[Unit]("Launch JSON tests for spec (tiny)")
 lazy val langTest = taskKey[Unit]("Launch lang tests")
 lazy val langStringifyTest =
   taskKey[Unit]("Launch stringify tests for lang (tiny)")
-lazy val langJsonTest = taskKey[Unit]("Launch JSON tests for lang (tiny)")
 lazy val langTypeTest = taskKey[Unit]("Launch type tests for lang (small)")
 
 // ty
@@ -76,7 +75,6 @@ lazy val tyTest = taskKey[Unit]("Launch ty tests")
 lazy val tyContainsTest = taskKey[Unit]("Launch contains tests for ty (tiny)")
 lazy val tyStringifyTest =
   taskKey[Unit]("Launch stringify tests for ty (tiny)")
-lazy val tyJsonTest = taskKey[Unit]("Launch JSON tests for ty (tiny)")
 lazy val tyOpTest = taskKey[Unit]("Launch operation tests for ty (tiny)")
 
 // compiler
@@ -87,7 +85,6 @@ lazy val compilerValidityTest =
 // ir
 lazy val irTest = taskKey[Unit]("Launch ir tests")
 lazy val irStringifyTest = taskKey[Unit]("Launch stringify tests for ir (tiny)")
-lazy val irJsonTest = taskKey[Unit]("Launch JSON tests for ir (tiny)")
 
 // cfgBuilder
 lazy val cfgBuilderTest = taskKey[Unit]("Launch CFG builder tests")
@@ -240,13 +237,11 @@ lazy val root = project
     langStringifyTest := (Test / testOnly)
       .toTask(" *.lang.Stringify*Test")
       .value,
-    langJsonTest := (Test / testOnly).toTask(" *.lang.Json*Test").value,
     langTypeTest := (Test / testOnly).toTask(" *.lang.Type*Test").value,
     // ty
     tyTest := (Test / testOnly).toTask(" *.ty.*Test").value,
     tyContainsTest := (Test / testOnly).toTask(" *.ty.Contains*Test").value,
     tyStringifyTest := (Test / testOnly).toTask(" *.ty.Stringify*Test").value,
-    tyJsonTest := (Test / testOnly).toTask(" *.ty.Json*Test").value,
     tyOpTest := (Test / testOnly).toTask(" *.ty.Op*Test").value,
     // compiler
     compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
@@ -256,7 +251,6 @@ lazy val root = project
     // ir
     irTest := (Test / testOnly).toTask(" *.ir.*Test").value,
     irStringifyTest := (Test / testOnly).toTask(" *.ir.Stringify*Test").value,
-    irJsonTest := (Test / testOnly).toTask(" *.ir.Json*Test").value,
     // cfgBuilder
     cfgBuilderTest := (Test / testOnly).toTask(" *.cfgBuilder.*Test").value,
     cfgBuilderValidityTest := (Test / testOnly)

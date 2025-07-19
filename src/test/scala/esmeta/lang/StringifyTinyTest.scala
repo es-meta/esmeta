@@ -43,89 +43,92 @@ class StringifyTinyTest extends LangTest {
       |  1. Let _x_ be a new Abstract Closure with parameters (_x_, _x_) that captures _x_ and performs the following steps when called:
       |    1. Let _x_ be _x_.""".stripMargin,
       setStep -> "set _x_ to _x_ + _x_.",
-      setFieldsWithIntrinsicsStep -> "set fields of _x_ with the values listed in <emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>.",
-      ifStep -> "if _x_ < _x_ + _x_, let _x_ be _x_.",
+      setAsStep -> "set _x_ as specified in <emu-xref href=\"#id\"></emu-xref>.",
+      setEvalStateStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with no arguments.",
+      setEvalStateArgStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with argument _x_.",
+      setEvalStateArgsStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with arguments _x_ and _x_.",
+      performStep -> "perform ToObject(_x_ + _x_, -_x_).",
+      invokeShorthandStep -> "IfAbruptCloseIterator(_x_, _x_).",
+      appendStep -> "append _x_ to _x_.[[Value]].",
+      prependStep -> "prepend _x_ to _x_.[[Value]].",
+      addStep -> "add _x_ to _x_.[[Value]].",
+      removeStep -> "remove _x_ from _x_.",
+      removeFirstStep -> "remove the first _x_ elements from _x_.",
+      removeLastStep -> "remove the last element of _x_.",
+      pushCtxtStep -> "push _x_ onto the execution context stack; _x_ is now the running execution context.",
+      suspendStep -> "suspend the running execution context.",
+      suspendRefStep -> "suspend _x_.",
+      suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
+      removeCtxtStep -> "remove _x_ from the execution context stack.",
+      removeCtxtRestoreTopStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
+      removeCtxtRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
+      assertStep -> "assert: _x_ and _x_.",
+      ifStep -> "if _x_, let _x_ be _x_.",
+      ifElseInlineStep -> "if _x_, let _x_ be _x_. Else, let _x_ be _x_.",
+      ifOtherwiseInlineStep -> "if _x_, let _x_ be _x_. Otherwise, let _x_ be _x_.",
+      ifOtherwiseInlineNoCommaStep -> "if _x_, let _x_ be _x_. Otherwise let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """
-      |  1. If _x_ < _x_ + _x_, then
+      |  1. If _x_, then
       |    1. Let _x_ be _x_.""".stripMargin,
       toBlockStep(ifElseStep) -> """
-      |  1. If _x_ < _x_ + _x_, then
+      |  1. If _x_, then
       |    1. Let _x_ be _x_.
       |  1. Else,
       |    1. Let _x_ be _x_.""".stripMargin,
       toBlockStep(ifElseIfStep) -> """
-      |  1. If _x_ < _x_ + _x_, then
+      |  1. If _x_, then
       |    1. Let _x_ be _x_.
-      |  1. Else if _x_ < _x_ + _x_, then
+      |  1. Else if _x_, then
       |    1. Let _x_ be _x_.""".stripMargin,
       toBlockStep(ifElseIfElseStep) -> """
-      |  1. If _x_ < _x_ + _x_, then
+      |  1. If _x_, then
       |    1. Let _x_ be _x_.
-      |  1. Else if _x_ < _x_ + _x_, then
+      |  1. Else if _x_, then
       |    1. Let _x_ be _x_.
       |  1. Else,
       |    1. Let _x_ be _x_.""".stripMargin,
-      returnStep -> "return _x_.",
-      returnStepNoExpr -> "return.",
-      assertStep -> "assert: _x_ and _x_.",
+      repeatStep -> "repeat, let _x_ be _x_.",
+      repeatWhileStep -> """repeat, while _x_ and _x_,
+      |  1. Let _x_ be _x_.""".stripMargin,
+      repeatUntilStep -> """repeat, until _x_ and _x_,
+      |  1. Let _x_ be _x_.""".stripMargin,
       forEachStep -> "for each Base _x_ of _x_, let _x_ be _x_.",
       forEachReverseStep -> "for each Base _x_ of _x_, in reverse List order, let _x_ be _x_.",
-      forEachStepNoType -> "for each _x_ of _x_, let _x_ be _x_.",
-      forEachIntStepTrue -> (
-        "for each integer _x_ such that 2 ≤ _x_ ≤ 5, in ascending order, " +
-        "let _x_ be _x_."
-      ),
-      forEachIntStepFalse -> (
-        "for each integer _x_ such that 2 ≤ _x_ ≤ 5, in descending order, " +
-        "let _x_ be _x_."
-      ),
+      forEachStepNoType -> "for each element _x_ of _x_, let _x_ be _x_.",
+      forEachIntStep -> "for each integer _x_ such that 2 ≤ _x_ ≤ 6, in ascending order, let _x_ be _x_.",
+      forEachIntNotIncStep -> "for each integer _x_ such that 2 < _x_ < 6, in ascending order, let _x_ be _x_.",
+      forEachIntDescStep -> "for each integer _x_ such that 2 ≤ _x_ ≤ 6, in descending order, let _x_ be _x_.",
       forEachAscOPKStep -> (
-        "for each own property key _x_ of _x_ such that _x_ and _x_, in ascending numeric index order, " +
-        "let _x_ be _x_."
+        "for each own property key _x_ of _x_ such that _x_ and _x_, in ascending numeric index order, let _x_ be _x_."
       ),
       forEachDscOPKStep -> (
-        "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, " +
-        "let _x_ be _x_."
+        "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, let _x_ be _x_."
       ),
+      returnStep -> "return _x_.",
       throwStep -> "throw a *ReferenceError* exception.",
-      performStep -> "perform ToObject(_x_ + _x_, -_x_).",
-      appendStep -> "append _x_ to _x_.[[Value]].",
-      prependStep -> "prepend _x_ to _x_.[[Value]].",
-      repeatStep -> "repeat, let _x_ be _x_.",
-      repeatCondStep -> """repeat, while _x_ and _x_,
-      |  1. Let _x_ be _x_.""".stripMargin,
-      pushCtxtStep -> ("push _x_ onto the execution context stack; " +
-      "_x_ is now the running execution context."),
-      noteStep -> "NOTE: At this point, it must be a numeric operation.",
-      suspendStep -> "suspend _x_.",
-      suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
-      removeStep -> "remove _x_ from _x_.",
-      removeFirstStep -> "remove the first element from _x_.",
-      removeCtxtStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
-      removeCtxtWithRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
-      toBlockStep(setEvalStateStep) -> """
-      |  1. Set the code evaluation state of _x_ such that when evaluation is resumed for that execution context the following steps will be performed:
-      |    1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(setEvalStateParamStep) -> """
-      |  1. Set the code evaluation state of _x_ such that when evaluation is resumed with a _x_ the following steps will be performed:
-      |    1. Let _x_ be _x_.""".stripMargin,
       toBlockStep(resumeStep) -> """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>.
-      |  1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(resumeArgStep) -> """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta> using _x_ as the result of the operation that suspended it.
-      |  1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(resumeParamStep) -> """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>. Let _x_ be the value returned by the resumed computation.
-      |  1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(resumeYieldStep) -> """
       |  1. Resume _x_ passing _x_. If _x_ is ever resumed again, let _x_ be the Completion Record with which it is resumed.
       |  1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(returnToResumeStep) -> """
-      |  1. Return _x_.
-      |  1. NOTE: This returns to the evaluation of the operation that had most previously resumed evaluation of _x_.""".stripMargin,
       blockStep -> """
       |  1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(resumeEvalStep) -> """
+      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>.
+      |  1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(resumeEvalArgStep) -> """
+      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta> using _x_ as the result of the operation that suspended it.
+      |  1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(resumeEvalParamStep) -> """
+      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>. Let _x_ be the value returned by the resumed computation.
+      |  1. Let _x_ be _x_.""".stripMargin,
+      resumeTopCtxtStep -> "Resume the context that is now on the top of the execution context stack as the running execution context.",
+      noteStep -> "NOTE: At this point, it must be a numeric operation.",
+      // -----------------------------------------------------------------------
+      // special steps rarely used in the spec
+      // -----------------------------------------------------------------------
+      setFieldsWithIntrinsicsStep -> "set fields of _x_ with the values listed in <emu-xref href=\"#table-well-known-intrinsic-objects\"></emu-xref>. More description.",
+      performBlockStep -> """perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
+      |  1. Let _x_ be _x_.
+      |  1. Set _x_ to _x_ + _x_.""".stripMargin,
     )
 
     // -------------------------------------------------------------------------
@@ -158,10 +161,8 @@ class StringifyTinyTest extends LangTest {
       invokeClosureExpr -> "_x_(_x_)",
       invokeMethodExpr -> "_x_.[[Value]](_x_ + _x_, -_x_)",
       invokeSDOExprZero -> "StringValue of |Identifier|",
-      invokeSDOExprSingle -> ("StringValue of |Identifier| " +
-      "with argument |Identifier|"),
-      invokeSDOExprMulti -> ("StringValue of |Identifier| " +
-      "with arguments |Identifier| and _x_"),
+      invokeSDOExprSingle -> ("StringValue of |Identifier| with argument |Identifier|"),
+      invokeSDOExprMulti -> ("StringValue of |Identifier| with arguments |Identifier| and _x_"),
       invokeSDOExprEval -> "the result of evaluating |Identifier|",
       invokeSDOExprContains -> "|Identifier| Contains _x_",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
