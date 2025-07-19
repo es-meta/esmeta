@@ -65,19 +65,19 @@ trait Parsers extends IndentParsers {
     addStep |
     removeStep |
     pushCtxtStep |
+    suspendStep |
     removeCtxtStep |
     assertStep |
     ifStep |
+    repeatStep |
     forEachStep |
     forEachIntStep |
-    returnStep |
-    throwStep |
-    // -------------------------------------------------------------------------
-    repeatStep |
-    noteStep |
-    suspendStep |
     forEachOwnPropertyKeyStep |
     forEachParseNodeStep |
+    returnStep |
+    throwStep |
+    noteStep |
+    // -------------------------------------------------------------------------
     resumeStep |
     resumeYieldStep |
     blockStep |
@@ -150,6 +150,15 @@ trait Parsers extends IndentParsers {
     "is now the running execution context" ~ end
     ^^ { case r => PushContextStep(r) }
 
+  // suspend steps
+  lazy val suspendStep: PL[SuspendStep] =
+    "suspend" ~> (
+      variable ^^ { Some(_) } |
+      "the running execution context" ^^^ None
+    ) ~ opt("and remove it from the execution context stack") <~ end ^^ {
+      case x ~ r => SuspendStep(x, r.isDefined)
+    }
+
   // remove execution context step
   lazy val removeCtxtStep: PL[RemoveContextStep] =
     import RemoveContextStep.RestoreTarget.*
@@ -191,6 +200,17 @@ trait Parsers extends IndentParsers {
         IfStep(c, t, e, config)
     }
 
+  // repeat steps
+  lazy val repeatStep: PL[RepeatStep] =
+    import RepeatStep.LoopCondition.*
+    ("repeat" ~ ",") ~> (
+      "while" ~> cond <~ "," ^^ { While(_) } |
+      "until" ~> cond <~ "," ^^ { Until(_) } |
+      "" ^^^ NoCondition
+    ) ~ step ^^ {
+      case c ~ s => RepeatStep(c, s)
+    }
+
   // for-each steps
   lazy val forEachStep: PL[ForEachStep] =
     val elemType = langType ^^ { Some(_) } | opt("element") ^^^ None
@@ -213,6 +233,28 @@ trait Parsers extends IndentParsers {
         ForEachIntegerStep(x, l, li, h, hi, asc, body)
     }
 
+  // for-each steps for OwnPropertyKey
+  lazy val forEachOwnPropertyKeyStep: PL[ForEachOwnPropertyKeyStep] =
+    import ForEachOwnPropertyKeyStepOrder.*
+    lazy val ascending: Parser[Boolean] =
+      ("ascending" ^^^ true | "descending" ^^^ false)
+    lazy val order: Parser[ForEachOwnPropertyKeyStepOrder] =
+      "numeric index order" ^^^ NumericIndexOrder |
+      "chronological order of property creation" ^^^ ChronologicalOrder
+    ("for each own property key" ~> variable) ~
+    ("of" ~> variable <~ "such that") ~
+    cond ~ (", in" ~> ascending) ~ order ~
+    ("," ~ opt("do") ~> step) ^^ {
+      case k ~ x ~ c ~ a ~ o ~ b => ForEachOwnPropertyKeyStep(k, x, c, a, o, b)
+    }
+
+  // for-each steps for parse node
+  lazy val forEachParseNodeStep: PL[ForEachParseNodeStep] =
+    ("for each child node" ~> variable) ~
+    ("of" ~> expr <~ ",") ~ ("do" ~> step) ^^ {
+      case x ~ e ~ body => ForEachParseNodeStep(x, e, body)
+    }
+
   // return steps
   lazy val returnStep: PL[ReturnStep] =
     "return" ~> endWithExpr ^^ { ReturnStep(_) }
@@ -221,6 +263,10 @@ trait Parsers extends IndentParsers {
   lazy val throwStep: PL[ThrowStep] =
     lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
     "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
+
+  // note steps
+  lazy val noteStep: PL[NoteStep] = note ^^ { str => NoteStep(str) }
+  lazy val note: Parser[String] = "NOTE:" ~> ".*".r
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -246,48 +292,6 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // TODO refactor following code
   // ---------------------------------------------------------------------------
-
-  // for-each steps for OwnPropertyKey
-  lazy val forEachOwnPropertyKeyStep: PL[ForEachOwnPropertyKeyStep] =
-    import ForEachOwnPropertyKeyStepOrder.*
-    lazy val ascending: Parser[Boolean] =
-      ("ascending" ^^^ true | "descending" ^^^ false)
-    lazy val order: Parser[ForEachOwnPropertyKeyStepOrder] =
-      "numeric index order" ^^^ NumericIndexOrder |
-      "chronological order of property creation" ^^^ ChronologicalOrder
-    ("for each own property key" ~> variable) ~
-    ("of" ~> variable <~ "such that") ~
-    cond ~
-    (", in" ~> ascending) ~
-    order ~
-    ("," ~ opt("do") ~> step) ^^ {
-      case k ~ x ~ c ~ a ~ o ~ b => ForEachOwnPropertyKeyStep(k, x, c, a, o, b)
-    }
-
-  // for-each steps for parse node
-  lazy val forEachParseNodeStep: PL[ForEachParseNodeStep] =
-    ("for each child node" ~> variable) ~
-    ("of" ~> expr <~ ",") ~ ("do" ~> step) ^^ {
-      case x ~ e ~ body => ForEachParseNodeStep(x, e, body)
-    }
-
-  // repeat steps
-  lazy val repeatStep: PL[RepeatStep] =
-    ("repeat" ~ ",") ~> opt("while" ~> cond <~ ",") ~ step ^^ {
-      case c ~ s => RepeatStep(c, s)
-    }
-
-  // note steps
-  lazy val noteStep: PL[NoteStep] = note ^^ { str => NoteStep(str) }
-  lazy val note: Parser[String] = "NOTE:" ~> ".*".r
-
-  // suspend steps
-  lazy val suspendStep: PL[SuspendStep] =
-    lazy val remove: Parser[Boolean] =
-      opt("and remove it from the execution context stack") ^^ { _.isDefined }
-    "suspend" ~> baseRef ~ (remove <~ end) ^^ {
-      case base ~ r => SuspendStep(base, r)
-    }
 
   // resume the suspended evaluation steps
   lazy val resumeStep: PL[ResumeEvaluationStep] =

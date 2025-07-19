@@ -63,6 +63,9 @@ object RemoveStep:
 // push context steps
 case class PushContextStep(ref: Reference) extends Step
 
+// suspend steps
+case class SuspendStep(variable: Option[Variable], remove: Boolean) extends Step
+
 // remove execution context steps
 case class RemoveContextStep(
   context: Reference,
@@ -92,6 +95,14 @@ object IfStep:
     comma: Boolean = true,
   )
 
+// repeat steps
+case class RepeatStep(cond: RepeatStep.LoopCondition, body: Step) extends Step
+object RepeatStep:
+  enum LoopCondition:
+    case NoCondition
+    case While(cond: Condition)
+    case Until(cond: Condition)
+
 // for-each steps
 case class ForEachStep(
   ty: Option[Type],
@@ -112,26 +123,6 @@ case class ForEachIntegerStep(
   body: Step,
 ) extends Step
 
-// return steps
-case class ReturnStep(expr: Expression) extends Step
-
-// throw steps
-case class ThrowStep(name: String) extends Step
-
-// -----------------------------------------------------------------------------
-// special steps rarely used in the spec
-// -----------------------------------------------------------------------------
-// set fields with intrinsics
-case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
-  extends Step
-
-// perform block steps
-case class PerformBlockStep(step: StepBlock, desc: String) extends Step
-
-// -----------------------------------------------------------------------------
-// TODO refactor following definitions
-// -----------------------------------------------------------------------------
-
 // for-each steps for OwnPropertyKey
 case class ForEachOwnPropertyKeyStep(
   key: Variable,
@@ -151,14 +142,28 @@ case class ForEachParseNodeStep(
   body: Step,
 ) extends Step
 
-// repeat steps
-case class RepeatStep(cond: Option[Condition], body: Step) extends Step
+// return steps
+case class ReturnStep(expr: Expression) extends Step
+
+// throw steps
+case class ThrowStep(name: String) extends Step
 
 // note steps
 case class NoteStep(note: String) extends Step
 
-// suspend steps
-case class SuspendStep(context: Reference, remove: Boolean) extends Step
+// -----------------------------------------------------------------------------
+// special steps rarely used in the spec
+// -----------------------------------------------------------------------------
+// set fields with intrinsics
+case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
+  extends Step
+
+// perform block steps
+case class PerformBlockStep(step: StepBlock, desc: String) extends Step
+
+// -----------------------------------------------------------------------------
+// TODO refactor following definitions
+// -----------------------------------------------------------------------------
 
 // resume the suspended evaluation steps
 case class ResumeEvaluationStep(

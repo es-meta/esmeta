@@ -105,6 +105,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case PushContextStep(ref) =>
         app >> First("push ") >> ref >> " onto the execution context stack;"
         app >> " " >> ref >> " is now the running execution context."
+      case SuspendStep(xOpt, remove) =>
+        app >> First("suspend ")
+        xOpt match
+          case Some(x) => app >> x
+          case None    => app >> "the running execution context"
+        if (remove) app >> " and remove it from the execution context stack"
+        app >> "."
       case RemoveContextStep(context, restoreTarget) =>
         app >> First("remove ") >> context
         app >> " from the execution context stack" >> restoreTarget >> "."
@@ -126,6 +133,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
             app >> " " >> keyword.toFirstUpper
             app >> (if (comma) ", " else " ") >> step
         }
+      case RepeatStep(cond, body) =>
+        import RepeatStep.LoopCondition.*
+        app >> First("repeat, ")
+        cond match
+          case NoCondition =>
+          case While(c)    => app >> "while " >> c >> ","
+          case Until(c)    => app >> "until " >> c >> ","
+        app >> body
       case ForEachStep(ty, elem, expr, forward, body) =>
         app >> First("for each ")
         given Rule[Type] = getTypeRule(ArticleOption.No)
@@ -143,27 +158,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> (if (ascending) "ascending" else "descending") >> " order, "
         if (body.isInstanceOf[BlockStep]) app >> "do"
         app >> body
-      case ReturnStep(expr) =>
-        given Rule[Expression] = endWithExprRule
-        app >> First("return ") >> expr
-      case ThrowStep(name) =>
-        app >> First("throw ")
-        app >> ("*" + name + "*").withIndefArticle >> " exception."
-      // -----------------------------------------------------------------------
-      // special steps rarely used in the spec
-      // -----------------------------------------------------------------------
-      case SetFieldsWithIntrinsicsStep(ref, desc) =>
-        app >> First("set fields of ") >> ref >> " with the values listed in "
-        xrefRule(app, "table-well-known-intrinsic-objects") >> "."
-        app >> " " >> desc
-      case PerformBlockStep(block, desc) =>
-        app >> First("perform ")
-        app >> "the following substeps in an implementation-defined order"
-        if (desc.nonEmpty) app >> ", " >> desc
-        app >> ":" >> block
-      // -----------------------------------------------------------------------
-      // TODO refactor following code
-      // -----------------------------------------------------------------------
       case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
         import ForEachOwnPropertyKeyStepOrder.*
         app >> First("for each own property key ") >> key >> " of " >> obj
@@ -179,16 +173,29 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ForEachParseNodeStep(x, expr, body) =>
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
-      case RepeatStep(cond, body) =>
-        app >> First("repeat, ")
-        for { c <- cond } app >> "while " >> c >> ","
-        app >> body
+      case ReturnStep(expr) =>
+        given Rule[Expression] = endWithExprRule
+        app >> First("return ") >> expr
+      case ThrowStep(name) =>
+        app >> First("throw ")
+        app >> ("*" + name + "*").withIndefArticle >> " exception."
       case NoteStep(note) =>
         app >> "NOTE: " >> note
-      case SuspendStep(context, remove) =>
-        app >> First("suspend ") >> context
-        if (remove) app >> " and remove it from the execution context stack"
-        app >> "."
+      // -----------------------------------------------------------------------
+      // special steps rarely used in the spec
+      // -----------------------------------------------------------------------
+      case SetFieldsWithIntrinsicsStep(ref, desc) =>
+        app >> First("set fields of ") >> ref >> " with the values listed in "
+        xrefRule(app, "table-well-known-intrinsic-objects") >> "."
+        app >> " " >> desc
+      case PerformBlockStep(block, desc) =>
+        app >> First("perform ")
+        app >> "the following substeps in an implementation-defined order"
+        if (desc.nonEmpty) app >> ", " >> desc
+        app >> ":" >> block
+      // -----------------------------------------------------------------------
+      // TODO refactor following code
+      // -----------------------------------------------------------------------
       case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> """<emu-meta effects="user-code">"""

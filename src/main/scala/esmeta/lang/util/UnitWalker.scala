@@ -61,16 +61,23 @@ trait UnitWalker extends BasicUnitWalker {
     case AddStep(expr, ref)              => walk(expr); walk(ref)
     case RemoveStep(target, p, list)     => walk(target); walk(p); walk(list)
     case PushContextStep(ref)            => walk(ref)
+    case SuspendStep(ref, remove)        => walkOpt(ref, walk); walk(remove)
     case RemoveContextStep(ctxt, target) => walk(ctxt); walk(target)
     case AssertStep(cond)                => walk(cond)
     case IfStep(cond, thenStep, elseStep, config) =>
       walk(cond); walk(thenStep); walkOpt(elseStep, walk); walk(config)
+    case RepeatStep(cond, body) => walk(cond); walk(body)
     case ForEachStep(ty, elem, expr, forward, body) =>
       walkOpt(ty, walk); walk(elem); walk(expr); walk(forward); walk(body)
     case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
       walk(x); walk(low); walk(lowInc); walk(high); walk(highInc); walk(body)
+    case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
+      walk(key); walk(obj); walk(cond); walk(body)
+    case ForEachParseNodeStep(x, expr, body) =>
+      walk(x); walk(expr); walk(body)
     case ReturnStep(expr) => walk(expr)
     case ThrowStep(expr)  => walk(expr)
+    case NoteStep(note)   =>
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -81,13 +88,6 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
-      walk(key); walk(obj); walk(cond); walk(body)
-    case ForEachParseNodeStep(x, expr, body) =>
-      walk(x); walk(expr); walk(body)
-    case RepeatStep(cond, body) => walkOpt(cond, walk); walk(body)
-    case NoteStep(note)         =>
-    case SuspendStep(base, _)   => walk(base)
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
       walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walk); walkList(steps, walk)
     case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
@@ -111,6 +111,14 @@ trait UnitWalker extends BasicUnitWalker {
       case NoRestore    =>
       case StackTop     =>
       case Context(ref) => walk(ref)
+    }
+
+  def walk(cond: RepeatStep.LoopCondition): Unit =
+    import RepeatStep.LoopCondition.*
+    cond match {
+      case NoCondition =>
+      case While(cond) => walk(cond)
+      case Until(cond) => walk(cond)
     }
 
   def walk(config: IfStep.ElseConfig): Unit =

@@ -46,6 +46,9 @@ object LangTest {
   lazy val removeFirstStep = RemoveStep(First(Some(refExpr)), "from", refExpr)
   lazy val removeLastStep = RemoveStep(Last(None), "of", refExpr)
   lazy val pushCtxtStep = PushContextStep(x)
+  lazy val suspendStep = SuspendStep(None, F)
+  lazy val suspendRefStep = SuspendStep(Some(x), F)
+  lazy val suspendAndRemoveStep = SuspendStep(Some(x), T)
   import RemoveContextStep.RestoreTarget.*
   lazy val removeCtxtStep = RemoveContextStep(x, NoRestore)
   lazy val removeCtxtRestoreTopStep = RemoveContextStep(x, StackTop)
@@ -67,8 +70,10 @@ object LangTest {
     IfStep(exprCond, blockStep, Some(ifBlockStep), ElseConfig(comma = F))
   lazy val ifElseIfElseStep =
     IfStep(exprCond, blockStep, Some(ifElseStep), ElseConfig(comma = F))
-  lazy val returnStep = ReturnStep(refExpr)
-  lazy val throwStep = ThrowStep("ReferenceError")
+  import RepeatStep.LoopCondition.*
+  lazy val repeatStep = RepeatStep(NoCondition, letStep)
+  lazy val repeatWhileStep = RepeatStep(While(compCond), blockStep)
+  lazy val repeatUntilStep = RepeatStep(Until(compCond), blockStep)
   lazy val forEachStep = ForEachStep(Some(ty), x, refExpr, T, letStep)
   lazy val forEachReverseStep =
     ForEachStep(Some(ty), x, refExpr, F, letStep)
@@ -80,20 +85,6 @@ object LangTest {
     ForEachIntegerStep(x, two, F, six, F, T, letStep)
   lazy val forEachIntDescStep =
     ForEachIntegerStep(x, two, T, six, T, F, letStep)
-
-  // ---------------------------------------------------------------------------
-  // special steps rarely used in the spec
-  // ---------------------------------------------------------------------------
-  lazy val setFieldsWithIntrinsicsStep =
-    SetFieldsWithIntrinsicsStep(x, "More description.")
-  lazy val performBlockStep = PerformBlockStep(
-    StepBlock(List(SubStep(None, letStep), SubStep(None, setStep))),
-    "possibly interleaving parsing and error detection",
-  )
-
-  // ---------------------------------------------------------------------------
-  // TODO refactor following code
-  // ---------------------------------------------------------------------------
   lazy val forEachAscOPKStep = ForEachOwnPropertyKeyStep(
     x,
     x,
@@ -110,13 +101,23 @@ object LangTest {
     ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
     letStep,
   )
-  lazy val repeatStep = RepeatStep(None, letStep)
-  lazy val repeatCondStep = RepeatStep(Some(compCond), blockStep)
-  lazy val noteStep = NoteStep(
-    "At this point, it must be a numeric operation.",
+  lazy val returnStep = ReturnStep(refExpr)
+  lazy val throwStep = ThrowStep("ReferenceError")
+  lazy val noteStep = NoteStep("At this point, it must be a numeric operation.")
+
+  // ---------------------------------------------------------------------------
+  // special steps rarely used in the spec
+  // ---------------------------------------------------------------------------
+  lazy val setFieldsWithIntrinsicsStep =
+    SetFieldsWithIntrinsicsStep(x, "More description.")
+  lazy val performBlockStep = PerformBlockStep(
+    StepBlock(List(SubStep(None, letStep), SubStep(None, setStep))),
+    "possibly interleaving parsing and error detection",
   )
-  lazy val suspendStep = SuspendStep(x, F)
-  lazy val suspendAndRemoveStep = SuspendStep(x, T)
+
+  // ---------------------------------------------------------------------------
+  // TODO refactor following code
+  // ---------------------------------------------------------------------------
   lazy val resumeStep = ResumeEvaluationStep(x, None, None, List(subStep))
   lazy val resumeArgStep =
     ResumeEvaluationStep(x, Some(refExpr), None, List(subStep))

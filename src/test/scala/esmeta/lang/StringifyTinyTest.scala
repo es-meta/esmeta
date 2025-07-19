@@ -56,6 +56,9 @@ class StringifyTinyTest extends LangTest {
       removeFirstStep -> "remove the first _x_ elements from _x_.",
       removeLastStep -> "remove the last element of _x_.",
       pushCtxtStep -> "push _x_ onto the execution context stack; _x_ is now the running execution context.",
+      suspendStep -> "suspend the running execution context.",
+      suspendRefStep -> "suspend _x_.",
+      suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
       removeCtxtStep -> "remove _x_ from the execution context stack.",
       removeCtxtRestoreTopStep -> "remove _x_ from the execution context stack and restore the execution context that is at the top of the execution context stack as the running execution context.",
       removeCtxtRestoreStep -> "remove _x_ from the execution context stack and restore _x_ as the running execution context.",
@@ -84,14 +87,26 @@ class StringifyTinyTest extends LangTest {
       |    1. Let _x_ be _x_.
       |  1. Else,
       |    1. Let _x_ be _x_.""".stripMargin,
+      repeatStep -> "repeat, let _x_ be _x_.",
+      repeatWhileStep -> """repeat, while _x_ and _x_,
+      |  1. Let _x_ be _x_.""".stripMargin,
+      repeatUntilStep -> """repeat, until _x_ and _x_,
+      |  1. Let _x_ be _x_.""".stripMargin,
       forEachStep -> "for each Base _x_ of _x_, let _x_ be _x_.",
       forEachReverseStep -> "for each Base _x_ of _x_, in reverse List order, let _x_ be _x_.",
       forEachStepNoType -> "for each element _x_ of _x_, let _x_ be _x_.",
       forEachIntStep -> "for each integer _x_ such that 2 ≤ _x_ ≤ 6, in ascending order, let _x_ be _x_.",
       forEachIntNotIncStep -> "for each integer _x_ such that 2 < _x_ < 6, in ascending order, let _x_ be _x_.",
       forEachIntDescStep -> "for each integer _x_ such that 2 ≤ _x_ ≤ 6, in descending order, let _x_ be _x_.",
+      forEachAscOPKStep -> (
+        "for each own property key _x_ of _x_ such that _x_ and _x_, in ascending numeric index order, let _x_ be _x_."
+      ),
+      forEachDscOPKStep -> (
+        "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, let _x_ be _x_."
+      ),
       returnStep -> "return _x_.",
       throwStep -> "throw a *ReferenceError* exception.",
+      noteStep -> "NOTE: At this point, it must be a numeric operation.",
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
       // -----------------------------------------------------------------------
@@ -102,20 +117,6 @@ class StringifyTinyTest extends LangTest {
       // -----------------------------------------------------------------------
       // TODO refactor following code
       // -----------------------------------------------------------------------
-      forEachAscOPKStep -> (
-        "for each own property key _x_ of _x_ such that _x_ and _x_, in ascending numeric index order, " +
-        "let _x_ be _x_."
-      ),
-      forEachDscOPKStep -> (
-        "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, " +
-        "let _x_ be _x_."
-      ),
-      repeatStep -> "repeat, let _x_ be _x_.",
-      repeatCondStep -> """repeat, while _x_ and _x_,
-      |  1. Let _x_ be _x_.""".stripMargin,
-      noteStep -> "NOTE: At this point, it must be a numeric operation.",
-      suspendStep -> "suspend _x_.",
-      suspendAndRemoveStep -> "suspend _x_ and remove it from the execution context stack.",
       toBlockStep(resumeStep) -> """
       |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>.
       |  1. Let _x_ be _x_.""".stripMargin,
@@ -162,10 +163,8 @@ class StringifyTinyTest extends LangTest {
       invokeClosureExpr -> "_x_(_x_)",
       invokeMethodExpr -> "_x_.[[Value]](_x_ + _x_, -_x_)",
       invokeSDOExprZero -> "StringValue of |Identifier|",
-      invokeSDOExprSingle -> ("StringValue of |Identifier| " +
-      "with argument |Identifier|"),
-      invokeSDOExprMulti -> ("StringValue of |Identifier| " +
-      "with arguments |Identifier| and _x_"),
+      invokeSDOExprSingle -> ("StringValue of |Identifier| with argument |Identifier|"),
+      invokeSDOExprMulti -> ("StringValue of |Identifier| with arguments |Identifier| and _x_"),
       invokeSDOExprEval -> "the result of evaluating |Identifier|",
       invokeSDOExprContains -> "|Identifier| Contains _x_",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",

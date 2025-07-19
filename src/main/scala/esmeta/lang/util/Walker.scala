@@ -61,10 +61,12 @@ trait Walker extends BasicWalker {
     case AddStep(expr, ref)         => AddStep(walk(expr), walk(ref))
     case RemoveStep(t, p, l)        => RemoveStep(walk(t), walk(p), walk(l))
     case PushContextStep(ref)       => PushContextStep(walk(ref))
+    case SuspendStep(ref, rm)       => SuspendStep(walkOpt(ref, walk), walk(rm))
     case RemoveContextStep(ctxt, t) => RemoveContextStep(walk(ctxt), walk(t))
     case AssertStep(cond)           => AssertStep(walk(cond))
     case IfStep(cond, thenStep, elseStep, config) =>
       IfStep(walk(cond), walk(thenStep), walkOpt(elseStep, walk), walk(config))
+    case RepeatStep(cond, body) => RepeatStep(walk(cond), walk(body))
     case ForEachStep(ty, elem, expr, forward, body) =>
       ForEachStep(
         walkOpt(ty, walk),
@@ -83,18 +85,6 @@ trait Walker extends BasicWalker {
         ascending,
         walk(body),
       )
-    case ReturnStep(expr) => ReturnStep(walk(expr))
-    case ThrowStep(expr)  => ThrowStep(walk(expr))
-    // -------------------------------------------------------------------------
-    // special steps rarely used in the spec
-    // -------------------------------------------------------------------------
-    case SetFieldsWithIntrinsicsStep(ref, desc) =>
-      SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
-    case PerformBlockStep(b, d) =>
-      PerformBlockStep(walk(b), walk(d))
-    // -------------------------------------------------------------------------
-    // TODO refactor following code
-    // -------------------------------------------------------------------------
     case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
       ForEachOwnPropertyKeyStep(
         walk(key),
@@ -110,9 +100,19 @@ trait Walker extends BasicWalker {
         walk(expr),
         walk(body),
       )
-    case RepeatStep(cond, body) => RepeatStep(walkOpt(cond, walk), walk(body))
-    case NoteStep(note)         => NoteStep(note)
-    case SuspendStep(base, r)   => SuspendStep(walk(base), r)
+    case ReturnStep(expr) => ReturnStep(walk(expr))
+    case ThrowStep(expr)  => ThrowStep(walk(expr))
+    case NoteStep(note)   => NoteStep(note)
+    // -------------------------------------------------------------------------
+    // special steps rarely used in the spec
+    // -------------------------------------------------------------------------
+    case SetFieldsWithIntrinsicsStep(ref, desc) =>
+      SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
+    case PerformBlockStep(b, d) =>
+      PerformBlockStep(walk(b), walk(d))
+    // -------------------------------------------------------------------------
+    // TODO refactor following code
+    // -------------------------------------------------------------------------
     case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
       ResumeEvaluationStep(
         walk(b),
@@ -134,21 +134,28 @@ trait Walker extends BasicWalker {
 
   def walk(target: RemoveStep.Target): RemoveStep.Target =
     import RemoveStep.Target.*
-    target match {
+    target match
       case First(count)  => First(walkOpt(count, walk))
       case Last(count)   => Last(walkOpt(count, walk))
       case Element(elem) => Element(walk(elem))
-    }
 
   def walk(
     target: RemoveContextStep.RestoreTarget,
   ): RemoveContextStep.RestoreTarget =
     import RemoveContextStep.RestoreTarget.*
-    target match {
+    target match
       case NoRestore    => NoRestore
       case StackTop     => StackTop
       case Context(ref) => Context(walk(ref))
-    }
+
+  def walk(
+    cond: RepeatStep.LoopCondition,
+  ): RepeatStep.LoopCondition =
+    import RepeatStep.LoopCondition.*
+    cond match
+      case NoCondition => NoCondition
+      case While(cond) => While(walk(cond))
+      case Until(cond) => Until(walk(cond))
 
   def walk(config: IfStep.ElseConfig): IfStep.ElseConfig =
     val IfStep.ElseConfig(newLine, keyword, comma) = config
