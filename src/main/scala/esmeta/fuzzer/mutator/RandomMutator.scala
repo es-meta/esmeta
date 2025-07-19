@@ -41,13 +41,30 @@ class RandomMutator(using cfg: CFG)(
   object Walker extends Util.AdditiveListWalker {
     override def walk(ast: Syntactic): List[Syntactic] =
       val mutants = super.walk(ast)
-      if isTarget(ast) then List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
+      val assignExprParser = esParser("AssignmentExpression", ast.args)
+      if (isTarget(ast))
+        val manuals =
+          if (ast.name == "AssignmentExpression")
+            List(
+              assignExprParser.from("-0.1"),
+              assignExprParser.from("-0"),
+              assignExprParser.from("-1"),
+              assignExprParser.from("-0n"),
+              assignExprParser.from("-1n"),
+              assignExprParser.from("-Infinity"),
+              assignExprParser.from("NaN"),
+              assignExprParser.from("Symbol()"),
+            ).map(_.asInstanceOf[Syntactic])
+          else List()
+        manuals ++ List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
       else mutants
     override def walk(lex: Lexical): List[Lexical] = lex.name match {
-      case "NumericLiteral" =>
-        List("0", "1", "0n", "1n").map(n => Lexical(lex.name, n))
       case "BooleanLiteral" =>
         List("true", "false").map(b => Lexical(lex.name, b))
+      case "NumericLiteral" =>
+        List("0.1", "0", "1", "0n", "1n").map(n => Lexical(lex.name, n))
+      case "StringNumericLiteral" =>
+        List("Infinity").map(sn => Lexical(lex.name, sn))
       case _ => List(lex)
     }
   }
