@@ -25,6 +25,14 @@ case object Extract extends Phase[Unit, Spec] {
       println(f"- # of actual parsing: $getParseCount%,d")
       println(f"- # of using cached result: $getCacheCount%,d")
     if (config.log) log(spec)
+    if (config.strict) {
+      // TODO exclude yets from rule.json
+      if (spec.yetTypes.nonEmpty || spec.incompleteSteps.nonEmpty) {
+        raise(
+          s"extracting failed in complete mode: found ${spec.yetTypes.length} yet-types and ${spec.incompleteSteps.length} yet-steps.",
+        )
+      }
+    }
     spec
   } else {
     runREPL
@@ -140,11 +148,23 @@ case object Extract extends Phase[Unit, Spec] {
       BoolOption(_.repl = _),
       "use a REPL for metalanguage parser.",
     ),
+    (
+      "strict",
+      BoolOption(_.strict = _),
+      "turn on strict parsing mode, which makes extractor fail when any 'yet-step' or 'yet-type`. (default: false)",
+    ),
+    (
+      "ignore",
+      StrOption((c, s) => c.ignore = Some(s)),
+      "path of allowlist file (json) for strict parsing mode.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
     var log: Boolean = false,
     var eval: Boolean = false,
     var repl: Boolean = false,
+    var strict: Boolean = false,
+    var ignore: Option[String] = None,
   )
 }
