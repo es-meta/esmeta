@@ -1,13 +1,16 @@
 package esmeta.spec.util
 
 import esmeta.LINE_SEP
+import esmeta.lang.*
+import esmeta.lang.util.CaseCollector
 import esmeta.spec.*
-import esmeta.util.HtmlUtils.*
+import esmeta.util.*
+import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import esmeta.lang.util.KindCollector
+import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
-import scala.collection.mutable.{Map => MMap}
+import scala.collection.mutable.{Map => MMap, ListBuffer}
 
 /** specification statistics */
 class Stats(spec: Spec) {
@@ -18,9 +21,9 @@ class Stats(spec: Spec) {
     println(s"- Dumped statistics info. into $baseDir")
     dumpFile(ElemStat.getAlgoString, s"$baseDir/algo-summary")
     dumpFile(ElemStat.getStepString, s"$baseDir/step-summary")
-    dumpFile(KindStat.getStepString, s"$baseDir/step-kind-summary")
-    dumpFile(KindStat.getExprString, s"$baseDir/expr-kind-summary")
-    dumpFile(KindStat.getCondString, s"$baseDir/cond-kind-summary")
+    dumpFile(CaseStat.getStepString, s"$baseDir/step-details")
+    dumpFile(CaseStat.getExprString, s"$baseDir/expr-details")
+    dumpFile(CaseStat.getCondString, s"$baseDir/cond-details")
 
   /** statistics for pass/total */
   private case class PassStat(pass: Int = 0, total: Int = 0):
@@ -127,33 +130,43 @@ class Stats(spec: Spec) {
 
   }
 
-  /** statistics for kinds in spec */
-  object KindStat {
-    import KindCollector.*
+  /** statistics for cases in spec */
+  object CaseStat {
+    import CaseCollector.*
 
-    private val map: MMap[ClassName, KindData] = MMap()
-    def sortedList: List[(ClassName, KindData)] = map.toList.sortBy(_._2.count)
+    val collector = new CaseCollector
+    import collector.*
 
     /** add algorithms */
-    def +=(algo: Algorithm): Unit = for {
-      (name, data) <- KindCollector(algo.body).map
-      totalData = map.getOrElseUpdate(name, KindData())
-    } totalData += data
+    def +=(algo: Algorithm): Unit = collector.walk(algo.body)
 
     /** getString */
-    def getStepString: String = getString(name => name.kind == Kind.Step)
-    def getExprString: String = getString(name => name.kind == Kind.Expr)
-    def getCondString: String = getString(name => name.kind == Kind.Cond)
-    private def getString(
-      filter: ClassName => Boolean,
-    ): String = (for {
-      (cname, data) <- sortedList if filter(cname)
-    } yield f"${cname.name}%-40s${data.count}").mkString(LINE_SEP)
+    def getStepString: String = getString(steps)
+    def getExprString: String = getString(exprs)
+    def getCondString: String = getString(conds)
+    private def getString[T](
+      map: MMap[String, MMap[String, ListBuffer[T]]],
+    ): String =
+      val app = new Appender
+      val mapWithCount = map.map { (x, m) => x -> (m.map(_._2.size).sum, m) }
+      for { (className, (k, m)) <- getSortedList(mapWithCount, _._1) } {
+        app >> f"" >> className >> " (" >> k >> ")"
+        for { (str, xs) <- getSortedList(m, _.size) } {
+          app :> f"- [${xs.size}%6d] " >> str
+        }
+        app >> LINE_SEP
+      }
+      app.toString
+
+    private def getSortedList[T](
+      map: MMap[String, T],
+      getSize: T => Int,
+    ): List[(String, T)] = map.toList.sortBy { (k, v) => (-getSize(v), k) }
   }
 
   /** initialize */
   private def init: Unit = for { algo <- spec.algorithms } {
-    KindStat += algo; ElemStat += algo
+    CaseStat += algo; ElemStat += algo
   }
   init
 

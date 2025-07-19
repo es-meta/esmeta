@@ -25,6 +25,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: BinaryConditionOperator   => binCondOpRule(app, elem)
       case elem: ContainsConditionTarget   => containsTargetRule(app, elem)
       case elem: CompoundConditionOperator => compCondOpRule(app, elem)
+      case elem: MathOpExpressionOperator  => mathOpRule(app, elem)
+      case elem: BitwiseExpressionOperator => bitExprOpRule(app, elem)
     }
 
   // syntax
@@ -356,60 +358,60 @@ class Stringifier(detail: Boolean, location: Boolean) {
   lazy val mathOpExprRule: Rule[MathOpExpression] = (app, expr) =>
     import MathOpExpressionOperator.*
     val MathOpExpression(op, args) = expr
-    app >> "the "
+    app >> "the " >> op >> " "
     (op, args) match
       case (Neg, List(e)) =>
-        app >> "negation of " >> e
+        app >> e
       case (Add, List(l, r)) =>
-        app >> "sum of " >> l >> " and " >> r
+        app >> l >> " and " >> r
       case (Mul, List(l, r)) =>
-        app >> "product of " >> l >> " and " >> r
+        app >> l >> " and " >> r
       case (Sub, List(l, r)) =>
-        app >> "difference " >> l >> " minus " >> r
+        app >> l >> " minus " >> r
       case (Pow, List(l, r)) =>
-        app >> "raising " >> l >> " to the " >> r >> " power"
+        app >> l >> " to the " >> r >> " power"
       case (Expm1, List(e)) =>
-        app >> "subtracting 1 from the exponential function of " >> e
+        app >> e
       case (Log10, List(e)) =>
-        app >> "base 10 logarithm of " >> e
+        app >> e
       case (Log2, List(e)) =>
-        app >> "base 2 logarithm of " >> e
+        app >> e
       case (Cos, List(e)) =>
-        app >> "cosine of " >> e
+        app >> e
       case (Cbrt, List(e)) =>
-        app >> "cube root of " >> e
+        app >> e
       case (Exp, List(e)) =>
-        app >> "exponential function of " >> e
+        app >> e
       case (Cosh, List(e)) =>
-        app >> "hyperbolic cosine of " >> e
+        app >> e
       case (Sinh, List(e)) =>
-        app >> "hyperbolic sine of " >> e
+        app >> e
       case (Tanh, List(e)) =>
-        app >> "hyperbolic tangent of " >> e
+        app >> e
       case (Acos, List(e)) =>
-        app >> "inverse cosine of " >> e
+        app >> e
       case (Acosh, List(e)) =>
-        app >> "inverse hyperbolic cosine of " >> e
+        app >> e
       case (Asinh, List(e)) =>
-        app >> "inverse hyperbolic sine of " >> e
+        app >> e
       case (Atanh, List(e)) =>
-        app >> "inverse hyperbolic tangent of " >> e
+        app >> e
       case (Asin, List(e)) =>
-        app >> "inverse sine of " >> e
+        app >> e
       case (Atan2, List(x, y)) =>
-        app >> "inverse tangent of the quotient " >> x >> " / " >> y
+        app >> x >> " / " >> y
       case (Atan, List(e)) =>
-        app >> "inverse tangent of " >> e
+        app >> e
       case (Log1p, List(e)) =>
-        app >> "natural logarithm of 1 + " >> e
+        app >> e
       case (Log, List(e)) =>
-        app >> "natural logarithm of " >> e
+        app >> e
       case (Sin, List(e)) =>
-        app >> "sine of " >> e
+        app >> e
       case (Sqrt, List(e)) =>
-        app >> "square root of " >> e
+        app >> e
       case (Tan, List(e)) =>
-        app >> "tangent of " >> e
+        app >> e
       case _ => raise(s"invalid math operationr: $op with $args")
 
   // multiline expressions
@@ -756,6 +758,39 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Or    => "or"
       case Imply => "then" // XXX not used
     })
+  }
+
+  // operators for mathematical operations
+  given mathOpRule: Rule[MathOpExpressionOperator] = (app, op) => {
+    import MathOpExpressionOperator.*
+    app >> (op match
+      case Neg   => "negation of"
+      case Add   => "sum of"
+      case Mul   => "product of"
+      case Sub   => "difference"
+      case Pow   => "raising"
+      case Expm1 => "subtracting 1 from the exponential function of"
+      case Log10 => "base 10 logarithm of"
+      case Log2  => "base 2 logarithm of"
+      case Cos   => "cosine of"
+      case Cbrt  => "cube root of"
+      case Exp   => "exponential function of"
+      case Cosh  => "hyperbolic cosine of"
+      case Sinh  => "hyperbolic sine of"
+      case Tanh  => "hyperbolic tangent of"
+      case Acos  => "inverse cosine of"
+      case Acosh => "inverse hyperbolic cosine of"
+      case Asinh => "inverse hyperbolic sine of"
+      case Atanh => "inverse hyperbolic tangent of"
+      case Asin  => "inverse sine of"
+      case Atan2 => "inverse tangent of the quotient"
+      case Atan  => "inverse tangent of"
+      case Log1p => "natural logarithm of 1 +"
+      case Log   => "natural logarithm of"
+      case Sin   => "sine of"
+      case Sqrt  => "square root of"
+      case Tan   => "tangent of"
+    )
   }
 
   // references
