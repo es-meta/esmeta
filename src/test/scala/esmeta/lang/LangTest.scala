@@ -13,7 +13,9 @@ object LangTest {
   val T = true
   val F = false
 
+  // ---------------------------------------------------------------------------
   // blocks
+  // ---------------------------------------------------------------------------
   def toBlockStep(steps: Step*): BlockStep =
     BlockStep(StepBlock(steps.toList.map(SubStep(None, _))))
   lazy val subStep = SubStep(None, letStep)
@@ -23,7 +25,9 @@ object LangTest {
   lazy val exprBlock = ExprBlock(List(refExpr, refExpr, refExpr))
   lazy val figureBlock = Figure(List("a", "b", "c"))
 
+  // ---------------------------------------------------------------------------
   // algorithm steps
+  // ---------------------------------------------------------------------------
   lazy val letStep = LetStep(x, refExpr)
   lazy val letStepClosure =
     LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
@@ -103,7 +107,16 @@ object LangTest {
   )
   lazy val returnStep = ReturnStep(refExpr)
   lazy val throwStep = ThrowStep("ReferenceError")
+  lazy val resumeStep = ResumeStep(x, refExpr, x, x, List(subStep))
+  lazy val resumeEvalStep = ResumeEvaluationStep(x, None, None, List(subStep))
+  lazy val resumeEvalArgStep =
+    ResumeEvaluationStep(x, Some(refExpr), None, List(subStep))
+  lazy val resumeEvalParamStep =
+    ResumeEvaluationStep(x, None, Some(x, "value"), List(subStep))
+  lazy val resumeTopCtxtStep = ResumeTopContextStep()
   lazy val noteStep = NoteStep("At this point, it must be a numeric operation.")
+  lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
+  lazy val yetStep = YetStep(yetExpr)
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -116,19 +129,8 @@ object LangTest {
   )
 
   // ---------------------------------------------------------------------------
-  // TODO refactor following code
-  // ---------------------------------------------------------------------------
-  lazy val resumeStep = ResumeEvaluationStep(x, None, None, List(subStep))
-  lazy val resumeArgStep =
-    ResumeEvaluationStep(x, Some(refExpr), None, List(subStep))
-  lazy val resumeParamStep =
-    ResumeEvaluationStep(x, None, Some(x), List(subStep))
-  lazy val resumeYieldStep =
-    ResumeYieldStep(x, refExpr, x, x, List(subStep))
-  lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
-  lazy val yetStep = YetStep(yetExpr)
-
   // algorithm expressions
+  // ---------------------------------------------------------------------------
   lazy val refExpr = ReferenceExpression(x)
   lazy val stringConcatExprOne =
     StringConcatExpression(List(refExpr))

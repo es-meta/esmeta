@@ -102,7 +102,25 @@ trait Walker extends BasicWalker {
       )
     case ReturnStep(expr) => ReturnStep(walk(expr))
     case ThrowStep(expr)  => ThrowStep(walk(expr))
-    case NoteStep(note)   => NoteStep(note)
+    case ResumeStep(callerCtxt, arg, genCtxt, param, steps) =>
+      ResumeStep(
+        walk(callerCtxt),
+        walk(arg),
+        walk(genCtxt),
+        walk(param),
+        walkList(steps, walk),
+      )
+    case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
+      ResumeEvaluationStep(
+        walk(b),
+        walkOpt(aOpt, walk),
+        walkOpt(pOpt, walkPair(_, walk, walk)),
+        walkList(steps, walk),
+      )
+    case ResumeTopContextStep() => ResumeTopContextStep()
+    case NoteStep(note)         => NoteStep(note)
+    case BlockStep(block)       => BlockStep(walk(block))
+    case YetStep(expr)          => YetStep(walk(expr))
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -110,26 +128,6 @@ trait Walker extends BasicWalker {
       SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
     case PerformBlockStep(b, d) =>
       PerformBlockStep(walk(b), walk(d))
-    // -------------------------------------------------------------------------
-    // TODO refactor following code
-    // -------------------------------------------------------------------------
-    case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
-      ResumeEvaluationStep(
-        walk(b),
-        walkOpt(aOpt, walk),
-        walkOpt(pOpt, walk),
-        walkList(steps, walk),
-      )
-    case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
-      ResumeYieldStep(
-        walk(callerCtxt),
-        walk(arg),
-        walk(genCtxt),
-        walk(param),
-        walkList(steps, walk),
-      )
-    case BlockStep(block) => BlockStep(walk(block))
-    case YetStep(expr)    => YetStep(walk(expr))
   }
 
   def walk(target: RemoveStep.Target): RemoveStep.Target =

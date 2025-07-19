@@ -76,10 +76,10 @@ trait Parsers extends IndentParsers {
     forEachParseNodeStep |
     returnStep |
     throwStep |
-    noteStep |
-    // -------------------------------------------------------------------------
     resumeStep |
-    resumeYieldStep |
+    resumeEvalStep |
+    resumeTopCtxtStep |
+    noteStep |
     blockStep |
     specialStep
   }.named("lang.Step")
@@ -264,9 +264,41 @@ trait Parsers extends IndentParsers {
     lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
     "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
 
+  // resume steps
+  lazy val resumeStep: PL[ResumeStep] =
+    ("Resume" ~> variable) ~ ("passing" ~> expr <~ ".") ~
+    ("If" ~> variable <~ "is ever resumed again,") ~
+    ("let" ~> variable <~ "be") ~
+    ("the Completion Record with which it is resumed." ~> rep1(subStep)) ^^ {
+      case c ~ e ~ r ~ v ~ subs => ResumeStep(c, e, r, v, subs)
+    }
+
+  // resume the suspended evaluation steps
+  lazy val resumeEvalStep: PL[ResumeEvaluationStep] =
+    tagged("Resume the suspended evaluation of" ~> variable) ~ (opt(
+      "using" ~> expr <~ "as the result of the operation that suspended it",
+    ) <~ ".") ~ opt(
+      ("Let" ~> variable <~ "be the") ~
+      ("value" | "Completion Record")
+      <~ "returned by the resumed computation." ^^ { case v ~ p => v -> p },
+    ) ~ rep1(subStep) ^^ {
+      case c ~ a ~ p ~ subs => ResumeEvaluationStep(c, a, p, subs)
+    }
+
+  // resume the top context
+  lazy val resumeTopCtxtStep: PL[ResumeTopContextStep] =
+    "Resume the context that is now on the top of the execution context stack" ~
+    "as the running execution context." ^^! { ResumeTopContextStep() }
+
   // note steps
   lazy val noteStep: PL[NoteStep] = note ^^ { str => NoteStep(str) }
   lazy val note: Parser[String] = "NOTE:" ~> ".*".r
+
+  // block steps
+  lazy val blockStep: PL[BlockStep] = stepBlock ^^ { BlockStep(_) }
+
+  // not yet supported steps
+  lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
 
   // ---------------------------------------------------------------------------
   // special steps rarely used in the spec
@@ -288,64 +320,6 @@ trait Parsers extends IndentParsers {
     "perform the following substeps" ~
     "in an implementation-defined order" ~> opt("," ~> "[^:]*".r) ~
     (":" ~> stepBlock) ^^ { case d ~ b => PerformBlockStep(b, d.getOrElse("")) }
-
-  // ---------------------------------------------------------------------------
-  // TODO refactor following code
-  // ---------------------------------------------------------------------------
-
-  // resume the suspended evaluation steps
-  lazy val resumeStep: PL[ResumeEvaluationStep] =
-    lazy val context: P[Variable] =
-      tagged("Resume the suspended evaluation of" ~> variable)
-    lazy val arg: P[Option[Expression]] =
-      "using" ~> expr <~ "as the result of" ~
-      "the operation that suspended it." ^^ { Some(_) } |
-      "." ^^^ None
-    lazy val param: P[Option[Variable]] =
-      "Let" ~> variable <~ (
-        "be the" ~
-        ("value" | "Completion Record") ~
-        "returned by the resumed computation." ~
-        guard("\n")
-      ) ^^ { Some(_) } |
-      guard("\n") ^^^ None
-    context ~ arg ~ param ~ rep1(subStep) ^^ {
-      case c ~ a ~ p ~ subs => ResumeEvaluationStep(c, a, p, subs)
-    }
-
-  // resume steps for yield
-  lazy val resumeYieldStep: PL[ResumeYieldStep] =
-    lazy val callerCtxt: P[Variable] = "Resume" ~> variable
-    lazy val arg: P[Expression] = "passing" ~> expr <~ "."
-    lazy val genCtxt: P[Variable] =
-      "If" ~> variable <~ "is ever resumed again,"
-    lazy val param: P[Variable] =
-      "let" ~> variable <~ "be" ~
-      "the Completion Record with which it is resumed." ~ guard("\n")
-    callerCtxt ~ arg ~ genCtxt ~ param ~ rep1(subStep) ^^ {
-      case c ~ e ~ r ~ v ~ subs => ResumeYieldStep(c, e, r, v, subs)
-    }
-
-  // block steps
-  lazy val blockStep: PL[BlockStep] = stepBlock ^^ { BlockStep(_) }
-
-  // not yet supported steps
-  lazy val yetStep: PL[YetStep] = yetExpr ^^ { YetStep(_) }
-
-  // end of step
-  lazy val end: Parser[String] =
-    val pre =
-      "\\(.*\\)".r |
-      "as defined in" ~ tagged("") |
-      "; that is[^.]*".r
-    val post =
-      note |
-      "\\(.*\\)".r |
-      "This may be.*".r
-    opt(pre) ~> ("." <~ upper | ";") <~ opt(post)
-
-  // end with expression
-  lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
 
   // ---------------------------------------------------------------------------
   // metalanguage expressions
@@ -1420,6 +1394,21 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
+  // end of step
+  private lazy val end: Parser[String] =
+    val pre =
+      "\\(.*\\)".r |
+      "as defined in" ~ tagged("") |
+      "; that is[^.]*".r
+    val post =
+      note |
+      "\\(.*\\)".r |
+      "This may be.*".r
+    opt(pre) ~> ("." <~ upper | ";") <~ opt(post)
+
+  // end with expression
+  private lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
+
   private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =

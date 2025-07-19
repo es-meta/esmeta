@@ -445,25 +445,30 @@ class Compiler(
         ICall(y, EClo("ThrowCompletion", Nil), List(xExpr)),
         IReturn(yExpr),
       )
-    case NoteStep(note) =>
-      fb.addInst(INop())
-    // -------------------------------------------------------------------------
-    // special steps rarely used in the spec
-    // -------------------------------------------------------------------------
-    case SetFieldsWithIntrinsicsStep(ref, _) =>
-      fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
-    case PerformBlockStep(block, desc) =>
-      for (substep <- block.steps) compile(fb, substep.step)
-    // -------------------------------------------------------------------------
-    // TODO refactor following code
-    // -------------------------------------------------------------------------
+    case ResumeStep(_, arg, context, param, steps) =>
+      val ctxt = compile(fb, context)
+      val contName = fb.nextContName
+      addFunc(
+        fb = FuncBuilder(
+          spec,
+          FuncKind.Cont,
+          contName,
+          List(toParam(param)),
+          fb.retTy,
+          fb.algo,
+          fb.needRetComp,
+        ),
+        body = BlockStep(StepBlock(steps)),
+      )
+      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+      fb.addReturnToResume(compile(fb, context), compile(fb, arg))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
       val ctxt = compile(fb, context)
       val returnCont = toStrRef(ctxt, "ReturnCont")
       val (eResumeCont, eReturnCont) =
         (toStrERef(ctxt, "ResumeCont"), ERef(returnCont))
       val contName = fb.nextContName
-      val ps = toParams(paramOpt)
+      val ps = toParams(paramOpt.map(_._1))
       val bodyStep = BlockStep(StepBlock(steps))
       addFunc(
         fb = FuncBuilder(
@@ -486,23 +491,10 @@ class Compiler(
         IPush(ECont(contName), eReturnCont, true),
         ICall(fb.newTId, eResumeCont, argOpt.map(compile(fb, _)).toList),
       )
-    case ResumeYieldStep(_, arg, context, param, steps) =>
-      val ctxt = compile(fb, context)
-      val contName = fb.nextContName
-      addFunc(
-        fb = FuncBuilder(
-          spec,
-          FuncKind.Cont,
-          contName,
-          List(toParam(param)),
-          fb.retTy,
-          fb.algo,
-          fb.needRetComp,
-        ),
-        body = BlockStep(StepBlock(steps)),
-      )
-      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
-      fb.addReturnToResume(compile(fb, context), compile(fb, arg))
+    case ResumeTopContextStep() =>
+      fb.addInst(INop())
+    case NoteStep(note) =>
+      fb.addInst(INop())
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(fb, substep.step)
     case YetStep(yet) =>
@@ -511,6 +503,13 @@ class Compiler(
       if (fb.needRetComp) inst = fb.returnModifier.walk(inst)
       unusedRules -= yetStr
       fb.addInst(inst)
+    // -------------------------------------------------------------------------
+    // special steps rarely used in the spec
+    // -------------------------------------------------------------------------
+    case SetFieldsWithIntrinsicsStep(ref, _) =>
+      fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
+    case PerformBlockStep(block, desc) =>
+      for (substep <- block.steps) compile(fb, substep.step)
   })
 
   /** compile local variable */

@@ -106,6 +106,21 @@ class StringifyTinyTest extends LangTest {
       ),
       returnStep -> "return _x_.",
       throwStep -> "throw a *ReferenceError* exception.",
+      toBlockStep(resumeStep) -> """
+      |  1. Resume _x_ passing _x_. If _x_ is ever resumed again, let _x_ be the Completion Record with which it is resumed.
+      |  1. Let _x_ be _x_.""".stripMargin,
+      blockStep -> """
+      |  1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(resumeEvalStep) -> """
+      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>.
+      |  1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(resumeEvalArgStep) -> """
+      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta> using _x_ as the result of the operation that suspended it.
+      |  1. Let _x_ be _x_.""".stripMargin,
+      toBlockStep(resumeEvalParamStep) -> """
+      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>. Let _x_ be the value returned by the resumed computation.
+      |  1. Let _x_ be _x_.""".stripMargin,
+      resumeTopCtxtStep -> "Resume the context that is now on the top of the execution context stack as the running execution context.",
       noteStep -> "NOTE: At this point, it must be a numeric operation.",
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
@@ -114,23 +129,6 @@ class StringifyTinyTest extends LangTest {
       performBlockStep -> """perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
       |  1. Let _x_ be _x_.
       |  1. Set _x_ to _x_ + _x_.""".stripMargin,
-      // -----------------------------------------------------------------------
-      // TODO refactor following code
-      // -----------------------------------------------------------------------
-      toBlockStep(resumeStep) -> """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>.
-      |  1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(resumeArgStep) -> """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta> using _x_ as the result of the operation that suspended it.
-      |  1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(resumeParamStep) -> """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>. Let _x_ be the value returned by the resumed computation.
-      |  1. Let _x_ be _x_.""".stripMargin,
-      toBlockStep(resumeYieldStep) -> """
-      |  1. Resume _x_ passing _x_. If _x_ is ever resumed again, let _x_ be the Completion Record with which it is resumed.
-      |  1. Let _x_ be _x_.""".stripMargin,
-      blockStep -> """
-      |  1. Let _x_ be _x_.""".stripMargin,
     )
 
     // -------------------------------------------------------------------------

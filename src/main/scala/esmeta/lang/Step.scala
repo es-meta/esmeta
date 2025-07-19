@@ -148,8 +148,34 @@ case class ReturnStep(expr: Expression) extends Step
 // throw steps
 case class ThrowStep(name: String) extends Step
 
+// resume steps for yield
+case class ResumeStep(
+  callerContext: Reference,
+  argument: Expression,
+  generatorContext: Reference,
+  param: Variable,
+  steps: List[SubStep],
+) extends Step
+
+// resume the suspended evaluation steps
+case class ResumeEvaluationStep(
+  context: Reference,
+  argument: Option[Expression],
+  param: Option[(Variable, String)],
+  steps: List[SubStep],
+) extends Step
+
+// resume the top context
+case class ResumeTopContextStep() extends Step
+
 // note steps
 case class NoteStep(note: String) extends Step
+
+// block steps
+case class BlockStep(block: StepBlock) extends Step
+
+// not yet supported steps
+case class YetStep(expr: YetExpression) extends Step
 
 // -----------------------------------------------------------------------------
 // special steps rarely used in the spec
@@ -160,30 +186,3 @@ case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
 
 // perform block steps
 case class PerformBlockStep(step: StepBlock, desc: String) extends Step
-
-// -----------------------------------------------------------------------------
-// TODO refactor following definitions
-// -----------------------------------------------------------------------------
-
-// resume the suspended evaluation steps
-case class ResumeEvaluationStep(
-  context: Reference,
-  argument: Option[Expression],
-  param: Option[Variable], // TODO handle type
-  steps: List[SubStep],
-) extends Step
-
-// resume steps for yield
-case class ResumeYieldStep(
-  callerContext: Reference,
-  argument: Expression,
-  generatorContext: Reference,
-  param: Variable, // TODO handle type
-  steps: List[SubStep],
-) extends Step
-
-// block steps
-case class BlockStep(block: StepBlock) extends Step
-
-// not yet supported steps
-case class YetStep(expr: YetExpression) extends Step

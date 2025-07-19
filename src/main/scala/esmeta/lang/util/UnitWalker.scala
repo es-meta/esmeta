@@ -77,7 +77,16 @@ trait UnitWalker extends BasicUnitWalker {
       walk(x); walk(expr); walk(body)
     case ReturnStep(expr) => walk(expr)
     case ThrowStep(expr)  => walk(expr)
-    case NoteStep(note)   =>
+    case ResumeStep(callerCtxt, arg, genCtxt, param, steps) =>
+      walk(callerCtxt); walk(arg); walk(genCtxt); walk(param);
+      walkList(steps, walk)
+    case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
+      walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walkPair(_, walk, walk));
+      walkList(steps, walk)
+    case ResumeTopContextStep() =>
+    case NoteStep(note)         =>
+    case BlockStep(block)       => walk(block)
+    case YetStep(expr)          => walk(expr)
     // -------------------------------------------------------------------------
     // special steps rarely used in the spec
     // -------------------------------------------------------------------------
@@ -88,13 +97,6 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case ResumeEvaluationStep(b, aOpt, pOpt, steps) =>
-      walk(b); walkOpt(aOpt, walk); walkOpt(pOpt, walk); walkList(steps, walk)
-    case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
-      walk(callerCtxt); walk(arg); walk(genCtxt); walk(param);
-      walkList(steps, walk)
-    case BlockStep(block) => walk(block)
-    case YetStep(expr)    => walk(expr)
   }
 
   def walk(target: RemoveStep.Target): Unit =

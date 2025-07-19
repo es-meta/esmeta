@@ -179,8 +179,38 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ThrowStep(name) =>
         app >> First("throw ")
         app >> ("*" + name + "*").withIndefArticle >> " exception."
+      case ResumeStep(callerCtxt, arg, genCtxt, param, steps) =>
+        given Rule[Step] = stepWithUpperRule(true)
+        app >> "Resume " >> callerCtxt >> " passing " >> arg >> ". "
+        app >> "If " >> genCtxt >> " is ever resumed again, "
+        app >> "let " >> param >> " be "
+        app >> "the Completion Record with which it is resumed."
+        for (step <- steps) app :> "1. " >> step
+        app
+      case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
+        given Rule[Step] = stepWithUpperRule(true)
+        effect(app) {
+          app >> "Resume the suspended evaluation of " >> context
+        }
+        for (arg <- argOpt)
+          app >> " using " >> arg
+          app >> " as the result of the operation that suspended it"
+        app >> "."
+        for ((param, kind) <- paramOpt)
+          app >> " Let " >> param
+          app >> " be the " >> kind >> " returned by the resumed computation."
+        for (step <- body)
+          app :> "1. " >> step
+        app
+      case ResumeTopContextStep() =>
+        app >> "Resume the context that is now on the top of the "
+        app >> "execution context stack as the running execution context."
       case NoteStep(note) =>
         app >> "NOTE: " >> note
+      case BlockStep(block) =>
+        app >> block
+      case YetStep(expr) =>
+        app >> expr
       // -----------------------------------------------------------------------
       // special steps rarely used in the spec
       // -----------------------------------------------------------------------
@@ -193,36 +223,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the following substeps in an implementation-defined order"
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
-      // -----------------------------------------------------------------------
-      // TODO refactor following code
-      // -----------------------------------------------------------------------
-      case ResumeEvaluationStep(context, argOpt, paramOpt, body) =>
-        given Rule[Step] = stepWithUpperRule(true)
-        app >> """<emu-meta effects="user-code">"""
-        app >> "Resume the suspended evaluation of " >> context
-        app >> "</emu-meta>"
-        for (arg <- argOpt)
-          app >> " using " >> arg
-          app >> " as the result of the operation that suspended it"
-        app >> "."
-        for (param <- paramOpt)
-          app >> " Let " >> param
-          app >> " be the value returned by the resumed computation."
-        for (step <- body)
-          app :> "1. " >> step // TODO
-        app
-      case ResumeYieldStep(callerCtxt, arg, genCtxt, param, steps) =>
-        given Rule[Step] = stepWithUpperRule(true)
-        app >> "Resume " >> callerCtxt >> " passing " >> arg >> ". "
-        app >> "If " >> genCtxt >> " is ever resumed again, "
-        app >> "let " >> param >> " be "
-        app >> "the Completion Record with which it is resumed."
-        for (step <- steps) app :> "1. " >> step
-        app
-      case BlockStep(block) =>
-        app >> block
-      case YetStep(expr) =>
-        app >> expr
     }
   }
 
@@ -987,6 +987,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (neg) " does not have " else " has "
 
   // xref
-  private def xrefRule: Rule[String] = (app, id) =>
+  private lazy val xrefRule: Rule[String] = (app, id) =>
     app >> "<emu-xref href=\"#" >> id >> "\"></emu-xref>"
+
+  // user-code effects
+  def effect(app: Appender)(body: => Unit): Appender = {
+    app >> "<emu-meta effects=\"user-code\">"
+    body
+    app >> "</emu-meta>"
+  }
 }
