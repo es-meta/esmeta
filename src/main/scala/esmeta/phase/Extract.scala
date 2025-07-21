@@ -75,7 +75,7 @@ case object Extract extends Phase[Unit, Spec] {
     val disAllowedYetConds = {
       val ignoredConds = ignoreMap.get("yet-conds").getOrElse(List.empty)
       spec.yetConds
-        .map(_.toString(detail = true, location = false))
+        .map(_.toString(detail = false, location = false))
         .filterNot(ignoredConds.contains)
     }
 
@@ -83,7 +83,7 @@ case object Extract extends Phase[Unit, Spec] {
       val ignoredSteps = ignoreMap.get("yet-steps").getOrElse(List.empty)
       (ManualInfo.compileRule("inst").keySet ++
       spec.yetSteps.map(
-        _.toString(detail = true, location = false),
+        _.toString(detail = false, location = false),
       ))
         .filterNot(ignoredSteps.contains)
     }
@@ -102,29 +102,32 @@ case object Extract extends Phase[Unit, Spec] {
   private def log(spec: Spec): Unit = {
     mkdir(EXTRACT_LOG_DIR)
 
-    dumpJson(
+    dumpFile(
       name = "not yet supported steps",
       data = spec.yetSteps
-        .map(_.toString(detail = true, location = false))
-        .sorted,
-      filename = s"$EXTRACT_LOG_DIR/yet-steps.json",
+        .map(_.toString(detail = false, location = false))
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/yet-steps",
     )
 
-    dumpJson(
+    dumpFile(
       name = "not yet supported conditions",
       data = spec.yetConds
-        .map(_.toString(detail = true, location = false))
-        .sorted,
-      filename = s"$EXTRACT_LOG_DIR/yet-conds.json",
+        .map(_.toString(detail = false, location = false))
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/yet-conds",
     )
 
     val yetTypes = spec.yetTypes
-    dumpJson(
+    dumpFile(
       name = "not yet parsed types",
       data = spec.yetTypes
         .map(_.toString)
-        .sorted,
-      filename = s"$EXTRACT_LOG_DIR/yet-types.json",
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/yet-types",
     )
 
     dumpJson(
@@ -132,10 +135,10 @@ case object Extract extends Phase[Unit, Spec] {
         "not yet supported steps, not yet supported conditions, and not yet parsed types in one file",
       data = Map(
         "yet-steps" -> spec.yetSteps
-          .map(_.toString(detail = true, location = false))
+          .map(_.toString(detail = false, location = false))
           .sorted,
         "yet-conds" -> spec.yetConds
-          .map(_.toString(detail = true, location = false))
+          .map(_.toString(detail = false, location = false))
           .sorted,
         "yet-types" -> spec.yetTypes
           .map(_.toString)
@@ -153,13 +156,14 @@ case object Extract extends Phase[Unit, Spec] {
       getName = algo => s"${algo.normalizedName}.algo",
     )
 
-    dumpJson(
+    dumpFile(
       name = "algorithms whose string form is not equal to the original prose",
       data = spec.algorithms
         .filter(algo => algo.normalizedCode != algo.body.toString)
         .map(algo => s"$EXTRACT_LOG_DIR/algos/${algo.normalizedName}.algo")
-        .sorted,
-      filename = s"$EXTRACT_LOG_DIR/yet-equal-algos.json",
+        .sorted
+        .mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/yet-equal-algos",
     )
 
     dumpFile(
