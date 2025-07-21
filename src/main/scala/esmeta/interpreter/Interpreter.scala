@@ -141,8 +141,8 @@ class Interpreter(
     case ret @ IReturn(expr) =>
       val retVal = eval(expr)
       if (tyCheck)
-        val retTy = st.context.func.irFunc.retTy.ty
-        if (retTy.isDefined && !retTy.contains(retVal, st)) {
+        val retTy = st.context.func.irFunc.retTy.ty.toValue
+        if (retTy.isDefined && !(st.typeOf(retVal) <= retTy)) {
           val node = st.context.cursor match
             case NodeCursor(_, node, _) => node
             case _                      => raise("cursor is not node cursor")
@@ -391,10 +391,10 @@ class Interpreter(
       case (param :: pl, arg :: al) =>
         map += param.lhs -> arg
         if (tyCheck)
-          val paramTy = param.ty.ty
+          val paramTy = param.ty.ty.toValue
           val idx = params.indexOf(param)
           if (func.isMethod && idx == 0) ()
-          else if (paramTy.isDefined && !paramTy.contains(arg, st))
+          else if (paramTy.isDefined && !(st.typeOf(arg) <= paramTy))
             val callPoint = CallPoint(st.context.func, caller, func)
             val aap = ArgAssignPoint(callPoint, idx)
             val error = ParamTypeMismatch(aap, st.typeOf(arg))

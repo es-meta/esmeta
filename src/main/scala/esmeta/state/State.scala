@@ -152,8 +152,7 @@ case class State(
           case RecordObj(tname, _) => RecordT(tname)
           case m: MapObj           => RecordT("__MAP__")
           case ListObj(values)     => values.map(typeOf).foldLeft(BotT)(_ || _)
-          case YetObj(_, msg) =>
-            RecordT(s"NotSupported: $msg") // throw NotSupported(Feature)(msg)
+          case YetObj(tname, _)    => RecordT(s"NotSupported: $tname")
       case Clo(func, _)      => CloT(func.name)
       case Cont(func, _, _)  => ContT(func.id)
       case AstValue(ast)     => AstT(ast.name, ast.idx)
