@@ -3,8 +3,8 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.interpreter.*
-import esmeta.errorcollector.*
 import esmeta.ty.{*, given}
+import esmeta.ty.util.TypeErrorCollector
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -19,20 +19,12 @@ case object Eval extends Phase[CFG, State] {
     cmdConfig: CommandConfig,
     config: Config,
   ): State =
-    if (config.multiple)
-      var st = State(cfg, Context(cfg.main))
-      for {
-        path <- cmdConfig.targets
-        file <- walkTree(path)
-        filename = file.toString
-        if jsFilter(filename)
-      } st = run(cfg, config, filename)
-      if (config.tyCheck) ErrorCollector.dump(Some(EVAL_LOG_DIR))
-      st
-    else
-      val st = run(cfg, config, getFirstFilename(cmdConfig, this.name))
-      if (config.tyCheck) ErrorCollector.dump(None)
-      st
+    val filename = getFirstFilename(cmdConfig, this.name)
+    val st = run(cfg, config, filename)
+    if (config.tyCheck)
+      TypeErrorCollector(filename, st.typeErrors)
+        .dumpTo(EVAL_LOG_DIR, withNames = false)
+    st
 
   def run(cfg: CFG, config: Config, filename: String): State = Interpreter(
     cfg.init.fromFile(filename),
@@ -55,7 +47,7 @@ case object Eval extends Phase[CFG, State] {
       "execute multiple programs (result is the state of the last program).",
     ),
     (
-      "type-check",
+      "tycheck",
       BoolOption(_.tyCheck = _),
       "perform dynamic type checking.",
     ),

@@ -6,9 +6,9 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.fuzzer.mutator.*
 import esmeta.fuzzer.synthesizer.*
-import esmeta.errorcollector.*
 import esmeta.spec.*
 import esmeta.state.*
+import esmeta.ty.util.TypeErrorCollector
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -75,7 +75,12 @@ class Fuzzer(
 
   /** ECMAScript grammar */
   lazy val grammar = cfg.grammar
+
+  /** script parser */
   lazy val scriptParser = cfg.scriptParser
+
+  /** type error collector */
+  lazy val collector: TypeErrorCollector = new TypeErrorCollector
 
   /** generated ECMAScript programs */
   lazy val result: Coverage = {
@@ -200,6 +205,7 @@ class Fuzzer(
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
+    if (tyCheck) collector.add(code, finalState.typeErrors)
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
     covered
@@ -385,7 +391,7 @@ class Fuzzer(
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
     // dump spec type error
-    if (tyCheck) ErrorCollector.dump(Some(logDir))
+    if (tyCheck) collector.dumpTo(logDir)
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")

@@ -9,7 +9,6 @@ import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
-import esmeta.errorcollector.*
 import esmeta.spec.{
   SyntaxDirectedOperationHead,
   AbstractOperationHead,
@@ -147,11 +146,7 @@ class Interpreter(
             case NodeCursor(_, node, _) => node
             case _                      => raise("cursor is not node cursor")
           val irp = InternalReturnPoint(st.context.func, node, ret)
-          val error = ReturnTypeMismatch(irp, st.typeOf(retVal))
-          ErrorCollector.addError(
-            st.filename.getOrElse(st.sourceText.getOrElse("")),
-            error,
-          )
+          st.typeErrors += ReturnTypeMismatch(irp, st.typeOf(retVal))
         }
       st.context.retVal = Some(ret, retVal)
     case IAssert(expr) =>
@@ -397,11 +392,7 @@ class Interpreter(
           else if (paramTy.isDefined && !(st.typeOf(arg) <= paramTy))
             val callPoint = CallPoint(st.context.func, caller, func)
             val aap = ArgAssignPoint(callPoint, idx)
-            val error = ParamTypeMismatch(aap, st.typeOf(arg))
-            ErrorCollector.addError(
-              st.filename.getOrElse(st.sourceText.getOrElse("")),
-              error,
-            )
+            st.typeErrors += ParamTypeMismatch(aap, st.typeOf(arg))
         aux(pl, al)
     }
     aux(params, args)

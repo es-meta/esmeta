@@ -1,5 +1,4 @@
 package esmeta.ty
-
 import esmeta.cfg.Node
 import esmeta.state.*
 import esmeta.ty.util.*

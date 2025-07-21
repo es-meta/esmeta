@@ -50,7 +50,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
-      "type-check",
+      "tycheck",
       BoolOption(_.tyCheck = _),
       "perform dynamic type checking.",
     ),

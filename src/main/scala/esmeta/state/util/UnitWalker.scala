@@ -22,11 +22,10 @@ trait UnitWalker extends BasicUnitWalker {
 
   // states
   def walk(st: State): Unit =
-    val State(_, context, _, _, _, callStack, globals, heap) = st
-    walk(context)
-    walkList(callStack, walk)
-    walkMMap(globals, walk, walk)
-    walk(heap)
+    walk(st.context)
+    walkList(st.callStack, walk)
+    walkMMap(st.globals, walk, walk)
+    walk(st.heap)
 
   // context
   def walk(context: Context): Unit =

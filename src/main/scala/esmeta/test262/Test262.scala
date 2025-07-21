@@ -8,8 +8,8 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
 import esmeta.parser.ESParser
-import esmeta.errorcollector.*
 import esmeta.ty.{*, given}
+import esmeta.ty.util.TypeErrorCollector
 import esmeta.state.*
 import esmeta.test262.util.*
 import esmeta.util.*
@@ -64,6 +64,9 @@ case class Test262(
 
   /** specification */
   val spec = cfg.spec
+
+  /** type error collector */
+  lazy val collector: TypeErrorCollector = new TypeErrorCollector
 
   /** load test262 */
   def loadTest(filename: String): Code =
@@ -209,7 +212,7 @@ case class Test262(
       ,
       // dump coverage
       postJob = logDir =>
-        if (tyCheck) ErrorCollector.dump(Some(logDir))
+        if (tyCheck) collector.dumpTo(logDir)
         if (useCoverage) cov.dumpTo(logDir),
     )
 

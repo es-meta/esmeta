@@ -19,6 +19,7 @@ case class State(
   var callStack: List[CallContext] = Nil,
   val globals: MMap[Global, Value] = MMap(),
   val heap: Heap = Heap(),
+  var typeErrors: Set[TypeError] = Set(),
 ) extends StateElem {
 
   given CFG = cfg

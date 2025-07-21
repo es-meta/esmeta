@@ -77,7 +77,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       "set the target features of Test262.",
     ),
     (
-      "type-check",
+      "tycheck",
       BoolOption(_.tyCheck = _),
       "test with dynamic type checking.",
     ),
