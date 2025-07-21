@@ -36,7 +36,8 @@ case object Extract extends Phase[Unit, Spec] {
         .continually(readLine)
         .takeWhile(_ != null)
         .mkString("\n")
-      val diffFile = decode[List[Int]](concat).toOption.map(_.toSet)
+      val diffFile = decode[List[Int]](concat).toOption
+        .map(_.toSet)
         .getOrElse({
           warn(
             s"failed to get diff information for `warn-action`; showing warning for all yet-steps.",
