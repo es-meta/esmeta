@@ -300,5 +300,5 @@ class Extractor(
 
   // get head contents from parent elements
   private def getHeadContent(parent: Element): String =
-    parent.getFirstChildContent
+    parent.getFirstChildElem.html.unescapeHtml
 }
