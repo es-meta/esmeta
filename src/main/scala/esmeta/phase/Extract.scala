@@ -8,6 +8,7 @@ import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import java.nio.file.Paths
 import scala.io.StdIn.readLine
 
 /** `extract` phase */
@@ -20,6 +21,7 @@ case object Extract extends Phase[Unit, Spec] {
     config: Config,
   ): Spec = if (!config.repl) {
     lazy val spec = Extractor(config.target, config.eval)
+    if (config.strict && config.log) warnInvalidPath(config.allowedYets)
     if (config.eval)
       time("extracting specification", spec)
       println(f"- # of actual parsing: $getParseCount%,d")
@@ -30,6 +32,18 @@ case object Extract extends Phase[Unit, Spec] {
   } else {
     runREPL
     Spec()
+  }
+
+  private def warnInvalidPath(path: Option[String]): Unit = for {
+    p <- path
+  } do {
+    val parent = Paths.get(EXTRACT_LOG_DIR).toAbsolutePath.normalize
+    val child = Paths.get(p).toAbsolutePath.normalize
+
+    if (child startsWith parent)
+      warn(
+        "`allowed-yets` is set to a path under the log directory; `-extract:log` option may overwrite the given `-extract:allowed-yets` file.",
+      )
   }
 
   private def checkStrict(spec: Spec, config: Config): Unit = {
