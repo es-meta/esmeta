@@ -6,11 +6,11 @@ case class NotSupported(reasonPath: NotSupported.ReasonPath)
 object NotSupported:
   type Reason = String
   type ReasonPath = List[Reason]
+  def apply(reason: Reason): NotSupported = NotSupported(List(reason))
+  def apply(category: Category)(reason: Reason): NotSupported =
+    NotSupported(category.name :: List(reason))
   def apply(category: Category)(reasonPath: ReasonPath): NotSupported =
     NotSupported(category.name :: reasonPath)
-
-  /** implicit conversion from reasons to reason paths */
-  given Conversion[Reason, ReasonPath] = List(_)
 
   /** constants for categories of not supported features */
   enum Category(val name: String) {

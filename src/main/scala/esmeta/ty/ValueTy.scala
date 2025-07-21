@@ -3,7 +3,6 @@ package esmeta.ty
 import esmeta.cfg.Func
 import esmeta.error.*
 import esmeta.error.NotSupported.Category.*
-import esmeta.error.NotSupported.{*, given}
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*

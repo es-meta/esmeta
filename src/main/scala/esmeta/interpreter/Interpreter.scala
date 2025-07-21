@@ -233,7 +233,7 @@ class Interpreter(
       // XXX fix last space in ECMAScript stringifier
       Str(ast.toString(grammar = Some(grammar)).trim)
     case EYet(msg) =>
-      throw NotSupported(Metalanguage)(List(msg))
+      throw NotSupported(Metalanguage)(msg)
     case EContains(list, elem) =>
       val l = eval(list).asList(st)
       val e = eval(elem)
@@ -550,7 +550,7 @@ object Interpreter {
       case (_, "TRV") if TRV.of.contains(name) =>
         TRV.of(name)(str)
       case ("RegularExpressionLiteral", name) =>
-        throw NotSupported(Feature)(List("RegExp"))
+        throw NotSupported(Feature)("RegExp")
       case _ =>
         throw InvalidAstField(lex, Str(sdoName))
     }

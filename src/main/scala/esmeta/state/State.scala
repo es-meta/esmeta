@@ -2,6 +2,7 @@ package esmeta.state
 
 import esmeta.cfg.*
 import esmeta.error.*
+import esmeta.error.NotSupported.Category.*
 import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
@@ -144,30 +145,39 @@ case class State(
     )
 
   /** get type of value in current state */
-  def typeOf(value: Value): ValueTy =
-    import esmeta.error.NotSupported.Category.*
-    import esmeta.error.NotSupported.{*, given}
-    value match
-      case a: Addr =>
-        heap(a) match
-          case RecordObj(tname, _) => RecordT(tname)
-          case m: MapObj           => RecordT("__MAP__")
-          case ListObj(values)     => values.map(typeOf).foldLeft(BotT)(_ || _)
-          case YetObj(tname, _)    => RecordT(s"NotSupported: $tname")
-      case Clo(func, _)      => CloT(func.name)
-      case Cont(func, _, _)  => ContT(func.id)
-      case AstValue(ast)     => AstT(ast.name, ast.idx)
-      case gr: GrammarSymbol => GrammarSymbolT(gr)
-      case Math(d)           => MathT(d)
-      case Infinity(pos)     => InfinityT(pos)
-      case Enum(name)        => EnumT(name)
-      case _: CodeUnit       => CodeUnitT
-      case _: Number         => NumberT
-      case _: BigInt         => BigIntT
-      case _: Str            => StrT
-      case _: Bool           => BoolT
-      case Undef             => UndefT
-      case Null              => NullT
+  def typeOf(value: Value, detail: Boolean = true): ValueTy = value match
+    case addr: Addr          => typeOf(heap(addr), detail)
+    case Clo(func, _)        => CloT(func.name)
+    case Cont(func, _, _)    => ContT(func.id)
+    case AstValue(ast)       => AstT(ast.name, ast.idx)
+    case symb: GrammarSymbol => GrammarSymbolT(symb)
+    case Math(d)             => MathT(d)
+    case Infinity(pos)       => InfinityT(pos)
+    case Enum(name)          => EnumT(name)
+    case _: CodeUnit         => CodeUnitT
+    case _: Number           => NumberT
+    case _: BigInt           => BigIntT
+    case _: Str              => StrT
+    case _: Bool             => BoolT
+    case Undef               => UndefT
+    case Null                => NullT
+
+  /** get type of addresses in current state */
+  def typeOf(obj: Obj, detail: Boolean): ValueTy = obj match
+    case RecordObj(tname, map) if detail =>
+      // recursively get detailed types for completion records
+      val recDetail = tname == "CompletionRecord"
+      val fm = FieldMap(
+        map.map {
+          case (k, Uninit)   => k -> Binding.Uninit
+          case (k, v: Value) => k -> Binding(typeOf(v, detail = recDetail))
+        }.toMap,
+      )
+      RecordT(tname, fm)
+    case RecordObj(tname, _) => RecordT(tname)
+    case m: MapObj           => MapT
+    case YetObj(tname, _)    => throw NotSupported(Feature)(tname)
+    case ListObj(values) => ListT(values.map(typeOf(_)).foldLeft(BotT)(_ || _))
 
   /** get string for a current cursor */
   def getCursorString: String = getCursorString(false)
