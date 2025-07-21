@@ -212,9 +212,12 @@ case class Test262(
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,
       // dump coverage
-      postJob = logDir =>
-        if (tyCheck) collector.dumpTo(logDir)
-        if (useCoverage) cov.dumpTo(logDir),
+      postJob = logDir => {
+        // dump type errors (dump names only when there are multiple tests)
+        if (tyCheck) collector.dumpTo(logDir, withNames = multiple)
+        // dump coverage
+        if (useCoverage) cov.dumpTo(logDir)
+      },
     )
 
     // close log file
