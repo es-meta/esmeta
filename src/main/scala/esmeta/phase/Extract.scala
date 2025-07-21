@@ -47,6 +47,7 @@ case object Extract extends Phase[Unit, Spec] {
   }
 
   private def checkStrict(spec: Spec, config: Config): Unit = {
+    // TODO warn unused elements in ignore file
     val ignoreMap = config.allowedYets match
       case None =>
         warn(
