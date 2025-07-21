@@ -51,7 +51,7 @@ case object Extract extends Phase[Unit, Spec] {
     val ignoreMap = config.allowedYets match
       case None =>
         warn(
-          s"no ignore file for `allowed-yet-types`; using default allowlist. (default: none)",
+          s"no ignore file for allowed `yets` found; using default allowlist. (default: none)",
         )
         Map.empty
       case Some(value) => readJson[Map[String, List[String]]](value)
@@ -61,7 +61,7 @@ case object Extract extends Phase[Unit, Spec] {
       ignoreMap.keySet.subsetOf(Set("yet-steps", "yet-conds", "yet-types"))
     if (!isWellShaped) {
       warn(
-        s"invalid ignore file for `allowed-yet-types`: expected keys are `yet-steps`, `yet-conds`, and `yet-types`, but given ${ignoreMap.keySet}.",
+        s"invalid ignore file for allowed `yets`: expected keys are `yet-steps`, `yet-conds`, and `yet-types`, but given ${ignoreMap.keySet}.",
       )
     }
 
@@ -102,34 +102,6 @@ case object Extract extends Phase[Unit, Spec] {
   private def log(spec: Spec): Unit = {
     mkdir(EXTRACT_LOG_DIR)
 
-    dumpFile(
-      name = "not yet supported steps",
-      data = spec.yetSteps
-        .map(_.toString(detail = false, location = false))
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/yet-steps",
-    )
-
-    dumpFile(
-      name = "not yet supported conditions",
-      data = spec.yetConds
-        .map(_.toString(detail = false, location = false))
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/yet-conds",
-    )
-
-    val yetTypes = spec.yetTypes
-    dumpFile(
-      name = "not yet parsed types",
-      data = spec.yetTypes
-        .map(_.toString)
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/yet-types",
-    )
-
     dumpJson(
       name =
         "not yet supported steps, not yet supported conditions, and not yet parsed types in one file",
@@ -144,7 +116,7 @@ case object Extract extends Phase[Unit, Spec] {
           .map(_.toString)
           .sorted,
       ),
-      filename = s"$EXTRACT_LOG_DIR/total-yets.json",
+      filename = s"$EXTRACT_LOG_DIR/yets.json",
     )
 
     dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/grammar")
@@ -177,7 +149,7 @@ case object Extract extends Phase[Unit, Spec] {
 
   // run REPL
   private val replWelcomeMessage =
-    """Welcome to REPL for metalanguage parser .
+    """Welcome to REPL for metalanguage parser.
       |Please input any metalanguage step as an input of the parser.
       |If you want to exit, please type `q` ro `quit`.""".stripMargin
   def runREPL: Unit =
