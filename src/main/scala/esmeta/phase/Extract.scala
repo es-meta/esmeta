@@ -11,6 +11,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.nio.file.Paths
 import scala.io.StdIn.readLine
+import io.circe.parser.decode
 
 /** `extract` phase */
 case object Extract extends Phase[Unit, Spec] {
@@ -30,12 +31,15 @@ case object Extract extends Phase[Unit, Spec] {
     if (config.log) log(spec)
     if (config.strict) checkStrict(spec, config)
     if (config.warnAction) {
-      val diffFile = config.warnActionDiff
-        .map(readJson[List[Int]])
-        .map(_.toSet)
+      println("Waiting to get diff information for `warn-action` in Stdin...")
+      val concat: String = Iterator
+        .continually(readLine)
+        .takeWhile(_ != null)
+        .mkString("\n")
+      val diffFile = decode[List[Int]](concat).toOption.map(_.toSet)
         .getOrElse({
           warn(
-            s"no diff file for `warn-action`; showing warning for all yet-steps.",
+            s"failed to get diff information for `warn-action`; showing warning for all yet-steps.",
           )
           Set.empty
         })
@@ -215,11 +219,6 @@ case object Extract extends Phase[Unit, Spec] {
       BoolOption(_.warnAction = _),
       "print workflow commands to warn novel yet-steps GitHub action",
     ),
-    (
-      "warn-action-diff",
-      StrOption((c, s) => c.warnActionDiff = Some(s)),
-      "set a file containing diff line information for warn-action (default: none).",
-    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -229,6 +228,5 @@ case object Extract extends Phase[Unit, Spec] {
     var strict: Boolean = false,
     var allowedYets: Option[String] = None,
     var warnAction: Boolean = false,
-    var warnActionDiff: Option[String] = None,
   )
 }
