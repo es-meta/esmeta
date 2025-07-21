@@ -8,6 +8,7 @@ import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import java.nio.file.Paths
 import scala.io.StdIn.readLine
 
 /** `extract` phase */
@@ -20,56 +21,102 @@ case object Extract extends Phase[Unit, Spec] {
     config: Config,
   ): Spec = if (!config.repl) {
     lazy val spec = Extractor(config.target, config.eval)
+    if (config.strict && config.log) warnInvalidPath(config.allowedYets)
     if (config.eval)
       time("extracting specification", spec)
       println(f"- # of actual parsing: $getParseCount%,d")
       println(f"- # of using cached result: $getCacheCount%,d")
     if (config.log) log(spec)
+    if (config.strict) checkStrict(spec, config)
     spec
   } else {
     runREPL
     Spec()
   }
 
+  private def warnInvalidPath(path: Option[String]): Unit = for {
+    p <- path
+  } do {
+    val parent = Paths.get(EXTRACT_LOG_DIR).toAbsolutePath.normalize
+    val child = Paths.get(p).toAbsolutePath.normalize
+
+    if (child startsWith parent)
+      warn(
+        "`allowed-yets` is set to a path under the log directory; `-extract:log` option may overwrite the given `-extract:allowed-yets` file.",
+      )
+  }
+
+  private def checkStrict(spec: Spec, config: Config): Unit = {
+    // TODO warn unused elements in ignore file
+    val ignoreMap = config.allowedYets match
+      case None =>
+        warn(
+          s"no ignore file for allowed `yets` found; using default allowlist. (default: none)",
+        )
+        Map.empty
+      case Some(value) => readJson[Map[String, List[String]]](value)
+
+    // check shape of json
+    val isWellShaped =
+      ignoreMap.keySet.subsetOf(Set("yet-steps", "yet-conds", "yet-types"))
+    if (!isWellShaped) {
+      warn(
+        s"invalid ignore file for allowed `yets`: expected keys are `yet-steps`, `yet-conds`, and `yet-types`, but given ${ignoreMap.keySet}.",
+      )
+    }
+
+    val disallowedYetTypes = {
+      val ignoredTypes = ignoreMap.get("yet-types").getOrElse(List.empty)
+      spec.yetTypes
+        .map(_.toString)
+        .filterNot(ignoredTypes.contains)
+    }
+
+    val disAllowedYetConds = {
+      val ignoredConds = ignoreMap.get("yet-conds").getOrElse(List.empty)
+      spec.yetConds
+        .map(_.toString(detail = false, location = false))
+        .filterNot(ignoredConds.contains)
+    }
+
+    val disallowedYetSteps = {
+      val ignoredSteps = ignoreMap.get("yet-steps").getOrElse(List.empty)
+      (ManualInfo.compileRule("inst").keySet ++
+      spec.yetSteps.map(
+        _.toString(detail = false, location = false),
+      ))
+        .filterNot(ignoredSteps.contains)
+    }
+
+    val disallowed =
+      disallowedYetTypes.nonEmpty || disallowedYetSteps.nonEmpty || disAllowedYetConds.nonEmpty
+
+    if (disallowed) {
+      raise(
+        s"extracting failed in strict extract mode: found ${spec.yetTypes.length} yet-types, ${spec.yetSteps.length} yet-steps and ${spec.yetConds.length} yet-conds. see result of -extract:log for details.",
+      )
+    }
+  }
+
   // logging mode
   private def log(spec: Spec): Unit = {
     mkdir(EXTRACT_LOG_DIR)
 
-    val incompleteSteps = spec.incompleteSteps
-
-    var yetSteps = Vector[Step]()
-    var yetConds = Vector[Condition]()
-    for (step <- incompleteSteps) step match
-      case IfStep(cond, _, _, _) => yetConds :+= cond
-      case AssertStep(cond)      => yetConds :+= cond
-      case _                     => yetSteps :+= step
-
-    dumpFile(
-      name = "not yet supported steps",
-      data = yetSteps
-        .map(_.toString(detail = false, location = false))
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/yet-steps",
-    )
-
-    dumpFile(
-      name = "not yet supported conditions",
-      data = yetConds
-        .map(_.toString(detail = false, location = false))
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/yet-conds",
-    )
-
-    val yetTypes = spec.yetTypes
-    dumpFile(
-      name = "not yet parsed types",
-      data = yetTypes
-        .map(_.toString)
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/yet-types",
+    dumpJson(
+      name =
+        "not yet supported steps, not yet supported conditions, and not yet parsed types in one file",
+      data = Map(
+        "yet-steps" -> spec.yetSteps
+          .map(_.toString(detail = false, location = false))
+          .sorted,
+        "yet-conds" -> spec.yetConds
+          .map(_.toString(detail = false, location = false))
+          .sorted,
+        "yet-types" -> spec.yetTypes
+          .map(_.toString)
+          .sorted,
+      ),
+      filename = s"$EXTRACT_LOG_DIR/yets.json",
     )
 
     dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/grammar")
@@ -102,7 +149,7 @@ case object Extract extends Phase[Unit, Spec] {
 
   // run REPL
   private val replWelcomeMessage =
-    """Welcome to REPL for metalanguage parser .
+    """Welcome to REPL for metalanguage parser.
       |Please input any metalanguage step as an input of the parser.
       |If you want to exit, please type `q` ro `quit`.""".stripMargin
   def runREPL: Unit =
@@ -140,11 +187,23 @@ case object Extract extends Phase[Unit, Spec] {
       BoolOption(_.repl = _),
       "use a REPL for metalanguage parser.",
     ),
+    (
+      "strict",
+      BoolOption(_.strict = _),
+      "turn on strict parsing mode, which makes extractor fail when any 'yet-step' or 'yet-type`. (default: false)",
+    ),
+    (
+      "allowed-yets",
+      StrOption((c, s) => c.allowedYets = Some(s)),
+      "set a file containing allowed `yet`s (default: none).",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
     var log: Boolean = false,
     var eval: Boolean = false,
     var repl: Boolean = false,
+    var strict: Boolean = false,
+    var allowedYets: Option[String] = None,
   )
 }

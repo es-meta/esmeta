@@ -41,8 +41,36 @@ case class Spec(
     step <- algo.steps
   } yield step
 
-  /** get incomplete algorithm steps */
+  /** get incomplete algorithm steps
+    *
+    * @see
+    *   [[yetSteps]], [[yetConds]]
+    */
   lazy val incompleteSteps: List[Step] = allSteps.filter(!_.complete)
+
+  private lazy val yetStepsAndConds: (List[Step], List[Condition]) = {
+    var yetSteps = Vector[Step]()
+    var yetConds = Vector[Condition]()
+    for (step <- incompleteSteps) step match
+      case IfStep(cond, _, _, _) => yetConds :+= cond
+      case AssertStep(cond)      => yetConds :+= cond
+      case _                     => yetSteps :+= step
+    (yetSteps.toList, yetConds.toList)
+  }
+
+  /** get incomplete algorithm steps, refined from [[incompleteSteps]]
+    *
+    * @see
+    *   [[incompleteSteps]]
+    */
+  lazy val yetSteps: List[Step] = yetStepsAndConds._1
+
+  /** get incomplete algorithm conditions, refined from [[incompleteSteps]]
+    *
+    * @see
+    *   [[incompleteSteps]]
+    */
+  lazy val yetConds: List[Condition] = yetStepsAndConds._2
 
   /** get complete algorithm steps */
   lazy val completeSteps: List[Step] = allSteps.filter(_.complete)
@@ -57,7 +85,7 @@ case class Spec(
   lazy val knownTypes: List[Type] =
     types.collect { case ty @ Type(_: ValueTy) => ty }
 
-  /** get known types */
+  /** get unknown types with `msg` defined. */
   lazy val yetTypes: List[Type] =
     types.collect { case ty @ Type(UnknownTy(Some(_))) => ty }
 

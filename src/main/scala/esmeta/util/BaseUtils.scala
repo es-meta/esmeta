@@ -31,7 +31,7 @@ object BaseUtils {
 
   /** show a warning message */
   def warn[T](x: T, showTrace: Boolean = false): T =
-    warn("WARNING", x, showTrace)
+    warn(setColor(YELLOW)("WARNING"), x, showTrace)
   def warn[T](head: String, x: T, showTrace: Boolean): T =
     Console.err.println(s"[$head] $x")
     if (showTrace)
@@ -39,9 +39,9 @@ object BaseUtils {
       println(getStackTrace.take(STACK_TRACE_DEPTH).mkString(LINE_SEP + "    "))
     x
 
-  /** show a deubgging message */
+  /** show a debugging message */
   def debug[T](x: T, showTrace: Boolean = false): T =
-    warn("DEBUG", x, showTrace)
+    warn(setColor(CYAN)("DEBUG"), x, showTrace)
 
   /** get duration time in milliseconds */
   def time[T](f: => T): (Long, T) = {
