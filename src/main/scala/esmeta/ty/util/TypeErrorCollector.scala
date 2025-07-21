@@ -5,16 +5,19 @@ import esmeta.ty.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.SystemUtils.*
-import scala.collection.mutable.{Map => MMap, Set => MSet}
+import scala.collection.concurrent.TrieMap
 
 class TypeErrorCollector extends TyElem {
   import TypeErrorCollector.*, tyStringifier.{*, given}
 
-  val map: MMap[TypeError, MSet[String]] = MMap()
+  val map: TrieMap[TypeError, Set[String]] = TrieMap()
 
   /** add a type error */
   def add(name: String, error: TypeError): this.type =
-    map.getOrElseUpdate(error, MSet.empty).add(name)
+    map.updateWith(error) {
+      case Some(set) => Some(set + name)
+      case None      => Some(Set(name))
+    }
     this
 
   /** add multiple type errors */
