@@ -53,14 +53,25 @@ object NewPhraseAlert:
         if (langType.ty.isInstanceOf[ty.UnknownTy] &&
         langType.ty.asInstanceOf[ty.UnknownTy].msg.isDefined)
         // if (!ignoreYetTypes.contains(langType.toString))
+        loc = langType.loc.getOrElse(???)
+        line = headElem.startLine + loc.start.line
+        endLine = headElem.startLine + loc.end.line
+        if (
+          // TODO
+          diffLines.contains(line) ||
+          diffLines.contains(line - 1) ||
+          diffLines.contains(line + 1) ||
+          diffLines.contains(endLine) ||
+          diffLines.contains(endLine - 1) ||
+          diffLines.contains(endLine + 1)
+        )
       } do
-        val loc = langType.loc.getOrElse(???)
         GitHubAction.println(
           tag = "warning",
           file = Some("spec.html"),
-          line = Some(headElem.startLine + loc.start.line),
-          endLine = Some(headElem.startLine + loc.end.line),
           title = Some("Newly Introduced Unkown Type"),
+          line = Some(line),
+          endLine = Some(endLine),
           message = Some(
             s"""
         | This is a type which ESMeta cannot understand. This will cause following consequences:
