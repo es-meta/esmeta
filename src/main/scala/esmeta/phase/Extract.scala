@@ -31,12 +31,18 @@ case object Extract extends Phase[Unit, Spec] {
       println(f"- # of using cached result: $getCacheCount%,d")
     if (config.log) log(spec)
     if (config.strict) checkStrict(spec, config)
-    // TODO
-    //     if (config.warnAction) {
-    //   val s = config.ignoreYetSteps.map(readJson[List[String]]).getOrElse(Nil)
-    //   val t = config.ignoreYetTypes.map(readJson[List[String]]).getOrElse(Nil)
-    //   NewPhraseAlert.warnYets(spec, s, t)
-    // }
+    if (config.warnAction) {
+      val diffFile = config.warnActionDiff
+        .map(readJson[List[Int]])
+        .map(_.toSet)
+        .getOrElse({
+          warn(
+            s"no diff file for `warn-action`; showing warning for all yet-steps.",
+          )
+          Set.empty
+        })
+      NewPhraseAlert.warnYets(spec, diffFile)
+    }
     spec
   } else {
     runREPL
@@ -208,14 +214,19 @@ case object Extract extends Phase[Unit, Spec] {
       "turn on strict parsing mode, which makes extractor fail when any 'yet-step' or 'yet-type`. (default: false)",
     ),
     (
-      "warn-action",
-      BoolOption(_.warnAction = _),
-      "print workflow commands to warn novel yet-steps GitHub action ",
-    ),
-    (
       "allowed-yets",
       StrOption((c, s) => c.allowedYets = Some(s)),
       "set a file containing allowed `yet`s (default: none).",
+    ),
+    (
+      "warn-action",
+      BoolOption(_.warnAction = _),
+      "print workflow commands to warn novel yet-steps GitHub action",
+    ),
+    (
+      "warn-action-diff",
+      StrOption((c, s) => c.warnActionDiff = Some(s)),
+      "set a file containing diff line information for warn-action (default: none).",
     ),
   )
   case class Config(
@@ -224,7 +235,8 @@ case object Extract extends Phase[Unit, Spec] {
     var eval: Boolean = false,
     var repl: Boolean = false,
     var strict: Boolean = false,
-    var warnAction: Boolean = false,
     var allowedYets: Option[String] = None,
+    var warnAction: Boolean = false,
+    var warnActionDiff: Option[String] = None,
   )
 }

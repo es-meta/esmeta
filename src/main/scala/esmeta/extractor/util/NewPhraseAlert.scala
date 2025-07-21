@@ -9,15 +9,15 @@ import org.jsoup.nodes.Element
 object NewPhraseAlert:
   def warnYets(
     spec: Spec,
-    ignoreYetSteps: List[String],
-    ignoreYetTypes: List[String],
+    diffLines: Set[Int],
   ): Unit =
     for {
       algo <- spec.algorithms
       elem = algo.elem
     } do {
 
-      val acceptables = ManualInfo.compileRule("inst").keySet ++ ignoreYetSteps
+      val acceptables =
+        ManualInfo.compileRule("inst").keySet // ++ ignoreYetSteps
 
       for {
         step <- algo.steps
@@ -25,13 +25,16 @@ object NewPhraseAlert:
         if (!acceptables.contains(
           step.toString(detail = true, location = false),
         ))
+        loc = step.loc.getOrElse(???)
+        line = elem.startLine + loc.start.line - 1
+        endLine = elem.startLine + loc.end.line - 1
+        if (diffLines.contains(line) || diffLines.contains(endLine))
       } do
-        val loc = step.loc.getOrElse(???)
         GitHubAction.println(
           tag = "warning",
           file = Some("spec.html"),
-          line = Some(elem.startLine + loc.start.line - 1),
-          endLine = Some(elem.startLine + loc.end.line - 1),
+          line = Some(line),
+          endLine = Some(endLine),
           col = Some(elem.startCol + loc.start.column - 1),
           endColumn = Some(elem.startCol + loc.end.column - 1),
           title = Some("Newly Introduced Unkown Step"), // TODO
@@ -49,7 +52,7 @@ object NewPhraseAlert:
         headElem = algo.headElem
         if (langType.ty.isInstanceOf[ty.UnknownTy] &&
         langType.ty.asInstanceOf[ty.UnknownTy].msg.isDefined)
-        if (!ignoreYetTypes.contains(langType.toString))
+        // if (!ignoreYetTypes.contains(langType.toString))
       } do
         val loc = langType.loc.getOrElse(???)
         GitHubAction.println(
