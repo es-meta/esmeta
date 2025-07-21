@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.extractor.Extractor
+import esmeta.extractor.util.NewPhraseAlert
 import esmeta.lang.*
 import esmeta.lang.util.ParserForEval.{getParseCount, getCacheCount}
 import esmeta.spec.*
@@ -30,6 +31,12 @@ case object Extract extends Phase[Unit, Spec] {
       println(f"- # of using cached result: $getCacheCount%,d")
     if (config.log) log(spec)
     if (config.strict) checkStrict(spec, config)
+    // TODO
+    //     if (config.warnAction) {
+    //   val s = config.ignoreYetSteps.map(readJson[List[String]]).getOrElse(Nil)
+    //   val t = config.ignoreYetTypes.map(readJson[List[String]]).getOrElse(Nil)
+    //   NewPhraseAlert.warnYets(spec, s, t)
+    // }
     spec
   } else {
     runREPL
@@ -201,6 +208,11 @@ case object Extract extends Phase[Unit, Spec] {
       "turn on strict parsing mode, which makes extractor fail when any 'yet-step' or 'yet-type`. (default: false)",
     ),
     (
+      "warn-action",
+      BoolOption(_.warnAction = _),
+      "print workflow commands to warn novel yet-steps GitHub action ",
+    ),
+    (
       "allowed-yets",
       StrOption((c, s) => c.allowedYets = Some(s)),
       "set a file containing allowed `yet`s (default: none).",
@@ -212,6 +224,7 @@ case object Extract extends Phase[Unit, Spec] {
     var eval: Boolean = false,
     var repl: Boolean = false,
     var strict: Boolean = false,
+    var warnAction: Boolean = false,
     var allowedYets: Option[String] = None,
   )
 }
