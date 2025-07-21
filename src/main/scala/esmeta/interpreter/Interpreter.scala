@@ -139,15 +139,19 @@ class Interpreter(
       st.context.locals += lhs -> st.pop(addr, front)
     case ret @ IReturn(expr) =>
       val retVal = eval(expr)
-      if (tyCheck)
+      if (tyCheck) {
         val retTy = st.context.func.irFunc.retTy.ty.toValue
-        if (retTy.isDefined && !(st.typeOf(retVal) <= retTy)) {
+        if (
+          retTy.isDefined &&
+          retTy.safeContains(retVal, st) == Some(false)
+        ) {
           val node = st.context.cursor match
             case NodeCursor(_, node, _) => node
             case _                      => raise("cursor is not node cursor")
           val irp = InternalReturnPoint(st.context.func, node, ret)
           st.typeErrors += ReturnTypeMismatch(irp, st.typeOf(retVal))
         }
+      }
       st.context.retVal = Some(ret, retVal)
     case IAssert(expr) =>
       optional(eval(expr)) match
@@ -385,14 +389,19 @@ class Interpreter(
           case _       => throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
         map += param.lhs -> arg
-        if (tyCheck)
+        if (tyCheck) {
           val paramTy = param.ty.ty.toValue
           val idx = params.indexOf(param)
           if (func.isMethod && idx == 0) ()
-          else if (paramTy.isDefined && !(st.typeOf(arg) <= paramTy))
+          else if (
+            paramTy.isDefined &&
+            paramTy.safeContains(arg, st) == Some(false)
+          ) {
             val callPoint = CallPoint(st.context.func, caller, func)
             val aap = ArgAssignPoint(callPoint, idx)
             st.typeErrors += ParamTypeMismatch(aap, st.typeOf(arg))
+          }
+        }
         aux(pl, al)
     }
     aux(params, args)

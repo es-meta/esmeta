@@ -3,6 +3,7 @@ package esmeta.ty
 import esmeta.cfg.CFG
 import esmeta.state.*
 import esmeta.ty.util.Parser
+import esmeta.util.BaseUtils.*
 
 /** types */
 trait Ty extends TyElem {
@@ -27,6 +28,16 @@ trait Ty extends TyElem {
 
   /** value containment check */
   def contains(value: Value, st: State): Boolean = contains(value, st.heap)
+
+  /** value containment check */
   def contains(value: Value, heap: Heap): Boolean
+
+  /** safe value containment check */
+  def safeContains(value: Value, st: State): Option[Boolean] =
+    safeContains(value, st.heap)
+
+  /** safe value containment check */
+  def safeContains(value: Value, heap: Heap): Option[Boolean] =
+    optional(contains(value, heap))
 }
 object Ty extends Parser.From(Parser.ty)
