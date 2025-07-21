@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.interpreter.*
+import esmeta.errorcollector.*
 import esmeta.ty.{*, given}
 import esmeta.state.*
 import esmeta.util.*
@@ -12,13 +13,6 @@ import esmeta.util.SystemUtils.*
 case object Eval extends Phase[CFG, State] {
   val name = "eval"
   val help = "evaluates an ECMAScript file."
-
-  def errors: Set[TypeError] = errorMap.keys.toSet
-  protected def addError(error: TypeError, filename: String): Unit =
-    errorMap.get(error) match
-      case None      => errorMap += error -> Set(filename)
-      case Some(set) => errorMap += error -> (set + filename)
-  private var errorMap: Map[TypeError, Set[String]] = Map()
 
   def apply(
     cfg: CFG,
@@ -33,31 +27,20 @@ case object Eval extends Phase[CFG, State] {
         filename = file.toString
         if jsFilter(filename)
       } st = run(cfg, config, filename)
-      if (config.tyCheck)
-        dumpFile(
-          name = "detected type errors",
-          data = errorMap.toVector
-            .sortBy(-_._2.size)
-            .map(_._1.toString)
-            .mkString(LINE_SEP + LINE_SEP),
-          filename = s"$EVAL_LOG_DIR/errors",
-        )
+      if (config.tyCheck) ErrorCollector.dump(Some(EVAL_LOG_DIR))
       st
-    else run(cfg, config, getFirstFilename(cmdConfig, this.name))
+    else
+      val st = run(cfg, config, getFirstFilename(cmdConfig, this.name))
+      if (config.tyCheck) ErrorCollector.dump(None)
+      st
 
-  def run(cfg: CFG, config: Config, filename: String): State =
-    val interp = new Interpreter(
-      cfg.init.fromFile(filename),
-      tyCheck = config.tyCheck,
-      log = config.log,
-      detail = config.detail,
-      timeLimit = config.timeLimit,
-    )
-    val st = interp.result
-    if (config.tyCheck)
-      if (config.multiple) interp.errors.foreach(addError(_, filename))
-      else interp.errors.foreach(e => println(e.toString + LINE_SEP))
-    st
+  def run(cfg: CFG, config: Config, filename: String): State = Interpreter(
+    cfg.init.fromFile(filename),
+    tyCheck = config.tyCheck,
+    log = config.log,
+    detail = config.detail,
+    timeLimit = config.timeLimit,
+  )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

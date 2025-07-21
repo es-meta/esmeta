@@ -32,16 +32,9 @@ case class Coverage(
   val jsonProtocol: JsonProtocol = JsonProtocol(cfg)
   import jsonProtocol.given
 
-  val tyStringifier = TyElem.getStringifier(true, false)
-  import tyStringifier.given
-
   // minimal scripts
   def minimalScripts: Set[Script] = _minimalScripts
   private var _minimalScripts: Set[Script] = Set()
-
-  // detected type errors
-  def errorMap: Map[String, Set[TypeError]] = _errorMap
-  private var _errorMap: Map[String, Set[TypeError]] = Map()
 
   // meta-info of each script
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
@@ -169,7 +162,6 @@ case class Coverage(
         touchedNodeViews.keys,
         touchedCondViews.keys,
       )
-      _errorMap += script.code -> interp.errors
 
     // TODO: impl checkWithBlocking using `blockingScripts`
     (finalSt, updated, covered)

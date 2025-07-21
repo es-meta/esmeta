@@ -8,6 +8,7 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
 import esmeta.parser.ESParser
+import esmeta.errorcollector.*
 import esmeta.ty.{*, given}
 import esmeta.state.*
 import esmeta.test262.util.*
@@ -63,14 +64,6 @@ case class Test262(
 
   /** specification */
   val spec = cfg.spec
-
-  /** detected type errors */
-  def errors: Set[TypeError] = errorMap.keys.toSet
-  protected def addError(error: TypeError, filename: String): Unit =
-    errorMap.get(error) match
-      case None      => errorMap += error -> Set(filename)
-      case Some(set) => errorMap += error -> (set + filename)
-  private var errorMap: Map[TypeError, Set[String]] = Map()
 
   /** load test262 */
   def loadTest(filename: String): Code =
@@ -163,10 +156,6 @@ case class Test262(
     // open log file
     val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
 
-    // stringifier for dynamic type checking
-    val tyStringifier = TyElem.getStringifier(true, false)
-    import tyStringifier.given
-
     // get progress bar for extracted tests
     val progressBar = getProgressBar(
       name = "eval",
@@ -220,15 +209,7 @@ case class Test262(
       ,
       // dump coverage
       postJob = logDir =>
-        if (tyCheck)
-          dumpFile(
-            name = "detected type errors",
-            data = errorMap.toVector
-              .sortBy(-_._2.size)
-              .map(_._1.toString)
-              .mkString(LINE_SEP + LINE_SEP),
-            filename = s"$logDir/tycheck/errors",
-          )
+        if (tyCheck) ErrorCollector.dump(Some(logDir))
         if (useCoverage) cov.dumpTo(logDir),
     )
 
@@ -321,7 +302,7 @@ case class Test262(
     timeLimit: Option[Int] = None,
   ): State =
     val st = cfg.init.from(code, ast)
-    val interp = new Interpreter(
+    Interpreter(
       st = st,
       tyCheck = tyCheck,
       log = log,
@@ -329,9 +310,6 @@ case class Test262(
       logPW = logPW,
       timeLimit = timeLimit,
     )
-    val finalSt = interp.result
-    if (tyCheck) interp.errors.foreach(addError(_, filename))
-    finalSt
 
   // check whether program point is in harness
   private def inHarness(st: State): Boolean = (for {

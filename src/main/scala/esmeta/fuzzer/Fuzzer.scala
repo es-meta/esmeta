@@ -6,6 +6,7 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.fuzzer.mutator.*
 import esmeta.fuzzer.synthesizer.*
+import esmeta.errorcollector.*
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.util.*
@@ -383,6 +384,8 @@ class Fuzzer(
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
+    // dump spec type error
+    if (tyCheck) ErrorCollector.dump(Some(logDir))
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
