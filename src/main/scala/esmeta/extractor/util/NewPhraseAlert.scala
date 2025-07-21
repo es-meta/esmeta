@@ -28,15 +28,14 @@ object NewPhraseAlert:
         loc = step.loc.getOrElse(???)
         line = elem.startLine + loc.start.line - 1
         endLine = elem.startLine + loc.end.line - 1
-        if (diffLines.contains(line) || diffLines.contains(endLine))
+        interval = (line until endLine + 1).toSet
+        if (interval intersect diffLines).nonEmpty
       } do
         GitHubAction.println(
           tag = "warning",
           file = Some("spec.html"),
           line = Some(line),
           endLine = Some(endLine),
-          col = Some(elem.startCol + loc.start.column - 1),
-          endColumn = Some(elem.startCol + loc.end.column - 1),
           title = Some("Newly Introduced Unkown Step"), // TODO
           message = Some(
             s"""
@@ -52,19 +51,11 @@ object NewPhraseAlert:
         headElem = algo.headElem
         if (langType.ty.isInstanceOf[ty.UnknownTy] &&
         langType.ty.asInstanceOf[ty.UnknownTy].msg.isDefined)
-        // if (!ignoreYetTypes.contains(langType.toString))
         loc = langType.loc.getOrElse(???)
-        line = headElem.startLine + loc.start.line
-        endLine = headElem.startLine + loc.end.line
-        if (
-          // TODO
-          diffLines.contains(line) ||
-          diffLines.contains(line - 1) ||
-          diffLines.contains(line + 1) ||
-          diffLines.contains(endLine) ||
-          diffLines.contains(endLine - 1) ||
-          diffLines.contains(endLine + 1)
-        )
+        line = headElem.startLine + loc.start.line - 1
+        endLine = headElem.startLine + loc.end.line - 1
+        interval = (line until endLine + 1).toSet
+        if (interval intersect diffLines).nonEmpty
       } do
         GitHubAction.println(
           tag = "warning",
@@ -84,8 +75,11 @@ object NewPhraseAlert:
         )
     }
 
+  // NOTE that column numbers might not be accurate
   extension (elem: Element)
+
+    /* start line number of the element (1-base) */
     def startLine: Int = elem.sourceRange.start.lineNumber
-    def startCol: Int = elem.sourceRange.start.columnNumber
+
+    /* end line number of the element (1-base) */
     def endLine: Int = elem.sourceRange.end.lineNumber
-    def endCol: Int = elem.sourceRange.end.columnNumber
