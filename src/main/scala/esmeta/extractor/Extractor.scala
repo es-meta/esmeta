@@ -119,7 +119,7 @@ class Extractor(
     val parent = elem.parent
     val instancePattern = "INTRINSICS.(\\w+).*".r
     for {
-      head <- extractHeads(elem)
+      (head, headParent) <- extractHeads(elem)
       parent = elem.parent
       baseCode = elem.html.unescapeHtml
       code = (getTemplateName(parent), head.fname) match
@@ -129,6 +129,7 @@ class Extractor(
       body = parser.parseBy(parser.step)(code)
       algo = Algorithm(head, body, code)
       _ = algo.elem = elem
+      _ = algo.headElem = headParent.getFirstChildElem
     } yield algo
 
   /** TODO ignores elements whose parents' ids are in this list */
@@ -142,8 +143,8 @@ class Extractor(
     "sec-data-races",
   )
 
-  /** extracts algorithm heads */
-  def extractHeads(elem: Element): List[Head] = {
+  /** extracts algorithm heads and closest parent */
+  def extractHeads(elem: Element): List[(Head, Element)] = {
     var parent = elem.parent
     // TODO more general rules
     if (
@@ -158,7 +159,7 @@ class Extractor(
     if (parent.tagName != "emu-clause") return Nil
 
     // consider algorithm head types using `type` attributes
-    parent.attr("type") match {
+    val heads = parent.attr("type") match {
       case "abstract operation" =>
         extractAbsOpHead(parent, elem, false)
       case "implementation-defined abstract operation" =>
@@ -178,6 +179,7 @@ class Extractor(
       case _ =>
         extractUnusualHead(parent, elem)
     }
+    heads.map(_ -> parent)
   }
 
   /** extracts tables */

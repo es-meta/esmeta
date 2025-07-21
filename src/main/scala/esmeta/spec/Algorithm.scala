@@ -16,6 +16,9 @@ case class Algorithm(
   /** HTML elements */
   var elem: Element = Element("emu-alg")
 
+  /** HTML element for head */
+  var headElem: Element = Element("div")
+
   /** check whether it is incomplete */
   lazy val complete: Boolean = incompleteSteps.isEmpty
 
