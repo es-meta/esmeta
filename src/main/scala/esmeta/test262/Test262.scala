@@ -8,6 +8,8 @@ import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
 import esmeta.parser.ESParser
+import esmeta.ty.{*, given}
+import esmeta.ty.util.TypeErrorCollector
 import esmeta.state.*
 import esmeta.test262.util.*
 import esmeta.util.*
@@ -62,6 +64,9 @@ case class Test262(
 
   /** specification */
   val spec = cfg.spec
+
+  /** type error collector */
+  lazy val collector: TypeErrorCollector = new TypeErrorCollector
 
   /** load test262 */
   def loadTest(filename: String): Code =
@@ -123,6 +128,7 @@ case class Test262(
   def evalTest(
     paths: Option[List[String]] = None,
     features: Option[List[String]] = None,
+    tyCheck: Boolean = false,
     log: Boolean = false,
     detail: Boolean = false,
     useProgress: Boolean = false,
@@ -189,16 +195,29 @@ case class Test262(
         val filename = test.path
         val st =
           if (!useCoverage)
-            evalFile(filename, log && !multiple, detail, Some(logPW), timeLimit)
+            evalFile(
+              filename,
+              tyCheck,
+              log && !multiple,
+              detail,
+              Some(logPW),
+              timeLimit,
+            )
           else {
             val (ast, code) = loadTest(filename)
             cov.runAndCheck(Script(code, filename), ast)._1
           }
+        if (tyCheck) collector.add(filename, st.typeErrors)
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
       ,
       // dump coverage
-      postJob = logDir => if (useCoverage) cov.dumpTo(logDir),
+      postJob = logDir => {
+        // dump type errors (dump names only when there are multiple tests)
+        if (tyCheck) collector.dumpTo(logDir, withNames = multiple)
+        // dump coverage
+        if (useCoverage) cov.dumpTo(logDir)
+      },
     )
 
     // close log file
@@ -269,18 +288,21 @@ case class Test262(
   // eval ECMAScript code
   private def evalFile(
     filename: String,
+    tyCheck: Boolean,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
     val (ast, code) = loadTest(filename)
-    eval(code, ast, log, detail, logPW, timeLimit)
+    eval(code, ast, filename, tyCheck, log, detail, logPW, timeLimit)
 
   // eval ECMAScript code
   private def eval(
     code: String,
     ast: Ast,
+    filename: String,
+    tyCheck: Boolean,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
@@ -289,6 +311,7 @@ case class Test262(
     val st = cfg.init.from(code, ast)
     Interpreter(
       st = st,
+      tyCheck = tyCheck,
       log = log,
       detail = detail,
       logPW = logPW,

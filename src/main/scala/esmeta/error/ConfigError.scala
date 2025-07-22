@@ -12,4 +12,5 @@ case object OptConflictError
 case class NoChoiceError(msg: String)
   extends ConfigError(s"[NoChoiceError]: $msg")
 
-case class NoFileError(cmd: String) extends ConfigError(s"Need a file to $cmd.")
+case class NoSingleFileError(cmd: String)
+  extends ConfigError(s"Need exactly one file to $cmd.")

@@ -5,6 +5,7 @@ import esmeta.cfg.*
 import esmeta.injector.*
 import esmeta.interpreter.*
 import esmeta.ir.{Expr, EParse, EBool}
+import esmeta.ty.{*, given}
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.Coverage.Interp
@@ -18,6 +19,7 @@ import java.util.Base64
 /** coverage measurement of cfg */
 case class Coverage(
   cfg: CFG,
+  tyCheck: Boolean = false,
   kFs: Int = 0,
   cp: Boolean = false,
   timeLimit: Option[Int] = None,
@@ -99,7 +101,7 @@ case class Coverage(
   def run(code: String, ast: Ast, name: Option[String]): Interp =
     val initSt = cfg.init.from(code, ast, name)
     val interp =
-      Interp(initSt, kFs, cp, timeLimit, isTargetNode, isTargetBranch)
+      Interp(initSt, tyCheck, kFs, cp, timeLimit, isTargetNode, isTargetBranch)
     interp.result; interp
 
   def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
@@ -421,12 +423,13 @@ case class Coverage(
 object Coverage {
   class Interp(
     initSt: State,
+    tyCheck: Boolean,
     kFs: Int,
     cp: Boolean,
     timeLimit: Option[Int],
     isTargetNode: (Node, State) => Boolean,
     isTargetBranch: (Branch, State) => Boolean,
-  ) extends Interpreter(initSt, timeLimit = timeLimit) {
+  ) extends Interpreter(initSt, tyCheck = tyCheck, timeLimit = timeLimit) {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
 

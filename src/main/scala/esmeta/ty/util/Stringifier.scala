@@ -4,7 +4,7 @@ import esmeta.LINE_SEP
 import esmeta.ir.{IRElem, LangEdge}
 import esmeta.lang.Syntax
 import esmeta.state.{Number, Math}
-import esmeta.ty.*
+import esmeta.ty.{*, given}
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
@@ -38,6 +38,8 @@ class Stringifier(
       case elem: BoolTy         => boolTyRule(app, elem)
       case elem: TypeError      => errorRule(app, elem)
       case elem: TypeErrorPoint => tpRule(app, elem)
+      case elem: TypeErrorCollector =>
+        collectorRule(withNames = true)(app, elem)
 
   /** type models */
   given tyModelRule: Rule[TyModel] = (app, model) =>
@@ -367,6 +369,22 @@ class Stringifier(
       case BinaryOpPoint(func, node, binary) =>
         app >> "binary operation (" >> binary.bop >> ") in " >> func.name
         app >> binary
+
+  // appender rule for TypeErrorCollector
+  def collectorRule(
+    withNames: Boolean,
+  ): Rule[TypeErrorCollector] = (app, c) =>
+    given Rule[Iterable[(TypeError, Iterable[String])]] =
+      iterableRule(sep = LINE_SEP + LINE_SEP)
+    given Rule[(TypeError, Iterable[String])] = (app, pair) => {
+      val (error, fs) = pair
+      app >> error
+      if (withNames)
+        app :> "thrown when executing:"
+        for (f <- fs.toList.sorted) app :> "- " >> f
+      app
+    }
+    app >> c.map.toList.sortBy(_._1)
 
   private val addLocRule: Rule[Option[Syntax]] = (app, opt) =>
     for {

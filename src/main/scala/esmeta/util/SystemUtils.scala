@@ -155,7 +155,9 @@ object SystemUtils {
 
   /** get first filename */
   def getFirstFilename(cmdConfig: CommandConfig, msg: String): String =
-    cmdConfig.targets.headOption.getOrElse(throw NoFileError(msg))
+    cmdConfig.targets match
+      case List(filename) => filename
+      case _              => throw NoSingleFileError(msg)
 
   /** read file */
   def readFile(filename: String): String =

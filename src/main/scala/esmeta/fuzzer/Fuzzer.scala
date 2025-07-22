@@ -8,6 +8,7 @@ import esmeta.fuzzer.mutator.*
 import esmeta.fuzzer.synthesizer.*
 import esmeta.spec.*
 import esmeta.state.*
+import esmeta.ty.util.TypeErrorCollector
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
@@ -23,6 +24,7 @@ import scala.util.*
 object Fuzzer {
   def apply(
     cfg: CFG,
+    tyCheck: Boolean,
     log: Boolean = false, // logging mode on/off
     logInterval: Int = 600, // default is 600 s (10 m).
     debug: Int = NO_DEBUG, // 2: all, 1: partial, 0: no-debug
@@ -35,6 +37,7 @@ object Fuzzer {
     cp: Boolean = false,
   ): Coverage = new Fuzzer(
     cfg,
+    tyCheck,
     log,
     logInterval,
     debug,
@@ -56,6 +59,7 @@ object Fuzzer {
 /** extensible helper of ECMAScript program fuzzer with ECMA-262 */
 class Fuzzer(
   cfg: CFG,
+  tyCheck: Boolean,
   log: Boolean,
   logInterval: Int,
   debug: Int,
@@ -71,7 +75,12 @@ class Fuzzer(
 
   /** ECMAScript grammar */
   lazy val grammar = cfg.grammar
+
+  /** script parser */
   lazy val scriptParser = cfg.scriptParser
+
+  /** type error collector */
+  lazy val collector: TypeErrorCollector = new TypeErrorCollector
 
   /** generated ECMAScript programs */
   lazy val result: Coverage = {
@@ -196,6 +205,7 @@ class Fuzzer(
     val script = toScript(code)
     val interp = info.interp.getOrElse(fail("Interp Fail"))
     val finalState = interp.result
+    if (tyCheck) collector.add(code, finalState.typeErrors)
     val (_, updated, covered) = cov.check(script, interp)
     if (!updated) fail("NO UPDATE")
     covered
@@ -240,12 +250,7 @@ class Fuzzer(
     ).asJson
 
   /** coverage */
-  val cov: Coverage = Coverage(
-    cfg,
-    kFs,
-    cp,
-    timeLimit,
-  )
+  val cov: Coverage = Coverage(cfg, tyCheck, kFs, cp, timeLimit)
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
@@ -385,6 +390,8 @@ class Fuzzer(
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
+    // dump spec type error
+    if (tyCheck) collector.dumpTo(logDir)
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
