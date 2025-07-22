@@ -62,6 +62,7 @@ def ContT(nids: Int*): ValueTy =
 lazy val ObjectT: ValueTy = RecordT("Object")
 lazy val FunctionT: ValueTy = RecordT("Object", List("Call"))
 lazy val ConstructorT: ValueTy = RecordT("Object", List("Call", "Construct"))
+lazy val DataBlockT: ValueTy = ListT(NonNegIntT)
 lazy val ArrayT: ValueTy = RecordT("Array")
 lazy val TypedArrayT: ValueTy = RecordT("TypedArray")
 lazy val RegExpT: ValueTy = RecordT("RegExp")
