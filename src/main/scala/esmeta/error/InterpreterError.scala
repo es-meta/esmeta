@@ -108,11 +108,6 @@ case class UnknownFunc(name: String)
 case class WrongStringRef(str: String, field: Value)
   extends InterpreterError(s"wrong access of string reference: $str.$field")
 
-// missing cases
-case object UncheckedUnint extends InterpreterError(s"unchecked uninit")
-case class UncheckedAbrupt(value: Value) // TODO remove
-  extends InterpreterError(s"unchecked abrupt completion: $value")
-
 // assertion failed
 case class AssertionFail(expr: Expr)
   extends InterpreterError(s"assertion failure: $expr")

@@ -164,7 +164,6 @@ class StringifyTinyTest extends StateTest {
       Bool(false) -> "false",
       Undef -> "undefined",
       Null -> "null",
-      Uninit -> "uninit",
       Enum("empty") -> "~empty~",
       CodeUnit(97) -> "97cu",
     )

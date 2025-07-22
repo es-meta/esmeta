@@ -174,9 +174,9 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
       .fold(Map())(_.elems.collect {
         case AbsMethod(m) => m -> Binding.Bot
         case ConMethod(m, opt, tgt) =>
-          m -> Binding(CloT(tgt.getOrElse(s"Record[$t].$m")), opt, opt)
+          m -> Binding(CloT(tgt.getOrElse(s"Record[$t].$m")), opt)
         case Field(f, opt, typeStr) =>
-          f -> Binding(ValueTy.from(typeStr), opt, opt)
+          f -> Binding(ValueTy.from(typeStr), opt)
       })
       .toMap
   }

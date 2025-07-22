@@ -234,7 +234,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     refine: Boolean,
   ): Map[String, FieldMap] = {
     val (t, fm) = pair
-    val existCheck = bind == Binding.Init
+    val existCheck = bind == Binding.Exist
     val refined = bind && (if (refine) get(pair, field) else getField(t, field))
     if (refined.isBottom)
       // TODO check why this is needed and remove it if possible
@@ -244,7 +244,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
       var newFM = fm + (field -> refined)
       getPropRefiner(field) match
         case Some(fs) =>
-          for (f <- fs) newFM += f -> (get(pair, f) && Binding.Init)
+          for (f <- fs) newFM += f -> (get(pair, f) && Binding.Exist)
           Map(normalize(t -> newFM))
         case None =>
           val set = (

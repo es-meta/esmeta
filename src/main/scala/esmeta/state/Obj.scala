@@ -12,8 +12,8 @@ import scala.collection.mutable.{Map => MMap, LinkedHashMap => LMMap}
 sealed trait Obj extends StateElem {
 
   /** safe getter */
-  def get(field: Value): Option[Value | Uninit] = (this, field) match
-    case (r: RecordObj, Str(f)) => r.map.get(f)
+  def get(field: Value): Option[Value] = (this, field) match
+    case (r: RecordObj, Str(f)) => r.get(f)
     case (m: MapObj, key)       => m.map.get(key)
     case (l: ListObj, Math(decimal)) if decimal.isValidInt =>
       l.values.lift(decimal.toInt)
@@ -54,7 +54,7 @@ sealed trait Obj extends StateElem {
   /** expand */
   def expand(field: Value): Unit = (this, field) match
     case (m: RecordObj, Str(field)) =>
-      if (!m.map.contains(field)) m.map += field -> Uninit
+      if (!m.map.contains(field)) m.map += field -> Undef
     case _ => throw InvalidObjOp(this, s"expand $field")
 
   /** delete */
@@ -102,14 +102,18 @@ sealed trait Obj extends StateElem {
 /** record objects */
 case class RecordObj(
   var tname: String,
-  map: MMap[String, Value | Uninit],
-) extends Obj
+  map: MMap[String, Value],
+) extends Obj {
+
+  /** safe getter */
+  def get(field: String): Option[Value] = map.get(field)
+}
 object RecordObj {
 
   /** apply with type model */
   def apply(
     tname: String,
-    fs: Iterable[(String, Value | Uninit)],
+    fs: Iterable[(String, Value)],
   )(using CFG): RecordObj =
     val obj = RecordObj(tname)
     for { ((k, v), idx) <- fs.zipWithIndex }

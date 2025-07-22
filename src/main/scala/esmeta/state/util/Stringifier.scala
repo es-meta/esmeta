@@ -32,7 +32,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Obj         => objRule(app, elem)
       case elem: Value       => valueRule(app, elem)
       case elem: RefTarget   => refTargetRule(app, elem)
-      case elem: Uninit      => uninitRule(app, elem)
       case elem: Feature     => featureRule(app, elem)
       case elem: CallPath    => callPathRule(app, elem)
 
@@ -85,7 +84,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "Map " >> map.map { case (k, v) => (k.toString, v) }
       case RecordObj(tname, map) =>
         app >> "Record"
-        given Rule[Iterable[(String, Value | Uninit)]] =
+        given Rule[Iterable[(String, Value)]] =
           sortedMapRule("{", "}", " : ")
         if (tname.nonEmpty) app >> "[" >> tname >> "]"
         app >> " " >> map.map { case (k, v) => (s"\"$k\"", v) }
@@ -170,9 +169,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case FieldTarget(base, Str(inlineField(str))) => app >> base >> "." >> str
       case FieldTarget(base, field) => app >> base >> "[" >> field >> "]"
     }
-
-  // uninit
-  given uninitRule: Rule[Uninit] = (app, _) => app >> "uninit"
 
   // syntax directed operation information
   given featureRule: Rule[Feature] = (app, feature) =>
