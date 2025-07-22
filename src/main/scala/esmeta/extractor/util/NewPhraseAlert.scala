@@ -16,9 +16,7 @@ object NewPhraseAlert:
       elem = algo.elem
     } do {
 
-      val acceptables =
-        ManualInfo.compileRule("inst").keySet // ++ ignoreYetSteps
-
+      val acceptables = ManualInfo.compileRule("inst").keySet
       for {
         step <- algo.steps
         if (step.isInstanceOf[lang.YetStep])
@@ -36,13 +34,15 @@ object NewPhraseAlert:
           file = Some("spec.html"),
           line = Some(line),
           endLine = Some(endLine),
-          title = Some("Newly Introduced Unknown Step"), // TODO
+          title = Some("Newly Introduced Unknown Step"),
           message = Some(
             s"""
-        | This step cannot be understood by ESMeta.
-        | Type checking body of this algorithm (${algo.name}) will not be performed after this line.""".stripMargin
+            | This step cannot be understood by ESMeta.
+            | Type checking body of this algorithm (${algo.name})
+            | will not be performed after this line.
+            |""".stripMargin
               .replace('\n', ' ')
-              .trim(),
+              .trim,
           ),
         )
 
@@ -65,12 +65,14 @@ object NewPhraseAlert:
           endLine = Some(endLine),
           message = Some(
             s"""
-            | This is a type which ESMeta cannot understand. This will cause the following consequences:
+            | This is a type which ESMeta cannot understand.
+            | This will cause the following consequences:
             | 1. This algorithm (${algo.name}) will not be in the initial type check targets.
-            | 2. This algorithm can be type checked when called by another algorithm in the working set, but type (${langType}) will be treated as bottom (⊥).
+            | 2. This algorithm can be type checked when called by another algorithm in the working set,
+            | but type (${langType}) will be treated as bottom (⊥).
             |""".stripMargin
               .replace('\n', ' ')
-              .trim(),
+              .trim,
           ),
         )
     }
