@@ -66,13 +66,13 @@ case class FieldMap(map: Map[String, Binding])
   /** field map containment check */
   def contains(record: RecordObj, heap: Heap): Boolean =
     var fields = map.keySet
-    fields.forall { f => this(f).contains(record.get(Str(f)), heap) }
+    fields.forall { f => this(f).contains(record.get(f), heap) }
 }
 
 object FieldMap extends Parser.From(Parser.fieldMap) {
   lazy val Top: FieldMap = FieldMap()
   def apply(fields: (String, Binding)*): FieldMap = FieldMap(fields.toMap)
   def init(fields: String*): FieldMap = FieldMap(
-    fields.map(_ -> Binding.Init).toMap,
+    fields.map(_ -> Binding.Exist).toMap,
   )
 }

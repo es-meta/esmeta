@@ -884,7 +884,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             TypeGuard(guard)
           }
         case EExists(Field(x: Local, EStr(field))) =>
-          val binding = Binding.Init
+          val binding = Binding.Exist
           for {
             lv <- transfer(x)
             given AbsState <- get
@@ -1607,7 +1607,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       field: String,
       positive: Boolean,
     )(using np: NodePoint[_]): Updater =
-      refineField(x, field, Binding.Init, positive)
+      refineField(x, field, Binding.Exist, positive)
 
     /** refine types with `typeof` constraints */
     def refineType(
@@ -1726,7 +1726,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val refined = vs(1).ty.str.getSingle match
             case One(f) =>
               ValueTy(
-                record = ObjectT.record.update(f, Binding.Init, refine = true),
+                record = ObjectT.record.update(f, Binding.Exist, refine = true),
               )
             case _ => ObjectT
           val prov = Provenance(func)

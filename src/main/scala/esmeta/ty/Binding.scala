@@ -7,24 +7,22 @@ import esmeta.util.*
 /** field binding types */
 case class Binding(
   value: ValueTy,
-  uninit: Boolean = false,
   absent: Boolean = false,
 ) extends TyElem
   with Lattice[Binding] {
 
   /** top check */
-  def isTop: Boolean = value.isTop && uninit.isTop && absent.isTop
+  def isTop: Boolean = value.isTop && absent.isTop
 
   /** bottom check */
-  def isBottom: Boolean = value.isBottom && uninit.isBottom && absent.isBottom
+  def isBottom: Boolean = value.isBottom && absent.isBottom
 
   /** Absent check */
-  def isAbsent: Boolean = value.isBottom && !uninit && absent
+  def isAbsent: Boolean = value.isBottom && absent.isTop
 
   /** partial order/subset operator */
   def <=(that: => Binding): Boolean = (this eq that) || {
     this.value <= that.value &&
-    this.uninit <= that.uninit &&
     this.absent <= that.absent
   }
 
@@ -34,7 +32,6 @@ case class Binding(
     else
       Binding(
         this.value || that.value,
-        this.uninit || that.uninit,
         this.absent || that.absent,
       )
 
@@ -44,7 +41,6 @@ case class Binding(
     else
       Binding(
         this.value && that.value,
-        this.uninit && that.uninit,
         this.absent && that.absent,
       )
 
@@ -54,26 +50,23 @@ case class Binding(
     else
       Binding(
         this.value -- that.value,
-        this.uninit -- that.uninit,
         this.absent -- that.absent,
       )
 
   /** existence check */
   def exists: Set[Boolean] =
-    (if (!value.isBottom || uninit) Set(true) else Set()) ++
+    (if (!value.isBottom) Set(true) else Set()) ++
     (if (absent) Set(false) else Set())
 
   /** containment check */
-  def contains(v: Option[Value | Uninit], heap: Heap): Boolean = v match
+  def contains(v: Option[Value], heap: Heap): Boolean = v match
+    case Some(Undef)        => true // Undef represents uninitialized value
     case Some(value: Value) => this.value.contains(value, heap)
-    case Some(Uninit)       => this.uninit
     case None               => this.absent
 }
 object Binding extends Parser.From(Parser.binding) {
-  lazy val Top: Binding = Binding(AnyT, true, true)
-  lazy val Exist: Binding = Binding(AnyT, true, false)
-  lazy val Init: Binding = Binding(AnyT, false, false)
-  lazy val Uninit: Binding = Binding(BotT, true, false)
-  lazy val Absent: Binding = Binding(BotT, false, true)
-  lazy val Bot: Binding = Binding(BotT, false, false)
+  lazy val Top: Binding = Binding(AnyT, true)
+  lazy val Exist: Binding = Binding(AnyT, false)
+  lazy val Absent: Binding = Binding(BotT, true)
+  lazy val Bot: Binding = Binding(BotT, false)
 }

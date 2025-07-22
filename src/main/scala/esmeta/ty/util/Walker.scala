@@ -57,7 +57,6 @@ trait Walker extends BasicWalker {
   /** field binding */
   def walk(binding: Binding): Binding = Binding(
     walk(binding.value),
-    walk(binding.uninit),
     walk(binding.absent),
   )
 

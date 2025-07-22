@@ -75,12 +75,10 @@ class Stringifier(
 
   /** field type map */
   given fieldMapRule(using inline: Boolean): Rule[FieldMap] = (app, fieldMap) =>
-    val COLON = " : "
     val FieldMap(map) = fieldMap
     given Rule[(String, Binding)] = {
       case (app, (field, binding)) =>
-        app >> field
-        if (binding != Binding.Init) app >> COLON >> binding
+        app >> field >> binding
         app
     }
     if (fieldMap.isTop) app >> "{}"
@@ -92,13 +90,11 @@ class Stringifier(
       app.wrap("{", "}") { for (pair <- map.toList.sortBy(_._1)) app :> pair }
 
   /** field binding */
-  given bindingRule: Rule[Binding] = (app, ty) =>
-    val Binding(value, uninit, absent) = ty
-    var tags = ""
-    if (uninit) tags += "U"
-    if (absent) tags += "A"
-    if (tags.nonEmpty) app >> "[" >> tags >> "] "
-    app >> value
+  given bindingRule: Rule[Binding] = (app, binding) =>
+    if (binding != Binding.Exist)
+      if (binding.absent) app >> "?"
+      app >> ": " >> binding.value
+    app
 
   /** types */
   given tyRule: Rule[Ty] = (app, ty) =>
@@ -197,13 +193,17 @@ class Stringifier(
         map.get("NormalCompletion").map { fm =>
           m -= "NormalCompletion"
           mayOR >> "Normal"
-          if (fm.map.keySet == Set("Value")) app >> "[" >> fm("Value") >> "]"
+          val bind = fm("Value")
+          if (fm.map.keySet == Set("Value") && !bind.absent)
+            app >> "[" >> bind.value >> "]"
           else if (!fm.isTop) app >> " " >> fm
         }
         map.get("AbruptCompletion").map { fm =>
           m -= "AbruptCompletion"
           mayOR >> "Abrupt"
-          if (fm.map.keySet == Set("Type")) app >> fm("Type").value.enumv
+          val bind = fm("Type")
+          if (fm.map.keySet == Set("Type") && !bind.absent)
+            app >> bind.value.enumv
           else if (!fm.isTop) app >> " " >> fm
         }
         map.get("BreakCompletion").map { fm =>

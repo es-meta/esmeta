@@ -57,7 +57,6 @@ trait UnitWalker extends BasicUnitWalker {
   /** field binding */
   def walk(binding: Binding): Unit =
     walk(binding.value)
-    walk(binding.uninit)
     walk(binding.absent)
 
   /** types */

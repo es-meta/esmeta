@@ -168,10 +168,7 @@ case class State(
       // recursively get detailed types for completion records
       val recDetail = tname == "CompletionRecord"
       val fm = FieldMap(
-        map.map {
-          case (k, Uninit)   => k -> Binding.Uninit
-          case (k, v: Value) => k -> Binding(typeOf(v, detail = recDetail))
-        }.toMap,
+        map.map { (k, v) => k -> Binding(typeOf(v, detail = recDetail)) }.toMap,
       )
       RecordT(tname, fm)
     case RecordObj(tname, _) => RecordT(tname)

@@ -66,12 +66,8 @@ class StringifyTinyTest extends TyTest {
       |}""".stripMargin,
       fieldMap2 -> """{
       |  p
-      |  q : [U] Boolean
-      |}""".stripMargin,
-      fieldMap3 -> """{
-      |  p
-      |  q : [A] Boolean
-      |  r : [UA] Null
+      |  q: Boolean
+      |  r?: Undefined
       |}""".stripMargin,
     )
 
@@ -79,6 +75,7 @@ class StringifyTinyTest extends TyTest {
       AnyT -> "Any",
       CompT -> "Completion",
       AbruptT -> "Abrupt",
+      AbruptT("return", "throw") -> "Abrupt[return, throw]",
       NormalT(NumberT) -> "Normal[Number]",
       MapT -> "Map",
       MapT(StrT, RecordT("Binding")) -> "Map[String -> Record[Binding]]",
@@ -94,7 +91,7 @@ class StringifyTinyTest extends TyTest {
       RecordT("Cat") -> "Record[Cat]",
       RecordT("Cat", "Dog") -> "Record[Cat | Dog]",
       RecordT("Object", Map("PrivateElements" -> NilT)) ->
-      "Record[Object { PrivateElements : Nil }]",
+      "Record[Object { PrivateElements: Nil }]",
       RecordT(
         "",
         Map(
@@ -103,7 +100,7 @@ class StringifyTinyTest extends TyTest {
           "Q" -> NumberT,
           "R" -> BoolT,
         ),
-      ) -> "Record[{ P, Q : Number, R : Boolean, S }]",
+      ) -> "Record[{ P, Q: Number, R: Boolean, S }]",
       FunctionT -> "Record[FunctionObject]",
       ConstructorT -> "Record[Constructor]",
       NilT -> "Nil",

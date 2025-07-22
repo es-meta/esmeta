@@ -195,4 +195,3 @@ def toStringHelper(x: Double, radix: Int = 10): String = {
 // -----------------------------------------------------------------------------
 type Undef = Undef.type
 type Null = Null.type
-type Uninit = Uninit.type
