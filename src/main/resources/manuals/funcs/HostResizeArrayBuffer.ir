@@ -1,0 +1,7 @@
+def HostResizeArrayBuffer(
+  buffer: Record[ArrayBuffer],
+  newByteLength: Int[0+],
+): Normal[Enum[~handled~, ~unhandled~]] | Throw = {
+  call %0 = clo<"NormalCompletion">(~unhandled~)
+  return %0
+}

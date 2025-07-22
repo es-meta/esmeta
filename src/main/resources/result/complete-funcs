@@ -12,6 +12,7 @@ AdvanceStringIndex
 AgentCanSuspend
 AgentSignifier
 AllImportAttributesSupported
+AllocateArrayBuffer
 AllocateTypedArray
 AllocateTypedArrayBuffer
 Alternative[0,0].CompileSubpattern
@@ -602,6 +603,7 @@ CreateArrayIterator
 CreateAsyncFromSyncIterator
 CreateAsyncIteratorFromClosure
 CreateBuiltinFunction
+CreateByteDataBlock
 CreateDataProperty
 CreateDataPropertyOrThrow
 CreateDefaultExportSyntheticModule
@@ -1137,6 +1139,7 @@ HostFinalizeImportMeta
 HostGetImportMetaProperties
 HostMakeJobCallback
 HostPromiseRejectionTracker
+HostResizeArrayBuffer
 INTRINSICS.AggregateError
 INTRINSICS.Array.from
 INTRINSICS.Array.isArray

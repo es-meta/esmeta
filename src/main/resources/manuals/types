@@ -775,7 +775,7 @@ type WeakSet extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-the-arraybuffer-instances
 type ArrayBuffer extends Object {
-  ArrayBufferData: Record[DataBlock] | Null;
+  ArrayBufferData: DataBlock | Null;
   ArrayBufferByteLength: Int[0+];
   ArrayBufferDetachKey: ESValue;
   ArrayBufferMaxByteLength?: Int[0+];

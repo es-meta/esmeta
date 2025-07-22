@@ -1285,7 +1285,8 @@ trait Parsers extends IndentParsers {
       case fs => RecordT("", fs.map(_.name -> AnyT).toMap)
     } | opt("an " | "a ") ~> {
       "function object" ^^^ FunctionT |
-      "constructor" ^^^ ConstructorT | (
+      "constructor" ^^^ ConstructorT |
+      "Data Block" ^^^ DataBlockT | (
         "ordinary object" |
         "ECMAScript function object" |
         "built-in function object" |
