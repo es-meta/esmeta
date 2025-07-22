@@ -137,6 +137,18 @@ case object CmdTranspile
   override val targetName = "<js>+"
 }
 
+/** `order` command */
+case object CmdOrderGraph
+  extends Command("compute-order-graph", CmdBuildCFG >> ComputeOrderGraph) {
+  val help = "parses an ECMAScript file."
+  val examples = List(
+    "esmeta compute-order-graph a.js                         # parse a.js file.",
+    "esmeta compute-order-graph a.js -extract:target=es2022  # parse with es2022 spec.",
+    "esmeta compute-order-graph a.js -parse:debug            # parse in the debugging mode.",
+  )
+  override val targetName = "<js>+"
+}
+
 /** `eval` command */
 case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
   val help = "evaluates an ECMAScript file."

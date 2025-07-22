@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse transpile eval web test262-test fuzz inject mutate dump-debugger dump-visualizer"
+  cmdList="help extract compile build-cfg tycheck parse transpile compute-order-graph eval web test262-test fuzz inject mutate dump-debugger dump-visualizer"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets"
@@ -19,6 +19,7 @@ _esmeta_completions() {
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
   tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:detail-log -tycheck:type-sens -tycheck:infer-guard"
   parseOpt="-parse:debug"
+  computeordergraphOpt="-compute-order-graph:debug"
   evalOpt="-eval:timeout -eval:multiple -eval:tycheck -eval:log -eval:detail-log"
   webOpt="-web:host -web:port"
   test262testOpt="-test262-test:target -test262-test:features -test262-test:tycheck -test262-test:progress -test262-test:coverage -test262-test:k-fs -test262-test:cp -test262-test:all-tests -test262-test:timeout -test262-test:with-yet -test262-test:log -test262-test:detail-log -test262-test:concurrent"
@@ -65,6 +66,10 @@ _esmeta_completions() {
           ;;
         transpile)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${transpileOpt}"))
+          return 0
+          ;;
+        compute-order-graph)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${computeordergraphOpt}"))
           return 0
           ;;
         eval)
