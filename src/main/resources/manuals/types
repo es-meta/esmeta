@@ -438,6 +438,20 @@ type TypedArray extends ExoticObject {
   ByteLength: Int[0+] | Enum[~auto~];
 }
 
+// https://tc39.es/ecma262/#table-the-typedarray-constructors
+type Int8Array extends TypedArray { TypedArrayName: String["Int8Array"]; }
+type Uint8Array extends TypedArray { TypedArrayName: String["Uint8Array"]; }
+type Uint8ClampedArray extends TypedArray { TypedArrayName: String["Uint8ClampedArray"]; }
+type Int16Array extends TypedArray { TypedArrayName: String["Int16Array"]; }
+type Uint16Array extends TypedArray { TypedArrayName: String["Uint16Array"]; }
+type Int32Array extends TypedArray { TypedArrayName: String["Int32Array"]; }
+type Uint32Array extends TypedArray { TypedArrayName: String["Uint32Array"]; }
+type BigInt64Array extends TypedArray { TypedArrayName: String["BigInt64Array"]; }
+type BigUint64Array extends TypedArray { TypedArrayName: String["BigUint64Array"]; }
+type Float16Array extends TypedArray { TypedArrayName: String["Float16Array"]; }
+type Float32Array extends TypedArray { TypedArrayName: String["Float32Array"]; }
+type Float64Array extends TypedArray { TypedArrayName: String["Float64Array"]; }
+
 // https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
 type ModuleNamespaceExoticObject extends ExoticObject {
   def GetPrototypeOf;
