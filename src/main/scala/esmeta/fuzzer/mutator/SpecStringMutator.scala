@@ -48,7 +48,12 @@ class SpecStringMutator(using cfg: CFG)(
   /** ast walker */
   override def walk(syn: Syntactic): Syntactic =
     if (isPrimary(syn))
-      val candidates = List(generateObjectWithWeight(syn.args), syn -> 1)
+      val candidates = List(
+        generateObjectWithWeight(syn.args),
+        generateGetterWithWeight(syn.args),
+        generateSetterWithWeight(syn.args),
+        syn -> 1,
+      )
       if (targetCondStr.isDefined)
         val candidate = (generateString(targetCondStr.get, syn.args) -> 1)
         weightedChoose(candidate :: candidates)
@@ -92,6 +97,22 @@ class SpecStringMutator(using cfg: CFG)(
     val raw = s"{ $k : $v }"
     cfg.esParser(PRIMARY_EXPRESSION, args).from(raw).asInstanceOf[Syntactic] ->
     (specProps.size * defaultValues.size) // total search space of object generation
+
+  // generate a random getter/setter, whose property is read in specification
+  def generateGetterWithWeight(args: List[Boolean]): (Syntactic, Int) =
+    val k = choose(specProps)
+    val getter = s"{ get $k () {} }"
+    cfg
+      .esParser(PRIMARY_EXPRESSION, args)
+      .from(getter)
+      .asInstanceOf[Syntactic] -> specProps.size
+  def generateSetterWithWeight(args: List[Boolean]): (Syntactic, Int) =
+    val k = choose(specProps)
+    val setter = s"{ set $k (_) {} }"
+    cfg
+      .esParser(PRIMARY_EXPRESSION, args)
+      .from(setter)
+      .asInstanceOf[Syntactic] -> specProps.size
 }
 
 object SpecStringMutator {
