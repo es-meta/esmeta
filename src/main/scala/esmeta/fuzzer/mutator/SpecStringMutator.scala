@@ -1,7 +1,7 @@
 package esmeta.fuzzer.mutator
 
 import esmeta.es.*
-import esmeta.cfg.CFG
+import esmeta.cfg.{CFG, Func}
 import esmeta.spec.Grammar
 import esmeta.fuzzer.synthesizer.*
 import esmeta.es.util.*
@@ -32,11 +32,17 @@ class SpecStringMutator(using cfg: CFG)(
     val k = primaryCounter(ast)
     if (k == 0) randomMutator(ast, n, target)
     else
+      targetFunc = target.flatMap { (condView, _) =>
+        cfg.funcOf.get(condView.cond.branch)
+      }
       targetCondStr = target.flatMap { (condView, _) =>
         findCondStr(condView.cond.branch.cond)
       }
       sample(ast, n)
   }
+
+  /** function where target branch is in */
+  private var targetFunc: Option[Func] = None
 
   /** string in target branch */
   private var targetCondStr: Option[String] = None
@@ -68,15 +74,22 @@ class SpecStringMutator(using cfg: CFG)(
       .asInstanceOf[Syntactic]
 
   // Properties appearing in specification
-  private var _specProps: Set[String] = Set()
-  lazy val specProps: Vector[String] = {
+  private var _specProps: Map[Func, Set[String]] = Map()
+  lazy val specProps: Map[Func, Vector[String]] = {
     import esmeta.ir.*
     object PropFinder extends util.UnitWalker {
+      var currentCfgFunc: Option[esmeta.cfg.Func] = None
       def addIfProp(e: Expr): Unit = e match {
         case EStr(str) =>
-          _specProps += str
+          currentCfgFunc.foreach { cfgFunc =>
+            val currentSet = _specProps.getOrElse(cfgFunc, Set())
+            _specProps += (cfgFunc -> (currentSet + str))
+          }
         case ERef(Field(Global("SYMBOL"), EStr(sym))) =>
-          _specProps += s"[ Symbol . $sym ]"
+          currentCfgFunc.foreach { cfgFunc =>
+            val currentSet = _specProps.getOrElse(cfgFunc, Set())
+            _specProps += (cfgFunc -> (currentSet + s"[ Symbol . $sym ]"))
+          }
         case _ =>
       }
       override def walk(inst: Inst) = inst match {
@@ -85,34 +98,59 @@ class SpecStringMutator(using cfg: CFG)(
         case _ => super.walk(inst)
       }
     }
-    _specProps = Set()
-    PropFinder.walk(cfg.program)
-    _specProps.toVector
+    _specProps = Map()
+    for (cfgFunc <- cfg.funcs) {
+      PropFinder.currentCfgFunc = Some(cfgFunc)
+      PropFinder.walk(cfgFunc.irFunc.body)
+      PropFinder.currentCfgFunc = None
+    }
+    _specProps.view.mapValues(_.toVector).toMap
   }
 
   // generate a random object, whose property is read in specification
   def generateObjectWithWeight(args: List[Boolean]): (Syntactic, Int) =
-    val k = choose(specProps)
+    val props = targetFunc match
+      case Some(func) =>
+        val targetProps = specProps.getOrElse(func, Vector.empty)
+        val allProps = specProps.values.flatten.toVector.distinct
+        if (targetProps.isEmpty) allProps
+        else { if randBool then targetProps else allProps }
+      case None => specProps.values.flatten.toVector.distinct
+    val k = choose(props)
     val v = choose(defaultValues)
     val raw = s"{ $k : $v }"
     cfg.esParser(PRIMARY_EXPRESSION, args).from(raw).asInstanceOf[Syntactic] ->
-    (specProps.size * defaultValues.size) // total search space of object generation
+    (props.size * defaultValues.size) // total search space of object generation
 
   // generate a random getter/setter, whose property is read in specification
   def generateGetterWithWeight(args: List[Boolean]): (Syntactic, Int) =
-    val k = choose(specProps)
+    val props = targetFunc match
+      case Some(func) =>
+        val targetProps = specProps.getOrElse(func, Vector.empty)
+        val allProps = specProps.values.flatten.toVector.distinct
+        if (targetProps.isEmpty) allProps
+        else { if randBool then targetProps else allProps }
+      case None => specProps.values.flatten.toVector.distinct
+    val k = choose(props)
     val getter = s"{ get $k () {} }"
     cfg
       .esParser(PRIMARY_EXPRESSION, args)
       .from(getter)
-      .asInstanceOf[Syntactic] -> specProps.size
+      .asInstanceOf[Syntactic] -> props.size
   def generateSetterWithWeight(args: List[Boolean]): (Syntactic, Int) =
-    val k = choose(specProps)
+    val props = targetFunc match
+      case Some(func) =>
+        val targetProps = specProps.getOrElse(func, Vector.empty)
+        val allProps = specProps.values.flatten.toVector.distinct
+        if (targetProps.isEmpty) allProps
+        else { if randBool then targetProps else allProps }
+      case None => specProps.values.flatten.toVector.distinct
+    val k = choose(props)
     val setter = s"{ set $k (_) {} }"
     cfg
       .esParser(PRIMARY_EXPRESSION, args)
       .from(setter)
-      .asInstanceOf[Syntactic] -> specProps.size
+      .asInstanceOf[Syntactic] -> props.size
 }
 
 object SpecStringMutator {
