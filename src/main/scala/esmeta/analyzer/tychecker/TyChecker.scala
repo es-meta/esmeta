@@ -253,8 +253,41 @@ class TyChecker(
           silent = silent,
         )
         if (useProvenance) {
+          // ------------------------------------------------------------------
+          // Split provenance logs by algorithm
+          // ------------------------------------------------------------------
+          // Group provenance entries by the algorithm (function) that owns the
+          // refinement target.
+          import scala.collection.mutable.{Map => MMap}
+
+          val grouped
+            : Map[Func, Map[(RefinementTarget, Base, ValueTy), Provenance]] =
+            provenances
+              .groupBy { case ((target, _, _), _) => target.func }
+              .view
+              .mapValues(_.toMap)
+              .toMap
+
+          // Re-use the same pretty-printer rule used in `provString` to
+          // serialize each group independently.
+          val provDir = s"$ANALYZE_LOG_DIR/provenance"
+          dumpDir[
+            (Func, String),
+          ](
+            name = "provenance information (per algorithm)",
+            iterable = grouped.toList.sortBy(_._1.id).map {
+              case (f, mp) => (f, formatProvenances(mp))
+            },
+            dirname = provDir,
+            getName = { case (f, _) => s"${f.normalizedName}" },
+            getData = { case (_, data) => data },
+            remove = true,
+            silent = silent,
+          )
+
+          // Keep a combined file for backward compatibility
           dumpFile(
-            name = "provenance information",
+            name = "provenance information (all)",
             data = provString,
             filename = s"$ANALYZE_LOG_DIR/provenance-logs",
             silent = silent,
@@ -323,27 +356,50 @@ class TyChecker(
         app
     (new Appender >> refined).toString
 
+  /** -----------------------------------------------------------------
+    * Pretty-printing for provenance information in human-readable form
+    * -----------------------------------------------------------------
+    */
+  private def nodeStepStr(nd: Node): String =
+    nd.loc match
+      case Some(loc) if loc.steps.nonEmpty => s"Step ${loc.stepString}"
+      case Some(_)                         => "Step 0"
+      case None                            => "Unknown step"
+
+  private def formatProvenances(
+    m: Map[(RefinementTarget, Base, ValueTy), Provenance],
+  ): String =
+    import esmeta.ir.util.Stringifier
+    val irStringifier = IRElem.getStringifier(false, false)
+    import irStringifier.elemRule
+
+    val app = new Appender
+    val sorted = m.toList.sortBy {
+      case ((target, _, ty), _) =>
+        (target.func.id, target.node.id, ty.toString)
+    }
+    for (((target, base, ty), prov) <- sorted) {
+      val algo = target.func.name
+      val stepStr = nodeStepStr(target.node)
+      // Base string
+      val baseStr = base.toString
+
+      app >> s"`$baseStr` in the $stepStr of $algo to $ty" >> LINE_SEP
+
+      val inner = prov match
+        case RefinePoint(_, child) => child
+        case _                     => prov
+      app >> inner.toTree(1) >> LINE_SEP >> LINE_SEP
+    }
+    app.toString
+
   /** provenance information */
   var provenances: Map[(RefinementTarget, Base, ValueTy), Provenance] = Map()
   def provCnt = provenances.size
   def provAvgSize = provenances.values.map(_.size).sum.toDouble / provCnt
   def provAvgDepth = provenances.values.map(_.depth).sum.toDouble / provCnt
   def provAvgLeaf = provenances.values.map(_.leafCnt).sum.toDouble / provCnt
-  def provString: String =
-    given Rule[Map[(RefinementTarget, Base, ValueTy), Provenance]] =
-      import SymTy.given, TypeGuard.given, ValueTy.given
-      (app, refined) =>
-        val sorted = refined.toList.sortBy { (t, _) =>
-          (t._1.func, t._1.node.id, t._3.toString())
-        }
-        for (((target, base, ty), prov) <- sorted)
-          app >> target >> "["
-          app >> base >> "]"
-          app >> ": " >> ty
-          app >> "->" >> LINE_SEP >> prov
-          app >> LINE_SEP
-        app
-    (new Appender >> provenances).toString
+  def provString: String = formatProvenances(provenances)
   def provList = provenances.values.toList
   def sizeAndDepth = provList
     .map(p => (p.size, p.depth))

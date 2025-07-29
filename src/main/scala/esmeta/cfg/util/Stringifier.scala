@@ -43,7 +43,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // nodes
   given nodeRule: Rule[Node] = (app, node) =>
-    app >> node.id >> ": "
+    // Prefer specification step information if available for readability.
+    val prefix: String = node.loc match
+      case Some(loc) if loc.steps.nonEmpty => s"${loc.stepString}: "
+      case _                               => s"${node.id}: "
+    app >> prefix
     node match
       case Block(_, insts, next) =>
         insts match
@@ -56,14 +60,19 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // nodes with instruction backward edge
   // TODO handle location option
   given nodeWithInstRule: Rule[NodeWithInst] = (app, node) =>
+    // Helper to stringify successor with step or id
+    def succStr(n: Node): String = n.loc match
+      case Some(loc) if loc.steps.nonEmpty => loc.stepString
+      case _                               => n.id.toString
+
     node match
       case Call(_, callInst, next) =>
         app >> callInst
-        next.map(x => app >> " -> " >> x.id)
+        next.map(x => app >> " -> " >> succStr(x))
       case Branch(_, kind, cond, _, thenNode, elseNode) =>
         app >> kind >> " " >> cond
-        thenNode.map(x => app >> " then " >> x.id)
-        elseNode.map(x => app >> " else " >> x.id)
+        thenNode.map(x => app >> " then " >> succStr(x))
+        elseNode.map(x => app >> " else " >> succStr(x))
     app
 
   // branch kinds

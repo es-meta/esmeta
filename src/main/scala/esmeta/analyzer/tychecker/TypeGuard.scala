@@ -4,6 +4,7 @@ import esmeta.cfg.*
 import esmeta.ir.{Func => _, *}
 import esmeta.ty.*
 import esmeta.util.{*, given}
+import org.jsoup.nodes.Element
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.exists
@@ -346,8 +347,8 @@ trait TypeGuardDecl { self: TyChecker =>
       else if that == Top then true
       else // this and that are not Bot or Top
         (this, that) match
-          case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
-            if lty == rty then lnode == rnode
+          case (Leaf(lnode, lty, lbranch), Leaf(rnode, rty, rbranch)) =>
+            if (lty == rty) lnode == rnode && lbranch == rbranch
             else lty <= rty
           case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
             if lty == rty then lcall == rcall && lchild <= rchild
@@ -371,8 +372,9 @@ trait TypeGuardDecl { self: TyChecker =>
 
       // this and that are not subsumption of each other
       (this, that) match
-        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
-          if lnode == rnode then Leaf(lnode, lty || rty)
+        case (Leaf(lnode, lty, lbranch), Leaf(rnode, rty, rbranch)) =>
+          if lnode == rnode && lbranch == rbranch then
+            Leaf(lnode, lty || rty, lbranch)
           else Join(Set(this, that)).canonical
         case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
           if lcall == rcall then CallPath(lcall, lty || rty, lchild || rchild)
@@ -396,8 +398,9 @@ trait TypeGuardDecl { self: TyChecker =>
 
       // this and that are not subsumption of each other
       (this, that) match
-        case (Leaf(lnode, lty), Leaf(rnode, rty)) =>
-          if lnode == rnode then Leaf(lnode, lty && rty)
+        case (Leaf(lnode, lty, lbranch), Leaf(rnode, rty, rbranch)) =>
+          if lnode == rnode && lbranch == rbranch then
+            Leaf(lnode, lty && rty, lbranch)
           else Meet(Set(this, that)).canonical
         case (CallPath(lcall, lty, lchild), CallPath(rcall, rty, rchild)) =>
           if lcall == rcall then CallPath(lcall, lty && rty, lchild && rchild)
@@ -419,6 +422,15 @@ trait TypeGuardDecl { self: TyChecker =>
         case Join(child) => child.exists(_.existsDuplicateCall(c))
         case Meet(child) => child.exists(_.existsDuplicateCall(c))
         case _           => false
+
+    def withBranch(b: Boolean): Provenance = this match {
+      case p: Leaf        => p.copy(branch = Some(b))
+      case p: CallPath    => p.copy(child = p.child.withBranch(b))
+      case Join(children) => Join(children.map(_.withBranch(b))).canonical
+      case Meet(children) => Meet(children.map(_.withBranch(b))).canonical
+      case p: RefinePoint => p.copy(child = p.child.withBranch(b))
+      case Bot | Top      => this
+    }
 
     def replaceCall(
       call: Call,
@@ -480,21 +492,65 @@ trait TypeGuardDecl { self: TyChecker =>
       else if this.existsDuplicateCall(call) then this.replaceCall(call, ty)
       else CallPath(call, ty, this)
 
-    def usedForRefine(target: RefinementTarget): Provenance =
-      RefinePoint(target, this)
+    def usedForRefine(target: RefinementTarget): Provenance = target match
+      case RefinementTarget.BranchTarget(_, isTrue) =>
+        RefinePoint(target, this.withBranch(isTrue))
+      case _ =>
+        RefinePoint(target, this)
 
-    def toTree(indent: Int): String
-    def toTree: String = toTree(0)
+    // hierarchical numbering helpers ---------------------------------------
+    private val romanArr = Array(
+      "i",
+      "ii",
+      "iii",
+      "iv",
+      "v",
+      "vi",
+      "vii",
+      "viii",
+      "ix",
+      "x",
+      "xi",
+      "xii",
+    )
+    protected def seg(depth: Int, idx: Int): String = (depth % 3) match
+      case 0 => (idx + 1).toString // 1,2,3 ...
+      case 1 => (("a".head + idx).toChar).toString // a,b,c ... (assumes <26)
+      case _ => romanArr.lift(idx).getOrElse((idx + 1).toString)
+
+    protected def prefix(nums: List[Int]): String =
+      if nums.isEmpty then ""
+      else nums.zipWithIndex.map { (n, d) => seg(d, n) }.mkString(".") + ". "
+
+    // core pretty-printer with numbering stack
+    def toTree(indent: Int, nums: List[Int]): String
+
+    // public wrappers -------------------------------------------------------
+    def toTree(indent: Int): String = toTree(indent, Nil)
+    def toTree: String = toTree(0, Nil)
   }
 
-  case class Leaf(node: Node, ty: ValueTy) extends Provenance { // TODO: change to expression & node
+  case class Leaf(
+    node: Node,
+    ty: ValueTy,
+    branch: Option[Boolean] = None,
+  ) extends Provenance { // TODO: change to expression & node
     def size: Int = 0
     def depth: Int = 0
     def leafCnt: Int = 1
 
     override def toString =
-      s"Leaf(${cfg.funcOf(node).nameWithId}:${node.id}, $ty)"
-    def toTree(indent: Int): String = s"${"  " * indent}$this"
+      val (algo, step) = algoAndStep(node)
+      val prefixStr = step match
+        case "Unknown step" | "Step 0" => s"In $algo "
+        case _                         => s"In $algo $step"
+      val branchInfo = branch match
+        case Some(true)  => " (True branch)"
+        case Some(false) => " (False branch)"
+        case None        => ""
+      s"$prefixStr$branchInfo, refined to $ty"
+    override def toTree(indent: Int, nums: List[Int]): String =
+      s"${"  " * indent}${prefix(nums)}$toString"
   }
   case class CallPath(call: Call, ty: ValueTy, child: Provenance)
     extends Provenance {
@@ -503,10 +559,20 @@ trait TypeGuardDecl { self: TyChecker =>
     def leafCnt: Int = child.leafCnt
 
     override def toString =
-      s"CallPath(${cfg.funcOf(call).nameWithId}:${call.id}, $ty, ${child.toString})"
-    def toTree(indent: Int): String =
-      s"${"  " * indent}CallPath(${cfg.funcOf(call).nameWithId}:${call.id}, $ty)\n${child
-        .toTree(indent + 1)}"
+      val (algo, step) = algoAndStep(call)
+      val callees = calleeNames(call)
+      val calleeTxt =
+        if callees.nonEmpty then s"${callees.mkString(", ")}" else ""
+      s"$calleeTxt has called in $step of $algo, ${child.toString}"
+    override def toTree(indent: Int, nums: List[Int]): String =
+      val (algo, step) = algoAndStep(call)
+      val callees = calleeNames(call)
+      val calleeTxt =
+        if callees.nonEmpty then s"${callees.mkString(", ")}" else ""
+      val header =
+        s"${"  " * indent}${prefix(nums)}$calleeTxt has called in $step of $algo"
+      val body = child.toTree(indent + 1, nums :+ 0)
+      s"$header\n$body"
   }
   case class Join(child: Set[Provenance]) extends Provenance {
     lazy val ty: ValueTy = child.toList.map(_.ty).reduce(_ || _)
@@ -514,9 +580,15 @@ trait TypeGuardDecl { self: TyChecker =>
     def depth: Int = child.toList.map(_.depth).max + 1
     def leafCnt: Int = child.toList.map(_.leafCnt).sum
 
-    override def toString = s"Join(${child.toList.map(_.toString)})"
-    def toTree(indent: Int): String =
-      s"${"  " * indent}Join($ty)\n${child.toList.map(_.toTree(indent + 1)).mkString("\n")}"
+    override def toString =
+      s"Join($ty)"
+    override def toTree(indent: Int, nums: List[Int]): String =
+      val header =
+        s"${"  " * indent}${prefix(nums)}Following cases are possible, which ensure $ty"
+      val body = child.toList.zipWithIndex
+        .map { case (ch, idx) => ch.toTree(indent + 1, nums :+ idx) }
+        .mkString("\n")
+      s"$header\n$body"
   }
 
   case class Meet(child: Set[Provenance]) extends Provenance {
@@ -525,9 +597,15 @@ trait TypeGuardDecl { self: TyChecker =>
     def depth: Int = child.toList.map(_.depth).max + 1
     def leafCnt: Int = child.toList.map(_.leafCnt).sum
 
-    override def toString = s"Meet(${child.toList.map(_.toString)})"
-    def toTree(indent: Int): String =
-      s"${"  " * indent}Meet($ty)\n${child.toList.map(_.toTree(indent + 1)).mkString("\n")}"
+    override def toString =
+      s"Meet($ty)"
+    override def toTree(indent: Int, nums: List[Int]): String =
+      val header =
+        s"${"  " * indent}${prefix(nums)}All conditions following hold, which ensures $ty"
+      val body = child.toList.zipWithIndex
+        .map { case (ch, idx) => ch.toTree(indent + 1, nums :+ idx) }
+        .mkString("\n")
+      s"$header\n$body"
   }
 
   case class RefinePoint(target: RefinementTarget, child: Provenance)
@@ -537,10 +615,36 @@ trait TypeGuardDecl { self: TyChecker =>
     def depth: Int = child.depth
     def leafCnt: Int = child.leafCnt
 
-    override def toString = s"RefinePoint($target, $child)"
-    def toTree(indent: Int): String =
-      s"${"  " * indent}RefinePoint($target)\n${child.toTree(indent + 1)}"
+    override def toString = s"RefinePoint(${targetDesc(target)}, $child)"
+    override def toTree(indent: Int, nums: List[Int]): String =
+      // RefinePoint is transparent for numbering: don't add bullet, just propagate.
+      child.toTree(indent, nums)
+
   }
+  // helper: readable description of refinement target without exposing IR code
+  // Get parent HTML id of the algorithm associated with the node’s function
+  private def algoParentId(node: Node): String =
+    val func = cfg.funcOf(node)
+    func.irFunc.algo match
+      case Some(algo) =>
+        try algo.elem.parent().id()
+        catch case _ => ""
+      case None => ""
+
+  private def nodeLabel(node: Node): String =
+    val algo = cfg.funcOf(node).name // algorithm without id
+    node.loc match
+      case Some(loc) if loc.steps.nonEmpty => s"$algo[Step ${loc.stepString}]"
+      case _                               => algo
+
+  private def targetDesc(target: RefinementTarget): String =
+    import RefinementTarget.*
+    val base = nodeLabel(target.node)
+    target match
+      case BranchTarget(_, isTrue) => s"$base:${if isTrue then "T" else "F"}"
+      case AssertTarget(_, idx)    => s"$base:$idx"
+      case NodeTarget(_)           => base
+
   object Provenance {
     case object Bot extends Provenance {
       lazy val ty: ValueTy = BotT
@@ -550,7 +654,8 @@ trait TypeGuardDecl { self: TyChecker =>
       def leafCnt: Int = INF
 
       override def toString = "Bot"
-      def toTree(indent: Int): String = s"${"  " * indent}$this"
+      override def toTree(indent: Int, nums: List[Int]): String =
+        s"${"  " * indent}$this"
     }
     case object Top extends Provenance {
       lazy val ty: ValueTy = BotT
@@ -559,7 +664,8 @@ trait TypeGuardDecl { self: TyChecker =>
       def leafCnt: Int = 0
 
       override def toString = "Top"
-      def toTree(indent: Int): String = s"${"  " * indent}$this"
+      override def toTree(indent: Int, nums: List[Int]): String =
+        s"${"  " * indent}$this"
     }
 
     def apply(ty: ValueTy)(using nd: Node): Provenance =
@@ -621,15 +727,13 @@ trait TypeGuardDecl { self: TyChecker =>
   /** RefinementTarget */
   given Rule[RefinementTarget] = (app, target) =>
     import RefinementTarget.*
-    val node = target.node
-    val func = target.func
-    app >> func.nameWithId >> ":" >> node.name >> ":"
+    app >> nodeLabel(target.node)
     target match
-      case BranchTarget(branch, isTrue) =>
-        app >> (if (isTrue) "T" else "F")
-      case AssertTarget(block, idx) =>
-        app >> idx
-      case NodeTarget(nd) => app
+      case BranchTarget(_, isTrue) =>
+        app >> ":" >> (if (isTrue) "T" else "F")
+      case AssertTarget(_, idx) =>
+        app >> ":" >> idx
+      case NodeTarget(_) => app
   given Ordering[RefinementTarget] = Ordering.by { target =>
     import RefinementTarget.*
     target match
@@ -641,7 +745,7 @@ trait TypeGuardDecl { self: TyChecker =>
   object ProvPrinter {
     def getId(prov: Provenance): String =
       prov match
-        case Leaf(node, ty)             => norm(s"Leaf${node.id}")
+        case Leaf(node, _, _)           => norm(s"Leaf${node.id}")
         case CallPath(call, ty, child)  => norm(s"call${call.id}")
         case Join(child)                => norm(s"join${child.hashCode()}")
         case Meet(child)                => norm(s"meet${child.hashCode()}")
@@ -677,7 +781,7 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def drawProvenanceNode(prov: Provenance)(using Appender): Unit =
       prov match
-        case p @ Leaf(node, ty) =>
+        case p @ Leaf(node, ty, _) =>
           drawNaming(getId(p), NODE_COLOR, node.name)
           drawNode(getId(p), "box", NODE_COLOR, BG_COLOR, Some(ty.toString))
         case p @ CallPath(call, ty, child) =>
@@ -763,4 +867,44 @@ trait TypeGuardDecl { self: TyChecker =>
       str = norm(inst)
     } yield s"""[$idx] $str<BR ALIGN="LEFT"/>""").mkString
   }
+  // ---------------------------------------------------------------------------------
+  // Pretty description helpers for provenance
+  // ---------------------------------------------------------------------------------
+  private def algoAndStep(node: Node): (String, String) =
+    val rawAlgo = cfg.funcOf(node).name
+    val algo = algoLink(node, rawAlgo) // hyperlink
+    val step = node.loc
+      .flatMap { loc =>
+        if loc.steps.nonEmpty then Some(s"Step ${loc.stepString}") else None
+      }
+      .getOrElse("Unknown step")
+    (algo, step)
+
+  // Extract possible callee function names from a Call node for logging
+  private def calleeNames(call: Call): List[String] = call.inst match
+    case Some(ic: ICall) =>
+      ic.fexpr match
+        case EClo(fname, _) => List(fname)
+        case ECont(fname)   => List(fname)
+        case _              => Nil
+    case Some(is: ISdoCall) =>
+      is.base match
+        case EClo(fname, _) => List(s"$fname.${is.op}")
+        case ECont(fname)   => List(s"$fname.${is.op}")
+        case _              => List(is.op)
+    case _ => Nil
+
+  // Collect step labels from Leaf descendants for Join/Meet display
+  private def leafStepSet(p: Provenance): Set[String] = p match
+    case Leaf(nd, _, _)     => Set(nodeLabel(nd))
+    case CallPath(_, _, ch) => leafStepSet(ch)
+    case Join(child)        => child.flatMap(leafStepSet)
+    case Meet(child)        => child.flatMap(leafStepSet)
+    case RefinePoint(_, ch) => leafStepSet(ch)
+    case _                  => Set()
+
+  // Markdown linkify algorithm name using its parent id
+  private def algoLink(node: Node, name: String): String =
+    val id = algoParentId(node)
+    if id.nonEmpty then s"[$name](https://tc39.es/ecma262/2024/#$id)" else name
 }
