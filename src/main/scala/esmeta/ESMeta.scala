@@ -72,7 +72,7 @@ object ESMeta extends Git(BASE_DIR) {
     // Interpreter & Double Debugger for ECMAScript
     CmdParse,
     CmdTranspile,
-    CmdOrderGraph,
+    CmdComputeEOG,
     CmdEval,
     CmdWeb,
     // Tester for Test262 (ECMAScript Test Suite)
@@ -99,7 +99,7 @@ object ESMeta extends Git(BASE_DIR) {
     TyCheck,
     // Interpreter & Double Debugger for ECMAScript
     Parse,
-    ComputeOrderGraph,
+    ComputeEOG,
     Eval,
     Web,
     // Tester for Test262 (ECMAScript Test Suite)
