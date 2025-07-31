@@ -30,15 +30,17 @@ trait Parsers extends IndentParsers {
     indent ~> (rep1(subStep) ^^ { StepBlock(_) }) <~ dedent
 
   // user-defined directives
-  lazy val directive: Parser[Directive] =
+  lazy val directives: Parser[List[Directive]] =
     lazy val name = "[-a-zA-Z0-9]+".r
-    ("[" ~> name <~ "=\"") ~ rep1sep(name, ",") <~ "\"]" ^^ {
-      case x ~ vs => Directive(x, vs)
-    }
+    lazy val single =
+      name ~ opt("=\"" ~> rep1sep(name, ",") <~ "\"") ^^ {
+        case x ~ vsOpt => Directive(x, vsOpt.getOrElse(Nil))
+      }
+    "[" ~> rep1sep(single, ", ") <~ "]"
 
   // sub-steps
-  lazy val subStepPrefix: Parser[Option[Directive]] =
-    next ~ "1." ~> opt(directive) <~ upper
+  lazy val subStepPrefix: Parser[List[Directive]] =
+    next ~ "1." ~> opt(directives) <~ upper ^^ { _.getOrElse(Nil) }
   lazy val subStep: Parser[SubStep] =
     subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ {
       case d ~ s => SubStep(d, s)
@@ -1094,9 +1096,12 @@ trait Parsers extends IndentParsers {
       val ref = PropertyReference(r, FieldProperty("__INITIALIZED__"))
       IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
   } | {
+    lazy val htmlId = "[a-zA-Z][a-zA-Z0-9:_-]*".r
     // InitializeHostDefinedRealm
     "the host requires use of an exotic object to serve as _realm_'s global object" |
-    "the host requires that the `this` binding in _realm_'s global scope return an object other than the global object"
+    "the host requires that the `this` binding in _realm_'s global scope return an object other than the global object" |
+    // ...
+    "the host is a web browser or otherwise supports <emu-xref href=\"#" ~ htmlId ~ "\" title></emu-xref>"
   } ^^! getExprCond(
     FalseLiteral(),
   ) | {

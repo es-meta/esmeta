@@ -41,8 +41,8 @@ trait UnitWalker extends BasicUnitWalker {
     walkList(stepBlock.steps, walk)
 
   def walk(subStep: SubStep): Unit =
-    val SubStep(directive, step) = subStep
-    walkOpt(directive, walk); walk(step)
+    val SubStep(directives, step) = subStep
+    walkList(directives, walk); walk(step)
 
   def walk(directive: Directive): Unit =
     val Directive(name, values) = directive

@@ -325,7 +325,6 @@ BitwiseXORExpression[1,0].AssignmentTargetType
 BitwiseXORExpression[1,0].Evaluation
 BitwiseXORExpression[1,0].HasCallInTailPosition
 BitwiseXORExpression[1,0].IsFunctionDefinition
-BlockDeclarationInstantiation
 Block[0,0].ContainsDuplicateLabels
 Block[0,0].ContainsUndefinedBreakTarget
 Block[0,0].ContainsUndefinedContinueTarget
@@ -347,12 +346,14 @@ BreakableStatement[1,0].Evaluation
 BreakableStatement[1,0].LabelledEvaluation
 BuiltinCallOrConstruct
 Call
+CallExpression[0,0].AssignmentTargetType
 CallExpression[0,0].Evaluation
 CallExpression[0,0].HasCallInTailPosition
 CallExpression[1,0].AssignmentTargetType
 CallExpression[1,0].HasCallInTailPosition
 CallExpression[2,0].AssignmentTargetType
 CallExpression[2,0].HasCallInTailPosition
+CallExpression[3,0].AssignmentTargetType
 CallExpression[3,0].Evaluation
 CallExpression[3,0].HasCallInTailPosition
 CallExpression[4,0].AssignmentTargetType
@@ -1003,7 +1004,6 @@ FormalParameters[4,0].IteratorBindingInitialization
 FulfillPromise
 FunctionBody[0,0].EvaluateBody
 FunctionBody[0,0].EvaluateFunctionBody
-FunctionDeclarationInstantiation
 FunctionDeclaration[0,0].BoundNames
 FunctionDeclaration[0,0].Contains
 FunctionDeclaration[0,0].ContainsArguments
@@ -1116,7 +1116,6 @@ GetV
 GetValue
 GetViewByteLength
 GetViewValue
-GlobalDeclarationInstantiation
 GroupBy
 GroupName[0,0].CapturingGroupName
 HasEitherUnicodeFlag
@@ -1356,6 +1355,7 @@ INTRINSICS.Math.sign
 INTRINSICS.Math.sin
 INTRINSICS.Math.sinh
 INTRINSICS.Math.sqrt
+INTRINSICS.Math.sumPrecise
 INTRINSICS.Math.tan
 INTRINSICS.Math.tanh
 INTRINSICS.Number

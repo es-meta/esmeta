@@ -17,10 +17,10 @@ object LangTest {
   // blocks
   // ---------------------------------------------------------------------------
   def toBlockStep(steps: Step*): BlockStep =
-    BlockStep(StepBlock(steps.toList.map(SubStep(None, _))))
-  lazy val subStep = SubStep(None, letStep)
+    BlockStep(StepBlock(steps.toList.map(SubStep(Nil, _))))
+  lazy val subStep = SubStep(Nil, letStep)
   lazy val directive = Directive("id", List("x", "y", "z"))
-  lazy val subStepId = SubStep(Some(directive), letStep)
+  lazy val subStepId = SubStep(List(directive), letStep)
   lazy val stepBlock = StepBlock(List(subStep, subStepId, subStep))
   lazy val exprBlock = ExprBlock(List(refExpr, refExpr, refExpr))
   lazy val figureBlock = Figure(List("a", "b", "c"))
@@ -115,7 +115,7 @@ object LangTest {
     ResumeEvaluationStep(x, None, Some(x, "value"), List(subStep))
   lazy val resumeTopCtxtStep = ResumeTopContextStep()
   lazy val noteStep = NoteStep("At this point, it must be a numeric operation.")
-  lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
+  lazy val blockStep = BlockStep(StepBlock(List(SubStep(Nil, letStep))))
   lazy val yetStep = YetStep(yetExpr)
 
   // ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ object LangTest {
   lazy val setFieldsWithIntrinsicsStep =
     SetFieldsWithIntrinsicsStep(x, "More description.")
   lazy val performBlockStep = PerformBlockStep(
-    StepBlock(List(SubStep(None, letStep), SubStep(None, setStep))),
+    StepBlock(List(SubStep(Nil, letStep), SubStep(Nil, setStep))),
     "possibly interleaving parsing and error detection",
   )
 
