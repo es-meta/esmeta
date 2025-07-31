@@ -680,17 +680,13 @@ class Debugger(st: State) extends Interpreter(st) {
     def isEsCall: Boolean = ctxt.name == "Call" || ctxt.name == "Construct"
 
     /** location of ECMAScript code */
-    def esLocOpt: Option[(Int, Int)] =
-      val astOpt: Option[Ast] =
-        if (ctxt.func.isRuntimeSDO) Some(ctxt.locals(NAME_THIS).asAst)
-        else None
-      astOpt match
-        case Some(ast) =>
-          Some(ast.loc match
-            case Some(loc) => (loc.start.offset, loc.end.offset)
-            case None      => (-1, -1),
-          )
-        case None => None
+    def esLocOpt: Option[(Int, Int)] = ctxt.astOpt match
+      case Some(ast) =>
+        Some(ast.loc match
+          case Some(loc) => (loc.start.offset, loc.end.offset)
+          case None      => (-1, -1),
+        )
+      case None => None
   }
 
   /** extension for func */
