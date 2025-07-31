@@ -138,13 +138,13 @@ case object CmdTranspile
 }
 
 /** `order` command */
-case object CmdOrderGraph
-  extends Command("compute-order-graph", CmdBuildCFG >> ComputeOrderGraph) {
+case object CmdComputeEOG
+  extends Command("compute-eog", CmdBuildCFG >> ComputeEOG) {
   val help = "parses an ECMAScript file."
   val examples = List(
-    "esmeta compute-order-graph a.js                         # parse a.js file.",
-    "esmeta compute-order-graph a.js -extract:target=es2022  # parse with es2022 spec.",
-    "esmeta compute-order-graph a.js -parse:debug            # parse in the debugging mode.",
+    "esmeta compute-eog a.js                         # parse a.js file.",
+    "esmeta compute-eog a.js -extract:target=es2022  # parse with es2022 spec.",
+    "esmeta compute-eog a.js -parse:debug            # parse in the debugging mode.",
   )
   override val targetName = "<js>+"
 }
