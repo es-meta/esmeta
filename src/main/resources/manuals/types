@@ -823,10 +823,20 @@ type AsyncFromSyncIterator extends OrdinaryObject {
 // https://tc39.es/ecma262/#sec-properties-of-promise-instances
 type Promise extends OrdinaryObject {
   PromiseState: Enum[~pending~, ~fulfilled~, ~rejected~];
-  PromiseResult: ESValue;
+  PromiseResult: ESValue | Enum[~empty~];
   PromiseFulfillReactions: List[Record[PromiseReactionRecord]];
   PromiseRejectReactions: List[Record[PromiseReactionRecord]];
   PromiseIsHandled: Boolean;
+}
+
+type PendingPromise extends Promise {
+  PromiseState: Enum[~pending~];
+  PromiseResult: Enum[~empty~];
+}
+
+type SettledPromise extends Promise {
+  PromiseState: Enum[~fulfilled~, ~rejected~];
+  PromiseResult: ESValue;
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-generator-instances
