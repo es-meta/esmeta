@@ -4,7 +4,6 @@ import esmeta.LINE_SEP
 import esmeta.lang.*
 import esmeta.lang.util.*
 import esmeta.spec.util.*
-import org.jsoup.nodes.Element
 
 /** abstract algorithms in ECMA-262 */
 case class Algorithm(
@@ -12,9 +11,6 @@ case class Algorithm(
   body: Step,
   code: String,
 ) extends SpecElem {
-
-  /** HTML elements */
-  var elem: Element = Element("emu-alg")
 
   /** check whether it is incomplete */
   lazy val complete: Boolean = incompleteSteps.isEmpty
