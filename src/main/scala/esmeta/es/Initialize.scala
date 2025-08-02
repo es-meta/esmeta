@@ -194,9 +194,10 @@ class Initialize(cfg: CFG) {
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(Str(f), v)
       obj
 
-    def updateMap(obj: MapObj)(pairs: (Value, Value)*): obj.type =
-      for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(f, v)
-      obj
+    def newMap(obj: MapObj)(pairs: (Value, Value)*): MapObj =
+      val newObj = MapObj(pairs)
+      for { (f, v) <- obj.map } newObj.update(f, v)
+      newObj
 
     intr.obj.map += Str(s"%$name%") -> baseAddr
 
@@ -211,22 +212,22 @@ class Initialize(cfg: CFG) {
       PRIVATE_ELEMENTS -> listAddr,
     )
 
-    map += subAddr -> updateMap(mapObj)(
+    map += subAddr -> newMap(mapObj)(
       Str("length") -> lengthAddr,
       Str("name") -> nameAddr,
     )
 
     map += listAddr -> listObj
 
-    map += nameAddr -> updateRecord(namerecordObj)(
-      "Value" -> Str(defaultName),
+    map += lengthAddr -> updateRecord(lengthrecordObj)(
+      "Value" -> Number(defaultLength),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),
       "Configurable" -> Bool(true),
     )
 
-    map += lengthAddr -> updateRecord(lengthrecordObj)(
-      "Value" -> Number(defaultLength),
+    map += nameAddr -> updateRecord(namerecordObj)(
+      "Value" -> Str(defaultName),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),
       "Configurable" -> Bool(true),
