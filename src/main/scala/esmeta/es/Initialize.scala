@@ -131,31 +131,42 @@ class Initialize(cfg: CFG) {
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
   private def intrClo(name: String): Clo = clo(intrName(name))
 
-  // get data from builtin head
-  extension (str: String) {
-    def getData: Option[(String, String, Value, String, Boolean, Boolean)] =
-      BuiltinPath.from(str).getData
-  }
-  extension (path: BuiltinPath) {
-    def getData: Option[(String, String, Value, String, Boolean, Boolean)] =
+  case class Data(
+    base: String,
+    prop: PropKey,
+    value: Value,
+    defaultName: String,
+    isData: Boolean,
+    isGetter: Boolean,
+  )
+  object Data {
+    def get(str: String): Option[Data] = get(BuiltinPath.from(str))
+    def get(path: BuiltinPath): Option[Data] =
       import BuiltinPath.*
       path match
         case NormalAccess(b, n) if !(yets contains b.toString) =>
-          Some((b.toString, n, Str(n), n, T, F))
+          Some(Data(b.toString, PropKey.Str(n), Str(n), n, T, F))
         case SymbolAccess(b, n) if !(yets contains b.toString) =>
           Some(
-            (b.toString, s"%Symbol.$n%", symbolAddr(n), s"[Symbol.$n]", T, F),
+            Data(
+              b.toString,
+              PropKey.Sym(n),
+              symbolAddr(n),
+              s"[Symbol.$n]",
+              T,
+              F,
+            ),
           )
         case Getter(path) =>
-          path.getData match
-            case Some((base, prop, propV, propName, _, _)) =>
-              Some((base, prop, propV, s"get $propName", F, T))
-            case _ => None
+          get(path).map {
+            case Data(base, prop, propV, propName, _, _) =>
+              Data(base, prop, propV, s"get $propName", F, T)
+          }
         case Setter(path) =>
-          path.getData match
-            case Some((base, prop, propV, propName, _, _)) =>
-              Some((base, prop, propV, s"set $propName", F, F))
-            case _ => None
+          get(path).map {
+            case Data(base, prop, propV, propName, _, _) =>
+              Data(base, prop, propV, s"set $propName", F, F)
+          }
         case _ => None
   }
 
@@ -169,8 +180,8 @@ class Initialize(cfg: CFG) {
     val (baseName, baseAddr) = (intrName(name), intrAddr(name))
     val subAddr = mapAddr(baseName)
     val listAddr = elemsAddr(baseName)
-    val nameAddr = descAddr(name, "name")
-    val lengthAddr = descAddr(name, "length")
+    val nameAddr = descAddr(name, PropKey.Str("name"))
+    val lengthAddr = descAddr(name, PropKey.Str("length"))
 
     val baseObj = map.get(baseAddr) match
       case Some(r: RecordObj) => r
@@ -243,11 +254,11 @@ class Initialize(cfg: CFG) {
       case _ => None
   } createBuiltinFunction(name, getLength(head), name, map)
   private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit =
-    var propMap: Map[Addr, Property] = Map()
+    var propMap: Map[Addr, PropDesc] = Map()
     for {
       func <- cfg.funcs if func.irFunc.kind == FuncKind.Builtin
       fname = func.name.stripPrefix("INTRINSICS.")
-      (base, prop, propV, defaultName, isData, isGetter) <- fname.getData
+      Data(base, prop, propV, defaultName, isData, isGetter) <- Data.get(fname)
       baseMapObj <- map.get(mapAddr(intrName(base))) match
         case Some(m: MapObj) => Some(m)
         case _               => None
@@ -256,15 +267,15 @@ class Initialize(cfg: CFG) {
       _ = baseMapObj.update(propV, desc)
       intr = intrAddr(fname)
       property =
-        if (isData) DataProperty(intr, T, F, T)
-        else if (isGetter) AccessorProperty(intr, U, F, T)
-        else AccessorProperty(U, intr, F, T)
+        if (isData) DataDesc(intr, T, F, T)
+        else if (isGetter) AccessorDesc(intr, U, F, T)
+        else AccessorDesc(U, intr, F, T)
       _ =
         if (yetFuncs contains fname) map += (intr -> YetObj("", fname))
         else createBuiltinFunction(fname, defaultLength, defaultName, map)
     } (propMap.get(desc), property) match
-      case (Some(l: AccessorProperty), r: AccessorProperty) =>
-        var ap: AccessorProperty = l
+      case (Some(l: AccessorDesc), r: AccessorDesc) =>
+        var ap: AccessorDesc = l
         if (l.get == U) ap = ap.copy(get = r.get)
         if (l.set == U) ap = ap.copy(set = r.set)
         propMap += desc -> ap

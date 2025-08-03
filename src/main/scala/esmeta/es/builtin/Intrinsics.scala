@@ -79,7 +79,7 @@ case class Intrinsics(cfg: CFG) {
         "InitialName" -> Str("print"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(0.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(0.0), F, F, T),
       ),
     ),
     "Object" -> Struct(
@@ -88,8 +88,9 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
-        "prototype" -> DataProperty(intrAddr("Object.prototype"), F, F, F),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("Object.prototype"), F, F, F),
       ),
     ),
     "Object.prototype" -> Struct(
@@ -99,13 +100,13 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> Null,
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Object"), T, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Object"), T, F, T),
       ),
     ),
     "Object.assign" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "Function" -> Struct(
@@ -114,8 +115,9 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
-        "prototype" -> DataProperty(intrAddr("Function.prototype"), F, F, F),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("Function.prototype"), F, F, F),
       ),
     ),
     "Function.prototype" -> Struct(
@@ -126,10 +128,10 @@ case class Intrinsics(cfg: CFG) {
         INNER_CODE -> intrClo("Function.prototype"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(0.0), F, F, T),
-        "name" -> DataProperty(Str(""), F, F, T),
-        "constructor" -> DataProperty(intrAddr("Function"), T, F, T),
-        "%Symbol.hasInstance%" -> DataProperty(
+        PropKey.Str("length") -> DataDesc(Number(0.0), F, F, T),
+        PropKey.Str("name") -> DataDesc(Str(""), F, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Function"), T, F, T),
+        PropKey.Sym("hasInstance") -> DataDesc(
           intrAddr("Function.prototype[%Symbol.hasInstance%]"),
           F,
           F,
@@ -143,7 +145,8 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("Boolean.prototype"), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("Boolean.prototype"), F, F, F),
       ),
     ),
     "Boolean.prototype" -> Struct(
@@ -154,7 +157,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Boolean"), T, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Boolean"), T, F, T),
       ),
     ),
     "Symbol" -> Struct(
@@ -163,25 +166,34 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "asyncIterator" -> DataProperty(symbolAddr("asyncIterator"), F, F, F),
-        "hasInstance" -> DataProperty(symbolAddr("hasInstance"), F, F, F),
-        "isConcatSpreadable" -> DataProperty(
+        PropKey.Str("asyncIterator") -> DataDesc(
+          symbolAddr("asyncIterator"),
+          F,
+          F,
+          F,
+        ),
+        PropKey
+          .Str("hasInstance") -> DataDesc(symbolAddr("hasInstance"), F, F, F),
+        PropKey.Str("isConcatSpreadable") -> DataDesc(
           symbolAddr("isConcatSpreadable"),
           F,
           F,
           F,
         ),
-        "iterator" -> DataProperty(symbolAddr("iterator"), F, F, F),
-        "match" -> DataProperty(symbolAddr("match"), F, F, F),
-        "matchAll" -> DataProperty(symbolAddr("matchAll"), F, F, F),
-        "replace" -> DataProperty(symbolAddr("replace"), F, F, F),
-        "search" -> DataProperty(symbolAddr("search"), F, F, F),
-        "species" -> DataProperty(symbolAddr("species"), F, F, F),
-        "split" -> DataProperty(symbolAddr("split"), F, F, F),
-        "toPrimitive" -> DataProperty(symbolAddr("toPrimitive"), F, F, F),
-        "toStringTag" -> DataProperty(symbolAddr("toStringTag"), F, F, F),
-        "unscopables" -> DataProperty(symbolAddr("unscopables"), F, F, F),
-        "prototype" -> DataProperty(symbolAddr("prototype"), F, F, F),
+        PropKey.Str("iterator") -> DataDesc(symbolAddr("iterator"), F, F, F),
+        PropKey.Str("match") -> DataDesc(symbolAddr("match"), F, F, F),
+        PropKey.Str("matchAll") -> DataDesc(symbolAddr("matchAll"), F, F, F),
+        PropKey.Str("replace") -> DataDesc(symbolAddr("replace"), F, F, F),
+        PropKey.Str("search") -> DataDesc(symbolAddr("search"), F, F, F),
+        PropKey.Str("species") -> DataDesc(symbolAddr("species"), F, F, F),
+        PropKey.Str("split") -> DataDesc(symbolAddr("split"), F, F, F),
+        PropKey
+          .Str("toPrimitive") -> DataDesc(symbolAddr("toPrimitive"), F, F, F),
+        PropKey
+          .Str("toStringTag") -> DataDesc(symbolAddr("toStringTag"), F, F, F),
+        PropKey
+          .Str("unscopables") -> DataDesc(symbolAddr("unscopables"), F, F, F),
+        PropKey.Str("prototype") -> DataDesc(symbolAddr("prototype"), F, F, F),
       ),
     ),
     "Symbol.prototype" -> Struct(
@@ -191,15 +203,15 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Symbol"), T, F, T),
-        "%Symbol.toPrimitive%" ->
-        DataProperty(
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Symbol"), T, F, T),
+        PropKey.Sym("toPrimitive") ->
+        DataDesc(
           intrAddr("Symbol.prototype[%Symbol.toPrimitive%]"),
           F,
           F,
           T,
         ),
-        "%Symbol.toStringTag%" -> DataProperty(Str("Symbol"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Symbol"), F, F, T),
       ),
     ),
     "Error" -> Struct(
@@ -208,7 +220,8 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("Error.prototype"), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("Error.prototype"), F, F, F),
       ),
     ),
     "Error.prototype" -> Struct(
@@ -218,9 +231,9 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Error"), T, F, T),
-        "message" -> DataProperty(Str(""), T, F, T),
-        "name" -> DataProperty(Str("Error"), T, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Error"), T, F, T),
+        PropKey.Str("message") -> DataDesc(Str(""), T, F, T),
+        PropKey.Str("name") -> DataDesc(Str("Error"), T, F, T),
       ),
     ),
     "Number" -> Struct(
@@ -229,20 +242,31 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "EPSILON" -> DataProperty(Number(math.ulp(1.0)), F, F, F),
-        "MAX_SAFE_INTEGER" -> DataProperty(Number(9007199254740991.0), F, F, F),
-        "MAX_VALUE" -> DataProperty(Number(Double.MaxValue), F, F, F),
-        "MIN_SAFE_INTEGER" ->
-        DataProperty(Number(-9007199254740991.0), F, F, F),
-        "MIN_VALUE" -> DataProperty(Number(Double.MinPositiveValue), F, F, F),
-        "NaN" -> DataProperty(Number(Double.NaN), F, F, F),
-        "NEGATIVE_INFINITY" ->
-        DataProperty(Number(Double.NegativeInfinity), F, F, F),
-        "parseFloat" -> DataProperty(intrAddr("parseFloat"), T, F, T),
-        "parseInt" -> DataProperty(intrAddr("parseInt"), T, F, T),
-        "POSITIVE_INFINITY" ->
-        DataProperty(Number(Double.PositiveInfinity), F, F, F),
-        "prototype" -> DataProperty(intrAddr("Number.prototype"), F, F, F),
+        PropKey.Str("EPSILON") -> DataDesc(Number(math.ulp(1.0)), F, F, F),
+        PropKey.Str("MAX_SAFE_INTEGER") -> DataDesc(
+          Number(9007199254740991.0),
+          F,
+          F,
+          F,
+        ),
+        PropKey.Str("MAX_VALUE") -> DataDesc(Number(Double.MaxValue), F, F, F),
+        PropKey.Str("MIN_SAFE_INTEGER") ->
+        DataDesc(Number(-9007199254740991.0), F, F, F),
+        PropKey.Str("MIN_VALUE") -> DataDesc(
+          Number(Double.MinPositiveValue),
+          F,
+          F,
+          F,
+        ),
+        PropKey.Str("NaN") -> DataDesc(Number(Double.NaN), F, F, F),
+        PropKey.Str("NEGATIVE_INFINITY") ->
+        DataDesc(Number(Double.NegativeInfinity), F, F, F),
+        PropKey.Str("parseFloat") -> DataDesc(intrAddr("parseFloat"), T, F, T),
+        PropKey.Str("parseInt") -> DataDesc(intrAddr("parseInt"), T, F, T),
+        PropKey.Str("POSITIVE_INFINITY") ->
+        DataDesc(Number(Double.PositiveInfinity), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("Number.prototype"), F, F, F),
       ),
     ),
     "Number.prototype" -> Struct(
@@ -253,13 +277,13 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Number"), T, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Number"), T, F, T),
       ),
     ),
     "Number.prototype.toString" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
       ),
     ),
     "BigInt" -> Struct(
@@ -268,7 +292,8 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("BigInt.prototype"), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("BigInt.prototype"), F, F, F),
       ),
     ),
     "BigInt.prototype" -> Struct(
@@ -278,8 +303,8 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("BigInt"), T, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("BigInt"), F, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("BigInt"), T, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("BigInt"), F, F, T),
       ),
     ),
     "Math" -> Struct(
@@ -289,33 +314,33 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "E" -> DataProperty(Number(2.7182818284590452354), F, F, F),
-        "LN10" -> DataProperty(Number(2.302585092994046), F, F, F),
-        "LN2" -> DataProperty(Number(0.6931471805599453), F, F, F),
-        "LOG10E" -> DataProperty(Number(0.4342944819032518), F, F, F),
-        "LOG2E" -> DataProperty(Number(1.4426950408889634), F, F, F),
-        "PI" -> DataProperty(Number(3.1415926535897932), F, F, F),
-        "SQRT1_2" -> DataProperty(Number(0.7071067811865476), F, F, F),
-        "SQRT2" -> DataProperty(Number(1.4142135623730951), F, F, F),
-        "%Symbol.toStringTag%" -> DataProperty(Str("Math"), F, F, T),
+        PropKey.Str("E") -> DataDesc(Number(2.7182818284590452354), F, F, F),
+        PropKey.Str("LN10") -> DataDesc(Number(2.302585092994046), F, F, F),
+        PropKey.Str("LN2") -> DataDesc(Number(0.6931471805599453), F, F, F),
+        PropKey.Str("LOG10E") -> DataDesc(Number(0.4342944819032518), F, F, F),
+        PropKey.Str("LOG2E") -> DataDesc(Number(1.4426950408889634), F, F, F),
+        PropKey.Str("PI") -> DataDesc(Number(3.1415926535897932), F, F, F),
+        PropKey.Str("SQRT1_2") -> DataDesc(Number(0.7071067811865476), F, F, F),
+        PropKey.Str("SQRT2") -> DataDesc(Number(1.4142135623730951), F, F, F),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Math"), F, F, T),
       ),
     ),
     "Math.hypot" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "Math.max" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "Math.min" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "Date" -> Struct(
@@ -324,14 +349,15 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(7.0), F, F, T),
-        "prototype" -> DataProperty(intrAddr("Date.prototype"), F, F, F),
+        PropKey.Str("length") -> DataDesc(Number(7.0), F, F, T),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("Date.prototype"), F, F, F),
       ),
     ),
     "Date.UTC" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(7.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(7.0), F, F, T),
       ),
     ),
     "Date.prototype" -> Struct(
@@ -341,67 +367,67 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Date"), T, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Date"), T, F, T),
       ),
     ),
     "Date.prototype.setFullYear" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(3.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(3.0), F, F, T),
       ),
     ),
     "Date.prototype.setHours" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(4.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(4.0), F, F, T),
       ),
     ),
     "Date.prototype.setMinutes" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(3.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(3.0), F, F, T),
       ),
     ),
     "Date.prototype.setMonth" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "Date.prototype.setSeconds" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "Date.prototype.setUTCFullYear" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(3.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(3.0), F, F, T),
       ),
     ),
     "Date.prototype.setUTCHours" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(4.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(4.0), F, F, T),
       ),
     ),
     "Date.prototype.setUTCMinutes" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(3.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(3.0), F, F, T),
       ),
     ),
     "Date.prototype.setUTCMonth" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "Date.prototype.setUTCSeconds" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "String" -> Struct(
@@ -410,19 +436,20 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("String.prototype"), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("String.prototype"), F, F, F),
       ),
     ),
     "String.fromCharCode" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
       ),
     ),
     "String.fromCodePoint" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
       ),
     ),
     "String.prototype" -> Struct(
@@ -433,14 +460,14 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(0.0), F, F, F),
-        "constructor" -> DataProperty(intrAddr("String"), T, F, T),
+        PropKey.Str("length") -> DataDesc(Number(0.0), F, F, F),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("String"), T, F, T),
       ),
     ),
     "String.prototype.concat" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
       ),
     ),
     "StringIteratorPrototype" -> Struct(
@@ -450,7 +477,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
-        "%Symbol.toStringTag%" -> DataProperty(Str("String Iterator"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("String Iterator"), F, F, T),
       ),
     ),
     "RegExp" -> Struct(
@@ -459,7 +486,8 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("RegExp.prototype"), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("RegExp.prototype"), F, F, F),
       ),
     ),
     "RegExp.prototype" -> Struct(
@@ -469,7 +497,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("RegExp"), T, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("RegExp"), T, F, T),
       ),
     ),
     "Array" -> Struct(
@@ -478,8 +506,9 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
-        "prototype" -> DataProperty(intrAddr("Array.prototype"), F, F, F),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("Array.prototype"), F, F, F),
       ),
     ),
     "Array.prototype" -> Struct(
@@ -489,30 +518,30 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(0.0), T, F, F),
-        "constructor" -> DataProperty(intrAddr("Array"), T, F, T),
-        "%Symbol.iterator%" ->
-        DataProperty(intrAddr("Array.prototype.values"), T, F, T),
-        "%Symbol.unscopables%" ->
-        DataProperty(intrAddr("Array.prototype[%Symbol.unscopables%]"), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(0.0), T, F, F),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Array"), T, F, T),
+        PropKey.Sym("iterator") ->
+        DataDesc(intrAddr("Array.prototype.values"), T, F, T),
+        PropKey.Sym("unscopables") ->
+        DataDesc(intrAddr("Array.prototype[%Symbol.unscopables%]"), F, F, T),
       ),
     ),
     "Array.prototype.concat" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
       ),
     ),
     "Array.prototype.push" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
       ),
     ),
     "Array.prototype.unshift" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
       ),
     ),
     "Array.prototype[%Symbol.unscopables%]" -> Struct(
@@ -522,22 +551,22 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> Null,
       ),
       nmap = List(
-        "at" -> DataProperty(Bool(true), T, T, T),
-        "copyWithin" -> DataProperty(Bool(true), T, T, T),
-        "entries" -> DataProperty(Bool(true), T, T, T),
-        "fill" -> DataProperty(Bool(true), T, T, T),
-        "find" -> DataProperty(Bool(true), T, T, T),
-        "findIndex" -> DataProperty(Bool(true), T, T, T),
-        "findLast" -> DataProperty(Bool(true), T, T, T),
-        "findLastIndex" -> DataProperty(Bool(true), T, T, T),
-        "flat" -> DataProperty(Bool(true), T, T, T),
-        "flatMap" -> DataProperty(Bool(true), T, T, T),
-        "includes" -> DataProperty(Bool(true), T, T, T),
-        "keys" -> DataProperty(Bool(true), T, T, T),
-        "toReversed" -> DataProperty(Bool(true), T, T, T),
-        "toSorted" -> DataProperty(Bool(true), T, T, T),
-        "toSpliced" -> DataProperty(Bool(true), T, T, T),
-        "values" -> DataProperty(Bool(true), T, T, T),
+        PropKey.Str("at") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("copyWithin") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("entries") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("fill") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("find") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("findIndex") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("findLast") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("findLastIndex") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("flat") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("flatMap") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("includes") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("keys") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("toReversed") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("toSorted") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("toSpliced") -> DataDesc(Bool(true), T, T, T),
+        PropKey.Str("values") -> DataDesc(Bool(true), T, T, T),
       ),
     ),
     "ArrayIteratorPrototype" -> Struct(
@@ -547,7 +576,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
-        "%Symbol.toStringTag%" -> DataProperty(Str("Array Iterator"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Array Iterator"), F, F, T),
       ),
     ),
     "Map" -> Struct(
@@ -556,7 +585,7 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("Map.prototype"), F, F, F),
+        PropKey.Str("prototype") -> DataDesc(intrAddr("Map.prototype"), F, F, F),
       ),
     ),
     "Map.prototype" -> Struct(
@@ -566,10 +595,10 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Map"), T, F, T),
-        "%Symbol.iterator%" ->
-        DataProperty(intrAddr("Map.prototype.entries"), T, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("Map"), F, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Map"), T, F, T),
+        PropKey.Sym("iterator") ->
+        DataDesc(intrAddr("Map.prototype.entries"), T, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Map"), F, F, T),
       ),
     ),
     "MapIteratorPrototype" -> Struct(
@@ -579,7 +608,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
-        "%Symbol.toStringTag%" -> DataProperty(Str("Map Iterator"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Map Iterator"), F, F, T),
       ),
     ),
     "Set" -> Struct(
@@ -588,7 +617,7 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("Set.prototype"), F, F, F),
+        PropKey.Str("prototype") -> DataDesc(intrAddr("Set.prototype"), F, F, F),
       ),
     ),
     "Set.prototype" -> Struct(
@@ -598,15 +627,16 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Set"), T, F, T),
-        "keys" -> DataProperty(intrAddr("Set.prototype.values"), T, F, T),
-        "%Symbol.iterator%" -> DataProperty(
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Set"), T, F, T),
+        PropKey
+          .Str("keys") -> DataDesc(intrAddr("Set.prototype.values"), T, F, T),
+        PropKey.Sym("iterator") -> DataDesc(
           intrAddr("Set.prototype.values"),
           T,
           F,
           T,
         ),
-        "%Symbol.toStringTag%" -> DataProperty(Str("Set"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Set"), F, F, T),
       ),
     ),
     "SetIteratorPrototype" -> Struct(
@@ -616,7 +646,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
-        "%Symbol.toStringTag%" -> DataProperty(Str("Set Iterator"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Set Iterator"), F, F, T),
       ),
     ),
     "WeakMap" -> Struct(
@@ -625,7 +655,8 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("WeakMap.prototype"), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("WeakMap.prototype"), F, F, F),
       ),
     ),
     "WeakMap.prototype" -> Struct(
@@ -635,8 +666,8 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("WeakMap"), T, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("WeakMap"), F, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("WeakMap"), T, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("WeakMap"), F, F, T),
       ),
     ),
     "WeakSet" -> Struct(
@@ -645,7 +676,8 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("WeakSet.prototype"), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("WeakSet.prototype"), F, F, F),
       ),
     ),
     "WeakSet.prototype" -> Struct(
@@ -655,8 +687,8 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("WeakSet"), T, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("WeakSet"), F, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("WeakSet"), T, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("WeakSet"), F, F, T),
       ),
     ),
     "ArrayBuffer" -> Struct(
@@ -665,7 +697,12 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("ArrayBuffer.prototype"), F, F, F),
+        PropKey.Str("prototype") -> DataDesc(
+          intrAddr("ArrayBuffer.prototype"),
+          F,
+          F,
+          F,
+        ),
       ),
     ),
     "ArrayBuffer.prototype" -> Struct(
@@ -675,8 +712,9 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("ArrayBuffer"), T, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("ArrayBuffer"), F, F, T),
+        PropKey
+          .Str("constructor") -> DataDesc(intrAddr("ArrayBuffer"), T, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("ArrayBuffer"), F, F, T),
       ),
     ),
     "JSON" -> Struct(
@@ -686,19 +724,19 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "%Symbol.toStringTag%" -> DataProperty(Str("JSON"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("JSON"), F, F, T),
       ),
     ),
     "JSON.parse" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(2.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(2.0), F, F, T),
       ),
     ),
     "JSON.stringify" -> Struct(
       typeName = "BuiltinFunctionObject",
       nmap = List(
-        "length" -> DataProperty(Number(3.0), F, F, T),
+        PropKey.Str("length") -> DataDesc(Number(3.0), F, F, T),
       ),
     ),
     "Map.prototype" -> Struct(
@@ -708,10 +746,10 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Map"), T, F, T),
-        "%Symbol.iterator%" ->
-        DataProperty(intrAddr("Map.prototype.entries"), T, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("Map"), F, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Map"), T, F, T),
+        PropKey.Sym("iterator") ->
+        DataDesc(intrAddr("Map.prototype.entries"), T, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Map"), F, F, T),
       ),
     ),
     "Iterator.prototype" -> Struct(
@@ -721,13 +759,13 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> AccessorProperty(
+        PropKey.Str("constructor") -> AccessorDesc(
           intrAddr("get Iterator.prototype.constructor"),
           intrAddr("set Iterator.prototype.constructor"),
           F,
           T,
         ),
-        "%Symbol.toStringTag%" -> AccessorProperty(
+        PropKey.Sym("toStringTag") -> AccessorDesc(
           intrAddr("get Iterator.prototype[%Symbol.toStringTag%]"),
           intrAddr("set Iterator.prototype[%Symbol.toStringTag%]"),
           F,
@@ -761,7 +799,8 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(intrAddr("Promise.prototype"), F, F, F),
+        PropKey
+          .Str("prototype") -> DataDesc(intrAddr("Promise.prototype"), F, F, F),
       ),
     ),
     "Promise.prototype" -> Struct(
@@ -771,8 +810,8 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("Promise"), T, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("Promise"), F, F, T),
+        PropKey.Str("constructor") -> DataDesc(intrAddr("Promise"), T, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Promise"), F, F, T),
       ),
     ),
     "GeneratorFunction" -> Struct(
@@ -782,9 +821,9 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
-        "prototype" ->
-        DataProperty(intrAddr("GeneratorFunction.prototype"), F, F, F),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
+        PropKey.Str("prototype") ->
+        DataDesc(intrAddr("GeneratorFunction.prototype"), F, F, F),
       ),
     ),
     "GeneratorFunction.prototype" -> Struct(
@@ -794,14 +833,19 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Function.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("GeneratorFunction"), F, F, T),
-        "prototype" -> DataProperty(
+        PropKey.Str("constructor") -> DataDesc(
+          intrAddr("GeneratorFunction"),
+          F,
+          F,
+          T,
+        ),
+        PropKey.Str("prototype") -> DataDesc(
           intrAddr("GeneratorPrototype"),
           F,
           F,
           T,
         ),
-        "%Symbol.toStringTag%" -> DataProperty(
+        PropKey.Sym("toStringTag") -> DataDesc(
           Str("GeneratorFunction"),
           F,
           F,
@@ -816,9 +860,9 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
-        "prototype" ->
-        DataProperty(intrAddr("AsyncGeneratorFunction.prototype"), F, F, F),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
+        PropKey.Str("prototype") ->
+        DataDesc(intrAddr("AsyncGeneratorFunction.prototype"), F, F, F),
       ),
     ),
     "AsyncGeneratorFunction.prototype" -> Struct(
@@ -828,16 +872,16 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Function.prototype"),
       ),
       nmap = List(
-        "constructor" ->
-        DataProperty(intrAddr("AsyncGeneratorFunction"), F, F, T),
-        "prototype" ->
-        DataProperty(
+        PropKey.Str("constructor") ->
+        DataDesc(intrAddr("AsyncGeneratorFunction"), F, F, T),
+        PropKey.Str("prototype") ->
+        DataDesc(
           intrAddr("AsyncGeneratorPrototype"),
           F,
           F,
           T,
         ),
-        "%Symbol.toStringTag%" -> DataProperty(
+        PropKey.Sym("toStringTag") -> DataDesc(
           Str("AsyncGeneratorFunction"),
           F,
           F,
@@ -853,9 +897,9 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
-        "constructor" ->
-        DataProperty(intrAddr("GeneratorFunction.prototype"), F, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("Generator"), F, F, T),
+        PropKey.Str("constructor") ->
+        DataDesc(intrAddr("GeneratorFunction.prototype"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Generator"), F, F, T),
       ),
     ),
     // AsyncGenerator.prototype == AsyncGeneratorFunction.prototype.prototype == AsyncGeneratorPrototype
@@ -866,9 +910,9 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("AsyncIteratorPrototype"),
       ),
       nmap = List(
-        "constructor" ->
-        DataProperty(intrAddr("AsyncGeneratorFunction.prototype"), F, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("AsyncGenerator"), F, F, T),
+        PropKey.Str("constructor") ->
+        DataDesc(intrAddr("AsyncGeneratorFunction.prototype"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("AsyncGenerator"), F, F, T),
       ),
     ),
     "AsyncFunction" -> Struct(
@@ -878,10 +922,10 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(1.0), F, F, T),
-        "name" -> DataProperty(Str("AsyncFunction"), F, F, T),
-        "prototype" ->
-        DataProperty(intrAddr("AsyncFunction.prototype"), F, F, F),
+        PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
+        PropKey.Str("name") -> DataDesc(Str("AsyncFunction"), F, F, T),
+        PropKey.Str("prototype") ->
+        DataDesc(intrAddr("AsyncFunction.prototype"), F, F, F),
       ),
     ),
     "AsyncFunction.prototype" -> Struct(
@@ -891,8 +935,9 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Function.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("AsyncFunction"), F, F, T),
-        "%Symbol.toStringTag%" -> DataProperty(Str("AsyncFunction"), F, F, T),
+        PropKey
+          .Str("constructor") -> DataDesc(intrAddr("AsyncFunction"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("AsyncFunction"), F, F, T),
       ),
     ),
     "Reflect" -> Struct(
@@ -902,7 +947,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Object.prototype"),
       ),
       nmap = List(
-        "%Symbol.toStringTag%" -> DataProperty(Str("Reflect"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Reflect"), F, F, T),
       ),
     ),
     "Proxy" -> Struct(
@@ -919,7 +964,7 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(
+        PropKey.Str("prototype") -> DataDesc(
           intrAddr("AggregateError.prototype"),
           F,
           F,
@@ -934,9 +979,10 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Error.prototype"),
       ),
       nmap = List(
-        "constructor" -> DataProperty(intrAddr("AggregateError"), T, F, T),
-        "message" -> DataProperty(Str(""), T, F, T),
-        "name" -> DataProperty(Str("AggregateError"), T, F, T),
+        PropKey
+          .Str("constructor") -> DataDesc(intrAddr("AggregateError"), T, F, T),
+        PropKey.Str("message") -> DataDesc(Str(""), T, F, T),
+        PropKey.Str("name") -> DataDesc(Str("AggregateError"), T, F, T),
       ),
     ),
     "ThrowTypeError" -> Struct(
@@ -945,8 +991,8 @@ case class Intrinsics(cfg: CFG) {
         "Extensible" -> Bool(false),
       ),
       nmap = List(
-        "length" -> DataProperty(Number(0.0), F, F, F),
-        "name" -> DataProperty(Str(""), F, F, F),
+        PropKey.Str("length") -> DataDesc(Number(0.0), F, F, F),
+        PropKey.Str("name") -> DataDesc(Str(""), F, F, F),
       ),
     ),
     "Iterator" -> Struct(
@@ -955,13 +1001,13 @@ case class Intrinsics(cfg: CFG) {
         "Construct" -> clo("Record[BuiltinFunctionObject].Construct"),
       ),
       nmap = List(
-        "prototype" -> DataProperty(
+        PropKey.Str("prototype") -> DataDesc(
           intrAddr("Iterator.prototype"),
           F,
           F,
           F,
         ),
-        "%Symbol.toStringTag%" -> DataProperty(Str("Iterator"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Iterator"), F, F, T),
       ),
     ),
     "IteratorHelperPrototype" -> Struct(
@@ -971,7 +1017,7 @@ case class Intrinsics(cfg: CFG) {
         "Prototype" -> intrAddr("Iterator.prototype"),
       ),
       nmap = List(
-        "%Symbol.toStringTag%" -> DataProperty(Str("Iterator Helper"), F, F, T),
+        PropKey.Sym("toStringTag") -> DataDesc(Str("Iterator Helper"), F, F, T),
       ),
     ),
     "WrapForValidIteratorPrototype" -> Struct(
@@ -1012,9 +1058,9 @@ case class Intrinsics(cfg: CFG) {
           "InitialName" -> Str(errName),
         ),
         nmap = List(
-          "length" -> DataProperty(Number(1.0), F, F, T),
-          "name" -> DataProperty(Str(errName), F, F, T),
-          "prototype" -> DataProperty(
+          PropKey.Str("length") -> DataDesc(Number(1.0), F, F, T),
+          PropKey.Str("name") -> DataDesc(Str(errName), F, F, T),
+          PropKey.Str("prototype") -> DataDesc(
             intrAddr(s"$errName.prototype"),
             F,
             F,
@@ -1029,9 +1075,9 @@ case class Intrinsics(cfg: CFG) {
           "Prototype" -> intrAddr("Error.prototype"),
         ),
         nmap = List(
-          "constructor" -> DataProperty(intrAddr(errName), T, F, T),
-          "message" -> DataProperty(Str(""), T, F, T),
-          "name" -> DataProperty(Str(errName), T, F, T),
+          PropKey.Str("constructor") -> DataDesc(intrAddr(errName), T, F, T),
+          PropKey.Str("message") -> DataDesc(Str(""), T, F, T),
+          PropKey.Str("name") -> DataDesc(Str(errName), T, F, T),
         ),
       ),
     )

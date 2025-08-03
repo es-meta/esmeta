@@ -154,12 +154,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // simple values
   given svRule: Rule[SimpleValue] = (app, sv) =>
     sv match
-      case Number(n)  => app >> toStringHelper(n)
-      case BigInt(n)  => app >> n >> "n"
-      case Str(str)   => app >> "\"" >> str >> "\""
-      case Bool(bool) => app >> bool
-      case Undef      => app >> "undefined"
-      case Null       => app >> "null"
+      case Number(Double.PositiveInfinity) => app >> "+NUM_INF"
+      case Number(Double.NegativeInfinity) => app >> "-NUM_INF"
+      case Number(n) if n.isNaN            => app >> "NaN"
+      case Number(n)                       => app >> n >> "f"
+      case BigInt(n)                       => app >> n >> "n"
+      case Str(str)                        => app >> "\"" >> str >> "\""
+      case Bool(bool)                      => app >> bool
+      case Undef                           => app >> "undefined"
+      case Null                            => app >> "null"
 
   // reference value
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r

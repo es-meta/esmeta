@@ -23,21 +23,22 @@ case class GlobalObject(cfg: CFG) {
 
   /** get map for heap */
   lazy val map: Map[Addr, Obj] = {
+    import PropKey.Str
     var nmap = List(
       // NOTE: globalThis is added in SetDefaultGlobalBindings
-      "print" -> DataProperty(intrAddr("print"), T, F, T),
-      "Infinity" -> DataProperty(Number(Double.PositiveInfinity), F, F, F),
-      "NaN" -> DataProperty(Number(Double.NaN), F, F, F),
-      "undefined" -> DataProperty(Undef, F, F, F),
+      Str("print") -> DataDesc(intrAddr("print"), T, F, T),
+      Str("Infinity") -> DataDesc(Number(Double.PositiveInfinity), F, F, F),
+      Str("NaN") -> DataDesc(Number(Double.NaN), F, F, F),
+      Str("undefined") -> DataDesc(Undef, F, F, F),
       // test262
-      "$262" -> DataProperty(intrAddr("$262"), T, F, T),
+      Str("$262") -> DataDesc(intrAddr("$262"), T, F, T),
     )
     val wellKnowns = for {
       row <- spec.tables(WELL_KNOWN_INTRINSICS).rows
       List(intrCell, globCell) = row.take(2).map(_.trim) if globCell != ""
       intrKey = intrCell.replace("%", "")
       globKey = globCell.replace("`", "")
-    } yield { globKey -> DataProperty(intrAddr(intrKey), T, F, T) }
+    } yield { Str(globKey) -> DataDesc(intrAddr(intrKey), T, F, T) }
     nmap = wellKnowns ++ nmap
     getMapObjects(GLOBAL, GLOBAL, nmap)
   }
