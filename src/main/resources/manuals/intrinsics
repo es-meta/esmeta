@@ -106,52 +106,44 @@ Error.prototype = OrdinaryObject [
   name: [TFT] "Error";
 }
 
-// TODO use _NativeError_
 // https://tc39.es/ecma262/#sec-properties-of-the-nativeerror-constructors
 EvalError = BuiltinFunctionObject [
-  __CODE__: clo<INTRINSICS.EvalError>;
   Prototype: #INTRINSICS.Error;
   Construct: clo<Record[BuiltinFunctionObject].Construct>;
 ] {
   prototype: [FFF] #INTRINSICS.EvalError.prototype;
 }
 RangeError = BuiltinFunctionObject [
-  __CODE__: clo<INTRINSICS.RangeError>;
   Prototype: #INTRINSICS.Error;
   Construct: clo<Record[BuiltinFunctionObject].Construct>;
 ] {
   prototype: [FFF] #INTRINSICS.RangeError.prototype;
 }
 ReferenceError = BuiltinFunctionObject [
-  __CODE__: clo<INTRINSICS.ReferenceError>;
   Prototype: #INTRINSICS.Error;
   Construct: clo<Record[BuiltinFunctionObject].Construct>;
 ] {
   prototype: [FFF] #INTRINSICS.ReferenceError.prototype;
 }
 SyntaxError = BuiltinFunctionObject [
-  __CODE__: clo<INTRINSICS.SyntaxError>;
   Prototype: #INTRINSICS.Error;
   Construct: clo<Record[BuiltinFunctionObject].Construct>;
 ] {
   prototype: [FFF] #INTRINSICS.SyntaxError.prototype;
 }
 TypeError = BuiltinFunctionObject [
-  __CODE__: clo<INTRINSICS.TypeError>;
   Prototype: #INTRINSICS.Error;
   Construct: clo<Record[BuiltinFunctionObject].Construct>;
 ] {
   prototype: [FFF] #INTRINSICS.TypeError.prototype;
 }
 URIError = BuiltinFunctionObject [
-  __CODE__: clo<INTRINSICS.URIError>;
   Prototype: #INTRINSICS.Error;
   Construct: clo<Record[BuiltinFunctionObject].Construct>;
 ] {
   prototype: [FFF] #INTRINSICS.URIError.prototype;
 }
 
-// TODO use _NativeError_
 // https://tc39.es/ecma262/#sec-properties-of-the-nativeerror-prototype-objects
 EvalError.prototype = OrdinaryObject [
   Extensible: true;
@@ -477,7 +469,224 @@ ArrayIteratorPrototype = OrdinaryObject [
   %Symbol.toStringTag%: [FFT] "Array Iterator";
 }
 
-// TODO https://tc39.es/ecma262/#sec-typedarray-objects
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%typedarray%-intrinsic-object
+TypedArray = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 0.0f;
+  name: [FFT] "TypedArray";
+  prototype: [FFF] #INTRINSICS.TypedArray.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-%typedarrayprototype%-object
+TypedArray.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.TypedArray;
+  %Symbol.iterator%: [TFT] #INTRINSICS.TypedArray.prototype.values;
+  %Symbol.toStringTag%: [FT] {
+    get: #INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%];
+    set: undefined;
+  };
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-typedarray-constructors
+Int8Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Int8Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Int8Array.prototype;
+}
+Uint8Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Uint8Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Uint8Array.prototype;
+}
+Uint8ClampedArray = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Uint8ClampedArray";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Uint8ClampedArray.prototype;
+}
+Int16Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Int16Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Int16Array.prototype;
+}
+Uint16Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Uint16Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Uint16Array.prototype;
+}
+Int32Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Int32Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Int32Array.prototype;
+}
+Uint32Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Uint32Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Uint32Array.prototype;
+}
+BigInt64Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "BigInt64Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.BigInt64Array.prototype;
+}
+BigUint64Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "BigUint64Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.BigUint64Array.prototype;
+}
+Float16Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Float16Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Float16Array.prototype;
+}
+Float32Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Float32Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Float32Array.prototype;
+}
+Float64Array = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "Float64Array";
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  prototype: [FFF] #INTRINSICS.Float64Array.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-typedarray-prototype-objects
+Int8Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Int8Array;
+}
+Uint8Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Uint8Array;
+}
+Uint8ClampedArray.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Uint8ClampedArray;
+}
+Int16Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Int16Array;
+}
+Uint16Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Uint16Array;
+}
+Int32Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Int32Array;
+}
+Uint32Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Uint32Array;
+}
+BigInt64Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.BigInt64Array;
+}
+BigUint64Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.BigUint64Array;
+}
+Float16Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Float16Array;
+}
+Float32Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Float32Array;
+}
+Float64Array.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] 1.0f;
+  constructor: [TFT] #INTRINSICS.Float64Array;
+}
 
 
 

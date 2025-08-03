@@ -250,9 +250,6 @@ class Initialize(cfg: CFG) {
     for { func <- cfg.funcs } func.head match
       case Some(head @ BuiltinHead(Base(x), _, _)) if !yets.contains(x) =>
         createBuiltinFunction(x, getLength(head), x, map)
-      case _ if func.kind == FuncKind.Builtin && func.name.endsWith("Error") =>
-        val fname = func.name.stripPrefix("INTRINSICS.")
-        createBuiltinFunction(fname, 1, fname, map)
       case _ => None
   private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit =
     var propMap: Map[Addr, PropDesc] = Map()
