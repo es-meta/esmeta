@@ -104,7 +104,7 @@ sealed trait Ast extends ESElem with Locational {
         val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$name"
         fnameMap
           .get(fname)
-          .orElse(fnameMap.get(s"<DEFAULT>.$name"))
+          .orElse(fnameMap.get(s"DEFAULT:$name"))
           .map((ast0, _))
       case (res: Some[_], _) => res
     }

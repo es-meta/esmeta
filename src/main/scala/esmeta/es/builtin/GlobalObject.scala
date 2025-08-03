@@ -11,7 +11,6 @@ case class GlobalObject(cfg: CFG) {
   /** shortcuts */
   private val T = true
   private val F = false
-  private val U = Undef
   private val spec = cfg.program.spec
   given CFG = cfg
 

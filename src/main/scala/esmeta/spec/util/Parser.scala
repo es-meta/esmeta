@@ -266,7 +266,9 @@ trait Parsers extends LangParsers {
     lazy val name: Parser[String] = "[_`a-zA-Z0-9]+".r ^^ { _.trim }
     lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@: ]+".r ^^ { _.trim }
     lazy val pre: Parser[Path => Path] =
-      "get " ^^^ { Getter(_) } | "set " ^^^ { Setter(_) } | "" ^^^ { x => x }
+      "get[ :]".r ^^^ { Getter(_) } |
+      "set[ :]".r ^^^ { Setter(_) } |
+      "" ^^^ { x => x }
     lazy val base: Parser[Path] =
       opt("%") ~> name <~ opt("%") ^^ { Base(_) }
     lazy val access: Parser[Path => Path] =

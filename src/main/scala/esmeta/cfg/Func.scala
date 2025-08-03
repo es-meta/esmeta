@@ -174,6 +174,6 @@ object Func {
       }.toString
   }
 
-  private lazy val defaultSdoPattern = """<DEFAULT>\.(\w+)""".r
+  private lazy val defaultSdoPattern = """DEFAULT:(\w+)""".r
   private lazy val sdoPattern = """(\w+)\[(\d+),(\d+)\]\.(\w+)""".r
 }

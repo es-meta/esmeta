@@ -32,13 +32,7 @@ trait Parsers extends TyParsers {
     }
   }.named("ir.Func")
 
-  lazy val funcName: Parser[String] =
-    // no space
-    ("""[<>\w|:\.\[\],@\/`]+""".r |||
-    // intrinsic functions contain space
-    (("""[<>\w|:\.\[\],@\/]+?(\.get|\.set)\s[<>\w|:\.\[\],@\/]+""".r) ^^ {
-      case (a) => a
-    }))
+  lazy val funcName: Parser[String] = """[\w%:\.\[\],`]+""".r
 
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 

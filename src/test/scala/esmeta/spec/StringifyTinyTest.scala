@@ -137,7 +137,7 @@ class StringifyTinyTest extends SpecTest {
       numHead -> """[numeric method] Number::unaryMinus(
       |  _x_: a Number,
       |): unknown""".stripMargin,
-      sdoHead1 -> """[sdo] (static) <DEFAULT>.VarDeclaredNames(
+      sdoHead1 -> """[sdo] (static) DEFAULT:VarDeclaredNames(
       |  _withParam_,
       |): unknown""".stripMargin,
       sdoHead2 -> """[sdo] (static) ForStatement[0, 5].VarDeclaredNames(
@@ -160,8 +160,8 @@ class StringifyTinyTest extends SpecTest {
     checkStringify("BuiltinPath")(
       Base("A") -> "A",
       NormalAccess(Base("A"), "B") -> "A.B",
-      Getter(NormalAccess(Base("A"), "B")) -> "get A.B",
-      Setter(NormalAccess(Base("A"), "B")) -> "set A.B",
+      Getter(NormalAccess(Base("A"), "B")) -> "get:A.B",
+      Setter(NormalAccess(Base("A"), "B")) -> "set:A.B",
       SymbolAccess(Base("A"), "B") -> "A[%Symbol.B%]",
       YetPath("A B C") -> "yet:ABC",
     )

@@ -1,19 +1,24 @@
 package esmeta.state.util
 
+import esmeta.cfg.*
+import esmeta.ir.*
+import esmeta.ir.util.{Parsers => IRParsers}
 import esmeta.state.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.BasicParsers
 
 /** state parser */
-object Parser extends Parsers
+case class Parser(cfg: CFG) extends Parsers
 
 /** state parsers */
-trait Parsers extends BasicParsers {
+trait Parsers extends IRParsers {
+  val cfg: CFG
+  given CFG = cfg
 
   given value: Parser[Value] = {
     addr |
-    // TODO clo |
-    // TODO cont |
+    clo |
+    cont |
     // TODO astValue |
     // TODO grammarSymbol |
     infinity |
@@ -25,8 +30,26 @@ trait Parsers extends BasicParsers {
 
   given addr: Parser[Addr] = {
     "#" ~> long ^^ { DynamicAddr(_) } |
-    "#" ~> "[\\[\\]._a-zA-Z]+".r ^^ { NamedAddr(_) }
+    "#" ~> """[\[\]:%.\w]+""".r ^^ { NamedAddr(_) }
   }.named("state.Addr")
+
+  val captured = "[" ~> repsep(
+    word ~ "->" ~ value ^^ { case n ~ _ ~ v => Name(n) -> v },
+    ",",
+  ) <~ "]" ^^ { _.toMap }
+
+  given clo: Parser[Clo] = {
+    "clo<" ~> funcName ~ opt("," ~> captured) <~ ">" ^^ {
+      case f ~ c => Clo(cfg.fnameMap(f), c.getOrElse(Map()))
+    }
+  }.named("state.Clo")
+
+  given cont: Parser[Cont] = {
+    // TODO: callStack
+    "cont<" ~> funcName ~ opt("," ~> captured) <~ ">" ^^ {
+      case f ~ c => Cont(cfg.fnameMap(f), c.getOrElse(Map()), Nil)
+    }
+  }.named("state.Cont")
 
   given math: Parser[Math] = {
     decimal ^^ { Math(_) }

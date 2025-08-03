@@ -45,7 +45,6 @@ sealed trait Value extends StateElem {
         case obj        => throw NoList(obj)
     case _ => throw NoAddr(this)
 }
-object Value extends Parser.From(Parser.value)
 
 /** addresses */
 sealed trait Addr extends Value

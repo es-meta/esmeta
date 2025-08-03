@@ -182,9 +182,9 @@ object Stringifier {
             withParams,
             rty,
           ) =>
-        given Rule[Option[SdoHeadTarget]] = optionRule("<DEFAULT>")
+        given Rule[Option[SdoHeadTarget]] = optionRule("DEFAULT:")
         app >> "[sdo] (" >> (if (isStatic) "static" else "runtime") >> ") "
-        app >> target >> "." >> methodName >> withParams >> ": " >> rty
+        app >> target >> methodName >> withParams >> ": " >> rty
       case method @ ConcreteMethodHead(methodName, receiver, params, rty) =>
         app >> "[concrete method] " >> methodName >> "(" >> receiver >> ")"
         app >> params >> ": " >> rty
@@ -199,8 +199,8 @@ object Stringifier {
     path match
       case Base(name)               => app >> name
       case NormalAccess(base, name) => app >> base >> "." >> name
-      case Getter(base)             => app >> "get " >> base
-      case Setter(base)             => app >> "set " >> base
+      case Getter(base)             => app >> "get:" >> base
+      case Setter(base)             => app >> "set:" >> base
       case SymbolAccess(base, symbol) =>
         app >> base >> "[%Symbol." >> symbol >> "%]"
       case YetPath(name) => app >> "yet:" >> name.replace(" ", "")
@@ -209,7 +209,7 @@ object Stringifier {
   given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>
     given Rule[List[Param]] = iterableRule("(", ", ", ")")
     val SdoHeadTarget(lhsName, idx, subIdx) = target
-    app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]"
+    app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]."
 
   // for algorithm parameters
   given paramRule: Rule[Param] = (app, param) =>

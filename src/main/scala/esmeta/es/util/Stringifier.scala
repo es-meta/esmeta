@@ -76,10 +76,10 @@ class Stringifier(
     val Struct(typeName, imap, nmap) = struct
     app >> typeName
     if (imap.nonEmpty) app.wrap(" [", "]") {
-      for { (name, value) <- imap } { app :> name >> ": " >> value }
+      for { (name, value) <- imap } { app :> name >> ": " >> value >> ";" }
     }
     if (nmap.nonEmpty) app.wrap(" {", "}") {
-      for { (name, prop) <- nmap } { app :> name >> ": " >> prop }
+      for { (name, prop) <- nmap } { app :> name >> ": " >> prop >> ";" }
     }
     app
   }
@@ -97,7 +97,10 @@ class Stringifier(
     given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
     prop match
       case DataDesc(value, w, e, c) =>
-        app >> value >> " [" >> w >> e >> c >> "],"
+        app >> "[" >> w >> e >> c >> "] " >> value
       case AccessorDesc(get, set, e, c) =>
-        app >> "(get=" >> get >> ", set=" >> set >> ") [" >> e >> c >> "],"
+        (app >> "[" >> e >> c >> "] ").wrap("(", ")") {
+          app :> "get = " >> get >> ";"
+          app :> "set = " >> set >> ";"
+        }
 }

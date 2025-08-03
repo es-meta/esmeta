@@ -1,8 +1,8 @@
 package esmeta.es
 
-import esmeta.cfg.CFG
+import esmeta.cfg.*
 import esmeta.es.builtin.*
-import esmeta.ir.*
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.ty.*
@@ -78,7 +78,16 @@ class Initialize(cfg: CFG) {
       NamedAddr(INTRINSICS) -> intr.obj,
       NamedAddr(GLOBAL) -> glob.obj,
       NamedAddr(SYMBOL) -> sym.obj,
-      NamedAddr(AGENT_RECORD) -> agent,
+      NamedAddr(AGENT_RECORD) -> recordObj("AgentRecord")(
+        "LittleEndian" -> Bool(true),
+        "CanBlock" -> Bool(true),
+        "Signifier" -> NamedAddr(AGENT_SIGNIFIER),
+        "IsLockFree1" -> Bool(true),
+        "IsLockFree2" -> Bool(true),
+        "IsLockFree8" -> Bool(true),
+        "CandidateExecution" -> NamedAddr(CANDIDATE_EXECUTION),
+        "KeptAlive" -> NamedAddr(KEPT_ALIVE),
+      ),
       NamedAddr(AGENT_SIGNIFIER) -> recordObj("AgentSignifier"),
       NamedAddr(CANDIDATE_EXECUTION) -> YetObj(
         "CandidateExecution",
@@ -94,8 +103,8 @@ class Initialize(cfg: CFG) {
     // add symbols
     map ++= sym.map
 
-    // add intrinsics
-    map ++= intr.map
+    // add intrinsic built-in objects
+    map ++= intr.heap
 
     // add member functions of intrinsics
     addBaseBuiltinFuncs(map)
@@ -116,16 +125,6 @@ class Initialize(cfg: CFG) {
   val intr = Intrinsics(cfg)
   val glob = GlobalObject(cfg)
   val sym = builtin.Symbol(cfg)
-  val agent = recordObj("AgentRecord")(
-    "LittleEndian" -> Bool(true),
-    "CanBlock" -> Bool(true),
-    "Signifier" -> NamedAddr(AGENT_SIGNIFIER),
-    "IsLockFree1" -> Bool(true),
-    "IsLockFree2" -> Bool(true),
-    "IsLockFree8" -> Bool(true),
-    "CandidateExecution" -> NamedAddr(CANDIDATE_EXECUTION),
-    "KeptAlive" -> NamedAddr(KEPT_ALIVE),
-  )
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
@@ -140,7 +139,9 @@ class Initialize(cfg: CFG) {
     isGetter: Boolean,
   )
   object Data {
-    def get(str: String): Option[Data] = get(BuiltinPath.from(str))
+    def get(func: Func): Option[Data] = func.head match
+      case Some(BuiltinHead(path, _, _)) => get(path)
+      case _ => get(BuiltinPath.from(func.name.stripPrefix("INTRINSICS.")))
     def get(path: BuiltinPath): Option[Data] =
       import BuiltinPath.*
       path match
@@ -244,21 +245,21 @@ class Initialize(cfg: CFG) {
       "Configurable" -> Bool(true),
     )
   }
-  private def addBaseBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
-    func <- cfg.funcs
-    (name, head) <- func.head match
-      case Some(head: BuiltinHead) =>
-        head.path match
-          case BuiltinPath.Base(b) if !(yets contains b) => Some((b, head))
-          case _                                         => None
+  private def addBaseBuiltinFuncs(map: MMap[Addr, Obj]): Unit =
+    import BuiltinPath.*
+    for { func <- cfg.funcs } func.head match
+      case Some(head @ BuiltinHead(Base(x), _, _)) if !yets.contains(x) =>
+        createBuiltinFunction(x, getLength(head), x, map)
+      case _ if func.kind == FuncKind.Builtin && func.name.endsWith("Error") =>
+        val fname = func.name.stripPrefix("INTRINSICS.")
+        createBuiltinFunction(fname, 1, fname, map)
       case _ => None
-  } createBuiltinFunction(name, getLength(head), name, map)
   private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit =
     var propMap: Map[Addr, PropDesc] = Map()
     for {
-      func <- cfg.funcs if func.irFunc.kind == FuncKind.Builtin
+      func <- cfg.funcs if func.kind == FuncKind.Builtin
       fname = func.name.stripPrefix("INTRINSICS.")
-      Data(base, prop, propV, defaultName, isData, isGetter) <- Data.get(fname)
+      Data(base, prop, propV, defaultName, isData, isGetter) <- Data.get(func)
       baseMapObj <- map.get(mapAddr(intrName(base))) match
         case Some(m: MapObj) => Some(m)
         case _               => None
