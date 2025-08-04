@@ -1,10 +1,12 @@
 package esmeta.es.util
 
+import esmeta.es.*
+import esmeta.es.builtin.*
 import esmeta.spec.*
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.es.*
 
 /** stringifier for ECMAScript */
 class Stringifier(
@@ -12,11 +14,16 @@ class Stringifier(
   location: Boolean,
   grammar: Option[Grammar],
 ) {
+  lazy val _stateStringifier = StateElem.getStringifier(false, false)
+
   // elements
   given elemRule: Rule[ESElem] = (app, elem) =>
     elem match
-      case elem: Script => scriptRule(app, elem)
-      case elem: Ast    => astRule(app, elem)
+      case elem: Script   => scriptRule(app, elem)
+      case elem: Ast      => astRule(app, elem)
+      case elem: Struct   => structRule(app, elem)
+      case elem: PropKey  => propKeyRule(app, elem)
+      case elem: PropDesc => propDescRule(app, elem)
 
   // ECMAScript script program
   given scriptRule: Rule[Script] = (app, script) => app >> script.code
@@ -61,4 +68,39 @@ class Stringifier(
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
         if (detail && ast.loc.isDefined) app >> ast.loc.get else app
+
+  // structure
+  given structRule: Rule[Struct] = (app, struct) => {
+    val stateStringifier = _stateStringifier
+    import stateStringifier.{*, given}
+    val Struct(typeName, imap, nmap) = struct
+    app >> typeName
+    if (imap.nonEmpty) app.wrap(" [", "]") {
+      for { (name, value) <- imap } { app :> name >> ": " >> value >> ";" }
+    }
+    if (nmap.nonEmpty) app.wrap(" {", "}") {
+      for { (name, prop) <- nmap } { app :> name >> ": " >> prop >> ";" }
+    }
+    app
+  }
+
+  // property keys
+  given propKeyRule: Rule[PropKey] = (app, prop) =>
+    prop match
+      case PropKey.Str(str) => app >> str
+      case PropKey.Sym(sym) => app >> s"%Symbol.$sym%"
+
+  // property descriptors
+  given propDescRule: Rule[PropDesc] = (app, prop) =>
+    val stateStringifier = _stateStringifier
+    import stateStringifier.{*, given}
+    given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+    prop match
+      case DataDesc(value, w, e, c) =>
+        app >> "[" >> w >> e >> c >> "] " >> value
+      case AccessorDesc(get, set, e, c) =>
+        (app >> "[" >> e >> c >> "] ").wrap("(", ")") {
+          app :> "get = " >> get >> ";"
+          app :> "set = " >> set >> ";"
+        }
 }

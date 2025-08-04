@@ -196,7 +196,7 @@ class Compiler(
   def compile(algo: Algorithm): Unit =
     import FuncKind.*
     val kind = getKind(algo.head)
-    val name = algo.head.fname
+    val name = normalize(algo.head.fname)
     val params = algo.head.funcParams.map(compile)
     val retTy = compile(algo.retTy)
     val needRetComp = kind match
@@ -221,7 +221,7 @@ class Compiler(
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case SetAsStep(ref, verb, id) =>
-      val expr = EClo(spec.getAlgoById(id).head.fname, Nil)
+      val expr = EClo(normalize(spec.getAlgoById(id).head.fname), Nil)
       fb.addInst(IAssign(compile(fb, ref), expr))
     case SetEvaluationStateStep(context, func, args) =>
       val ctxt = compile(fb, context)
@@ -609,12 +609,12 @@ class Compiler(
         else if (shorthands contains name) compileShorthand(fb, name, as)
         else
           val (x, xExpr) = fb.newTIdWithExpr
-          val f = EClo(name, Nil)
+          val f = EClo(normalize(name), Nil)
           fb.addInst(ICall(x, f, as))
           xExpr
       case InvokeNumericMethodExpression(ty, name, args) =>
         val (x, xExpr) = fb.newTIdWithExpr
-        val f = EClo(s"$ty::$name", Nil)
+        val f = EClo(normalize(s"$ty::$name"), Nil)
         fb.addInst(ICall(x, f, args.map(compile(fb, _))))
         xExpr
       case InvokeAbstractClosureExpression(ref, args) =>
@@ -716,23 +716,15 @@ class Compiler(
       case BitwiseExpression(left, op, right) =>
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>
-        val algoName = fb.algo.head.fname
+        val algoName = normalize(fb.algo.head.fname)
         val hasPrefix = fixClosurePrefixAOs.exists(_.matches(algoName))
-        val (ck, cn, ps) =
-          if (hasPrefix)
-            (
-              FuncKind.Clo,
-              fb.nextCloName,
-              List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
-            )
-          else
-            (
-              FuncKind.Clo,
-              fb.nextCloName,
-              params.map(x => IRParam(compile(x), IRUnknownType, false)),
-            )
+        val kind = FuncKind.Clo
+        val name = fb.nextCloName
+        val ps =
+          if (hasPrefix) List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET)
+          else params.map(x => IRParam(compile(x), IRUnknownType, false))
         val retTy = IRUnknownType
-        val cloFB = FuncBuilder(spec, ck, cn, ps, retTy, fb.algo, true)
+        val cloFB = FuncBuilder(spec, kind, name, ps, retTy, fb.algo, true)
         val prefix =
           if (hasPrefix)
             getBuiltinPrefix(cloFB, params.map(x => Param(x.name, UnknownType)))
@@ -742,9 +734,9 @@ class Compiler(
           body = body,
           prefix = prefix,
         )
-        EClo(cn, captured.map(compile))
+        EClo(name, captured.map(compile))
       case XRefExpression(XRefExpressionOperator.Algo, id) =>
-        EClo(spec.getAlgoById(id).head.fname, Nil)
+        EClo(normalize(normalize(spec.getAlgoById(id).head.fname)), Nil)
       case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
         EMath(spec.getAlgoById(id).head.originalParams.length)
       case XRefExpression(XRefExpressionOperator.InternalSlots, id) =>
@@ -1228,4 +1220,6 @@ class Compiler(
       case (fb, List(expr)) => returnIfAbrupt(fb, expr, true, false)
     }),
   )
+
+  def normalize(name: String): String = name.replace("/", "")
 }

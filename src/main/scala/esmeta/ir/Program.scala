@@ -46,7 +46,7 @@ case class Program(
       name = "IR functions",
       iterable = ProgressBar("Dump IR functions", funcs, detail = false),
       dirname = dirname,
-      getName = func => s"${func.normalizedName}.ir",
+      getName = func => s"${func.name}.ir",
       getData = func => func.toString(detail = true, location = loc),
     )
 }

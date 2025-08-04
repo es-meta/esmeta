@@ -172,4 +172,8 @@ case class CFG(
       val dotPath = s"$path.dot"
       val pdfPath = if (pdf) Some(s"$path.pdf") else None
       func.dumpDot(dotPath, pdfPath)
+
+  override def equals(that: Any): Boolean = that match
+    case that: CFG => this eq that
+    case _         => false
 }

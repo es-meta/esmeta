@@ -1,8 +1,8 @@
 package esmeta.es
 
-import esmeta.cfg.CFG
+import esmeta.cfg.*
 import esmeta.es.builtin.*
-import esmeta.ir.*
+import esmeta.ir.{Func => IRFunc, *}
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.ty.*
@@ -78,7 +78,16 @@ class Initialize(cfg: CFG) {
       NamedAddr(INTRINSICS) -> intr.obj,
       NamedAddr(GLOBAL) -> glob.obj,
       NamedAddr(SYMBOL) -> sym.obj,
-      NamedAddr(AGENT_RECORD) -> agent,
+      NamedAddr(AGENT_RECORD) -> recordObj("AgentRecord")(
+        "LittleEndian" -> Bool(true),
+        "CanBlock" -> Bool(true),
+        "Signifier" -> NamedAddr(AGENT_SIGNIFIER),
+        "IsLockFree1" -> Bool(true),
+        "IsLockFree2" -> Bool(true),
+        "IsLockFree8" -> Bool(true),
+        "CandidateExecution" -> NamedAddr(CANDIDATE_EXECUTION),
+        "KeptAlive" -> NamedAddr(KEPT_ALIVE),
+      ),
       NamedAddr(AGENT_SIGNIFIER) -> recordObj("AgentSignifier"),
       NamedAddr(CANDIDATE_EXECUTION) -> YetObj(
         "CandidateExecution",
@@ -94,8 +103,8 @@ class Initialize(cfg: CFG) {
     // add symbols
     map ++= sym.map
 
-    // add intrinsics
-    map ++= intr.map
+    // add intrinsic built-in objects
+    map ++= intr.heap
 
     // add member functions of intrinsics
     addBaseBuiltinFuncs(map)
@@ -116,46 +125,49 @@ class Initialize(cfg: CFG) {
   val intr = Intrinsics(cfg)
   val glob = GlobalObject(cfg)
   val sym = builtin.Symbol(cfg)
-  val agent = recordObj("AgentRecord")(
-    "LittleEndian" -> Bool(true),
-    "CanBlock" -> Bool(true),
-    "Signifier" -> NamedAddr(AGENT_SIGNIFIER),
-    "IsLockFree1" -> Bool(true),
-    "IsLockFree2" -> Bool(true),
-    "IsLockFree8" -> Bool(true),
-    "CandidateExecution" -> NamedAddr(CANDIDATE_EXECUTION),
-    "KeptAlive" -> NamedAddr(KEPT_ALIVE),
-  )
 
   // get closures
   private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
   private def intrClo(name: String): Clo = clo(intrName(name))
 
-  // get data from builtin head
-  extension (str: String) {
-    def getData: Option[(String, String, Value, String, Boolean, Boolean)] =
-      BuiltinPath.from(str).getData
-  }
-  extension (path: BuiltinPath) {
-    def getData: Option[(String, String, Value, String, Boolean, Boolean)] =
+  case class Data(
+    base: String,
+    prop: PropKey,
+    value: Value,
+    defaultName: String,
+    isData: Boolean,
+    isGetter: Boolean,
+  )
+  object Data {
+    def get(func: Func): Option[Data] = func.head match
+      case Some(BuiltinHead(path, _, _)) => get(path)
+      case _ => get(BuiltinPath.from(func.name.stripPrefix("INTRINSICS.")))
+    def get(path: BuiltinPath): Option[Data] =
       import BuiltinPath.*
       path match
         case NormalAccess(b, n) if !(yets contains b.toString) =>
-          Some((b.toString, n, Str(n), n, T, F))
+          Some(Data(b.toString, PropKey.Str(n), Str(n), n, T, F))
         case SymbolAccess(b, n) if !(yets contains b.toString) =>
           Some(
-            (b.toString, s"%Symbol.$n%", symbolAddr(n), s"[Symbol.$n]", T, F),
+            Data(
+              b.toString,
+              PropKey.Sym(n),
+              symbolAddr(n),
+              s"[Symbol.$n]",
+              T,
+              F,
+            ),
           )
         case Getter(path) =>
-          path.getData match
-            case Some((base, prop, propV, propName, _, _)) =>
-              Some((base, prop, propV, s"get $propName", F, T))
-            case _ => None
+          get(path).map {
+            case Data(base, prop, propV, propName, _, _) =>
+              Data(base, prop, propV, s"get $propName", F, T)
+          }
         case Setter(path) =>
-          path.getData match
-            case Some((base, prop, propV, propName, _, _)) =>
-              Some((base, prop, propV, s"set $propName", F, F))
-            case _ => None
+          get(path).map {
+            case Data(base, prop, propV, propName, _, _) =>
+              Data(base, prop, propV, s"set $propName", F, F)
+          }
         case _ => None
   }
 
@@ -169,8 +181,8 @@ class Initialize(cfg: CFG) {
     val (baseName, baseAddr) = (intrName(name), intrAddr(name))
     val subAddr = mapAddr(baseName)
     val listAddr = elemsAddr(baseName)
-    val nameAddr = descAddr(name, "name")
-    val lengthAddr = descAddr(name, "length")
+    val nameAddr = descAddr(name, PropKey.Str("name"))
+    val lengthAddr = descAddr(name, PropKey.Str("length"))
 
     val baseObj = map.get(baseAddr) match
       case Some(r: RecordObj) => r
@@ -194,9 +206,10 @@ class Initialize(cfg: CFG) {
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(Str(f), v)
       obj
 
-    def updateMap(obj: MapObj)(pairs: (Value, Value)*): obj.type =
-      for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(f, v)
-      obj
+    def newMap(obj: MapObj)(pairs: (Value, Value)*): MapObj =
+      val newObj = MapObj(pairs)
+      for { (f, v) <- obj.map } newObj.update(f, v)
+      newObj
 
     intr.obj.map += Str(s"%$name%") -> baseAddr
 
@@ -211,19 +224,12 @@ class Initialize(cfg: CFG) {
       PRIVATE_ELEMENTS -> listAddr,
     )
 
-    map += subAddr -> updateMap(mapObj)(
+    map += subAddr -> newMap(mapObj)(
       Str("length") -> lengthAddr,
       Str("name") -> nameAddr,
     )
 
     map += listAddr -> listObj
-
-    map += nameAddr -> updateRecord(namerecordObj)(
-      "Value" -> Str(defaultName),
-      "Writable" -> Bool(false),
-      "Enumerable" -> Bool(false),
-      "Configurable" -> Bool(true),
-    )
 
     map += lengthAddr -> updateRecord(lengthrecordObj)(
       "Value" -> Number(defaultLength),
@@ -231,22 +237,26 @@ class Initialize(cfg: CFG) {
       "Enumerable" -> Bool(false),
       "Configurable" -> Bool(true),
     )
+
+    map += nameAddr -> updateRecord(namerecordObj)(
+      "Value" -> Str(defaultName),
+      "Writable" -> Bool(false),
+      "Enumerable" -> Bool(false),
+      "Configurable" -> Bool(true),
+    )
   }
-  private def addBaseBuiltinFuncs(map: MMap[Addr, Obj]): Unit = for {
-    func <- cfg.funcs
-    (name, head) <- func.head match
-      case Some(head: BuiltinHead) =>
-        head.path match
-          case BuiltinPath.Base(b) if !(yets contains b) => Some((b, head))
-          case _                                         => None
+  private def addBaseBuiltinFuncs(map: MMap[Addr, Obj]): Unit =
+    import BuiltinPath.*
+    for { func <- cfg.funcs } func.head match
+      case Some(head @ BuiltinHead(Base(x), _, _)) if !yets.contains(x) =>
+        createBuiltinFunction(x, getLength(head), x, map)
       case _ => None
-  } createBuiltinFunction(name, getLength(head), name, map)
   private def addPropBuiltinFuncs(map: MMap[Addr, Obj]): Unit =
-    var propMap: Map[Addr, Property] = Map()
+    var propMap: Map[Addr, PropDesc] = Map()
     for {
-      func <- cfg.funcs if func.irFunc.kind == FuncKind.Builtin
+      func <- cfg.funcs if func.kind == FuncKind.Builtin
       fname = func.name.stripPrefix("INTRINSICS.")
-      (base, prop, propV, defaultName, isData, isGetter) <- fname.getData
+      Data(base, prop, propV, defaultName, isData, isGetter) <- Data.get(func)
       baseMapObj <- map.get(mapAddr(intrName(base))) match
         case Some(m: MapObj) => Some(m)
         case _               => None
@@ -255,15 +265,15 @@ class Initialize(cfg: CFG) {
       _ = baseMapObj.update(propV, desc)
       intr = intrAddr(fname)
       property =
-        if (isData) DataProperty(intr, T, F, T)
-        else if (isGetter) AccessorProperty(intr, U, F, T)
-        else AccessorProperty(U, intr, F, T)
+        if (isData) DataDesc(intr, T, F, T)
+        else if (isGetter) AccessorDesc(intr, U, F, T)
+        else AccessorDesc(U, intr, F, T)
       _ =
         if (yetFuncs contains fname) map += (intr -> YetObj("", fname))
         else createBuiltinFunction(fname, defaultLength, defaultName, map)
     } (propMap.get(desc), property) match
-      case (Some(l: AccessorProperty), r: AccessorProperty) =>
-        var ap: AccessorProperty = l
+      case (Some(l: AccessorDesc), r: AccessorDesc) =>
+        var ap: AccessorDesc = l
         if (l.get == U) ap = ap.copy(get = r.get)
         if (l.set == U) ap = ap.copy(set = r.set)
         propMap += desc -> ap

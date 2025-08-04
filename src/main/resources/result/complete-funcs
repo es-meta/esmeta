@@ -1,6 +1,3 @@
-<DEFAULT>.AllPrivateIdentifiersValid
-<DEFAULT>.Contains
-<DEFAULT>.ContainsArguments
 AddEntriesFromIterable
 AddRestrictedFunctionProperties
 AdditiveExpression[1,0].AssignmentTargetType
@@ -628,6 +625,9 @@ CreateResolvingFunctions
 CreateSetIterator
 CreateSetIterator:clo0
 CreateUnmappedArgumentsObject
+DEFAULT:AllPrivateIdentifiersValid
+DEFAULT:Contains
+DEFAULT:ContainsArguments
 DateFromTime
 DayFromYear
 DaysInYear
@@ -803,7 +803,7 @@ ForDeclaration[0,0].BoundNames
 ForDeclaration[0,0].ForDeclarationBindingInitialization
 ForDeclaration[0,0].ForDeclarationBindingInstantiation
 ForDeclaration[0,0].IsDestructuring
-ForIn/OfHeadEvaluation
+ForInOfHeadEvaluation
 ForInOfStatement[0,0].ContainsDuplicateLabels
 ForInOfStatement[0,0].ContainsUndefinedBreakTarget
 ForInOfStatement[0,0].ContainsUndefinedContinueTarget
@@ -1538,49 +1538,49 @@ INTRINSICS.decodeURIComponent
 INTRINSICS.encodeURI
 INTRINSICS.encodeURIComponent
 INTRINSICS.eval
-INTRINSICS.get ArrayBuffer.prototype.byteLength
-INTRINSICS.get ArrayBuffer.prototype.detached
-INTRINSICS.get ArrayBuffer.prototype.maxByteLength
-INTRINSICS.get ArrayBuffer.prototype.resizable
-INTRINSICS.get ArrayBuffer[%Symbol.species%]
-INTRINSICS.get Array[%Symbol.species%]
-INTRINSICS.get DataView.prototype.buffer
-INTRINSICS.get DataView.prototype.byteLength
-INTRINSICS.get DataView.prototype.byteOffset
-INTRINSICS.get Iterator.prototype.constructor
-INTRINSICS.get Iterator.prototype[%Symbol.toStringTag%]
-INTRINSICS.get Map.prototype.size
-INTRINSICS.get Map[%Symbol.species%]
-INTRINSICS.get Object.prototype.__proto__
-INTRINSICS.get Promise[%Symbol.species%]
-INTRINSICS.get RegExp.prototype.dotAll
-INTRINSICS.get RegExp.prototype.global
-INTRINSICS.get RegExp.prototype.hasIndices
-INTRINSICS.get RegExp.prototype.ignoreCase
-INTRINSICS.get RegExp.prototype.multiline
-INTRINSICS.get RegExp.prototype.source
-INTRINSICS.get RegExp.prototype.sticky
-INTRINSICS.get RegExp.prototype.unicode
-INTRINSICS.get RegExp.prototype.unicodeSets
-INTRINSICS.get RegExp[%Symbol.species%]
-INTRINSICS.get Set.prototype.size
-INTRINSICS.get Set[%Symbol.species%]
-INTRINSICS.get SharedArrayBuffer.prototype.byteLength
-INTRINSICS.get SharedArrayBuffer.prototype.growable
-INTRINSICS.get SharedArrayBuffer.prototype.maxByteLength
-INTRINSICS.get SharedArrayBuffer[%Symbol.species%]
-INTRINSICS.get Symbol.prototype.description
-INTRINSICS.get TypedArray.prototype.buffer
-INTRINSICS.get TypedArray.prototype.byteLength
-INTRINSICS.get TypedArray.prototype.byteOffset
-INTRINSICS.get TypedArray.prototype[%Symbol.toStringTag%]
-INTRINSICS.get TypedArray[%Symbol.species%]
+INTRINSICS.get:ArrayBuffer.prototype.byteLength
+INTRINSICS.get:ArrayBuffer.prototype.detached
+INTRINSICS.get:ArrayBuffer.prototype.maxByteLength
+INTRINSICS.get:ArrayBuffer.prototype.resizable
+INTRINSICS.get:ArrayBuffer[%Symbol.species%]
+INTRINSICS.get:Array[%Symbol.species%]
+INTRINSICS.get:DataView.prototype.buffer
+INTRINSICS.get:DataView.prototype.byteLength
+INTRINSICS.get:DataView.prototype.byteOffset
+INTRINSICS.get:Iterator.prototype.constructor
+INTRINSICS.get:Iterator.prototype[%Symbol.toStringTag%]
+INTRINSICS.get:Map.prototype.size
+INTRINSICS.get:Map[%Symbol.species%]
+INTRINSICS.get:Object.prototype.__proto__
+INTRINSICS.get:Promise[%Symbol.species%]
+INTRINSICS.get:RegExp.prototype.dotAll
+INTRINSICS.get:RegExp.prototype.global
+INTRINSICS.get:RegExp.prototype.hasIndices
+INTRINSICS.get:RegExp.prototype.ignoreCase
+INTRINSICS.get:RegExp.prototype.multiline
+INTRINSICS.get:RegExp.prototype.source
+INTRINSICS.get:RegExp.prototype.sticky
+INTRINSICS.get:RegExp.prototype.unicode
+INTRINSICS.get:RegExp.prototype.unicodeSets
+INTRINSICS.get:RegExp[%Symbol.species%]
+INTRINSICS.get:Set.prototype.size
+INTRINSICS.get:Set[%Symbol.species%]
+INTRINSICS.get:SharedArrayBuffer.prototype.byteLength
+INTRINSICS.get:SharedArrayBuffer.prototype.growable
+INTRINSICS.get:SharedArrayBuffer.prototype.maxByteLength
+INTRINSICS.get:SharedArrayBuffer[%Symbol.species%]
+INTRINSICS.get:Symbol.prototype.description
+INTRINSICS.get:TypedArray.prototype.buffer
+INTRINSICS.get:TypedArray.prototype.byteLength
+INTRINSICS.get:TypedArray.prototype.byteOffset
+INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%]
+INTRINSICS.get:TypedArray[%Symbol.species%]
 INTRINSICS.isFinite
 INTRINSICS.isNaN
 INTRINSICS.print
-INTRINSICS.set Iterator.prototype.constructor
-INTRINSICS.set Iterator.prototype[%Symbol.toStringTag%]
-INTRINSICS.set Object.prototype.__proto__
+INTRINSICS.set:Iterator.prototype.constructor
+INTRINSICS.set:Iterator.prototype[%Symbol.toStringTag%]
+INTRINSICS.set:Object.prototype.__proto__
 INTRINSICS.yet:PromiseRejectFunction
 INTRINSICS.yet:PromiseResolveFunction
 INTRINSICS.yet:`Promise.allSettled`RejectElementFunction

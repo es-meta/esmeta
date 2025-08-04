@@ -122,29 +122,26 @@ def symbolName(name: String): String = s"Symbol.$name"
 def symbolAddr(name: String): NamedAddr = intrAddr(symbolName(name))
 
 /** descriptor name */
-def descName(name: String, key: String): String =
-  if ((key startsWith "%Symbol.") && (key endsWith "%"))
-    s"$DESCRIPTOR.$name[$key]"
-  else s"$DESCRIPTOR.$name.$key"
+def descName(name: String, key: PropKey): String = key match
+  case PropKey.Str(x) => s"$DESCRIPTOR.$name.$x"
+  case PropKey.Sym(x) => s"$DESCRIPTOR.$name[%Symbol.$x%]"
 
 /** descriptor address */
-def descAddr(name: String, key: String): NamedAddr =
+def descAddr(name: String, key: PropKey): NamedAddr =
   NamedAddr(descName(name, key))
 
 /** get map */
 def getMapObjects(
   name: String,
   descBase: String,
-  nmap: List[(String, Property)],
+  nmap: List[(PropKey, PropDesc)],
 )(using CFG): Map[Addr, Obj] =
   var map = Map[Addr, Obj]()
-  map += mapAddr(name) -> MapObj(nmap.map {
-    case (k, _) => // handle symbol
-      val key =
-        if ((k startsWith "%Symbol.") && (k endsWith "%")) then
-          symbolAddr(k.substring("%Symbol.".length(), k.length - 1))
-        else Str(k)
-      key -> descAddr(descBase, k)
+  map += mapAddr(name) -> MapObj(nmap.map { (k, _) =>
+    val key = k match
+      case (PropKey.Str(x)) => Str(x)
+      case (PropKey.Sym(x)) => symbolAddr(x)
+    key -> descAddr(descBase, k)
   })
   map ++= nmap.map { case (k, prop) => descAddr(descBase, k) -> prop.toObject }
   map

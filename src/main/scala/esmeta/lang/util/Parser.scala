@@ -626,15 +626,11 @@ trait Parsers extends IndentParsers {
     "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ Nil
 
   // string literals
-  lazy val strLiteral: PL[StringLiteral] =
-    opt("the String") ~> """\*"[^"]*"\*""".r ^^ {
-      case s =>
-        val str = s
-          .substring(2, s.length - 2)
-          .replace("\\*", "*")
-          .replace("\\\\", "\\")
-        StringLiteral(str)
-    }
+  lazy val strLiteral: PL[StringLiteral] = opt("the String") ~> (
+    """\*"[^"]*"\*""".r ^^ { str =>
+      str.drop(2).dropRight(2).replace("\\*", "*").replace("\\\\", "\\")
+    } | "<code>" ~> """"[^"]*"""".r <~ "</code>" ^^ { _.drop(1).dropRight(1) }
+  ) ^^ { StringLiteral(_) }
 
   // production literals
   // XXX need to be generalized?

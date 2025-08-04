@@ -44,10 +44,10 @@ sealed trait Head extends SpecElem {
       s"${head.baseTy.normalizedName}::${head.name}"
     case head: SyntaxDirectedOperationHead =>
       val Target = SyntaxDirectedOperationHead.Target
-      val pre = head.target.fold("<DEFAULT>") {
-        case Target(lhsName, idx, subIdx) => s"$lhsName[$idx,$subIdx]"
+      val pre = head.target.fold("DEFAULT:") {
+        case Target(lhsName, idx, subIdx) => s"$lhsName[$idx,$subIdx]."
       }
-      s"$pre.${head.methodName}"
+      s"$pre${head.methodName}"
     case head: ConcreteMethodHead =>
       s"${head.receiver.ty.ty}.${head.concMethodName}"
     case head: InternalMethodHead =>

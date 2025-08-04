@@ -4,6 +4,7 @@ import esmeta.cfg.{CFG, Func}
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.state.util.*
 import esmeta.ty.*
 import esmeta.util.DoubleEquals
 import java.math.MathContext.UNLIMITED

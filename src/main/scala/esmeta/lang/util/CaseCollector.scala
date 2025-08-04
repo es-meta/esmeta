@@ -223,7 +223,7 @@ class CaseCollector extends UnitWalker {
       case EnumLiteral(name) =>
         s"~{{ str }}~"
       case StringLiteral(str) =>
-        "\"{{ str }}\""
+        "*\"{{ str }}\"*"
       case FieldLiteral(name) =>
         s"[[{{ str }}]]"
       case SymbolLiteral(sym) =>
