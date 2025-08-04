@@ -46,6 +46,7 @@
   "Symbol.toPrimitive",
   "Symbol.toStringTag",
   "Symbol.unscopables",
+  "TypedArray",
   "WeakMap",
   "WeakSet",
   "__getter__",

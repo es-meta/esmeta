@@ -415,6 +415,7 @@ TypedArray.prototype = OrdinaryObject [
   Prototype: #INTRINSICS.Object.prototype;
 ] {
   constructor: [TFT] #INTRINSICS.TypedArray;
+  toString: [TFT] #INTRINSICS.Array.prototype.toString;
   %Symbol.iterator%: [TFT] #INTRINSICS.TypedArray.prototype.values;
   %Symbol.toStringTag%: [FT] {
     get: #INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%];

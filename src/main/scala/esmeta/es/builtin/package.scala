@@ -50,20 +50,6 @@ val yets: Map[String, ValueTy] =
     "Date" -> ConstructorT,
     // 22. Text Processing
     "RegExp" -> ConstructorT,
-    // 23. Indexed Collections
-    "TypedArray" -> ConstructorT,
-    "Int8Array" -> ConstructorT,
-    "Uint8Array" -> ConstructorT,
-    "Uint8ClampedArray" -> ConstructorT,
-    "Int16Array" -> ConstructorT,
-    "Uint16Array" -> ConstructorT,
-    "Int32Array" -> ConstructorT,
-    "Uint32Array" -> ConstructorT,
-    "BigInt64Array" -> ConstructorT,
-    "BigUint64Array" -> ConstructorT,
-    "Float16Array" -> ConstructorT,
-    "Float32Array" -> ConstructorT,
-    "Float64Array" -> ConstructorT,
     // 25. Structured Data
     "SharedArrayBuffer" -> ConstructorT,
     "DataView" -> ConstructorT,
