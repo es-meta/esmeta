@@ -175,8 +175,8 @@ class CaseCollector extends UnitWalker {
           case (false, true)  => "trailing"
           case (false, false) => "no"
         s"the String value that is a copy of {{ expr }} with $str whitespace removed"
-      case NumberOfExpression(expr) =>
-        s"the number of elements in {{ expr }}"
+      case NumberOfExpression(name, pre, expr) =>
+        s"the number of $name in ${pre.fold("")("the " + _ + " ")}{{ expr }}"
       case SourceTextExpression(expr) =>
         s"the source text matched by {{ expr }}"
       case CoveredByExpression(code, rule) =>

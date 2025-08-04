@@ -152,6 +152,8 @@ class StringifyTinyTest extends LangTest {
       trimStart -> "the String value that is a copy of _x_ with leading white space removed",
       trimEnd -> "the String value that is a copy of _x_ with trailing white space removed",
       numberOfExpr -> "the number of elements in _x_",
+      numberOfBytesExpr -> "the number of bytes in _x_",
+      numberOfListExpr -> "the number of elements in the List _x_",
       sourceTextExpr -> "the source text matched by |Identifier|",
       coveredByExpr -> "the |Identifier| that is covered by |Identifier|",
       getItemsExpr -> "the List of |Identifier| items in _x_, in source text order",

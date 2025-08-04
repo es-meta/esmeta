@@ -421,8 +421,8 @@ trait Parsers extends IndentParsers {
 
   // `the number of elements in` expressions
   lazy val numberOfExpr: PL[NumberOfExpression] =
-    ("the number of elements" ~ ("in" | "of") ~ opt("the List") ~> expr) ^^ {
-      NumberOfExpression(_)
+    ("the number of" ~> word <~ "in") ~ opt("the" ~> "List") ~ expr ^^ {
+      case n ~ p ~ e => NumberOfExpression(n, p, e)
     }
 
   // `source text` expressions
