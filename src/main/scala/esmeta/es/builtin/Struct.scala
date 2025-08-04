@@ -35,7 +35,6 @@ sealed trait PropDesc extends ESElem {
         "Enumerable" -> Bool(e),
         "Configurable" -> Bool(c),
       )
-
 }
 
 // data properties

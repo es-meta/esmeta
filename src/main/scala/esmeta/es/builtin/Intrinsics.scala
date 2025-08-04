@@ -20,10 +20,13 @@ case class Intrinsics(
   given CFG = cfg
 
   lazy val parser = Parser(cfg)
-  lazy val map: Map[String, Struct] = parser.fromFileWithParser(
-    ManualInfo.intrinsicsFile,
-    parser.intrMap,
-  )
+  lazy val map: Map[String, Struct] =
+    val m = parser.fromFileWithParser(
+      ManualInfo.intrinsicsFile,
+      parser.intrMap,
+    )
+    for ((name, struct) <- m) println(s"$name = $struct")
+    m
 
   /** get map for heap */
   lazy val heap: Map[Addr, Obj] = {

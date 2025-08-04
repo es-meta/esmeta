@@ -3,6 +3,7 @@ package esmeta.es.util
 import esmeta.cfg.CFG
 import esmeta.es.*
 import esmeta.es.builtin.*
+import esmeta.spec.templateInstances
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.state.util.{Parsers => StateParsers}
 import esmeta.util.BaseUtils.*
@@ -16,9 +17,19 @@ trait Parsers extends StateParsers {
 
   given intrMap: Parser[Map[String, Struct]] = {
     val name = """[\[\]%:.\w]+""".r
-    val pair = name ~ "=" ~ struct ^^ { case n ~ _ ~ s => n -> s }
-    rep(pair) ^^ { _.toMap }
+    val pair = name ~ "=" ~ struct ^^ { case n ~ _ ~ s => applyTemplate(n, s) }
+    rep(pair) ^^ { _.flatten.toMap }
   }
+
+  val templatePattern = "_([^_]+)_(.*)".r
+  def applyTemplate(name: String, struct: Struct): List[(String, Struct)] =
+    import TempalteReplacer.*
+    name match
+      case templatePattern(x, post) =>
+        for {
+          instance <- templateInstances.getOrElse(x, Nil)
+        } yield (instance + post) -> struct.replace("_" + x + "_", instance)
+      case _ => List(name -> struct)
 
   given struct: Parser[Struct] = {
     val imap = "[" ~> rep {
