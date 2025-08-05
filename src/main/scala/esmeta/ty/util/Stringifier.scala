@@ -336,6 +336,9 @@ class Stringifier(
         app :> "- actual  : " >> actual
       case InvalidBaseError(point, baseTy) =>
         app :> "- base    : " >> baseTy
+      case InvalidFieldError(point, baseTy, fieldName) =>
+        app :> "- base    : " >> baseTy
+        app :> "- field   : " >> fieldName
       case UnaryOpTypeMismatch(point, operandTy) =>
         app :> "- operand : " >> operandTy
       case BinaryOpTypeMismatch(point, lhsTy, rhsTy) =>

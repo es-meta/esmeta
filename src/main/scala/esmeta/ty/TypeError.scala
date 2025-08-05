@@ -34,6 +34,12 @@ case class InvalidBaseError(
   baseTy: ValueTy,
 ) extends TypeError
 
+case class InvalidFieldError(
+  point: FieldBasePoint,
+  baseTy: ValueTy,
+  fieldName: String,
+) extends TypeError
+
 /** operand type mismatches for unary operators */
 case class UnaryOpTypeMismatch(
   point: UnaryOpPoint,
