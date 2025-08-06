@@ -125,9 +125,23 @@ class Interpreter(
 
   /** transition for normal instructions */
   def eval(inst: NormalInst): Unit = inst match {
-    case IExpr(expr)         => eval(expr)
-    case ILet(lhs, expr)     => st.define(lhs, eval(expr))
-    case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
+    case IExpr(expr)     => eval(expr)
+    case ILet(lhs, expr) => st.define(lhs, eval(expr))
+    case IAssign(ref, expr) =>
+      val refTarget = eval(ref)
+      if tyCheck then
+        optional {
+          refTarget match {
+            case FieldTarget(base, field) if !base.asRecord(st).exists(field) =>
+              val node = st.context.cursor match
+                case NodeCursor(_, node, _) => node
+                case _ => raise("cursor is not node cursor")
+              val fp = FieldPoint(st.context.func, node, field)
+              st.typeErrors += InvalidFieldError(fp, st.typeOf(base))
+            case _ => ()
+          }
+        }
+      st.update(refTarget, eval(expr))
     case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
     case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
     case IPush(elem, list, front) =>

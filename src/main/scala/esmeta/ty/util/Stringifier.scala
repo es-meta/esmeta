@@ -336,9 +336,8 @@ class Stringifier(
         app :> "- actual  : " >> actual
       case InvalidBaseError(point, baseTy) =>
         app :> "- base    : " >> baseTy
-      case InvalidFieldError(point, baseTy, fieldName) =>
+      case InvalidFieldError(point, baseTy) =>
         app :> "- base    : " >> baseTy
-        app :> "- field   : " >> fieldName
       case UnaryOpTypeMismatch(point, operandTy) =>
         app :> "- operand : " >> operandTy
       case BinaryOpTypeMismatch(point, lhsTy, rhsTy) =>
@@ -365,7 +364,7 @@ class Stringifier(
       case FieldBasePoint(fieldPoint) =>
         app >> "base in" >> fieldPoint
       case FieldPoint(func, node, field) =>
-        app >> "field lookup in " >> func.name >> field
+        app >> s"failed to lookup field " >> field.toString >> " in function " >> func.name
       case UnaryOpPoint(func, node, unary) =>
         app >> "unary operation (" >> unary.uop >> ") in " >> func.name
         app >> unary
