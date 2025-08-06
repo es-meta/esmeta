@@ -43,7 +43,7 @@ class SimpleSynthesizer(
     "IdentifierName" -> "x",
     "NoSubstitutionTemplate" -> "``",
     "NullLiteral" -> "null",
-    "NumericLiteral" -> "42",
+    "NumericLiteral" -> "0",
     "PrivateIdentifier" -> "#x",
     "RegularExpressionLiteral" -> "/a/",
     "StringLiteral" -> "''",
