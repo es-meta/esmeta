@@ -128,7 +128,7 @@ class Injector(
   // handle lexical variables
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {
     log("handling let...")
-    getValue(s"""$lexRecord["$x"].BoundValue""") match
+    getValue(s"""$lexRecord["$x"].__BOUND_VALUE__""") match
       case sv: SimpleValue => _assertions += HasValue(x, sv)
       case addr: Addr      => handleObject(addr, x)
       case _               => /* do nothing */
