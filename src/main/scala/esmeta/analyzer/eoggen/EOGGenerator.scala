@@ -16,6 +16,7 @@ class EOGGenerator(
   val cfg: CFG,
   val ast: Ast,
   val log: Boolean = false,
+  override val useRepl: Boolean = false,
 ) extends Analyzer
   with AbsValueDecl
   with AbsStateDecl
@@ -59,7 +60,26 @@ class EOGGenerator(
     cp: ControlPoint,
     color: Option[String] = None,
     detail: Boolean = false,
-  ): String = ???
+  ): String =
+    val func = cp.func.name
+    val cpStr = cp.toString(detail = detail)
+    val k = color.fold(cpStr)(setColor(_)(cpStr))
+    cp match
+      case np: NodePoint[_] =>
+        val st = getResult(np)
+        s"$k -> $st"
+      case rp: ReturnPoint =>
+        val ret = getResult(rp)
+        s"$k -> $ret" + (
+          if (detail)
+            retEdges
+              .getOrElse(rp, Set())
+              .toList
+              .sorted
+              .map("\n  " + _.toString)
+              .mkString(" -> [", ",", "\n]")
+          else ""
+        )
 
   /** update internal map */
   def +=(pair: (NodePoint[Node], AbsState)): Unit =

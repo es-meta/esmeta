@@ -1,5 +1,6 @@
 package esmeta.analyzer.eoggen
 
+import esmeta.es.*
 import esmeta.ir.*
 import esmeta.ty.{*, given}
 import esmeta.state.*
@@ -26,7 +27,7 @@ trait AbsStateDecl { self: EOGGenerator =>
     def ⊑(that: AbsState): Boolean = (this, that) match
       case _ if this.isBottom => true
       case _ if that.isBottom => false
-      case (l, r)             => l.locals.forall { (x, v) => v ⊑ r(x) }
+      case (l, r)             => l.locals.forall { (x, v) => v ⊑ r.get(x) }
 
     /** not partial order */
     def !⊑(that: AbsState): Boolean = !(this ⊑ that)
@@ -38,7 +39,7 @@ trait AbsStateDecl { self: EOGGenerator =>
       case (l, r) =>
         AbsState((for {
           x <- l.locals.keySet ++ r.locals.keySet
-        } yield x -> l(x) ⊔ r(x)).toMap)
+        } yield x -> l.get(x) ⊔ r.get(x)).toMap)
 
     /** meet operator */
     def ⊓(that: AbsState): AbsState = (this, that) match
@@ -46,10 +47,19 @@ trait AbsStateDecl { self: EOGGenerator =>
       case (l, r) =>
         AbsState((for {
           x <- l.locals.keySet intersect r.locals.keySet
-        } yield x -> l(x) ⊓ r(x)).toMap)
+        } yield x -> l.get(x) ⊓ r.get(x)).toMap)
 
-    /** get the absvalue value of a local variable */
-    def apply(x: Local): AbsValue = locals.getOrElse(x, AbsValue.Bot)
+    /** getter */
+    def get(x: Var): AbsValue = x match
+      case x: Global => AbsValue.Bot
+      case x: Local  => locals.getOrElse(x, AbsValue.Bot)
+
+    /** getter */
+    def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue =
+      (base.ast, field.int) match
+        case (One(ast), One(k))    => AbsValue(ast(Math(k)))
+        case (Zero, _) | (_, Zero) => AbsValue.Bot
+        case (Many, _) | (_, Many) => AbsValue.AstTop
 
     /** has imprecise elements */
     def hasImprec: Boolean = false

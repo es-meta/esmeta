@@ -111,6 +111,15 @@ case object CmdTyCheck extends Command("tycheck", CmdBuildCFG >> TyCheck) {
   )
 }
 
+/** `gen-eog` command */
+case object CmdGenEOG extends Command("gen-eog", CmdBuildCFG >> GenEOG) {
+  val help = "generates and execution-order graph (EOG)."
+  val examples = List(
+    "esmeta eog-gen a.js                   # generate EOG for a.js file.",
+  )
+  override val targetName = "<js>+"
+}
+
 // -----------------------------------------------------------------------------
 // Interpreter & Double Debugger for ECMAScript
 // -----------------------------------------------------------------------------

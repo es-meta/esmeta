@@ -42,21 +42,13 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
               else modify(_.define(call.lhs, v))
           } yield ())(st)
           call.next.foreach(to => analyzer += getNextNp(np, to) -> newSt)
-        case br @ Branch(_, kind, c, _, thenNode, elseNode) => ???
-    // import RefinementTarget.*
-    // import RefinementKind.*
-    // (for { v <- transfer(c); newSt <- get } yield {
-    //   if (v.ty.bool.contains(true))
-    //     val rst = refine(c, v, true)(newSt)
-    //     val pred = v.guard.get(RefinementKind(TrueT))
-    //     if (detail) logRefined(BranchTarget(br, true), pred, newSt, rst)
-    //     thenNode.map(analyzer += getNextNp(np, _) -> rst)
-    //   if (v.ty.bool.contains(false))
-    //     val rst = refine(c, v, false)(newSt)
-    //     val pred = v.guard.get(RefinementKind(FalseT))
-    //     if (detail) logRefined(BranchTarget(br, false), pred, newSt, rst)
-    //     elseNode.map(analyzer += getNextNp(np, _) -> rst)
-    // })(st)
+        case br @ Branch(_, kind, cond, _, thenNode, elseNode) =>
+          (for { v <- transfer(cond) } yield {
+            if (v.bool.contains(true))
+              thenNode.map(analyzer += getNextNp(np, _) -> st)
+            if (v.bool.contains(false))
+              elseNode.map(analyzer += getNextNp(np, _) -> st)
+          })(st)
 
     /** get next node point */
     def getNextNp(fromCp: NodePoint[Node], to: Node): NodePoint[Node] =
@@ -98,7 +90,7 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
                   ast :: vs,
                   method = true,
                 )
-              case Many => ???
+              case Many => newV = AbsValue.Top
             newV
           }
       }
@@ -136,28 +128,119 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       callee: Func,
       method: Boolean,
       vs: List[AbsValue],
-    ): Map[Local, AbsValue] = ???
+    ): Map[Local, AbsValue] =
+      val params = callee.irFunc.params
+      (for { (param, arg) <- (params zip vs) } yield param.lhs -> arg).toMap
 
     /** transfer function for normal instructions */
     def transfer(
       inst: NormalInst,
-    )(using np: NodePoint[_]): Updater = ???
+    )(using np: NodePoint[_]): Updater = inst match {
+      case ILet(x, expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- modify(_.define(x, v))
+          st <- get
+        } yield ()
+      case IAssign(x: Local, expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- modify(_.define(x, v))
+          st <- get
+        } yield ()
+      case inst @ IReturn(expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- doReturn(inst, v)
+          _ <- put(AbsState.Bot)
+        } yield ()
+      case _ => st => st
+    }
 
     /** update return points */
     def doReturn(
       irReturn: Return,
-      v: AbsValue,
-    )(using np: NodePoint[Node]): Unit = ???
+      newV: AbsValue,
+    )(using np: NodePoint[Node]): Unit =
+      val NodePoint(func, node, view) = np
+      val rp = ReturnPoint(func, view)
+      val AbsRet(oldV) = getResult(rp)
+      val entryNp = NodePoint(func, func.entry, view)
+      val entrySt = getResult(entryNp)
+      given AbsState = entrySt
+      if (!oldV.isBottom && useRepl) Repl.merged = true
+      if (newV !⊑ oldV)
+        val v = (oldV ⊔ newV)
+        rpMap += rp -> AbsRet(v)
+        worklist += rp
 
     /** transfer function for expressions */
     def transfer(
       expr: Expr,
-    )(using np: NodePoint[Node]): Result[AbsValue] = ???
+    )(using np: NodePoint[Node]): Result[AbsValue] = expr match {
+      case EParse(code, rule)               => ???
+      case EGrammarSymbol(name, params)     => ???
+      case ESourceText(expr)                => ???
+      case EYet(msg)                        => ???
+      case EContains(list, elem)            => ???
+      case ESubstring(expr, from, None)     => ???
+      case ESubstring(expr, from, Some(to)) => ???
+      case ETrim(expr, isStarting)          => ???
+      case ERef(ref) =>
+        for {
+          v <- transfer(ref)
+        } yield v
+      case unary @ EUnary(_, expr)                         => ???
+      case binary @ EBinary(BOp.And | BOp.Or, left, right) => ???
+      case binary @ EBinary(_, left, right)                => ???
+      case EVariadic(vop, exprs)                           => ???
+      case EMathOp(mop, exprs)                             => ???
+      case EConvert(cop, expr)                             => ???
+      case EExists(ref)                                    => ???
+      case ETypeOf(base)                                   => ???
+      case EInstanceOf(expr, target)                       => ???
+      case ETypeCheck(expr, ty)                            => AbsValue.BoolTop
+      case ESizeOf(expr)                                   => ???
+      case EClo(fname, captured)                           => ???
+      case ECont(fname)                                    => ???
+      case EDebug(expr)                                    => ???
+      case ERandom()                                       => ???
+      case ESyntactic(name, _, rhsIdx, _)                  => ???
+      case ELexical(name, expr)                            => ???
+      case ERecord(tname, fields)                          => ???
+      case EMap((kty, vty), _)                             => ???
+      case EList(exprs)                                    => ???
+      case ECopy(obj)                                      => ???
+      case EKeys(map, intSorted)                           => ???
+      case EMath(n)                                        => AbsValue(Math(n))
+      case EInfinity(pos)                                  => ???
+      case ENumber(n) if n.isNaN                           => ???
+      case ENumber(n)                                      => ???
+      case EBigInt(n)                                      => ???
+      case EStr(str)                                       => AbsValue(Str(str))
+      case EBool(b)                                        => ???
+      case EUndef()                                        => ???
+      case ENull()                                         => ???
+      case EEnum(name)                                     => ???
+      case ECodeUnit(c)                                    => ???
+    }
 
     /** transfer function for references */
     def transfer(
       ref: Ref,
-    )(using np: NodePoint[Node]): Result[AbsValue] = ???
+    )(using np: NodePoint[Node]): Result[AbsValue] = ref match {
+      case x: Var =>
+        for {
+          v <- get(_.get(x))
+        } yield v
+      case Field(base, expr) =>
+        for {
+          b <- transfer(base)
+          p <- transfer(expr)
+          given AbsState <- get
+          v <- get(_.get(b, p))
+        } yield v
+    }
 
     /** transfer function for unary operators */
     def transfer(

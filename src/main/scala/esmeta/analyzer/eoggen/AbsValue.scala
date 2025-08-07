@@ -16,25 +16,38 @@ trait AbsValueDecl { self: EOGGenerator =>
   import esStringifier.given
   import stateStringifier.given
 
+  type AbsValueElem = Ast | Int | Boolean | String
+
   case class AbsValue(
     ast: Flat[Ast],
-    math: Flat[Math],
+    int: Flat[Int],
+    bool: Flat[Boolean],
+    str: Flat[String],
   ) extends AbsValueLike {
     import AbsValue.*
 
     /** bottom check */
-    def isBottom: Boolean = ast.isBottom && math.isBottom
+    def isBottom: Boolean =
+      ast.isBottom &&
+      int.isBottom &&
+      bool.isBottom &&
+      str.isBottom
 
     /** single check */
-    def getSingle(using st: AbsState): Flat[Ast | Math] = this match
-      case AbsValue(One(ast), Zero)  => One(ast)
-      case AbsValue(Zero, One(math)) => One(math)
-      case AbsValue(Zero, Zero)      => Zero
-      case _                         => Many
+    def getSingle(using st: AbsState): Flat[AbsValueElem] = this match
+      case AbsValue(One(ast), Zero, Zero, Zero)  => One(ast)
+      case AbsValue(Zero, One(int), Zero, Zero)  => One(int)
+      case AbsValue(Zero, Zero, One(bool), Zero) => One(bool)
+      case AbsValue(Zero, Zero, Zero, One(str))  => One(str)
+      case AbsValue(Zero, Zero, Zero, Zero)      => Zero
+      case _                                     => Many
 
     /** partial order */
     def ⊑(that: AbsValue)(using st: AbsState): Boolean =
-      this.ast <= that.ast && this.math <= that.math
+      this.ast <= that.ast &&
+      this.int <= that.int &&
+      this.bool <= that.bool &&
+      this.str <= that.str
 
     /** not partial order */
     def !⊑(that: AbsValue)(using AbsState): Boolean = !(this ⊑ that)
@@ -42,13 +55,17 @@ trait AbsValueDecl { self: EOGGenerator =>
     /** join operator */
     def ⊔(that: AbsValue)(using st: AbsState): AbsValue = AbsValue(
       this.ast || that.ast,
-      this.math || that.math,
+      this.int || that.int,
+      this.bool || that.bool,
+      this.str || that.str,
     )
 
     /** meet operator */
     def ⊓(that: AbsValue)(using st: AbsState): AbsValue = AbsValue(
       this.ast && that.ast,
-      this.math && that.math,
+      this.int && that.int,
+      this.bool && that.bool,
+      this.str && that.str,
     )
 
     /** get lexical result */
@@ -72,31 +89,43 @@ trait AbsValueDecl { self: EOGGenerator =>
   object AbsValue extends DomainLike[AbsValue] {
 
     /** top element */
-    lazy val Top: AbsValue = AbsValue(Many, Many)
+    lazy val Top: AbsValue = AbsValue(Many, Many, Many, Many)
 
     /** bottom element */
-    lazy val Bot: AbsValue = AbsValue(Zero, Zero)
+    lazy val Bot: AbsValue = AbsValue(Zero, Zero, Zero, Zero)
+
+    /** AST top element */
+    lazy val AstTop: AbsValue = AbsValue(Many, Zero, Zero, Zero)
+
+    /** integer top element */
+    lazy val IntTop: AbsValue = AbsValue(Zero, Many, Zero, Zero)
+
+    /** boolean top element */
+    lazy val BoolTop: AbsValue = AbsValue(Zero, Zero, Many, Zero)
 
     /** non-AST top element */
-    lazy val NonAst: AbsValue = AbsValue(Zero, Many)
+    lazy val NonAst: AbsValue = AbsValue(Zero, Many, Many, Zero)
 
     /** constructor for ASTs */
-    def apply(ast: Ast): AbsValue = AbsValue(One(ast), Zero)
+    def apply(ast: Ast): AbsValue = AbsValue(One(ast), Zero, Zero, Zero)
 
     /** constructor */
     def apply(value: Value): AbsValue = value match
-      case AstValue(ast) => AbsValue(One(ast), Zero)
-      case math: Math    => AbsValue(Zero, One(math))
-      case _             => Bot
+      case AstValue(ast)        => AbsValue(One(ast), Zero, Zero, Zero)
+      case Math(d) if d.isWhole => AbsValue(Zero, One(d.toInt), Zero, Zero)
+      case Bool(b)              => AbsValue(Zero, Zero, One(b), Zero)
+      case Str(s)               => AbsValue(Zero, Zero, Zero, One(s))
+      case _                    => Bot
 
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) => {
+      given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
       given flatRule[T: Rule]: Rule[Flat[T]] = (app, flatElem) =>
         flatElem match
           case Zero   => app >> "⊥"
           case One(e) => app >> e
           case Many   => app >> "⊤"
-      val AbsValue(ast, math) = elem
+      val AbsValue(ast, math, bool, str) = elem
       app >> ast >> " | " >> math
     }
   }

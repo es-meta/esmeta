@@ -83,6 +83,12 @@ sealed trait Flat[+A] extends ConcreteLattice[A, Flat] { self =>
   /** get single value */
   def getSingle[B >: A]: Flat[B] = this
 
+  /** inclusion check */
+  def contains[B >: A](x: B): Boolean = this match
+    case Zero      => false
+    case One(elem) => elem == x
+    case Many      => true
+
   /** conversion to iterable */
   def toIterable(stop: Boolean): Iterable[A] = new Iterable[A]:
     final def iterator: Iterator[A] = self match
