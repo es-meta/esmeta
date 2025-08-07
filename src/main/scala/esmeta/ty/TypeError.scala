@@ -102,7 +102,7 @@ case class FieldBasePoint(
 case class FieldPoint(
   func: Func,
   node: Node,
-  field: Value,
+  field: Field,
 ) extends TypeErrorPoint
 
 /** unary operation points */

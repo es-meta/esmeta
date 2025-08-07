@@ -364,7 +364,7 @@ class Stringifier(
       case FieldBasePoint(fieldPoint) =>
         app >> "base in" >> fieldPoint
       case FieldPoint(func, node, field) =>
-        app >> s"failed to lookup field " >> field.toString >> " in function " >> func.name
+        app >> s"failed to lookup field " >> field.base >> " in function call from " >> func.name
       case UnaryOpPoint(func, node, unary) =>
         app >> "unary operation (" >> unary.uop >> ") in " >> func.name
         app >> unary

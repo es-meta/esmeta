@@ -136,7 +136,7 @@ class Interpreter(
               val node = st.context.cursor match
                 case NodeCursor(_, node, _) => node
                 case _ => raise("cursor is not node cursor")
-              val fp = FieldPoint(st.context.func, node, field)
+              val fp = FieldPoint(st.context.func, node, Field(ref, expr))
               st.typeErrors += InvalidFieldError(fp, st.typeOf(base))
             case _ => ()
           }
