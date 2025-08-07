@@ -4,18 +4,19 @@ import esmeta.cfg.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.state.*
 import esmeta.ty.*
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 
 /** runtime type checker */
 case class TypeChecker(st: State) {
+  import ManualInfo.tyModel.exists
 
   /** check valid field update check */
-  def fieldUpdateCheck(ref: Ref, tgt: RefTarget, e: Expr, v: Value): Unit =
-    (ref, getRecordField(tgt)) match
-      case (field: Field, Some(rec, f)) if !st.exists(tgt) =>
-        if !st.cfg.tyModel.exists((rec.tname, f)) then
-          val fp = FieldPoint(st.context.func, curNode, field)
-          st.typeErrors += InvalidFieldError(fp, f, st.typeOf(rec))
+  def fieldUpdateCheck(ref: Ref, t: RefTarget, e: Expr, v: Value): Unit =
+    (ref, getRecordField(t)) match
+      case (field: Field, Some(r, f)) if !exists(r.tname, f) && !st.exists(t) =>
+        val fp = FieldPoint(st.context.func, curNode, field)
+        st.typeErrors += InvalidFieldError(fp, f, st.typeOf(r))
       case _ =>
 
   /** check parameter types */
