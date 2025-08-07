@@ -38,6 +38,7 @@ case class InvalidBaseError(
 /** invalid field reference errors */
 case class InvalidFieldError(
   point: FieldPoint,
+  field: String,
   baseTy: ValueTy,
 ) extends TypeError
 
