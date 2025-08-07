@@ -11,10 +11,11 @@ case class TypeChecker(st: State) {
 
   /** check valid field update check */
   def fieldUpdateCheck(ref: Ref, tgt: RefTarget, e: Expr, v: Value): Unit =
-    (ref, getRecordField(tgt)) match // TODO ignore possible fields
+    (ref, getRecordField(tgt)) match
       case (field: Field, Some(rec, f)) if !st.exists(tgt) =>
-        val fp = FieldPoint(st.context.func, curNode, field)
-        st.typeErrors += InvalidFieldError(fp, f, st.typeOf(rec))
+        if !st.cfg.tyModel.exists((rec.tname, f)) then
+          val fp = FieldPoint(st.context.func, curNode, field)
+          st.typeErrors += InvalidFieldError(fp, f, st.typeOf(rec))
       case _ =>
 
   /** check parameter types */
