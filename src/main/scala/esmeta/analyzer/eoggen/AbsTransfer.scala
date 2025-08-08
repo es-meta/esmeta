@@ -4,6 +4,7 @@ import esmeta.cfg.{util => _, *}
 import esmeta.ir.{Func => _, util => _, *}
 import esmeta.state.*
 import esmeta.ty.*
+import esmeta.interpreter.Interpreter
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
@@ -44,9 +45,9 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
           call.next.foreach(to => analyzer += getNextNp(np, to) -> newSt)
         case br @ Branch(_, kind, cond, _, thenNode, elseNode) =>
           (for { v <- transfer(cond) } yield {
-            if (v.bool.contains(true))
+            if (v.value.contains(Bool(true)))
               thenNode.map(analyzer += getNextNp(np, _) -> st)
-            if (v.bool.contains(false))
+            if (v.value.contains(Bool(false)))
               elseNode.map(analyzer += getNextNp(np, _) -> st)
           })(st)
 
@@ -86,17 +87,19 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
             st <- get
           } yield {
             var newV: AbsValue = AbsValue.Bot
-            // syntactic sdo
-            fv.clo match
-              case Zero     =>
-              case One(clo) =>
+            fv.value match
+              case Zero          =>
+              case One(clo: Clo) =>
                 // check if contains ast
-                vs.filterNot(_.ast.isBottom) match
-                  case Nil =>
-                    AbsValue.Top
-                  case list =>
-                    doCall(callerNp, clo.func, st, args, vs, method = false)
-              case Many => newV = AbsValue.Top
+                if (
+                  vs.exists {
+                    _.value match
+                      case One(_: AstValue) => true
+                      case _                => false
+                  }
+                ) doCall(callerNp, clo.func, st, args, vs, method = false)
+                else newV = AbsValue.Top
+              case _ => newV = AbsValue.Top
             newV
           }
         case ISdoCall(_, base, method, args) =>
@@ -209,29 +212,47 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
     def transfer(
       expr: Expr,
     )(using np: NodePoint[Node]): Result[AbsValue] = expr match {
-      case EParse(code, rule)               => ???
-      case EGrammarSymbol(name, params)     => ???
-      case ESourceText(expr)                => ???
-      case EYet(msg)                        => ???
-      case EContains(list, elem)            => ???
-      case ESubstring(expr, from, None)     => ???
+      case EParse(code, rule) =>
+        for {
+          c <- transfer(code)
+          r <- transfer(rule)
+          given AbsState <- get
+        } yield {
+          (c.getSingle, r.getSingle) match
+            case (One(c), One(r)) =>
+              Interpreter.parse(code, c, rule, r) match
+                case Some(ast) => AbsValue(ast)
+                case None      => AbsValue.Bot
+            case (Zero, _) | (_, Zero) => AbsValue.Bot
+            case _                     => AbsValue.Top
+        }
+      case EGrammarSymbol(name, params) => AbsValue(GrammarSymbol(name, params))
+      case ESourceText(expr)            => ???
+      case EYet(msg)                    => ???
+      case EContains(list, elem)        => ???
+      case ESubstring(expr, from, None) => ???
       case ESubstring(expr, from, Some(to)) => ???
       case ETrim(expr, isStarting)          => ???
       case ERef(ref) =>
         for {
           v <- transfer(ref)
         } yield v
-      case unary @ EUnary(_, expr)                         => ???
-      case binary @ EBinary(BOp.And | BOp.Or, left, right) => ???
-      case binary @ EBinary(_, left, right)                => ???
-      case EVariadic(vop, exprs)                           => ???
-      case EMathOp(mop, exprs)                             => ???
-      case EConvert(cop, expr)                             => ???
-      case EExists(ref)                                    => ???
-      case ETypeOf(base)                                   => ???
-      case EInstanceOf(expr, target)                       => ???
-      case ETypeCheck(expr, ty)                            => AbsValue.BoolTop
-      case ESizeOf(expr)                                   => ???
+      case unary @ EUnary(_, expr) => ???
+      case binary @ EBinary(_, left, right) =>
+        for {
+          lv <- transfer(left)
+          rv <- transfer(right)
+          st <- get
+          v <- transfer(st, binary, lv, rv)
+        } yield v
+      case EVariadic(vop, exprs)     => ???
+      case EMathOp(mop, exprs)       => ???
+      case EConvert(cop, expr)       => ???
+      case EExists(ref)              => ???
+      case ETypeOf(base)             => ???
+      case EInstanceOf(expr, target) => ???
+      case ETypeCheck(expr, ty)      => AbsValue.Top
+      case ESizeOf(expr)             => ???
       case EClo(fname, captured) =>
         captured match
           case Nil => AbsValue(Clo(cfg.fnameMap(fname), Map.empty))
@@ -252,7 +273,7 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       case ENumber(n)                     => ???
       case EBigInt(n)                     => ???
       case EStr(str)                      => AbsValue(Str(str))
-      case EBool(b)                       => ???
+      case EBool(b)                       => AbsValue(Bool(b))
       case EUndef()                       => ???
       case ENull()                        => ???
       case EEnum(name)                    => ???
@@ -289,7 +310,7 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       binary: EBinary,
       left: AbsValue,
       right: AbsValue,
-    )(using np: NodePoint[Node]): AbsValue = ???
+    )(using np: NodePoint[Node]): AbsValue = AbsValue.Top
 
     /** transfer for variadic operators */
     def transfer(

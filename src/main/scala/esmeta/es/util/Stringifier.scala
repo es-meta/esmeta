@@ -53,7 +53,7 @@ class Stringifier(
               case _        => raise(s"invalid AST: $origAst")
       case Hole(prod, _, label, _) =>
         // TODO key-values
-        app >> "@[" >> label >> " : " >> prod >> "]"
+        app >> "@@[" >> label >> " : " >> prod >> "]"
     aux(origAst)
     app
 

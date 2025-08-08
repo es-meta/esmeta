@@ -56,10 +56,10 @@ trait AbsStateDecl { self: EOGGenerator =>
 
     /** getter */
     def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue =
-      (base.ast, field.int) match
-        case (One(ast), One(k))    => AbsValue(ast(Math(k)))
-        case (Zero, _) | (_, Zero) => AbsValue.Bot
-        case (Many, _) | (_, Many) => AbsValue.AstTop
+      (base.value, field.value) match
+        case (One(AstValue(ast)), One(k: Math)) => AbsValue(ast(k))
+        case (Zero, _) | (_, Zero)              => AbsValue.Bot
+        case _                                  => AbsValue.Top
 
     /** has imprecise elements */
     def hasImprec: Boolean = false
