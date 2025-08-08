@@ -50,10 +50,10 @@ class EOGGenerator(
   val transfer: AbsTransfer = new AbsTransfer
 
   /** check reachability of node points */
-  def reachable(np: NodePoint[Node]): Boolean = ???
+  def reachable(np: NodePoint[Node]): Boolean = npMap.keySet.contains(np)
 
   /** check reachability of return points */
-  def reachable(rp: ReturnPoint): Boolean = ???
+  def reachable(rp: ReturnPoint): Boolean = rpMap.keySet.contains(rp)
 
   /** get string for result of control points */
   def getString(

@@ -55,7 +55,19 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       fromCp.copy(node = to)
 
     /** transfer function for return points */
-    def apply(rp: ReturnPoint): Unit = ???
+    def apply(rp: ReturnPoint): Unit = {
+      var AbsRet(value) = getResult(rp)
+      for {
+        callerNps <- retEdges.get(rp)
+        callerNp <- callerNps
+        nextNp <- getAfterCallNp(callerNp)
+      } {
+        given callerSt: AbsState = callInfo(callerNp)
+        val newV = value
+        val nextSt = callerSt.define(callerNp.node.lhs, newV)
+        analyzer += nextNp -> nextSt
+      }
+    }
 
     /** get after call node point */
     def getAfterCallNp(callerNp: NodePoint[Call]): Option[NodePoint[Node]] =
@@ -67,7 +79,26 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
     )(using np: NodePoint[_]): Result[AbsValue] = {
       val callerNp = NodePoint(np.func, call, np.view)
       call.callInst match {
-        case ICall(_, fexpr, args) => ???
+        case ICall(_, fexpr, args) =>
+          for {
+            fv <- transfer(fexpr)
+            vs <- join(args.map(transfer))
+            st <- get
+          } yield {
+            var newV: AbsValue = AbsValue.Bot
+            // syntactic sdo
+            fv.clo match
+              case Zero     =>
+              case One(clo) =>
+                // check if contains ast
+                vs.filterNot(_.ast.isBottom) match
+                  case Nil =>
+                    AbsValue.Top
+                  case list =>
+                    doCall(callerNp, clo.func, st, args, vs, method = false)
+              case Many => newV = AbsValue.Top
+            newV
+          }
         case ISdoCall(_, base, method, args) =>
           for {
             bv <- transfer(base)
@@ -201,28 +232,31 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       case EInstanceOf(expr, target)                       => ???
       case ETypeCheck(expr, ty)                            => AbsValue.BoolTop
       case ESizeOf(expr)                                   => ???
-      case EClo(fname, captured)                           => ???
-      case ECont(fname)                                    => ???
-      case EDebug(expr)                                    => ???
-      case ERandom()                                       => ???
-      case ESyntactic(name, _, rhsIdx, _)                  => ???
-      case ELexical(name, expr)                            => ???
-      case ERecord(tname, fields)                          => ???
-      case EMap((kty, vty), _)                             => ???
-      case EList(exprs)                                    => ???
-      case ECopy(obj)                                      => ???
-      case EKeys(map, intSorted)                           => ???
-      case EMath(n)                                        => AbsValue(Math(n))
-      case EInfinity(pos)                                  => ???
-      case ENumber(n) if n.isNaN                           => ???
-      case ENumber(n)                                      => ???
-      case EBigInt(n)                                      => ???
-      case EStr(str)                                       => AbsValue(Str(str))
-      case EBool(b)                                        => ???
-      case EUndef()                                        => ???
-      case ENull()                                         => ???
-      case EEnum(name)                                     => ???
-      case ECodeUnit(c)                                    => ???
+      case EClo(fname, captured) =>
+        captured match
+          case Nil => AbsValue(Clo(cfg.fnameMap(fname), Map.empty))
+          case _   => ??? // what
+      case ECont(fname)                   => ???
+      case EDebug(expr)                   => ???
+      case ERandom()                      => ???
+      case ESyntactic(name, _, rhsIdx, _) => ???
+      case ELexical(name, expr)           => ???
+      case ERecord(tname, fields)         => ???
+      case EMap((kty, vty), _)            => ???
+      case EList(exprs)                   => ???
+      case ECopy(obj)                     => ???
+      case EKeys(map, intSorted)          => ???
+      case EMath(n)                       => AbsValue(Math(n))
+      case EInfinity(pos)                 => ???
+      case ENumber(n) if n.isNaN          => ???
+      case ENumber(n)                     => ???
+      case EBigInt(n)                     => ???
+      case EStr(str)                      => AbsValue(Str(str))
+      case EBool(b)                       => ???
+      case EUndef()                       => ???
+      case ENull()                        => ???
+      case EEnum(name)                    => ???
+      case ECodeUnit(c)                   => ???
     }
 
     /** transfer function for references */
