@@ -232,7 +232,7 @@ trait Parsers extends LangParsers {
   lazy val sdoHeadGen: Parser[
     Option[SyntaxDirectedOperationHead.Target] => SyntaxDirectedOperationHead,
   ] = {
-    semanticsKind ~ name ~ params ~ retTy ^^ {
+    semanticsKind ~ ("Early Errors" | name) ~ params ~ retTy ^^ {
       case isStatic ~ x ~ params ~ rty =>
         SyntaxDirectedOperationHead(_, x, isStatic, params, rty)
     }

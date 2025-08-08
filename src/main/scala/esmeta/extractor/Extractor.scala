@@ -107,7 +107,28 @@ class Extractor(
       elem <- document.getElems("emu-alg:not([example])")
     } yield () => extractAlgorithm(elem)
 
-    concurrent(manualJobs ++ jobs).toList.flatten
+    // extract early error static semantics jobs
+    val staticSemanticJobs = for {
+      clause <- document.getElems(
+        """emu-clause[id$="-early-errors"]:not([example])""",
+      )
+      ul <- clause.getElems("emu-grammar + ul")
+      grammar = ul.getPrevElem
+    } yield () => extractStaticSemanticsAsAlgorithm(clause, grammar, ul)
+
+    concurrent(manualJobs ++ jobs ++ staticSemanticJobs).toList.flatten
+
+  /** extracts an algorithm */
+  def extractStaticSemanticsAsAlgorithm(
+    clause: Element,
+    grammar: Element,
+    ul: Element,
+  ): List[Algorithm] =
+    val head = extractSdoHead(clause, ul)
+    val baseCode = ul.html.unescapeHtml
+    val body = parser.parseBy(parser.step)(baseCode)
+    val algo = Algorithm(head.head, body, baseCode)
+    List(algo)
 
   /** extracts an algorithm */
   def extractAlgorithm(elem: Element): List[Algorithm] =
