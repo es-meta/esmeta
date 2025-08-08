@@ -1,7 +1,7 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.es.builtin.{INNER_MAP, PRIVATE_ELEMENTS}
+import esmeta.es.builtin.*
 import esmeta.ir.{
   Type => IRType,
   UnknownType => IRUnknownType,
@@ -240,7 +240,7 @@ class Compiler(
         contFB.addReturnToResume(ctxt, x)
       }
       funcs += contFB.getFunc(inst)
-      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+      fb.addInst(IAssign(toStrRef(ctxt, RESUME_CONT), ECont(contName)))
     case PerformStep(expr) =>
       val e = compile(fb, expr)
       if (!e.isPure) fb.addInst(IExpr(e))
@@ -460,13 +460,13 @@ class Compiler(
         ),
         body = BlockStep(StepBlock(steps)),
       )
-      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+      fb.addInst(IAssign(toStrRef(ctxt, RESUME_CONT), ECont(contName)))
       fb.addReturnToResume(compile(fb, context), compile(fb, arg))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
       val ctxt = compile(fb, context)
-      val returnCont = toStrRef(ctxt, "ReturnCont")
+      val returnCont = toStrRef(ctxt, RETURN_CONT)
       val (eResumeCont, eReturnCont) =
-        (toStrERef(ctxt, "ResumeCont"), ERef(returnCont))
+        (toStrERef(ctxt, RESUME_CONT), ERef(returnCont))
       val contName = fb.nextContName
       val ps = toParams(paramOpt.map(_._1))
       val bodyStep = BlockStep(StepBlock(steps))

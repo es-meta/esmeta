@@ -236,20 +236,21 @@ type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
 }
 
 type Binding {
-  BoundValue: ESValue;
-  initialized: Boolean;
-  strict: Boolean;
-  mutable: Boolean;
+  __BOUND_VALUE__: ESValue;
+  __MAYBE_DELETED__: Boolean;
+  __INITIALIZED__: Boolean;
+  __STRICT__: Boolean;
+  __MUTABLE__: Boolean;
 }
 
 type ImmutableBinding extends Binding {
-  strict: Boolean;
-  mutable: False;
+  __STRICT__: Boolean;
+  __MUTABLE__: False;
 }
 
 type MutableBinding extends Binding {
-  strict: False;
-  mutable: True;
+  __STRICT__: False;
+  __MUTABLE__: True;
 }
 
 // -----------------------------------------------------------------------------
@@ -520,7 +521,6 @@ type RealmRecord {
 
 // https://tc39.es/ecma262/#table-state-components-for-all-execution-contexts
 type ExecutionContext {
-  // TODO code evaluation state
   Function: Record[FunctionObject] | Null;
   Realm: Record[RealmRecord];
   ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null;
@@ -528,6 +528,9 @@ type ExecutionContext {
   VariableEnvironment?: Record[EnvironmentRecord];
   PrivateEnvironment?: Record[PrivateEnvironmentRecord] | Null;
   Generator?: Record[Generator | AsyncGenerator];
+  // "code evaluation state"
+  __RESUME_CONT__: Cont;
+  __RETURN_CONT__: List[Cont];
 }
 
 // https://tc39.es/ecma262/#ecmascript-code-execution-context

@@ -3,6 +3,7 @@ package esmeta.ty
 import esmeta.cfg.*
 import esmeta.ir.{Func => _, *}
 import esmeta.util.*
+import esmeta.state.Value
 
 /** type errors in specification */
 sealed trait TypeError extends TyElem {
@@ -31,6 +32,13 @@ case class ArityMismatch(
 /** invalid base in field reference errors */
 case class InvalidBaseError(
   point: FieldBasePoint,
+  baseTy: ValueTy,
+) extends TypeError
+
+/** invalid field reference errors */
+case class InvalidFieldError(
+  point: FieldPoint,
+  field: String,
   baseTy: ValueTy,
 ) extends TypeError
 

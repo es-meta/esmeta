@@ -1,5 +1,6 @@
 package esmeta.compiler
 
+import esmeta.es.builtin.RETURN_CONT
 import esmeta.ir.{Type => IRType, Param => IRParam, *}
 import esmeta.lang.*
 import esmeta.spec.*
@@ -70,7 +71,7 @@ case class FuncBuilder(
   def addReturnToResume(context: Ref, value: Expr): Unit =
     val (x, xExpr) = newTIdWithExpr
     addInst(
-      IPop(x, toStrERef(context, "ReturnCont"), true),
+      IPop(x, toStrERef(context, RETURN_CONT), true),
       ICall(newTId, xExpr, List(value)),
     )
 

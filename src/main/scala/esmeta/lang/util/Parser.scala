@@ -1080,14 +1080,14 @@ trait Parsers extends IndentParsers {
     ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
   } ^^ {
     case r ~ n =>
-      val ref = PropertyReference(r, FieldProperty("strict"))
+      val ref = PropertyReference(r, FieldProperty("__STRICT__"))
       IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
   } | {
     ref ~ ("has been" ^^^ false | "has not" ~ opt("yet") ~ "been" ^^^ true) <~
     "initialized"
   } ^^ {
     case r ~ n =>
-      val ref = PropertyReference(r, FieldProperty("initialized"))
+      val ref = PropertyReference(r, FieldProperty("__INITIALIZED__"))
       IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
   } | {
     // InitializeHostDefinedRealm

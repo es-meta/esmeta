@@ -44,6 +44,12 @@ sealed trait Value extends StateElem {
         case l: ListObj => l
         case obj        => throw NoList(obj)
     case _ => throw NoAddr(this)
+  def asRecord(st: State): RecordObj = this match
+    case addr: Addr =>
+      st(addr) match
+        case r: RecordObj => r
+        case obj          => throw NoRecord(obj)
+    case _ => throw NoAddr(this)
 }
 
 /** addresses */

@@ -19,7 +19,7 @@
     "_base_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>": "(! (|| (= base 0.0f) (= base -0.0f)))",
     "_calleeContext_ is now the running execution context": "(= calleeContext @EXECUTION_STACK[0])",
     "_envRec_ does not already have a binding for _N_": "(! (exists envRec.__MAP__[N]))",
-    "_envRec_ must have an uninitialized binding for _N_": "(= envRec.__MAP__[N].initialized false)",
+    "_envRec_ must have an uninitialized binding for _N_": "(= envRec.__MAP__[N].__INITIALIZED__ false)",
     "_exponent_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>": "(! (|| (= exponent 0.0f) (= exponent -0.0f)))",
     "_genContext_ is the execution context of a generator": "(? genContext: Record[GeneratorExecutionContext])",
     "_realm_.[[Intrinsics]].[[%ThrowTypeError%]] exists and has been initialized": "(exists realm.Intrinsics[\"%ThrowTypeError%\"])",
@@ -27,11 +27,11 @@
     "the host is a web browser": "false"
   },
   "inst": {
-    "<emu-not-ref>Record</emu-not-ref> that the binding for _N_ in _envRec_ has been initialized.": "envRec.__MAP__[N].initialized = true",
-    "Append to _internalSlotsList_ the elements of _additionalInternalSlotsList_.": "call interanlSlotsList = clo<\"__APPEND_LIST__\">(internalSlotsList, additionalInternalSlotsList)",
-    "Change its bound value to _V_.": "envRec.__MAP__[N].BoundValue = V",
-    "Create a mutable binding in _envRec_ for _N_ and record that it is uninitialized. If _D_ is *true*, record that the newly created binding may be deleted by a subsequent DeleteBinding call.": "{ envRec.__MAP__[N] = (record [MutableBinding] { \"initialized\" : false, \"mutable\" : true, \"strict\" : false })  if (= D true) envRec.__MAP__[N].maybeDeleted = true }",
-    "Create an immutable binding in _envRec_ for _N_ and record that it is uninitialized. If _S_ is *true*, record that the newly created binding is a strict binding.": "envRec.__MAP__[N] = (record [ImmutableBinding] { \"initialized\" : false, \"mutable\" : false, \"strict\" : S })",
+    "<emu-not-ref>Record</emu-not-ref> that the binding for _N_ in _envRec_ has been initialized.": "envRec.__MAP__[N].__INITIALIZED__ = true",
+    "Append to _internalSlotsList_ the elements of _additionalInternalSlotsList_.": "call _ = clo<\"__APPEND_LIST__\">(internalSlotsList, additionalInternalSlotsList)",
+    "Change its bound value to _V_.": "envRec.__MAP__[N].__BOUND_VALUE__ = V",
+    "Create a mutable binding in _envRec_ for _N_ and record that it is uninitialized. If _D_ is *true*, record that the newly created binding may be deleted by a subsequent DeleteBinding call.": "{ envRec.__MAP__[N] = (record [MutableBinding] { \"__INITIALIZED__\" : false, \"__MUTABLE__\" : true, \"__STRICT__\" : false })  if (= D true) envRec.__MAP__[N].__MAYBE_DELETED__ = true }",
+    "Create an immutable binding in _envRec_ for _N_ and record that it is uninitialized. If _S_ is *true*, record that the newly created binding is a strict binding.": "envRec.__MAP__[N] = (record [ImmutableBinding] { \"__INITIALIZED__\" : false, \"__MUTABLE__\" : false, \"__STRICT__\" : S })",
     "Create an own accessor property named _P_ of object _O_ whose [[Get]], [[Set]], [[Enumerable]], and [[Configurable]] attributes are set to the value of the corresponding field in _Desc_ if _Desc_ has that field, or to the attribute's <emu-xref href=\"#table-object-property-attributes\">default value</emu-xref> otherwise.": "{ let ap = (record [PropertyDescriptor] { }) if (! (exists Desc.Get)) ap.Get = undefined else ap.Get = Desc.Get if (! (exists Desc.Set)) ap.Set = undefined else ap.Set = Desc.Set if (! (exists Desc.Enumerable)) ap.Enumerable = false else ap.Enumerable = Desc.Enumerable if (! (exists Desc.Configurable)) ap.Configurable = false else ap.Configurable = Desc.Configurable O.__MAP__[P] = ap }",
     "Create an own data property named _P_ of object _O_ whose [[Value]], [[Writable]], [[Enumerable]], and [[Configurable]] attributes are set to the value of the corresponding field in _Desc_ if _Desc_ has that field, or to the attribute's <emu-xref href=\"#table-object-property-attributes\">default value</emu-xref> otherwise.": "{ let dp = (record [PropertyDescriptor] { }) if (! (exists Desc.Value)) dp.Value = undefined else dp.Value = Desc.Value if (! (exists Desc.Writable)) dp.Writable = false else dp.Writable = Desc.Writable if (! (exists Desc.Enumerable)) dp.Enumerable = false else dp.Enumerable = Desc.Enumerable if (! (exists Desc.Configurable)) dp.Configurable = false else dp.Configurable = Desc.Configurable O.__MAP__[P] = dp }",
     "Create any host-defined global object properties on _global_.": "nop",
@@ -49,7 +49,7 @@
     "If all Job Queues are empty, the result is implementation-defined.": "if (= (sizeof @JOB_QUEUE) 0) return errors",
     "If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.": "if (! (exists ec)) return null else return ec.ScriptOrModule",
     "If only one argument was passed, return _to_.": "if (= (sizeof ArgumentsList) 0) return to",
-    "If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.__MAP__[N].initialized) { call __errObj__ = clo<\"__NEW_ERROR_OBJ__\">(\"%ReferenceError.prototype%\") call __comp__ = clo<\"ThrowCompletion\">(__errObj__) return __comp__ }",
+    "If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.__MAP__[N].__INITIALIZED__) { call __errObj__ = clo<\"__NEW_ERROR_OBJ__\">(\"%ReferenceError.prototype%\") call __comp__ = clo<\"ThrowCompletion\">(__errObj__) return __comp__ }",
     "If the execution context stack is empty, return *null*.": "if (= (sizeof @EXECUTION_STACK) 0) return null",
     "Insert _d_ as the first element of _functionsToInitialize_.": "push d > functionsToInitialize",
     "Insert _fn_ as the first element of _functionNames_.": "push fn > functionNames",
@@ -58,7 +58,7 @@
     "Let _asyncContext_ be a copy of _runningContext_.": "let asyncContext = (copy runningContext)",
     "Let _contained_ be the result of _child_ Contains _symbol_.": "{ sdo-call result = child->Contains(symbol) let contained = result }",
     "Let _ec_ be the topmost execution context on the execution context stack whose ScriptOrModule component is not *null*.": "{ let idx = 0 while (&& (< idx (sizeof @EXECUTION_STACK)) (! (exists ec))) { if (! (= @EXECUTION_STACK[idx].ScriptOrModule null) ) let ec = @EXECUTION_STACK[idx] idx = (+ idx 1) } }",
-    "Let _func_ be a new built-in function object that, when called, performs the action described by _behaviour_ using the provided arguments as the values of the corresponding parameters specified by _behaviour_. The new function object has internal slots whose names are the elements of _internalSlotsList_, and an [[InitialName]] internal slot.": "{ call func = clo<\"__NEW_OBJ__\">() func.Call = clo<\"Record[BuiltinFunctionObject].Call\"> func.__CODE__ = behaviour }",
+    "Let _func_ be a new built-in function object that, when called, performs the action described by _behaviour_ using the provided arguments as the values of the corresponding parameters specified by _behaviour_. The new function object has internal slots whose names are the elements of _internalSlotsList_, and an [[InitialName]] internal slot.": "{ call func = clo<\"__NEW_OBJ__\">() let idx = 0 while (< idx (sizeof internalSlotsList)) { expand func[internalSlotsList[idx]] idx = (+ idx 1) } expand func.InitialName func.Call = clo<\"Record[BuiltinFunctionObject].Call\"> func.__CODE__ = behaviour }",
     "Let _instantiatedVarNames_ be a copy of the List _parameterBindings_.": "let instantiatedVarNames = (copy parameterBindings)",
     "Let _internalSlotsList_ be a List containing the names of all the internal slots that <emu-xref href=\"#sec-built-in-function-objects\"></emu-xref> requires for the built-in function object that is about to be created.": "let internalSlotsList = (list [\"Prototype\", \"Extensible\", \"Realm\", \"InitialName\"])",
     "Let _newLenDesc_ be a copy of _Desc_.": "let newLenDesc = (copy Desc)",
@@ -83,9 +83,9 @@
     "Return the result of left shifting _lNum_ by _shiftCount_ bits. The mathematical value of the result is exactly representable as a 32-bit two's complement bit string.": "return ([number] (<< ([math] lNum) shiftCount))",
     "Return the result of performing a sign-extending right shift of _lNum_ by _shiftCount_ bits. The most significant bit is propagated. The mathematical value of the result is exactly representable as a 32-bit two's complement bit string.": "return ([number] (>> ([math] lNum) shiftCount))",
     "Return the result of performing a zero-filling right shift of _lNum_ by _shiftCount_ bits. Vacated bits are filled with zero. The mathematical value of the result is exactly representable as a 32-bit unsigned bit string.": "return ([number] (>>> ([math] lNum) shiftCount))",
-    "Return the value currently bound to _N_ in _envRec_.": "return envRec.__MAP__[N].BoundValue",
+    "Return the value currently bound to _N_ in _envRec_.": "return envRec.__MAP__[N].__BOUND_VALUE__",
     "Set _P_'s essential internal methods, except for [[Call]] and [[Construct]], to the definitions specified in <emu-xref href=\"#sec-proxy-object-internal-methods-and-internal-slots\"></emu-xref>.": "{ P.GetPrototypeOf = clo<\"Record[ProxyExoticObject].GetPrototypeOf\"> P.SetPrototypeOf = clo<\"Record[ProxyExoticObject].SetPrototypeOf\"> P.IsExtensible = clo<\"Record[ProxyExoticObject].IsExtensible\"> P.PreventExtensions = clo<\"Record[ProxyExoticObject].PreventExtensions\"> P.GetOwnProperty = clo<\"Record[ProxyExoticObject].GetOwnProperty\"> P.DefineOwnProperty = clo<\"Record[ProxyExoticObject].DefineOwnProperty\"> P.HasProperty = clo<\"Record[ProxyExoticObject].HasProperty\"> P.Get = clo<\"Record[ProxyExoticObject].Get\"> P.Set = clo<\"Record[ProxyExoticObject].Set\"> P.Delete = clo<\"Record[ProxyExoticObject].Delete\"> P.OwnPropertyKeys = clo<\"Record[ProxyExoticObject].OwnPropertyKeys\"> }",
     "Set _obj_'s essential internal methods to the default ordinary object definitions specified in <emu-xref href=\"#sec-ordinary-object-internal-methods-and-internal-slots\"></emu-xref>.": "nop",
-    "Set the bound value for _N_ in _envRec_ to _V_.": "envRec.__MAP__[N].BoundValue = V"
+    "Set the bound value for _N_ in _envRec_ to _V_.": "envRec.__MAP__[N].__BOUND_VALUE__ = V"
   }
 }
