@@ -1,6 +1,7 @@
 package esmeta.analyzer.eoggen
 
 import esmeta.cfg.*
+import esmeta.util.Appender
 import esmeta.util.Appender.*
 
 /** view abstraction */
@@ -15,6 +16,13 @@ trait ViewDecl { self: EOGGenerator =>
 
     /** add a call */
     def +(call: Call): View = View(call :: calls)
+
+    override def toString(): String = {
+      given Rule[View] = viewRule(false)
+      val app = Appender()
+      app >> this
+      app.toString
+    }
   }
 
   /** appender */
