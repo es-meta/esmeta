@@ -197,28 +197,16 @@ class Interpreter(
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
     case EParse(code, rule) =>
-      val (str, args, locOpt) = eval(code) match
-        case Str(s) => (s, List(), None)
-        case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
-        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
-        case v                      => throw InvalidParseSource(code, v)
-      try {
-        (str, eval(rule).asGrammarSymbol, st.sourceText, st.cachedAst) match
-          // optimize the initial parsing using the given cached AST
-          case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast))
-              if x == y =>
-            AstValue(ast)
-          case (x, GrammarSymbol(name, params), _, _) =>
-            val ast =
-              esParser(name, if (params.isEmpty) args else params).from(x)
-            // TODO handle span of re-parsed ast
-            ast.clearLoc
-            ast.setChildLoc(locOpt)
-            AstValue(ast)
-      } catch {
-        case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
-      }
+      Interpreter.parse(
+        code,
+        eval(code),
+        rule,
+        eval(rule),
+        st.sourceText,
+        st.cachedAst,
+      ) match
+        case Some(ast) => AstValue(ast)
+        case None      => st.allocList(Nil) // NOTE: throw a List of errors
     case EGrammarSymbol(name, params) => GrammarSymbol(name, params)
     case ESourceText(expr) =>
       val ast = eval(expr).asAst
@@ -744,4 +732,32 @@ object Interpreter {
     g: T => Value,
     vs: List[Value],
   ) = g(vs.map(f).reduce(op))
+
+  def parse(
+    codeExpr: Expr,
+    code: Value,
+    ruleExpr: Expr,
+    rule: Value,
+    sourceText: Option[String] = None,
+    cachedAst: Option[Ast] = None,
+  )(using cfg: CFG): Option[Ast] =
+    val (str, args, locOpt) = code match
+      case Str(s) => (s, List(), None)
+      case AstValue(syn: Syntactic) =>
+        (syn.toString(grammar = Some(cfg.grammar)), syn.args, syn.loc)
+      case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
+      case v                      => throw InvalidParseSource(codeExpr, v)
+    optional {
+      (str, rule.asGrammarSymbol, sourceText, cachedAst) match
+        // optimize the initial parsing using the given cached AST
+        case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast)) if x == y =>
+          ast
+        case (x, GrammarSymbol(name, params), _, _) =>
+          val ast =
+            cfg.esParser(name, if (params.isEmpty) args else params).from(x)
+          // TODO handle span of re-parsed ast
+          ast.clearLoc
+          ast.setChildLoc(locOpt)
+          ast
+    }
 }
