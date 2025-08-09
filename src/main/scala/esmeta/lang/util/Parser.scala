@@ -1117,9 +1117,9 @@ trait Parsers extends IndentParsers {
 
   lazy val ee: PL[Step] = (next ~> (singleLi | multiLiOuter))
 
-  // 한 줄짜리 <li> ... </li> (개행 없는 케이스)
-  lazy val singleLi: P[Step] = "<li>.+</li>".r ^^ { s =>
-    YetStep(YetExpression(s.trim, None))
+  lazy val singleLi: PL[Step] = ("<li>" ~> "(?:(?!</li>).)+".r <~ "</li>") ^^ {
+    s =>
+      YetStep(YetExpression(s, None))
   }
 
   // 여러 줄 <li> ... </li>
