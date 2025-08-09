@@ -129,7 +129,7 @@ class Extractor(
     try {
       val head = extractSdoHead(clause, ul)
       val baseCode = ul.html.unescapeHtml
-      val body = parser.parseBy(parser.blockEE)(baseCode)
+      val body = parser.parseBy(parser.blockSyntaxErrorDeclStep)(baseCode)
       val algo = Algorithm(head.head, body, baseCode)
       List(algo)
     } catch {

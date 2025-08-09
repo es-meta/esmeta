@@ -1110,9 +1110,9 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // metalanguage early error static semantics
   // ---------------------------------------------------------------------------
-  lazy val blockEE: PL[BlockEarlyErrorDefsStep] =
+  lazy val blockSyntaxErrorDeclStep: PL[BlockSyntaxErrorDeclStep] =
     indent ~> (rep1(ee) ^^ { (steps: List[Step]) =>
-      BlockEarlyErrorDefsStep(EarlyErrorDefsBlock(steps))
+      BlockSyntaxErrorDeclStep(SyntaxErrorDeclBlock(steps))
     }) <~ dedent
 
   lazy val ee: PL[Step] = (next ~> (singleLi | multiLiOuter))

@@ -510,7 +510,7 @@ class Compiler(
       fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
     case PerformBlockStep(block, desc) =>
       for (substep <- block.steps) compile(fb, substep.step)
-    case BlockEarlyErrorDefsStep(cond) => cond.steps.foreach(compile(fb, _))
+    case BlockSyntaxErrorDeclStep(cond) => cond.steps.foreach(compile(fb, _))
   })
 
   /** compile local variable */

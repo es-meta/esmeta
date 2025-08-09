@@ -49,7 +49,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (detail) app.wrap("", "")(block match {
       case StepBlock(steps) =>
         steps.foreach(app :> "1. " >> _)
-      case EarlyErrorDefsBlock(steps) => app :> "TODO"
+      case SyntaxErrorDeclBlock(steps) => app :> "TODO"
       case ExprBlock(exprs) =>
         exprs.foreach(app :> "* " >> _)
       case Figure(lines) =>
@@ -226,7 +226,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the following substeps in an implementation-defined order"
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
-      case BlockEarlyErrorDefsStep(cond) => app >> "TODO"
+      case BlockSyntaxErrorDeclStep(cond) => app >> "TODO"
     }
   }
 

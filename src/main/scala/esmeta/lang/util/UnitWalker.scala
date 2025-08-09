@@ -32,16 +32,16 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(block: Block): Unit = block match {
-    case block: StepBlock           => walk(block)
-    case block: EarlyErrorDefsBlock => walk(block)
-    case ExprBlock(exprs)           => walkList(exprs, walk)
-    case Figure(lines)              =>
+    case block: StepBlock            => walk(block)
+    case block: SyntaxErrorDeclBlock => walk(block)
+    case ExprBlock(exprs)            => walkList(exprs, walk)
+    case Figure(lines)               =>
   }
 
   def walk(stepBlock: StepBlock): Unit =
     walkList(stepBlock.steps, walk)
 
-  def walk(earlyErrorDefsBlock: EarlyErrorDefsBlock): Unit =
+  def walk(earlyErrorDefsBlock: SyntaxErrorDeclBlock): Unit =
     walkList(earlyErrorDefsBlock.steps, walk)
 
   def walk(subStep: SubStep): Unit =
@@ -101,7 +101,7 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case BlockEarlyErrorDefsStep(cond) =>
+    case BlockSyntaxErrorDeclStep(cond) =>
       walk(cond)
   }
 
