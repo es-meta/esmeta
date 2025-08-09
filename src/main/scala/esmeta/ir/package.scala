@@ -50,6 +50,7 @@ def EENUM_FULFILLED = EEnum("fulfilled")
 def EENUM_REJECTED = EEnum("rejected")
 def EENUM_FULFILL = EEnum("Fulfill")
 def EENUM_REJECT = EEnum("Reject")
+def EENUM_UNUSED = EEnum("unused")
 
 /** predefined globals identifiers */
 def GLOBAL_REALM = Global("REALM")

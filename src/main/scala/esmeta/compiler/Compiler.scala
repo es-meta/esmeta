@@ -511,10 +511,16 @@ class Compiler(
     case PerformBlockStep(block, desc) =>
       for (substep <- block.steps) compile(fb, substep.step)
     case EarlyErrorDeclStep(decls) =>
-    // TODO
-    // do things
-    // return Normal
+      // TODO
+      // early return abrupt completion
+      val (y, yExpr) = fb.newTIdWithExpr
+      fb.addInst(
+        ICall(y, EClo("NormalCompletion", Nil), List(EENUM_UNUSED)),
+        IReturn(yExpr),
+      )
   })
+
+  def compile(earlyErrorDecl: EarlyErrorDecl): Unit = ???
 
   /** compile local variable */
   def compile(x: Variable): Name = Name(x.name)
