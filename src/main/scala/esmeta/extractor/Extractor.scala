@@ -118,7 +118,8 @@ class Extractor(
       grammar = ul.getPrevElem
     } yield () => extractStaticSemanticsAsAlgorithm(clause, grammar, ul)
 
-    concurrent(manualJobs ++ jobs ++ staticSemanticJobs).toList.flatten
+    // concurrent(manualJobs ++ jobs ++ staticSemanticJobs).toList.flatten
+    (manualJobs ++ jobs ++ staticSemanticJobs).map(_()).toList.flatten
 
   /** extracts an algorithm */
   def extractStaticSemanticsAsAlgorithm(
@@ -126,16 +127,18 @@ class Extractor(
     grammar: Element,
     ul: Element,
   ): List[Algorithm] =
+    val head = extractSdoHead(clause, ul)
+    val baseCode = ul.html.unescapeHtml
     try {
-      val head = extractSdoHead(clause, ul)
-      val baseCode = ul.html.unescapeHtml
       val body = parser.parseBy(parser.earlyErrorDeclStep)(baseCode)
       // TODO : handle list
       val algo = Algorithm(head.head, body, baseCode)
       List(algo)
     } catch {
       case e: ESMetaError =>
-        warn(s"Error extracting static semantics algorithm: ${e.getMessage}")
+        warn(
+          s"Error extracting static semantics algorithm: ${e.getMessage}, body = $baseCode",
+        )
         Nil
     }
 

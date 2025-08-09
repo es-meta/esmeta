@@ -57,7 +57,7 @@ case class Spec(
       case IfStep(cond, _, _, _) => yetConds :+= cond
       case AssertStep(cond)      => yetConds :+= cond
       case EarlyErrorDeclStep(decls) =>
-        yetDecls :++= decls.filter(_.complete == false)
+        yetDecls :++= decls.filterNot(_.complete)
       case _ => yetSteps :+= step
     (yetSteps.toList, yetDecls.toList, yetConds.toList)
   }

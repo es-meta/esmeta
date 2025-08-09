@@ -1141,7 +1141,7 @@ trait Parsers extends IndentParsers {
 
     lazy val itIsASyntaxError: PL[ItIsASyntaxErrorDecl] = {
       ("It is" ~> ("an early" ^^^ true | "a" ^^^ false) <~ "Syntax Error") ~
-      ("if" ~> yetCond(".") <~ ".") ^^ {
+      ("if" ~> (cond | yetCond(".")) <~ ".") ^^ {
         case early ~ cond =>
           ItIsASyntaxErrorDecl(
             cond,

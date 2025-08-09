@@ -511,8 +511,7 @@ class Compiler(
     case PerformBlockStep(block, desc) =>
       for (substep <- block.steps) compile(fb, substep.step)
     case EarlyErrorDeclStep(decls) =>
-      // TODO
-      // early return abrupt completion
+      decls.foreach(compile(fb, _))
       val (y, yExpr) = fb.newTIdWithExpr
       fb.addInst(
         ICall(y, EClo("NormalCompletion", Nil), List(EENUM_UNUSED)),
@@ -520,7 +519,25 @@ class Compiler(
       )
   })
 
-  def compile(earlyErrorDecl: EarlyErrorDecl): Unit = ???
+  def compile(fb: FuncBuilder, earlyErrorDecl: EarlyErrorDecl): Unit =
+    val (x, xExpr) = fb.newTIdWithExpr
+    fb.addInst(
+      IIf(
+        earlyErrorDecl match {
+          case YetSyntaxErrorDecl(yet)       => EYet(yet.toString(true, false))
+          case ItIsASyntaxErrorDecl(cond, _) => compile(fb, cond)
+          case MustCoverDecl(covering, covered) =>
+            EParse(compile(fb, covering), compile(fb, covered))
+        },
+        ISeq(
+          List(
+            ICall(x, EClo("ThrowCompletion", Nil), List(EUndef())),
+            IReturn(xExpr),
+          ),
+        ),
+        emptyInst,
+      ),
+    )
 
   /** compile local variable */
   def compile(x: Variable): Name = Name(x.name)

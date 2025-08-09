@@ -236,13 +236,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given errorDeclRule: Rule[EarlyErrorDecl] = (app, decl) =>
     decl match {
       case YetSyntaxErrorDecl(yet) =>
-        app >> yet
+        app >> "YET:" >> yet
       case ItIsASyntaxErrorDecl(cond, early) =>
-        app >> "It is " >> (if (early) "an early" else "a")
-        >> " Syntax Error if" >> cond >> "."
+        app >> "ITIS:" >> "It is " >> (if (early) "an early" else "a")
+        >> " Syntax Error if " >> cond >> "."
       case MustCoverDecl(covering, covered) =>
         // TODO use a/an based on name
-        app >> covering >> " must cover " >> "a" >> covered >> "."
+        app >> "MUSTCOVER:" >> covering >> " must cover " >> "a" >> covered >> "."
     }
 
   given removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
