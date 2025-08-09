@@ -1108,6 +1108,35 @@ trait Parsers extends IndentParsers {
   }
 
   // ---------------------------------------------------------------------------
+  // metalanguage early error static semantics
+  // ---------------------------------------------------------------------------
+  lazy val blockEE: PL[BlockEarlyErrorDefsStep] =
+    indent ~> (rep1(ee) ^^ { (steps: List[Step]) =>
+      BlockEarlyErrorDefsStep(EarlyErrorDefsBlock(steps))
+    }) <~ dedent
+
+  lazy val ee: PL[Step] = (next ~> (singleLi | multiLiOuter))
+
+  // 한 줄짜리 <li> ... </li> (개행 없는 케이스)
+  lazy val singleLi: P[Step] = "<li>.+</li>".r ^^ { s =>
+    YetStep(YetExpression(s.trim, None))
+  }
+
+  // 여러 줄 <li> ... </li>
+  lazy val multiLiOuter: P[Step] = "<li>" ~> multiLiInner <~ "</li>"
+
+  lazy val multiLiInner: P[Step] =
+    indent ~> // (개행을 보며 indent 스택 push, 입력은 그대로)
+    next ~> // 실제로 개행+공백 소비, 본문 첫 글자 위치로 이동
+    (rep1(anythingSingle) ^^ { steps =>
+      YetStep(YetExpression(steps.map(_.toString).mkString, None))
+    }) <~ // 본문 1줄 파싱 (guard(EOL)로 줄 끝 직전까지)
+    dedent <~ // (개행을 보며 indent 스택 pop, 입력은 그대로)
+    next // 실제로 개행+공백 소비, </li> 줄의 시작으로 이동
+
+  lazy val anythingSingle: PL[Step] = (step <~ guard(EOL) | yetStep)
+
+  // ---------------------------------------------------------------------------
   // metalanguage references
   // ---------------------------------------------------------------------------
   given ref: PL[Reference] = {

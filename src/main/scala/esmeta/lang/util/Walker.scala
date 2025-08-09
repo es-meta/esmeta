@@ -32,13 +32,17 @@ trait Walker extends BasicWalker {
   }
 
   def walk(block: Block): Block = block match {
-    case block: StepBlock => walk(block)
-    case ExprBlock(exprs) => ExprBlock(walkList(exprs, walk))
-    case Figure(lines)    => Figure(lines)
+    case block: StepBlock           => walk(block)
+    case block: EarlyErrorDefsBlock => walk(block)
+    case ExprBlock(exprs)           => ExprBlock(walkList(exprs, walk))
+    case Figure(lines)              => Figure(lines)
   }
 
   def walk(stepBlock: StepBlock): StepBlock =
     StepBlock(walkList(stepBlock.steps, walk))
+
+  def walk(earlyErrorDefsBlock: EarlyErrorDefsBlock): EarlyErrorDefsBlock =
+    EarlyErrorDefsBlock(walkList(earlyErrorDefsBlock.steps, walk))
 
   def walk(subStep: SubStep): SubStep =
     val SubStep(directive, step) = subStep
@@ -128,6 +132,7 @@ trait Walker extends BasicWalker {
       SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
     case PerformBlockStep(b, d) =>
       PerformBlockStep(walk(b), walk(d))
+    case BlockEarlyErrorDefsStep(cond) => BlockEarlyErrorDefsStep(walk(cond))
   }
 
   def walk(target: RemoveStep.Target): RemoveStep.Target =

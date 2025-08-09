@@ -6,10 +6,12 @@ import esmeta.lang.{util => LangUtil}
 import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.ty.TyModel
+import esmeta.util.BaseUtils.*
 import esmeta.util.ManualInfo
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
+import esmeta.error.ESMetaError
 
 /** specification extractor from ECMA-262 */
 object Extractor:
@@ -124,11 +126,17 @@ class Extractor(
     grammar: Element,
     ul: Element,
   ): List[Algorithm] =
-    val head = extractSdoHead(clause, ul)
-    val baseCode = ul.html.unescapeHtml
-    val body = parser.parseBy(parser.step)(baseCode)
-    val algo = Algorithm(head.head, body, baseCode)
-    List(algo)
+    try {
+      val head = extractSdoHead(clause, ul)
+      val baseCode = ul.html.unescapeHtml
+      val body = parser.parseBy(parser.blockEE)(baseCode)
+      val algo = Algorithm(head.head, body, baseCode)
+      List(algo)
+    } catch {
+      case e: ESMetaError =>
+        warn(s"Error extracting static semantics algorithm: ${e.getMessage}")
+        Nil
+    }
 
   /** extracts an algorithm */
   def extractAlgorithm(elem: Element): List[Algorithm] =

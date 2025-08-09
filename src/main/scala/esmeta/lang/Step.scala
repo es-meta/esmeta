@@ -186,3 +186,6 @@ case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
 
 // perform block steps
 case class PerformBlockStep(step: StepBlock, desc: String) extends Step
+
+// static semantic : early errors
+case class BlockEarlyErrorDefsStep(block: EarlyErrorDefsBlock) extends Step
