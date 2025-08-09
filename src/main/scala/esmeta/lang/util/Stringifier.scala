@@ -32,15 +32,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // syntax
   given syntaxRule: Rule[Syntax] = (app, syn) =>
     syn match {
-      case syn: Block      => blockRule(app, syn)
-      case syn: Step       => stepRule(app, syn)
-      case syn: SubStep    => subStepRule(app, syn)
-      case syn: Expression => exprRule(app, syn)
-      case syn: Condition  => condRule(app, syn)
-      case syn: Reference  => refRule(app, syn)
-      case syn: Type       => typeRule(app, syn)
-      case syn: Property   => propRule(app, syn)
-      case syn: Intrinsic  => intrRule(app, syn)
+      case syn: Block          => blockRule(app, syn)
+      case syn: Step           => stepRule(app, syn)
+      case syn: SubStep        => subStepRule(app, syn)
+      case syn: Expression     => exprRule(app, syn)
+      case syn: Condition      => condRule(app, syn)
+      case syn: Reference      => refRule(app, syn)
+      case syn: Type           => typeRule(app, syn)
+      case syn: Property       => propRule(app, syn)
+      case syn: Intrinsic      => intrRule(app, syn)
+      case syn: EarlyErrorDecl => errorDeclRule(app, syn)
     }
 
   // blocks
@@ -49,7 +50,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (detail) app.wrap("", "")(block match {
       case StepBlock(steps) =>
         steps.foreach(app :> "1. " >> _)
-      case SyntaxErrorDeclBlock(steps) => app :> "TODO"
       case ExprBlock(exprs) =>
         exprs.foreach(app :> "* " >> _)
       case Figure(lines) =>
@@ -226,9 +226,24 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the following substeps in an implementation-defined order"
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
-      case BlockSyntaxErrorDeclStep(cond) => app >> "TODO"
+      case EarlyErrorDeclStep(decls) =>
+        app >> "TODO"
+        decls.foreach(app >> _)
+        app
     }
   }
+
+  given errorDeclRule: Rule[EarlyErrorDecl] = (app, decl) =>
+    decl match {
+      case YetSyntaxErrorDecl(yet) =>
+        app >> yet
+      case ItIsASyntaxErrorDecl(cond, early) =>
+        app >> "It is " >> (if (early) "an early" else "a")
+        >> " Syntax Error if" >> cond >> "."
+      case MustCoverDecl(covering, covered) =>
+        // TODO use a/an based on name
+        app >> covering >> " must cover " >> "a" >> covered >> "."
+    }
 
   given removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
     import RemoveStep.Target

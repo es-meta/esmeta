@@ -64,6 +64,7 @@ ArrayLiteral[2,1].Evaluation
 ArraySetLength
 ArraySpeciesCreate
 ArrowFunction[0,0].Contains
+ArrowFunction[0,0].Early Errors
 ArrowFunction[0,0].Evaluation
 ArrowFunction[0,0].HasName
 ArrowFunction[0,0].InstantiateArrowFunctionExpression
@@ -75,6 +76,7 @@ ArrowParameters[0,0].IteratorBindingInitialization
 ArrowParameters[1,0].BoundNames
 ArrowParameters[1,0].Contains
 ArrowParameters[1,0].ContainsExpression
+ArrowParameters[1,0].Early Errors
 ArrowParameters[1,0].ExpectedArgumentCount
 ArrowParameters[1,0].IsSimpleParameterList
 ArrowParameters[1,0].IteratorBindingInitialization
@@ -96,10 +98,12 @@ AssignmentExpression[3,0].AssignmentTargetType
 AssignmentExpression[3,0].HasCallInTailPosition
 AssignmentExpression[3,0].IsFunctionDefinition
 AssignmentExpression[4,0].AssignmentTargetType
+AssignmentExpression[4,0].Early Errors
 AssignmentExpression[4,0].Evaluation
 AssignmentExpression[4,0].HasCallInTailPosition
 AssignmentExpression[4,0].IsFunctionDefinition
 AssignmentExpression[5,0].AssignmentTargetType
+AssignmentExpression[5,0].Early Errors
 AssignmentExpression[5,0].Evaluation
 AssignmentExpression[5,0].HasCallInTailPosition
 AssignmentExpression[5,0].IsFunctionDefinition
@@ -116,21 +120,25 @@ AssignmentExpression[8,0].Evaluation
 AssignmentExpression[8,0].HasCallInTailPosition
 AssignmentExpression[8,0].IsFunctionDefinition
 AssignmentPropertyList[1,0].PropertyDestructuringAssignmentEvaluation
+AssignmentProperty[0,0].Early Errors
 AssignmentProperty[0,0].PropertyDestructuringAssignmentEvaluation
 AssignmentProperty[0,1].PropertyDestructuringAssignmentEvaluation
 AssignmentProperty[1,0].PropertyDestructuringAssignmentEvaluation
 AssignmentRestElement[0,0].IteratorDestructuringAssignmentEvaluation
+AssignmentRestProperty[0,0].Early Errors
 AssignmentRestProperty[0,0].RestDestructuringAssignmentEvaluation
 AsyncArrowBindingIdentifier[0,0].ContainsExpression
 AsyncArrowBindingIdentifier[0,0].ExpectedArgumentCount
 AsyncArrowBindingIdentifier[0,0].IsSimpleParameterList
 AsyncArrowBindingIdentifier[0,0].IteratorBindingInitialization
 AsyncArrowFunction[0,0].Contains
+AsyncArrowFunction[0,0].Early Errors
 AsyncArrowFunction[0,0].Evaluation
 AsyncArrowFunction[0,0].HasName
 AsyncArrowFunction[0,0].InstantiateAsyncArrowFunctionExpression
 AsyncArrowFunction[0,0].NamedEvaluation
 AsyncArrowFunction[1,0].Contains
+AsyncArrowFunction[1,0].Early Errors
 AsyncArrowFunction[1,0].Evaluation
 AsyncArrowFunction[1,0].HasName
 AsyncArrowFunction[1,0].InstantiateAsyncArrowFunctionExpression
@@ -152,6 +160,7 @@ AsyncFunctionBody[0,0].EvaluateBody
 AsyncFunctionDeclaration[0,0].BoundNames
 AsyncFunctionDeclaration[0,0].Contains
 AsyncFunctionDeclaration[0,0].ContainsArguments
+AsyncFunctionDeclaration[0,0].Early Errors
 AsyncFunctionDeclaration[0,0].InstantiateAsyncFunctionObject
 AsyncFunctionDeclaration[0,0].InstantiateFunctionObject
 AsyncFunctionDeclaration[0,0].IsConstantDeclaration
@@ -184,6 +193,7 @@ AsyncGeneratorCompleteStep
 AsyncGeneratorDeclaration[0,0].BoundNames
 AsyncGeneratorDeclaration[0,0].Contains
 AsyncGeneratorDeclaration[0,0].ContainsArguments
+AsyncGeneratorDeclaration[0,0].Early Errors
 AsyncGeneratorDeclaration[0,0].InstantiateAsyncGeneratorFunctionObject
 AsyncGeneratorDeclaration[0,0].InstantiateFunctionObject
 AsyncGeneratorDeclaration[0,0].IsConstantDeclaration
@@ -210,6 +220,7 @@ AsyncGeneratorExpression[0,1].InstantiateAsyncGeneratorFunctionExpression
 AsyncGeneratorExpression[0,1].IsFunctionDefinition
 AsyncGeneratorMethod[0,0].ComputedPropertyContains
 AsyncGeneratorMethod[0,0].ContainsArguments
+AsyncGeneratorMethod[0,0].Early Errors
 AsyncGeneratorMethod[0,0].HasDirectSuper
 AsyncGeneratorMethod[0,0].MethodDefinitionEvaluation
 AsyncGeneratorMethod[0,0].PrivateBoundIdentifiers
@@ -225,15 +236,20 @@ AsyncGeneratorYield:cont0
 AsyncIteratorClose
 AsyncMethod[0,0].ComputedPropertyContains
 AsyncMethod[0,0].ContainsArguments
+AsyncMethod[0,0].Early Errors
 AsyncMethod[0,0].HasDirectSuper
 AsyncMethod[0,0].MethodDefinitionEvaluation
 AsyncMethod[0,0].PrivateBoundIdentifiers
 AsyncMethod[0,0].PropName
 AsyncModuleExecutionRejected
 AtomEscape[0,0].CompileAtom
+AtomEscape[0,0].Early Errors
 AtomEscape[3,0].CompileAtom
+AtomEscape[3,0].Early Errors
 Atom[5,0].CompileAtom
+Atom[5,0].Early Errors
 Atom[6,0].CompileAtom
+Atom[6,0].Early Errors
 AtomicReadModifyWrite
 AttributeKey[0,0].PropName
 AttributeKey[1,0].PropName
@@ -285,13 +301,16 @@ BindingElisionElement[0,1].ContainsExpression
 BindingElisionElement[0,1].IteratorBindingInitialization
 BindingIdentifier[0,0].BindingInitialization
 BindingIdentifier[0,0].BoundNames
+BindingIdentifier[0,0].Early Errors
 BindingIdentifier[0,0].Evaluation
 BindingIdentifier[1,0].BindingInitialization
 BindingIdentifier[1,0].BoundNames
+BindingIdentifier[1,0].Early Errors
 BindingIdentifier[1,0].Evaluation
 BindingIdentifier[1,0].StringValue
 BindingIdentifier[2,0].BindingInitialization
 BindingIdentifier[2,0].BoundNames
+BindingIdentifier[2,0].Early Errors
 BindingIdentifier[2,0].Evaluation
 BindingIdentifier[2,0].StringValue
 BindingList[1,0].BoundNames
@@ -331,9 +350,11 @@ Block[0,0].HasCallInTailPosition
 Block[0,0].LexicallyDeclaredNames
 Block[0,0].VarDeclaredNames
 Block[0,0].VarScopedDeclarations
+Block[0,1].Early Errors
 Block[0,1].Evaluation
 BoundFunctionCreate
 BreakStatement[0,0].ContainsUndefinedBreakTarget
+BreakStatement[0,0].Early Errors
 BreakStatement[0,0].Evaluation
 BreakStatement[1,0].ContainsUndefinedBreakTarget
 BreakStatement[1,0].Evaluation
@@ -448,6 +469,7 @@ Catch[0,0].CatchClauseEvaluation
 Catch[0,0].ContainsDuplicateLabels
 Catch[0,0].ContainsUndefinedBreakTarget
 Catch[0,0].ContainsUndefinedContinueTarget
+Catch[0,0].Early Errors
 Catch[0,0].HasCallInTailPosition
 Catch[0,0].VarDeclaredNames
 Catch[0,0].VarScopedDeclarations
@@ -460,13 +482,16 @@ CharacterClassEscape[4,0].CompileToCharSet
 CharacterClassEscape[4,0].MayContainStrings
 CharacterClassEscape[5,0].MayContainStrings
 CharacterClassEscape[6,0].CompileToCharSet
+CharacterClassEscape[7,0].Early Errors
 CharacterClassEscape[7,0].MayContainStrings
 CharacterClass[0,0].CompileCharacterClass
 CharacterClass[1,0].CompileCharacterClass
+CharacterClass[1,0].Early Errors
 CharacterEscape[3,0].CharacterValue
 ClassAtomNoDash[0,0].IsCharacterClass
 ClassAtom[0,0].IsCharacterClass
 ClassBody[0,0].AllPrivateIdentifiersValid
+ClassBody[0,0].Early Errors
 ClassContents[0,0].MayContainStrings
 ClassContents[1,0].MayContainStrings
 ClassDeclaration[0,0].BindingClassDeclarationEvaluation
@@ -486,19 +511,24 @@ ClassElementList[1,0].PrivateBoundIdentifiers
 ClassElementList[1,0].PrototypePropertyNameList
 ClassElementName[0,0].PrivateBoundIdentifiers
 ClassElementName[1,0].ComputedPropertyContains
+ClassElementName[1,0].Early Errors
 ClassElementName[1,0].PrivateBoundIdentifiers
 ClassElementName[1,0].PropName
 ClassElement[0,0].ClassElementEvaluation
 ClassElement[0,0].ClassElementKind
+ClassElement[0,0].Early Errors
 ClassElement[0,0].IsStatic
 ClassElement[1,0].ClassElementEvaluation
 ClassElement[1,0].ClassElementKind
+ClassElement[1,0].Early Errors
 ClassElement[1,0].IsStatic
 ClassElement[2,0].ClassElementEvaluation
 ClassElement[2,0].ClassElementKind
+ClassElement[2,0].Early Errors
 ClassElement[2,0].IsStatic
 ClassElement[3,0].ClassElementEvaluation
 ClassElement[3,0].ClassElementKind
+ClassElement[3,0].Early Errors
 ClassElement[3,0].IsStatic
 ClassElement[4,0].ClassElementEvaluation
 ClassElement[4,0].ClassElementKind
@@ -530,6 +560,8 @@ ClassSetOperand[1,0].CompileToCharSet
 ClassSetOperand[2,0].CompileToCharSet
 ClassSetOperand[2,0].MayContainStrings
 ClassSetRange[0,0].CompileToCharSet
+ClassSetRange[0,0].Early Errors
+ClassStaticBlockBody[0,0].Early Errors
 ClassStaticBlockBody[0,0].EvaluateBody
 ClassStaticBlockStatementList[0,0].ContainsDuplicateLabels
 ClassStaticBlockStatementList[0,0].ContainsUndefinedBreakTarget
@@ -591,6 +623,7 @@ ContinueDynamicImport:clo1
 ContinueDynamicImport:clo1:clo0
 ContinueModuleLoading
 ContinueStatement[0,0].ContainsUndefinedContinueTarget
+ContinueStatement[0,0].Early Errors
 ContinueStatement[0,0].Evaluation
 ContinueStatement[1,0].ContainsUndefinedContinueTarget
 ContinueStatement[1,0].Evaluation
@@ -657,12 +690,14 @@ DefaultClause[0,1].VarScopedDeclarations
 DefineField
 DefinePropertyOrThrow
 DeletePropertyOrThrow
+DestructuringAssignmentTarget[0,0].Early Errors
 DetachArrayBuffer
 Disjunction[1,0].CompileSubpattern
 DoWhileStatement[0,0].ContainsDuplicateLabels
 DoWhileStatement[0,0].ContainsUndefinedBreakTarget
 DoWhileStatement[0,0].ContainsUndefinedContinueTarget
 DoWhileStatement[0,0].DoWhileLoopEvaluation
+DoWhileStatement[0,0].Early Errors
 DoWhileStatement[0,0].HasCallInTailPosition
 DoWhileStatement[0,0].VarDeclaredNames
 DoWhileStatement[0,0].VarScopedDeclarations
@@ -699,6 +734,7 @@ EqualityExpression[4,0].AssignmentTargetType
 EqualityExpression[4,0].Evaluation
 EqualityExpression[4,0].HasCallInTailPosition
 EqualityExpression[4,0].IsFunctionDefinition
+EscapeSequence[2,0].Early Errors
 EvaluateCall
 EvaluateNew
 EvaluatePropertyAccessWithExpressionKey
@@ -727,6 +763,7 @@ ExportDeclaration[0,1].ExportedNames
 ExportDeclaration[0,1].LexicallyScopedDeclarations
 ExportDeclaration[0,1].ModuleRequests
 ExportDeclaration[1,0].BoundNames
+ExportDeclaration[1,0].Early Errors
 ExportDeclaration[1,0].Evaluation
 ExportDeclaration[1,0].ExportEntries
 ExportDeclaration[1,0].ExportedBindings
@@ -788,6 +825,7 @@ Expression[1,0].HasCallInTailPosition
 Expression[1,0].IsFunctionDefinition
 FieldDefinition[0,0].ClassFieldDefinitionEvaluation
 FieldDefinition[0,0].ComputedPropertyContains
+FieldDefinition[0,0].Early Errors
 FieldDefinition[0,0].PrivateBoundIdentifiers
 FieldDefinition[0,0].PropName
 FieldDefinition[0,1].ClassFieldDefinitionEvaluation
@@ -807,6 +845,7 @@ ForInOfHeadEvaluation
 ForInOfStatement[0,0].ContainsDuplicateLabels
 ForInOfStatement[0,0].ContainsUndefinedBreakTarget
 ForInOfStatement[0,0].ContainsUndefinedContinueTarget
+ForInOfStatement[0,0].Early Errors
 ForInOfStatement[0,0].ForInOfLoopEvaluation
 ForInOfStatement[0,0].HasCallInTailPosition
 ForInOfStatement[0,0].VarDeclaredNames
@@ -821,6 +860,7 @@ ForInOfStatement[1,0].VarScopedDeclarations
 ForInOfStatement[2,0].ContainsDuplicateLabels
 ForInOfStatement[2,0].ContainsUndefinedBreakTarget
 ForInOfStatement[2,0].ContainsUndefinedContinueTarget
+ForInOfStatement[2,0].Early Errors
 ForInOfStatement[2,0].ForInOfLoopEvaluation
 ForInOfStatement[2,0].HasCallInTailPosition
 ForInOfStatement[2,0].VarDeclaredNames
@@ -867,6 +907,7 @@ ForInOfStatement[8,0].VarScopedDeclarations
 ForStatement[0,0].ContainsDuplicateLabels
 ForStatement[0,0].ContainsUndefinedBreakTarget
 ForStatement[0,0].ContainsUndefinedContinueTarget
+ForStatement[0,0].Early Errors
 ForStatement[0,0].ForLoopEvaluation
 ForStatement[0,0].HasCallInTailPosition
 ForStatement[0,0].VarDeclaredNames
@@ -951,6 +992,7 @@ ForStatement[1,3].VarScopedDeclarations
 ForStatement[2,0].ContainsDuplicateLabels
 ForStatement[2,0].ContainsUndefinedBreakTarget
 ForStatement[2,0].ContainsUndefinedContinueTarget
+ForStatement[2,0].Early Errors
 ForStatement[2,0].ForLoopEvaluation
 ForStatement[2,0].HasCallInTailPosition
 ForStatement[2,0].VarDeclaredNames
@@ -991,18 +1033,21 @@ FormalParameters[0,0].IsSimpleParameterList
 FormalParameters[0,0].IteratorBindingInitialization
 FormalParameters[1,0].ExpectedArgumentCount
 FormalParameters[1,0].IsSimpleParameterList
+FormalParameters[2,0].Early Errors
 FormalParameters[4,0].BoundNames
 FormalParameters[4,0].ContainsExpression
 FormalParameters[4,0].ExpectedArgumentCount
 FormalParameters[4,0].IsSimpleParameterList
 FormalParameters[4,0].IteratorBindingInitialization
 FulfillPromise
+FunctionBody[0,0].Early Errors
 FunctionBody[0,0].EvaluateBody
 FunctionBody[0,0].EvaluateFunctionBody
 FunctionDeclarationInstantiation
 FunctionDeclaration[0,0].BoundNames
 FunctionDeclaration[0,0].Contains
 FunctionDeclaration[0,0].ContainsArguments
+FunctionDeclaration[0,0].Early Errors
 FunctionDeclaration[0,0].Evaluation
 FunctionDeclaration[0,0].InstantiateFunctionObject
 FunctionDeclaration[0,0].InstantiateOrdinaryFunctionObject
@@ -1046,6 +1091,7 @@ GeneratorBody[0,0].EvaluateGeneratorBody
 GeneratorDeclaration[0,0].BoundNames
 GeneratorDeclaration[0,0].Contains
 GeneratorDeclaration[0,0].ContainsArguments
+GeneratorDeclaration[0,0].Early Errors
 GeneratorDeclaration[0,0].InstantiateFunctionObject
 GeneratorDeclaration[0,0].InstantiateGeneratorFunctionObject
 GeneratorDeclaration[0,0].IsConstantDeclaration
@@ -1070,6 +1116,7 @@ GeneratorExpression[0,1].InstantiateGeneratorFunctionExpression
 GeneratorExpression[0,1].IsFunctionDefinition
 GeneratorMethod[0,0].ComputedPropertyContains
 GeneratorMethod[0,0].ContainsArguments
+GeneratorMethod[0,0].Early Errors
 GeneratorMethod[0,0].HasDirectSuper
 GeneratorMethod[0,0].MethodDefinitionEvaluation
 GeneratorMethod[0,0].PrivateBoundIdentifiers
@@ -1590,19 +1637,26 @@ INTRINSICS.yet:`Promise.any`RejectElementFunction
 IdentifierName[0,0].IdentifierCodePoints
 IdentifierName[0,0].StringValue
 IdentifierName[1,0].StringValue
+IdentifierPart[1,0].Early Errors
 IdentifierReference[0,0].AssignmentTargetType
 IdentifierReference[0,0].ContainsArguments
+IdentifierReference[0,0].Early Errors
 IdentifierReference[0,0].Evaluation
 IdentifierReference[1,0].AssignmentTargetType
+IdentifierReference[1,0].Early Errors
 IdentifierReference[1,0].Evaluation
 IdentifierReference[1,0].StringValue
 IdentifierReference[2,0].AssignmentTargetType
+IdentifierReference[2,0].Early Errors
 IdentifierReference[2,0].Evaluation
 IdentifierReference[2,0].StringValue
+IdentifierStart[1,0].Early Errors
+Identifier[0,0].Early Errors
 Identifier[0,0].StringValue
 IfStatement[0,0].ContainsDuplicateLabels
 IfStatement[0,0].ContainsUndefinedBreakTarget
 IfStatement[0,0].ContainsUndefinedContinueTarget
+IfStatement[0,0].Early Errors
 IfStatement[0,0].Evaluation
 IfStatement[0,0].HasCallInTailPosition
 IfStatement[0,0].VarDeclaredNames
@@ -1610,6 +1664,7 @@ IfStatement[0,0].VarScopedDeclarations
 IfStatement[1,0].ContainsDuplicateLabels
 IfStatement[1,0].ContainsUndefinedBreakTarget
 IfStatement[1,0].ContainsUndefinedContinueTarget
+IfStatement[1,0].Early Errors
 IfStatement[1,0].Evaluation
 IfStatement[1,0].HasCallInTailPosition
 IfStatement[1,0].VarDeclaredNames
@@ -1633,6 +1688,7 @@ ImportDeclaration[1,1].BoundNames
 ImportDeclaration[1,1].ImportEntries
 ImportDeclaration[1,1].ModuleRequests
 ImportMeta[0,0].AssignmentTargetType
+ImportMeta[0,0].Early Errors
 ImportMeta[0,0].Evaluation
 ImportSpecifier[0,0].ImportEntriesForModule
 ImportSpecifier[1,0].BoundNames
@@ -1708,6 +1764,7 @@ LabelledItem[0,0].TopLevelVarScopedDeclarations
 LabelledItem[1,0].ContainsDuplicateLabels
 LabelledItem[1,0].ContainsUndefinedBreakTarget
 LabelledItem[1,0].ContainsUndefinedContinueTarget
+LabelledItem[1,0].Early Errors
 LabelledItem[1,0].HasCallInTailPosition
 LabelledItem[1,0].LabelledEvaluation
 LabelledItem[1,0].LexicallyDeclaredNames
@@ -1739,12 +1796,14 @@ LengthOfArrayLike
 LetOrConst[0,0].IsConstantDeclaration
 LetOrConst[1,0].IsConstantDeclaration
 LexicalBinding[0,0].BoundNames
+LexicalBinding[0,0].Early Errors
 LexicalBinding[0,0].Evaluation
 LexicalBinding[0,1].BoundNames
 LexicalBinding[0,1].Evaluation
 LexicalBinding[1,0].BoundNames
 LexicalBinding[1,0].Evaluation
 LexicalDeclaration[0,0].BoundNames
+LexicalDeclaration[0,0].Early Errors
 LexicalDeclaration[0,0].Evaluation
 LexicalDeclaration[0,0].IsConstantDeclaration
 LiteralPropertyName[0,0].Contains
@@ -1825,6 +1884,7 @@ MemberExpression[7,0].IsIdentifierRef
 MethodDefinition[0,0].ComputedPropertyContains
 MethodDefinition[0,0].ContainsArguments
 MethodDefinition[0,0].DefineMethod
+MethodDefinition[0,0].Early Errors
 MethodDefinition[0,0].HasDirectSuper
 MethodDefinition[0,0].MethodDefinitionEvaluation
 MethodDefinition[0,0].PrivateBoundIdentifiers
@@ -1842,13 +1902,16 @@ MethodDefinition[4,0].PropName
 MethodDefinition[4,0].SpecialMethod
 MethodDefinition[5,0].ComputedPropertyContains
 MethodDefinition[5,0].ContainsArguments
+MethodDefinition[5,0].Early Errors
 MethodDefinition[5,0].HasDirectSuper
 MethodDefinition[5,0].MethodDefinitionEvaluation
 MethodDefinition[5,0].PrivateBoundIdentifiers
 MethodDefinition[5,0].PropName
 MethodDefinition[5,0].SpecialMethod
+ModuleBody[0,0].Early Errors
 ModuleBody[0,0].Evaluation
 ModuleExportName[0,0].ReferencedBindings
+ModuleExportName[1,0].Early Errors
 ModuleExportName[1,0].ReferencedBindings
 ModuleExportName[1,0].StringValue
 ModuleItemList[0,0].ModuleRequests
@@ -1868,6 +1931,7 @@ ModuleItemList[1,0].VarScopedDeclarations
 ModuleItem[0,0].ContainsDuplicateLabels
 ModuleItem[0,0].ContainsUndefinedBreakTarget
 ModuleItem[0,0].ContainsUndefinedContinueTarget
+ModuleItem[0,0].Early Errors
 ModuleItem[0,0].Evaluation
 ModuleItem[0,0].ExportEntries
 ModuleItem[0,0].ExportedBindings
@@ -1908,6 +1972,7 @@ NamedImports[0,0].BoundNames
 NamedImports[0,0].ImportEntriesForModule
 NestedClass[0,0].CompileToCharSet
 NestedClass[1,0].CompileToCharSet
+NestedClass[1,0].Early Errors
 NestedClass[1,0].MayContainStrings
 NestedClass[2,0].CompileToCharSet
 NewDeclarativeEnvironment
@@ -1932,6 +1997,8 @@ NewTarget[0,0].AssignmentTargetType
 NewTarget[0,0].Evaluation
 NonEmptyClassString[0,0].MayContainStrings
 NonEmptyClassString[0,1].MayContainStrings
+NonemptyClassRangesNoDash[2,0].Early Errors
+NonemptyClassRanges[2,0].Early Errors
 NormalCompletion
 Number::add
 Number::bitwiseAND
@@ -1953,6 +2020,7 @@ NumberToBigInt
 NumericLiteral[0,0].NumericValue
 NumericLiteral[2,0].NumericValue
 NumericLiteral[3,0].NumericValue
+NumericLiteral[4,0].Early Errors
 NumericLiteral[4,0].NumericValue
 ObjectAssignmentPattern[0,0].DestructuringAssignmentEvaluation
 ObjectAssignmentPattern[1,0].DestructuringAssignmentEvaluation
@@ -1971,6 +2039,7 @@ ObjectBindingPattern[3,1].BoundNames
 ObjectBindingPattern[3,1].ContainsExpression
 ObjectDefineProperties
 ObjectLiteral[0,0].Evaluation
+ObjectLiteral[1,0].Early Errors
 ObjectLiteral[1,0].Evaluation
 ObjectLiteral[2,0].Evaluation
 OptionalChain[0,0].ChainEvaluation
@@ -1980,6 +2049,7 @@ OptionalChain[1,0].HasCallInTailPosition
 OptionalChain[2,0].ChainEvaluation
 OptionalChain[2,0].Contains
 OptionalChain[2,0].HasCallInTailPosition
+OptionalChain[3,0].Early Errors
 OptionalChain[4,0].AllPrivateIdentifiersValid
 OptionalChain[4,0].ChainEvaluation
 OptionalChain[4,0].HasCallInTailPosition
@@ -2023,6 +2093,7 @@ ParseHexOctet
 ParseJSONModule
 ParseScript
 Pattern[0,0].CompilePattern
+Pattern[0,0].Early Errors
 PerformPromiseAll
 PerformPromiseAllSettled
 PerformPromiseAny
@@ -2039,6 +2110,7 @@ PrimaryExpression[1,0].HasCallInTailPosition
 PrimaryExpression[1,0].IsFunctionDefinition
 PrimaryExpression[1,0].IsIdentifierRef
 PrimaryExpression[10,0].AssignmentTargetType
+PrimaryExpression[10,0].Early Errors
 PrimaryExpression[10,0].Evaluation
 PrimaryExpression[10,0].HasCallInTailPosition
 PrimaryExpression[10,0].IsFunctionDefinition
@@ -2048,6 +2120,7 @@ PrimaryExpression[11,0].HasCallInTailPosition
 PrimaryExpression[11,0].IsFunctionDefinition
 PrimaryExpression[11,0].IsIdentifierRef
 PrimaryExpression[12,0].AssignmentTargetType
+PrimaryExpression[12,0].Early Errors
 PrimaryExpression[12,0].Evaluation
 PrimaryExpression[12,0].HasCallInTailPosition
 PrimaryExpression[12,0].HasName
@@ -2092,8 +2165,10 @@ PropertyDefinitionList[0,0].PropertyNameList
 PropertyDefinitionList[1,0].PropertyDefinitionEvaluation
 PropertyDefinitionList[1,0].PropertyNameList
 PropertyDefinition[0,0].PropName
+PropertyDefinition[1,0].Early Errors
 PropertyDefinition[2,0].PropName
 PropertyDefinition[3,0].Contains
+PropertyDefinition[3,0].Early Errors
 PropertyDefinition[3,0].PropertyDefinitionEvaluation
 PropertyDefinition[4,0].PropName
 PropertyDefinition[4,0].PropertyDefinitionEvaluation
@@ -2109,6 +2184,7 @@ QuantifierPrefix[2,0].CompileQuantifierPrefix
 QuantifierPrefix[3,0].CompileQuantifierPrefix
 QuantifierPrefix[4,0].CompileQuantifierPrefix
 QuantifierPrefix[5,0].CompileQuantifierPrefix
+QuantifierPrefix[5,0].Early Errors
 Quantifier[0,0].CompileQuantifier
 Quantifier[1,0].CompileQuantifier
 Record[ArgumentsExoticObject].Delete
@@ -2211,6 +2287,10 @@ RegExpCreate
 RegExpExec
 RegExpHasFlag
 RegExpIdentifierName[0,0].RegExpIdentifierCodePoints
+RegExpIdentifierPart[1,0].Early Errors
+RegExpIdentifierPart[2,0].Early Errors
+RegExpIdentifierStart[1,0].Early Errors
+RegExpIdentifierStart[2,0].Early Errors
 RegExpUnicodeEscapeSequence[0,0].CharacterValue
 RegExpUnicodeEscapeSequence[4,0].CharacterValue
 RegExpUnicodeEscapeSequence[5,0].CharacterValue
@@ -2261,6 +2341,7 @@ SameType
 SameValue
 SameValueNonNumber
 SameValueZero
+ScriptBody[0,0].Early Errors
 ScriptBody[0,0].LexicallyDeclaredNames
 ScriptBody[0,0].LexicallyScopedDeclarations
 ScriptBody[0,0].VarDeclaredNames
@@ -2272,6 +2353,7 @@ Script[0,0].LexicallyScopedDeclarations
 Script[0,0].ScriptIsStrict
 Script[0,0].VarDeclaredNames
 Script[0,0].VarScopedDeclarations
+Script[0,1].Early Errors
 Script[0,1].ScriptIsStrict
 SerializeJSONProperty
 Set
@@ -2416,6 +2498,7 @@ StringNumericLiteral[1,3].StringNumericValue
 StringToBigInt
 StringToCodePoints
 StringToNumber
+SubstitutionTemplate[0,0].Early Errors
 SubstitutionTemplate[0,0].Evaluation
 SubstitutionTemplate[0,0].TemplateStrings
 SuperCall[0,0].Evaluation
@@ -2424,21 +2507,26 @@ SuperProperty[1,0].Evaluation
 SwitchStatement[0,0].ContainsDuplicateLabels
 SwitchStatement[0,0].ContainsUndefinedBreakTarget
 SwitchStatement[0,0].ContainsUndefinedContinueTarget
+SwitchStatement[0,0].Early Errors
 SwitchStatement[0,0].Evaluation
 SwitchStatement[0,0].HasCallInTailPosition
 SwitchStatement[0,0].VarDeclaredNames
 SwitchStatement[0,0].VarScopedDeclarations
 SymbolDescriptiveString
 TemplateLiteral[0,0].ArgumentListEvaluation
+TemplateLiteral[0,0].Early Errors
 TemplateLiteral[0,0].Evaluation
 TemplateLiteral[0,0].TemplateStrings
 TemplateLiteral[1,0].ArgumentListEvaluation
+TemplateLiteral[1,0].Early Errors
+TemplateMiddleList[0,0].Early Errors
 TemplateMiddleList[0,0].Evaluation
 TemplateMiddleList[0,0].SubstitutionEvaluation
 TemplateMiddleList[0,0].TemplateStrings
 TemplateMiddleList[1,0].Evaluation
 TemplateMiddleList[1,0].SubstitutionEvaluation
 TemplateMiddleList[1,0].TemplateStrings
+TemplateSpans[0,0].Early Errors
 TemplateSpans[0,0].Evaluation
 TemplateSpans[0,0].SubstitutionEvaluation
 TemplateSpans[0,0].TemplateStrings
@@ -2539,9 +2627,13 @@ UnaryExpression[7,0].IsFunctionDefinition
 UnaryExpression[8,0].AssignmentTargetType
 UnaryExpression[8,0].HasCallInTailPosition
 UnaryExpression[8,0].IsFunctionDefinition
+UnicodePropertyValueExpression[0,0].Early Errors
 UnicodePropertyValueExpression[0,0].MayContainStrings
+UnicodePropertyValueExpression[1,0].Early Errors
+UniqueFormalParameters[0,0].Early Errors
 UpdateEmpty
 UpdateExpression[1,0].AssignmentTargetType
+UpdateExpression[1,0].Early Errors
 UpdateExpression[1,0].Evaluation
 UpdateExpression[1,0].HasCallInTailPosition
 UpdateExpression[1,0].IsFunctionDefinition
@@ -2550,6 +2642,7 @@ UpdateExpression[2,0].Evaluation
 UpdateExpression[2,0].HasCallInTailPosition
 UpdateExpression[2,0].IsFunctionDefinition
 UpdateExpression[3,0].AssignmentTargetType
+UpdateExpression[3,0].Early Errors
 UpdateExpression[3,0].Evaluation
 UpdateExpression[3,0].HasCallInTailPosition
 UpdateExpression[3,0].IsFunctionDefinition
@@ -2579,16 +2672,19 @@ WeakRefDeref
 WhileStatement[0,0].ContainsDuplicateLabels
 WhileStatement[0,0].ContainsUndefinedBreakTarget
 WhileStatement[0,0].ContainsUndefinedContinueTarget
+WhileStatement[0,0].Early Errors
 WhileStatement[0,0].HasCallInTailPosition
 WhileStatement[0,0].VarDeclaredNames
 WhileStatement[0,0].VarScopedDeclarations
 WhileStatement[0,0].WhileLoopEvaluation
 WithClause[0,0].WithClauseToAttributes
+WithClause[1,0].Early Errors
 WithEntries[0,0].WithClauseToAttributes
 WithEntries[1,0].WithClauseToAttributes
 WithStatement[0,0].ContainsDuplicateLabels
 WithStatement[0,0].ContainsUndefinedBreakTarget
 WithStatement[0,0].ContainsUndefinedContinueTarget
+WithStatement[0,0].Early Errors
 WithStatement[0,0].Evaluation
 WithStatement[0,0].HasCallInTailPosition
 WithStatement[0,0].VarDeclaredNames

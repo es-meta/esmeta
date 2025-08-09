@@ -32,17 +32,13 @@ trait Walker extends BasicWalker {
   }
 
   def walk(block: Block): Block = block match {
-    case block: StepBlock            => walk(block)
-    case block: SyntaxErrorDeclBlock => walk(block)
-    case ExprBlock(exprs)            => ExprBlock(walkList(exprs, walk))
-    case Figure(lines)               => Figure(lines)
+    case block: StepBlock => walk(block)
+    case ExprBlock(exprs) => ExprBlock(walkList(exprs, walk))
+    case Figure(lines)    => Figure(lines)
   }
 
   def walk(stepBlock: StepBlock): StepBlock =
     StepBlock(walkList(stepBlock.steps, walk))
-
-  def walk(earlyErrorDefsBlock: SyntaxErrorDeclBlock): SyntaxErrorDeclBlock =
-    SyntaxErrorDeclBlock(walkList(earlyErrorDefsBlock.steps, walk))
 
   def walk(subStep: SubStep): SubStep =
     val SubStep(directive, step) = subStep
@@ -132,8 +128,18 @@ trait Walker extends BasicWalker {
       SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
     case PerformBlockStep(b, d) =>
       PerformBlockStep(walk(b), walk(d))
-    case BlockSyntaxErrorDeclStep(cond) => BlockSyntaxErrorDeclStep(walk(cond))
+    case EarlyErrorDeclStep(decls) => EarlyErrorDeclStep(walkList(decls, walk))
   }
+
+  def walk(earlyErrorDecl: EarlyErrorDecl): EarlyErrorDecl =
+    earlyErrorDecl match {
+      case ItIsASyntaxErrorDecl(cond, early) =>
+        ItIsASyntaxErrorDecl(walk(cond), walk(early))
+      case MustCoverDecl(covering, covered) =>
+        MustCoverDecl(walk(covering), walk(covered))
+      case YetSyntaxErrorDecl(yet) =>
+        YetSyntaxErrorDecl(walk(yet))
+    }
 
   def walk(target: RemoveStep.Target): RemoveStep.Target =
     import RemoveStep.Target.*

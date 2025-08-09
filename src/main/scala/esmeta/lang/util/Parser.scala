@@ -1110,31 +1110,54 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   // metalanguage early error static semantics
   // ---------------------------------------------------------------------------
-  lazy val blockSyntaxErrorDeclStep: PL[BlockSyntaxErrorDeclStep] =
-    indent ~> (rep1(ee) ^^ { (steps: List[Step]) =>
-      BlockSyntaxErrorDeclStep(SyntaxErrorDeclBlock(steps))
+  lazy val earlyErrorDeclStep: PL[EarlyErrorDeclStep] =
+    indent ~> (rep1(ee) ^^ { (steps: List[EarlyErrorDecl]) =>
+      EarlyErrorDeclStep(steps)
     }) <~ dedent
 
-  lazy val ee: PL[Step] = (next ~> (singleLi | multiLiOuter))
+  lazy val ee: PL[EarlyErrorDecl] = (next ~> (singleLi | multiLiOuter))
 
-  lazy val singleLi: PL[Step] = ("<li>" ~> "(?:(?!</li>).)+".r <~ "</li>") ^^ {
-    s =>
-      YetStep(YetExpression(s, None))
-  }
+  lazy val singleLi: PL[EarlyErrorDecl] =
+    ("<li>" ~> "(?:(?!</li>).)+".r <~ "</li>") ^^ { s =>
+      YetSyntaxErrorDecl(YetExpression(s, None))
+    }
 
   // 여러 줄 <li> ... </li>
-  lazy val multiLiOuter: P[Step] = "<li>" ~> multiLiInner <~ "</li>"
+  lazy val multiLiOuter: P[EarlyErrorDecl] = "<li>" ~> multiLiInner <~ "</li>"
 
-  lazy val multiLiInner: P[Step] =
+  lazy val multiLiInner: P[EarlyErrorDecl] =
     indent ~> // (개행을 보며 indent 스택 push, 입력은 그대로)
     next ~> // 실제로 개행+공백 소비, 본문 첫 글자 위치로 이동
-    (rep1(anythingSingle) ^^ { steps =>
-      YetStep(YetExpression(steps.map(_.toString).mkString, None))
-    }) <~ // 본문 1줄 파싱 (guard(EOL)로 줄 끝 직전까지)
+    (earlyErrorDecl <~ guard(EOL)) <~ // 본문 1줄 파싱 (guard(EOL)로 줄 끝 직전까지)
     dedent <~ // (개행을 보며 indent 스택 pop, 입력은 그대로)
     next // 실제로 개행+공백 소비, </li> 줄의 시작으로 이동
 
-  lazy val anythingSingle: PL[Step] = (step <~ guard(EOL) | yetStep)
+  lazy val earlyErrorDecl = {
+    lazy val anythingSingle
+      : PL[YetSyntaxErrorDecl] = // (step <~ guard(EOL) | yetStep)
+      ".+".r ^^ { s =>
+        YetSyntaxErrorDecl(YetExpression(s, None))
+      }
+
+    lazy val itIsASyntaxError: PL[ItIsASyntaxErrorDecl] = {
+      ("It is" ~> ("an early" ^^^ true | "a" ^^^ false) <~ "Syntax Error") ~
+      ("if" ~> yetCond(".") <~ ".") ^^ {
+        case early ~ cond =>
+          ItIsASyntaxErrorDecl(
+            cond,
+            early,
+          )
+      }
+    }
+
+    lazy val mustCover: PL[MustCoverDecl] = {
+      (literal) ~ ("must cover" ~> ("an" | "a") ~> literal <~ ".") ^^ {
+        case n ~ c => MustCoverDecl(c, n)
+      }
+    }
+
+    (itIsASyntaxError | mustCover | anythingSingle)
+  }
 
   // ---------------------------------------------------------------------------
   // metalanguage references

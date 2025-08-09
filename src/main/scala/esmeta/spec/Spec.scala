@@ -48,14 +48,18 @@ case class Spec(
     */
   lazy val incompleteSteps: List[Step] = allSteps.filter(!_.complete)
 
-  private lazy val yetStepsAndConds: (List[Step], List[Condition]) = {
+  private lazy val yetStepsAndConds
+    : (List[Step], List[EarlyErrorDecl], List[Condition]) = {
     var yetSteps = Vector[Step]()
+    var yetDecls = Vector[EarlyErrorDecl]()
     var yetConds = Vector[Condition]()
     for (step <- incompleteSteps) step match
       case IfStep(cond, _, _, _) => yetConds :+= cond
       case AssertStep(cond)      => yetConds :+= cond
-      case _                     => yetSteps :+= step
-    (yetSteps.toList, yetConds.toList)
+      case EarlyErrorDeclStep(decls) =>
+        yetDecls :++= decls.filter(_.complete == false)
+      case _ => yetSteps :+= step
+    (yetSteps.toList, yetDecls.toList, yetConds.toList)
   }
 
   /** get incomplete algorithm steps, refined from [[incompleteSteps]]
@@ -65,12 +69,19 @@ case class Spec(
     */
   lazy val yetSteps: List[Step] = yetStepsAndConds._1
 
+  /** get incomplete early error declarations, refined from [[incompleteSteps]]
+    *
+    * @see
+    *   [[incompleteSteps]]
+    */
+  lazy val yetDecls: List[EarlyErrorDecl] = yetStepsAndConds._2
+
   /** get incomplete algorithm conditions, refined from [[incompleteSteps]]
     *
     * @see
     *   [[incompleteSteps]]
     */
-  lazy val yetConds: List[Condition] = yetStepsAndConds._2
+  lazy val yetConds: List[Condition] = yetStepsAndConds._3
 
   /** get complete algorithm steps */
   lazy val completeSteps: List[Step] = allSteps.filter(_.complete)

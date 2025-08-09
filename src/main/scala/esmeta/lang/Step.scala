@@ -7,10 +7,11 @@ sealed trait Step extends Syntax {
 
   /** check whether it is complete */
   def complete: Boolean = this match
-    case _: YetStep            => false
-    case IfStep(cond, _, _, _) => cond.complete
-    case AssertStep(cond)      => cond.complete
-    case _                     => true
+    case _: YetStep                => false
+    case IfStep(cond, _, _, _)     => cond.complete
+    case AssertStep(cond)          => cond.complete
+    case EarlyErrorDeclStep(decls) => decls.forall(_.complete)
+    case _                         => true
 }
 object Step extends Parser.From(Parser.step)
 
@@ -187,5 +188,4 @@ case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
 // perform block steps
 case class PerformBlockStep(step: StepBlock, desc: String) extends Step
 
-// static semantic : early errors
-case class BlockSyntaxErrorDeclStep(block: SyntaxErrorDeclBlock) extends Step
+case class EarlyErrorDeclStep(decls: List[EarlyErrorDecl]) extends Step
