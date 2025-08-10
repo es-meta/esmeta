@@ -72,8 +72,6 @@ object ESMeta extends Git(BASE_DIR) {
     CmdGenEOG,
     // Interpreter & Double Debugger for ECMAScript
     CmdParse,
-    CmdTranspile,
-    CmdComputeEOG,
     CmdEval,
     CmdWeb,
     // Tester for Test262 (ECMAScript Test Suite)
@@ -101,7 +99,6 @@ object ESMeta extends Git(BASE_DIR) {
     GenEOG,
     // Interpreter & Double Debugger for ECMAScript
     Parse,
-    ComputeEOG,
     Eval,
     Web,
     // Tester for Test262 (ECMAScript Test Suite)
