@@ -48,10 +48,8 @@ trait AbsValueDecl { self: EOGGenerator =>
         case Zero | One(AstValue(_: Syntactic)) => Bot
         case One(AstValue(lex: Lexical)) =>
           val r = Interpreter.eval(lex, method)
-          println(s"[AbsValue] getLexical($method) returns: $r, lex: $lex")
           AbsValue(r)
         case _ => Top
-      println(s"[AbsValue] getLexical($method) returns: $ret")
       ret
     }
 
