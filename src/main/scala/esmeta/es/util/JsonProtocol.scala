@@ -4,7 +4,6 @@ import esmeta.cfg.*
 import esmeta.state.util.{JsonProtocol as StateJsonProtocol}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.fuzzer.InstInfo
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
 class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
@@ -54,25 +53,4 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   // coverage constructor
   given coverageConstructorDecoder: Decoder[CoverageConstructor] = deriveDecoder
   given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
-
-  // covered condition metadata
-  given coveredCondMetadataEncoder: Encoder[(Cond, InstInfo)] =
-    Encoder.instance((cond, instInfo) =>
-      Json.obj(
-        "condition" -> cond.toString.asJson,
-        "location" -> Json.obj(
-          "function" -> cfg.funcOf(cfg.nodeMap(cond.id)).asJson,
-          "step" -> cond.branch.loc
-            .flatMap(loc => Some(loc.stepString))
-            .getOrElse("NOT_FOUND")
-            .asJson,
-        ),
-        "iter" -> instInfo.iter.asJson,
-        "script" -> instInfo.cur.asJson,
-        "mutation" -> Json.obj(
-          "prev" -> instInfo.prev.asJson,
-          "mutator" -> instInfo.mutatorName.asJson,
-        ),
-      ),
-    )
 }

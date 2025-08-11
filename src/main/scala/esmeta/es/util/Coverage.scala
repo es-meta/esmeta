@@ -4,7 +4,6 @@ import esmeta.{LINE_SEP, TEST262TEST_LOG_DIR}
 import esmeta.cfg.*
 import esmeta.injector.*
 import esmeta.interpreter.*
-import esmeta.fuzzer.InstInfo
 import esmeta.ir.{Expr, EParse, EBool}
 import esmeta.ty.{*, given}
 import esmeta.es.*
@@ -39,9 +38,6 @@ case class Coverage(
 
   // meta-info of each script
   private var _minimalInfo: Map[String, ScriptInfo] = Map()
-
-  // covered condition metadata while fuzzing
-  private var coveredCondMetadata: Map[Cond, InstInfo] = Map()
 
   // mapping from nodes/conditions to scripts
   private var nodeViewMap: Map[Node, Map[View, Set[Script]]] = Map()
@@ -108,11 +104,7 @@ case class Coverage(
       Interp(initSt, tyCheck, kFs, cp, timeLimit, isTargetNode, isTargetBranch)
     interp.result; interp
 
-  def check(
-    script: Script,
-    interp: Interp,
-    instInfo: Option[InstInfo] = None,
-  ): (State, Boolean, Boolean) = {
+  def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
     val Script(code, _) = script
     val finalSt = interp.result
 
@@ -149,7 +141,6 @@ case class Coverage(
       getScripts(condView) match
         case None =>
           update(condView, nearest, script); updated = true; covered = true
-          for (info <- instInfo) coveredCondMetadata += condView.cond -> info
         case Some(scripts) =>
           if (all) {
             update(condView, nearest, script)
@@ -234,14 +225,6 @@ case class Coverage(
       noSpace = false,
     )
     log("Dumped branch coverage")
-
-    dumpJson(
-      name = "covered condition metadata",
-      data = coveredCondMetadata.toList.sortBy(_._1.id),
-      filename = s"$baseDir/covered-condition-metadata.json",
-      noSpace = false,
-    )
-    log("Dumped covered condition metadata")
 
     if (withScripts)
       dumpDir[Script](
