@@ -22,7 +22,7 @@ class RandomSynthesizer(
       if rhs.available(argsMap)
     } yield (rhs, rhsIdx)
     val (rhs, rhsIdx) = choose(pairs)
-    val children = rhs.symbols.map(synSymbol(argsMap)).toVector
+    val children = rhs.symbols.flatMap(synSymbol(argsMap)).toVector
     Syntactic(name, args, rhsIdx, children)
 
   /** for lexical production */
@@ -35,13 +35,13 @@ class RandomSynthesizer(
 
   private def synSymbol(argsMap: Map[String, Boolean])(
     symbol: Symbol,
-  ): Option[Ast] = symbol match
+  ): Option[Option[Ast]] = symbol match
     case ButNot(nt, _) => synSymbol(argsMap)(nt)
     case Optional(symbol) =>
-      if (randBool) None else synSymbol(argsMap)(symbol)
+      if (randBool) Some(None) else synSymbol(argsMap)(symbol)
     case Nonterminal(name, args) =>
       if (simpleSyn.reservedLexicals contains name)
-        Some(Lexical(name, simpleSyn.reservedLexicals(name)))
+        Some(Some(Lexical(name, simpleSyn.reservedLexicals(name))))
       else {
         import NonterminalArgumentKind.*
         val newArgs = for (arg <- args) yield arg.kind match
@@ -51,7 +51,7 @@ class RandomSynthesizer(
         val syn =
           if (randBool) simpleSyn(name, newArgs)
           else apply(name, newArgs)
-        Some(syn)
+        Some(Some(syn))
       }
     case _ => None
 }
