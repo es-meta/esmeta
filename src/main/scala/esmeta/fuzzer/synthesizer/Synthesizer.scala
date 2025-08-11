@@ -17,7 +17,11 @@ trait Synthesizer {
     case ast: Lexical   => apply(ast)
 
   /** for syntactic production */
-  def apply(name: String, args: List[Boolean]): Syntactic
+  def apply(
+    name: String,
+    args: List[Boolean],
+    rhsIdx: Option[Int] = None,
+  ): Syntactic
   def apply(ast: Syntactic): Syntactic = apply(ast.name, ast.args)
 
   /** for lexical production */

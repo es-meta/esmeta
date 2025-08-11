@@ -30,7 +30,11 @@ class SimpleSynthesizer(
     pool
 
   /** for syntactic production */
-  def apply(name: String, args: List[Boolean]): Syntactic =
+  def apply(
+    name: String,
+    args: List[Boolean],
+    rhsIdx: Option[Int] = None,
+  ): Syntactic =
     val (ast, _) = cache(getSyn(name, args))
     ast.asInstanceOf[Syntactic]
 

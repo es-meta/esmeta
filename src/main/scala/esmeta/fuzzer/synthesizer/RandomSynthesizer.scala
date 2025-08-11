@@ -14,16 +14,22 @@ class RandomSynthesizer(
   def name: String = "RandomSynthesizer"
 
   /** for syntactic production */
-  def apply(name: String, args: List[Boolean]): Syntactic =
+  def apply(
+    name: String,
+    args: List[Boolean],
+    rhsIdx: Option[Int] = None,
+  ): Syntactic =
     val prod @ Production(lhs, _, _, rhsVec) = nameMap(name)
     val argsMap = (lhs.params zip args).toMap
     val pairs = for {
       (rhs, rhsIdx) <- rhsVec.zipWithIndex
       if rhs.available(argsMap)
     } yield (rhs, rhsIdx)
-    val (rhs, rhsIdx) = choose(pairs)
+    val (rhs, idx) = rhsIdx match
+      case Some(i) => pairs.find(_._2 == i).get
+      case None    => choose(pairs)
     val children = rhs.symbols.flatMap(synSymbol(argsMap)).toVector
-    Syntactic(name, args, rhsIdx, children)
+    Syntactic(name, args, idx, children)
 
   /** for lexical production */
   def apply(name: String): Lexical = simpleSyn(name)

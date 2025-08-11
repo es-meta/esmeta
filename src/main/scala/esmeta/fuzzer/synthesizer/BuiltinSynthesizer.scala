@@ -79,7 +79,11 @@ class BuiltinSynthesizer(
       case YetPath(name) => app >> "yet:" >> name.replace(" ", "")
 
   /** for syntactic production */
-  def apply(name: String, args: List[Boolean]): Syntactic =
+  def apply(
+    name: String,
+    args: List[Boolean],
+    rhsIdx: Option[Int] = None,
+  ): Syntactic =
     throw NotSupported(List("BuiltinSynthesizer.apply"))
 
   /** for lexical production */
