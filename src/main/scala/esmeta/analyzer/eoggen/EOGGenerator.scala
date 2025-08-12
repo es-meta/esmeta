@@ -2,6 +2,7 @@ package esmeta.analyzer.eoggen
 
 import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
+import esmeta.analyzer.eoggen.util.*
 import esmeta.cfg.*
 import esmeta.es.*
 import esmeta.ir.{Func => _, *, given}
@@ -10,6 +11,7 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.util.HtmlUtils.escapeES
 
 /** Execution Order Graph (EOG) generator */
 class EOGGenerator(
@@ -22,7 +24,8 @@ class EOGGenerator(
   with AbsStateDecl
   with AbsRetDecl
   with AbsTransferDecl
-  with ViewDecl {
+  with ViewDecl
+  with EOGGenUtil {
 
   val irStringifier = IRElem.getStringifier(false, false)
   import irStringifier.given
@@ -34,11 +37,15 @@ class EOGGenerator(
   import stateStringifier.given
 
   // initialize the analysis
-  ast.getSdo("Evaluation").map { (ast0, func) =>
-    val np = NodePoint(func, func.entry, emptyView)
-    val st = AbsState(NAME_THIS -> AbsValue(ast0))
-    npMap += np -> st
-  }
+  val initialNp = ast
+    .getSdo("Evaluation")
+    .map { (ast0, func) =>
+      val np = NodePoint(func, func.entry, emptyView)
+      val st = AbsState(NAME_THIS -> AbsValue(ast0))
+      npMap += np -> st
+      np
+    }
+    .getOrElse(???)
 
   // ---------------------------------------------------------------------------
   // Implementation for General Analyzer
