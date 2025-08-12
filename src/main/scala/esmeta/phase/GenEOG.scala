@@ -31,6 +31,10 @@ case object GenEOG extends Phase[CFG, Unit] {
     executeCmd(
       s"""dot -Tpdf "${ANALYZE_LOG_DIR}/eog.dot" -o "${ANALYZE_LOG_DIR}/eog.pdf"""",
     )
+    dumpFile(analyzer.eog.simplified.dot, s"${ANALYZE_LOG_DIR}/eog2.dot")
+    executeCmd(
+      s"""dot -Tpdf "${ANALYZE_LOG_DIR}/eog2.dot" -o "${ANALYZE_LOG_DIR}/eog2.pdf"""",
+    )
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
