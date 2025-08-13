@@ -208,7 +208,7 @@ class Fuzzer(
   case class CandInfo(
     visited: Boolean = false,
     invalid: Boolean = false,
-    interp: Option[Coverage.Interp] = None,
+    interp: Option[Try[Coverage.Interp]] = None,
   )
 
   /** Extract information for the mutated code. Should be side-effect free. */
@@ -222,7 +222,7 @@ class Fuzzer(
   def getCandInfo(code: String): CandInfo =
     if (visited contains code) CandInfo(visited = true)
     else if (!ValidityChecker(code)) CandInfo(invalid = true)
-    else CandInfo(interp = optional(cov.run(code)))
+    else CandInfo(interp = Some(Try(cov.run(code))))
 
   /** add new program */
   def add(code: String): Boolean = add(code, getCandInfo(code))
@@ -234,7 +234,9 @@ class Fuzzer(
       visited += code
       if (info.invalid) fail("INVALID PROGRAM")
       val script = toScript(code)
-      val interp = info.interp.getOrElse(fail("Interp Fail"))
+      val interp = info.interp.get match
+        case Success(v) => v
+        case Failure(e) => throw e
       val finalState = interp.result
       if (tyCheck) collector.add(code, finalState.typeErrors)
       val (_, updated, covered) = cov.check(script, interp)
