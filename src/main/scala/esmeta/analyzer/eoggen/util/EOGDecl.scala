@@ -168,8 +168,8 @@ trait EOGDecl { self: Self =>
 
       def label: String = x match
         case NodePoint(func, node, view) =>
-          s"${func.id}:${node.id}:${view.toString()} - ${node.toString()}".escapeES
-        case ReturnPoint(func, view) => s"${func.id}:return".escapeES
+          s"${view.toString()}:${func.name}:${node.toString()}".escapeES
+        case ReturnPoint(func, view) => s"${func.name}:return".escapeES
 
       def color: DotFile.Color = DotFile.Color.Black
       def bgColor: DotFile.Color =
