@@ -3,6 +3,7 @@ package esmeta.analyzer.eoggen
 import esmeta.cfg.*
 import esmeta.util.Appender
 import esmeta.util.Appender.*
+import scala.math.Ordering.Implicits.*
 
 /** view abstraction */
 trait ViewDecl { self: EOGGenerator =>
@@ -37,4 +38,6 @@ trait ViewDecl { self: EOGGenerator =>
 
   /** get entry views of loops */
   def getEntryView(view: View): View = view
+
+  given viewOrdering: Ordering[View] = Ordering.by(_.calls.map(_.id))
 }

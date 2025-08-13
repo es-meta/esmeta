@@ -19,4 +19,6 @@ trait ViewLikeDecl { self: Analyzer =>
 
   /** get entry views of loops */
   def getEntryView(view: View): View
+
+  given viewOrdering: Ordering[View]
 }

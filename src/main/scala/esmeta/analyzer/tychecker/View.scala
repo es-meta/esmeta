@@ -25,4 +25,6 @@ trait ViewDecl { self: TyChecker =>
 
   /** get entry views of loops */
   def getEntryView(view: View): View = view
+
+  given viewOrdering: Ordering[View] = Ordering.by(_ => 0)
 }

@@ -34,7 +34,7 @@ trait ControlPointDecl { self: Analyzer =>
   }
 
   given Ordering[ControlPoint] = Ordering.by(_ match
-    case NodePoint(f, n, _) => (f.id, n.id)
-    case ReturnPoint(f, _)  => (f.id, Int.MaxValue),
+    case NodePoint(f, n, v) => (f.id, n.id, v)
+    case ReturnPoint(f, v)  => (f.id, Int.MaxValue, v),
   )
 }
