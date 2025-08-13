@@ -228,8 +228,9 @@ class Fuzzer(
   def add(code: String): Boolean = add(code, getCandInfo(code))
 
   /** add new program with precomputed info */
-  def add(code: String, info: CandInfo): Boolean =
-    handleResult(Try {
+  def add(code: String, info: CandInfo): Boolean = handleResult(
+    code,
+    Try {
       if (info.visited) fail("ALREADY VISITED")
       visited += code
       if (info.invalid) fail("INVALID PROGRAM")
@@ -242,17 +243,21 @@ class Fuzzer(
       val (_, updated, covered) = cov.check(script, interp)
       if (!updated) fail("NO UPDATE")
       covered
-    })
+    },
+  )
 
   /** handle add result */
-  def handleResult(result: Try[Boolean]): Boolean = {
+  def handleResult(code: String, result: Try[Boolean]): Boolean = {
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     val pass = result match
       case Success(covered)             => debugging(passMsg("")); covered
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
         debugging(failMsg("NOT SUPPORTED")); false
-      case Failure(e: ESMetaError) => throw e
+      case Failure(e: ESMetaError) =>
+        debugging(failMsg("ESMETA ERROR"))
+        esmetaErrors += e -> (esmetaErrors.getOrElse(e, Set()) + code)
+        false
       case Failure(e) =>
         e.getMessage match
           case "ALREADY VISITED" | "INVALID PROGRAM" if debug == PARTIAL =>
@@ -351,6 +356,9 @@ class Fuzzer(
   // indicating that add failed
   private def fail(msg: String) = throw Exception(msg)
 
+  // ESMeta errors collected during fuzzing
+  private val esmetaErrors: MMap[ESMetaError, Set[String]] = MMap()
+
   // debugging
   private var debugMsg = ""
   private def debugging(
@@ -426,6 +434,19 @@ class Fuzzer(
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
     // dump spec type error
     if (tyCheck) collector.dumpTo(logDir)
+    // dump ESMeta errors
+    dumpFile(
+      name = "found ESMeta errors",
+      data = esmetaErrors.toVector
+        .sortBy(_._1.errMsg)
+        .map { (e, codes) =>
+          s"[InterpreterError] ${e.errMsg}" + LINE_SEP +
+          s"thrown when executing:" + LINE_SEP +
+          codes.toVector.sorted.map(code => s"- $code").mkString(LINE_SEP)
+        }
+        .mkString(LINE_SEP + LINE_SEP),
+      filename = s"$logDir/esmeta-errors",
+    )
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")
