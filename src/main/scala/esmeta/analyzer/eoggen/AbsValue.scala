@@ -54,13 +54,10 @@ trait AbsValueDecl { self: EOGGenerator =>
     }
 
     /** get syntactic SDO */
-    def getSdo(method: String): Flat[(AbsValue, Func)] = value match
+    def getSdo(method: String): Flat[ChainResult] = value match
       case Zero | One(AstValue(_: Lexical)) => Zero
-      case One(AstValue(syn: Syntactic)) =>
-        self.getSdo(syn, method).fold(Zero) { (thisValue, func) =>
-          One(AbsValue(thisValue), func)
-        }
-      case _ => Many
+      case One(AstValue(syn: Syntactic))    => One(self.getSdo(syn, method))
+      case _                                => Many
 
     /** get string of abstract value with an abstract state */
     def getString(state: AbsState): String = this.toString

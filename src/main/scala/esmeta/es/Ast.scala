@@ -43,7 +43,7 @@ sealed trait Ast extends ESElem with Locational {
       syn.children.flatten match
         case Vector(child) => this :: child.chains
         case _             => List(this)
-    case _: Hole => ???
+    case _: Hole => List(this)
   )
 
   /** types */
@@ -102,17 +102,19 @@ sealed trait Ast extends ESElem with Locational {
   def exists(field: Value)(using cfg: CFG): Boolean = get(field).isDefined
 
   /** get syntax-directed operation (SDO) */
-  def getSdo(name: String)(using cfg: CFG): Option[(Ast, Func)] =
+  def getSdo(name: String)(using cfg: CFG): ChainResult =
+    import ChainResult.*
     val fnameMap = cfg.fnameMap
-    chains.foldLeft[Option[(Ast, Func)]](None) {
-      case (None, ast0) =>
+    chains.foldLeft[ChainResult](NotFound) {
+      case (NotFound, hole: Hole) => MeetHole(hole)
+      case (NotFound, ast0) =>
         val subIdx = ast0.subIdx
         val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$name"
         fnameMap
           .get(fname)
           .orElse(fnameMap.get(s"DEFAULT:$name"))
-          .map((ast0, _))
-      case (res: Some[_], _) => res
+          .fold(NotFound)(Found(ast0, _))
+      case (res, _) => res
     }
 
   /** get sub index of parsed Ast */
@@ -158,4 +160,15 @@ case class Lexical(
   str: String,
 ) extends Ast {
   def children: Vector[Option[Ast]] = Vector.empty
+}
+
+enum ChainResult {
+
+  case Found(ast: Ast, func: Func)
+  case MeetHole(hole: Hole)
+  case NotFound
+
+  def fold[B](orElse: => B)(f: (Ast, Func) => B): B = this match
+    case Found(ast, func) => f(ast, func)
+    case _                => orElse
 }

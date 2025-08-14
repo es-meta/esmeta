@@ -1,6 +1,7 @@
 package esmeta.analyzer.eoggen
 
 import esmeta.cfg.{util => _, *}
+import esmeta.es.ChainResult
 import esmeta.ir.{Func => _, util => _, *}
 import esmeta.state.*
 import esmeta.ty.*
@@ -8,7 +9,6 @@ import esmeta.interpreter.Interpreter
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
-import esmeta.es.builtin.JOB_QUEUE
 
 trait AbsTransferDecl { analyzer: EOGGenerator =>
 
@@ -109,21 +109,26 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
             st <- get
             given AbsState = st
           } yield {
+            import ChainResult.*
+
             var newV: AbsValue = AbsValue.Bot
             // lexical sdo
             newV ⊔= bv.getLexical(method)
             // syntactic sdo
             bv.getSdo(method) match
-              case Zero =>
-              case One((ast, sdo)) =>
+              case Zero | One(NotFound) =>
+              case One(Found(ast, sdo)) =>
                 doCall(
                   callerNp,
                   sdo,
                   st,
                   base :: args,
-                  ast :: vs,
+                  AbsValue(ast) :: vs,
                   method = true,
                 )
+              case One(MeetHole(hole)) =>
+                holeSdoInfo += callerNp -> hole
+                newV = AbsValue.Top
               case Many => newV = AbsValue.Top
             newV
           }
@@ -237,7 +242,12 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
         for {
           v <- transfer(ref)
         } yield v
-      case unary @ EUnary(_, expr) => ???
+      case unary @ EUnary(op, expr) =>
+        for {
+          v <- transfer(expr)
+          st <- get
+          u <- transfer(st, unary, v)
+        } yield u
       case binary @ EBinary(_, left, right) =>
         for {
           lv <- transfer(left)
@@ -268,16 +278,15 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       case ECopy(obj)                     => ???
       case EKeys(map, intSorted)          => ???
       case EMath(n)                       => AbsValue(Math(n))
-      case EInfinity(pos)                 => ???
-      case ENumber(n) if n.isNaN          => ???
-      case ENumber(n)                     => ???
-      case EBigInt(n)                     => ???
+      case EInfinity(pos)                 => AbsValue(Infinity(pos))
+      case ENumber(n)                     => AbsValue(Number(n))
+      case EBigInt(n)                     => AbsValue(BigInt(n))
       case EStr(str)                      => AbsValue(Str(str))
       case EBool(b)                       => AbsValue(Bool(b))
-      case EUndef()                       => ???
-      case ENull()                        => ???
-      case EEnum(name)                    => ???
-      case ECodeUnit(c)                   => ???
+      case EUndef()                       => AbsValue(Undef)
+      case ENull()                        => AbsValue(Null)
+      case EEnum(name)                    => AbsValue(Enum(name))
+      case ECodeUnit(c)                   => AbsValue(CodeUnit(c))
     }
 
     /** transfer function for references */
@@ -302,7 +311,7 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       st: AbsState,
       unary: EUnary,
       operand: AbsValue,
-    )(using np: NodePoint[Node]): AbsValue = ???
+    )(using np: NodePoint[Node]): AbsValue = AbsValue.Top
 
     /** transfer function for binary operators */
     def transfer(

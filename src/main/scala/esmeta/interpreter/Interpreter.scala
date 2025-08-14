@@ -175,10 +175,11 @@ class Interpreter(
         }
         case v => throw NoCallable(v)
     case ISdoCall(lhs, base, method, args) =>
+      import ChainResult.*
       eval(base).asAst match
         case syn: Syntactic =>
           getSdo((syn, method)) match
-            case Some((ast0, sdo)) =>
+            case Found(ast0, sdo) =>
               val vs = args.map(eval)
               val newLocals = getLocals(
                 sdo.irFunc.params,
@@ -188,7 +189,7 @@ class Interpreter(
               )
               st.callStack ::= CallContext(st.context, lhs)
               st.context = createContext(call, sdo, newLocals, st.context)
-            case None => throw InvalidAstField(syn, Str(method))
+            case _ => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
         case _: Hole => ???
@@ -445,7 +446,7 @@ class Interpreter(
     logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
 
   /** cache to get syntax-directed operation (SDO) */
-  private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+  private val getSdo = cached[(Ast, String), ChainResult](_.getSdo(_))
 
   // create a new context
   protected def createContext(

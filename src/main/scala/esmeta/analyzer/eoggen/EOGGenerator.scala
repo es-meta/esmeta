@@ -39,13 +39,13 @@ class EOGGenerator(
   // initialize the analysis
   val initialNp = ast
     .getSdo("Evaluation")
-    .map { (ast0, func) =>
-      val np = NodePoint(func, func.entry, emptyView)
-      val st = AbsState(NAME_THIS -> AbsValue(ast0))
-      npMap += np -> st
-      np
+    .fold(raise(s"no initial target found")) {
+      case (ast0, func) =>
+        val np = NodePoint(func, func.entry, emptyView)
+        val st = AbsState(NAME_THIS -> AbsValue(ast0))
+        npMap += np -> st
+        np
     }
-    .getOrElse(???)
 
   // ---------------------------------------------------------------------------
   // Implementation for General Analyzer
@@ -105,5 +105,8 @@ class EOGGenerator(
   // ---------------------------------------------------------------------------
 
   /** cache to get syntax-directed operation (SDO) */
-  private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+  val getSdo = cached[(Ast, String), ChainResult](_.getSdo(_))
+
+  /** hole AST for each sdo call with holes */
+  var holeSdoInfo: Map[NodePoint[Call], Hole] = Map()
 }
