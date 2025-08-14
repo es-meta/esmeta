@@ -123,6 +123,8 @@ trait EOGDecl { self: Self =>
         if cSet.size == 2 // only two children
         arbitrary <- cSet // iterate all cases
         // assert : np -> arbitrary
+        ccSet = eog.edges.collect { case `arbitrary` -> child => child }
+        if ccSet.size == 2 // two grand-children (branch)
         if (eog.nodes.exists(cp =>
           eog.edges.contains(np -> cp) &&
           eog.edges.contains(arbitrary -> cp),
