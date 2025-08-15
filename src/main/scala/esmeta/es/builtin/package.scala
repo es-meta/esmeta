@@ -1,5 +1,6 @@
 package esmeta.es.builtin
 
+import esmeta.es.*
 import esmeta.state.*
 import esmeta.spec.*
 import esmeta.cfg.CFG
@@ -131,5 +132,22 @@ def getMapObjects(
       case (PropKey.Sym(x)) => symbolAddr(x)
     key -> descAddr(descBase, k)
   })
-  map ++= nmap.map { case (k, prop) => descAddr(descBase, k) -> prop.toObject }
+  map ++= nmap.map { case (k, d) => descAddr(descBase, k) -> toObject(d) }
   map
+
+/** convert property descriptor to ir map object */
+def toObject(desc: PropDesc)(using CFG): RecordObj = desc match
+  case DataDesc(v, w, e, c) =>
+    recordObj("PropertyDescriptor")(
+      "Value" -> v,
+      "Writable" -> Bool(w),
+      "Enumerable" -> Bool(e),
+      "Configurable" -> Bool(c),
+    )
+  case AccessorDesc(g, s, e, c) =>
+    recordObj("PropertyDescriptor")(
+      "Get" -> g,
+      "Set" -> s,
+      "Enumerable" -> Bool(e),
+      "Configurable" -> Bool(c),
+    )

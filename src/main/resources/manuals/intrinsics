@@ -106,12 +106,22 @@ Error.prototype = OrdinaryObject [
   name: [TFT] "Error";
 }
 
+// https://tc39.es/ecma262/#sec-native-error-types-used-in-this-standard
+_NativeError_ is {
+  EvalError
+  RangeError
+  ReferenceError
+  SyntaxError
+  TypeError
+  URIError
+}
+
 // https://tc39.es/ecma262/#sec-properties-of-the-nativeerror-constructors
 _NativeError_ = BuiltinFunctionObject [
   Prototype: #INTRINSICS.Error;
   Construct: clo<Record[BuiltinFunctionObject].Construct>;
 ] {
-  prototype: [FFF] #INTRINSICS._NativeError_.prototype;
+  prototype: [FFF] #INTRINSICS.(( NativeError )).prototype;
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-nativeerror-prototype-objects
@@ -119,9 +129,9 @@ _NativeError_.prototype = OrdinaryObject [
   Extensible: true;
   Prototype: #INTRINSICS.Error.prototype;
 ] {
-  constructor: [TFT] #INTRINSICS._NativeError_;
+  constructor: [TFT] #INTRINSICS.(( NativeError ));
   message: [TFT] "";
-  name: [TFT] "_NativeError_";
+  name: [TFT] "(( NativeError ))";
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-aggregate-error-constructors
@@ -418,9 +428,25 @@ TypedArray.prototype = OrdinaryObject [
   toString: [TFT] #INTRINSICS.Array.prototype.toString;
   %Symbol.iterator%: [TFT] #INTRINSICS.TypedArray.prototype.values;
   %Symbol.toStringTag%: [FT] {
-    get: #INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%];
-    set: undefined;
+    Get: #INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%];
+    Set: undefined;
   };
+}
+
+// https://tc39.es/ecma262/#table-the-typedarray-constructors
+_TypedArray_ is {
+  Int8Array { ElementSize: 1; }
+  Uint8Array { ElementSize: 1; }
+  Uint8ClampedArray { ElementSize: 1; }
+  Int16Array { ElementSize: 2; }
+  Uint16Array { ElementSize: 2; }
+  Int32Array { ElementSize: 4; }
+  Uint32Array { ElementSize: 4; }
+  BigInt64Array { ElementSize: 8; }
+  BigUint64Array { ElementSize: 8; }
+  Float16Array { ElementSize: 2; }
+  Float32Array { ElementSize: 4; }
+  Float64Array { ElementSize: 8; }
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-typedarray-constructors
@@ -429,9 +455,9 @@ _TypedArray_ = BuiltinFunctionObject [
   Construct: clo<Record[BuiltinFunctionObject].Construct>;
 ] {
   length: [FFT] 3.0f;
-  name: [FFT] "_TypedArray_";
-  BYTES_PER_ELEMENT: [FFF] 1.0f;
-  prototype: [FFF] #INTRINSICS._TypedArray_.prototype;
+  name: [FFT] "(( TypedArray ))";
+  BYTES_PER_ELEMENT: [FFF] (( TypedArray.ElementSize ));
+  prototype: [FFF] #INTRINSICS.(( TypedArray )).prototype;
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-typedarray-prototype-objects
@@ -439,8 +465,8 @@ _TypedArray_.prototype = OrdinaryObject [
   Extensible: true;
   Prototype: #INTRINSICS.TypedArray.prototype;
 ] {
-  BYTES_PER_ELEMENT: [FFF] 1.0f;
-  constructor: [TFT] #INTRINSICS._TypedArray_;
+  BYTES_PER_ELEMENT: [FFF] (( TypedArray.ElementSize ));
+  constructor: [TFT] #INTRINSICS.(( TypedArray ));
 }
 
 
@@ -611,10 +637,10 @@ JSON = OrdinaryObject [
 }
 
 // https://tc39.es/ecma262/#sec-json.parse
-JSON.parse = BuiltinFunctionObject { length: [FFT] 2.0f }
+JSON.parse = BuiltinFunctionObject { length: [FFT] 2.0f; }
 
 // https://tc39.es/ecma262/#sec-json.stringify
-JSON.stringify = BuiltinFunctionObject { length: [FFT] 3.0f }
+JSON.stringify = BuiltinFunctionObject { length: [FFT] 3.0f; }
 
 
 
@@ -695,12 +721,12 @@ Iterator.prototype = OrdinaryObject [
   Prototype: #INTRINSICS.Object.prototype;
 ] {
   constructor: [FT] {
-    get: #INTRINSICS.get:Iterator.prototype.constructor;
-    set: #INTRINSICS.set:Iterator.prototype.constructor;
+    Get: #INTRINSICS.get:Iterator.prototype.constructor;
+    Set: #INTRINSICS.set:Iterator.prototype.constructor;
   };
   %Symbol.toStringTag%: [FT] {
-    get: #INTRINSICS.get:Iterator.prototype[%Symbol.toStringTag%];
-    set: #INTRINSICS.set:Iterator.prototype[%Symbol.toStringTag%];
+    Get: #INTRINSICS.get:Iterator.prototype[%Symbol.toStringTag%];
+    Set: #INTRINSICS.set:Iterator.prototype[%Symbol.toStringTag%];
   };
 }
 

@@ -10,6 +10,7 @@ import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
 
 class Initialize(cfg: CFG) {
+  import cfg.*
 
   /** get initial state from source text */
   def from(sourceText: String): State =
@@ -75,7 +76,6 @@ class Initialize(cfg: CFG) {
   lazy val initHeap: Heap = {
 
     val map: MMap[Addr, Obj] = MMap(
-      NamedAddr(INTRINSICS) -> intr.obj,
       NamedAddr(GLOBAL) -> glob.obj,
       NamedAddr(SYMBOL) -> sym.obj,
       NamedAddr(AGENT_RECORD) -> recordObj("AgentRecord")(
@@ -104,7 +104,7 @@ class Initialize(cfg: CFG) {
     map ++= sym.map
 
     // add intrinsic built-in objects
-    map ++= intr.heap
+    map ++= intrHeap
 
     // add member functions of intrinsics
     addBaseBuiltinFuncs(map)
@@ -116,13 +116,66 @@ class Initialize(cfg: CFG) {
     Heap(map)
   }
 
+  /** intrinsic object */
+  lazy val intrObj = MapObj(
+    intrNames.toList.map(x => Str(s"%$x%") -> intrAddr(x)),
+  )
+
+  /** names of intrinsic built-in objects */
+  lazy val intrHeap = {
+    import intr.*
+
+    var _map = Map[Addr, Obj](NamedAddr(INTRINSICS) -> intrObj)
+
+    // add intrinsic objects
+    for {
+      Model(name, tname, imap, nmap) <- replacedModels
+      base = name.split("\\.").head
+      if !yets.contains(base)
+      addr @ NamedAddr(iname) = intrAddr(name)
+    } {
+      // base object
+      _map += addr -> recordObj(tname)(
+        (INNER_MAP -> mapAddr(iname)) ::
+        (PRIVATE_ELEMENTS -> elemsAddr(iname)) ::
+        imap.map { (k, v) => k -> toValue(v) },
+      )
+      // inner map object
+      _map ++= getMapObjects(iname, name, nmap.map { _ -> toDesc(_) })
+    }
+
+    // not yet objects
+    yets.foreach { (name, _) =>
+      _map += (intrAddr(name) -> YetObj(name, name))
+    }
+
+    // result
+    _map
+  }
+
+  /** names of intrinsic built-in objects */
+  lazy val intrNames = intr.replacedModels.map(_.name).toSet ++ yets.keySet
+
+  /** types of intrinsic built-in objects */
+  lazy val intrTypes: Map[String, ValueTy] =
+    val xs = (for {
+      x <- intrNames.toList
+      addr = intrAddr(x)
+      case (obj: RecordObj) <- intrHeap.get(addr)
+      ty =
+        if (obj.map contains "Construct") ConstructorT
+        else if (obj.map contains "Call") FunctionT
+        else ObjectT
+    } yield x -> ty).toMap ++ yets
+    xs.map { case (x, ty) => s"%$x%" -> ty }
+
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
   // implicit CFG
   given CFG = cfg
 
-  val intr = Intrinsics(cfg)
+  val intr = cfg.intrinsics
   val glob = GlobalObject(cfg)
   val sym = builtin.Symbol(cfg)
 
@@ -211,7 +264,7 @@ class Initialize(cfg: CFG) {
       for { (f, v) <- obj.map } newObj.update(f, v)
       newObj
 
-    intr.obj.map += Str(s"%$name%") -> baseAddr
+    intrObj.map += Str(s"%$name%") -> baseAddr
 
     map += baseAddr -> updateRecord(baseObj)(
       "Extensible" -> Bool(true),
@@ -260,30 +313,37 @@ class Initialize(cfg: CFG) {
       baseMapObj <- map.get(mapAddr(intrName(base))) match
         case Some(m: MapObj) => Some(m)
         case _               => None
-      desc = descAddr(base, prop)
+      daddr = descAddr(base, prop)
       defaultLength = func.head.fold(0)(getLength(_))
-      _ = baseMapObj.update(propV, desc)
-      intr = intrAddr(fname)
-      property =
-        if (isData) DataDesc(intr, T, F, T)
-        else if (isGetter) AccessorDesc(intr, U, F, T)
-        else AccessorDesc(U, intr, F, T)
+      _ = baseMapObj.update(propV, daddr)
+      iaddr = intrAddr(fname)
+      desc =
+        if (isData) DataDesc(iaddr, T, F, T)
+        else if (isGetter) AccessorDesc(iaddr, U, F, T)
+        else AccessorDesc(U, iaddr, F, T)
       _ =
-        if (yetFuncs contains fname) map += (intr -> YetObj("", fname))
+        if (yetFuncs contains fname) map += (iaddr -> YetObj("", fname))
         else createBuiltinFunction(fname, defaultLength, defaultName, map)
-    } (propMap.get(desc), property) match
+    } (propMap.get(daddr), desc) match
       case (Some(l: AccessorDesc), r: AccessorDesc) =>
         var ap: AccessorDesc = l
         if (l.get == U) ap = ap.copy(get = r.get)
         if (l.set == U) ap = ap.copy(set = r.set)
-        propMap += desc -> ap
+        propMap += daddr -> ap
       case _ =>
-        propMap += desc -> property
+        propMap += daddr -> desc
     for {
-      (desc, property) <- propMap
-    } map.getOrElse(desc, map += desc -> property.toObject)
+      (daddr, desc) <- propMap
+    } map.getOrElse(daddr, map += daddr -> toObject(desc))
 
   // get length value from built-in head parameters
   private def getLength(head: Head): Int =
     head.originalParams.count(_.kind == ParamKind.Normal)
+
+  /** convert string to value */
+  private val toValue = stateParser.parseBy(stateParser.value)
+
+  /** convert string to property descriptor */
+  private val descParser = DataDesc.Parser(cfg)
+  private val toDesc = descParser.parseBy(descParser.propDesc)
 }

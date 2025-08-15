@@ -1,6 +1,7 @@
 package esmeta.extractor
 
 import esmeta.*
+import esmeta.es.builtin.Intrinsics
 import esmeta.lang.*
 import esmeta.lang.{util => LangUtil}
 import esmeta.spec.{*, given}
@@ -56,7 +57,8 @@ class Extractor(
       grammar = grammar,
       algorithms = algorithms,
       tables = tables,
-      tyModel = tyModel, // TODO automatic extraction
+      tyModel = tyModel,
+      intrinsics = intrinsics,
     )
     spec.document = document
     spec
@@ -75,6 +77,9 @@ class Extractor(
 
   /** type model */
   lazy val tyModel = extractTyModel
+
+  /** intrinsics */
+  lazy val intrinsics = extractIntrinsics
 
   /** extracts a grammar */
   def extractGrammar: Grammar = {
@@ -184,8 +189,13 @@ class Extractor(
     } yield row.getChildren.map(_.text)).toList
   } yield id -> Table(id, datas.head, datas.tail)).toMap
 
+  // TODO automatic extraction
   /** extracts a type model */
-  def extractTyModel: TyModel = ManualInfo.tyModel // TODO automatic extraction
+  def extractTyModel: TyModel = ManualInfo.tyModel
+
+  // TODO automatic extraction
+  /** extracts intrinsics */
+  def extractIntrinsics: Intrinsics = ManualInfo.intrinsics
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -266,7 +276,7 @@ class Extractor(
   ): List[BuiltinHead] =
     var headContent = getHeadContent(parent)
     val headContents = getTemplateName(parent).fold(List(headContent)) { name =>
-      for (instance <- templateInstances.getOrElse(name, Nil))
+      for ((instance, _) <- intrinsics.getInstances(name).toList)
         yield headContent.replaceAll("_" + name + "_", instance)
     }
     val prevContent = elem.getPrevContent

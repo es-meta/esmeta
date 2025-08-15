@@ -2,77 +2,46 @@ package esmeta.es.builtin
 
 import esmeta.es.*
 import esmeta.es.util.Parser
-import esmeta.cfg.CFG
-import esmeta.state.*
-import esmeta.spec.*
-import esmeta.ty.*
-import esmeta.util.BaseUtils.*
-import esmeta.util.ManualInfo
 
 /** model for intrinsic built-in objects */
 case class Intrinsics(
-  cfg: CFG,
-  _map: Map[String, Struct] = Map(),
-) {
+  templates: List[Template] = Nil,
+  models: List[Model] = Nil,
+) extends ESElem {
 
-  /** shortcuts */
-  private def spec = cfg.program.spec
-  given CFG = cfg
+  /** get the template by name */
+  def getInstances(name: String): Map[String, Map[String, String]] =
+    templateMap.get(name).fold(Map())(_.instances)
 
-  lazy val parser = Parser(cfg)
-  lazy val map: Map[String, Struct] = parser.fromFileWithParser(
-    ManualInfo.intrinsicsFile,
-    parser.intrMap,
-  )
+  /** a mapping from template names to templates */
+  lazy val templateMap: Map[String, Template] =
+    templates.map(t => t.name -> t).toMap
 
-  /** get map for heap */
-  lazy val heap: Map[Addr, Obj] = {
-    var _map = Map[Addr, Obj]()
-
-    // add intrinsic objects
-    map.foreach {
-      case (name, Struct(typeName, imap, nmap))
-          if !(yets contains name.split("\\.").head) =>
-        val addr @ NamedAddr(iname) = intrAddr(name)
-        // base object
-        _map += addr -> recordObj(typeName)(
-          List(
-            INNER_MAP -> mapAddr(iname),
-            PRIVATE_ELEMENTS -> elemsAddr(iname),
-          ) ++ imap: _*,
-        )
-        // inner map object
-        _map ++= getMapObjects(iname, name, nmap)
-      case _ =>
-    }
-
-    // not yet objects
-    yets.foreach { (name, _) => _map += (intrAddr(name) -> YetObj(name, name)) }
-
-    // result
-    _map
-  }
-
-  lazy val kinds: Map[String, ValueTy] =
-    val xs = (for {
-      x <- names.toList
-      addr = intrAddr(x)
-      case (obj: RecordObj) <- heap.get(addr)
-      ty =
-        if (obj.map contains "Construct") ConstructorT
-        else if (obj.map contains "Call") FunctionT
-        else ObjectT
-    } yield x -> ty).toMap ++ yets
-    xs.map { case (x, ty) => s"%$x%" -> ty }
-
-  val names: Set[String] = map.keySet ++ yets.keySet
-
-  /** get intrinsic map */
-  val obj: MapObj = MapObj(
-    names.toList.map(x => Str(s"%$x%") -> intrAddr(x)),
-  )
-
-  // get closures
-  private def clo(name: String): Clo = Clo(cfg.fnameMap(name), Map())
-  private def intrClo(name: String): Clo = clo(intrName(name))
+  /** replaced models */
+  lazy val replacedModels: List[Model] =
+    import TemplateReplacer.*
+    models.flatMap(_.replace(templates))
 }
+object Intrinsics extends Parser.From(Parser.intr)
+
+/** intrinsic model */
+case class Model(
+  name: String,
+  tname: String,
+  imap: List[(String, String)] = List(),
+  nmap: List[(PropKey, String)] = List(),
+) extends ESElem
+object Model extends Parser.From(Parser.model)
+
+/** property key */
+enum PropKey extends ESElem:
+  case Str(str: String)
+  case Sym(sym: String)
+object PropKey extends Parser.From(Parser.propKey)
+
+/** templates */
+case class Template(
+  name: String,
+  instances: Map[String, Map[String, String]] = Map(),
+) extends ESElem
+object Template extends Parser.From(Parser.template)

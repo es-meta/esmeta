@@ -1088,7 +1088,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState <- get
           v <-
             if (b.ty <= RealmT) {
-              val ty = cfg.init.intr.kinds.getOrElse(
+              val ty = cfg.init.intrTypes.getOrElse(
                 name,
                 if (name.startsWith("%Symbol.")) SymbolT else ObjectT,
               )
