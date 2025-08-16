@@ -117,7 +117,7 @@ case object CmdGenEOG extends Command("gen-eog", CmdBuildCFG >> GenEOG) {
   val examples = List(
     "esmeta eog-gen a.js                   # generate EOG for a.js file.",
   )
-  override val targetName = "<js>+"
+  override val targetName = "<js|dir>+"
 }
 
 // -----------------------------------------------------------------------------
