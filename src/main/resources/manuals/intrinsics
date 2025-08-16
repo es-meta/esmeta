@@ -435,18 +435,18 @@ TypedArray.prototype = OrdinaryObject [
 
 // https://tc39.es/ecma262/#table-the-typedarray-constructors
 _TypedArray_ is {
-  Int8Array { ElementSize: 1; }
-  Uint8Array { ElementSize: 1; }
-  Uint8ClampedArray { ElementSize: 1; }
-  Int16Array { ElementSize: 2; }
-  Uint16Array { ElementSize: 2; }
-  Int32Array { ElementSize: 4; }
-  Uint32Array { ElementSize: 4; }
-  BigInt64Array { ElementSize: 8; }
-  BigUint64Array { ElementSize: 8; }
-  Float16Array { ElementSize: 2; }
-  Float32Array { ElementSize: 4; }
-  Float64Array { ElementSize: 8; }
+  Int8Array { ElementSize: 1f; }
+  Uint8Array { ElementSize: 1f; }
+  Uint8ClampedArray { ElementSize: 1f; }
+  Int16Array { ElementSize: 2f; }
+  Uint16Array { ElementSize: 2f; }
+  Int32Array { ElementSize: 4f; }
+  Uint32Array { ElementSize: 4f; }
+  BigInt64Array { ElementSize: 8f; }
+  BigUint64Array { ElementSize: 8f; }
+  Float16Array { ElementSize: 2f; }
+  Float32Array { ElementSize: 4f; }
+  Float64Array { ElementSize: 8f; }
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-typedarray-constructors
