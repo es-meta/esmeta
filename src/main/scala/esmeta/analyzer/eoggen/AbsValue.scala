@@ -79,6 +79,7 @@ trait AbsValueDecl { self: EOGGenerator =>
     /** appender */
     given rule: Rule[AbsValue] = (app, elem) => {
       given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+      given Rule[Ast] = (app, ast) => app >> ast.toString(detail = false)
       given flatRule[T: Rule]: Rule[Flat[T]] = (app, flatElem) =>
         flatElem match
           case Zero   => app >> "⊥"
