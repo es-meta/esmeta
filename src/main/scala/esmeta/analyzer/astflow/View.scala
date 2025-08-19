@@ -1,10 +1,10 @@
-package esmeta.analyzer.propflow
+package esmeta.analyzer.astflow
 
 import esmeta.ty.*
 import esmeta.util.Appender.*
 
 /** view abstraction */
-trait ViewDecl { self: PropFlowAnalyzer =>
+trait ViewDecl { self: AstFlowAnalyzer =>
 
   /** view abstraction for analysis sensitivities */
   object View extends ViewLike {

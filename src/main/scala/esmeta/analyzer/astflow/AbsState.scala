@@ -1,4 +1,4 @@
-package esmeta.analyzer.propflow
+package esmeta.analyzer.astflow
 
 import esmeta.ir.*
 import esmeta.ty.{*, given}
@@ -9,7 +9,7 @@ import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 
 /** abstract states */
-trait AbsStateDecl { self: PropFlowAnalyzer =>
+trait AbsStateDecl { self: AstFlowAnalyzer =>
   import irStringifier.given
 
   case class AbsState(

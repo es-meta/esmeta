@@ -1,8 +1,7 @@
-package esmeta.analyzer.propflow
+package esmeta.analyzer.astflow
 
 import esmeta.cfg.*
-import esmeta.interpreter.Interpreter
-import esmeta.ir.{Name, BOp, COp, VOp, MOp, UOp, Local, IRElem}
+import esmeta.ir.*
 import esmeta.state.*
 import esmeta.ty.{*, given}
 import esmeta.util.*
@@ -10,35 +9,35 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** abstract values */
-trait AbsValueDecl { self: PropFlowAnalyzer =>
+trait AbsValueDecl { self: AstFlowAnalyzer =>
+
   case class AbsValue(
-    strings: Set[String] = Set(), // "toString" -> "toString"
-    symbols: Set[String] = Set(), // %Symbol.toPrimitive% -> "toPrimitive"
+    params: Set[Param] = Set(),
+    asts: Set[AstExpr] = Set(),
   ) extends AbsValueLike {
-    import AbsValue.*
 
     /** bottom check */
-    def isBottom: Boolean = strings.isEmpty && symbols.isEmpty
+    def isBottom: Boolean = params.isEmpty && asts.isEmpty
 
     /** partial order */
     def ⊑(that: AbsValue)(using st: AbsState): Boolean =
-      (this.strings subsetOf that.strings) &&
-      (this.symbols subsetOf that.symbols)
+      (this.params subsetOf that.params) &&
+      (this.asts subsetOf that.asts)
 
     /** not partial order */
     def !⊑(that: AbsValue)(using AbsState): Boolean = !(this ⊑ that)
 
     /** join operator */
     def ⊔(that: AbsValue)(using st: AbsState): AbsValue = AbsValue(
-      strings = this.strings ++ that.strings,
-      symbols = this.symbols ++ that.symbols,
+      params = this.params ++ that.params,
+      asts = this.asts ++ that.asts,
     )
 
     /** meet operator */
     def ⊓(that: AbsValue)(using st: AbsState): AbsValue =
       AbsValue(
-        strings = this.strings intersect that.strings,
-        symbols = this.symbols intersect that.symbols,
+        params = this.params intersect that.params,
+        asts = this.asts intersect that.asts,
       )
 
     /** get string of abstract value with an abstract state */
@@ -52,20 +51,18 @@ trait AbsValueDecl { self: PropFlowAnalyzer =>
     /** bottom element */
     lazy val Bot: AbsValue = AbsValue()
 
-    /** create abstract value from strings */
-    def string(s: String*): AbsValue = AbsValue(strings = s.toSet)
+    /** create abstract value from parameters */
+    def param(a: Param*): AbsValue = AbsValue(params = a.toSet)
 
-    /** create abstract value from symbol names */
-    def symbol(s: String*): AbsValue = AbsValue(symbols = s.toSet)
+    /** create abstract value from asts */
+    def ast(a: AstExpr*): AbsValue = AbsValue(asts = a.toSet)
 
     /** appender */
     given rule: Rule[AbsValue] = (app, value) => {
       given Rule[List[String]] = iterableRule("[", ", ", "]")
-      val AbsValue(strings, symbols) = value
-      val strs =
-        strings.map("\"" + _ + "\"") ++
-        symbols.map("@SYMBOL." + _)
-      app >> strs.toList.sorted
+      val AbsValue(params, asts) = value
+      val sources = params.map("\"" + _.lhs + "\"") // ++ asts.map(x => x)
+      app >> sources.toList.map(_.toString).sorted
     }
   }
 }

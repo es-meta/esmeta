@@ -1,4 +1,4 @@
-package esmeta.analyzer.propflow
+package esmeta.analyzer.astflow
 
 import esmeta.{ANALYZE_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
@@ -9,8 +9,8 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
-/** property flow analyzer in ECMA-262 */
-class PropFlowAnalyzer(
+/** ast flow analyzer in ECMA-262 */
+class AstFlowAnalyzer(
   val cfg: CFG,
   val log: Boolean = false,
 ) extends Analyzer
@@ -48,7 +48,17 @@ class PropFlowAnalyzer(
     func <- targets
     entry = func.entry
     np = NodePoint(func, entry, emptyView)
-  } yield np -> AbsState.Bot).toMap
+    st = getState(func)
+  } yield np -> st).toMap
+
+  /** get initial state of function */
+  private def getState(func: Func): AbsState =
+    func.params.foldLeft(AbsState.Bot) {
+      case (st, param) =>
+        val x = param.lhs
+        val v = AbsValue.param(param)
+        st.update(x, v)
+    }
 
   /** update internal map */
   def +=(pair: (NodePoint[Node], AbsState)): Unit =
@@ -70,6 +80,6 @@ class PropFlowAnalyzer(
   def logging: Unit = ???
 
   // ---------------------------------------------------------------------------
-  // Implementation for PropFlowAnalyzer
+  // Implementation for AstFlowAnalyzer
   // ---------------------------------------------------------------------------
 }

@@ -1,15 +1,15 @@
-package esmeta.analyzer.propflow
+package esmeta.analyzer.astflow
 
 import esmeta.cfg.{util => _, *}
+import esmeta.interpreter.Interpreter
 import esmeta.ir.{Func => _, util => _, *}
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import scala.annotation.tailrec
-import esmeta.es.builtin.JOB_QUEUE
+import esmeta.es.Ast
 
-trait AbsTransferDecl { analyzer: PropFlowAnalyzer =>
+trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
 
   /** abstract transfer function */
   class AbsTransfer extends AbsTransferLike {
@@ -42,6 +42,28 @@ trait AbsTransferDecl { analyzer: PropFlowAnalyzer =>
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit = ???
 
+    /** transfer function for call instructions */
+    def transfer(
+      call: Call,
+    )(using np: NodePoint[_]): Updater = {
+      call.callInst match {
+        case ICall(lhs, _, args) =>
+          for {
+            vs <- join(args.map(transfer))
+            _ <- for {
+              v <- vs
+            } yield modify(_.update(lhs, v))
+          } yield ()
+        case ISdoCall(lhs, _, _, args) =>
+          for {
+            vs <- join(args.map(transfer))
+            _ <- for {
+              v <- vs
+            } yield modify(_.update(lhs, v))
+          } yield ()
+      }
+    }
+
     /** transfer function for normal instructions */
     def transfer(
       inst: NormalInst,
@@ -56,6 +78,16 @@ trait AbsTransferDecl { analyzer: PropFlowAnalyzer =>
           v <- transfer(expr)
           _ <- modify(_.update(x, v))
         } yield ()
+      case IAssign(Field(x: Local, _), expr) =>
+        for {
+          v <- transfer(expr)
+          _ <- modify(_.update(x, v))
+        } yield ()
+      case IPush(expr, ERef(list: Local), _) =>
+        for {
+          v <- transfer(expr)
+          _ <- modify(_.update(list, v))
+        } yield ()
       case _ => st => st /* simple propagation of current abstract state */
     }
 
@@ -63,10 +95,37 @@ trait AbsTransferDecl { analyzer: PropFlowAnalyzer =>
     def transfer(
       expr: Expr,
     )(using np: NodePoint[Node]): Result[AbsValue] = expr match {
-      case EStr(str)                                 => AbsValue.string(str)
-      case ERef(Field(Global("SYMBOL"), EStr(name))) => AbsValue.symbol(name)
-      case _                                         => AbsValue.Bot
+      // case EParse(code, rule)           => ???
+      // case EGrammarSymbol(name, params) => AbsValue.ast(ESyntactic(name, params, ???, ???))
+      // case ESourceText(expr) => ???
+      case ERef(ref) =>
+        for {
+          v <- transfer(ref)
+        } yield v
+      // case syn: ESyntactic => AbsValue.ast(syn)
+      // case lex: ELexical   => AbsValue.ast(lex)
+      case _ => AbsValue.Bot
     }
+
+    /** transfer function for references */
+    def transfer(
+      ref: Ref,
+    )(using np: NodePoint[Node]): Result[AbsValue] = ref match
+      case name: Name => AbsValue.param(Param(name))
+      // case temp: Temp   => ???
+      // case field: Field => ???
+      case _ => AbsValue.Bot
+    // case x: Var => ???
+    // for {
+    //   v <- get(_.get(x))
+    // } yield v
+    // case field @ Field(base, expr) => ???
+    // for {
+    //   b <- transfer(base)
+    //   p <- transfer(expr)
+    //   // given AbsState <- get
+    //   // v <- get(_.get(b, p))
+    // } yield ???
 
     /** transfer function for unary operators */
     def transfer(
