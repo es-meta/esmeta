@@ -9,6 +9,7 @@ import esmeta.util.HtmlUtils.escapeES
 import scala.annotation.{tailrec, targetName}
 import esmeta.util.SystemUtils.dumpFile
 import scala.util.chaining.*
+import esmeta.util.HtmlUtils.escapeHtml
 
 trait EOGDecl { self: Self =>
 
@@ -44,7 +45,7 @@ trait EOGDecl { self: Self =>
         if (np.node.isInstanceOf[Call])
         NodePoint(func, node, view) = np
         nextView = view + node.asInstanceOf[Call]
-        if (npMap.keySet.forall { _.view != nextView }) // no-inline
+        // if (npMap.keySet.forall { _.view != nextView }) // no-inline
         succ <- node.succs
         nextNp = transfer.getNextNp(np, succ)
       } yield np -> nextNp)
@@ -90,7 +91,7 @@ trait EOGDecl { self: Self =>
 
   object Reducers {
     def apply(eog: EOG): EOG = fix(reduce)(eog)
-    private def reduce = reduceNode >>> reduceBranch
+    private def reduce = reduceNode // >>> reduceBranch
 
     /* reduce p => node -> c as p => c, when node is not marked */
     private def reduceNode(eog: EOG): EOG = {
@@ -169,9 +170,15 @@ trait EOGDecl { self: Self =>
         case ReturnPoint(func, view) => s"\"${func.id}:return\""
 
       def label: String = x match
-        case NodePoint(func, node, view) =>
-          s"${view.toString()}:${func.name}:${node.toString()}".escapeES
-        case ReturnPoint(func, view) => s"${func.name}:return".escapeES
+        case np @ NodePoint(func, node, view) =>
+          val content =
+            s"<TR><TD>${view.toString.escapeHtml}:${func.name.escapeHtml}<BR />${node.toString().escapeHtml}<BR /></TD></TR>"
+          val table = npMap
+            .get(np)
+            .map(_.locals)
+            .fold("<TR><TD><BR /></TD></TR>")(_.asTrsHtml)
+          """<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">""" + content + "<TR><TD><TABLE>" + table + "</TABLE></TD></TR>" + "</TABLE>>"
+        case ReturnPoint(func, view) => s"\"${func.name}:return\""
 
       def color: DotFile.Color = DotFile.Color.Black
       def bgColor: DotFile.Color =
@@ -200,13 +207,24 @@ trait EOGDecl { self: Self =>
         case _: ReturnPoint => DotFile.Shape.Ellipse
 
       override def edgeLabel(y: ControlPoint): String = (x, y) match
-        case ((_: ReturnPoint), (_: NodePoint[?])) => "return"
-        case _                                     => ""
+        case ((_: ReturnPoint), (_: NodePoint[?])) => "\"return\""
+        case _                                     => "\"\""
 
     end extension
   }
 
   // auxiliaries
+
+  extension [A, B](map: Map[A, B]) {
+    def asTrsHtml: String = {
+      map
+        .map {
+          case (k, v) =>
+            s"<TR><TD>${escapeHtml(k.toString)}</TD><TD>${escapeHtml(v.toString)}</TD></TR>"
+        }
+        .mkString("\n")
+    }
+  }
 
   extension [A](a: A) {
     inline def some: Some[A] = Some(a)

@@ -34,6 +34,9 @@ case object GenEOG extends Phase[CFG, Unit] {
       path = file.getAbsolutePath
       ext = getExt(file.getName)
       if ext == "js"
+      dotFullPath = changeExt("js", "full.dot")(path)
+      pdfFullPath = changeExt("js", "full.pdf")(path)
+
       dotPath = changeExt("js", "dot")(path)
       pdfPath = changeExt("js", "pdf")(path)
     } do {
@@ -46,6 +49,8 @@ case object GenEOG extends Phase[CFG, Unit] {
         useRepl = config.useRepl,
       )
       analyzer.analyze
+      dumpFile(analyzer.eog.dot, dotFullPath)
+      executeCmd(s"""dot -Tpdf "$dotFullPath" -o "$pdfFullPath"""")
       dumpFile(analyzer.eog.simplified.dot, dotPath)
       executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath"""")
     }

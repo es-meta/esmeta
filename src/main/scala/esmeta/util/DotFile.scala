@@ -1,20 +1,21 @@
 package esmeta.util
 
 import java.util.Locale.ROOT
+import org.apache.commons.text.StringEscapeUtils
 
 trait Dottable[T]:
   extension (x: T)
     def id: String
     def label: String
-    def edgeLabel(y: T): String = y.label
+    def edgeLabel(y: T): String
     def subgraph: Option[String] = None
     def color: DotFile.Color
     def bgColor: DotFile.Color
     def shape: DotFile.Shape = DotFile.Shape.Ellipse
     final def dotDef: String =
-      s"""$id [label="$label", color="$color", shape="$shape", style="filled", fillcolor="$bgColor"]"""
+      s"""$id [label=$label, color="$color", shape="$shape", style="filled", fillcolor="$bgColor"]"""
     final def edgeDef(y: T): String =
-      s"""$id -> ${y.id} [label="${x.edgeLabel(y)}"]"""
+      s"""$id -> ${y.id} [label=${x.edgeLabel(y)}]"""
 
 class DotFile[Node: Dottable](
   nodes: Seq[Node],
