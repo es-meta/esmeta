@@ -111,6 +111,15 @@ case object CmdTyCheck extends Command("tycheck", CmdBuildCFG >> TyCheck) {
   )
 }
 
+/** `ast-flow` command */
+case object CmdAstFlow extends Command("ast-flow", CmdBuildCFG >> AstFlow) {
+  val help = "performs an analysis for flow of ASTs."
+  val examples = List(
+    "esmeta ast-flow                              # analyze spec.",
+    "esmeta ast-flow -tycheck:target='.*ToString' # analyze spec. with targets",
+  )
+}
+
 // -----------------------------------------------------------------------------
 // Interpreter & Double Debugger for ECMAScript
 // -----------------------------------------------------------------------------

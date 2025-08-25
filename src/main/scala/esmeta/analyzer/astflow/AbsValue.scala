@@ -12,17 +12,15 @@ import esmeta.util.BaseUtils.*
 trait AbsValueDecl { self: AstFlowAnalyzer =>
 
   case class AbsValue(
-    params: Set[Param] = Set(),
-    asts: Set[AstExpr] = Set(),
+    params: Set[String] = Set(),
   ) extends AbsValueLike {
 
     /** bottom check */
-    def isBottom: Boolean = params.isEmpty && asts.isEmpty
+    def isBottom: Boolean = params.isEmpty
 
     /** partial order */
     def ⊑(that: AbsValue)(using st: AbsState): Boolean =
-      (this.params subsetOf that.params) &&
-      (this.asts subsetOf that.asts)
+      this.params subsetOf that.params
 
     /** not partial order */
     def !⊑(that: AbsValue)(using AbsState): Boolean = !(this ⊑ that)
@@ -30,14 +28,12 @@ trait AbsValueDecl { self: AstFlowAnalyzer =>
     /** join operator */
     def ⊔(that: AbsValue)(using st: AbsState): AbsValue = AbsValue(
       params = this.params ++ that.params,
-      asts = this.asts ++ that.asts,
     )
 
     /** meet operator */
     def ⊓(that: AbsValue)(using st: AbsState): AbsValue =
       AbsValue(
         params = this.params intersect that.params,
-        asts = this.asts intersect that.asts,
       )
 
     /** get string of abstract value with an abstract state */
@@ -52,17 +48,13 @@ trait AbsValueDecl { self: AstFlowAnalyzer =>
     lazy val Bot: AbsValue = AbsValue()
 
     /** create abstract value from parameters */
-    def param(a: Param*): AbsValue = AbsValue(params = a.toSet)
-
-    /** create abstract value from asts */
-    def ast(a: AstExpr*): AbsValue = AbsValue(asts = a.toSet)
+    def apply(xs: String*): AbsValue = AbsValue(params = xs.toSet)
 
     /** appender */
     given rule: Rule[AbsValue] = (app, value) => {
       given Rule[List[String]] = iterableRule("[", ", ", "]")
-      val AbsValue(params, asts) = value
-      val sources = params.map("\"" + _.lhs + "\"") // ++ asts.map(x => x)
-      app >> sources.toList.map(_.toString).sorted
+      val AbsValue(params) = value
+      app >> params.toList.sorted
     }
   }
 }
