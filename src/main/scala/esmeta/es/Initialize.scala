@@ -49,6 +49,7 @@ class Initialize(cfg: CFG) {
     SOURCE_TEXT -> (Str(""), StrT),
     HOST_DEFINED -> (Undef, UndefT),
     INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
+    TYPED_ARRAY -> (NamedAddr(TYPED_ARRAY), MapT(StrT, taType)),
     GLOBAL -> (NamedAddr(GLOBAL), UnknownTy()),
     SYMBOL -> (NamedAddr(SYMBOL), sym.ty),
     MATH_PI -> (Math(scala.math.Pi), MathT),
@@ -116,16 +117,42 @@ class Initialize(cfg: CFG) {
     Heap(map)
   }
 
+  /** names of intrinsic built-in objects */
+  lazy val intrNames = intr.replacedModels.map(_.name).toSet ++ yets.keySet
+
   /** intrinsic object */
   lazy val intrObj = MapObj(
     intrNames.toList.map(x => Str(s"%$x%") -> intrAddr(x)),
   )
 
+  /** names of typed array constructors */
+  lazy val taInstances = intr.getInstances("TypedArray")
+
+  /** names of typed array constructors */
+  lazy val taNames = taInstances.keys.toList.sorted
+
+  /** type of typed array constructors */
+  lazy val taType = RecordT(
+    "",
+    Map(
+      "Intrinsic" -> ObjectT,
+      "ElementType" -> EnumT,
+      "ElementSize" -> NonNegIntT,
+      "ConversionOperation" -> CloT,
+    ),
+  )
+
+  /** information of typed array constructors */
+  lazy val taObj = MapObj(taNames.map(x => Str(x) -> taAddr(x)))
+
   /** names of intrinsic built-in objects */
   lazy val intrHeap = {
     import intr.*
 
-    var _map = Map[Addr, Obj](NamedAddr(INTRINSICS) -> intrObj)
+    var _map = Map[Addr, Obj](
+      NamedAddr(INTRINSICS) -> intrObj,
+      NamedAddr(TYPED_ARRAY) -> taObj,
+    )
 
     // add intrinsic objects
     for {
@@ -144,6 +171,15 @@ class Initialize(cfg: CFG) {
       _map ++= getMapObjects(iname, name, nmap.map { _ -> toDesc(_) })
     }
 
+    // add typed array constructors
+    for {
+      (x, m) <- taInstances
+      addr = taAddr(x)
+      record = RecordObj("", m.map { (k, v) => k -> toValue(v) })
+    } {
+      _map += addr -> record
+    }
+
     // not yet objects
     yets.foreach { (name, _) =>
       _map += (intrAddr(name) -> YetObj(name, name))
@@ -152,9 +188,6 @@ class Initialize(cfg: CFG) {
     // result
     _map
   }
-
-  /** names of intrinsic built-in objects */
-  lazy val intrNames = intr.replacedModels.map(_.name).toSet ++ yets.keySet
 
   /** types of intrinsic built-in objects */
   lazy val intrTypes: Map[String, ValueTy] =

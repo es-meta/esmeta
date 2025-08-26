@@ -1113,6 +1113,7 @@ GetUTCEpochNanoseconds
 GetV
 GetValue
 GetViewByteLength
+GetViewValue
 GlobalDeclarationInstantiation
 GroupBy
 GroupName[0,0].CapturingGroupName
@@ -1691,6 +1692,7 @@ IsTypedArrayFixedLength
 IsUnclampedIntegerElementType
 IsUnresolvableReference
 IsUnsignedElementType
+IsValidIntegerIndex
 IterationStatement[0,0].LoopEvaluation
 IterationStatement[1,0].LoopEvaluation
 IterationStatement[2,0].LoopEvaluation
@@ -1944,6 +1946,7 @@ Number::bitwiseXOR
 Number::divide
 Number::equal
 Number::leftShift
+Number::multiply
 Number::sameValue
 Number::sameValueZero
 Number::signedRightShift
@@ -2288,6 +2291,7 @@ SetIntegrityLevel
 SetSyntheticModuleExport
 SetTypedArrayFromArrayLike
 SetTypedArrayFromTypedArray
+SetViewValue
 SetterThatIgnoresPrototypeProperties
 ShiftExpression[1,0].AssignmentTargetType
 ShiftExpression[1,0].Evaluation
@@ -2408,6 +2412,7 @@ StrUnsignedDecimalLiteral[0,0].StringNumericValue
 StrUnsignedDecimalLiteral[3,0].StringNumericValue
 StrUnsignedDecimalLiteral[3,1].StringNumericValue
 StringCreate
+StringGetOwnProperty
 StringIndexOf
 StringLastIndexOf
 StringNumericLiteral[0,0].StringNumericValue
@@ -2508,6 +2513,7 @@ TryStatement[2,0].VarScopedDeclarations
 TypedArrayByteLength
 TypedArrayCreate
 TypedArrayCreateFromConstructor
+TypedArrayElementSize
 TypedArrayGetElement
 TypedArrayLength
 TypedArraySetElement
@@ -2604,6 +2610,7 @@ __APPEND_LIST__
 __CLAMP__
 __FLAT_LIST__
 __GET_ITEMS__
+__GET_TYPED_ARRAY_INFO_FROM_TYPE__
 __HAS_DUPLICATE__
 __IS_ARRAY_INDEX__
 __NEW_ERROR_OBJ__

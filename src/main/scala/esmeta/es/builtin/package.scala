@@ -14,6 +14,7 @@ val U = Undef
 
 /** predefined constants */
 val INTRINSICS = "INTRINSICS"
+val TYPED_ARRAY = "TYPED_ARRAY"
 val GLOBAL = "GLOBAL"
 val SYMBOL = "SYMBOL"
 val MATH_PI = "MATH_PI"
@@ -74,14 +75,14 @@ val yetFuncs: Set[String] = Set(
   "String.prototype.toLocaleUpperCase",
 )
 
-/** table id for
-  * (table-6)[https://tc39.es/ecma262/#table-well-known-intrinsic-objects]
-  */
+// https://tc39.es/ecma262/#table-well-known-intrinsic-objects
 val WELL_KNOWN_INTRINSICS = "table-well-known-intrinsic-objects"
 
-/** table id for (table-1)[https://tc39.es/ecma262/#sec-well-known-symbols]
-  */
+// https://tc39.es/ecma262/#sec-well-known-symbols
 val WELL_KNOWN_SYMBOLS = "table-well-known-symbols"
+
+// https://tc39.es/ecma262/#table-well-known-intrinsic-objects
+val TYPED_ARRAY_CONSTRUCTORS = "table-the-typedarray-constructors"
 
 // address for the current realm
 val realmAddr = NamedAddr(REALM)
@@ -91,6 +92,12 @@ def intrName(name: String): String = s"$INTRINSICS.$name"
 
 /** intrinsics addr */
 def intrAddr(name: String): NamedAddr = NamedAddr(intrName(name))
+
+/** typed array name */
+def taName(name: String): String = s"$TYPED_ARRAY.$name"
+
+/** typed array addr */
+def taAddr(name: String): NamedAddr = NamedAddr(taName(name))
 
 /** map name */
 def mapName(name: String): String = s"$name.$INNER_MAP"

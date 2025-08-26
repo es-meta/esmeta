@@ -845,7 +845,11 @@ trait Parsers extends IndentParsers {
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
     "an instance of" ~> prodLiteral |
     // NumberBitwiseOp
-    "the 32-bit two's complement bit string representing" ~> expr
+    "the 32-bit two's complement bit string representing" ~> expr |
+    // _TypedArray_
+    "the String value of the Constructor Name value specified in" ~
+    "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref>" ~
+    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_) }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
@@ -1453,7 +1457,7 @@ trait Parsers extends IndentParsers {
     b: Parser[Boolean],
     p: Parser[T],
   ): Parser[Boolean ~ List[T]] =
-    lazy val compoundGuard = guard(not("is" | ">" | "(" | "of"))
+    lazy val compoundGuard = guard(not("is" | "<" | ">" | "(" | "of"))
     ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
     (b <~ "either") ~ p ~ ("or" ~> p) ^^ {
       case b ~ p0 ~ p1 => new ~(b, List(p0, p1))

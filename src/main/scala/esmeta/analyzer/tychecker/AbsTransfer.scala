@@ -740,6 +740,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           } yield {
             val lty = lv.ty
             val rty = rv.ty
+            val lnumber = lty.number
+            val rnumber = rty.number
             val lmath = lty.math
             val rmath = rty.math
             def aux(
@@ -748,10 +750,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               pos: Boolean,
               isLt: Boolean,
             ): Option[ValueTy] = {
-              var math = lty.math
-              val infinity = lty.infinity --
-                (if (!(isLt ^ pos)) InfinityTy.Pos else InfinityTy.Neg)
-              if (lty.math <= MathTy.Int) rty.getSingle match
+              var math = lmath
+              if (lmath <= MathTy.Int) rty.getSingle match
                 case One(Math(0)) =>
                   math = (isLt, pos) match
                     case (true, true)   => /* x < 0 */ MathTy.NegInt
@@ -771,10 +771,34 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                     case (false, true)  => /* x > P */ MathTy.PosInt
                     case (false, false) => /* x <= P */ MathTy.Int
                 case _ =>
+              val infinity = lty.infinity --
+                (if (!(isLt ^ pos)) InfinityTy.Pos else InfinityTy.Neg)
+              var number = lnumber
+              // TODO distinguish -0 and +0
+              if (lnumber <= NumberTy.Int) rty.getSingle match
+                case One(Number(0)) =>
+                  number = (isLt, pos) match
+                    case (true, true)   => /* x < 0 */ NumberTy.NegInt
+                    case (true, false)  => /* x >= 0 */ NumberTy.NonNegInt
+                    case (false, true)  => /* x > 0 */ NumberTy.PosInt
+                    case (false, false) => /* x <= 0 */ NumberTy.NonPosInt
+                case One(Number(v)) if v < 0 =>
+                  number = (isLt, pos) match
+                    case (true, true)   => /* x < N */ NumberTy.NegInt
+                    case (true, false)  => /* x >= N */ NumberTy.Int
+                    case (false, true)  => /* x > N */ NumberTy.Int
+                    case (false, false) => /* x <= N */ NumberTy.NegInt
+                case One(Number(v)) if v > 0 =>
+                  number = (isLt, pos) match
+                    case (true, true)   => /* x < P */ NumberTy.Int
+                    case (true, false)  => /* x >= P */ NumberTy.PosInt
+                    case (false, true)  => /* x > P */ NumberTy.PosInt
+                    case (false, false) => /* x <= P */ NumberTy.Int
+                case _ =>
               val refinedTy = ValueTy(
                 math = math,
                 infinity = infinity,
-                number = lty.number,
+                number = number,
                 bigInt = lty.bigInt,
               )
               if (lty != refinedTy) Some(refinedTy) else None

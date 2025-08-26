@@ -435,18 +435,75 @@ TypedArray.prototype = OrdinaryObject [
 
 // https://tc39.es/ecma262/#table-the-typedarray-constructors
 _TypedArray_ is {
-  Int8Array { ElementSize: 1f; }
-  Uint8Array { ElementSize: 1f; }
-  Uint8ClampedArray { ElementSize: 1f; }
-  Int16Array { ElementSize: 2f; }
-  Uint16Array { ElementSize: 2f; }
-  Int32Array { ElementSize: 4f; }
-  Uint32Array { ElementSize: 4f; }
-  BigInt64Array { ElementSize: 8f; }
-  BigUint64Array { ElementSize: 8f; }
-  Float16Array { ElementSize: 2f; }
-  Float32Array { ElementSize: 4f; }
-  Float64Array { ElementSize: 8f; }
+  Int8Array {
+    Intrinsic: #INTRINSICS.Int8Array;
+    ElementType: ~int8~;
+    ElementSize: 1;
+    ConversionOperation: clo<ToInt8>;
+  }
+  Uint8Array {
+    Intrinsic: #INTRINSICS.Uint8Array;
+    ElementType: ~uint8~;
+    ElementSize: 1;
+    ConversionOperation: clo<ToUint8>;
+  }
+  Uint8ClampedArray {
+    Intrinsic: #INTRINSICS.Uint8ClampedArray;
+    ElementType: ~uint8clamped~;
+    ElementSize: 1;
+    ConversionOperation: clo<ToUint8Clamp>;
+  }
+  Int16Array {
+    Intrinsic: #INTRINSICS.Int16Array;
+    ElementType: ~int16~;
+    ElementSize: 2;
+    ConversionOperation: clo<ToInt16>;
+  }
+  Uint16Array {
+    Intrinsic: #INTRINSICS.Uint16Array;
+    ElementType: ~uint16~;
+    ElementSize: 2;
+    ConversionOperation: clo<ToUint16>;
+  }
+  Int32Array {
+    Intrinsic: #INTRINSICS.Int32Array;
+    ElementType: ~int32~;
+    ElementSize: 4;
+    ConversionOperation: clo<ToInt32>;
+  }
+  Uint32Array {
+    Intrinsic: #INTRINSICS.Uint32Array;
+    ElementType: ~uint32~;
+    ElementSize: 4;
+    ConversionOperation: clo<ToUint32>;
+  }
+  BigInt64Array {
+    Intrinsic: #INTRINSICS.BigInt64Array;
+    ElementType: ~bigint64~;
+    ElementSize: 8;
+    ConversionOperation: clo<ToBigInt64>;
+  }
+  BigUint64Array {
+    Intrinsic: #INTRINSICS.BigUint64Array;
+    ElementType: ~biguint64~;
+    ElementSize: 8;
+    ConversionOperation: clo<ToBigUint64>;
+  }
+  Float16Array {
+    Intrinsic: #INTRINSICS.Float16Array;
+    ElementType: ~float16~;
+    ElementSize: 2;
+  }
+  Float32Array {
+    Intrinsic: #INTRINSICS.Float32Array;
+    ElementType: ~float32~;
+    ElementSize: 4;
+  }
+  Float64Array {
+    Intrinsic: #INTRINSICS.Float64Array;
+    ElementType: ~float64~;
+    ElementSize: 8;
+  }
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-typedarray-constructors
@@ -456,7 +513,7 @@ _TypedArray_ = BuiltinFunctionObject [
 ] {
   length: [FFT] 3.0f;
   name: [FFT] "(( TypedArray ))";
-  BYTES_PER_ELEMENT: [FFF] (( TypedArray.ElementSize ));
+  BYTES_PER_ELEMENT: [FFF] (( TypedArray.ElementSize ))f;
   prototype: [FFF] #INTRINSICS.(( TypedArray )).prototype;
 }
 
@@ -465,7 +522,7 @@ _TypedArray_.prototype = OrdinaryObject [
   Extensible: true;
   Prototype: #INTRINSICS.TypedArray.prototype;
 ] {
-  BYTES_PER_ELEMENT: [FFF] (( TypedArray.ElementSize ));
+  BYTES_PER_ELEMENT: [FFF] (( TypedArray.ElementSize ))f;
   constructor: [TFT] #INTRINSICS.(( TypedArray ));
 }
 
