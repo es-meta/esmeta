@@ -76,19 +76,40 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           v <- transfer(expr)
           _ <- modify(_.update(x, v))
         } yield ()
-      case IAssign(x: Global, expr) => ???
+      case IAssign(x: Global, expr) => st => st /* TODO */
       case IAssign(x: Local, expr) =>
         for {
           v <- transfer(expr)
           _ <- modify(_.update(x, v))
         } yield ()
-      case IAssign(ref, expr)       => ???
-      case IExpand(base, expr)      => ???
-      case IDelete(base, expr)      => ???
-      case IPush(elem, list, front) => ???
-      case IPop(lhs, list, front)   => ???
-      case IPrint(expr)             => ???
-      case INop()                   => ???
+      case IAssign(ref, expr)          => st => st /* TODO */
+      case IExpand(base: Global, expr) => st => st /* TODO */
+      case IExpand(base: Local, expr) =>
+        for {
+          bv <- transfer(base)
+          v <- transfer(expr)
+          st <- get
+          given AbsState = st
+          newV = bv ⊔ v
+          _ <- modify(_.update(base, newV))
+        } yield ()
+      case IExpand(ref, expr)  => st => st /* TODO */
+      case IDelete(base, expr) => st => st /* TODO */
+      case IPush(expr, ERef(list: Local), _) =>
+        for {
+          l <- transfer(list)
+          v <- transfer(expr)
+          st <- get
+          given AbsState = st
+          newV = l ⊔ v
+          _ <- modify(_.update(list, newV))
+        } yield ()
+      case IPush(expr, list, front) => st => st /* TODO */
+      case IPop(lhs, list, front) =>
+        for {
+          v <- transfer(list)
+          _ <- modify(_.update(lhs, v))
+        } yield ()
       case _ => st => st /* simple propagation of current abstract state */
     }
 
@@ -96,13 +117,34 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
     def transfer(
       expr: Expr,
     )(using np: NodePoint[Node]): Result[AbsValue] = expr match {
-      case EParse(code, rule)           => ???
-      case EGrammarSymbol(name, params) => ???
-      case ESourceText(expr)            => ???
-      case EYet(msg)                    => ???
-      case EContains(list, expr)        => ???
-      case ESubstring(expr, from, to)   => ???
-      case ETrim(expr, isStarting)      => ???
+      case EParse(code, rule) =>
+        for {
+          ce <- transfer(code)
+          re <- transfer(rule)
+          st <- get
+          given AbsState = st
+          v = ce ⊔ re
+        } yield v
+      case EGrammarSymbol(name, params) =>
+        AbsValue(
+          s"|$name|[${params.map(b => if (b) then "T" else "F").mkString}]",
+        )
+      case ESourceText(expr) =>
+        for {
+          v <- transfer(expr)
+        } yield v
+      case EContains(list, expr) =>
+        for {
+          v <- transfer(list)
+        } yield v
+      case ESubstring(expr, from, to) =>
+        for {
+          v <- transfer(expr)
+        } yield v
+      case ETrim(expr, isStarting) =>
+        for {
+          v <- transfer(expr)
+        } yield v
       case ERef(ref) =>
         for {
           v <- transfer(ref)
@@ -130,31 +172,85 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           vs <- join(exprs.map(transfer))
           st <- get
         } yield transfer(st, mop, vs)
-      case EConvert(cop, expr)                      => ???
-      case EExists(ref)                             => ???
-      case ETypeOf(base)                            => ???
-      case EInstanceOf(base, target)                => ???
-      case ETypeCheck(base, ty)                     => ???
-      case ESizeOf(base)                            => ???
-      case EClo(fname, captured)                    => ???
-      case ECont(fname)                             => ???
-      case EDebug(expr)                             => ???
-      case ERandom()                                => ???
-      case ESyntactic(name, args, rhsIdx, children) => ???
-      case ELexical(name, expr)                     => ???
-      case ERecord(tname, pairs)                    => ???
-      case EMap(ty, pairs)                          => ???
-      case EList(exprs)                             => ???
-      case ECopy(obj)                               => ???
-      case EKeys(map, intSorted)                    => ???
-      case _                                        => AbsValue.Bot
+      case EConvert(cop, expr) =>
+        for {
+          v <- transfer(expr)
+        } yield v
+      case EExists(ref) =>
+        for {
+          v <- transfer(ref)
+        } yield v
+      case ETypeOf(base) =>
+        for {
+          v <- transfer(base)
+        } yield v
+      case EInstanceOf(base, target) =>
+        for {
+          v <- transfer(base)
+        } yield v
+      case ETypeCheck(base, ty) =>
+        for {
+          v <- transfer(base)
+        } yield v
+      case ESizeOf(base) =>
+        for {
+          v <- transfer(base)
+        } yield v
+      case EClo(fname, captured) =>
+        for {
+          vs <- join(captured.map(transfer))
+          st <- get
+          given AbsState = st
+          v = vs.foldLeft(AbsValue.Bot)(_ ⊔ _)
+        } yield v
+      case EDebug(expr) =>
+        for {
+          v <- transfer(expr)
+        } yield v
+      case ESyntactic(name, args, rhsIdx, children) => // FIXME: temporary
+        AbsValue(
+          s"|$name|[${args.map(b => if (b) then "T" else "F").mkString}]<$rhsIdx>",
+        )
+      case ELexical(name, expr) =>
+        AbsValue(s"|$name|($expr)") // FIXME: temporary
+      case ERecord(tname, pairs) =>
+        for {
+          vs <- join(pairs.map(_._2).map(transfer))
+          st <- get
+          given AbsState = st
+          v = vs.foldLeft(AbsValue.Bot)(_ ⊔ _)
+        } yield v
+      case EMap(ty, pairs) =>
+        for {
+          ks <- join(pairs.map(_._1).map(transfer))
+          vs <- join(pairs.map(_._2).map(transfer))
+          st <- get
+          given AbsState = st
+          v = (ks ++ vs).foldLeft(AbsValue.Bot)(_ ⊔ _)
+        } yield v
+      case EList(exprs) =>
+        for {
+          vs <- join(exprs.map(transfer))
+          st <- get
+          given AbsState = st
+          v = vs.foldLeft(AbsValue.Bot)(_ ⊔ _)
+        } yield v
+      case ECopy(obj) =>
+        for {
+          v <- transfer(obj)
+        } yield v
+      case EKeys(map, intSorted) =>
+        for {
+          v <- transfer(map)
+        } yield v
+      case _ => AbsValue.Bot
     }
 
     /** transfer function for references */
     def transfer(
       ref: Ref,
     )(using np: NodePoint[Node]): Result[AbsValue] = ref match
-      case x: Global => ???
+      case x: Global => AbsValue.Bot // FIXME: temporary
       case x: Local =>
         for {
           v <- get(_(x))
