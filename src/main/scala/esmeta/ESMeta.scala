@@ -87,6 +87,8 @@ object ESMeta extends Git(BASE_DIR) {
     CmdDumpVisualizer,
     // ECMA-262 GitHub Actions
     CmdYetCheck,
+    // Polyfill Generator
+    CmdGenPoly,
   )
   val cmdMap = commands.foldLeft[Map[String, Command[_]]](Map()) {
     case (map, cmd) => map + (cmd.name -> cmd)
@@ -115,6 +117,8 @@ object ESMeta extends Git(BASE_DIR) {
     DumpVisualizer,
     // ECMA-262 GitHub Actions
     YetCheck,
+    // Polyfill Generator
+    GenPoly,
   )
 
   /** command options */

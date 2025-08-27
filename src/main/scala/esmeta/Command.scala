@@ -226,3 +226,15 @@ case object CmdYetCheck extends Command("yet-check", CmdBase >> YetCheck) {
     println(s"Found $yetSteps yet-steps and $yetTypes yet-types.")
   }
 }
+
+// -----------------------------------------------------------------------------
+// Polyfill Generator
+// -----------------------------------------------------------------------------
+/** `gen-poly` command */
+case object CmdGenPoly extends Command("gen-poly", CmdExtract >> GenPoly) {
+  val help = "generates polyfill code."
+  val examples = List(
+    "esmeta gen-poly                        # generate polyfill code.",
+    "esmeta gen-poly -extract:target=es2022 # generate polyfill from es2022.",
+  )
+}
