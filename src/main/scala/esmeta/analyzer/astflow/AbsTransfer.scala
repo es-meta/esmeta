@@ -87,7 +87,6 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           _ <- modify(_.update(x, v))
         } yield ()
       case IExpand(base: Local, EStr(f)) =>
-        // FIXME: I'm not sure
         for {
           _ <- modify(_.update(base, AbsValue(f)))
         } yield ()
@@ -117,7 +116,7 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
     def transfer(
       expr: Expr,
     )(using np: NodePoint[Node]): Result[AbsValue] = expr match {
-      case EParse(code, rule) => // FIXME: AST related
+      case EParse(code, rule) =>
         for {
           c <- transfer(code)
           r <- transfer(rule)
@@ -125,10 +124,6 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           given AbsState = st
           v = c ⊔ r
         } yield v
-      case EGrammarSymbol(name, params) => // FIXME: AST related
-        AbsValue(
-          s"|$name|[${params.map(b => if (b) then "T" else "F").mkString}]",
-        )
       case ESourceText(expr) =>
         for {
           v <- transfer(expr)
@@ -216,12 +211,17 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           given AbsState = st
           v = vs.foldLeft(AbsValue.Bot)(_ ⊔ _)
         } yield v
-      case ESyntactic(name, args, rhsIdx, children) => // FIXME: AST related
-        AbsValue(
-          s"|$name|[${args.map(b => if (b) then "T" else "F").mkString}]<$rhsIdx>",
-        )
-      case ELexical(name, expr) =>
-        AbsValue(s"|$name|($expr)") // FIXME: AST related
+      case ESyntactic(_, _, _, children) =>
+        for {
+          vs <- join(children.flatten.map(transfer))
+          st <- get
+          given AbsState = st
+          v = vs.foldLeft(AbsValue.Bot)(_ ⊔ _)
+        } yield v
+      case ELexical(_, expr) =>
+        for {
+          v <- transfer(expr)
+        } yield v
       case ERecord(_, pairs) =>
         for {
           vs <- join(pairs.map(_._2).map(transfer))
