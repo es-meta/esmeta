@@ -91,7 +91,7 @@ trait EOGDecl { self: Self =>
 
   object Reducers {
     def apply(eog: EOG): EOG = fix(reduce)(eog)
-    private def reduce = reduceNode // >>> reduceBranch
+    private def reduce = reduceNode >>> reduceBranch
 
     /* reduce p => node -> c as p => c, when node is not marked */
     private def reduceNode(eog: EOG): EOG = {
