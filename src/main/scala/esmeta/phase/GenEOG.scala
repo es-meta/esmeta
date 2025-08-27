@@ -8,6 +8,7 @@ import esmeta.parser.ESParser
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import scala.util.Try
 
 /** `gen-eog` phase */
 case object GenEOG extends Phase[CFG, Unit] {
@@ -39,21 +40,22 @@ case object GenEOG extends Phase[CFG, Unit] {
 
       dotPath = changeExt("js", "dot")(path)
       pdfPath = changeExt("js", "pdf")(path)
-    } do {
-      println(s"Generating EOG for $path ...")
-      val ast = cfg.scriptParser.fromFile(path)
-      val analyzer = EOGGenerator(
-        cfg = cfg,
-        ast = ast,
-        log = config.log,
-        useRepl = config.useRepl,
-      )
-      analyzer.analyze
-      dumpFile(analyzer.eog.dot, dotFullPath)
-      executeCmd(s"""dot -Tpdf "$dotFullPath" -o "$pdfFullPath"""")
-      dumpFile(analyzer.eog.simplified.dot, dotPath)
-      executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath"""")
-    }
+    } do
+      Try {
+        println(s"Generating EOG for $path ...")
+        val ast = cfg.scriptParser.fromFile(path)
+        val analyzer = EOGGenerator(
+          cfg = cfg,
+          ast = ast,
+          log = config.log,
+          useRepl = config.useRepl,
+        )
+        analyzer.analyze
+        dumpFile(analyzer.eog.dot, dotFullPath)
+        executeCmd(s"""dot -Tpdf "$dotFullPath" -o "$pdfFullPath"""")
+        dumpFile(analyzer.eog.simplified.dot, dotPath)
+        executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath"""")
+      }.recover { _.printStackTrace() }
   }
 
   def nonBulk(
