@@ -86,7 +86,6 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
           _ <- modify(_.update(base, AbsValue(f)))
         } yield ()
       case IDelete(base, expr) =>
-        // TODO: fix after deleted using left fields in base
         st => st
       case IPush(expr, ERef(list: Local), _) =>
         for {
@@ -103,7 +102,6 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
           _ <- modify(_.update(lhs, AbsValue(lhs.name)))
         } yield ()
       case IPop(lhs, list, _) =>
-        // TODO: fix after popped using left elems in list
         for {
           v <- transfer(list)
           _ <- modify(_.update(lhs, v))
@@ -153,7 +151,6 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
           v <- transfer(expr)
         } yield v
       case ERef(ref) =>
-        // TODO: more precise this like this[0]
         for {
           v <- transfer(ref)
         } yield v
@@ -263,6 +260,14 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
       case x: Local =>
         for {
           v <- get(_(x))
+        } yield v
+      case field @ Field(base, expr) if field.baseName == "this" =>
+        // FIXME: ad-hoc impl. to handle precise this
+        for {
+          f <- transfer(expr)
+          st <- get
+          given AbsState = st
+          v = AbsValue(field.toString) ⊔ f
         } yield v
       case Field(base, expr) =>
         for {
