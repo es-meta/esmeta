@@ -1,15 +1,9 @@
-package esmeta.analyzer.astflow
+package esmeta.analyzer.paramflow
 
 import esmeta.cfg.{util => _, *}
-import esmeta.interpreter.Interpreter
 import esmeta.ir.{Func => _, util => _, *}
-import esmeta.state.*
-import esmeta.ty.*
-import esmeta.util.*
-import esmeta.util.BaseUtils.*
-import esmeta.es.Ast
 
-trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
+trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
 
   /** abstract transfer function */
   class AbsTransfer extends AbsTransferLike {
@@ -154,6 +148,7 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           v <- transfer(expr)
         } yield v
       case ERef(ref) =>
+        // TODO: more precise this like this[0]
         for {
           v <- transfer(ref)
         } yield v

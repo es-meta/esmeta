@@ -1,24 +1,24 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.analyzer.astflow.*
 import esmeta.cfg.{CFG, Func}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.analyzer.paramflow.ParamFlowAnalyzer
 
-/** `ast-flow` phase */
-case object AstFlow extends Phase[CFG, Unit] {
-  val name = "ast-flow"
-  val help = "performs an analysis for flow of ASTs."
+/** `param-flow` phase */
+case object ParamFlow extends Phase[CFG, Unit] {
+  val name = "param-flow"
+  val help = "performs an analysis for flow of parameters."
   def apply(
     cfg: CFG,
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
-    import AstFlowAnalyzer.*
+    import ParamFlowAnalyzer.*
     val silent = cmdConfig.silent
-    val analyzer = AstFlowAnalyzer(
+    val analyzer = ParamFlowAnalyzer(
       cfg = cfg,
       targetPattern = config.target,
       log = config.log,

@@ -1,9 +1,9 @@
-package esmeta.analyzer.astflow
+package esmeta.analyzer.paramflow
 
 import esmeta.util.Appender.*
 
 /** abstract return values */
-trait AbsRetDecl { self: AstFlowAnalyzer =>
+trait AbsRetDecl { self: ParamFlowAnalyzer =>
 
   case class AbsRet(value: AbsValue) extends AbsRetLike {
     import AbsRet.*

@@ -1,10 +1,9 @@
-package esmeta.analyzer.astflow
+package esmeta.analyzer.paramflow
 
-import esmeta.ty.*
 import esmeta.util.Appender.*
 
 /** view abstraction */
-trait ViewDecl { self: AstFlowAnalyzer =>
+trait ViewDecl { self: ParamFlowAnalyzer =>
 
   /** view abstraction for analysis sensitivities */
   object View extends ViewLike {

@@ -11,14 +11,14 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck ast-flow parse eval web test262-test fuzz inject mutate dump-debugger dump-visualizer"
+  cmdList="help extract compile build-cfg tycheck param-flow parse eval web test262-test fuzz inject mutate dump-debugger dump-visualizer"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets -extract:warn-action"
   compileOpt="-compile:log -compile:log-with-loc -compile:opt"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
   tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:detail-log -tycheck:type-sens -tycheck:infer-guard"
-  astflowOpt="-ast-flow:target -ast-flow:repl -ast-flow:repl-continue -ast-flow:log -ast-flow:detail-log"
+  paramflowOpt="-param-flow:target -param-flow:repl -param-flow:repl-continue -param-flow:log -param-flow:detail-log"
   parseOpt="-parse:debug"
   evalOpt="-eval:timeout -eval:multiple -eval:tycheck -eval:log -eval:detail-log"
   webOpt="-web:host -web:port"
@@ -60,8 +60,8 @@ _esmeta_completions() {
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${tycheckOpt}"))
           return 0
           ;;
-        ast-flow)
-          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${astflowOpt}"))
+        param-flow)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${paramflowOpt}"))
           return 0
           ;;
         parse)

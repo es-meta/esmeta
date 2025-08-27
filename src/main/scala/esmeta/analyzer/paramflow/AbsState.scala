@@ -1,15 +1,10 @@
-package esmeta.analyzer.astflow
+package esmeta.analyzer.paramflow
 
 import esmeta.ir.*
-import esmeta.ty.{*, given}
-import esmeta.state.*
-import esmeta.util.*
 import esmeta.util.Appender.*
-import esmeta.util.Appender.{*, given}
-import esmeta.util.BaseUtils.*
 
 /** abstract states */
-trait AbsStateDecl { self: AstFlowAnalyzer =>
+trait AbsStateDecl { self: ParamFlowAnalyzer =>
   import irStringifier.given
 
   case class AbsState(

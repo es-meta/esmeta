@@ -1,16 +1,15 @@
-package esmeta.analyzer.astflow
+package esmeta.analyzer.paramflow
 
-import esmeta.{AST_FLOW_LOG_DIR, LINE_SEP}
+import esmeta.{PARAM_FLOW_LOG_DIR, LINE_SEP}
 import esmeta.analyzer.*
 import esmeta.cfg.*
 import esmeta.ir.{Func => _, *, given}
 import esmeta.util.*
-import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
-/** ast flow analyzer in ECMA-262 */
-class AstFlowAnalyzer(
+/** param flow analyzer in ECMA-262 */
+class ParamFlowAnalyzer(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
   val log: Boolean = false,
@@ -105,7 +104,7 @@ class AstFlowAnalyzer(
     val time = elapsedTime
 
     // create log directory
-    mkdir(AST_FLOW_LOG_DIR)
+    mkdir(PARAM_FLOW_LOG_DIR)
 
     // basic logging
     dumpFile(
@@ -124,7 +123,7 @@ class AstFlowAnalyzer(
         )
         Yaml(info: _*)
       },
-      filename = s"$AST_FLOW_LOG_DIR/summary.yml",
+      filename = s"$PARAM_FLOW_LOG_DIR/summary.yml",
       silent = silent,
     )
     dumpFile(
@@ -133,13 +132,13 @@ class AstFlowAnalyzer(
         .sortBy(_._2)
         .map { case (cp, k) => s"[$k] $cp" }
         .mkString(LINE_SEP),
-      filename = s"$AST_FLOW_LOG_DIR/counter",
+      filename = s"$PARAM_FLOW_LOG_DIR/counter",
       silent = silent,
     )
 
     // detailed logging
     if (detail)
-      val unreachableDir = s"$AST_FLOW_LOG_DIR/unreachable"
+      val unreachableDir = s"$PARAM_FLOW_LOG_DIR/unreachable"
       val unreachableFuncs = cfg.funcs.filterNot(analyzedFuncs.contains)
       val unreachableNodes = cfg.nodes.filterNot(analyzedNodes.contains)
       val unreachableReturns = cfg.funcs.filterNot(analyzedReturns.contains)
@@ -177,13 +176,13 @@ class AstFlowAnalyzer(
       dumpFile(
         name = "detailed type analysis result for each control point",
         data = getStrings(detail = true).mkString(LINE_SEP),
-        filename = s"$AST_FLOW_LOG_DIR/detailed-result",
+        filename = s"$PARAM_FLOW_LOG_DIR/detailed-result",
         silent = silent,
       )
   }
 
   // ---------------------------------------------------------------------------
-  // Implementation for AstFlowAnalyzer
+  // Implementation for ParamFlowAnalyzer
   // ---------------------------------------------------------------------------
   /** all possible initial analysis target functions */
   def targetFuncs: List[Func] =

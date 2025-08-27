@@ -111,12 +111,13 @@ case object CmdTyCheck extends Command("tycheck", CmdBuildCFG >> TyCheck) {
   )
 }
 
-/** `ast-flow` command */
-case object CmdAstFlow extends Command("ast-flow", CmdBuildCFG >> AstFlow) {
-  val help = "performs an analysis for flow of ASTs."
+/** `param-flow` command */
+case object CmdParamFlow
+  extends Command("param-flow", CmdBuildCFG >> ParamFlow) {
+  val help = "performs an analysis for flow of parameters."
   val examples = List(
-    "esmeta ast-flow                              # analyze spec.",
-    "esmeta ast-flow -tycheck:target='.*ToString' # analyze spec. with targets",
+    "esmeta param-flow                              # analyze spec.",
+    "esmeta param-flow -tycheck:target='.*ToString' # analyze spec. with targets",
   )
 }
 

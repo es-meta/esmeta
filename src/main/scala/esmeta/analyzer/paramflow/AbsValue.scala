@@ -1,15 +1,9 @@
-package esmeta.analyzer.astflow
+package esmeta.analyzer.paramflow
 
-import esmeta.cfg.*
-import esmeta.ir.*
-import esmeta.state.*
-import esmeta.ty.{*, given}
-import esmeta.util.*
 import esmeta.util.Appender.*
-import esmeta.util.BaseUtils.*
 
 /** abstract values */
-trait AbsValueDecl { self: AstFlowAnalyzer =>
+trait AbsValueDecl { self: ParamFlowAnalyzer =>
 
   case class AbsValue(
     params: Set[String] = Set(),
