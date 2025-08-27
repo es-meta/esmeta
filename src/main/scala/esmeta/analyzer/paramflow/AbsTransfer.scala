@@ -32,6 +32,7 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
           call.next.foreach(to => analyzer += getNextNp(np, to) -> newSt)
         case br @ Branch(_, kind, cond, _, thenNode, elseNode) =>
           // TODO: handle condition `cond`
+          // TODO: support context (e.g. Object.prototype.toString step 4)
           thenNode.map(analyzer += getNextNp(np, _) -> st)
           elseNode.map(analyzer += getNextNp(np, _) -> st)
 
@@ -96,9 +97,13 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
           newV = l ⊔ v
           _ <- modify(_.update(list, newV))
         } yield ()
+      case IPop(lhs: Name, ERef(Name("ArgumentsList")), _) =>
+        // FIXME: ad-hoc impl. to handle BuiltinPrefix (ArgumentsList)
+        for {
+          _ <- modify(_.update(lhs, AbsValue(lhs.name)))
+        } yield ()
       case IPop(lhs, list, _) =>
         // TODO: fix after popped using left elems in list
-        // TODO: more precise param rather than ArgumentList
         for {
           v <- transfer(list)
           _ <- modify(_.update(lhs, v))
