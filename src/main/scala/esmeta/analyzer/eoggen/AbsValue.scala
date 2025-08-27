@@ -57,6 +57,7 @@ trait AbsValueDecl { self: EOGGenerator =>
     def getSdo(method: String): Flat[ChainResult] = value match
       case Zero | One(AstValue(_: Lexical)) => Zero
       case One(AstValue(syn: Syntactic))    => One(self.getSdo(syn, method))
+      case One(AstValue(hole: Hole))        => One(ChainResult.MeetHole(hole))
       case _                                => Many
 
     /** get string of abstract value with an abstract state */
