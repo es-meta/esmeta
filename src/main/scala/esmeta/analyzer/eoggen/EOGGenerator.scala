@@ -109,4 +109,6 @@ class EOGGenerator(
 
   /** hole AST for each sdo call with holes */
   var holeSdoInfo: Map[NodePoint[Call], Hole] = Map()
+
+  var exitPoint: ControlPoint = ReturnPoint(initialNp.func, initialNp.view)
 }

@@ -4,6 +4,6 @@ import esmeta.analyzer.eoggen.*
 
 type Self = EOGGenUtil & EOGGenerator
 
-trait EOGGenUtil extends EOGDecl {
+trait EOGGenUtil extends EOGDecl with EOGReducerDecl with EOGDotDecl {
   self: Self =>
 }
