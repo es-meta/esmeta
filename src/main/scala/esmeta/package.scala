@@ -15,6 +15,7 @@ val BASE_DIR = sys.env.getOrElse("ESMETA_HOME", throw NoEnvVarError)
 val LOG_DIR = s"$BASE_DIR/logs"
 val EXTRACT_LOG_DIR = s"$LOG_DIR/extract"
 val COMPILE_LOG_DIR = s"$LOG_DIR/compile"
+val POLYFILL_LOG_DIR = s"$LOG_DIR/polyfill"
 val CFG_LOG_DIR = s"$LOG_DIR/cfg"
 val ANALYZE_LOG_DIR = s"$LOG_DIR/analyze"
 val INJECT_LOG_DIR = s"$LOG_DIR/inject"

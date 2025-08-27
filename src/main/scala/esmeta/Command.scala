@@ -211,3 +211,15 @@ case object CmdDumpVisualizer
     "esmeta dump-visualizer                      # dump resources for visualizer",
   )
 }
+
+// -----------------------------------------------------------------------------
+// Polyfill Generator
+// -----------------------------------------------------------------------------
+/** `gen-poly` command */
+case object CmdGenPoly extends Command("gen-poly", CmdExtract >> GenPoly) {
+  val help = "generates polyfill code."
+  val examples = List(
+    "esmeta gen-poly                        # generate polyfill code.",
+    "esmeta gen-poly -extract:target=es2022 # generate polyfill from es2022.",
+  )
+}
