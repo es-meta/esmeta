@@ -36,8 +36,8 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
         case call: Call =>
           val newSt = transfer(call)(st)
           call.next.foreach(to => analyzer += getNextNp(np, to) -> newSt)
-        case br @ Branch(_, kind, c, _, thenNode, elseNode) =>
-          // TODO: handle condition `c`
+        case br @ Branch(_, kind, cond, _, thenNode, elseNode) =>
+          // TODO: handle condition `cond`
           thenNode.map(analyzer += getNextNp(np, _) -> st)
           elseNode.map(analyzer += getNextNp(np, _) -> st)
 
@@ -76,25 +76,24 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           v <- transfer(expr)
           _ <- modify(_.update(x, v))
         } yield ()
-      case IAssign(x: Global, expr) => st => st /* TODO */
       case IAssign(x: Local, expr) =>
         for {
           v <- transfer(expr)
           _ <- modify(_.update(x, v))
         } yield ()
-      case IAssign(ref, expr)          => st => st /* TODO */
-      case IExpand(base: Global, expr) => st => st /* TODO */
-      case IExpand(base: Local, expr) =>
+      case IAssign(Field(x: Local, EStr(f)), expr) =>
         for {
-          bv <- transfer(base)
           v <- transfer(expr)
-          st <- get
-          given AbsState = st
-          newV = bv ⊔ v
-          _ <- modify(_.update(base, newV))
+          _ <- modify(_.update(x, v))
         } yield ()
-      case IExpand(ref, expr)  => st => st /* TODO */
-      case IDelete(base, expr) => st => st /* TODO */
+      case IExpand(base: Local, EStr(f)) =>
+        // FIXME: I'm not sure
+        for {
+          _ <- modify(_.update(base, AbsValue(f)))
+        } yield ()
+      case IDelete(base, expr) =>
+        // TODO: fix after deleted using left fields in base
+        st => st
       case IPush(expr, ERef(list: Local), _) =>
         for {
           l <- transfer(list)
@@ -104,8 +103,9 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           newV = l ⊔ v
           _ <- modify(_.update(list, newV))
         } yield ()
-      case IPush(expr, list, front) => st => st /* TODO */
-      case IPop(lhs, list, front) =>
+      case IPop(lhs, list, _) =>
+        // TODO: fix after popped using left elems in list
+        // TODO: more precise param rather than ArgumentList
         for {
           v <- transfer(list)
           _ <- modify(_.update(lhs, v))
@@ -117,15 +117,15 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
     def transfer(
       expr: Expr,
     )(using np: NodePoint[Node]): Result[AbsValue] = expr match {
-      case EParse(code, rule) =>
+      case EParse(code, rule) => // FIXME: AST related
         for {
-          ce <- transfer(code)
-          re <- transfer(rule)
+          c <- transfer(code)
+          r <- transfer(rule)
           st <- get
           given AbsState = st
-          v = ce ⊔ re
+          v = c ⊔ r
         } yield v
-      case EGrammarSymbol(name, params) =>
+      case EGrammarSymbol(name, params) => // FIXME: AST related
         AbsValue(
           s"|$name|[${params.map(b => if (b) then "T" else "F").mkString}]",
         )
@@ -133,15 +133,28 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
         for {
           v <- transfer(expr)
         } yield v
-      case EContains(list, expr) =>
+      case EContains(list, _) =>
         for {
           v <- transfer(list)
         } yield v
-      case ESubstring(expr, from, to) =>
+      case ESubstring(expr, from, None) =>
         for {
           v <- transfer(expr)
-        } yield v
-      case ETrim(expr, isStarting) =>
+          f <- transfer(from)
+          st <- get
+          given AbsState = st
+          v0 = v ⊔ f
+        } yield v0
+      case ESubstring(expr, from, Some(to)) =>
+        for {
+          v <- transfer(expr)
+          f <- transfer(from)
+          t <- transfer(to)
+          st <- get
+          given AbsState = st
+          v0 = v ⊔ f ⊔ t
+        } yield v0
+      case ETrim(expr, _) =>
         for {
           v <- transfer(expr)
         } yield v
@@ -172,7 +185,7 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
           vs <- join(exprs.map(transfer))
           st <- get
         } yield transfer(st, mop, vs)
-      case EConvert(cop, expr) =>
+      case EConvert(_, expr) =>
         for {
           v <- transfer(expr)
         } yield v
@@ -184,11 +197,11 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
         for {
           v <- transfer(base)
         } yield v
-      case EInstanceOf(base, target) =>
+      case EInstanceOf(base, _) =>
         for {
           v <- transfer(base)
         } yield v
-      case ETypeCheck(base, ty) =>
+      case ETypeCheck(base, _) =>
         for {
           v <- transfer(base)
         } yield v
@@ -196,31 +209,27 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
         for {
           v <- transfer(base)
         } yield v
-      case EClo(fname, captured) =>
+      case EClo(_, captured) =>
         for {
           vs <- join(captured.map(transfer))
           st <- get
           given AbsState = st
           v = vs.foldLeft(AbsValue.Bot)(_ ⊔ _)
         } yield v
-      case EDebug(expr) =>
-        for {
-          v <- transfer(expr)
-        } yield v
-      case ESyntactic(name, args, rhsIdx, children) => // FIXME: temporary
+      case ESyntactic(name, args, rhsIdx, children) => // FIXME: AST related
         AbsValue(
           s"|$name|[${args.map(b => if (b) then "T" else "F").mkString}]<$rhsIdx>",
         )
       case ELexical(name, expr) =>
-        AbsValue(s"|$name|($expr)") // FIXME: temporary
-      case ERecord(tname, pairs) =>
+        AbsValue(s"|$name|($expr)") // FIXME: AST related
+      case ERecord(_, pairs) =>
         for {
           vs <- join(pairs.map(_._2).map(transfer))
           st <- get
           given AbsState = st
           v = vs.foldLeft(AbsValue.Bot)(_ ⊔ _)
         } yield v
-      case EMap(ty, pairs) =>
+      case EMap(_, pairs) =>
         for {
           ks <- join(pairs.map(_._1).map(transfer))
           vs <- join(pairs.map(_._2).map(transfer))
@@ -239,7 +248,7 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
         for {
           v <- transfer(obj)
         } yield v
-      case EKeys(map, intSorted) =>
+      case EKeys(map, _) =>
         for {
           v <- transfer(map)
         } yield v
@@ -250,7 +259,7 @@ trait AbsTransferDecl { analyzer: AstFlowAnalyzer =>
     def transfer(
       ref: Ref,
     )(using np: NodePoint[Node]): Result[AbsValue] = ref match
-      case x: Global => AbsValue.Bot // FIXME: temporary
+      case x: Global => AbsValue.Bot
       case x: Local =>
         for {
           v <- get(_(x))
