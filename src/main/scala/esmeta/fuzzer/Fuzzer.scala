@@ -17,7 +17,7 @@ import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
 import org.apache.commons.math3.distribution.BetaDistribution
-import scala.collection.mutable.{ListBuffer, Map => MMap, Queue => MQueue}
+import scala.collection.mutable.{ListBuffer, Map => MMap}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.*
 
@@ -106,8 +106,7 @@ class Fuzzer(
         } {
           debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
           i += 1
-          val current = s"$synthesizer -----> $code"
-          add(code, current)
+          add(code)
         }
       },
     )
@@ -196,9 +195,8 @@ class Fuzzer(
 
     for ((mutatorName, mutatedCode, info) <- mutants)
       debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
-      val current =
-        s"[$selectorInfo] $code ----- $mutatorName -----> $mutatedCode"
-      val result = add(mutatedCode, info, current)
+
+      val result = add(mutatedCode, info)
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
@@ -227,47 +225,36 @@ class Fuzzer(
     else CandInfo(interp = Some(Try(cov.run(code))))
 
   /** add new program */
-  def add(code: String, current: String): Boolean =
-    add(code, getCandInfo(code), current)
+  def add(code: String): Boolean = add(code, getCandInfo(code))
 
   /** add new program with precomputed info */
-  def add(code: String, info: CandInfo, current: String): Boolean =
-    handleResult(
-      code,
-      Try {
-        if (info.visited) fail("ALREADY VISITED")
-        visited += code
-        if (info.invalid) fail("INVALID PROGRAM")
-        val script = toScript(code)
-        val interp = info.interp.get match
-          case Success(v) => v
-          case Failure(e) => throw e
-        val finalState = interp.result
-        if (tyCheck) collector.add(code, finalState.typeErrors)
-        val (_, updated, covered) = cov.check(script, interp)
-        if (!updated) fail("NO UPDATE")
-        covered
-      },
-      current,
-    )
+  def add(code: String, info: CandInfo): Boolean = handleResult(
+    code,
+    Try {
+      if (info.visited) fail("ALREADY VISITED")
+      visited += code
+      if (info.invalid) fail("INVALID PROGRAM")
+      val script = toScript(code)
+      val interp = info.interp.get match
+        case Success(v) => v
+        case Failure(e) => throw e
+      val finalState = interp.result
+      if (tyCheck) collector.add(code, finalState.typeErrors)
+      val (_, updated, covered) = cov.check(script, interp)
+      if (!updated) fail("NO UPDATE")
+      covered
+    },
+  )
 
   /** handle add result */
-  def handleResult(
-    code: String,
-    result: Try[Boolean],
-    current: String,
-  ): Boolean = {
+  def handleResult(code: String, result: Try[Boolean]): Boolean = {
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     val pass = result match
-      case Success(covered) => debugging(passMsg("")); covered
-      case Failure(e: TimeoutException) =>
-        interpFailQueue += s"TIMEOUT: $current"
-        debugging(failMsg("TIMEOUT")); false
+      case Success(covered)             => debugging(passMsg("")); covered
+      case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
-        interpFailQueue += s"NOT SUPPORTED: $current"
         debugging(failMsg("NOT SUPPORTED")); false
       case Failure(e: ESMetaError) =>
-        interpFailQueue += s"ESMETA ERROR: $current"
         debugging(failMsg("ESMETA ERROR"))
         esmetaErrors += e -> (esmetaErrors.getOrElse(e, Set()) + code)
         false
@@ -276,10 +263,8 @@ class Fuzzer(
           case "ALREADY VISITED" | "INVALID PROGRAM" if debug == PARTIAL =>
             debugClean
           case msg =>
-            interpFailQueue += s"$msg: $current"
             debugging(failMsg(msg))
         false
-    if (interpFailQueue.size > 1000) interpFailQueue.dequeue()
     debugFlush
     pass
   }
@@ -370,9 +355,6 @@ class Fuzzer(
 
   // indicating that add failed
   private def fail(msg: String) = throw Exception(msg)
-
-  // programs that throw INTERP FAIL
-  private var interpFailQueue: MQueue[String] = MQueue()
 
   // ESMeta errors collected during fuzzing
   private val esmetaErrors: MMap[ESMetaError, Set[String]] = MMap()
@@ -465,13 +447,6 @@ class Fuzzer(
         .mkString(LINE_SEP + LINE_SEP),
       filename = s"$logDir/esmeta-errors",
     )
-    // dump NO UPDATE Queue
-    dumpFile(
-      name = "interp error queue",
-      data = interpFailQueue.toVector.mkString(LINE_SEP),
-      filename = s"$logDir/interp-error-queue/log-$t",
-    )
-    interpFailQueue.clear()
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
     val row = data.mkString("\t")

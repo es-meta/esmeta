@@ -181,7 +181,6 @@ case class Coverage(
     withScripts = true,
     withScriptInfo = true,
     withTargetCondViews = true,
-    withReachableFuncs = true,
     withUnreachableFuncs = true,
     withMsg = withMsg,
   )
@@ -192,7 +191,6 @@ case class Coverage(
     withScripts: Boolean = false,
     withScriptInfo: Boolean = false,
     withTargetCondViews: Boolean = false,
-    withReachableFuncs: Boolean = false,
     withUnreachableFuncs: Boolean = false,
     withMsg: Boolean = false,
   ): Unit = {
@@ -263,17 +261,6 @@ case class Coverage(
         noSpace = false,
       )
       log("dumped target conds")
-    if (withReachableFuncs)
-      dumpFile(
-        name = "reachable functions",
-        data = cfg.funcs
-          .filter(f => nodeViewMap.contains(f.entry))
-          .map(_.name)
-          .sorted
-          .mkString(LINE_SEP),
-        filename = s"$baseDir/reach-funcs",
-      )
-      log("dumped unreachable functions")
     if (withUnreachableFuncs)
       dumpFile(
         name = "unreachable functions",

@@ -36,7 +36,7 @@ trait AbsValueDecl { self: ParamFlowAnalyzer =>
   object AbsValue extends DomainLike[AbsValue] {
 
     /** top element */
-    lazy val Top: AbsValue = exploded("top abstract state")
+    lazy val Top: AbsValue = exploded("top abstract value")
 
     /** bottom element */
     lazy val Bot: AbsValue = AbsValue()
