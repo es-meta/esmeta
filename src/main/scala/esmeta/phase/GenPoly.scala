@@ -19,13 +19,14 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
     val polyfills = PolyfillGenerator(spec)
 
     // logging mode
-    if (config.log) dumpDir(
-      name = "generated polyfills",
-      iterable = ProgressBar("Dump polyfills", polyfills, detail = false),
-      dirname = POLYFILL_LOG_DIR,
-      getName = poly => s"${poly.name}.js",
-      getData = _.toString,
-    )
+    if (config.log)
+      dumpDir(
+        name = "generated polyfills",
+        iterable = ProgressBar("Dump polyfills", polyfills, detail = false),
+        dirname = POLYFILL_LOG_DIR,
+        getName = poly => s"${poly.name}.js",
+        getData = _.toString,
+      )
 
     polyfills
   }
