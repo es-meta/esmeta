@@ -8,7 +8,7 @@ import esmeta.parser.ESParser
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-import scala.util.Try
+import java.nio.file.Path
 
 /** `gen-eog` phase */
 case object GenEOG extends Phase[CFG, Unit] {
@@ -20,42 +20,56 @@ case object GenEOG extends Phase[CFG, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit =
-    val files = walkTree(getFirstFilename(cmdConfig, name)).toSeq
-    if (files.isEmpty) raise("No target files found.")
-    if (files.length > 1) bulk(cfg, cmdConfig, config)
-    else nonBulk(cfg, cmdConfig, config)
-
-  def bulk(
-    cfg: CFG,
-    cmdConfig: CommandConfig,
-    config: Config,
-  ): Unit = {
-    for {
+    val targets = for {
       file <- walkTree(getFirstFilename(cmdConfig, name)).toList
       path = file.getAbsolutePath
       ext = getExt(file.getName)
       if ext == "js"
+    } yield path
+    if (targets.isEmpty)
+      warn(s"No target files (.js) found")
+    for {
+      path <- targets
       dotFullPath = changeExt("js", "full.dot")(path)
       pdfFullPath = changeExt("js", "full.pdf")(path)
-
       dotPath = changeExt("js", "dot")(path)
       pdfPath = changeExt("js", "pdf")(path)
+      filename = Path.of(path).getFileName.toString
+      ast = cfg.scriptParser.fromFile(path)
+      analyzer = EOGGenerator(
+        cfg = cfg,
+        ast = ast,
+        log = config.log,
+        useRepl = config.useRepl,
+      )
     } do
-      Try {
-        println(s"Generating EOG for $path ...")
-        val ast = cfg.scriptParser.fromFile(path)
-        val analyzer = EOGGenerator(
-          cfg = cfg,
-          ast = ast,
-          log = config.log,
-          useRepl = config.useRepl,
-        )
-        analyzer.analyze
+      println(
+        setColor(Console.YELLOW)(s"[$filename] Generating EOG for $path ..."),
+      )
+      suppress(s"${filename} analyze") { analyzer.analyze }
+      suppress(s"${filename} dot.full") {
         dumpFile(analyzer.eog.dot, dotFullPath)
+        assert(analyzer.eog.isValid, "EOG is invalid")
         executeCmd(s"""dot -Tpdf "$dotFullPath" -o "$pdfFullPath"""")
+      }
+      suppress(s"${filename} dot.simplified") {
         dumpFile(analyzer.eog.simplified.dot, dotPath)
+        // assert(analyzer.eog.simplified.isValid, "(Simplified) EOG is invalid")
         executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath"""")
-      }.recover { _.printStackTrace() }
+      }
+
+  def suppress[T](tag: String)(body: => T): Unit = {
+    try { body }
+    catch {
+      case e =>
+        println(setColor(Console.RED)(s"[$tag] Error occurred: "))
+        e.getMessage().linesIterator.foreach { line =>
+          println(s"[$tag] $line")
+        }
+        e.getStackTrace().take(8).foreach { elem =>
+          println(s"[$tag]   at $elem")
+        }
+    }
   }
 
   def nonBulk(
