@@ -29,16 +29,15 @@ trait EOGReducerDecl { self: Self =>
         if !np.marked
       } yield np -> child).headOption
 
-      for { (np -> child) <- target } yield
-        if (np == exitPoint) exitPoint = child
-        eog.copy(
-          nodes = eog.nodes - np,
-          edges = eog.edges.flatMap {
-            case `np` -> `child` => None
-            case parent -> `np`  => Some(parent -> child)
-            case fallback        => Some(fallback)
-          },
-        )
+      for { (np -> child) <- target } yield eog.copy(
+        nodes = eog.nodes - np,
+        edges = eog.edges.flatMap {
+          case `np` -> `child` => None
+          case `np` -> other   => raise("unreachable")
+          case parent -> `np`  => Some(parent -> child)
+          case fallback        => Some(fallback)
+        },
+      )
     }.getOrElse(eog)
 
     /* reduce 'foldable' branchfes */
@@ -64,7 +63,7 @@ trait EOGReducerDecl { self: Self =>
 
       for { (np -> arbitrary -> cp) <- target } yield
         val edges = eog.edges.flatMap {
-          case `np` -> `cp` => Some(np -> arbitrary)
+          case `np` -> `cp` => None
           case fallback     => Some(fallback)
         }
         eog.copy(edges = edges)
@@ -73,18 +72,19 @@ trait EOGReducerDecl { self: Self =>
     /* remove non-return point ends */
     private def reduceDeadEnd(eog: EOG): EOG = {
       val target = (for {
-        np <- eog.nodes
-        if np != exitPoint
-        outs = eog.edges.collect { case `np` -> c => c }
+        cp <- eog.nodes
+        if cp != exitPoint
+        outs = eog.edges.collect { case `cp` -> c => c }
         if outs.isEmpty // no children
-        // if !np.marked
-      } yield np).headOption
+        if !cp.marked
+      } yield cp).headOption
 
       for (np <- target)
         yield eog.copy(
           nodes = eog.nodes - np,
           edges = eog.edges.filter {
             case p -> `np` => false
+            case `np` -> c => raise("unreachable")
             case _         => true
           },
         )
