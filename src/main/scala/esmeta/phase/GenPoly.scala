@@ -24,7 +24,7 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
         name = "generated polyfills",
         iterable = ProgressBar("Dump polyfills", polyfills, detail = false),
         dirname = POLYFILL_LOG_DIR,
-        getName = poly => s"${poly.name}.js",
+        getName = poly => s"${poly.belongsTo}/${poly.name}.js",
         getData = _.toString,
       )
 
