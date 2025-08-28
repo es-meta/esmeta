@@ -48,8 +48,8 @@ trait EOGDotDecl { self: Self =>
       // }
 
       override def subgraph: Option[String] =
-        // None
-        Some(s"${x.func.id.toString()}${x.view.toString()}")
+        None
+      // Some(s"${x.func.id.toString()}${x.view.toString()}")
 
       override def shape: DotFile.Shape = x match
         case NodePoint(_, node, _) =>
