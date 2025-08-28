@@ -17,7 +17,7 @@ trait EOGReducerDecl { self: Self =>
     def apply(eog: EOG): EOG = fix(reduce)(eog)
 
     // why this works weird
-    private def reduce = reduceNode >>> reduceBranch >>> reduceDeadEnd
+    private def reduce = reduceNode >>> reduceBranch
 
     /* reduce p => node -> c as p => c, when node is not marked */
     private def reduceNode(eog: EOG): EOG = {
@@ -70,6 +70,7 @@ trait EOGReducerDecl { self: Self =>
     }.getOrElse(eog)
 
     /* remove non-return point ends */
+    @deprecated("might conflict with continuation")
     private def reduceDeadEnd(eog: EOG): EOG = {
       val target = (for {
         cp <- eog.nodes
