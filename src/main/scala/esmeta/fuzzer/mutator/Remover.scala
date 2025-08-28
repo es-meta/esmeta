@@ -22,6 +22,9 @@ class Remover(using cfg: CFG)(
 
   val synthesizer = synBuilder(cfg.grammar)
 
+  /** default weight for Remover is 1 */
+  def calculateWeight(ast: Ast): Int = 1
+
   /** mutate a program */
   def apply(
     ast: Ast,

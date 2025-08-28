@@ -23,6 +23,9 @@ class NearestMutator(using cfg: CFG)(
   /** synthesizer */
   val synthesizer = synBuilder(cfg.grammar)
 
+  /** default weight for NearestMutator is 6 */
+  def calculateWeight(ast: Ast): Int = 6
+
   /** mutate programs */
   def apply(
     ast: Ast,
