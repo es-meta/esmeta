@@ -43,7 +43,11 @@ class DotFile[Node: Dottable](
       edges.map {
         case (from, to) => from.edgeDef(to)
       })
-      .mkString("digraph G {\n", "\n", "\n}")
+      .mkString(
+        "digraph G {\nnode [style=filled, fillcolor=red, fontcolor=black];\n",
+        "\n",
+        "\n}",
+      )
 }
 
 object DotFile {
