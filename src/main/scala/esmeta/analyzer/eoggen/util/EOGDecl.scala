@@ -22,6 +22,10 @@ trait EOGDecl { self: Self =>
       DotFile[ControlPoint](nodes.toSeq, edges.toSeq)
 
     lazy val simplified: EOG = Reducer(this)
+
+    lazy val isValid: Boolean = {
+      nodes == edges.flatMap { case (src, dst) => Set(src, dst) }
+    }
   }
 
   lazy val eog: EOG = {
@@ -48,6 +52,7 @@ trait EOGDecl { self: Self =>
         if (npMap.keySet.forall { _.view != nextView }) // no-inline
         succ <- node.succs
         nextNp = transfer.getNextNp(np, succ)
+        if reachable(nextNp)
       } yield np -> nextNp)
       // ++
       // return point to succ of call node
@@ -59,6 +64,7 @@ trait EOGDecl { self: Self =>
         NodePoint(_, node, _) = cp
         succ <- node.succs
         nextNp = transfer.getNextNp(cp, succ)
+        if reachable(nextNp)
       } yield rp -> nextNp)
       // ++
       // call edges
@@ -81,6 +87,7 @@ trait EOGDecl { self: Self =>
           case _: Branch         => false
         if shouldExit
         rp = ReturnPoint(func, view)
+        if reachable(rp)
       } yield np -> rp)
 
       x1 ++ x2 ++ x3 ++ x4 ++ x5
@@ -98,10 +105,11 @@ trait EOGDecl { self: Self =>
       case _ => false
   }
 
-  final def fix[T](f: T => T)(x: T): T =
-    @tailrec def fixT[T](f: T => T, x: T): T = {
-      val fx = f(x); if (fx == x) fx else fixT(f, fx)
+  final def fix[T](f: T => T)(x0: T): T =
+    @tailrec def loop(x: T): T = {
+      val fx = f(x)
+      if (fx == x) fx else loop(fx)
     }
-    fixT(f, x)
+    loop(x0)
 
 }
