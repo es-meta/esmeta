@@ -8,7 +8,7 @@ import esmeta.util.*
 
 /** analyzer tests */
 trait AnalyzerTest extends ESMetaTest {
-  def category: String = "analyzer"
+  def category: String = "analyzer/tychecker"
 }
 object AnalyzerTest {
   import ESMetaTest.*
