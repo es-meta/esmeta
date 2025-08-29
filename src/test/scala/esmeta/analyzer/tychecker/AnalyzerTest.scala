@@ -1,4 +1,4 @@
-package esmeta.analyzer
+package esmeta.analyzer.tychecker
 
 import esmeta.ESMetaTest
 import esmeta.analyzer.tychecker.TyChecker

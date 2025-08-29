@@ -1,4 +1,4 @@
-package esmeta.analyzer
+package esmeta.analyzer.tychecker
 
 class TyCheckSmallTest extends AnalyzerTest {
   import AnalyzerTest.*
