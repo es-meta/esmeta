@@ -588,15 +588,13 @@ object Interpreter {
         Math(l.pow(r.toInt))
       case (Pow, Math(l), Math(r)) => Math(math.pow(l.toDouble, r.toDouble))
       // TODO consider 2's complement 32-bit strings
-      case (BAnd, Math(l), Math(r)) => Math(l.toLong & r.toLong)
-      case (BOr, Math(l), Math(r))  => Math(l.toLong | r.toLong)
-      case (BXOr, Math(l), Math(r)) => Math(l.toLong ^ r.toLong)
-      case (LShift, Math(l), Math(r)) =>
-        Math((l.toInt << r.toInt).toLong)
-      case (SRShift, Math(l), Math(r)) =>
-        Math((l.toInt >> r.toInt).toLong)
+      case (BAnd, Math(l), Math(r))    => Math(l.toLong & r.toLong)
+      case (BOr, Math(l), Math(r))     => Math(l.toLong | r.toLong)
+      case (BXOr, Math(l), Math(r))    => Math(l.toLong ^ r.toLong)
+      case (LShift, Math(l), Math(r))  => Math((l.toBigInt << r.toInt))
+      case (SRShift, Math(l), Math(r)) => Math((l.toBigInt >> r.toInt))
       case (URShift, Math(l), Math(r)) =>
-        Math((l.toLong << 32) >>> (32 + (r.toLong % 32)))
+        Math((l.toLong << 32 >>> 32) >>> (r.toInt % 32))
       case (Lt, Math(l), Math(r)) => Bool(l < r)
 
       // extended mathematical value operations
