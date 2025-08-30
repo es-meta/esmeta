@@ -7,5 +7,6 @@ def <AUX>:__GET_TYPED_ARRAY_INFO_FROM_TYPE__(
     let key = keys[idx]
     let obj = @TYPED_ARRAY[key]
     if (= obj.ElementType type) return obj
+    idx = (+ idx 1)
   }
 }
