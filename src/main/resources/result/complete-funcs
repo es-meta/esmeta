@@ -2514,6 +2514,7 @@ TypedArrayByteLength
 TypedArrayCreate
 TypedArrayCreateFromConstructor
 TypedArrayElementSize
+TypedArrayElementType
 TypedArrayGetElement
 TypedArrayLength
 TypedArraySetElement
