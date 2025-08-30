@@ -1178,31 +1178,30 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         binary.bop match
           case Add | Sub | Mul | Pow | Div | UMod | Mod | Lt | Equal =>
             checkBinary(binary, lhsTy, rhsTy, Set(ExtMathT, NumberT, BigIntT))
-          case LShift | SRShift | URShift | BAnd | BOr | BXOr =>
+          case LShift | RShift | BAnd | BOr | BXOr =>
             checkBinary(binary, lhsTy, rhsTy, Set(MathT, BigIntT))
           case And | Or | Xor =>
             checkBinary(binary, lhsTy, rhsTy, Set(BoolT))
           case Eq =>
       binary.bop match {
-        case BAnd    => left & right
-        case BOr     => left | right
-        case BXOr    => left ^ right
-        case Eq      => left =^= right
-        case Equal   => left ==^== right
-        case Lt      => left < right
-        case And     => left && right
-        case Or      => left || right
-        case Xor     => left ^^ right
-        case Add     => left + right
-        case Sub     => left sub right
-        case Div     => left / right
-        case Mul     => left * right
-        case Mod     => left % right
-        case UMod    => left %% right
-        case Pow     => left ** right
-        case LShift  => left << right
-        case SRShift => left >> right
-        case URShift => left >>> right
+        case BAnd   => left & right
+        case BOr    => left | right
+        case BXOr   => left ^ right
+        case Eq     => left =^= right
+        case Equal  => left ==^== right
+        case Lt     => left < right
+        case And    => left && right
+        case Or     => left || right
+        case Xor    => left ^^ right
+        case Add    => left + right
+        case Sub    => left sub right
+        case Div    => left / right
+        case Mul    => left * right
+        case Mod    => left % right
+        case UMod   => left %% right
+        case Pow    => left ** right
+        case LShift => left << right
+        case RShift => left >> right
       }
     }
 

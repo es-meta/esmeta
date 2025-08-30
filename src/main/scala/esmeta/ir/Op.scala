@@ -26,7 +26,7 @@ enum BOp extends Op:
   // bitwise
   case BAnd, BOr, BXOr
   // shift
-  case LShift, SRShift, URShift
+  case LShift, RShift
   // boolean
   case And, Or, Xor
 object BOp extends Parser.From(Parser.bop)

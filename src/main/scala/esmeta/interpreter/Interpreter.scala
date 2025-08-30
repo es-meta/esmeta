@@ -588,14 +588,12 @@ object Interpreter {
         Math(l.pow(r.toInt))
       case (Pow, Math(l), Math(r)) => Math(math.pow(l.toDouble, r.toDouble))
       // TODO consider 2's complement 32-bit strings
-      case (BAnd, Math(l), Math(r))    => Math(l.toLong & r.toLong)
-      case (BOr, Math(l), Math(r))     => Math(l.toLong | r.toLong)
-      case (BXOr, Math(l), Math(r))    => Math(l.toLong ^ r.toLong)
-      case (LShift, Math(l), Math(r))  => Math((l.toBigInt << r.toInt))
-      case (SRShift, Math(l), Math(r)) => Math((l.toBigInt >> r.toInt))
-      case (URShift, Math(l), Math(r)) =>
-        Math((l.toLong << 32 >>> 32) >>> (r.toInt % 32))
-      case (Lt, Math(l), Math(r)) => Bool(l < r)
+      case (BAnd, Math(l), Math(r))   => Math(l.toBigInt & r.toBigInt)
+      case (BOr, Math(l), Math(r))    => Math(l.toBigInt | r.toBigInt)
+      case (BXOr, Math(l), Math(r))   => Math(l.toBigInt ^ r.toBigInt)
+      case (LShift, Math(l), Math(r)) => Math((l.toBigInt << r.toInt))
+      case (RShift, Math(l), Math(r)) => Math((l.toBigInt >> r.toInt))
+      case (Lt, Math(l), Math(r))     => Bool(l < r)
 
       // extended mathematical value operations
       case (Add, POS_INF, Math(_))          => POS_INF
@@ -650,19 +648,19 @@ object Interpreter {
       case (Equal, Math(_), NEG_INF)         => Bool(false)
 
       // big integers
-      case (Add, BigInt(l), BigInt(r))     => BigInt(l + r)
-      case (LShift, BigInt(l), BigInt(r))  => BigInt(l << r.toInt)
-      case (SRShift, BigInt(l), BigInt(r)) => BigInt(l >> r.toInt)
-      case (Sub, BigInt(l), BigInt(r))     => BigInt(l - r)
-      case (Mul, BigInt(l), BigInt(r))     => BigInt(l * r)
-      case (Div, BigInt(l), BigInt(r))     => BigInt(l / r)
-      case (Mod, BigInt(l), BigInt(r))     => BigInt(l % r)
-      case (UMod, BigInt(l), BigInt(r))    => BigInt(l %% r)
-      case (Lt, BigInt(l), BigInt(r))      => Bool(l < r)
-      case (BAnd, BigInt(l), BigInt(r))    => BigInt(l & r)
-      case (BOr, BigInt(l), BigInt(r))     => BigInt(l | r)
-      case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
-      case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
+      case (Add, BigInt(l), BigInt(r))    => BigInt(l + r)
+      case (LShift, BigInt(l), BigInt(r)) => BigInt(l << r.toInt)
+      case (RShift, BigInt(l), BigInt(r)) => BigInt(l >> r.toInt)
+      case (Sub, BigInt(l), BigInt(r))    => BigInt(l - r)
+      case (Mul, BigInt(l), BigInt(r))    => BigInt(l * r)
+      case (Div, BigInt(l), BigInt(r))    => BigInt(l / r)
+      case (Mod, BigInt(l), BigInt(r))    => BigInt(l % r)
+      case (UMod, BigInt(l), BigInt(r))   => BigInt(l %% r)
+      case (Lt, BigInt(l), BigInt(r))     => Bool(l < r)
+      case (BAnd, BigInt(l), BigInt(r))   => BigInt(l & r)
+      case (BOr, BigInt(l), BigInt(r))    => BigInt(l | r)
+      case (BXOr, BigInt(l), BigInt(r))   => BigInt(l ^ r)
+      case (Pow, BigInt(l), BigInt(r))    => BigInt(l.pow(r.toInt))
 
       case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
     }

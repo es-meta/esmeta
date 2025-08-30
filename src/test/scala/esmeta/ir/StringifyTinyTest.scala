@@ -219,8 +219,7 @@ class StringifyTinyTest extends IRTest {
       BOp.BXOr -> "^",
       BOp.LShift -> "<<",
       BOp.Lt -> "<",
-      BOp.URShift -> ">>>",
-      BOp.SRShift -> ">>",
+      BOp.RShift -> ">>",
     )
     checkParseAndStringify("VOp", VOp)(
       VOp.Min -> "min",
