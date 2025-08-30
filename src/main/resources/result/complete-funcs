@@ -1,5 +1,6 @@
 AddEntriesFromIterable
 AddRestrictedFunctionProperties
+AddToKeptObjects
 AdditiveExpression[1,0].AssignmentTargetType
 AdditiveExpression[1,0].Evaluation
 AdditiveExpression[1,0].HasCallInTailPosition
@@ -55,6 +56,7 @@ ArrayBindingPattern[2,2].IteratorBindingInitialization
 ArrayBindingPattern[2,3].BoundNames
 ArrayBindingPattern[2,3].ContainsExpression
 ArrayBindingPattern[2,3].IteratorBindingInitialization
+ArrayBufferByteLength
 ArrayBufferCopyAndDetach
 ArrayCreate
 ArrayLiteral[0,0].Evaluation
@@ -563,6 +565,7 @@ ClassUnion[0,0].MayContainStrings
 ClassUnion[0,1].MayContainStrings
 ClassUnion[1,0].MayContainStrings
 ClassUnion[1,1].MayContainStrings
+ClearKeptObjects
 CloneArrayBuffer
 CoalesceExpression[0,0].AssignmentTargetType
 CoalesceExpression[0,0].Evaluation

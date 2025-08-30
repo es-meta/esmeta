@@ -55,15 +55,20 @@
     "Insert _d_ as the first element of _functionsToInitialize_.": "push d > functionsToInitialize",
     "Insert _fn_ as the first element of _functionNames_.": "push fn > functionNames",
     "Let _X_ be _O_'s own property whose key is _P_.": "let X = O.__MAP__[P]",
+    "Let _agentRecord_ be the surrounding agent's Agent Record.": "let agentRecord = @AGENT_RECORD",
     "Let _args_ be the List of arguments that was passed to this function by [[Call]] or [[Construct]].": "let args = ArgumentsList",
     "Let _asyncContext_ be a copy of _runningContext_.": "let asyncContext = (copy runningContext)",
     "Let _contained_ be the result of _child_ Contains _symbol_.": "{ sdo-call result = child->Contains(symbol) let contained = result }",
+    "Let _conversionOperation_ be the abstract operation named in the Conversion Operation column in <emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for Element Type _type_.": "{ call __info__ = clo<\"__GET_TYPED_ARRAY_INFO_FROM_TYPE__\">(type) let conversionOperation = __info__.ConversionOperation }",
     "Let _db_ be a new Data Block value consisting of _size_ bytes. If it is impossible to create such a Data Block, throw a *RangeError* exception.": "{ if (< 4294967296 size) { call __errObj__ = clo<\"__NEW_ERROR_OBJ__\">(\"%RangeError.prototype%\") call __comp__ = clo<\"ThrowCompletion\">(__errObj__) return __comp__ } let db = (list []) let idx = 0 while (< idx size) { push db < 0 idx = (+ idx 1) } }",
     "Let _ec_ be the topmost execution context on the execution context stack whose ScriptOrModule component is not *null*.": "{ let idx = 0 while (&& (< idx (sizeof @EXECUTION_STACK)) (! (exists ec))) { if (! (= @EXECUTION_STACK[idx].ScriptOrModule null) ) let ec = @EXECUTION_STACK[idx] idx = (+ idx 1) } }",
     "Let _elementSize_ be the Element Size value specified in <emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for Element Type _type_.": "{ call __info__ = clo<\"__GET_TYPED_ARRAY_INFO_FROM_TYPE__\">(type) let elementSize = __info__.ElementSize }",
+    "Let _n_ be the Element Size value specified in <emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for Element Type _type_.": "{ call __info__ = clo<\"__GET_TYPED_ARRAY_INFO_FROM_TYPE__\">(type) let n = __info__.ElementSize }",
+    "Let _execution_ be the [[CandidateExecution]] field of the surrounding agent's Agent Record.": "let execution = @AGENT_RECORD.CandidateExecution",
     "Let _func_ be a new built-in function object that, when called, performs the action described by _behaviour_ using the provided arguments as the values of the corresponding parameters specified by _behaviour_. The new function object has internal slots whose names are the elements of _internalSlotsList_, and an [[InitialName]] internal slot.": "{ call func = clo<\"__NEW_OBJ__\">() let idx = 0 while (< idx (sizeof internalSlotsList)) { expand func[internalSlotsList[idx]] idx = (+ idx 1) } expand func.InitialName func.Call = clo<\"Record[BuiltinFunctionObject].Call\"> func.__CODE__ = behaviour }",
     "Let _instantiatedVarNames_ be a copy of the List _parameterBindings_.": "let instantiatedVarNames = (copy parameterBindings)",
     "Let _internalSlotsList_ be a List containing the names of all the internal slots that <emu-xref href=\"#sec-built-in-function-objects\"></emu-xref> requires for the built-in function object that is about to be created.": "let internalSlotsList = (list [\"Prototype\", \"Extensible\", \"Realm\", \"InitialName\"])",
+    "Let _isLittleEndian_ be the value of the [[LittleEndian]] field of the surrounding agent's Agent Record.": "let isLittleEndian = @AGENT_RECORD.LittleEndian",
     "Let _newLenDesc_ be a copy of _Desc_.": "let newLenDesc = (copy Desc)",
     "Let _nextPending_ be the PendingJob record at the front of _nextQueue_. Remove that record from _nextQueue_.": "pop nextPending < @JOB_QUEUE",
     "Let _nextQueue_ be a non-empty Job Queue chosen in an implementation-defined manner.": "let nextQueue = @JOB_QUEUE",
@@ -92,6 +97,7 @@
     "Set _P_'s essential internal methods, except for [[Call]] and [[Construct]], to the definitions specified in <emu-xref href=\"#sec-proxy-object-internal-methods-and-internal-slots\"></emu-xref>.": "{ P.GetPrototypeOf = clo<\"Record[ProxyExoticObject].GetPrototypeOf\"> P.SetPrototypeOf = clo<\"Record[ProxyExoticObject].SetPrototypeOf\"> P.IsExtensible = clo<\"Record[ProxyExoticObject].IsExtensible\"> P.PreventExtensions = clo<\"Record[ProxyExoticObject].PreventExtensions\"> P.GetOwnProperty = clo<\"Record[ProxyExoticObject].GetOwnProperty\"> P.DefineOwnProperty = clo<\"Record[ProxyExoticObject].DefineOwnProperty\"> P.HasProperty = clo<\"Record[ProxyExoticObject].HasProperty\"> P.Get = clo<\"Record[ProxyExoticObject].Get\"> P.Set = clo<\"Record[ProxyExoticObject].Set\"> P.Delete = clo<\"Record[ProxyExoticObject].Delete\"> P.OwnPropertyKeys = clo<\"Record[ProxyExoticObject].OwnPropertyKeys\"> }",
     "Set _obj_'s essential internal methods to the default ordinary object definitions specified in <emu-xref href=\"#sec-ordinary-object-internal-methods-and-internal-slots\"></emu-xref>.": "nop",
     "Set all of the bytes of _db_ to 0.": "nop",
-    "Set the bound value for _N_ in _envRec_ to _V_.": "envRec.__MAP__[N].__BOUND_VALUE__ = V"
+    "Set the bound value for _N_ in _envRec_ to _V_.": "envRec.__MAP__[N].__BOUND_VALUE__ = V",
+    "set _isLittleEndian_ to the value of the [[LittleEndian]] field of the surrounding agent's Agent Record.": "isLittleEndian = @AGENT_RECORD.LittleEndian"
   }
 }
