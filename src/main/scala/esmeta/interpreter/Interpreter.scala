@@ -591,8 +591,8 @@ object Interpreter {
       case (BAnd, Math(l), Math(r))   => Math(l.toBigInt & r.toBigInt)
       case (BOr, Math(l), Math(r))    => Math(l.toBigInt | r.toBigInt)
       case (BXOr, Math(l), Math(r))   => Math(l.toBigInt ^ r.toBigInt)
-      case (LShift, Math(l), Math(r)) => Math((l.toBigInt << r.toInt))
-      case (RShift, Math(l), Math(r)) => Math((l.toBigInt >> r.toInt))
+      case (LShift, Math(l), Math(r)) => Math(l.toBigInt << r.toInt)
+      case (RShift, Math(l), Math(r)) => Math(l.toBigInt >> r.toInt)
       case (Lt, Math(l), Math(r))     => Bool(l < r)
 
       // extended mathematical value operations
