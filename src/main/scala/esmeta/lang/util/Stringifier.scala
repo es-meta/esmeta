@@ -309,8 +309,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case (false, false) => "no"
         )
         app >> " white space removed"
-      case NumberOfExpression(expr) =>
-        app >> "the number of elements in " >> expr
+      case NumberOfExpression(name, pre, expr) =>
+        app >> "the number of " >> name >> " in "
+        pre.map(app >> "the " >> _ >> " ")
+        app >> expr
       case SourceTextExpression(expr) =>
         app >> "the source text matched by " >> expr
       case CoveredByExpression(code, rule) =>

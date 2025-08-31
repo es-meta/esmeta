@@ -1,6 +1,7 @@
 package esmeta.spec
 
 import esmeta.spec.util.Stringifier
+import esmeta.state.*
 import esmeta.util.BaseUtils.stringify
 import org.jsoup.nodes.Element
 
@@ -36,29 +37,3 @@ extension (elem: Element) {
       _ || _,
     )
 }
-
-/** template cases */
-val templateInstances: Map[String, List[String]] = Map(
-  "NativeError" -> List(
-    "EvalError",
-    "RangeError",
-    "ReferenceError",
-    "SyntaxError",
-    "TypeError",
-    "URIError",
-  ),
-  "TypedArray" -> List(
-    "Int8Array",
-    "Uint8Array",
-    "Uint8ClampedArray",
-    "Int16Array",
-    "Uint16Array",
-    "Int32Array",
-    "Uint32Array",
-    "BigInt64Array",
-    "BigUint64Array",
-    "Float16Array",
-    "Float32Array",
-    "Float64Array",
-  ),
-)

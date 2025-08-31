@@ -1,5 +1,6 @@
 package esmeta.es.builtin
 
+import esmeta.es.*
 import esmeta.state.*
 import esmeta.spec.*
 import esmeta.cfg.CFG
@@ -13,6 +14,7 @@ val U = Undef
 
 /** predefined constants */
 val INTRINSICS = "INTRINSICS"
+val TYPED_ARRAY = "TYPED_ARRAY"
 val GLOBAL = "GLOBAL"
 val SYMBOL = "SYMBOL"
 val MATH_PI = "MATH_PI"
@@ -50,22 +52,7 @@ val yets: Map[String, ValueTy] =
     "Date" -> ConstructorT,
     // 22. Text Processing
     "RegExp" -> ConstructorT,
-    // 23. Indexed Collections
-    "TypedArray" -> ConstructorT,
-    "Int8Array" -> ConstructorT,
-    "Uint8Array" -> ConstructorT,
-    "Uint8ClampedArray" -> ConstructorT,
-    "Int16Array" -> ConstructorT,
-    "Uint16Array" -> ConstructorT,
-    "Int32Array" -> ConstructorT,
-    "Uint32Array" -> ConstructorT,
-    "BigInt64Array" -> ConstructorT,
-    "BigUint64Array" -> ConstructorT,
-    "Float16Array" -> ConstructorT,
-    "Float32Array" -> ConstructorT,
-    "Float64Array" -> ConstructorT,
     // 25. Structured Data
-    "ArrayBuffer" -> ConstructorT,
     "SharedArrayBuffer" -> ConstructorT,
     "DataView" -> ConstructorT,
     "Atomics" -> ObjectT,
@@ -88,14 +75,14 @@ val yetFuncs: Set[String] = Set(
   "String.prototype.toLocaleUpperCase",
 )
 
-/** table id for
-  * (table-6)[https://tc39.es/ecma262/#table-well-known-intrinsic-objects]
-  */
+// https://tc39.es/ecma262/#table-well-known-intrinsic-objects
 val WELL_KNOWN_INTRINSICS = "table-well-known-intrinsic-objects"
 
-/** table id for (table-1)[https://tc39.es/ecma262/#sec-well-known-symbols]
-  */
+// https://tc39.es/ecma262/#sec-well-known-symbols
 val WELL_KNOWN_SYMBOLS = "table-well-known-symbols"
+
+// https://tc39.es/ecma262/#table-well-known-intrinsic-objects
+val TYPED_ARRAY_CONSTRUCTORS = "table-the-typedarray-constructors"
 
 // address for the current realm
 val realmAddr = NamedAddr(REALM)
@@ -105,6 +92,12 @@ def intrName(name: String): String = s"$INTRINSICS.$name"
 
 /** intrinsics addr */
 def intrAddr(name: String): NamedAddr = NamedAddr(intrName(name))
+
+/** typed array name */
+def taName(name: String): String = s"$TYPED_ARRAY.$name"
+
+/** typed array addr */
+def taAddr(name: String): NamedAddr = NamedAddr(taName(name))
 
 /** map name */
 def mapName(name: String): String = s"$name.$INNER_MAP"
@@ -146,5 +139,22 @@ def getMapObjects(
       case (PropKey.Sym(x)) => symbolAddr(x)
     key -> descAddr(descBase, k)
   })
-  map ++= nmap.map { case (k, prop) => descAddr(descBase, k) -> prop.toObject }
+  map ++= nmap.map { case (k, d) => descAddr(descBase, k) -> toObject(d) }
   map
+
+/** convert property descriptor to ir map object */
+def toObject(desc: PropDesc)(using CFG): RecordObj = desc match
+  case DataDesc(v, w, e, c) =>
+    recordObj("PropertyDescriptor")(
+      "Value" -> v,
+      "Writable" -> Bool(w),
+      "Enumerable" -> Bool(e),
+      "Configurable" -> Bool(c),
+    )
+  case AccessorDesc(g, s, e, c) =>
+    recordObj("PropertyDescriptor")(
+      "Get" -> g,
+      "Set" -> s,
+      "Enumerable" -> Bool(e),
+      "Configurable" -> Bool(c),
+    )

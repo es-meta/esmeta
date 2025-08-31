@@ -582,12 +582,8 @@ class Compiler(
           case (false, true)  => ETrim(compile(fb, expr), false)
           case (true, true)   => ETrim(ETrim(compile(fb, expr), true), false)
         }
-      case NumberOfExpression(ReferenceExpression(ref)) =>
-        ESizeOf(ERef(compile(fb, ref)))
-      case NumberOfExpression(expr) =>
-        val (x, xExpr) = fb.newTIdWithExpr
-        fb.addInst(IAssign(x, compile(fb, expr)))
-        ESizeOf(xExpr)
+      case NumberOfExpression(_, _, expr) =>
+        ESizeOf(compile(fb, expr))
       case IntrinsicExpression(intr) =>
         toEIntrinsic(currentIntrinsics, intr)
       case SourceTextExpression(expr) =>

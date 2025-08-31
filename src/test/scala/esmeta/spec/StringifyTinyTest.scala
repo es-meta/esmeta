@@ -28,6 +28,7 @@ class StringifyTinyTest extends SpecTest {
         TypeSummary(5469, 439, 1543),
         89,
         58,
+        101,
       ) ->
       s"""- version: d048f32e861c2ed4a26f59a50d392918f26da3ba (es2023)
          |- grammar:
@@ -47,7 +48,8 @@ class StringifyTinyTest extends SpecTest {
          |  - yet: 439
          |  - unknown: 1543
          |- tables: 89
-         |- type model: 58""".stripMargin,
+         |- type model: 58
+         |- intrinsics: 101""".stripMargin,
     )
     // -------------------------------------------------------------------------
     // Grammar

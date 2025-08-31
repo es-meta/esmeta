@@ -272,8 +272,7 @@ trait Parsers extends TyParsers {
     "^" ^^^ BXOr |
     "<<" ^^^ LShift |
     "<" ^^^ Lt |
-    ">>>" ^^^ URShift |
-    ">>" ^^^ SRShift
+    ">>" ^^^ RShift
   }.named("ir.BOp")
 
   // variadic operators

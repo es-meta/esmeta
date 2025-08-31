@@ -10,7 +10,7 @@
   assert (= (^ x y) 6)
   assert (= (<< x y) 96)
   assert (= (>> 16 2) 4)
-  assert (= (>>> -1 60) 15)
+  assert (= (>> -1 5) -1)
 
   // big integers
   assert (= (& bx by) 0n)

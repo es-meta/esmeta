@@ -74,6 +74,7 @@ trait Parsers extends BasicParsers {
   private lazy val singleValueTy: Parser[ValueTy] = {
     "Any" ^^^ AnyT |
     "Bot" ^^^ BotT |
+    "DataBlock" ^^^ DataBlockT |
     // completion record
     "Completion" ^^^ CompT |
     "Normal" ~> opt(

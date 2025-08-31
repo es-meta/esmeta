@@ -43,7 +43,8 @@ object ManualInfo {
     TyModel.fromFile(s"$MANUALS_DIR/types")
 
   /** intrinsics */
-  lazy val intrinsicsFile: String = s"$MANUALS_DIR/intrinsics"
+  lazy val intrinsics: Intrinsics =
+    Intrinsics.fromFile(s"$MANUALS_DIR/intrinsics")
 
   /** get test262 manual configuration */
   lazy val test262Config: ManualConfig = ManualConfig(

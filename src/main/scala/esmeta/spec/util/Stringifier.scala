@@ -47,7 +47,7 @@ object Stringifier {
   // for specification summaries
   given summaryRule: Rule[Summary] = (app, summary) =>
     import ProductionKind.*
-    val Summary(version, grammar, algos, steps, types, tables, tyModel) =
+    val Summary(version, grammar, algos, steps, types, tables, tyModel, intr) =
       summary
     version.map(app >> "- version: " >> _.toString >> LINE_SEP)
     app >> "- grammar:"
@@ -68,6 +68,7 @@ object Stringifier {
     app :> "  - unknown: " >> types.unknown
     app :> "- tables: " >> tables
     app :> "- type model: " >> tyModel
+    app :> "- intrinsics: " >> intr
 
   // for grammars
   given grammarRule: Rule[Grammar] = (app, grammar) =>

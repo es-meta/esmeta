@@ -2,6 +2,8 @@ package esmeta
 package spec
 package util
 
+import esmeta.es.ESElem
+import esmeta.es.builtin.Intrinsics
 import esmeta.lang.util.JsonProtocol.given
 import esmeta.ty.*
 import esmeta.ty.util.JsonProtocol.given
@@ -10,6 +12,9 @@ import esmeta.util.BaseUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.generic.semiauto.*
 
 object JsonProtocol extends BasicJsonProtocol {
+  private val stringifier = ESElem.getStringifier(true, false, None)
+  import stringifier.given
+
   // ECMAScript specifications (ECMA-262)
   given Decoder[Spec] = deriveDecoder
   given Encoder[Spec] = deriveEncoder
@@ -115,4 +120,8 @@ object JsonProtocol extends BasicJsonProtocol {
   // type models
   given Decoder[TyModel] = deriveDecoder
   given Encoder[TyModel] = deriveEncoder
+
+  // intrinsics
+  given Decoder[Intrinsics] = decoderWithParser(Intrinsics.from)
+  given Encoder[Intrinsics] = encoderWithStringifier(stringify)
 }
