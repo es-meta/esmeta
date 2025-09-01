@@ -186,9 +186,8 @@ class ParamFlowAnalyzer(
   // ---------------------------------------------------------------------------
   /** all possible initial analysis target functions */
   def targetFuncs: List[Func] =
-    val allFuncs = cfg.funcs.filter(f => f.isParamTysPrecise && !f.isCont)
-    val funcs = targetPattern.fold(allFuncs)(pattern => {
-      val funcs = allFuncs.filter(f => pattern.r.matches(f.name))
+    val funcs = targetPattern.fold(cfg.funcs)(pattern => {
+      val funcs = cfg.funcs.filter(f => pattern.r.matches(f.name))
       if (!silent && funcs.isEmpty)
         warn(s"failed to find functions matched with the pattern `$pattern`.")
       funcs
