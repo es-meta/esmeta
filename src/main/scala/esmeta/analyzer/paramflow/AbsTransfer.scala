@@ -74,12 +74,18 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
       case IAssign(x: Local, expr) =>
         for {
           v <- transfer(expr)
-          _ <- modify(_.update(x, v))
+          st <- get
+          given AbsState = st
+          newV = st(x) ⊔ v
+          _ <- modify(_.update(x, newV))
         } yield ()
       case IAssign(Field(x: Local, EStr(f)), expr) =>
         for {
           v <- transfer(expr)
-          _ <- modify(_.update(x, v))
+          st <- get
+          given AbsState = st
+          newV = st(x) ⊔ v
+          _ <- modify(_.update(x, newV))
         } yield ()
       case IExpand(base: Local, EStr(f)) =>
         for {
