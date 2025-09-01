@@ -25,10 +25,9 @@ trait AbsValueDecl { self: ParamFlowAnalyzer =>
     )
 
     /** meet operator */
-    def ⊓(that: AbsValue)(using st: AbsState): AbsValue =
-      AbsValue(
-        params = this.params intersect that.params,
-      )
+    def ⊓(that: AbsValue)(using st: AbsState): AbsValue = AbsValue(
+      params = this.params intersect that.params,
+    )
 
     /** get string of abstract value with an abstract state */
     def getString(state: AbsState): String = this.toString
