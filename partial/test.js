@@ -1,1 +1,0 @@
-@@[e1 : ShortCircuitExpression] ?(1 + @@[e2 : MultiplicativeExpression]) : @@[e3 : AssignmentExpression];
