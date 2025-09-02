@@ -187,6 +187,23 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     case Undef                           => undef
     case Null                            => nullv
 
+  def containsNonAddr(value: Value): Option[Boolean] = value match
+    case _: Addr                         => None
+    case Clo(func, captured)             => Some(clo contains func.irFunc.name)
+    case Cont(func, captured, callStack) => Some(cont contains func.id)
+    case v: AstValue                     => Some(ast.contains(v))
+    case x @ GrammarSymbol(name, params) => Some(grammarSymbol contains x)
+    case m: Math                         => Some(math contains m)
+    case Infinity(p)                     => Some(infinity contains p)
+    case Enum(name)                      => Some(enumv contains name)
+    case CodeUnit(c)                     => Some(codeUnit)
+    case n: Number                       => Some(number contains n)
+    case BigInt(n)                       => Some(bigInt)
+    case Str(s)                          => Some(str contains s)
+    case Bool(b)                         => Some(bool contains b)
+    case Undef                           => Some(undef)
+    case Null                            => Some(nullv)
+
   /** copy value type */
   def copied(
     clo: CloTy = clo,

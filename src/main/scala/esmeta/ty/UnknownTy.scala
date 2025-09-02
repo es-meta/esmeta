@@ -15,6 +15,9 @@ case class UnknownTy(msg: Option[String] = None) extends Ty {
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean =
     throw NotSupported(Type)(msg.toList)
+
+  def containsNonAddr(value: Value): Option[Boolean] =
+    throw NotSupported(Type)(msg.toList)
 }
 object UnknownTy extends Parser.From(Parser.unknownTy):
   def apply(str: String): UnknownTy = UnknownTy(Some(str))

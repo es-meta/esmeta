@@ -261,8 +261,19 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       case EExists(ref)              => ???
       case ETypeOf(base)             => ???
       case EInstanceOf(expr, target) => ???
-      case ETypeCheck(expr, ty)      => AbsValue.Top
-      case ESizeOf(expr)             => ???
+      case ETypeCheck(expr, ty) =>
+        for {
+          v <- transfer(expr)
+          bool = v.value match
+            case Zero => AbsValue.Bot
+            case One(elem) =>
+              ty.ty
+                .containsNonAddr(elem)
+                .map(b => AbsValue(Bool(b)))
+                .getOrElse(AbsValue.Top)
+            case Many => AbsValue.Top
+        } yield bool
+      case ESizeOf(expr) => ???
       case EClo(fname, captured) =>
         captured match
           case Nil => AbsValue(Clo(cfg.fnameMap(fname), Map.empty))
@@ -311,7 +322,11 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       st: AbsState,
       unary: EUnary,
       operand: AbsValue,
-    )(using np: NodePoint[Node]): AbsValue = AbsValue.Top
+    )(using np: NodePoint[Node]): AbsValue =
+      (unary.uop, operand.value) match
+        case (_, Many)     => AbsValue.Top
+        case (_, Zero)     => AbsValue.Bot
+        case (uop, One(v)) => AbsValue(Interpreter.eval(uop, v))
 
     /** transfer function for binary operators */
     def transfer(
@@ -319,7 +334,12 @@ trait AbsTransferDecl { analyzer: EOGGenerator =>
       binary: EBinary,
       left: AbsValue,
       right: AbsValue,
-    )(using np: NodePoint[Node]): AbsValue = AbsValue.Top
+    )(using np: NodePoint[Node]): AbsValue =
+      (binary.bop, left.value, right.value) match
+        case (_, Many, _) | (_, _, Many) => AbsValue.Top
+        case (_, Zero, _) | (_, _, Zero) => AbsValue.Bot
+        // TODO short circuit?
+        case (bop, One(l), One(r)) => AbsValue(Interpreter.eval(bop, l, r))
 
     /** transfer for variadic operators */
     def transfer(

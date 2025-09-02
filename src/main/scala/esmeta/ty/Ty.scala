@@ -32,6 +32,8 @@ trait Ty extends TyElem {
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean
 
+  def containsNonAddr(value: Value): Option[Boolean]
+
   /** safe value containment check */
   def safeContains(value: Value, st: State): Option[Boolean] =
     safeContains(value, st.heap)
