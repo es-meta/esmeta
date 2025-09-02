@@ -8,6 +8,7 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
+import esmeta.analyzer.paramflow.*
 
 /** A nearest ECMAScript AST mutator */
 class NearestMutator(using cfg: CFG)(
@@ -15,6 +16,11 @@ class NearestMutator(using cfg: CFG)(
 ) extends Mutator {
   import NearestMutator.*
   import Mutator.*
+
+  /** analysis to guide mutation */
+  private lazy val analyzer = ParamFlowAnalyzer(cfg)
+  import analyzer.*
+  analyze
 
   val randomMutator = RandomMutator()
 
@@ -34,6 +40,17 @@ class NearestMutator(using cfg: CFG)(
   ): Seq[Result] = (for {
     (condView, cov) <- target
     CondView(cond, view) = condView
+    curNp = NodePoint(cfg.funcOf(cond.branch), cond.branch, emptyView)
+    st = getResult(curNp)
+    (v, _) = transfer.transfer(cond.branch.cond)(using curNp)(st)
+    // FIXME: debug
+    _debug =
+      println(
+        s"${cond.id}: ${cond.branch.cond} @ ${cfg.funcOf(cond.branch).name}",
+      )
+      println(s"affected by $v")
+      println()
+    // TODO: link param to exact AST
     nearest <- cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, None)
   } yield Walker(nearest, n).walk(ast).map(Result(name, _)))
     .getOrElse(randomMutator(ast, n, target))
