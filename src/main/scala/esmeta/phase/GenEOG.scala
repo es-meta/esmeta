@@ -43,32 +43,44 @@ case object GenEOG extends Phase[CFG, Unit] {
         useRepl = config.useRepl,
       )
     } do
-      println(
-        setColor(Console.YELLOW)(s"[$filename] Generating EOG for $path ..."),
-      )
-      suppress(s"${filename} analyze") { analyzer.analyze }
-      suppress(s"${filename} dot.full") {
+      val colored = setColor(Console.CYAN)(s"[$filename]")
+      var error: Boolean = false
+      deleteFile(dotFullPath) // delete previous .dot file
+      deleteFile(pdfFullPath) // delete previous .pdf file
+      deleteFile(dotPath) // delete previous .dot file
+      deleteFile(pdfPath) // delete previous .pdf file
+      println("-" * 48)
+      print(s"${colored} Generating EOG for ${setColor(Console.YELLOW)(path)}")
+      suppress(s"${colored} [analyze]", { error = true }) { analyzer.analyze }
+      suppress(s"${colored} [full]", { error = true }) {
         dumpFile(analyzer.eog.dot, dotFullPath)
         assert(analyzer.eog.isValid, "EOG is invalid")
         executeCmd(s"""dot -Tpdf "$dotFullPath" -o "$pdfFullPath"""")
+        deleteFile(dotFullPath) // delete .dot file after generating .pdf
       }
-      suppress(s"${filename} dot.simplified") {
+      suppress(s"${colored} [simplified]", { error = true }) {
         dumpFile(analyzer.eog.simplified.dot, dotPath)
-        // assert(analyzer.eog.simplified.isValid, "(Simplified) EOG is invalid")
+        assert(analyzer.eog.simplified.isValid, "(Simplified) EOG is invalid")
         executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath"""")
+        deleteFile(dotPath) // delete .dot file after generating .pdf
       }
+      println(
+        if (error) setColor(Console.RED)(s"[$filename] Failed")
+        else (" ~> " + setColor(Console.GREEN)(s"${pdfPath}")),
+      )
 
-  def suppress[T](tag: String)(body: => T): Unit = {
+  def suppress[T](tag: String, cleanup: => Unit = ())(body: => T): Unit = {
     try { body }
     catch {
       case e =>
-        println(setColor(Console.RED)(s"[$tag] Error occurred: "))
+        println(setColor(Console.RED)(s"$tag Error occurred: "))
         e.getMessage().linesIterator.foreach { line =>
-          println(s"[$tag] $line")
+          println(s"$tag $line")
         }
         e.getStackTrace().take(8).foreach { elem =>
-          println(s"[$tag]   at $elem")
+          println(s"$tag ${" " * 8}at $elem")
         }
+        cleanup
     }
   }
 
