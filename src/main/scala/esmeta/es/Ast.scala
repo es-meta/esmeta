@@ -141,7 +141,7 @@ case class Hole(
   name: String,
   args: List[Boolean],
   label: String, // e1 …
-  attrs: Map[String, String], // key -> value
+  attrs: Map[String, String] = Map(), // key -> value
 ) extends Ast {
   def children: Vector[Option[Ast]] = Vector.empty
 }

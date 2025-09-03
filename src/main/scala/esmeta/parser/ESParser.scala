@@ -47,36 +47,37 @@ case class ESParser(
         (res.get, res.next.source.toString)
     }
 
+  // parsers for holes (e.g., @@[x : ...])
+  val holeParsers: Map[String, ESParser[Ast]] = (for {
+    prod <- grammar.prods
+  } yield {
+    val name = prod.lhs.name
+    val parser: ESParser[Ast] = memo { args =>
+      val tok = "@@[" ~ Skip ~> ident <~ Skip ~ ":" ~ Skip ~ name ~ Skip ~ "]"
+      val first = FirstTerms(ts = Set("@@["))
+      LAParser(
+        follow => Skip ~> tok <~ +follow.parser ^^ { Hole(name, args, _) },
+        first,
+      )
+    }
+    name -> parser
+  }).toMap
+
   // parsers
   lazy val parsers: Map[String, ESParser[Ast]] = (for {
     prod <- grammar.prods
   } yield {
     val name = prod.lhs.name
-    val parser =
+    val holeParser = holeParsers(name)
+    val parser: ESParser[Ast] =
       if (prod.kind == ProductionKind.Syntactic)
         // TODO handle in a more general way for indirect left-recursion
         // comment out previous code
-        // if (name == "CoalesceExpressionHead") handleLR
-        // else getParser(prod)
         val core: ESParser[Ast] =
           if (name == "CoalesceExpressionHead") handleLR
           else getParser(prod)
-
-        // 새 branch
-        val hole: ESParser[Ast] = memo { args =>
-          val tok =
-            "@@[" ~> Skip ~> (ident <~ (Skip ~> ":" <~ Skip) <~ name) <~ Skip <~ "]"
-          val first = FirstTerms(ts = Set("@@["))
-          LAParser(
-            follow =>
-              (Skip ~> tok) <~ +follow.parser ^^ {
-                Hole(name, args, _, Map()) // TODO args
-              },
-            first,
-          )
-        }
-        (args: List[Boolean]) => hole(args) | core(args)
-      else (args: List[Boolean]) => nt(name, lexers(name, 0 /* TODO args */ ))
+        args => holeParser(args) | core(args)
+      else args => holeParser(args) | nt(name, lexers(name, 0 /* TODO args */ ))
     name -> parser
   }).toMap
 
@@ -116,25 +117,33 @@ case class ESParser(
   ): Syntactic = syn.setLoc(astStart mergeLoc astEnd)
 
   // get a parser
-  private def getParser(prod: Production): ESParser[Ast] = memo(args =>
-    locationed {
-      val Production(lhs, _, _, rhsVec) = prod
-      val Lhs(name, params) = lhs
-      val argsSet = getArgs(params, args)
+  private def getParser(prod: Production): ESParser[Ast] =
+    memo(args =>
+      locationed {
+        val Production(lhs, _, _, rhsVec) = prod
+        val Lhs(name, params) = lhs
+        val argsSet = getArgs(params, args)
 
-      val lrs = rhsVec.zipWithIndex
-        .filter { case (r, _) => isLR(name, r) }
-        .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
+        val lrs = rhsVec.zipWithIndex
+          .filter { case (r, _) => isLR(name, r) }
+          .map { case (r, i) => getSubParsers(name, args, argsSet, i, r) }
 
-      val nlrs = rhsVec.zipWithIndex
-        .filter { case (r, _) => !isLR(name, r) }
-        .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
+        val nlrs = rhsVec.zipWithIndex
+          .filter { case (r, _) => !isLR(name, r) }
+          .map { case (r, i) => getParsers(name, args, argsSet, i, r) }
 
-      if (lrs.isEmpty) log(nlrs.reduce(_ | _))(name)
-      else
-        log(resolveLR(locationed(nlrs.reduce(_ | _)), lrs.reduce(_ | _)))(name)
-    },
-  )
+        if (lrs.isEmpty) log(nlrs.reduce(_ | _))(name)
+        else
+          log(
+            resolveLR(
+              name,
+              args,
+              locationed(nlrs.reduce(_ | _)),
+              lrs.reduce(_ | _),
+            ),
+          )(name)
+      },
+    )
 
   // get a sub parser for direct left-recursive cases
   private def getSubParsers(
@@ -188,12 +197,11 @@ case class ESParser(
       else prev <~ t(term)
     case symbol: NtBase =>
       lazy val parser = symbol match
-        case Nonterminal(name, args) =>
-          if (lexNames contains name) nt(name, lexers(name, 0 /* TODO args */ ))
-          else parsers(name)(toBools(argsSet, args))
-        case ButNot(base, cases) =>
-          val name = s"$base \\ ${cases.mkString("(", ", ", ")")}"
-          nt(name, getSymbolParser(symbol, argsSet))
+        case Nonterminal(name, args) => parsers(name)(toBools(argsSet, args))
+        case ButNot(base @ Nonterminal(name, args), cases) =>
+          val ntName = s"$base \\ ${cases.mkString("(", ", ", ")")}"
+          holeParsers(name)(toBools(argsSet, args)) |
+          nt(ntName, getSymbolParser(symbol, argsSet))
         case ButOnlyIf(base, methodName, cond) => ???
       if (optional) prev ~ opt(parser) ^^ { case l ~ s => s :: l }
       else prev ~ parser ^^ { case l ~ s => Some(s) :: l }
@@ -428,14 +436,16 @@ case class ESParser(
 
   // resolve left recursions
   private type FLAParser[T] = LAParser[T => T]
-  private def resolveLR[T <: Ast](
-    f: LAParser[T],
-    s: FLAParser[T],
-  ): LAParser[T] = {
-    lazy val p: FLAParser[T] = s ~ p ^^ {
-      case b ~ f => (x: T) => f(b(x))
-    } | MATCH ^^^ { (x: T) => x }
-    f ~ p ^^ { case a ~ f => f(a) }
+  private def resolveLR(
+    name: String,
+    args: List[Boolean],
+    f: LAParser[Ast],
+    s: FLAParser[Ast],
+  ): LAParser[Ast] = {
+    lazy val p: FLAParser[Ast] = s ~ p ^^ {
+      case b ~ f => (x: Ast) => f(b(x))
+    } | MATCH ^^^ { (x: Ast) => x }
+    (holeParsers(name)(args) | f) ~ p ^^ { case a ~ f => f(a) }
   }
 
   // record right-most field positions
@@ -504,6 +514,8 @@ case class ESParser(
     log(
       locationed(
         resolveLR(
+          "CoalesceExpressionHead",
+          args,
           log(locationed(MATCH ~ parsers("BitwiseORExpression")(args) ^^ {
             case _ ~ x0 =>
               syntactic("CoalesceExpressionHead", args, 1, Vector(Some(x0)))
