@@ -230,9 +230,7 @@ class PolyfillGenerator(spec: Spec) {
     case LengthExpression(expr)                     => ???
     case SubstringExpression(expr, from, to)        => ???
     case TrimExpression(expr, leading, trailing)    => ???
-    case NumberOfExpression(ReferenceExpression(ref)) =>
-      s"${compile(ref)}.length"
-    case NumberOfExpression(expr)        => ???
+    case NumberOfExpression(_, _, expr)  => s"${compile(expr)}.length"
     case IntrinsicExpression(intr)       => ???
     case SourceTextExpression(expr)      => ???
     case CoveredByExpression(code, rule) => ???
