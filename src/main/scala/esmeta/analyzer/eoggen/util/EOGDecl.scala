@@ -4,12 +4,11 @@ import esmeta.analyzer.eoggen.*
 import esmeta.cfg.*
 import esmeta.ir.{ISdoCall}
 import esmeta.util.*
-import esmeta.util.BaseUtils.raise
-import esmeta.util.HtmlUtils.escapeES
-import scala.annotation.{tailrec, targetName}
+import esmeta.util.BaseUtils.*
+import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.dumpFile
+import scala.annotation.tailrec
 import scala.util.chaining.*
-import esmeta.util.HtmlUtils.escapeHtml
 
 trait EOGDecl { self: Self =>
 
@@ -23,9 +22,28 @@ trait EOGDecl { self: Self =>
 
     lazy val simplified: EOG = Reducer(this)
 
-    lazy val isValid: Boolean = {
-      nodes == edges.flatMap { case (src, dst) => Set(src, dst) }
+    private lazy val incidentNodes = edges.flatMap {
+      case (src, dst) => Set(src, dst)
     }
+
+    def validate: Unit = {
+      def isTrivial: Boolean =
+        nodes.size == 1 && edges.isEmpty
+      def hasNoIsolatedNodes: Boolean =
+        nodes subsetOf incidentNodes
+      if (!(isTrivial || hasNoIsolatedNodes))
+        warn(
+          "invalid eog: some nodes are isolated",
+        )
+      require(
+        incidentNodes subsetOf nodes,
+        "invalid eog: some edges are invalid",
+      )
+
+      // TODO: warn about connectivity
+    }
+
+    validate
   }
 
   lazy val eog: EOG = {
