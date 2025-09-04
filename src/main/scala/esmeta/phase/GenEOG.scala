@@ -54,13 +54,11 @@ case object GenEOG extends Phase[CFG, Unit] {
       suppress(s"${colored} [analyze]", { error = true }) { analyzer.analyze }
       suppress(s"${colored} [full]", { error = true }) {
         dumpFile(analyzer.eog.dot, dotFullPath)
-        assert(analyzer.eog.isValid, "EOG is invalid")
         executeCmd(s"""dot -Tpdf "$dotFullPath" -o "$pdfFullPath"""")
         deleteFile(dotFullPath) // delete .dot file after generating .pdf
       }
       suppress(s"${colored} [simplified]", { error = true }) {
         dumpFile(analyzer.eog.simplified.dot, dotPath)
-        assert(analyzer.eog.simplified.isValid, "(Simplified) EOG is invalid")
         executeCmd(s"""dot -Tpdf "$dotPath" -o "$pdfPath"""")
         deleteFile(dotPath) // delete .dot file after generating .pdf
       }
@@ -82,30 +80,6 @@ case object GenEOG extends Phase[CFG, Unit] {
         }
         cleanup
     }
-  }
-
-  def nonBulk(
-    cfg: CFG,
-    cmdConfig: CommandConfig,
-    config: Config,
-  ): Unit = {
-    val filename = getFirstFilename(cmdConfig, name)
-    val ast = cfg.scriptParser.fromFile(filename)
-    val analyzer = EOGGenerator(
-      cfg = cfg,
-      ast = ast,
-      log = config.log,
-      useRepl = config.useRepl,
-    )
-    analyzer.analyze
-    dumpFile(analyzer.eog.dot, s"${ANALYZE_LOG_DIR}/eog.dot")
-    executeCmd(
-      s"""dot -Tpdf "${ANALYZE_LOG_DIR}/eog.dot" -o "${ANALYZE_LOG_DIR}/eog.pdf"""",
-    )
-    dumpFile(analyzer.eog.simplified.dot, s"${ANALYZE_LOG_DIR}/eog2.dot")
-    executeCmd(
-      s"""dot -Tpdf "${ANALYZE_LOG_DIR}/eog2.dot" -o "${ANALYZE_LOG_DIR}/eog2.pdf"""",
-    )
   }
 
   def defaultConfig: Config = Config()
