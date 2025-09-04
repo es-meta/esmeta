@@ -50,7 +50,7 @@ case object GenEOG extends Phase[CFG, Unit] {
       deleteFile(dotPath) // delete previous .dot file
       deleteFile(pdfPath) // delete previous .pdf file
       println("-" * 48)
-      print(s"${colored} Generating EOG for ${setColor(Console.YELLOW)(path)}")
+      print(s"${colored} EOG for ${setColor(Console.YELLOW)(path)}")
       suppress(s"${colored} [analyze]", { error = true }) { analyzer.analyze }
       suppress(s"${colored} [full]", { error = true }) {
         dumpFile(analyzer.eog.dot, dotFullPath)
@@ -64,7 +64,7 @@ case object GenEOG extends Phase[CFG, Unit] {
       }
       println(
         if (error) setColor(Console.RED)(s"[$filename] Failed")
-        else (" ~> " + setColor(Console.GREEN)(s"${pdfPath}")),
+        else (" -> " + setColor(Console.GREEN)(s"${pdfPath}")),
       )
 
   def suppress[T](tag: String, cleanup: => Unit = ())(body: => T): Unit = {
