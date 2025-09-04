@@ -75,9 +75,13 @@ case object GenEOG extends Phase[CFG, Unit] {
         e.getMessage().linesIterator.foreach { line =>
           println(s"$tag $line")
         }
-        e.getStackTrace().take(8).foreach { elem =>
-          println(s"$tag ${" " * 8}at $elem")
-        }
+        e.getStackTrace
+          .map(_.toString)
+          .filter(_.startsWith("esmeta."))
+          .take(4)
+          .foreach { line =>
+            println(s"$tag ${" " * 8}at $line")
+          }
         cleanup
     }
   }
