@@ -137,11 +137,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
       case RepeatStep(cond, body) =>
         import RepeatStep.LoopCondition.*
-        app >> First("repeat, ")
+        app >> First("repeat,")
         cond match
           case NoCondition =>
-          case While(c)    => app >> "while " >> c >> ","
-          case Until(c)    => app >> "until " >> c >> ","
+            if (!body.isInstanceOf[BlockStep]) app >> " "
+          case While(c) => app >> " " >> "while " >> c >> ","
+          case Until(c) => app >> " " >> "until " >> c >> ","
         app >> body
       case ForEachStep(ty, elem, expr, forward, body) =>
         app >> First("for each ")

@@ -1099,6 +1099,8 @@ GetIterator
 GetIteratorDirect
 GetIteratorFlattenable
 GetIteratorFromMethod
+GetMatchIndexPair
+GetMatchString
 GetMethod
 GetModuleNamespace
 GetNamedTimeZoneEpochNanoseconds

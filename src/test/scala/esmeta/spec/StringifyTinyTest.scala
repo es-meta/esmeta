@@ -37,16 +37,14 @@ class StringifyTinyTest extends SpecTest {
          |    - numeric string: 16
          |    - syntactic: 195
          |  - extended productions for web: 28
-         |- algorithms: 2623 (86.08%)
-         |  - complete: 2258
-         |  - incomplete: 365
-         |- algorithm steps: 19061 (96.04%)
-         |  - complete: 18307
-         |  - incomplete: 754
-         |- types: 5908 (92.57%)
-         |  - known: 5469
-         |  - yet: 439
-         |  - unknown: 1543
+         |- algorithms: 2258
+         |  - complete: 365 (16.16%)
+         |  - equals: 0 (0.00%)
+         |- algorithm steps: 18307
+         |  - complete: 754 (4.12%)
+         |- types: 5469
+         |  - known: 439 (8.03%)
+         |  - yet: 1543 (28.21%)
          |- tables: 89
          |- type model: 58
          |- intrinsics: 101""".stripMargin,

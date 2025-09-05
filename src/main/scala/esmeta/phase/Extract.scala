@@ -128,14 +128,12 @@ case object Extract extends Phase[Unit, Spec] {
       getName = algo => s"${algo.normalizedName}.algo",
     )
 
-    dumpFile(
-      name = "algorithms whose string form is not equal to the original prose",
-      data = spec.algorithms
-        .filter(algo => algo.normalizedCode != algo.body.toString)
-        .map(algo => s"$EXTRACT_LOG_DIR/algos/${algo.normalizedName}.algo")
-        .sorted
-        .mkString(LINE_SEP),
-      filename = s"$EXTRACT_LOG_DIR/yet-equal-algos",
+    dumpDir(
+      name = "yet-equal-algos",
+      iterable = spec.algorithms.filter(!_.equals),
+      getData = algo => algo.lineDiffStr,
+      dirname = s"$EXTRACT_LOG_DIR/yet-equal-algos",
+      getName = algo => s"${algo.normalizedName}.diff",
     )
 
     dumpFile(

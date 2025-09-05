@@ -1002,6 +1002,10 @@ trait Parsers extends IndentParsers {
     ("to" ~> expr)
   } ^^ {
     case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n.isDefined, f, t)
+  } | {
+    (expr <~ "≤") ~ expr ~ ("≤" ~> expr)
+  } ^^ {
+    case f ~ l ~ t => InclusiveIntervalCondition(l, false, f, t)
   }
 
   // `contains` conditions
