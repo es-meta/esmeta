@@ -214,9 +214,9 @@ class PolyfillGenerator(spec: Spec) {
     case SubstringExpression(expr, from, to) =>
       s"SubString(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
     case TrimExpression(expr, leading, trailing) => ???
-    case NumberOfExpression(ReferenceExpression(ref)) =>
+    case NumberOfExpression(_, _, ReferenceExpression(ref)) =>
       s"${compile(ref)}.length"
-    case NumberOfExpression(expr) => ???
+    case NumberOfExpression(_, _, expr) => ???
     case IntrinsicExpression(intr) =>
       s"${intr.base}.${intr.props.mkString(".")}"
     case SourceTextExpression(expr)      => ???
