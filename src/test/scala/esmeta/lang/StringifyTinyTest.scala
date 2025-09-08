@@ -313,7 +313,7 @@ class StringifyTinyTest extends LangTest {
     // algorithm literals
     // -------------------------------------------------------------------------
     checkParseAndStringify("Literal", Expression)(
-      ThisLiteral() -> "*this* value",
+      ThisLiteral(None) -> "*this* value",
       NewTargetLiteral() -> "NewTarget",
       hex -> "0x0024",
       hexWithName -> "0x0024 (DOLLAR SIGN)",

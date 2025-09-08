@@ -795,7 +795,7 @@ class Compiler(
 
   /** compile literals */
   def compile(fb: FuncBuilder, lit: Literal): Expr = lit match {
-    case ThisLiteral()      => ENAME_THIS
+    case ThisLiteral(_)     => ENAME_THIS
     case NewTargetLiteral() => ENAME_NEW_TARGET
     case HexLiteral(hex, name) =>
       if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)

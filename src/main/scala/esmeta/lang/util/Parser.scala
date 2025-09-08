@@ -561,8 +561,9 @@ trait Parsers extends IndentParsers {
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
-    opt("the") ~> "*this* value" ^^! ThisLiteral() |
-    "this" ~ ("Parse Node" | ntLiteral) ^^! ThisLiteral() |
+    opt("the") ~> "*this* value" ^^! ThisLiteral(None) |
+    "this Parse Node" ^^! ThisLiteral(Some("Parse Node")) |
+    "this" ~> ntLiteral ^^ { case nt => ThisLiteral(Some(nt)) } |
     "NewTarget" ^^! NewTargetLiteral() |
     hexLiteral |
     "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |

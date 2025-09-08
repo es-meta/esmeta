@@ -244,7 +244,9 @@ sealed trait Literal extends CalcExpression
 object Literal extends Parser.From(Parser.literal)
 
 // `this` literals
-case class ThisLiteral() extends Literal
+case class ThisLiteral(
+  desc: Option[String | NonterminalLiteral],
+) extends Literal
 
 // NewTarget literals
 case class NewTargetLiteral() extends Literal

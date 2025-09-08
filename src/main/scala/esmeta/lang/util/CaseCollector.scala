@@ -206,8 +206,15 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }} $op {{ expr }}"
       case UnaryExpression(op, expr) =>
         s"$op {{ expr }}"
-      case _: ThisLiteral =>
-        s"*this* value"
+      case ThisLiteral(desc) =>
+        desc match {
+          case None => "*this* value"
+          case Some(desc) =>
+            desc match {
+              case _: String             => s"this Parse Node"
+              case _: NonterminalLiteral => s"this |{{ expr }}|"
+            }
+        }
       case _: NewTargetLiteral =>
         s"NewTarget"
       case HexLiteral(hex, name) =>
