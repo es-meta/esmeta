@@ -63,7 +63,8 @@ case class GetItemsExpression(nt: Expression, expr: Expression)
   extends Expression
 
 // list expressions
-case class ListExpression(entries: List[Expression]) extends Expression
+case class ListExpression(entries: List[Expression], verbose: Boolean)
+  extends Expression
 
 // integer list expressions
 case class IntListExpression(

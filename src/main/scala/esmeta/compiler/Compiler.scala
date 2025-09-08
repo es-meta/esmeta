@@ -634,7 +634,7 @@ class Compiler(
         xExpr
       case ReturnIfAbruptExpression(expr, check) =>
         returnIfAbrupt(fb, compile(fb, expr), check, false)
-      case ListExpression(entries) =>
+      case ListExpression(entries, _) =>
         EList(entries.map(compile(fb, _)))
       case IntListExpression(from, fInc, to, tInc, asc) =>
         val (f, fExpr) = fb.newTIdWithExpr

@@ -298,10 +298,14 @@ class CaseCollector extends UnitWalker {
           "{{ str }} of {{ expr }} with no arguments"
         else
           "{{ str }} of {{ expr }} with argument(s) {{ expr }}*"
-      case ListExpression(Nil) =>
-        s"« »"
-      case ListExpression(entries) =>
-        s"« {{ expr }}* »"
+      case ListExpression(entries, true) =>
+        entries match
+          case Nil => s"a new empty List"
+          case _   => s"a List whose sole element is {{ expr }}"
+      case ListExpression(entries, false) =>
+        entries match
+          case Nil => "« »"
+          case _   => s"« {{ expr }}* »"
       case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
         val from = if (isFromInc) "inclusive" else "exclusive"
         val to = if (isToInc) "inclusive" else "exclusive"

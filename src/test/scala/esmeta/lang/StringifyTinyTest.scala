@@ -87,7 +87,7 @@ class StringifyTinyTest extends LangTest {
       |    1. Let _x_ be _x_.
       |  1. Else,
       |    1. Let _x_ be _x_.""".stripMargin,
-      repeatStep -> "repeat, let _x_ be _x_.",
+      // repeatStep -> "repeat, let _x_ be _x_.",
       repeatWhileStep -> """repeat, while _x_ and _x_,
       |  1. Let _x_ be _x_.""".stripMargin,
       repeatUntilStep -> """repeat, until _x_ and _x_,

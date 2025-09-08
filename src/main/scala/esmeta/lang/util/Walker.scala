@@ -196,8 +196,8 @@ trait Walker extends BasicWalker {
       BitwiseExpression(walk(left), walk(op), walk(right))
     case invoke: InvokeExpression =>
       walk(invoke)
-    case ListExpression(entries) =>
-      ListExpression(walkList(entries, walk))
+    case ListExpression(entries, verbose) =>
+      ListExpression(walkList(entries, walk), verbose)
     case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
       IntListExpression(walk(from), isFromInc, walk(to), isToInc, isInc)
     case XRefExpression(kind, id) =>

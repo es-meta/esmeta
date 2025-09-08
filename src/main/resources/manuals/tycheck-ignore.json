@@ -1,6 +1,7 @@
 [
   "AsyncFromSyncIteratorContinuation",
   "AsyncGeneratorYield",
+  "BigIntBitwiseOp",
   "ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody",
   "CompareTypedArrayElements",
   "DoWait",

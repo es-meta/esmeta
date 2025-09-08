@@ -816,9 +816,11 @@ trait Parsers extends IndentParsers {
 
   // list expressions
   lazy val listExpr: PL[ListExpression] =
-    "a new empty List" ^^! ListExpression(Nil) |
-    "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_) } |
-    "a List whose sole element is" ~> expr ^^ { e => ListExpression(List(e)) }
+    "a new empty List" ^^! ListExpression(Nil, true) |
+    "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_, false) } |
+    "a List whose sole element is" ~> expr ^^ { e =>
+      ListExpression(List(e), true)
+    }
 
   // integer list expressions
   lazy val intListExpr: PL[IntListExpression] =
@@ -867,7 +869,9 @@ trait Parsers extends IndentParsers {
       base: P[Condition],
       op: Parser[CompoundConditionOperator],
     ): Parser[Condition] =
-      rep(base <~ opt(",")) ~ op ~ (opt("if") ~> base) ^^ {
+      opt("(") ~> rep(base <~ opt(",")) ~ op ~ (opt("if") ~> base) <~ opt(
+        ")",
+      ) ^^ {
         case ls ~ op ~ r =>
           ls.foldRight(r) {
             case (l, r) => CompoundCondition(l, op, r)
@@ -879,8 +883,10 @@ trait Parsers extends IndentParsers {
     lazy val simpleImply: P[Condition] =
       "If" ~> compound(baseCond, "then" ^^^ Imply)
     lazy val compOr: P[Condition] = compound(simpleAnd, "or" ^^^ Or)
+    lazy val compAnd: P[Condition] = compound(simpleOr, "and" ^^^ And)
 
     compOr |||
+    compAnd |||
     simpleImply |||
     simpleOr |||
     simpleAnd |||

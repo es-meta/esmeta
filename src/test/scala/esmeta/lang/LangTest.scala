@@ -203,8 +203,8 @@ object LangTest {
     )
   lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, T)
   lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
-  lazy val emptyListExpr = ListExpression(Nil)
-  lazy val listExpr = ListExpression(List(refExpr, refExpr))
+  lazy val emptyListExpr = ListExpression(Nil, false)
+  lazy val listExpr = ListExpression(List(refExpr, refExpr), false)
   lazy val xrefAlgoExpr = XRefExpression(XRefExpressionOperator.Algo, "sec-x")
   lazy val xrefSlotsExpr =
     XRefExpression(XRefExpressionOperator.InternalSlots, "sec-x")

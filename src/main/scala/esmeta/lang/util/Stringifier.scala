@@ -336,10 +336,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " and " >> right
       case expr: InvokeExpression =>
         invokeExprRule(app, expr)
-      case ListExpression(Nil) => app >> "« »"
-      case ListExpression(entries) =>
-        given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
-        app >> entries
+      case ListExpression(entries, true) =>
+        entries match
+          case Nil    => app >> "a new empty List"
+          case e :: _ => app >> "a List whose sole element is " >> e
+      case ListExpression(entries, false) =>
+        entries match
+          case Nil => app >> "« »"
+          case _ =>
+            given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
+            app >> entries
       case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
         app >> "a List of the integers in the interval from " >> from
         app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"

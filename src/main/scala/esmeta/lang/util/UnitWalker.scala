@@ -162,7 +162,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(left); walk(op); walk(right)
     case invoke: InvokeExpression =>
       walk(invoke)
-    case ListExpression(entries) =>
+    case ListExpression(entries, _) =>
       walkList(entries, walk)
     case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
       walk(from); walk(to)
