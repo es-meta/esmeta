@@ -521,7 +521,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // literals
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
-      case _: ThisLiteral      => app >> "*this* value"
+      case ThisLiteral(desc) =>
+        desc match {
+          case None => app >> "*this* value"
+          case Some(desc) =>
+            desc match {
+              case s: String              => app >> "this" >> " " >> s
+              case nt: NonterminalLiteral => app >> "this" >> " " >> nt
+            }
+        }
       case _: NewTargetLiteral => app >> "NewTarget"
       case HexLiteral(hex, name) =>
         app >> f"0x$hex%04x"
