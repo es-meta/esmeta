@@ -142,11 +142,4 @@ extension (r: Ref) {
     case Global(name)     => true
     case Name(name)       => true
     case Temp(idx)        => true
-
-  /** extract name of the base expression */
-  def baseName: String = r match
-    case Field(ref, expr) => ref.baseName
-    case Global(name)     => s"@$name"
-    case Name(name)       => name
-    case Temp(idx)        => s"%$idx"
 }

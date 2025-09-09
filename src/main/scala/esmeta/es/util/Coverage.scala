@@ -1,6 +1,6 @@
 package esmeta.es.util
 
-import esmeta.analyzer.paramflow.*
+import esmeta.analyzer.paramflow.{ParamFlowAnalyzer, ParamKind}
 import esmeta.{LINE_SEP, TEST262TEST_LOG_DIR}
 import esmeta.cfg.*
 import esmeta.injector.*
@@ -481,11 +481,14 @@ object Coverage {
         param <- absV.params
         ast <- context.func.head match {
           case Some(_: SyntaxDirectedOperationHead) =>
+            import ParamKind.*
             param match
-              case "this" => context.astOpt.toSet
-              case _      => next(param)
+              case This => context.astOpt.toSet
+              case ThisIdx(k) =>
+                context.astOpt.flatMap(_.children.lift(k).flatten).toSet
+              case Named(name) => next(name)
           case Some(_: BuiltinHead) => Set() // TODO find argument expressions
-          case _                    => next(param)
+          case _ => next(param.asInstanceOf[ParamKind.Named].name)
         }
       } yield ast
     }

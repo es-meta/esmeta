@@ -57,10 +57,13 @@ class ParamFlowAnalyzer(
 
   /** get initial state of function */
   private def getState(func: Func): AbsState =
+    import ParamKind.*
     func.params.foldLeft(AbsState.Bot) {
       case (st, param) =>
         val x = param.lhs
-        val v = AbsValue(x.name)
+        val v = x.name match
+          case "this" => AbsValue(This)
+          case name   => AbsValue(Named(name))
         st.update(x, v)
     }
 

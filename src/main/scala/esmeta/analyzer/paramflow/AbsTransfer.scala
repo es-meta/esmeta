@@ -89,7 +89,7 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
         } yield ()
       case IExpand(base: Local, EStr(f)) =>
         for {
-          _ <- modify(_.update(base, AbsValue(f)))
+          _ <- modify(_.update(base, AbsValue(ParamKind.Named(f))))
         } yield ()
       case IDelete(base, expr) =>
         st => st
@@ -105,7 +105,7 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
       case IPop(lhs: Name, ERef(Name("ArgumentsList")), _) =>
         // FIXME: ad-hoc impl. to handle BuiltinPrefix (ArgumentsList)
         for {
-          _ <- modify(_.update(lhs, AbsValue(lhs.name)))
+          _ <- modify(_.update(lhs, AbsValue(ParamKind.Named(lhs.name))))
         } yield ()
       case IPop(lhs, list, _) =>
         for {
@@ -267,15 +267,9 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
         for {
           v <- get(_(x))
         } yield v
-      // TODO: should handle in another structure for precise this
-      // case field @ Field(base, expr) if field.baseName == "this" =>
-      //   // FIXME: ad-hoc impl. to handle precise this
-      //   for {
-      //     f <- transfer(expr)
-      //     st <- get
-      //     given AbsState = st
-      //     v = AbsValue(field.toString) ⊔ f
-      //   } yield v
+      case f @ Field(Name("this"), EMath(k)) =>
+        // FIXME: ad-hoc impl. to handle precise this
+        AbsValue(ParamKind.ThisIdx(k.toInt))
       case Field(base, expr) =>
         for {
           b <- transfer(base)

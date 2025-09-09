@@ -6,7 +6,7 @@ import esmeta.util.Appender.*
 trait AbsValueDecl { self: ParamFlowAnalyzer =>
 
   case class AbsValue(
-    params: Set[String] = Set(),
+    params: Set[ParamKind] = Set(),
   ) extends AbsValueLike {
 
     /** bottom check */
@@ -41,13 +41,33 @@ trait AbsValueDecl { self: ParamFlowAnalyzer =>
     lazy val Bot: AbsValue = AbsValue()
 
     /** create abstract value from parameters */
-    def apply(xs: String*): AbsValue = AbsValue(params = xs.toSet)
+    def apply(xs: ParamKind*): AbsValue = AbsValue(params = xs.toSet)
 
     /** appender */
     given rule: Rule[AbsValue] = (app, value) => {
-      given Rule[List[String]] = iterableRule("[", ", ", "]")
+      given Rule[List[ParamKind]] = iterableRule("[", ", ", "]")
       val AbsValue(params) = value
       app >> params.toList.sorted
     }
+
+    given paramKindRule: Rule[ParamKind] = (app, pk) =>
+      import ParamKind.*
+      pk match
+        case This        => app >> "this"
+        case ThisIdx(k)  => app >> s"this[$k]"
+        case Named(name) => app >> name
+
+    given paramKindOrder: Ordering[ParamKind] =
+      import ParamKind.*
+      Ordering.by {
+        case This        => (0, "")
+        case ThisIdx(k)  => (1, k.toString)
+        case Named(name) => (2, name)
+      }
   }
 }
+
+enum ParamKind:
+  case This
+  case ThisIdx(k: Int)
+  case Named(name: String)
