@@ -1,10 +1,12 @@
 package esmeta.es.util
 
+import esmeta.analyzer.paramflow.*
 import esmeta.{LINE_SEP, TEST262TEST_LOG_DIR}
 import esmeta.cfg.*
 import esmeta.injector.*
 import esmeta.interpreter.*
-import esmeta.ir.{Expr, EParse, EBool}
+import esmeta.ir.{Expr, EParse, EBool, Name, EUndef, ICall, ISdoCall}
+import esmeta.spec.*
 import esmeta.ty.{*, given}
 import esmeta.es.*
 import esmeta.es.util.*
@@ -26,6 +28,7 @@ case class Coverage(
   all: Boolean = false,
   isTargetNode: (Node, State) => Boolean = (_, _) => true,
   isTargetBranch: (Branch, State) => Boolean = (_, _) => true,
+  analyzer: Option[ParamFlowAnalyzer] = None,
 ) {
   import Coverage.{*, given}
 
@@ -100,8 +103,16 @@ case class Coverage(
   /** evaluate a given ECMAScript program */
   def run(code: String, ast: Ast, name: Option[String]): Interp =
     val initSt = cfg.init.from(code, ast, name)
-    val interp =
-      Interp(initSt, tyCheck, kFs, cp, timeLimit, isTargetNode, isTargetBranch)
+    val interp = Interp(
+      initSt,
+      tyCheck,
+      kFs,
+      cp,
+      timeLimit,
+      isTargetNode,
+      isTargetBranch,
+      analyzer,
+    )
     interp.result; interp
 
   def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
@@ -429,6 +440,7 @@ object Coverage {
     timeLimit: Option[Int],
     isTargetNode: (Node, State) => Boolean,
     isTargetBranch: (Branch, State) => Boolean,
+    analyzer: Option[ParamFlowAnalyzer] = None,
   ) extends Interpreter(initSt, tyCheck = tyCheck, timeLimit = timeLimit) {
     var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
     var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
@@ -440,11 +452,53 @@ object Coverage {
         touchedNodeViews += NodeView(node, getView(node)) -> getNearest
       super.eval(node)
 
+    private def aux(
+      context: Context,
+      callStack: List[CallContext],
+      node: Node,
+      expr: Expr,
+    ): Option[Set[Ast]] =
+      for {
+        an <- analyzer
+        curNp = an.NodePoint(st.context.func, node, an.emptyView)
+        absSt = an.getResult(curNp)
+        (absV, _) = an.transfer.transfer(expr)(using curNp)(absSt)
+        asts = absV.params.map {
+          case "this" => Some(Set(context.locals(Name("this")).asAst))
+          case param =>
+            st.func.head match
+              case Some(_: SyntaxDirectedOperationHead) => Some(Set())
+              case Some(_: BuiltinHead) =>
+                Some(Set(esParser("AssignmentExpression").from(param)))
+              case _ =>
+                val idx = context.func.params.map(_.lhs.name).indexOf(param)
+                callStack match
+                  case head :: next =>
+                    val cc = head.context
+                    val cursor = cc.cursor.asInstanceOf[NodeCursor]
+                    val callInst = cursor.node.asInstanceOf[Call].callInst
+                    val args = callInst match
+                      case ICall(_, _, args)          => args
+                      case ISdoCall(_, base, _, args) => base :: args
+                    val arg = args.lift(idx).getOrElse(EUndef())
+                    aux(cc, next, cursor.node, arg)
+                  case Nil => Some(Set())
+        }.flatten
+      } yield asts.flatten
+
     // override branch move
     override def moveBranch(branch: Branch, b: Boolean): Unit =
       // record touched conditional branch if it is a target branch
       if (isTargetBranch(branch, st))
         val cond = Cond(branch, b)
+        println("=====") // debug
+        println(s"cond: ${branch.cond} @ ${st.func.name}") // debug
+        println(s"code: ${st.sourceText.getOrElse("ERR")}") // debug
+        val asts = aux(st.context, st.callStack, branch, branch.cond) // debug
+        for { // debug
+          asts <- asts // debug
+          codes = asts.map(_.toString(grammar = Some(st.cfg.grammar))) // debug
+        } yield codes.foreach(println) // debug
         touchedCondViews += CondView(cond, getView(cond)) -> getNearest
       super.moveBranch(branch, b)
 

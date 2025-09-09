@@ -267,14 +267,15 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
         for {
           v <- get(_(x))
         } yield v
-      case field @ Field(base, expr) if field.baseName == "this" =>
-        // FIXME: ad-hoc impl. to handle precise this
-        for {
-          f <- transfer(expr)
-          st <- get
-          given AbsState = st
-          v = AbsValue(field.toString) ⊔ f
-        } yield v
+      // TODO: should handle in another structure for precise this
+      // case field @ Field(base, expr) if field.baseName == "this" =>
+      //   // FIXME: ad-hoc impl. to handle precise this
+      //   for {
+      //     f <- transfer(expr)
+      //     st <- get
+      //     given AbsState = st
+      //     v = AbsValue(field.toString) ⊔ f
+      //   } yield v
       case Field(base, expr) =>
         for {
           b <- transfer(base)

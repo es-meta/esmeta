@@ -1,5 +1,6 @@
 package esmeta.fuzzer
 
+import esmeta.analyzer.paramflow.*
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.es.*
@@ -16,8 +17,7 @@ import esmeta.{ESMeta, FUZZ_LOG_DIR, LINE_SEP}
 import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
-// import org.apache.commons.math3.distribution.BetaDistribution
-import scala.collection.mutable.{ListBuffer, Map => MMap}
+import scala.collection.mutable.{Map => MMap}
 import scala.collection.parallel.CollectionConverters._
 import scala.util.*
 
@@ -259,7 +259,10 @@ class Fuzzer(
     ).asJson
 
   /** coverage */
-  val cov: Coverage = Coverage(cfg, tyCheck, kFs, cp, timeLimit)
+  val cov: Coverage =
+    lazy val analyzer = ParamFlowAnalyzer(cfg)
+    analyzer.analyze
+    Coverage(cfg, tyCheck, kFs, cp, timeLimit, analyzer = Some(analyzer))
 
   /** target selector */
   val selector: TargetSelector = WeightedSelector(
