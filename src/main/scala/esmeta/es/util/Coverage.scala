@@ -452,53 +452,50 @@ object Coverage {
         touchedNodeViews += NodeView(node, getView(node)) -> getNearest
       super.eval(node)
 
-    private def aux(
+    // get impacted ASTs for a given expression in a given context
+    private def getImpactAsts(
       context: Context,
       callStack: List[CallContext],
       node: Node,
       expr: Expr,
-    ): Option[Set[Ast]] =
+    ): Set[Ast] = {
+      def next(param: String): Set[Ast] = callStack match {
+        case head :: tail =>
+          val idx = context.func.params.map(_.lhs.name).indexOf(param)
+          val cc = head.context
+          val cursor = cc.cursor.asInstanceOf[NodeCursor]
+          val callInst = cursor.node.asInstanceOf[Call].callInst
+          val args = callInst match
+            case ICall(_, _, args)          => args
+            case ISdoCall(_, base, _, args) => base :: args
+          val arg = args.lift(idx).getOrElse(EUndef())
+          getImpactAsts(cc, tail, cursor.node, arg)
+        case Nil => Set()
+      }
       for {
-        an <- analyzer
-        curNp = an.NodePoint(st.context.func, node, an.emptyView)
+        an <- analyzer.toSet
+        curNp = an.NodePoint(context.func, node, an.emptyView)
         absSt = an.getResult(curNp)
         (absV, _) = an.transfer.transfer(expr)(using curNp)(absSt)
-        asts = absV.params.map {
-          case "this" => Some(Set(context.locals(Name("this")).asAst))
-          case param =>
-            st.func.head match
-              case Some(_: SyntaxDirectedOperationHead) => Some(Set())
-              case Some(_: BuiltinHead) =>
-                Some(Set(esParser("AssignmentExpression").from(param)))
-              case _ =>
-                val idx = context.func.params.map(_.lhs.name).indexOf(param)
-                callStack match
-                  case head :: next =>
-                    val cc = head.context
-                    val cursor = cc.cursor.asInstanceOf[NodeCursor]
-                    val callInst = cursor.node.asInstanceOf[Call].callInst
-                    val args = callInst match
-                      case ICall(_, _, args)          => args
-                      case ISdoCall(_, base, _, args) => base :: args
-                    val arg = args.lift(idx).getOrElse(EUndef())
-                    aux(cc, next, cursor.node, arg)
-                  case Nil => Some(Set())
-        }.flatten
-      } yield asts.flatten
+        id = node.id
+        param <- absV.params
+        ast <- context.func.head match {
+          case Some(_: SyntaxDirectedOperationHead) =>
+            param match
+              case "this" => context.astOpt.toSet
+              case _      => next(param)
+          case Some(_: BuiltinHead) => Set() // TODO find argument expressions
+          case _                    => next(param)
+        }
+      } yield ast
+    }
 
     // override branch move
     override def moveBranch(branch: Branch, b: Boolean): Unit =
       // record touched conditional branch if it is a target branch
       if (isTargetBranch(branch, st))
         val cond = Cond(branch, b)
-        println("=====") // debug
-        println(s"cond: ${branch.cond} @ ${st.func.name}") // debug
-        println(s"code: ${st.sourceText.getOrElse("ERR")}") // debug
-        val asts = aux(st.context, st.callStack, branch, branch.cond) // debug
-        for { // debug
-          asts <- asts // debug
-          codes = asts.map(_.toString(grammar = Some(st.cfg.grammar))) // debug
-        } yield codes.foreach(println) // debug
+        val asts = getImpactAsts(st.context, st.callStack, branch, branch.cond)
         touchedCondViews += CondView(cond, getView(cond)) -> getNearest
       super.moveBranch(branch, b)
 
