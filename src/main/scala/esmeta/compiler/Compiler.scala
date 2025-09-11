@@ -695,6 +695,7 @@ class Compiler(
           case ToNumber       => EConvert(COp.ToNumber, compile(fb, expr))
           case ToBigInt       => EConvert(COp.ToBigInt, compile(fb, expr))
           case ToMath         => EConvert(COp.ToMath, compile(fb, expr))
+          case ToCodeUnit     => EConvert(COp.ToCodeUnit, compile(fb, expr))
       case ExponentiationExpression(base, power) =>
         EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
       case BinaryExpression(left, op, right) =>
