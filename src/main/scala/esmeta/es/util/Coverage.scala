@@ -74,8 +74,9 @@ case class Coverage(
   def size: Int = counter.size
 
   // target conditional branches
-  private var _targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = Map()
-  def targetCondViews: Map[Cond, Map[View, Option[Nearest]]] = _targetCondViews
+  private var _targetCondViews: Map[Cond, Map[View, Set[Target]]] = Map()
+  def targetCondViews: Map[Cond, Map[View, Set[Target]]] =
+    _targetCondViews
 
   private lazy val scriptParser = cfg.scriptParser
 
@@ -123,12 +124,12 @@ case class Coverage(
     var updated = false
     var blockingScripts: Set[Script] = Set.empty
 
-    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
-    var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
+    var touchedNodeViews: Map[NodeView, Set[Target]] = Map()
+    var touchedCondViews: Map[CondView, Set[Target]] = Map()
 
     // update node coverage
-    for ((nodeView, nearest) <- interp.touchedNodeViews)
-      touchedNodeViews += nodeView -> nearest
+    for ((nodeView, target) <- interp.touchedNodeViews)
+      touchedNodeViews += nodeView -> target
       getScripts(nodeView) match
         case None => update(nodeView, script); updated = true; covered = true
         case Some(scripts) =>
@@ -147,19 +148,19 @@ case class Coverage(
           }
 
     // update branch coverage
-    for ((condView, nearest) <- interp.touchedCondViews)
-      touchedCondViews += condView -> nearest
+    for ((condView, target) <- interp.touchedCondViews)
+      touchedCondViews += condView -> target
       getScripts(condView) match
         case None =>
-          update(condView, nearest, script); updated = true; covered = true
+          update(condView, target, script); updated = true; covered = true
         case Some(scripts) =>
           if (all) {
-            update(condView, nearest, script)
+            update(condView, target, script)
             updated = true
           } else {
             val originalScript = scripts.head
             if (originalScript.code.length > code.length) {
-              update(condView, nearest, script)
+              update(condView, target, script)
               updated = true
               blockingScripts += originalScript
             } else {
@@ -327,7 +328,7 @@ case class Coverage(
   // update mapping from conditional branches to scripts
   private def update(
     condView: CondView,
-    nearest: Option[Nearest],
+    target: Set[Target],
     script: Script,
   ): Unit = {
     condViews += condView
@@ -336,10 +337,10 @@ case class Coverage(
     // update target branches
     val neg = condView.neg
     cond.branch match
-      case _ if nearest.isEmpty            =>
+      case _ if target.isEmpty             =>
       case Branch(_, _, EBool(_), _, _, _) =>
       case _ if getScripts(neg).isDefined  => removeTargetCond(neg)
-      case _                               => addTargetCond(condView, nearest)
+      case _                               => addTargetCond(condView, target)
 
     condViewMap += cond -> updated(apply(cond), view, script)
   }
@@ -370,10 +371,10 @@ case class Coverage(
     }
 
   // add a cond to targetConds
-  private def addTargetCond(cv: CondView, nearest: Option[Nearest]): Unit =
+  private def addTargetCond(cv: CondView, target: Set[Target]): Unit =
     val CondView(cond, view) = cv
     val origViews = _targetCondViews.getOrElse(cond, Map())
-    val newViews = origViews + (view -> nearest)
+    val newViews = origViews + (view -> target)
     _targetCondViews += cond -> newViews
 
   // remove a cond from targetConds
@@ -442,8 +443,8 @@ object Coverage {
     isTargetBranch: (Branch, State) => Boolean,
     analyzer: Option[ParamFlowAnalyzer] = None,
   ) extends Interpreter(initSt, tyCheck = tyCheck, timeLimit = timeLimit) {
-    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
-    var touchedCondViews: Map[CondView, Option[Nearest]] = Map()
+    var touchedNodeViews: Map[NodeView, Set[Target]] = Map()
+    var touchedCondViews: Map[CondView, Set[Target]] = Map()
 
     // override eval for node
     override def eval(node: Node): Unit =
@@ -452,14 +453,14 @@ object Coverage {
         touchedNodeViews += NodeView(node, getView(node)) -> getNearest
       super.eval(node)
 
-    // get impacted ASTs for a given expression in a given context
-    private def getImpactAsts(
+    // get impact sources for a given expression in a given context
+    private def getSources(
       context: Context,
       callStack: List[CallContext],
       node: Node,
       expr: Expr,
-    ): Set[Ast] = {
-      def next(param: String): Set[Ast] = callStack match {
+    ): Set[Target] = {
+      def next(param: String): Set[Target] = callStack match {
         case head :: tail =>
           val idx = context.func.params.map(_.lhs.name).indexOf(param)
           val cc = head.context
@@ -469,7 +470,7 @@ object Coverage {
             case ICall(_, _, args)          => args
             case ISdoCall(_, base, _, args) => base :: args
           val arg = args.lift(idx).getOrElse(EUndef())
-          getImpactAsts(cc, tail, cursor.node, arg)
+          getSources(cc, tail, cursor.node, arg)
         case Nil => Set()
       }
       for {
@@ -479,18 +480,19 @@ object Coverage {
         (absV, _) = an.transfer.transfer(expr)(using curNp)(absSt)
         id = node.id
         param <- absV.params
-        ast <- context.func.head match {
+        target <- context.func.head match {
           case Some(_: SyntaxDirectedOperationHead) =>
             import ParamKind.*
+            given cfg: CFG = st.cfg
             param match
-              case This => context.astOpt.toSet
+              case This => Target(context.astOpt).toSet
               case ThisIdx(k) =>
-                context.astOpt.flatMap(_.children.lift(k).flatten).toSet
+                Target(context.astOpt.flatMap(_.children.lift(k).flatten)).toSet
               case Named(name) => next(name)
           case Some(_: BuiltinHead) => Set() // TODO find argument expressions
           case _ => next(param.asInstanceOf[ParamKind.Named].name)
         }
-      } yield ast
+      } yield target
     }
 
     // override branch move
@@ -498,8 +500,9 @@ object Coverage {
       // record touched conditional branch if it is a target branch
       if (isTargetBranch(branch, st))
         val cond = Cond(branch, b)
-        val asts = getImpactAsts(st.context, st.callStack, branch, branch.cond)
-        touchedCondViews += CondView(cond, getView(cond)) -> getNearest
+        val sources = getSources(st.context, st.callStack, branch, branch.cond)
+        val targets = if (sources.nonEmpty) sources else getNearest
+        touchedCondViews += CondView(cond, getView(cond)) -> targets
       super.moveBranch(branch, b)
 
     // get syntax-sensitive views
@@ -511,8 +514,8 @@ object Coverage {
         case feature :: enclosing => Some(enclosing, feature, path)
       }
 
-    // get location information
-    private def getNearest: Option[Nearest] = st.context.nearest
+    // get nearest target
+    private def getNearest: Set[Target] = st.context.nearest.toSet
   }
 
   /** meta-information for each script */

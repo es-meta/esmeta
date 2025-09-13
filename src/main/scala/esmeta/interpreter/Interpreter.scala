@@ -485,7 +485,7 @@ class Interpreter(
             Name("this"),
           )
           loc <- ast.loc
-        } yield Nearest(name, idx, ast.subIdx, loc)
+        } yield Target(name, idx, ast.subIdx, loc)
         Context(func, locals, feature :: prevFeatureStack, nearest)
       case Some(head: BuiltinHead) =>
         val feature = BuiltinFeature(func, head)

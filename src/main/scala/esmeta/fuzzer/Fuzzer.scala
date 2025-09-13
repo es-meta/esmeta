@@ -276,7 +276,7 @@ class Fuzzer(
   /** mutator */
   given CFG = cfg
   val mutator: Mutator = WeightedMutator(
-    NearestMutator(),
+    TargetMutator(),
     RandomMutator(),
     StatementInserter(),
     Remover(),

@@ -11,7 +11,7 @@ case class Context(
   val func: Func,
   val locals: MMap[Local, Value] = MMap(),
   val featureStack: List[Feature] = Nil,
-  val nearest: Option[Nearest] = None,
+  val nearest: Option[Target] = None,
   val callPath: CallPath = CallPath(),
 ) extends StateElem {
 

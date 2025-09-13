@@ -10,54 +10,39 @@ import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
 // import esmeta.analyzer.paramflow.*
 
-/** A nearest ECMAScript AST mutator */
-class NearestMutator(using cfg: CFG)(
+/** A target ECMAScript AST mutator */
+class TargetMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator {
-  import NearestMutator.*
+  import TargetMutator.*
   import Mutator.*
-
-  /** analysis to guide mutation */
-  // private lazy val analyzer = ParamFlowAnalyzer(cfg)
-  // import analyzer.*
-  // analyze
 
   val randomMutator = RandomMutator()
 
-  val names = "NearestMutator" :: randomMutator.names
+  val names = "TargetMutator" :: randomMutator.names
 
   /** synthesizer */
   val synthesizer = synBuilder(cfg.grammar)
 
-  /** default weight for NearestMutator is 6 */
+  /** default weight for TargetMutator is 6 */
   def calculateWeight(ast: Ast): Int = 6
 
   /** mutate programs */
   def apply(
     ast: Ast,
     n: Int,
-    target: Option[(CondView, Coverage)],
+    targetBranch: Option[(CondView, Coverage)],
   ): Seq[Result] = (for {
-    (condView, cov) <- target
+    (condView, cov) <- targetBranch
     CondView(cond, view) = condView
-    // curNp = NodePoint(cfg.funcOf(cond.branch), cond.branch, emptyView)
-    // st = getResult(curNp)
-    // (v, _) = transfer.transfer(cond.branch.cond)(using curNp)(st)
-    // // FIXME: debug
-    // _debug =
-    //   println(
-    //     s"${cond.id}: ${cond.branch.cond} @ ${cfg.funcOf(cond.branch).name}",
-    //   )
-    //   println(s"affected by $v")
-    //   println()
-    // // TODO: link param to exact AST
-    nearest <- cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, None)
-  } yield Walker(nearest, n).walk(ast).map(Result(name, _)))
-    .getOrElse(randomMutator(ast, n, target))
+    targets = cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
+    target <- Option.when(targets.nonEmpty)(choose(targets.toVector))
+  } yield Walker(target, n).walk(ast).map(Result(name, _)))
+    .getOrElse(randomMutator(ast, n, targetBranch))
 
   /** internal walker */
-  class Walker(nearest: Nearest, n: Int) extends Util.MultiplicativeListWalker {
-    val Nearest(name, rhsIdx, subIdx, loc) = nearest
+  class Walker(target: Target, n: Int) extends Util.MultiplicativeListWalker {
+    val Target(name, rhsIdx, subIdx, loc) = target
     override def walk(ast: Syntactic): List[Syntactic] =
       if (
         ast.name == name &&
