@@ -75,8 +75,7 @@ case class Coverage(
 
   // target conditional branches
   private var _targetCondViews: Map[Cond, Map[View, Set[Target]]] = Map()
-  def targetCondViews: Map[Cond, Map[View, Set[Target]]] =
-    _targetCondViews
+  def targetCondViews: Map[Cond, Map[View, Set[Target]]] = _targetCondViews
 
   private lazy val scriptParser = cfg.scriptParser
 

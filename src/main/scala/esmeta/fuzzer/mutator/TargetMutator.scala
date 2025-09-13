@@ -8,7 +8,6 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
-// import esmeta.analyzer.paramflow.*
 
 /** A target ECMAScript AST mutator */
 class TargetMutator(using cfg: CFG)(
@@ -36,12 +35,14 @@ class TargetMutator(using cfg: CFG)(
     (condView, cov) <- targetBranch
     CondView(cond, view) = condView
     targets = cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
-    target <- Option.when(targets.nonEmpty)(choose(targets.toVector))
-  } yield Walker(target, n).walk(ast).map(Result(name, _)))
+    if targets.nonEmpty
+  } yield Walker(targets, n).walk(ast).map(Result(name, _)))
     .getOrElse(randomMutator(ast, n, targetBranch))
 
   /** internal walker */
-  class Walker(target: Target, n: Int) extends Util.MultiplicativeListWalker {
+  class Walker(targets: Set[Target], n: Int)
+    extends Util.MultiplicativeListWalker {
+    val target = choose(targets)
     val Target(name, rhsIdx, subIdx, loc) = target
     override def walk(ast: Syntactic): List[Syntactic] =
       if (
