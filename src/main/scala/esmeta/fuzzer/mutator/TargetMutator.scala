@@ -36,13 +36,12 @@ class TargetMutator(using cfg: CFG)(
     CondView(cond, view) = condView
     targets = cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
     if targets.nonEmpty
-  } yield Walker(targets, n).walk(ast).map(Result(name, _)))
+    target = choose(targets.toVector)
+  } yield Walker(target, n).walk(ast).map(Result(name, _)))
     .getOrElse(randomMutator(ast, n, targetBranch))
 
   /** internal walker */
-  class Walker(targets: Set[Target], n: Int)
-    extends Util.MultiplicativeListWalker {
-    val target = choose(targets)
+  class Walker(target: Target, n: Int) extends Util.MultiplicativeListWalker {
     val Target(name, rhsIdx, subIdx, loc) = target
     override def walk(ast: Syntactic): List[Syntactic] =
       if (
