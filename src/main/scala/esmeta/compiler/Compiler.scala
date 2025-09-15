@@ -533,8 +533,8 @@ class Compiler(
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
     prop match
-      case FieldProperty(name)     => Field(baseRef, EStr(name))
-      case ComponentProperty(name) => Field(baseRef, EStr(name))
+      case FieldProperty(name)        => Field(baseRef, EStr(name))
+      case ComponentProperty(name, _) => Field(baseRef, EStr(name))
       case BindingProperty(expr) =>
         Field(toStrRef(baseRef, INNER_MAP), compile(fb, expr))
       case IndexProperty(index)      => Field(baseRef, compile(fb, index))
@@ -551,7 +551,7 @@ class Compiler(
         fb.addInst(ICall(x, AUX_FLAT_LIST, List(EList(es.map(compile(fb, _))))))
         xExpr
       case ListCopyExpression(expr) => ECopy(compile(fb, expr))
-      case RecordExpression(rawName, fields) =>
+      case RecordExpression(rawName, fields, _) =>
         val tname = Type.normalizeName(rawName)
         var props = (for {
           (name, f) <- tyModel.methodOf(tname).toList.sortBy(_._1)
@@ -590,7 +590,10 @@ class Compiler(
         ESourceText(compile(fb, expr))
       case CoveredByExpression(code, rule) =>
         EParse(compile(fb, code), compile(fb, rule))
-      case GetItemsExpression(nt, expr @ NonterminalLiteral(_, name, flags)) =>
+      case GetItemsExpression(
+            nt,
+            expr @ NonterminalLiteral(_, name, flags, _),
+          ) =>
         val n = compile(fb, nt)
         val e = compile(fb, expr)
         val args = List(e, n, EGrammarSymbol(name, flags.map(_ startsWith "+")))
@@ -626,7 +629,7 @@ class Compiler(
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, fexpr, bExpr :: args.map(compile(fb, _))))
         xExpr
-      case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+      case InvokeSyntaxDirectedOperationExpression(base, name, args, _) =>
         // XXX BUG in Static Semancis: CharacterValue
         val baseExpr = compile(fb, base)
         val (x, xExpr) = fb.newTIdWithExpr
@@ -795,14 +798,15 @@ class Compiler(
 
   /** compile literals */
   def compile(fb: FuncBuilder, lit: Literal): Expr = lit match {
-    case ThisLiteral(_)     => ENAME_THIS
-    case NewTargetLiteral() => ENAME_NEW_TARGET
-    case HexLiteral(hex, name) =>
+    case ThisLiteral(_)          => ENAME_THIS
+    case ThisParseNodeLiteral(_) => ENAME_THIS
+    case NewTargetLiteral()      => ENAME_NEW_TARGET
+    case HexLiteral(hex, name, _) =>
       if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)
     case CodeLiteral(code) => EStr(code)
     case GrammarSymbolLiteral(name, flags) =>
       EGrammarSymbol(name, flags.map(_ startsWith "+"))
-    case NonterminalLiteral(ordinal, name, flags) =>
+    case NonterminalLiteral(ordinal, name, flags, _) =>
       val ntNames = fb.ntBindings.map(_._1)
       // TODO ClassTail[0,3].Contains
       if (ntNames contains name) {
@@ -812,7 +816,7 @@ class Compiler(
           case (_, base, Some(idx)) => toERef(fb, base, EMath(idx))
       } else EGrammarSymbol(name, flags.map(_ startsWith "+"))
     case EnumLiteral(name)   => EEnum(name)
-    case StringLiteral(s)    => EStr(s)
+    case StringLiteral(s, _) => EStr(s)
     case FieldLiteral(field) => EStr(field)
     case SymbolLiteral(sym)  => toERef(GLOBAL_SYMBOL, EStr(sym))
     case ProductionLiteral(lhsName, rhsName) =>
@@ -963,7 +967,7 @@ class Compiler(
           case GreaterThanEqual => not(lessThan(l, r))
           case SameCodeUnits    => EBinary(BOp.Eq, l, r)
         }
-      case InclusiveIntervalCondition(left, neg, from, to) =>
+      case InclusiveIntervalCondition(left, neg, from, to, _) =>
         lazy val l = compile(fb, left)
         lazy val f = compile(fb, from)
         lazy val t = compile(fb, to)

@@ -61,11 +61,17 @@ object LangTest {
   import IfStep.ElseConfig
   lazy val ifStep = IfStep(exprCond, letStep, None)
   lazy val ifElseInlineStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", T))
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", T, T))
   lazy val ifOtherwiseInlineStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T))
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T, T))
   lazy val ifOtherwiseInlineNoCommaStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", F))
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T, F))
+  lazy val ifElseInlineSemicolonStep =
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", F, T))
+  lazy val ifOtherwiseInlineSemicolonStep =
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", F, T))
+  lazy val ifOtherwiseInlineNoCommaSemicolonStep =
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", F, F))
   lazy val ifBlockStep =
     IfStep(exprCond, blockStep, None)
   lazy val ifElseStep =
@@ -176,30 +182,34 @@ object LangTest {
   lazy val invokeMethodExpr =
     InvokeMethodExpression(fieldRef, List(addExpr, unExpr))
   lazy val invokeSDOExprZero =
-    InvokeSyntaxDirectedOperationExpression(nt, "StringValue", Nil)
+    InvokeSyntaxDirectedOperationExpression(nt, "StringValue", Nil, None)
   lazy val invokeSDOExprSingle =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "StringValue",
       List(nt),
+      None,
     )
   lazy val invokeSDOExprMulti =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "StringValue",
       List(nt, refExpr),
+      None,
     )
   lazy val invokeSDOExprEval =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "Evaluation",
       Nil,
+      None,
     )
   lazy val invokeSDOExprContains =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "Contains",
       List(refExpr),
+      None,
     )
   lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, T)
   lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
@@ -259,15 +269,20 @@ object LangTest {
     ConversionExpression(ConversionExpressionOperator.ToMath, refExpr)
 
   // algorithm literals
-  lazy val hex = HexLiteral(0x0024, None)
-  lazy val hexWithName = HexLiteral(0x0024, Some("DOLLAR SIGN"))
+  lazy val hex = HexLiteral(0x0024, None, false)
+  lazy val hexWithName = HexLiteral(0x0024, Some("DOLLAR SIGN"), false)
   lazy val code = CodeLiteral("|")
   lazy val grSym = GrammarSymbolLiteral("A", Nil)
   lazy val grSymIdx = GrammarSymbolLiteral("A", List("~Yield", "+Await"))
-  lazy val nt = NonterminalLiteral(None, "Identifier", Nil)
-  lazy val firstNt = NonterminalLiteral(Some(1), "Identifier", Nil)
-  lazy val secondNt = NonterminalLiteral(Some(2), "Identifier", Nil)
-  lazy val ntFlags = NonterminalLiteral(None, "A", List("~Yield", "+Await"))
+  lazy val nt = NonterminalLiteral(None, "Identifier", Nil, false)
+  lazy val firstNt = NonterminalLiteral(Some(1), "Identifier", Nil, false)
+  lazy val firstNtWithArticle =
+    NonterminalLiteral(Some(1), "Identifier", Nil, true)
+  lazy val secondNt = NonterminalLiteral(Some(2), "Identifier", Nil, false)
+  lazy val secondNtWithArticle =
+    NonterminalLiteral(Some(2), "Identifier", Nil, true)
+  lazy val ntFlags =
+    NonterminalLiteral(None, "A", List("~Yield", "+Await"), false)
   lazy val empty = EnumLiteral("empty")
   lazy val emptyStr = StringLiteral("")
   lazy val str = StringLiteral("abc")
@@ -336,12 +351,21 @@ object LangTest {
     IsAreCondition(List(refExpr), T, List(TrueLiteral(), FalseLiteral()))
   lazy val binaryCondLt =
     BinaryCondition(refExpr, BinaryConditionOperator.LessThan, addExpr)
+  lazy val inclusiveIntervalCondShort =
+    InclusiveIntervalCondition(
+      refExpr,
+      F,
+      DecimalMathValueLiteral(BigDecimal(2)),
+      DecimalMathValueLiteral(BigDecimal(32)),
+      false,
+    )
   lazy val inclusiveIntervalCond =
     InclusiveIntervalCondition(
       refExpr,
       F,
       DecimalMathValueLiteral(BigDecimal(2)),
       DecimalMathValueLiteral(BigDecimal(32)),
+      true,
     )
   lazy val notInclusiveIntervalCond =
     inclusiveIntervalCond.copy(negation = T)
@@ -376,7 +400,7 @@ object LangTest {
 
   // algorithm references
   lazy val fieldProp = FieldProperty("Value")
-  lazy val componentProp = ComponentProperty("Realm")
+  lazy val componentProp = ComponentProperty("Realm", ComponentPropertyForm.Dot)
   lazy val bindingProp = BindingProperty(refExpr)
   lazy val indexProp = IndexProperty(refExpr)
   lazy val intrProp = IntrinsicProperty(intr)

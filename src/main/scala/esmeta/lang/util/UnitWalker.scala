@@ -124,8 +124,8 @@ trait UnitWalker extends BasicUnitWalker {
     }
 
   def walk(config: IfStep.ElseConfig): Unit =
-    val IfStep.ElseConfig(newLine, keyword, comma) = config
-    walk(newLine); walk(keyword); walk(comma)
+    val IfStep.ElseConfig(newLine, keyword, isKeywordUpper, comma) = config
+    walk(newLine); walk(keyword); walk(isKeywordUpper); walk(comma)
 
   def walk(expr: Expression): Unit = expr match {
     case StringConcatExpression(exprs) =>
@@ -134,8 +134,9 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case ListCopyExpression(expr) =>
       walk(expr)
-    case RecordExpression(ty, fields) =>
-      walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) })
+    case RecordExpression(ty, fields, article) =>
+      walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) });
+      walk(article)
     case LengthExpression(expr) =>
       walk(expr)
     case SubstringExpression(expr, from, to) =>
@@ -233,7 +234,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(x); walkList(args, walk)
     case InvokeMethodExpression(ref, args) =>
       walk(ref); walkList(args, walk)
-    case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+    case InvokeSyntaxDirectedOperationExpression(base, name, args, article) =>
       walk(base); walkList(args, walk)
   }
 
@@ -254,8 +255,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
-    case InclusiveIntervalCondition(left, neg, from, to) =>
-      walk(left); walk(neg); walk(from); walk(to)
+    case InclusiveIntervalCondition(left, neg, from, to, verbose) =>
+      walk(left); walk(neg); walk(from); walk(to); walk(verbose)
     case ContainsCondition(list, neg, target) =>
       walk(list); walk(neg); walk(target)
     case CompoundCondition(left, op, right) =>
@@ -295,7 +296,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   def walk(prop: Property): Unit = prop match {
     case FieldProperty(n)        =>
-    case ComponentProperty(c)    =>
+    case ComponentProperty(c, _) =>
     case BindingProperty(b)      => walk(b)
     case IndexProperty(e)        => walk(e)
     case IntrinsicProperty(intr) => walk(intr)

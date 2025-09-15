@@ -195,7 +195,7 @@ trait Parsers extends IndentParsers {
         import IfStep.ElseConfig
         val (e, config) = es match
           case Some(n ~ k ~ c ~ e) =>
-            (Some(e), ElseConfig(n, k.toFirstLower, c))
+            (Some(e), ElseConfig(n, k.toFirstLower, k.head.isUpper, c))
           case None => (None, ElseConfig())
         IfStep(c, t, e, config)
     }
@@ -373,10 +373,11 @@ trait Parsers extends IndentParsers {
 
   // record expressions
   lazy val recordExpr: PL[RecordExpression] = {
-    opt("the") ~> tname ~
+    opt("the") ~ tname ~
     ("{" ~> repsep((fieldLiteral <~ ":") ~ expr, ",") <~ "}")
   } ^^ {
-    case t ~ fs => RecordExpression(t, fs.map { case f ~ e => f -> e })
+    case a ~ t ~ fs =>
+      RecordExpression(t, fs.map { case f ~ e => f -> e }, a.isDefined)
   } | {
     ("a new" ~> tname) ~
     ("whose" ~> fieldLiteral) ~
@@ -561,16 +562,19 @@ trait Parsers extends IndentParsers {
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
-    opt("the") ~> "*this* value" ^^! ThisLiteral(None) |
-    "this Parse Node" ^^! ThisLiteral(Some("Parse Node")) |
-    "this" ~> ntLiteral ^^ { case nt => ThisLiteral(Some(nt)) } |
+    opt("the") <~ "*this* value" ^^ { case a => ThisLiteral(a.isDefined) } |
+    "this Parse Node" ^^! ThisParseNodeLiteral(None) |
+    "this" ~> ntLiteral ^^ { case nt => ThisParseNodeLiteral(Some(nt)) } |
     "NewTarget" ^^! NewTargetLiteral() |
     hexLiteral |
     "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |
     grammarSymbolLiteral |
     ntLiteral |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumLiteral(_) } |
-    "the empty String" ^^! StringLiteral("") |
+    "the empty String" ^^! StringLiteral(
+      "",
+      StringLiteralForm.EmptyString,
+    ) | // enum
     strLiteral <~ opt("\\([^)]*\\)".r) |
     fieldLiteral |
     errObjLiteral |
@@ -606,10 +610,11 @@ trait Parsers extends IndentParsers {
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
-    (opt("the code unit") ~ "0x" ~> "[0-9A-F]+".r) ~
+    opt("the code unit") ~
+    ("0x" ~> "[0-9A-F]+".r) ~
     opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
-      case n ~ x =>
-        HexLiteral(Integer.parseInt(n, 16), x)
+      case c ~ n ~ x =>
+        HexLiteral(Integer.parseInt(n, 16), x, c.isDefined)
     }
   // grammar symboll iterals
   lazy val grammarSymbolLiteral: PL[GrammarSymbolLiteral] =
@@ -619,8 +624,8 @@ trait Parsers extends IndentParsers {
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    opt("the") ~> opt(ordinal) ~ ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
-      case ord ~ x ~ fs => NonterminalLiteral(ord, x, fs)
+    opt("the") ~ opt(ordinal) ~ ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
+      case a ~ ord ~ x ~ fs => NonterminalLiteral(ord, x, fs, a.isDefined)
     }
 
   lazy val flags: P[List[String]] =
@@ -780,7 +785,7 @@ trait Parsers extends IndentParsers {
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: PL[InvokeSyntaxDirectedOperationExpression] =
     lazy val name =
-      (opt("the result of performing" | "the result of" | "the") ~ guard(
+      opt("the result of performing" | "the result of" | "the") ~ (guard(
         not(component),
       ) ~> camel)
     lazy val base = ("of" ~> expr)
@@ -788,25 +793,23 @@ trait Parsers extends IndentParsers {
     // normal SDO
     lazy val normalSDOExpr =
       name ~ base ~ opt(argsPart) ^^ {
-        case x ~ b ~ as =>
-          InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil))
-      }
-
-    // Evaluation SDO
-    lazy val evalSDOExpr =
-      "the result of evaluating" ~ opt(langType <~ guard(expr)) ~> expr ^^ {
-        case b =>
-          InvokeSyntaxDirectedOperationExpression(b, "Evaluation", Nil)
+        case (a ~ x) ~ b ~ as =>
+          InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil), a)
       }
 
     // Contains SDO
     lazy val containsSDOExpr =
       expr ~ ("Contains" ~> expr) ^^ {
         case b ~ arg =>
-          InvokeSyntaxDirectedOperationExpression(b, "Contains", List(arg))
+          InvokeSyntaxDirectedOperationExpression(
+            b,
+            "Contains",
+            List(arg),
+            None,
+          )
       }
 
-    normalSDOExpr | evalSDOExpr | containsSDOExpr
+    normalSDOExpr | containsSDOExpr
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
@@ -842,7 +845,10 @@ trait Parsers extends IndentParsers {
   lazy val specialExpr: PL[Expression] =
     import ConversionExpressionOperator.*
     // ClassStaticBlockDefinitionEvaluation
-    "the empty sequence of Unicode code points" ^^! StringLiteral("") |
+    "the empty sequence of Unicode code points" ^^! StringLiteral(
+      "",
+      StringLiteralForm.EmptyUnicode,
+    ) |
     // Array.prototype.join
     "the single-element String" ~> strLiteral |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
@@ -1008,11 +1014,11 @@ trait Parsers extends IndentParsers {
     ("in the inclusive interval from" ~> expr) ~
     ("to" ~> expr)
   } ^^ {
-    case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n.isDefined, f, t)
+    case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n.isDefined, f, t, true)
   } | {
     (expr <~ "≤") ~ expr ~ ("≤" ~> expr)
   } ^^ {
-    case f ~ l ~ t => InclusiveIntervalCondition(l, false, f, t)
+    case f ~ l ~ t => InclusiveIntervalCondition(l, false, f, t, false)
   }
 
   // `contains` conditions
@@ -1199,12 +1205,20 @@ trait Parsers extends IndentParsers {
   lazy val preProp: PL[Property] = {
     "the" ~> nt <~ "of" ^^ { NonterminalProperty(_) } |||
     "the binding for" ~> expr <~ "in" ^^ { BindingProperty(_) } |||
-    "the" ~> component <~ opt("component") ~ "of" ^^ { ComponentProperty(_) }
+    "the" ~> component <~ opt("component") ~ "of" ^^ {
+      ComponentProperty(_, ComponentPropertyForm.Text)
+    }
   }.named("lang.Property")
 
   lazy val postProp: PL[Property] = {
     "[" ~> expr <~ "]" ^^ { IndexProperty(_) } |||
-    ("'s" | ".") ~> camel.filter(validProp(_)) ^^ { ComponentProperty(_) } |||
+    ("'s" | ".") ~ camel.filter(validProp(_)) ^^ {
+      case op ~ n =>
+        val form =
+          if (op == ".") ComponentPropertyForm.Dot
+          else ComponentPropertyForm.Apostrophe
+        ComponentProperty(n, form)
+    } |||
     "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
     "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
   }.named("lang.Property")

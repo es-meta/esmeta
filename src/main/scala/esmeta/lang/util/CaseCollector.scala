@@ -79,16 +79,20 @@ class CaseCollector extends UnitWalker {
       case AssertStep(cond) =>
         s"assert: {{ cond }}."
       case IfStep(cond, thenStep, elseStep, config) =>
-        val IfStep.ElseConfig(newLine, keyword, comma) = config
+        val IfStep.ElseConfig(newLine, keyword, isKeywordUpper, comma) = config
+
+        val k = if (isKeywordUpper) keyword.toFirstUpper else keyword
+        val end = if (isKeywordUpper) "." else ";"
+
         (newLine, comma) match
           case (true, true) =>
-            s"if {{ cond }}, {{ step }}. <NEWLINE> $keyword, {{ step }}."
+            s"if {{ cond }}, {{ step }}$end <NEWLINE> $k, {{ step }}."
           case (true, false) =>
-            s"if {{ cond }}, {{ step }}. <NEWLINE> $keyword {{ step }}."
+            s"if {{ cond }}, {{ step }}$end <NEWLINE> $k {{ step }}."
           case (false, true) =>
-            s"if {{ cond }}, {{ step }}. $keyword, {{ step }}."
+            s"if {{ cond }}, {{ step }}$end $k, {{ step }}."
           case (false, false) =>
-            s"if {{ cond }}, {{ step }}. $keyword {{ step }}."
+            s"if {{ cond }}, {{ step }}$end $k {{ step }}."
       case RepeatStep(cond, body) =>
         import RepeatStep.LoopCondition.*
         cond match
@@ -158,8 +162,9 @@ class CaseCollector extends UnitWalker {
         s"the list-concatenation of {{ expr }}*"
       case ListCopyExpression(expr) =>
         s"a List whose elements are the elements of {{ expr }}"
-      case RecordExpression(ty, fields) =>
-        s"{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
+      case RecordExpression(ty, fields, article) =>
+        val a = if (article) "the " else ""
+        s"$a{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
       case LengthExpression(expr) =>
         s"the length of {{ expr }}"
       case SubstringExpression(expr, from, to) =>
@@ -206,31 +211,37 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }} $op {{ expr }}"
       case UnaryExpression(op, expr) =>
         s"$op {{ expr }}"
-      case ThisLiteral(desc) =>
-        desc match {
-          case None => "*this* value"
-          case Some(desc) =>
-            desc match {
-              case _: String             => s"this Parse Node"
-              case _: NonterminalLiteral => s"this |{{ expr }}|"
-            }
+      case ThisLiteral(article) =>
+        val a = if (article) "the " else ""
+        s"$a*this* value"
+      case ThisParseNodeLiteral(nt) =>
+        nt match {
+          case None     => s"this Parse Node"
+          case Some(nt) => s"this |{{ expr }}|"
         }
       case _: NewTargetLiteral =>
         s"NewTarget"
-      case HexLiteral(hex, name) =>
+      case HexLiteral(hex, name, codeunit) =>
+        val prefix = if (codeunit) "the code unit " else ""
         val desc = name.fold("")(" (" + _ + ")")
-        f"0x$hex%04x$desc"
+        f"${prefix}0x$hex%04X$desc"
       case CodeLiteral(code) =>
         s"`{{ str }}`"
       case GrammarSymbolLiteral(name, flags) =>
         s"the grammar symbol |{{ str }}|"
-      case NonterminalLiteral(ordinal, name, flags) =>
+      case NonterminalLiteral(ordinal, name, flags, article) =>
+        val a = if (article) "the " else ""
         val ord = ordinal.fold("")(s"the " + _.toOrdinal + " ")
-        s"$ord|{{ str }}|"
+        s"$a$ord|{{ str }}|"
       case EnumLiteral(name) =>
         s"~{{ str }}~"
-      case StringLiteral(str) =>
-        "*\"{{ str }}\"*"
+      case StringLiteral(str, form) =>
+        import StringLiteralForm.*
+        form match {
+          case Normal       => "*\"{{ str }}\"*"
+          case EmptyString  => "the empty String"
+          case EmptyUnicode => "the empty sequence of Unicode code points"
+        }
       case FieldLiteral(name) =>
         s"[[{{ str }}]]"
       case SymbolLiteral(sym) =>
@@ -289,15 +300,17 @@ class CaseCollector extends UnitWalker {
         s"{{ var }}({{ expr }}*)"
       case InvokeMethodExpression(base, args) =>
         s"{{ ... }}({{ expr }}*)"
-      case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-        if (name == "Evaluation")
-          s"the result of evaluating {{ expr }}"
-        else if (name == "Contains")
+      case InvokeSyntaxDirectedOperationExpression(base, name, args, article) =>
+        val a = article match {
+          case None        => ""
+          case Some(value) => s"$value "
+        }
+        if (name == "Contains")
           s"{{ expr }} Contains {{ expr }}"
         else if (args.isEmpty)
-          "{{ str }} of {{ expr }} with no arguments"
+          s"$a{{ str }} of {{ expr }} with no arguments"
         else
-          "{{ str }} of {{ expr }} with argument(s) {{ expr }}*"
+          s"$a{{ str }} of {{ expr }} with argument(s) {{ expr }}*"
       case ListExpression(entries, true) =>
         entries match
           case Nil => s"a new empty List"
@@ -347,9 +360,11 @@ class CaseCollector extends UnitWalker {
         else s"{{ expr }}* is/are {{ expr }}*"
       case BinaryCondition(left, op, right) =>
         s"{{ expr }} $op {{ expr }}"
-      case InclusiveIntervalCondition(left, neg, from, to) =>
-        val n = if (neg) " not" else ""
-        s"{{ expr }} is${n} in the inclusive interval from {{ expr }} to {{ expr }}"
+      case InclusiveIntervalCondition(left, neg, from, to, isTextForm) =>
+        if (isTextForm)
+          val n = if (neg) " not" else ""
+          s"{{ expr }} is${n} in the inclusive interval from {{ expr }} to {{ expr }}"
+        else s"{{ expr }} ≤ {{ expr }} ≤ {{ expr }}"
       case ContainsCondition(list, neg, expr) =>
         val c = if (neg) "does not contain" else "contains"
         s"{{ expr }} $c {{ expr }}"

@@ -156,8 +156,13 @@ trait Walker extends BasicWalker {
       case Until(cond) => Until(walk(cond))
 
   def walk(config: IfStep.ElseConfig): IfStep.ElseConfig =
-    val IfStep.ElseConfig(newLine, keyword, comma) = config
-    IfStep.ElseConfig(walk(newLine), walk(keyword), walk(comma))
+    val IfStep.ElseConfig(newLine, keyword, isKeywordUpper, comma) = config
+    IfStep.ElseConfig(
+      walk(newLine),
+      walk(keyword),
+      walk(isKeywordUpper),
+      walk(comma),
+    )
 
   def walk(expr: Expression): Expression = expr match {
     case StringConcatExpression(exprs) =>
@@ -166,10 +171,10 @@ trait Walker extends BasicWalker {
       ListConcatExpression(walkList(exprs, walk))
     case ListCopyExpression(expr) =>
       ListCopyExpression(walk(expr))
-    case RecordExpression(ty, fields) =>
+    case RecordExpression(ty, fields, article) =>
       lazy val newFields =
         walkList(fields, { case (f, e) => (walk(f), walk(e)) })
-      RecordExpression(walk(ty), newFields)
+      RecordExpression(walk(ty), newFields, walk(article))
     case LengthExpression(expr) =>
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>
@@ -273,11 +278,12 @@ trait Walker extends BasicWalker {
       InvokeAbstractClosureExpression(walk(x), walkList(args, walk))
     case InvokeMethodExpression(ref, args) =>
       InvokeMethodExpression(walk(ref), walkList(args, walk))
-    case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+    case InvokeSyntaxDirectedOperationExpression(base, name, args, article) =>
       InvokeSyntaxDirectedOperationExpression(
         walk(base),
         name,
         walkList(args, walk),
+        None,
       )
   }
 
@@ -298,8 +304,14 @@ trait Walker extends BasicWalker {
       IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>
       BinaryCondition(walk(left), walk(op), walk(right))
-    case InclusiveIntervalCondition(left, neg, from, to) =>
-      InclusiveIntervalCondition(walk(left), walk(neg), walk(from), walk(to))
+    case InclusiveIntervalCondition(left, neg, from, to, verbose) =>
+      InclusiveIntervalCondition(
+        walk(left),
+        walk(neg),
+        walk(from),
+        walk(to),
+        walk(verbose),
+      )
     case ContainsCondition(list, neg, target) =>
       ContainsCondition(walk(list), walk(neg), walk(target))
     case CompoundCondition(left, op, right) =>
@@ -340,7 +352,7 @@ trait Walker extends BasicWalker {
 
   def walk(prop: Property): Property = prop match {
     case FieldProperty(n)        => FieldProperty(n)
-    case ComponentProperty(c)    => ComponentProperty(c)
+    case ComponentProperty(c, f) => ComponentProperty(c, f)
     case BindingProperty(b)      => BindingProperty(walk(b))
     case IndexProperty(e)        => IndexProperty(walk(e))
     case IntrinsicProperty(intr) => IntrinsicProperty(walk(intr))

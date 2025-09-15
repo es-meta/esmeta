@@ -37,7 +37,15 @@ object Property extends Parser.From(Parser.prop)
 case class FieldProperty(name: String) extends Property
 
 // component property
-case class ComponentProperty(name: String) extends Property
+case class ComponentProperty(name: String, form: ComponentPropertyForm)
+  extends Property
+
+// Dot: Something.Property
+// Apostrophe: Something's Property
+// Text: the Property of Something
+enum ComponentPropertyForm {
+  case Dot, Apostrophe, Text
+}
 
 // binding property
 case class BindingProperty(binding: Expression) extends Property

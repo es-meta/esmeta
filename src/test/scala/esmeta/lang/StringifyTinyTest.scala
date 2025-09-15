@@ -67,6 +67,9 @@ class StringifyTinyTest extends LangTest {
       ifElseInlineStep -> "if _x_, let _x_ be _x_. Else, let _x_ be _x_.",
       ifOtherwiseInlineStep -> "if _x_, let _x_ be _x_. Otherwise, let _x_ be _x_.",
       ifOtherwiseInlineNoCommaStep -> "if _x_, let _x_ be _x_. Otherwise let _x_ be _x_.",
+      ifElseInlineSemicolonStep -> "if _x_, let _x_ be _x_; else, let _x_ be _x_.",
+      ifOtherwiseInlineSemicolonStep -> "if _x_, let _x_ be _x_; otherwise, let _x_ be _x_.",
+      ifOtherwiseInlineNoCommaSemicolonStep -> "if _x_, let _x_ be _x_; otherwise let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """
       |  1. If _x_, then
       |    1. Let _x_ be _x_.""".stripMargin,
@@ -87,7 +90,7 @@ class StringifyTinyTest extends LangTest {
       |    1. Let _x_ be _x_.
       |  1. Else,
       |    1. Let _x_ be _x_.""".stripMargin,
-      // repeatStep -> "repeat, let _x_ be _x_.",
+      repeatStep -> "repeat, let _x_ be _x_.",
       repeatWhileStep -> """repeat, while _x_ and _x_,
       |  1. Let _x_ be _x_.""".stripMargin,
       repeatUntilStep -> """repeat, until _x_ and _x_,
@@ -165,7 +168,7 @@ class StringifyTinyTest extends LangTest {
       invokeSDOExprZero -> "StringValue of |Identifier|",
       invokeSDOExprSingle -> ("StringValue of |Identifier| with argument |Identifier|"),
       invokeSDOExprMulti -> ("StringValue of |Identifier| with arguments |Identifier| and _x_"),
-      invokeSDOExprEval -> "the result of evaluating |Identifier|",
+      invokeSDOExprEval -> "Evaluation of |Identifier|",
       invokeSDOExprContains -> "|Identifier| Contains _x_",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
       riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
@@ -313,14 +316,18 @@ class StringifyTinyTest extends LangTest {
     // algorithm literals
     // -------------------------------------------------------------------------
     checkParseAndStringify("Literal", Expression)(
-      ThisLiteral(None) -> "*this* value",
+      ThisLiteral(false) -> "*this* value",
+      ThisLiteral(true) -> "the *this* value",
+      ThisParseNodeLiteral(None) -> "this Parse Node",
       NewTargetLiteral() -> "NewTarget",
       hex -> "0x0024",
       hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",
       nt -> "|Identifier|",
-      firstNt -> "the first |Identifier|",
-      secondNt -> "the second |Identifier|",
+      firstNt -> "first |Identifier|",
+      firstNtWithArticle -> "the first |Identifier|",
+      secondNt -> "second |Identifier|",
+      secondNtWithArticle -> "the second |Identifier|",
       ntFlags -> "|A[~Yield, +Await]|",
       empty -> "~empty~",
       emptyStr -> """*""*""",
@@ -399,6 +406,7 @@ class StringifyTinyTest extends LangTest {
       isEitherCond -> "_x_ is either *true* or *false*",
       isNeitherCond -> "_x_ is neither *true* nor *false*",
       binaryCondLt -> "_x_ < _x_ + _x_",
+      inclusiveIntervalCondShort -> "2 ≤ _x_ ≤ 32",
       inclusiveIntervalCond -> "_x_ is in the inclusive interval from 2 to 32",
       notInclusiveIntervalCond -> "_x_ is not in the inclusive interval from 2 to 32",
       containsCond -> "_x_ contains _x_",

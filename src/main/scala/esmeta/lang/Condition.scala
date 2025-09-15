@@ -79,6 +79,7 @@ case class InclusiveIntervalCondition(
   negation: Boolean,
   from: Expression,
   to: Expression,
+  isTextForm: Boolean,
 ) extends Condition
 
 // `contiains` conditions

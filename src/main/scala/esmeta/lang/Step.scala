@@ -92,6 +92,7 @@ object IfStep:
   case class ElseConfig(
     newLine: Boolean = true,
     keyword: String = "else", // "else" or "otherwise"
+    isKeywordUpper: Boolean = true,
     comma: Boolean = true,
   )
 
