@@ -19,41 +19,37 @@ class BuiltinSynthesizer(
   def name: String = "BuiltinSynthesizer"
 
   /** get script */
-  def script: String = choose(initPool)
+  def script: Code = choose(initPool)
 
   /** get initial pool */
-  lazy val initPool: Vector[String] = (for {
+  lazy val initPool: Vector[Code] = (for {
     case BuiltinHead(path, _, _) <- algorithms.map(_.head)
     code <- path match
       case YetPath(_) => Nil
       case Getter(base) =>
-        getString(base) :: (base match
-          case Prototype(proto, prop) =>
-            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop;")
-          case _ => Nil
+        List(
+          Code.Builtin(path),
+          Code.Builtin(path, receiver = true),
         )
       case Setter(base) =>
-        getString(base) :: (base match
-          case Prototype(proto, prop) =>
-            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop = 0;")
-          case _ => Nil
+        List(
+          Code.Builtin(path, args = Some(List("0"))),
+          Code.Builtin(path, args = Some(List("0")), receiver = true),
         )
       case path =>
         val MAX_ARGS = 5
-        val pathStr = getString(path)
-        // calls
         val calls = for {
-          argsLen <- Range(1, MAX_ARGS + 1).toList
-          argsStr = List.fill(argsLen)("0").mkString("(", ", ", ")")
-        } yield s"$pathStr.call$argsStr;"
+          argsLen <- Range(0, MAX_ARGS).toList
+          args = List.fill(argsLen)("0")
+        } yield Code.Builtin(path, Some("0"), Some(args))
         // construct without arguments
-        val construct = s"new $pathStr;"
+        val construct = Code.Builtin(path, None, None, true)
         // constructs with arguments
         val constructs = for {
           argsLen <- Range(0, MAX_ARGS).toList
-          argsStr = List.fill(argsLen)("0").mkString("(", ", ", ")")
-        } yield s"new $pathStr$argsStr;"
-        calls ++ (construct :: constructs)
+          args = List.fill(argsLen)("0")
+        } yield Code.Builtin(path, None, Some(args), true)
+        (calls ++ (construct :: constructs))
   } yield code).toVector
 
   // get prototype paths and properties

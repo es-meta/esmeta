@@ -24,14 +24,23 @@ class StatementInserter(using cfg: CFG)(
   val synthesizer = synBuilder(cfg.grammar)
 
   /** default weight for StatementInserter is 1 */
-  def calculateWeight(ast: Ast): Int = 1
+  val weight: Int = 1
 
-  /** mutate a program */
+  /** mutate code */
+  def apply(
+    code: Code,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Seq[Result] = code match
+    case Code.Normal(str) => apply(str, n, target)
+    case _: Code.Builtin  => Nil // TODO
+
+  /** mutate ASTs */
   def apply(
     ast: Ast,
     n: Int,
     _target: Option[(CondView, Coverage)],
-  ): Seq[Result] = {
+  ): Seq[Ast] = {
     // count the number of stmtLists
     val k = stmtListCounter(ast)
 
@@ -56,8 +65,8 @@ class StatementInserter(using cfg: CFG)(
   /** parameter for sampler */
   private var (c1, c2, k1, k2) = (0, 0, 0, 0)
 
-  private def sample(ast: Ast, n: Int): Seq[Result] =
-    shuffle(walk(ast)).take(n).map(Result(name, _))
+  private def sample(ast: Ast, n: Int): Seq[Ast] =
+    shuffle(walk(ast)).take(n)
 
   private def decideGenNum =
     if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then

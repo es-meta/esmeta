@@ -23,14 +23,23 @@ class SpecStringMutator(using cfg: CFG)(
   val synthesizer = synBuilder(cfg.grammar)
 
   /** default weight for SpecStringMutator is 1 */
-  def calculateWeight(ast: Ast): Int = 1
+  val weight: Int = 1
 
-  /** mutate a program */
+  /** mutate code */
+  def apply(
+    code: Code,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Seq[Result] = code match
+    case Code.Normal(str) => apply(str, n, target)
+    case _: Code.Builtin  => Nil // TODO
+
+  /** mutate ASTs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[Result] = {
+  ): Seq[Ast] = {
     // count the number of primary expressions
     val k = primaryCounter(ast)
     if (k == 0) randomMutator(ast, n, target)
@@ -51,8 +60,8 @@ class SpecStringMutator(using cfg: CFG)(
   private var targetCondStr: Option[String] = None
 
   /** sample n distinct asts using spec-strings */
-  private def sample(ast: Ast, n: Int): Seq[Result] =
-    Set.tabulate[Ast](n)(_ => walk(ast)).map(Result(name, _)).toSeq
+  private def sample(ast: Ast, n: Int): Seq[Ast] =
+    Set.tabulate[Ast](n)(_ => walk(ast)).toSeq
 
   /** ast walker */
   override def walk(syn: Syntactic): Syntactic =

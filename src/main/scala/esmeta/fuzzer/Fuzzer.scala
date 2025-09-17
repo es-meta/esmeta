@@ -93,16 +93,13 @@ class Fuzzer(
       dumpFile(getSeed, s"$logDir/seed")
       genSummaryHeader
       genStatHeader(selector.names, selStatTsv)
-      genStatHeader(mutator.names, mutStatTsv)
+      genStatHeader(mutatorNames, mutStatTsv)
     }
     time(
       s"- initializing program pool with ${initPool.size} programs", {
         var i = 1
         for {
-          (synthesizer, rawCode) <- initPool
-          code <- optional(
-            scriptParser.from(rawCode).toString(grammar = Some(grammar)),
-          )
+          (synthesizer, code) <- initPool
         } {
           debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
           i += 1
@@ -156,15 +153,18 @@ class Fuzzer(
     debugging(f"[$selectorInfo%-30s] $code")
     debugFlush
 
-    val mutants = mutator(code, 100, condView.map((_, cov)))
-      .map(res => (res.name, res.ast.toString(grammar = Some(grammar))))
-      .distinctBy(_._2)
-      .toArray
-      .par
-      .map(infoExtractor)
-      .toList
+    val mutants: List[(Mutator.Result, CandInfo)] =
+      import Code.*
+      val mutator = code match
+        case _: Normal  => normalMutator
+        case _: Builtin => builtinMutator
+      val results = normalMutator(code, 100, condView.map((_, cov))).par
+      (for {
+        result <- results
+        candInfo = getCandInfo(result.code.toString)
+      } yield (result, candInfo)).toList
 
-    for ((mutatorName, mutatedCode, info) <- mutants)
+    for ((Mutator.Result(mutatorName, mutatedCode), info) <- mutants)
       debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
       val result = add(mutatedCode, info)
@@ -182,13 +182,6 @@ class Fuzzer(
     interp: Option[Try[Coverage.Interp]] = None,
   )
 
-  /** Extract information for the mutated code. Should be side-effect free. */
-  def infoExtractor(
-    mutatorName: String,
-    mutatedCode: String,
-  ): (String, String, CandInfo) =
-    (mutatorName, mutatedCode, getCandInfo(mutatedCode))
-
   /** get candidate information */
   def getCandInfo(code: String): CandInfo =
     if (visited contains code) CandInfo(visited = true)
@@ -196,21 +189,21 @@ class Fuzzer(
     else CandInfo(interp = Some(Try(cov.run(code))))
 
   /** add new program */
-  def add(code: String): Boolean = add(code, getCandInfo(code))
+  def add(code: Code): Boolean = add(code, getCandInfo(code.toString))
 
   /** add new program with precomputed info */
-  def add(code: String, info: CandInfo): Boolean = handleResult(
+  def add(code: Code, info: CandInfo): Boolean = handleResult(
     code,
     Try {
       if (info.visited) fail("ALREADY VISITED")
-      visited += code
+      visited += code.toString
       if (info.invalid) fail("INVALID PROGRAM")
       val script = toScript(code)
       val interp = info.interp.get match
         case Success(v) => v
         case Failure(e) => throw e
       val finalState = interp.result
-      if (tyCheck) collector.add(code, finalState.typeErrors)
+      if (tyCheck) collector.add(code.toString, finalState.typeErrors)
       val (_, updated, covered) = cov.check(script, interp)
       if (!updated) fail("NO UPDATE")
       covered
@@ -218,7 +211,7 @@ class Fuzzer(
   )
 
   /** handle add result */
-  def handleResult(code: String, result: Try[Boolean]): Boolean = {
+  def handleResult(code: Code, result: Try[Boolean]): Boolean = {
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     val pass = result match
       case Success(covered)             => debugging(passMsg("")); covered
@@ -227,7 +220,7 @@ class Fuzzer(
         debugging(failMsg("NOT SUPPORTED")); false
       case Failure(e: ESMetaError) =>
         debugging(failMsg("ESMETA ERROR"))
-        esmetaErrors += e -> (esmetaErrors.getOrElse(e, Set()) + code)
+        esmetaErrors += e -> (esmetaErrors.getOrElse(e, Set()) + code.toString)
         false
       case Failure(e) =>
         e.getMessage match
@@ -273,15 +266,23 @@ class Fuzzer(
   /** selector stat */
   val selectorStat: MMap[String, Counter] = MMap()
 
-  /** mutator */
   given CFG = cfg
-  val mutator: Mutator = WeightedMutator(
+
+  /** normal/builtin mutators */
+  val normalMutator: Mutator = WeightedMutator(
     TargetMutator(),
     RandomMutator(),
     StatementInserter(),
     Remover(),
     SpecStringMutator(),
   )
+  val builtinMutator: Mutator = WeightedMutator(
+    RandomMutator(),
+  )
+
+  /** all mutator names */
+  val mutatorNames =
+    (normalMutator.names ++ builtinMutator.names).distinct.sorted
 
   /** mutator stat */
   val mutatorStat: MMap[String, Counter] = MMap()
@@ -290,7 +291,9 @@ class Fuzzer(
   val initPool = init
     .map(d =>
       listFiles(d).sorted.map(f =>
-        "GivenByUser" -> readFile(f.getPath).replace(USE_STRICT, ""),
+        "GivenByUser" -> Code.Normal(
+          readFile(f.getPath).replace(USE_STRICT, ""),
+        ),
       ),
     )
     .getOrElse(
@@ -320,8 +323,8 @@ class Fuzzer(
   private var startInterval: Long = 0L
   private def interval: Long = System.currentTimeMillis - startInterval
 
-  // conversion from code string to `Script` object
-  private def toScript(code: String): Script = Script(code, s"$nextId.js")
+  // conversion from `Code` object` to `Script` object
+  private def toScript(code: Code): Script = Script(code, s"$nextId.js")
 
   // check if the added code is visited
   private var visited: Set[String] = Set()
@@ -404,7 +407,7 @@ class Fuzzer(
     // dump coverage
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
-    dumpStat(mutator.names, mutatorStat, mutStatTsv)
+    dumpStat(mutatorNames, mutatorStat, mutStatTsv)
     // dump spec type error
     if (tyCheck) collector.dumpTo(logDir)
     // dump ESMeta errors

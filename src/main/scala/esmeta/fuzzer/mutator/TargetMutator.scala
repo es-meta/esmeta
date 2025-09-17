@@ -1,7 +1,7 @@
 package esmeta.fuzzer.mutator
 
 import esmeta.es.*
-import esmeta.state.*
+import esmeta.state.{Target => StateTarget}
 import esmeta.spec.Grammar
 import esmeta.fuzzer.synthesizer.*
 import esmeta.es.util.*
@@ -13,7 +13,6 @@ import esmeta.cfg.CFG
 class TargetMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator {
-  import TargetMutator.*
   import Mutator.*
 
   val randomMutator = RandomMutator()
@@ -24,25 +23,35 @@ class TargetMutator(using cfg: CFG)(
   val synthesizer = synBuilder(cfg.grammar)
 
   /** default weight for TargetMutator is 6 */
-  def calculateWeight(ast: Ast): Int = 6
+  val weight: Int = 6
 
-  /** mutate programs */
+  /** mutate code */
+  def apply(
+    code: Code,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Seq[Result] = code match
+    case Code.Normal(str) => apply(str, n, target)
+    case _: Code.Builtin  => Nil // TODO
+
+  /** mutate ASTs */
   def apply(
     ast: Ast,
     n: Int,
     targetBranch: Option[(CondView, Coverage)],
-  ): Seq[Result] = (for {
+  ): Seq[Ast] = (for {
     (condView, cov) <- targetBranch
     CondView(cond, view) = condView
     targets = cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
     if targets.nonEmpty
     target = choose(targets.toVector)
-  } yield Walker(target, n).walk(ast).map(Result(name, _)))
+  } yield Walker(target, n).walk(ast))
     .getOrElse(randomMutator(ast, n, targetBranch))
 
   /** internal walker */
-  class Walker(target: Target, n: Int) extends Util.MultiplicativeListWalker {
-    val Target(name, rhsIdx, subIdx, loc) = target
+  class Walker(target: StateTarget, n: Int)
+    extends Util.MultiplicativeListWalker {
+    val StateTarget(name, rhsIdx, subIdx, loc) = target
     override def walk(ast: Syntactic): List[Syntactic] =
       if (
         ast.name == name &&

@@ -18,15 +18,15 @@ class SimpleSynthesizer(
   def name: String = "SimpleSynthesizer"
 
   /** get script */
-  def script: String = choose(initPool)
+  def script: Code = choose(initPool)
 
   /** get initial pool */
-  lazy val initPool: Vector[String] =
+  lazy val initPool: Vector[Code] =
     lazy val pool = (for {
       (node, scripts) <- scriptCovered.toList.sortBy(_._1.id)
       ast <- scripts
       code = handleInvalid(ast.toString(grammar = Some(grammar)).trim)
-    } yield code).toSet.toVector.sortBy(_.length)
+    } yield Code.Normal(code)).toSet.toVector.sortBy(_.length)
     pool
 
   /** for syntactic production */

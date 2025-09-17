@@ -15,16 +15,26 @@ class WeightedMutator(using cfg: CFG)(
 ) extends Mutator {
   import Mutator.*
 
-  def calculateWeight(ast: Ast): Int = 0
+  val weight: Int = 0
 
-  /** mutate programs */
+  /** mutate code */
+  def apply(
+    code: Code,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Seq[Result] = chooseMutator(code, n, target)
+
+  /** mutate ASTs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[Result] =
-    val weights = mutators.map(_.calculateWeight(ast))
-    weightedChoose(mutators zip weights)(ast, n, target)
+  ): Seq[Ast] = chooseMutator(ast, n, target)
+
+  /** choose a mutator under weight */
+  def chooseMutator: Mutator =
+    val weights = mutators.map(_.weight)
+    weightedChoose(mutators zip weights)
 
   val names = mutators.toList.flatMap(_.names).sorted.distinct
 }

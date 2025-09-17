@@ -29,7 +29,7 @@ class Stringifier(
       case elem: PropDesc   => propDescRule(app, elem)
 
   // ECMAScript script program
-  given scriptRule: Rule[Script] = (app, script) => app >> script.code
+  given scriptRule: Rule[Script] = (app, script) => app >> script.code.toString
 
   // abstract syntax tree (AST) values
   given astRule: Rule[Ast] = (app, ast) =>

@@ -23,12 +23,12 @@ case object Mutate extends Phase[CFG, String] {
     val mutator = config.builder(using cfg)
 
     // get a mutated AST
-    var mutatedAst = mutator(ast).ast
+    var mutatedAst = mutator(ast)
 
     // repeat until the mutated program becomes valid when
     // `-mutate:untilValid` is turn on
     while (config.untilValid && !mutatedAst.valid(grammar))
-      mutatedAst = mutator(ast).ast
+      mutatedAst = mutator(ast)
 
     // get string of mutated AST
     val mutated = mutatedAst.toString(grammar = Some(grammar))

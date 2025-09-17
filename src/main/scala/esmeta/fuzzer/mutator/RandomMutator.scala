@@ -20,22 +20,38 @@ class RandomMutator(using cfg: CFG)(
   val synthesizer = synBuilder(cfg.grammar)
 
   /** default weight for RandomMutator is 3 */
-  def calculateWeight(ast: Ast): Int = 3
+  val weight: Int = 3
 
   val names = List("RandomMutator")
 
-  /** mutate programs */
+  /** mutate code */
+  def apply(
+    code: Code,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Seq[Result] = code match
+    case Code.Normal(str) => apply(str, n, target)
+    case builtin: Code.Builtin =>
+      val mutTargets = builtin.toTargets
+      if (mutTargets.isEmpty) Nil
+      else
+        import Target.*
+        val mutTarget = choose(mutTargets.toVector)
+        for {
+          ast <- apply(mutTarget.ast, n, target)
+          str = ast.toString(grammar = Some(cfg.grammar)).trim
+          newCode = mutTarget.updateCode(builtin, str)
+        } yield Result(name, newCode)
+
+  /** mutate ASTs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[Result] =
+  ): Seq[Ast] =
     val k = targetAstCounter(ast)
-    if (k == 0)
-      List.fill(n)(ast)
-    else
-      c = (n - 1) / k + 1
-    shuffle(Walker.walk(ast)).take(n).map(Result(name, _))
+    if (k > 0) c = (n - 1) / k + 1
+    shuffle(Walker.walk(ast)).take(n)
 
   /* number of new candidates to make for each target */
   var c = 0

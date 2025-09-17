@@ -83,18 +83,18 @@ case class Coverage(
     * evaluation result with whether it succeeds to increase coverage
     */
   def runAndCheck(script: Script): (State, Boolean, Boolean) =
-    runAndCheck(script, scriptParser.from(script.code))
+    runAndCheck(script, scriptParser.from(script.code.toString))
 
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
   def runAndCheck(script: Script, ast: Ast): (State, Boolean, Boolean) =
-    val interp = run(script.code, ast, Some(script.name))
+    val interp = run(script.code.toString, ast, Some(script.name))
     this.synchronized(check(script, interp))
 
   /** evaluate a given ECMAScript program */
   def run(script: Script): Interp =
-    val (ast, code) = scriptParser.fromWithCode(script.code)
+    val (ast, code) = scriptParser.fromWithCode(script.code.toString)
     run(code, ast, Some(script.name))
 
   /** evaluate a given ECMAScript program */

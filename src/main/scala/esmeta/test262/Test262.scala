@@ -205,7 +205,7 @@ case class Test262(
             )
           else {
             val (ast, code) = loadTest(filename)
-            cov.runAndCheck(Script(code, filename), ast)._1
+            cov.runAndCheck(Script(Code.Normal(code), filename), ast)._1
           }
         if (tyCheck) collector.add(filename, st.typeErrors)
         val returnValue = st(GLOBAL_RESULT)

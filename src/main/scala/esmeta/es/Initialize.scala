@@ -18,7 +18,7 @@ class Initialize(cfg: CFG) {
     from(semiInjected, ast)
 
   /** get initial state from script */
-  def from(script: Script): State = from(script.code)
+  def from(script: Script): State = from(script.code.toString)
 
   /** get initial state from JS file */
   def fromFile(filename: String): State =
