@@ -294,8 +294,10 @@ case class StringLiteral(
 // Normal: "{{ string value }}"
 // EmptyString: "the empty String"
 // EmptyUnicode: "the empty sequence of Unicode code points"
+// Code: <code>{{ string value }}</code>
+// TypedArrayCtor: the String value of the Constructor Name value specified in <emu-xref href="#table-the-typedarray-constructors"></emu-xref> for this {{ str }} constructor
 enum StringLiteralForm {
-  case Normal, EmptyString, EmptyUnicode
+  case Normal, EmptyString, EmptyUnicode, Code, TypedArrayCtor
 }
 
 // field literals

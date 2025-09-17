@@ -86,11 +86,21 @@ trait Parsers extends IndentParsers {
 
   // let steps
   lazy val letStep: PL[LetStep] =
-    ("let" ~> variable <~ "be") ~ endWithExpr ^^ { case x ~ e => LetStep(x, e) }
+    ("let" ~> variable <~ "be") ~ endWithExpr ^^ {
+      case x ~ (e, end) =>
+        val s = LetStep(x, e)
+        s.endingChar = end
+        s
+    }
 
   // set steps
   lazy val setStep: PL[SetStep] =
-    ("set" ~> ref) ~ ("to" ~> endWithExpr) ^^ { case r ~ e => SetStep(r, e) }
+    ("set" ~> ref) ~ ("to" ~> endWithExpr) ^^ {
+      case r ~ (e, end) =>
+        val s = SetStep(r, e)
+        s.endingChar = end
+        s
+    }
 
   // set-as steps
   lazy val setAsStep: PL[SetAsStep] =
@@ -123,6 +133,8 @@ trait Parsers extends IndentParsers {
   // prepend steps
   lazy val prependStep: PL[PrependStep] =
     "prepend" ~> expr ~ ("to" ~> ref) <~ end
+    ^^ { case e ~ r => PrependStep(e, r) } |
+    "insert" ~> expr ~ ("as the first element of" ~> ref) <~ end
     ^^ { case e ~ r => PrependStep(e, r) }
 
   // add steps
@@ -195,7 +207,7 @@ trait Parsers extends IndentParsers {
         import IfStep.ElseConfig
         val (e, config) = es match
           case Some(n ~ k ~ c ~ e) =>
-            (Some(e), ElseConfig(n, k.toFirstLower, k.head.isUpper, c))
+            (Some(e), ElseConfig(n, k.toFirstLower, c))
           case None => (None, ElseConfig())
         IfStep(c, t, e, config)
     }
@@ -257,7 +269,12 @@ trait Parsers extends IndentParsers {
 
   // return steps
   lazy val returnStep: PL[ReturnStep] =
-    "return" ~> endWithExpr ^^ { ReturnStep(_) }
+    "return" ~> endWithExpr ^^ {
+      case (e, end) =>
+        val s = ReturnStep(e)
+        s.endingChar = end
+        s
+    }
 
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
@@ -466,7 +483,7 @@ trait Parsers extends IndentParsers {
   lazy val intrExpr: PL[IntrinsicExpression] =
     intr ^^ { IntrinsicExpression(_) }
 
-  // base calculation expressione
+  // base calculation expression
   lazy val baseCalcExpr: PL[CalcExpression] =
     (baseCalcExpr ~ ("<sup>" ~> calcExpr <~ "</sup>")) ^^ {
       case b ~ e => ExponentiationExpression(b, e)
@@ -611,7 +628,7 @@ trait Parsers extends IndentParsers {
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
     opt("the code unit") ~
-    ("0x" ~> "[0-9A-F]+".r) ~
+    (("0x" | "U+") ~> "[0-9A-F]+".r) ~
     opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
       case c ~ n ~ x =>
         HexLiteral(Integer.parseInt(n, 16), x, c.isDefined)
@@ -635,8 +652,11 @@ trait Parsers extends IndentParsers {
   lazy val strLiteral: PL[StringLiteral] = opt("the String") ~> (
     """\*"[^"]*"\*""".r ^^ { str =>
       str.drop(2).dropRight(2).replace("\\*", "*").replace("\\\\", "\\")
-    } | "<code>" ~> """"[^"]*"""".r <~ "</code>" ^^ { _.drop(1).dropRight(1) }
-  ) ^^ { StringLiteral(_) }
+    } ^^ { StringLiteral(_) }
+    | "<code>" ~> """"[^"]*"""".r <~ "</code>" ^^ {
+      _.drop(1).dropRight(1)
+    } ^^ { StringLiteral(_, StringLiteralForm.Code) }
+  )
 
   // production literals
   // XXX need to be generalized?
@@ -858,7 +878,9 @@ trait Parsers extends IndentParsers {
     // _TypedArray_
     "the String value of the Constructor Name value specified in" ~
     "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref>" ~
-    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_) }
+    "for this" ~> word <~ "constructor" ^^ {
+      StringLiteral(_, StringLiteralForm.TypedArrayCtor)
+    }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
@@ -926,12 +948,12 @@ trait Parsers extends IndentParsers {
 
   // field includsion conditions
   lazy val hasFieldCond: PL[HasFieldCondition] =
-    lazy val fieldStr = "field" | ("internal" ~ ("method" | "slot"))
+    lazy val fieldStr = "field" | "internal method" | "internal slot"
     // GeneratorValidate
     (ref <~ opt("also")) ~
     ("has" ^^^ false | "does not have" ^^^ true) ~
-    (("an " | "a ") ~> expr <~ fieldStr) ^^ {
-      case r ~ n ~ f => HasFieldCondition(r, n, f)
+    (("an " | "a ") ~> expr) ~ (fieldStr ^^ HasFieldConditionForm.fromString) ^^ {
+      case r ~ n ~ f ~ form => HasFieldCondition(r, n, f, form)
     }
 
   // binding includsion conditions
@@ -1181,7 +1203,16 @@ trait Parsers extends IndentParsers {
   } | {
     // OrdinaryGetOwnProperty
     ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute")
-  } ^^ { case v ~ a => PropertyReference(v, FieldProperty(a)) } | {
+  } ^^ {
+    case v ~ a =>
+      PropertyReference(v, FieldProperty(a, FieldPropertyForm.Attribute))
+  } | {
+    // SetFunctionName, SymbolDescriptiveString
+    (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"
+  } ^^ {
+    case b ~ f =>
+      PropertyReference(b, FieldProperty(f, FieldPropertyForm.Value))
+  } | {
     // Set.prototype.add
     ("the List that is" ~> propRef)
   } | {
@@ -1189,11 +1220,8 @@ trait Parsers extends IndentParsers {
     ("the" ~> ordinal <~ "element") ~ (("of" | "from") ~> ref)
   } ^^ {
     case o ~ b =>
-      PropertyReference(b, IndexProperty(DecimalMathValueLiteral(o - 1)))
+      PropertyReference(b, IndexProperty(DecimalMathValueLiteral(o - 1), true))
   } | {
-    // SetFunctionName, SymbolDescriptiveString
-    (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"
-  } ^^ { case b ~ f => PropertyReference(b, FieldProperty(f)) } | {
     // AgentSignifier or AgentCanSuspend
     "the Agent Record of the surrounding agent" ^^! AgentRecord()
   }
@@ -1220,7 +1248,7 @@ trait Parsers extends IndentParsers {
         ComponentProperty(n, form)
     } |||
     "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
-    "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
+    "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_, FieldPropertyForm.Dot) }
   }.named("lang.Property")
 
   def validProp(str: String): Boolean = !noPropSet.contains(str.toLowerCase)
@@ -1433,7 +1461,9 @@ trait Parsers extends IndentParsers {
     opt(pre) ~> ("." <~ upper | ";") <~ opt(post)
 
   // end with expression
-  private lazy val endWithExpr: PL[Expression] = expr <~ end | multilineExpr
+  private lazy val endWithExpr: Parser[(Expression, String)] =
+    (expr ~ end) ^^ { case x ~ e => (x, e) } |
+    multilineExpr ^^ { case x => (x, ".") }
 
   private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
 

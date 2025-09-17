@@ -156,13 +156,8 @@ trait Walker extends BasicWalker {
       case Until(cond) => Until(walk(cond))
 
   def walk(config: IfStep.ElseConfig): IfStep.ElseConfig =
-    val IfStep.ElseConfig(newLine, keyword, isKeywordUpper, comma) = config
-    IfStep.ElseConfig(
-      walk(newLine),
-      walk(keyword),
-      walk(isKeywordUpper),
-      walk(comma),
-    )
+    val IfStep.ElseConfig(newLine, keyword, comma) = config
+    IfStep.ElseConfig(walk(newLine), walk(keyword), walk(comma))
 
   def walk(expr: Expression): Expression = expr match {
     case StringConcatExpression(exprs) =>
@@ -292,8 +287,8 @@ trait Walker extends BasicWalker {
       ExpressionCondition(walk(expr))
     case TypeCheckCondition(expr, neg, ty) =>
       TypeCheckCondition(walk(expr), walk(neg), walkList(ty, walk))
-    case HasFieldCondition(ref, neg, field) =>
-      HasFieldCondition(walk(ref), walk(neg), walk(field))
+    case HasFieldCondition(ref, neg, field, form) =>
+      HasFieldCondition(walk(ref), walk(neg), walk(field), form)
     case HasBindingCondition(ref, neg, binding) =>
       HasBindingCondition(walk(ref), walk(neg), walk(binding))
     case ProductionCondition(nt, lhs, rhs) =>
@@ -351,10 +346,10 @@ trait Walker extends BasicWalker {
   }
 
   def walk(prop: Property): Property = prop match {
-    case FieldProperty(n)        => FieldProperty(n)
+    case FieldProperty(n, f)     => FieldProperty(n, f)
     case ComponentProperty(c, f) => ComponentProperty(c, f)
     case BindingProperty(b)      => BindingProperty(walk(b))
-    case IndexProperty(e)        => IndexProperty(walk(e))
+    case IndexProperty(e, t)     => IndexProperty(walk(e), t)
     case IntrinsicProperty(intr) => IntrinsicProperty(walk(intr))
     case NonterminalProperty(n)  => NonterminalProperty(n)
   }

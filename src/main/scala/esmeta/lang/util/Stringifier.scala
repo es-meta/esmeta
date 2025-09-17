@@ -76,13 +76,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
     given Rule[First] = firstRule(upper)
     step match {
       case LetStep(x, expr) =>
-        given Rule[Expression] = endWithExprRule(".")
+        given Rule[Expression] = endWithExprRule(step.endingChar)
         app >> First("let ") >> x >> " be " >> expr
       case SetStep(x, expr) =>
-        given Rule[Expression] = endWithExprRule(".")
+        given Rule[Expression] = endWithExprRule(step.endingChar)
         app >> First("set ") >> x >> " to " >> expr
       case SetAsStep(x, verb, id) =>
-        given Rule[Expression] = endWithExprRule(".")
+        given Rule[Expression] = endWithExprRule(step.endingChar)
         app >> First("set ") >> x >> " as " >> verb >> " in "
         xrefRule(app, id) >> "."
       case SetEvaluationStateStep(context, func, args) =>
@@ -120,29 +120,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond >> "."
       case IfStep(cond, thenStep, elseStep, config) =>
-        val IfStep.ElseConfig(newLine, keyword, isKeywordUpper, comma) = config
+        val IfStep.ElseConfig(newLine, keyword, comma) = config
+        val k = if (thenStep.isNextUpper) keyword.toFirstUpper else keyword
+
         app >> First("if ") >> cond >> ", "
 
-        if (isKeywordUpper)
-          if (thenStep.isInstanceOf[BlockStep])
-            app >> "then"
-          app >> thenStep
-        else
-          given Rule[First] = firstRule(false)
-          given Rule[Expression] = endWithExprRule(";")
-          thenStep match {
-            case LetStep(x, expr) =>
-              app >> First("let ") >> x >> " be " >> expr
-            case SetStep(x, expr) =>
-              app >> First("set ") >> x >> " to " >> expr
-            case ReturnStep(expr) =>
-              app >> First("return ") >> expr
-            case _ =>
-              app >> thenStep
-          }
+        if (thenStep.isInstanceOf[BlockStep])
+          app >> "then"
+        app >> thenStep
 
         elseStep.fold(app) { step =>
-          val k = if (isKeywordUpper) keyword.toFirstUpper else keyword
           if (newLine)
             step match
               case _: IfStep    => app :> "1. " >> k >> " " >> step
@@ -194,7 +181,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
       case ReturnStep(expr) =>
-        given Rule[Expression] = endWithExprRule(".")
+        given Rule[Expression] = endWithExprRule(step.endingChar)
         app >> First("return ") >> expr
       case ThrowStep(name) =>
         app >> First("throw ")
@@ -585,6 +572,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case EmptyString => app >> "the empty String"
           case EmptyUnicode =>
             app >> "the empty sequence of Unicode code points"
+          case Code => app >> "<code>\"" >> str >> "\"</code>"
+          case TypedArrayCtor =>
+            app >> "the String value of the Constructor Name value specified in " +
+            "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for this " +
+            str + " constructor"
         }
       case FieldLiteral(name) => app >> "[[" >> name >> "]]"
       case SymbolLiteral(sym) => app >> "%Symbol." >> sym >> "%"
@@ -687,11 +679,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
             given Rule[List[Type]] = listNamedSepRule(left, namedSep)
             app >> ty
         }
-      case HasFieldCondition(ref, neg, field) =>
+      case HasFieldCondition(ref, neg, field, form) =>
         app >> ref >> hasStr(neg)
-        // TODO use a/an based on the fields
-        app >> "a"
-        app >> " " >> field >> " internal slot"
+        app >> field.toString.indefArticle
+        app >> " " >> field >> s" $form"
       case HasBindingCondition(ref, neg, binding) =>
         app >> ref >> hasStr(neg)
         app >> "a binding for " >> binding
@@ -855,9 +846,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the second to top element of the execution context stack"
       case PropertyReference(base, nt: NonterminalProperty) =>
         app >> nt >> " " >> base
+      case PropertyReference(base, ip: IndexProperty) =>
+        if (ip.isTextForm) app >> ip >> " " >> base
+        else app >> base >> ip
       case PropertyReference(base, cp: ComponentProperty) =>
         if (cp.form == ComponentPropertyForm.Text) app >> cp >> " " >> base
         else app >> base >> cp
+      case PropertyReference(base, fp: FieldProperty) =>
+        if (fp.form == FieldPropertyForm.Attribute)
+          app >> "the value of " >> base >> fp
+        else app >> base >> fp
       case PropertyReference(base, prop) =>
         app >> base >> prop
       case AgentRecord() =>
@@ -868,7 +866,18 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // properties
   given propRule: Rule[Property] = (app, prop) =>
     prop match {
-      case FieldProperty(f) => app >> ".[[" >> f >> "]]"
+      case FieldProperty(f, form) =>
+        import FieldPropertyForm.*
+        form match
+          case Dot =>
+            app >> ".[[" >> f >> "]]"
+          case Attribute =>
+            app >> "'s " >> "[[" >> f >> "]]" >> " attribute"
+          case Value =>
+            app >> "'s " >> "[[" >> f >> "]]" >> " value"
+          case StrictBinding   => ???
+          case IntrinsicObject => ???
+          case InitCond        => ???
       case ComponentProperty(name, form) =>
         import ComponentPropertyForm.*
         form match {
@@ -876,9 +885,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case Apostrophe => app >> "'s " >> name
           case Text       => app >> "the " >> name >> " of"
         }
-      case BindingProperty(expr)   => app >> "the binding for " >> expr >> " in"
-      case IndexProperty(index)    => app >> "[" >> index >> "]"
-      case IntrinsicProperty(intr) => app >> ".[[" >> intr >> "]]"
+      case BindingProperty(expr) => app >> "the binding for " >> expr >> " in"
+      case IndexProperty(DecimalMathValueLiteral(index), true) =>
+        app >> "the " >> (index.toInt + 1).toOrdinal >> " element of"
+      case IndexProperty(index, _) =>
+        app >> "[" >> index >> "]"
+      case IntrinsicProperty(intr)   => app >> ".[[" >> intr >> "]]"
       case NonterminalProperty(name) => app >> "the |" >> name >> "| of"
     }
 

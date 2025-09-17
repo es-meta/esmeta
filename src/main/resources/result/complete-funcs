@@ -466,8 +466,10 @@ CharacterClassEscape[6,0].CompileToCharSet
 CharacterClassEscape[7,0].MayContainStrings
 CharacterClass[0,0].CompileCharacterClass
 CharacterClass[1,0].CompileCharacterClass
+CharacterEscape[2,0].CharacterValue
 CharacterEscape[3,0].CharacterValue
 ClassAtomNoDash[0,0].IsCharacterClass
+ClassAtom[0,0].CharacterValue
 ClassAtom[0,0].IsCharacterClass
 ClassBody[0,0].AllPrivateIdentifiersValid
 ClassContents[0,0].MayContainStrings
@@ -515,7 +517,9 @@ ClassElement[5,0].ComputedPropertyContains
 ClassElement[5,0].IsStatic
 ClassElement[5,0].PrivateBoundIdentifiers
 ClassElement[5,0].PropName
+ClassEscape[0,0].CharacterValue
 ClassEscape[0,0].IsCharacterClass
+ClassEscape[1,0].CharacterValue
 ClassEscape[1,0].IsCharacterClass
 ClassEscape[2,0].IsCharacterClass
 ClassEscape[3,0].IsCharacterClass
@@ -528,6 +532,7 @@ ClassExpression[0,1].HasName
 ClassExpression[0,1].IsFunctionDefinition
 ClassIntersection[0,0].MayContainStrings
 ClassIntersection[1,0].MayContainStrings
+ClassSetCharacter[3,0].CharacterValue
 ClassSetOperand[0,0].CompileToCharSet
 ClassSetOperand[1,0].CompileToCharSet
 ClassSetOperand[2,0].CompileToCharSet

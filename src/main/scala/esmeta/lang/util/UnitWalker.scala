@@ -124,8 +124,8 @@ trait UnitWalker extends BasicUnitWalker {
     }
 
   def walk(config: IfStep.ElseConfig): Unit =
-    val IfStep.ElseConfig(newLine, keyword, isKeywordUpper, comma) = config
-    walk(newLine); walk(keyword); walk(isKeywordUpper); walk(comma)
+    val IfStep.ElseConfig(newLine, keyword, comma) = config
+    walk(newLine); walk(keyword); walk(comma)
 
   def walk(expr: Expression): Unit = expr match {
     case StringConcatExpression(exprs) =>
@@ -243,7 +243,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case TypeCheckCondition(expr, neg, ty) =>
       walk(expr); walk(neg); walkList(ty, walk)
-    case HasFieldCondition(ref, neg, field) =>
+    case HasFieldCondition(ref, neg, field, _) =>
       walk(ref); walk(neg); walk(field)
     case HasBindingCondition(ref, neg, binding) =>
       walk(ref); walk(neg); walk(binding)
@@ -295,10 +295,10 @@ trait UnitWalker extends BasicUnitWalker {
   }
 
   def walk(prop: Property): Unit = prop match {
-    case FieldProperty(n)        =>
+    case FieldProperty(n, _)     =>
     case ComponentProperty(c, _) =>
     case BindingProperty(b)      => walk(b)
-    case IndexProperty(e)        => walk(e)
+    case IndexProperty(e, _)     => walk(e)
     case IntrinsicProperty(intr) => walk(intr)
     case NonterminalProperty(n)  =>
   }

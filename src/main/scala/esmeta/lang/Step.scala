@@ -4,6 +4,8 @@ import esmeta.lang.util.*
 
 // metalanguage steps
 sealed trait Step extends Syntax {
+  var endingChar = "." // "." or ";"
+  lazy val isNextUpper = endingChar == ".";
 
   /** check whether it is complete */
   def complete: Boolean = this match
@@ -92,7 +94,6 @@ object IfStep:
   case class ElseConfig(
     newLine: Boolean = true,
     keyword: String = "else", // "else" or "otherwise"
-    isKeywordUpper: Boolean = true,
     comma: Boolean = true,
   )
 

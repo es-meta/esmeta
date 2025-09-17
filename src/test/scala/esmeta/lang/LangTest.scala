@@ -61,17 +61,11 @@ object LangTest {
   import IfStep.ElseConfig
   lazy val ifStep = IfStep(exprCond, letStep, None)
   lazy val ifElseInlineStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", T, T))
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", T))
   lazy val ifOtherwiseInlineStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T, T))
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T))
   lazy val ifOtherwiseInlineNoCommaStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T, F))
-  lazy val ifElseInlineSemicolonStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", F, T))
-  lazy val ifOtherwiseInlineSemicolonStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", F, T))
-  lazy val ifOtherwiseInlineNoCommaSemicolonStep =
-    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", F, F))
+    IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", F))
   lazy val ifBlockStep =
     IfStep(exprCond, blockStep, None)
   lazy val ifElseStep =
@@ -321,8 +315,10 @@ object LangTest {
     TypeCheckCondition(refExpr, F, List(ty, ty, ty))
   lazy val neitherTypeCheckCond =
     TypeCheckCondition(refExpr, T, List(ty, ty))
-  lazy val hasFieldCond = HasFieldCondition(x, F, fieldLit)
-  lazy val noHasFieldCond = HasFieldCondition(x, T, fieldLit)
+  lazy val hasFieldCond =
+    HasFieldCondition(x, F, fieldLit, HasFieldConditionForm.InternalSlot)
+  lazy val noHasFieldCond =
+    HasFieldCondition(x, T, fieldLit, HasFieldConditionForm.InternalSlot)
   lazy val hasBindingCond = HasBindingCondition(x, F, refExpr)
   lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")

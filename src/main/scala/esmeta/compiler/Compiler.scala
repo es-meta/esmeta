@@ -533,11 +533,11 @@ class Compiler(
     val PropertyReference(base, prop) = ref
     val baseRef = compile(fb, base)
     prop match
-      case FieldProperty(name)        => Field(baseRef, EStr(name))
+      case FieldProperty(name, _)     => Field(baseRef, EStr(name))
       case ComponentProperty(name, _) => Field(baseRef, EStr(name))
       case BindingProperty(expr) =>
         Field(toStrRef(baseRef, INNER_MAP), compile(fb, expr))
-      case IndexProperty(index)      => Field(baseRef, compile(fb, index))
+      case IndexProperty(index, _)   => Field(baseRef, compile(fb, index))
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Field(baseRef, EStr(name))
 
@@ -870,7 +870,7 @@ class Compiler(
         val e = compile(fb, expr)
         val c = tys.map(t => ETypeCheck(e, compile(t))).reduce[Expr](or(_, _))
         if (neg) not(c) else c
-      case HasFieldCondition(ref, neg, field) =>
+      case HasFieldCondition(ref, neg, field, _) =>
         val e = exists(toRef(compile(fb, ref), compile(fb, field)))
         if (neg) not(e) else e
       case HasBindingCondition(ref, neg, binding) =>

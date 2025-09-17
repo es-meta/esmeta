@@ -79,20 +79,14 @@ class CaseCollector extends UnitWalker {
       case AssertStep(cond) =>
         s"assert: {{ cond }}."
       case IfStep(cond, thenStep, elseStep, config) =>
-        val IfStep.ElseConfig(newLine, keyword, isKeywordUpper, comma) = config
+        val IfStep.ElseConfig(newLine, keyword, comma) = config
 
-        val k = if (isKeywordUpper) keyword.toFirstUpper else keyword
-        val end = if (isKeywordUpper) "." else ";"
+        val e = thenStep.endingChar
+        val k = if (thenStep.isNextUpper) keyword.toFirstUpper else keyword
+        val n = if (newLine) "<NEWLINE> " else ""
+        val c = if (comma) "," else ""
 
-        (newLine, comma) match
-          case (true, true) =>
-            s"if {{ cond }}, {{ step }}$end <NEWLINE> $k, {{ step }}."
-          case (true, false) =>
-            s"if {{ cond }}, {{ step }}$end <NEWLINE> $k {{ step }}."
-          case (false, true) =>
-            s"if {{ cond }}, {{ step }}$end $k, {{ step }}."
-          case (false, false) =>
-            s"if {{ cond }}, {{ step }}$end $k {{ step }}."
+        s"if {{ cond }}, {{ step }}$e $n$k$c {{ step }}."
       case RepeatStep(cond, body) =>
         import RepeatStep.LoopCondition.*
         cond match
@@ -241,6 +235,9 @@ class CaseCollector extends UnitWalker {
           case Normal       => "*\"{{ str }}\"*"
           case EmptyString  => "the empty String"
           case EmptyUnicode => "the empty sequence of Unicode code points"
+          case Code         => "<code>{{ str }}</code>"
+          case TypedArrayCtor =>
+            "the String value of the Constructor Name value specified in <emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for this {{ str }} constructor"
         }
       case FieldLiteral(name) =>
         s"[[{{ str }}]]"
@@ -346,8 +343,8 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }}"
       case TypeCheckCondition(expr, neg, ty) =>
         s"{{ expr }} is {{ ty }}*"
-      case HasFieldCondition(ref, neg, field) =>
-        s"{{ ref }} has a {{ field }} internal slot"
+      case HasFieldCondition(ref, neg, field, form) =>
+        s"{{ ref }} has a {{ field }} $form"
       case HasBindingCondition(ref, neg, binding) =>
         s"{{ ref }} has a binding for {{ binding }}"
       case ProductionCondition(nt, lhs, rhs) =>

@@ -34,7 +34,20 @@ sealed trait Property extends Syntax
 object Property extends Parser.From(Parser.prop)
 
 // field property
-case class FieldProperty(name: String) extends Property
+case class FieldProperty(
+  name: String,
+  form: FieldPropertyForm = FieldPropertyForm.Dot,
+) extends Property
+
+// Dot: "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
+// Attribute: ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute")
+// Value: (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"
+// StrictBinding: ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
+// IntrinsicObject: (variable <~ "'s intrinsic object named") ~ variable
+// InitCond: ref ~ ("has been" ^^^ false | "has not" ~ opt("yet") ~ "been" ^^^ true) <~ "initialized"
+enum FieldPropertyForm {
+  case Dot, Attribute, Value, StrictBinding, IntrinsicObject, InitCond
+}
 
 // component property
 case class ComponentProperty(name: String, form: ComponentPropertyForm)
@@ -51,7 +64,8 @@ enum ComponentPropertyForm {
 case class BindingProperty(binding: Expression) extends Property
 
 // index property
-case class IndexProperty(index: Expression) extends Property
+case class IndexProperty(index: Expression, isTextForm: Boolean = false)
+  extends Property
 
 // intrinsic property
 case class IntrinsicProperty(intrinsic: Intrinsic) extends Property

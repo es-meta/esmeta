@@ -52,8 +52,6 @@
     "If only one argument was passed, return _to_.": "if (= (sizeof ArgumentsList) 0) return to",
     "If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.__MAP__[N].__INITIALIZED__) { call __errObj__ = clo<\"__NEW_ERROR_OBJ__\">(\"%ReferenceError.prototype%\") call __comp__ = clo<\"ThrowCompletion\">(__errObj__) return __comp__ }",
     "If the execution context stack is empty, return *null*.": "if (= (sizeof @EXECUTION_STACK) 0) return null",
-    "Insert _d_ as the first element of _functionsToInitialize_.": "push d > functionsToInitialize",
-    "Insert _fn_ as the first element of _functionNames_.": "push fn > functionNames",
     "Let _X_ be _O_'s own property whose key is _P_.": "let X = O.__MAP__[P]",
     "Let _agentRecord_ be the surrounding agent's Agent Record.": "let agentRecord = @AGENT_RECORD",
     "Let _args_ be the List of arguments that was passed to this function by [[Call]] or [[Construct]].": "let args = ArgumentsList",
