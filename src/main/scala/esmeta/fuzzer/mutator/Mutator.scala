@@ -15,7 +15,8 @@ trait Mutator(using val cfg: CFG) {
   /** ECMAScript parser */
   lazy val esParser: ESParser = cfg.esParser
   lazy val scriptParser: AstFrom = esParser("Script")
-  lazy val exprParser: AstFrom = esParser("AssignmentExpression")
+  lazy val assignExprParser: AstFrom =
+    esParser("AssignmentExpression", List(true, false, false))
 
   /** placeholder for weight */
   val weight: Int
@@ -59,9 +60,11 @@ trait Mutator(using val cfg: CFG) {
       import Target.*
       val args = for {
         (arg, idx) <- builtin.args.getOrElse(Nil).zipWithIndex
-        ast = exprParser.from(arg)
+        ast = assignExprParser.from(arg)
       } yield Arg(idx, ast)
-      builtin.thisArg.fold(args)(arg => This(exprParser.from(arg)) :: args)
+      builtin.thisArg.fold(args)(arg =>
+        This(assignExprParser.from(arg)) :: args,
+      )
   }
 }
 
