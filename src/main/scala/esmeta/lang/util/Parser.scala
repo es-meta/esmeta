@@ -87,29 +87,19 @@ trait Parsers extends IndentParsers {
   // let steps
   lazy val letStep: PL[LetStep] =
     ("let" ~> variable <~ "be") ~ endWithExpr ^^ {
-      case x ~ (e, (pre, punct, post)) =>
-        val s = LetStep(x, e)
-        s.prefix = pre
-        s.endingChar = punct
-        s.postfix = post
-        s
+      case x ~ (e, f) => f(LetStep(x, e))
     }
 
   // set steps
   lazy val setStep: PL[SetStep] =
     ("set" ~> ref) ~ ("to" ~> endWithExpr) ^^ {
-      case r ~ (e, (pre, punct, post)) =>
-        val s = SetStep(r, e)
-        s.prefix = pre
-        s.endingChar = punct
-        s.postfix = post
-        s
+      case r ~ (e, f) => f(SetStep(r, e))
     }
 
   // set-as steps
   lazy val setAsStep: PL[SetAsStep] =
     val verb = "specified" | "described"
-    ("set" ~> ref) ~ ("as" ~> verb) ~ ("in" ~> xrefId <~ end) ^^ {
+    ("set" ~> ref) ~ ("as" ~> verb) ~ ("in" ~> xrefId) <~ end ^^ {
       case r ~ v ~ x => SetAsStep(r, v, x)
     }
 
@@ -123,11 +113,13 @@ trait Parsers extends IndentParsers {
 
   // perform steps
   lazy val performStep: PL[PerformStep] =
-    "perform" ~> expr <~ end ^^ { PerformStep(_) }
+    "perform" ~> expr <~ end ^^ { case e => PerformStep(e) }
 
   // invoke shorthand steps
   lazy val invokeShorthandStep: PL[InvokeShorthandStep] =
-    opName ~ invokeArgs <~ end ^^ { case f ~ as => InvokeShorthandStep(f, as) }
+    opName ~ invokeArgs <~ end ^^ {
+      case x ~ as => InvokeShorthandStep(x, as)
+    }
 
   // append steps
   lazy val appendStep: PL[AppendStep] =
@@ -143,7 +135,9 @@ trait Parsers extends IndentParsers {
 
   // add steps
   lazy val addStep: PL[AddStep] =
-    ("add" ~> expr) ~ ("to" ~> ref) <~ end ^^ { case e ~ r => AddStep(e, r) }
+    ("add" ~> expr) ~ ("to" ~> ref) <~ end ^^ {
+      case e ~ r => AddStep(e, r)
+    }
 
   // remove step
   lazy val removeStep: PL[RemoveStep] =
@@ -274,12 +268,7 @@ trait Parsers extends IndentParsers {
   // return steps
   lazy val returnStep: PL[ReturnStep] =
     "return" ~> endWithExpr ^^ {
-      case (e, (pre, punct, post)) =>
-        val s = ReturnStep(e)
-        s.prefix = pre
-        s.endingChar = punct
-        s.postfix = post
-        s
+      case (e, f) => f(ReturnStep(e))
     }
 
   // throw steps
@@ -765,23 +754,29 @@ trait Parsers extends IndentParsers {
     invokeAMExpr |
     invokeSDOExpr
 
+  private def withTagForInvoke[T, U](
+    func: Parser[T],
+    args: Parser[U],
+  ): Parser[(T, U, HtmlTag)] = {
+    withTag(func ~ args) ^^ {
+      case Tagged(x ~ as, _, f) => (x, as, HtmlTag.AfterCall(f.head._1))
+    } |
+    withTag(func) ~ args ^^ {
+      case Tagged(x, t, f) ~ as => (x, as, HtmlTag.BeforeCall(f.head._1))
+    } |
+    func ~ args ^^ {
+      case x ~ as => (x, as, HtmlTag.None)
+    }
+  }
+
   // arguments for invocation epxressions
   lazy val invokeArgs: P[List[Expression]] = ("(" ~> repsep(expr, ",") <~ ")")
 
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
     // handle emu-meta tag
-    withTag(opName ~ invokeArgs) ^^ {
-      case Tagged(x ~ as, t, f) =>
-        InvokeAbstractOperationExpression(x, as, HtmlTag.AfterCall(f.head._1))
-    } |
-    withTag(opName) ~ invokeArgs ^^ {
-      case Tagged(x, t, f) ~ as =>
-        InvokeAbstractOperationExpression(x, as, HtmlTag.BeforeCall(f.head._1))
-    } |
-    opName ~ invokeArgs ^^ {
-      case x ~ as =>
-        InvokeAbstractOperationExpression(x, as, HtmlTag.None)
+    withTagForInvoke(opName, invokeArgs) ^^ {
+      case (x, as, tag) => InvokeAbstractOperationExpression(x, as, tag)
     }
 
   // names for operations
@@ -811,17 +806,8 @@ trait Parsers extends IndentParsers {
 
   // method invocation expressions
   lazy val invokeAMExpr: PL[InvokeMethodExpression] =
-    withTag(propRef ~ invokeArgs) ^^ {
-      case Tagged(p ~ as, _, f) =>
-        InvokeMethodExpression(p, as, HtmlTag.AfterCall(f.head._1))
-    } |
-    withTag(propRef) ~ invokeArgs ^^ {
-      case Tagged(p, _, f) ~ as =>
-        InvokeMethodExpression(p, as, HtmlTag.BeforeCall(f.head._1))
-    } |
-    propRef ~ invokeArgs ^^ {
-      case p ~ as =>
-        InvokeMethodExpression(p, as, HtmlTag.None)
+    withTagForInvoke(propRef, invokeArgs) ^^ {
+      case (p, as, tag) => InvokeMethodExpression(p, as, tag)
     }
 
   // syntax-directed operation (SDO) invocation expressions
@@ -1495,26 +1481,35 @@ trait Parsers extends IndentParsers {
   // private helpers
   // ---------------------------------------------------------------------------
   // end of step
-  private lazy val end: Parser[String ~ String ~ String] =
+  trait StepUpdater { def apply[T <: Step](s: T): T }
+  private lazy val end: Parser[StepUpdater] =
     val pre =
       "\\(.*\\)".r |
       "as defined in" ~ withTag("") ^^ { case a ~ b => a + b } |
-      "; that is[^.]*".r
-    val post =
+      "; that is[^.]*".r |
+      ""
+    val post = opt {
       note |
       "\\(.*\\)".r |
       "This may be.*".r
-    (opt(pre) ^^ { _.getOrElse("") }) ~
-    ("." <~ upper | ";") ~
-    (opt(post) ^^ { _.getOrElse("") })
+    } ^^ { _.getOrElse("") }
+    pre ~ ("." <~ upper | ";") ~ post ^^ {
+      case pre ~ punct ~ post =>
+        new StepUpdater {
+          def apply[T <: Step](s: T): T =
+            s.prefix = pre
+            s.endingChar = punct
+            s.postfix = post
+            s
+        }
+    }
 
   // end with expression
-  private lazy val endWithExpr: Parser[(Expression, (String, String, String))] =
-    (expr ~ end) ^^ {
-      case x ~ (pre ~ punct ~ post) =>
-        (x, (pre, punct, post))
-    } |
-    multilineExpr ^^ { case x => (x, ("", ".", "")) }
+  private lazy val endWithExpr: Parser[(Expression, StepUpdater)] =
+    (expr ~ end) ^^ { case x ~ f => (x, f) } |
+    multilineExpr ^^ {
+      case x => (x, new StepUpdater { def apply[T <: Step](s: T) = s })
+    }
 
   private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
 
