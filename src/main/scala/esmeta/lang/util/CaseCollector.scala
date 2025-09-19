@@ -190,7 +190,34 @@ class CaseCollector extends UnitWalker {
         val op = if (check) "?" else "!"
         s"$op {{ expr }}"
       case ReferenceExpression(ref) =>
-        s"{{ ref }}"
+        ref match {
+          case Variable(_) =>
+            "_{{ name }}_"
+          case _: CurrentRealmRecord =>
+            "the current Realm Record"
+          case _: ActiveFunctionObject =>
+            "the active function object"
+          case _: RunningExecutionContext =>
+            "the running execution context"
+          case _: SecondExecutionContext =>
+            "the second to top element of the execution context stack"
+          case PropertyReference(base, nt: NonterminalProperty) =>
+            "the |{{ nt }}| of {{ base }}"
+          case PropertyReference(base, ip: IndexProperty) =>
+            if (ip.isTextForm) "the {{ index }} {{ base }}"
+            else "{{ base }} {{ index }}"
+          case PropertyReference(base, cp: ComponentProperty) =>
+            if (cp.form == ComponentPropertyForm.Text) "{{ comp }} {{ base }}"
+            else "{{ base }} {{ cp }}"
+          case PropertyReference(base, fp: FieldProperty) =>
+            if (fp.form == FieldPropertyForm.Attribute)
+              "the value of {{ base }} {{ field }}"
+            else "{{ base }} {{ field }}"
+          case PropertyReference(base, prop) =>
+            "{{ base }} {{ prop }}"
+          case AgentRecord() =>
+            "the Agent Record of the surrounding agent"
+        }
       case MathFuncExpression(op, args) =>
         s"$op({{ expr }}*)"
       case ConversionExpression(ToApproxNumber, expr) =>
@@ -224,9 +251,11 @@ class CaseCollector extends UnitWalker {
       case GrammarSymbolLiteral(name, flags) =>
         s"the grammar symbol |{{ str }}|"
       case NonterminalLiteral(ordinal, name, flags, article) =>
-        val a = if (article) "the " else ""
-        val ord = ordinal.fold("")(s"the " + _.toOrdinal + " ")
-        s"$a$ord|{{ str }}|"
+        val prefix = ordinal match
+          case Some(value) => ordinal.fold("")(s"the " + _.toOrdinal + " ")
+          case None        => if (article) "the " else ""
+
+        s"$prefix|{{ str }}|"
       case EnumLiteral(name) =>
         s"~{{ str }}~"
       case StringLiteral(str, form) =>
@@ -289,15 +318,31 @@ class CaseCollector extends UnitWalker {
         s"$op ..."
       case BitwiseExpression(left, op, right) =>
         s"the result of applying the $op to {{ expr }} and {{ expr }}"
-      case InvokeAbstractOperationExpression(name, args) =>
-        s"{{ str }}({{ expr }}*)"
+      case InvokeAbstractOperationExpression(name, args, tag) =>
+        tag match
+          case HtmlTag.None => s"{{ str }}({{ expr }}*)"
+          case HtmlTag.BeforeCall(c) =>
+            s"<emu-meta>{{ str }}</emu-meta>({{ expr }}*)"
+          case HtmlTag.AfterCall(c) =>
+            s"<emu-meta>{{ str }}({{ expr }}*)</emu-meta>"
       case InvokeNumericMethodExpression(base, name, args) =>
         s"{{ str }}::{{ str }}({{ expr }}*)"
       case InvokeAbstractClosureExpression(x, args) =>
         s"{{ var }}({{ expr }}*)"
-      case InvokeMethodExpression(base, args) =>
-        s"{{ ... }}({{ expr }}*)"
-      case InvokeSyntaxDirectedOperationExpression(base, name, args, article) =>
+      case InvokeMethodExpression(base, args, tag) =>
+        tag match
+          case HtmlTag.None => s"{{ str }}({{ expr }}*)"
+          case HtmlTag.BeforeCall(c) =>
+            s"<emu-meta>{{ str }}</emu-meta>({{ expr }}*)"
+          case HtmlTag.AfterCall(c) =>
+            s"<emu-meta>{{ str }}({{ expr }}*)</emu-meta>"
+      case InvokeSyntaxDirectedOperationExpression(
+            base,
+            name,
+            args,
+            article,
+            tag,
+          ) =>
         val a = article match {
           case None        => ""
           case Some(value) => s"$value "

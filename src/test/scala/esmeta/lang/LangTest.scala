@@ -164,7 +164,11 @@ object LangTest {
   lazy val getItemsExpr = GetItemsExpression(nt, refExpr)
   lazy val intrExpr = IntrinsicExpression(intr)
   lazy val invokeAOExpr =
-    InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
+    InvokeAbstractOperationExpression(
+      "ToObject",
+      List(addExpr, unExpr),
+      HtmlTag.None,
+    )
   lazy val invokeNumericExpr =
     InvokeNumericMethodExpression(
       "Number",
@@ -174,15 +178,22 @@ object LangTest {
   lazy val invokeClosureExpr =
     InvokeAbstractClosureExpression(x, List(refExpr))
   lazy val invokeMethodExpr =
-    InvokeMethodExpression(fieldRef, List(addExpr, unExpr))
+    InvokeMethodExpression(fieldRef, List(addExpr, unExpr), HtmlTag.None)
   lazy val invokeSDOExprZero =
-    InvokeSyntaxDirectedOperationExpression(nt, "StringValue", Nil, None)
+    InvokeSyntaxDirectedOperationExpression(
+      nt,
+      "StringValue",
+      Nil,
+      None,
+      HtmlTag.None,
+    )
   lazy val invokeSDOExprSingle =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "StringValue",
       List(nt),
       None,
+      HtmlTag.None,
     )
   lazy val invokeSDOExprMulti =
     InvokeSyntaxDirectedOperationExpression(
@@ -190,6 +201,7 @@ object LangTest {
       "StringValue",
       List(nt, refExpr),
       None,
+      HtmlTag.None,
     )
   lazy val invokeSDOExprEval =
     InvokeSyntaxDirectedOperationExpression(
@@ -197,6 +209,7 @@ object LangTest {
       "Evaluation",
       Nil,
       None,
+      HtmlTag.None,
     )
   lazy val invokeSDOExprContains =
     InvokeSyntaxDirectedOperationExpression(
@@ -204,12 +217,16 @@ object LangTest {
       "Contains",
       List(refExpr),
       None,
+      HtmlTag.None,
     )
   lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, T)
   lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
   lazy val emptyListExpr = ListExpression(Nil, false)
   lazy val listExpr = ListExpression(List(refExpr, refExpr), false)
-  lazy val xrefAlgoExpr = XRefExpression(XRefExpressionOperator.Algo, "sec-x")
+  lazy val xrefAlgoExpr = XRefExpression(
+    XRefExpressionOperator.Algo("the definition specified in"),
+    "sec-x",
+  )
   lazy val xrefSlotsExpr =
     XRefExpression(XRefExpressionOperator.InternalSlots, "sec-x")
   lazy val xrefLenExpr =

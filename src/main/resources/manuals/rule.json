@@ -104,7 +104,6 @@
     "Store the individual bytes of _rawBytesModified_ into _block_, starting at _block_[_byteIndex_].": "{ let idx = 0 while (< idx (sizeof rawBytesModified)) { block[(+ byteIndex idx)] = rawBytesModified[idx] idx = (+ idx 1) } }",
     "Store the individual bytes of _rawBytes_ into _block_, starting at _block_[_byteIndex_].": "{ let idx = 0 while (< idx (sizeof rawBytes)) { block[(+ byteIndex idx)] = rawBytes[idx] idx = (+ idx 1) } }",
     "Store the individual bytes of _replacementBytes_ into _block_, starting at _block_[_byteIndexInBuffer_].": "{ let idx = 0 while (< idx (sizeof replacementBytes)) { block[(+ byteIndexInBuffer idx)] = replacementBytes[idx] idx = (+ idx 1) } }",
-    "set _isLittleEndian_ to the value of the [[LittleEndian]] field of the surrounding agent's Agent Record.": "isLittleEndian = @AGENT_RECORD.LittleEndian",
-    "return the Number value that corresponds to _intValue_.": "return ([number] intValue)"
+    "set _isLittleEndian_ to the value of the [[LittleEndian]] field of the surrounding agent's Agent Record.": "isLittleEndian = @AGENT_RECORD.LittleEndian"
   }
 }

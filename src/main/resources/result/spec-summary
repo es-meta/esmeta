@@ -7,9 +7,9 @@
   - extended productions for web: 29
 - algorithms: 2867
   - complete: 2483 (86.61%)
-  - equals: 2524 (88.04%)
+  - equals: 2612 (91.11%)
 - algorithm steps: 22044
-  - complete: 21285 (96.56%)
+  - complete: 21290 (96.58%)
 - types: 8260
   - known: 7395 (89.53%)
   - yet: 191 (2.31%)

@@ -87,18 +87,22 @@ trait Parsers extends IndentParsers {
   // let steps
   lazy val letStep: PL[LetStep] =
     ("let" ~> variable <~ "be") ~ endWithExpr ^^ {
-      case x ~ (e, end) =>
+      case x ~ (e, (pre, punct, post)) =>
         val s = LetStep(x, e)
-        s.endingChar = end
+        s.prefix = pre
+        s.endingChar = punct
+        s.postfix = post
         s
     }
 
   // set steps
   lazy val setStep: PL[SetStep] =
     ("set" ~> ref) ~ ("to" ~> endWithExpr) ^^ {
-      case r ~ (e, end) =>
+      case r ~ (e, (pre, punct, post)) =>
         val s = SetStep(r, e)
-        s.endingChar = end
+        s.prefix = pre
+        s.endingChar = punct
+        s.postfix = post
         s
     }
 
@@ -270,9 +274,11 @@ trait Parsers extends IndentParsers {
   // return steps
   lazy val returnStep: PL[ReturnStep] =
     "return" ~> endWithExpr ^^ {
-      case (e, end) =>
+      case (e, (pre, punct, post)) =>
         val s = ReturnStep(e)
-        s.endingChar = end
+        s.prefix = pre
+        s.endingChar = punct
+        s.postfix = post
         s
     }
 
@@ -535,7 +541,7 @@ trait Parsers extends IndentParsers {
         "BigInt" ^^^ ToBigInt |
         opt("integer that is the") ~ "numeric" ^^^ ToMath
       ) ~
-      ("value" ~ ("of" | "for" | "representing" | "that represents") ~> expr) <~
+      ("value" ~ ("of" | "for" | "representing" | "that represents" | "that corresponds to") ~> expr) <~
       opt(textFormatPostfix)
     lazy val textFormatPostfix = opt(",") ~ ("rounded" | "rounding") ~ "[^.]+".r
     (opFormat | textFormat) ^^ { case op ~ e => ConversionExpression(op, e) }
@@ -548,7 +554,7 @@ trait Parsers extends IndentParsers {
       "the definition specified in" |
       "the algorithm steps defined in" |
       "the ordinary object internal method defined in"
-    } ^^^ Algo | {
+    } ^^ { Algo(_) } | {
       "the internal slots listed in"
     } ^^^ InternalSlots | {
       "the number of non-optional parameters of" ~
@@ -752,13 +758,12 @@ trait Parsers extends IndentParsers {
     ("and" ~> expr) ^^ { case op ~ l ~ r => BitwiseExpression(l, op, r) }
 
   // metalanguage invocation expressions
-  lazy val invokeExpr: PL[InvokeExpression] = tagged {
+  lazy val invokeExpr: PL[InvokeExpression] =
     invokeAOExpr |
-    invokeNumericExpr |
-    invokeClosureExpr |
+    tagged { invokeNumericExpr } |
+    tagged { invokeClosureExpr } |
     invokeAMExpr |
     invokeSDOExpr
-  }
 
   // arguments for invocation epxressions
   lazy val invokeArgs: P[List[Expression]] = ("(" ~> repsep(expr, ",") <~ ")")
@@ -766,8 +771,17 @@ trait Parsers extends IndentParsers {
   // abstract operation (AO) invocation expressions
   lazy val invokeAOExpr: PL[InvokeAbstractOperationExpression] =
     // handle emu-meta tag
-    tagged(opName) ~ invokeArgs ^^ {
-      case x ~ as => InvokeAbstractOperationExpression(x, as)
+    withTag(opName ~ invokeArgs) ^^ {
+      case Tagged(x ~ as, t, f) =>
+        InvokeAbstractOperationExpression(x, as, HtmlTag.AfterCall(f.head._1))
+    } |
+    withTag(opName) ~ invokeArgs ^^ {
+      case Tagged(x, t, f) ~ as =>
+        InvokeAbstractOperationExpression(x, as, HtmlTag.BeforeCall(f.head._1))
+    } |
+    opName ~ invokeArgs ^^ {
+      case x ~ as =>
+        InvokeAbstractOperationExpression(x, as, HtmlTag.None)
     }
 
   // names for operations
@@ -797,9 +811,17 @@ trait Parsers extends IndentParsers {
 
   // method invocation expressions
   lazy val invokeAMExpr: PL[InvokeMethodExpression] =
-    // handle emu-meta tag
-    tagged(propRef) ~ invokeArgs ^^ {
-      case p ~ as => InvokeMethodExpression(p, as)
+    withTag(propRef ~ invokeArgs) ^^ {
+      case Tagged(p ~ as, _, f) =>
+        InvokeMethodExpression(p, as, HtmlTag.AfterCall(f.head._1))
+    } |
+    withTag(propRef) ~ invokeArgs ^^ {
+      case Tagged(p, _, f) ~ as =>
+        InvokeMethodExpression(p, as, HtmlTag.BeforeCall(f.head._1))
+    } |
+    propRef ~ invokeArgs ^^ {
+      case p ~ as =>
+        InvokeMethodExpression(p, as, HtmlTag.None)
     }
 
   // syntax-directed operation (SDO) invocation expressions
@@ -812,9 +834,24 @@ trait Parsers extends IndentParsers {
 
     // normal SDO
     lazy val normalSDOExpr =
-      name ~ base ~ opt(argsPart) ^^ {
+      withTag(name ~ base ~ opt(argsPart)) ^^ {
+        case Tagged((a ~ x) ~ b ~ as, _, f) =>
+          InvokeSyntaxDirectedOperationExpression(
+            b,
+            x,
+            as.getOrElse(Nil),
+            a,
+            HtmlTag.AfterCall(f.head._1),
+          )
+      } | name ~ base ~ opt(argsPart) ^^ {
         case (a ~ x) ~ b ~ as =>
-          InvokeSyntaxDirectedOperationExpression(b, x, as.getOrElse(Nil), a)
+          InvokeSyntaxDirectedOperationExpression(
+            b,
+            x,
+            as.getOrElse(Nil),
+            a,
+            HtmlTag.None,
+          )
       }
 
     // Contains SDO
@@ -826,6 +863,7 @@ trait Parsers extends IndentParsers {
             "Contains",
             List(arg),
             None,
+            HtmlTag.None,
           )
       }
 
@@ -1124,14 +1162,22 @@ trait Parsers extends IndentParsers {
   } ^^ {
     case r ~ n =>
       val ref = PropertyReference(r, FieldProperty("__STRICT__"))
-      IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
+      IsAreCondition(
+        List(ReferenceExpression(ref)),
+        n,
+        List(TrueLiteral()),
+      )
   } | {
     ref ~ ("has been" ^^^ false | "has not" ~ opt("yet") ~ "been" ^^^ true) <~
     "initialized"
   } ^^ {
     case r ~ n =>
       val ref = PropertyReference(r, FieldProperty("__INITIALIZED__"))
-      IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
+      IsAreCondition(
+        List(ReferenceExpression(ref)),
+        n,
+        List(TrueLiteral()),
+      )
   } | {
     // InitializeHostDefinedRealm
     "the host requires use of an exotic object to serve as _realm_'s global object" |
@@ -1449,21 +1495,26 @@ trait Parsers extends IndentParsers {
   // private helpers
   // ---------------------------------------------------------------------------
   // end of step
-  private lazy val end: Parser[String] =
+  private lazy val end: Parser[String ~ String ~ String] =
     val pre =
       "\\(.*\\)".r |
-      "as defined in" ~ tagged("") |
+      "as defined in" ~ withTag("") ^^ { case a ~ b => a + b } |
       "; that is[^.]*".r
     val post =
       note |
       "\\(.*\\)".r |
       "This may be.*".r
-    opt(pre) ~> ("." <~ upper | ";") <~ opt(post)
+    (opt(pre) ^^ { _.getOrElse("") }) ~
+    ("." <~ upper | ";") ~
+    (opt(post) ^^ { _.getOrElse("") })
 
   // end with expression
-  private lazy val endWithExpr: Parser[(Expression, String)] =
-    (expr ~ end) ^^ { case x ~ e => (x, e) } |
-    multilineExpr ^^ { case x => (x, ".") }
+  private lazy val endWithExpr: Parser[(Expression, (String, String, String))] =
+    (expr ~ end) ^^ {
+      case x ~ (pre ~ punct ~ post) =>
+        (x, (pre, punct, post))
+    } |
+    multilineExpr ^^ { case x => (x, ("", ".", "")) }
 
   private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
 

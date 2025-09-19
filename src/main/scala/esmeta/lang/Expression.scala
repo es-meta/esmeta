@@ -80,7 +80,9 @@ case class IntListExpression(
 case class XRefExpression(kind: XRefExpressionOperator, id: String)
   extends Expression
 enum XRefExpressionOperator extends LangElem:
-  case Algo, InternalSlots, ParamLength
+  case Algo(desc: String)
+  case InternalSlots
+  case ParamLength
 
 // the sole element expressions
 case class SoleElementExpression(list: Expression) extends Expression
@@ -97,10 +99,16 @@ case class YetExpression(str: String, block: Option[Block]) extends Expression
 // -----------------------------------------------------------------------------
 sealed trait InvokeExpression extends Expression
 
+enum HtmlTag:
+  case None
+  case BeforeCall(c: String)
+  case AfterCall(c: String)
+
 // abstract operation (AO) invocation expressions
 case class InvokeAbstractOperationExpression(
   name: String,
   args: List[Expression],
+  tag: HtmlTag,
 ) extends InvokeExpression
 
 // numeric method invocation expression
@@ -120,6 +128,7 @@ case class InvokeAbstractClosureExpression(
 case class InvokeMethodExpression(
   ref: PropertyReference,
   args: List[Expression],
+  tag: HtmlTag,
 ) extends InvokeExpression
 
 // syntax-directed operation (SDO) invocation expressions
@@ -127,8 +136,10 @@ case class InvokeSyntaxDirectedOperationExpression(
   base: Expression,
   name: String,
   args: List[Expression],
-  // Some("the result of performing" | "the result of" | "the")
-  prefix: Option[String],
+  prefix: Option[
+    String,
+  ], // Some("the result of performing" | "the result of" | "the")
+  tag: HtmlTag,
 ) extends InvokeExpression
 
 // -----------------------------------------------------------------------------

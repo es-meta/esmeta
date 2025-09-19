@@ -7,6 +7,9 @@ sealed trait Step extends Syntax {
   var endingChar = "." // "." or ";"
   lazy val isNextUpper = endingChar == ".";
 
+  var prefix = ""
+  var postfix = ""
+
   /** check whether it is complete */
   def complete: Boolean = this match
     case _: YetStep            => false

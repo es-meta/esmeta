@@ -77,12 +77,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
     step match {
       case LetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule(step.endingChar)
-        app >> First("let ") >> x >> " be " >> expr
+        app >> First("let ") >> x >> " be " >> expr >> step.postfix
       case SetStep(x, expr) =>
         given Rule[Expression] = endWithExprRule(step.endingChar)
-        app >> First("set ") >> x >> " to " >> expr
+        app >> First("set ") >> x >> " to " >> expr >> step.postfix
       case SetAsStep(x, verb, id) =>
-        given Rule[Expression] = endWithExprRule(step.endingChar)
         app >> First("set ") >> x >> " as " >> verb >> " in "
         xrefRule(app, id) >> "."
       case SetEvaluationStateStep(context, func, args) =>
@@ -182,7 +181,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " of " >> expr >> ", do" >> body
       case ReturnStep(expr) =>
         given Rule[Expression] = endWithExprRule(step.endingChar)
-        app >> First("return ") >> expr
+        val postfix = if (step.postfix == "") "" else s" ${step.postfix}"
+        app >> First("return ") >> expr >> postfix
       case ThrowStep(name) =>
         app >> First("throw ")
         app >> ("*" + name + "*").withIndefArticle >> " exception."
@@ -523,7 +523,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given xrefExprOpRule: Rule[XRefExpressionOperator] = (app, op) =>
     import XRefExpressionOperator.*
     app >> (op match {
-      case Algo          => "the definition specified in"
+      case Algo(desc)    => desc
       case InternalSlots => "the internal slots listed in"
       case ParamLength =>
         "the number of non-optional parameters of the function definition in"
@@ -627,19 +627,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // metalanguage invocation expressions
   given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
     expr match {
-      case InvokeAbstractOperationExpression(name, args) =>
+      case InvokeAbstractOperationExpression(name, args, tag) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> name >> args
+        tagEffect(app, tag)(app >> name, app >> args)
       case InvokeNumericMethodExpression(base, name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> base >> "::" >> name >> args
       case InvokeAbstractClosureExpression(x, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> x >> args
-      case InvokeMethodExpression(base, args) =>
+      case InvokeMethodExpression(base, args, tag) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> base >> args
-      case InvokeSyntaxDirectedOperationExpression(base, name, args, article) =>
+        tagEffect(app, tag)(app >> base, app >> args)
+      case InvokeSyntaxDirectedOperationExpression(
+            base,
+            name,
+            args,
+            article,
+            tag,
+          ) =>
         // XXX handle Contains, Contains always takes one argument
         if (name == "Contains") app >> base >> " Contains " >> args.head
         // Otherwise
@@ -649,7 +655,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
             case None        => ""
             case Some(value) => s"$value "
           }
-          app >> a >> name >> " of " >> base >> args
+          tagEffect(app, tag)(app >> a >> name >> " of " >> base, app >> args)
         }
         app
     }
@@ -1096,9 +1102,29 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> "<emu-xref href=\"#" >> id >> "\"></emu-xref>"
 
   // user-code effects
-  def effect(app: Appender)(body: => Unit): Appender = {
-    app >> "<emu-meta effects=\"user-code\">"
+  def effect(app: Appender, c: String = "effects")(body: => Unit): Appender = {
+    app >> s"<emu-meta $c=\"user-code\">"
     body
     app >> "</emu-meta>"
+  }
+
+  def tagEffect(
+    app: Appender,
+    tag: HtmlTag,
+  )(before: => Appender, after: => Appender): Appender = {
+    tag match
+      case HtmlTag.None =>
+        before
+        after
+      case HtmlTag.BeforeCall(c) =>
+        effect(app, c) {
+          before
+        }
+        after
+      case HtmlTag.AfterCall(c) =>
+        effect(app, c) {
+          before
+          after
+        }
   }
 }

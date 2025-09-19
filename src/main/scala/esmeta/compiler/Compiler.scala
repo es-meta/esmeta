@@ -602,7 +602,7 @@ class Compiler(
         xExpr
       case expr: GetItemsExpression =>
         EYet(expr.toString(true, false))
-      case InvokeAbstractOperationExpression(name, args) =>
+      case InvokeAbstractOperationExpression(name, args, _) =>
         val as = args.map(compile(fb, _))
         if (simpleOps contains name) simpleOps(name)(fb, as)
         else if (shorthands contains name) compileShorthand(fb, name, as)
@@ -620,7 +620,7 @@ class Compiler(
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, ERef(compile(fb, ref)), args.map(compile(fb, _))))
         xExpr
-      case InvokeMethodExpression(ref, args) =>
+      case InvokeMethodExpression(ref, args, _) =>
         val Field(base, method) = compile(fb, ref)
         val (b, bExpr) =
           if (base.isPure) (base, ERef(base))
@@ -629,7 +629,7 @@ class Compiler(
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, fexpr, bExpr :: args.map(compile(fb, _))))
         xExpr
-      case InvokeSyntaxDirectedOperationExpression(base, name, args, _) =>
+      case InvokeSyntaxDirectedOperationExpression(base, name, args, _, _) =>
         // XXX BUG in Static Semancis: CharacterValue
         val baseExpr = compile(fb, base)
         val (x, xExpr) = fb.newTIdWithExpr
@@ -734,7 +734,7 @@ class Compiler(
           prefix = prefix,
         )
         EClo(name, captured.map(compile))
-      case XRefExpression(XRefExpressionOperator.Algo, id) =>
+      case XRefExpression(XRefExpressionOperator.Algo(_), id) =>
         EClo(normalize(normalize(spec.getAlgoById(id).head.fname)), Nil)
       case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
         EMath(spec.getAlgoById(id).head.originalParams.length)
@@ -1116,7 +1116,7 @@ class Compiler(
     var found = false
     val walker = new LangUnitWalker {
       override def walk(invoke: InvokeExpression): Unit = invoke match
-        case InvokeAbstractOperationExpression(name, _)
+        case InvokeAbstractOperationExpression(name, _, _)
             if simpleOps contains name =>
         case _ => found = true
     }
