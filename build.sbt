@@ -20,6 +20,8 @@ ThisBuild / scalacOptions := Seq(
   // disable import suggestions related bug: https://github.com/scala/scala3/issues/12876
   "-Ximport-suggestion-timeout",
   "0",
+  "-Xmax-inlines",
+  "64",
 )
 
 // Java options

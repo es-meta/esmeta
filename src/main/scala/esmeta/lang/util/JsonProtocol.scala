@@ -94,24 +94,11 @@ object JsonProtocol extends BasicJsonProtocol {
     case e: Literal => e.asJson
   }
   given Encoder[ClampExpression] = encoderWithType[ClampExpression](using deriveEncoder[ClampExpression])
-  implicit val MathOpExpressionEncoder: Encoder[MathOpExpression] = new Encoder[MathOpExpression] {
-    final def apply(e: MathOpExpression): Json =
-      Json.obj("MathOpExpression" -> Json.obj(
-        ("op", Json.obj((e.op.toString, Json.obj()))),
-        ("args", e.args.asJson)
-      ))
-  }
+  given Encoder[MathOpExpression] = encoderWithType[MathOpExpression](using deriveEncoder[MathOpExpression])
+  given Encoder[MathOpExpressionOperator] = deriveEncoder
   given Encoder[BitwiseExpression] = encoderWithType[BitwiseExpression](using deriveEncoder[BitwiseExpression])
   given Encoder[BitwiseExpressionOperator] = deriveEncoder
-  implicit val AbstractClosureExpressionEncoder: Encoder[AbstractClosureExpression] = new Encoder[AbstractClosureExpression] {
-    final def apply(e: AbstractClosureExpression): Json =
-      Json.obj("AbstractClosureExpression" -> Json.obj(
-          "params" -> e.params.asJson,
-          "captured" -> e.captured.asJson,
-          "body" -> e.body.asJson
-        )
-      )
-  }
+  given Encoder[AbstractClosureExpression] = encoderWithType[AbstractClosureExpression](using deriveEncoder[AbstractClosureExpression])
   given Encoder[ThisLiteral] = encoderWithType[ThisLiteral](using deriveEncoder[ThisLiteral])
   given Encoder[NewTargetLiteral] = encoderWithType[NewTargetLiteral](using deriveEncoder[NewTargetLiteral])
   given Encoder[HexLiteral] = encoderWithType[HexLiteral](using deriveEncoder[HexLiteral])
