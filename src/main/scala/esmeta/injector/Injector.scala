@@ -79,7 +79,7 @@ class Injector(
   lazy val result: ConformTest = conformTest
 
   /** target script */
-  lazy val script = exitSt.sourceText.get
+  lazy val script = exitSt.cachedSourceText.get
 
   /** exit status tag */
   lazy val exitTag: ExitTag = ExitTag(exitSt)

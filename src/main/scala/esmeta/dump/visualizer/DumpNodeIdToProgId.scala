@@ -47,7 +47,7 @@ object DumpNodeIdToProgId {
         progIdSet += script
 
         val featIdToProgId = nodeIdToProgId.getOrElse(node.id, MMap.empty)
-        val currentCode = trimCode(s"$RECENT_DIR/minimal/$script.js")
+        val currentSourceText = trimCode(s"$RECENT_DIR/minimal/$script.js")
 
         view match
           case Some(ViewJson(enclosing, feature, path)) =>
@@ -55,7 +55,7 @@ object DumpNodeIdToProgId {
             val pathStr = path.getOrElse("")
 
             val stepCnt = getStepCnt(
-              cfg.init.from(currentCode),
+              cfg.init.from(currentSourceText),
               node.id,
               pathStr,
               () => println(s"${idx + 1}/$total"),
@@ -71,12 +71,12 @@ object DumpNodeIdToProgId {
                 if (
                   trimCode(
                     s"$RECENT_DIR/minimal/$scriptId.js",
-                  ).length > currentCode.length
+                  ).length > currentSourceText.length
                 ) min += "minimal" -> (script, stepCnt)
               case None => min += "minimal" -> (script, stepCnt)
           case None =>
             val stepCnt = getStepCnt(
-              cfg.init.from(currentCode),
+              cfg.init.from(currentSourceText),
               node.id,
               "",
               () => println(s"${idx + 1}/$total"),

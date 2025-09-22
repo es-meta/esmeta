@@ -98,9 +98,7 @@ class Fuzzer(
     time(
       s"- initializing program pool with ${initPool.size} programs", {
         var i = 1
-        for {
-          (synthesizer, code) <- initPool
-        } {
+        for ((synthesizer, code) <- initPool) {
           debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
           i += 1
           add(code)

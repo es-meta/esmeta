@@ -26,7 +26,7 @@ class SimpleSynthesizer(
       (node, scripts) <- scriptCovered.toList.sortBy(_._1.id)
       ast <- scripts
       code = handleInvalid(ast.toString(grammar = Some(grammar)).trim)
-    } yield Code.Normal(code)).toSet.toVector.sortBy(_.length)
+    } yield Code.Normal(code)).toSet.toVector.sortBy(_.size)
     pool
 
   /** for syntactic production */

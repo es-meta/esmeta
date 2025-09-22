@@ -203,7 +203,9 @@ class Interpreter(
         case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
         case v                      => throw InvalidParseSource(code, v)
       try {
-        (str, eval(rule).asGrammarSymbol, st.sourceText, st.cachedAst) match
+        val sourceText = st.cachedSourceText
+        val ast = st.cachedAst
+        (str, eval(rule).asGrammarSymbol, sourceText, ast) match
           // optimize the initial parsing using the given cached AST
           case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast))
               if x == y =>

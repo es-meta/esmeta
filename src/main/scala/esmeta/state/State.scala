@@ -14,7 +14,8 @@ import scala.util.Try
 case class State(
   val cfg: CFG,
   var context: Context,
-  val sourceText: Option[String] = None,
+  val sourceCode: Option[Code] = None,
+  val cachedSourceText: Option[String] = None,
   val cachedAst: Option[Ast] = None,
   val filename: Option[String] = None,
   var callStack: List[CallContext] = Nil,
@@ -136,7 +137,8 @@ case class State(
     State(
       cfg,
       newContext,
-      sourceText,
+      sourceCode,
+      cachedSourceText,
       cachedAst,
       filename,
       newCallStack,

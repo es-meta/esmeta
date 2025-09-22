@@ -204,8 +204,9 @@ case class Test262(
               timeLimit,
             )
           else {
-            val (ast, code) = loadTest(filename)
-            cov.runAndCheck(Script(Code.Normal(code), filename), ast)._1
+            val (ast, codeStr) = loadTest(filename)
+            val script = Script(Code.Normal(codeStr), filename)
+            cov.runAndCheck(script, Some(ast))._1
           }
         if (tyCheck) collector.add(filename, st.typeErrors)
         val returnValue = st(GLOBAL_RESULT)
@@ -280,10 +281,9 @@ case class Test262(
   // ---------------------------------------------------------------------------
   // parse ECMAScript code
   private lazy val scriptParser = cfg.scriptParser
-  private def parse(code: String): Code =
-    scriptParser.fromWithCode(code)
+  private def parse(code: String): Code = scriptParser.fromWithSourceText(code)
   private def parseFile(filename: String): Code =
-    scriptParser.fromFileWithCode(filename)
+    scriptParser.fromFileWithSourceText(filename)
 
   // eval ECMAScript code
   private def evalFile(
@@ -299,7 +299,7 @@ case class Test262(
 
   // eval ECMAScript code
   private def eval(
-    code: String,
+    sourceText: String,
     ast: Ast,
     filename: String,
     tyCheck: Boolean,
@@ -308,7 +308,7 @@ case class Test262(
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
-    val st = cfg.init.from(code, ast)
+    val st = cfg.init.from(sourceText, Some(ast), filename = Some(filename))
     Interpreter(
       st = st,
       tyCheck = tyCheck,

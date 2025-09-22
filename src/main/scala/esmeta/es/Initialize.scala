@@ -12,30 +12,31 @@ import scala.collection.mutable.{Map => MMap}
 class Initialize(cfg: CFG) {
   import cfg.*
 
-  /** get initial state from source text */
-  def from(sourceText: String): State =
-    val (ast, semiInjected) = cfg.scriptParser.fromWithCode(sourceText)
-    from(semiInjected, ast)
-
   /** get initial state from script */
-  def from(script: Script): State = from(script.code.toString)
+  def from(script: Script): State = from(
+    script.code.toString,
+    code = Some(script.code),
+    filename = Some(script.name),
+  )
 
   /** get initial state from JS file */
   def fromFile(filename: String): State =
-    val (ast, semiInjected) = cfg.scriptParser.fromFileWithCode(filename)
-    from(semiInjected, ast, Some(filename))
+    val (ast, sourceText) = cfg.scriptParser.fromFileWithSourceText(filename)
+    from(sourceText, ast = Some(ast), filename = Some(filename))
 
-  /** get initial state with source text and cached AST */
+  /** get initial state with `Code` object with cached code string and AST */
   def from(
     sourceText: String,
-    ast: Ast,
+    ast: Option[Ast] = None,
+    code: Option[Code] = None,
     filename: Option[String] = None,
   ): State = State(
     cfg,
     context = Context(cfg.main),
-    sourceText = Some(sourceText),
+    sourceCode = Some(code.getOrElse(Code.Normal(sourceText))),
+    cachedSourceText = Some(sourceText),
+    cachedAst = Some(ast.getOrElse(cfg.scriptParser.from(sourceText))),
     filename = filename,
-    cachedAst = Some(ast),
     globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
     heap = initHeap.copied,
   )

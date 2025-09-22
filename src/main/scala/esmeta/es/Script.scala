@@ -41,7 +41,7 @@ enum Code {
           } else s"new $pathStr;"
   }
 
-  def length: Int = toString.length
+  def size: Int = toString.length
 }
 
 /** get prototype paths and properties */

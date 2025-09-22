@@ -82,27 +82,32 @@ case class Coverage(
   /** evaluate a given ECMAScript program, update coverage, and return
     * evaluation result with whether it succeeds to increase coverage
     */
-  def runAndCheck(script: Script): (State, Boolean, Boolean) =
-    runAndCheck(script, scriptParser.from(script.code.toString))
-
-  /** evaluate a given ECMAScript program, update coverage, and return
-    * evaluation result with whether it succeeds to increase coverage
-    */
-  def runAndCheck(script: Script, ast: Ast): (State, Boolean, Boolean) =
-    val interp = run(script.code.toString, ast, Some(script.name))
+  def runAndCheck(
+    script: Script,
+    ast: Option[Ast] = None,
+  ): (State, Boolean, Boolean) =
+    val sourceText = script.code.toString
+    val interp = run(
+      sourceText,
+      ast.getOrElse(scriptParser.from(sourceText)),
+      Some(script.name),
+    )
     this.synchronized(check(script, interp))
 
   /** evaluate a given ECMAScript program */
   def run(script: Script): Interp =
-    val (ast, code) = scriptParser.fromWithCode(script.code.toString)
-    run(code, ast, Some(script.name))
+    val sourceText = script.code.toString
+    val ast = scriptParser.from(sourceText)
+    run(sourceText, ast, Some(script.name))
 
   /** evaluate a given ECMAScript program */
-  def run(code: String): Interp = run(code, scriptParser.from(code), None)
+  def run(sourceText: String): Interp =
+    run(sourceText, scriptParser.from(sourceText), None)
 
   /** evaluate a given ECMAScript program */
-  def run(code: String, ast: Ast, name: Option[String]): Interp =
-    val initSt = cfg.init.from(code, ast, name)
+  def run(sourceText: String, ast: Ast, name: Option[String]): Interp =
+    val code = Code.Normal(sourceText)
+    val initSt = cfg.init.from(sourceText, Some(ast), Some(code), name)
     val interp = Interp(
       initSt,
       tyCheck,
@@ -137,7 +142,7 @@ case class Coverage(
             updated = true
           } else {
             val originalScript = scripts.head
-            if (originalScript.code.length > code.length) {
+            if (originalScript.code.size > code.size) {
               update(nodeView, script)
               updated = true
               blockingScripts += originalScript
@@ -158,7 +163,7 @@ case class Coverage(
             updated = true
           } else {
             val originalScript = scripts.head
-            if (originalScript.code.length > code.length) {
+            if (originalScript.code.size > code.size) {
               update(condView, target, script)
               updated = true
               blockingScripts += originalScript

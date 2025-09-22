@@ -139,7 +139,7 @@ class Debugger(st: State) extends Interpreter(st) {
 
   private def reset: Unit =
     val newDOpt = for {
-      sourceText <- st.sourceText
+      sourceText <- st.cachedSourceText
     } yield Debugger(cfg.init.from(sourceText))
     val newD = newDOpt.get
     this.st.context = newD.st.context
@@ -814,7 +814,7 @@ object Debugger {
         ) ++ {
           if (reprint) then
             List(
-              "reprint" -> debugger.st.sourceText.asJson,
+              "reprint" -> debugger.st.cachedSourceText.asJson,
               "ast" -> debugger.st.cachedAst.asJson,
             )
           else Nil
