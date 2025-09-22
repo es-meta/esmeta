@@ -98,17 +98,38 @@ object JsonProtocol extends BasicJsonProtocol {
   // Algorithms
   // ---------------------------------------------------------------------------
   given Decoder[Algorithm] = deriveDecoder
-  given Encoder[Algorithm] = deriveEncoder
-  // algorithm heads
+  given Encoder[Algorithm] = encoderWithType[Algorithm](using deriveEncoder[Algorithm])
+  
+  given Decoder[AbstractOperationHead] = deriveDecoder
+  given Encoder[AbstractOperationHead] = encoderWithType[AbstractOperationHead](using deriveEncoder[AbstractOperationHead])
+  given Decoder[NumericMethodHead] = deriveDecoder
+  given Encoder[NumericMethodHead] = encoderWithType[NumericMethodHead](using deriveEncoder[NumericMethodHead])
+  given Decoder[SyntaxDirectedOperationHead] = deriveDecoder
+  given Encoder[SyntaxDirectedOperationHead] = encoderWithType[SyntaxDirectedOperationHead](using deriveEncoder[SyntaxDirectedOperationHead])
+  given Decoder[ConcreteMethodHead] = deriveDecoder
+  given Encoder[ConcreteMethodHead] = encoderWithType[ConcreteMethodHead](using deriveEncoder[ConcreteMethodHead])
+  given Decoder[InternalMethodHead] = deriveDecoder
+  given Encoder[InternalMethodHead] = encoderWithType[InternalMethodHead](using deriveEncoder[InternalMethodHead])
+  given Decoder[BuiltinHead] = deriveDecoder
+  given Encoder[BuiltinHead] = encoderWithType[BuiltinHead](using deriveEncoder[BuiltinHead])
   given Decoder[Head] = deriveDecoder
-  given Encoder[Head] = deriveEncoder
+  given Encoder[Head] = Encoder.instance {
+    case head: AbstractOperationHead       => head.asJson
+    case head: NumericMethodHead           => head.asJson
+    case head: SyntaxDirectedOperationHead => head.asJson
+    case head: ConcreteMethodHead          => head.asJson
+    case head: InternalMethodHead          => head.asJson
+    case head: BuiltinHead                 => head.asJson
+  }
+
   given Decoder[SdoHeadTarget] = deriveDecoder
-  given Encoder[SdoHeadTarget] = deriveEncoder
+  given Encoder[SdoHeadTarget] = encoderWithType[SdoHeadTarget](using deriveEncoder[SdoHeadTarget])
   given Decoder[BuiltinPath] = deriveDecoder
   given Encoder[BuiltinPath] = deriveEncoder
+  
   // algorithm parameters
   given Decoder[Param] = deriveDecoder
-  given Encoder[Param] = deriveEncoder
+  given Encoder[Param] = encoderWithType[Param](using deriveEncoder[Param])
   given Decoder[ParamKind] = deriveDecoder
   given Encoder[ParamKind] = deriveEncoder
 

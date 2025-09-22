@@ -3,6 +3,7 @@ package esmeta.util
 import scala.collection.mutable.{Map => MMap}
 import io.circe.*, io.circe.generic.semiauto.*
 import io.circe.syntax.*
+import scala.reflect.ClassTag
 
 /** basic JSON protocols */
 trait BasicJsonProtocol {
@@ -79,6 +80,12 @@ trait BasicJsonProtocol {
   // encoder based on stringifiers
   def encoderWithStringifier[T](stringifier: T => String): Encoder[T] =
     Encoder.instance(x => Json.fromString(stringifier(x)))
+
+  // encoder for class A with fields {f1, ..., fn} serializes as { A: {f1: v1, ..., fn: vn} }
+  def encoderWithType[A](using enc: Encoder[A], ct: ClassTag[A]): Encoder[A] =
+    Encoder.instance { a =>
+      Json.obj(ct.runtimeClass.getSimpleName -> enc(a))
+    }
 
   // encoder based on discrimators
   def decoderWithDiscriminator[T](
