@@ -288,7 +288,7 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[SetAsStep] = encoderWithType[SetAsStep](using deriveEncoder[SetAsStep])
   given Encoder[InvokeShorthandStep] = encoderWithType[InvokeShorthandStep](using deriveEncoder[InvokeShorthandStep])
   given Encoder[IfStep] = encoderWithType[IfStep](using deriveEncoder[IfStep])
-  given Encoder[IfStep.ElseConfig] = deriveEncoder
+  given Encoder[IfStep.ElseConfig] = encoderWithType[IfStep.ElseConfig](using deriveEncoder[IfStep.ElseConfig])
   given Encoder[ReturnStep] = encoderWithType[ReturnStep](using deriveEncoder[ReturnStep])
   given Encoder[AssertStep] = encoderWithType[AssertStep](using deriveEncoder[AssertStep])
   given Encoder[ForEachStep] = encoderWithType[ForEachStep](using deriveEncoder[ForEachStep])
