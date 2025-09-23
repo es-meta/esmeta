@@ -1,11 +1,11 @@
 package esmeta.fuzzer.mutator
 
 import esmeta.es.*
-import esmeta.state.{Target => StateTarget}
 import esmeta.spec.Grammar
 import esmeta.fuzzer.synthesizer.*
 import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
 
@@ -30,38 +30,51 @@ class TargetMutator(using cfg: CFG)(
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[Result] = code match
-    case Code.Normal(str) => apply(str, n, target)
-    case _: Code.Builtin  => Nil // TODO
+  ): Seq[Result] = (for {
+    (condView, cov) <- target
+    CondView(cond, view) = condView
+    mutTargets =
+      cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
+    if mutTargets.nonEmpty
+    mutTarget = choose(mutTargets.toVector)
+  } yield {
+    import Code.*
+    code match
+      case Normal(codeStr) =>
+        mutTarget match
+          case Target.Normal(loc) =>
+            Walker(loc, n)
+              .walk(scriptParser.from(codeStr))
+              .map(ast =>
+                Result(name, Normal(ast.toString(grammar = Some(cfg.grammar)))),
+              )
+          case _ => List()
+      case builtin: Builtin =>
+        mutTarget match
+          case Target.BuiltinThis(ast) =>
+            for {
+              ast <- apply(ast, n, target)
+              str = ast.toString(grammar = Some(cfg.grammar)).trim
+              newCode = mutTarget.updateCode(builtin, str)
+            } yield Result(name, newCode)
+          case Target.BuiltinArg(ast, _) =>
+            for {
+              ast <- apply(ast, n, target)
+              str = ast.toString(grammar = Some(cfg.grammar)).trim
+              newCode = mutTarget.updateCode(builtin, str)
+            } yield Result(name, newCode)
+          case _ => List()
+  }).getOrElse(randomMutator(code, n, target))
 
   /** mutate ASTs */
-  def apply(
-    ast: Ast,
-    n: Int,
-    targetBranch: Option[(CondView, Coverage)],
-  ): Seq[Ast] = (for {
-    (condView, cov) <- targetBranch
-    CondView(cond, view) = condView
-    targets = cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
-    if targets.nonEmpty
-    target = choose(targets.toVector)
-  } yield Walker(target, n).walk(ast))
-    .getOrElse(randomMutator(ast, n, targetBranch))
+  def apply(ast: Ast, n: Int, target: Option[(CondView, Coverage)]): Seq[Ast] =
+    randomMutator(ast, n, target)
 
-  /** internal walker */
-  class Walker(target: StateTarget, n: Int)
-    extends Util.MultiplicativeListWalker {
-    val StateTarget(name, rhsIdx, subIdx, loc) = target
+  /** internal walker for mutating normal target */
+  class Walker(loc: Loc, n: Int) extends Util.MultiplicativeListWalker {
     override def walk(ast: Syntactic): List[Syntactic] =
-      if (
-        ast.name == name &&
-        ast.rhsIdx == rhsIdx &&
-        ast.subIdx == subIdx &&
-        ast.loc == Some(loc)
-      )
-        TotalWalker(ast, n)
-      else
-        super.walk(ast)
+      if (ast.loc == Some(loc)) TotalWalker(ast, n)
+      else super.walk(ast)
   }
 
   /** internal walker that mutates all internal nodes with same prob. */

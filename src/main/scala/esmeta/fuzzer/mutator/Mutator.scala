@@ -5,6 +5,7 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
 import esmeta.parser.{ESParser, AstFrom}
 
@@ -54,18 +55,6 @@ trait Mutator(using val cfg: CFG) {
   /** Possible names of underlying mutators */
   val names: List[String]
   lazy val name: String = names.head
-
-  extension (builtin: Code.Builtin) {
-    def toTargets: List[Target] =
-      import Target.*
-      val args = for {
-        (arg, idx) <- builtin.args.getOrElse(Nil).zipWithIndex
-        ast = assignExprParser.from(arg)
-      } yield Arg(idx, ast)
-      builtin.thisArg.fold(args)(arg =>
-        This(assignExprParser.from(arg)) :: args,
-      )
-  }
 }
 
 object Mutator {
@@ -73,16 +62,25 @@ object Mutator {
   /** Result of mutation with mutator name and AST */
   case class Result(name: String, code: Code)
 
-  /** mutation target */
-  enum Target {
-    case This(ast: Ast)
-    case Arg(idx: Int, ast: Ast)
-    val ast: Ast
+  extension (target: Target) {
 
-    import Code.*
-    lazy val updateCode: (Builtin, String) => Builtin = this match
-      case This(_) => (b, str) => b.copy(thisArg = Some(str))
-      case Arg(idx, _) =>
-        (b, str) => b.copy(args = Some(b.args.getOrElse(Nil).updated(idx, str)))
+    /** Get the location from normal target */
+    def loc: Loc = target match
+      case Target.Normal(loc) => loc
+      case _                  => raise("target must be normal")
+
+    /** Get the AST from builtin target */
+    def ast: Ast = target match
+      case Target.BuiltinThis(ast)   => ast
+      case Target.BuiltinArg(ast, _) => ast
+      case _                         => raise("target must be builtin")
+
+    /** Update the builtin code with the given string at the target position */
+    def updateCode(builtin: Code.Builtin, str: String): Code.Builtin =
+      target match
+        case Target.BuiltinThis(_) => builtin.copy(thisArg = Some(str))
+        case Target.BuiltinArg(_, i) =>
+          builtin.copy(args = Some(builtin.args.getOrElse(Nil).updated(i, str)))
+        case _ => raise("target must be builtin")
   }
 }

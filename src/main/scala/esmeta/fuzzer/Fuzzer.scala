@@ -156,10 +156,10 @@ class Fuzzer(
       val mutator = code match
         case _: Normal  => normalMutator
         case _: Builtin => builtinMutator
-      val results = normalMutator(code, 100, condView.map((_, cov))).par
+      val results = mutator(code, 100, condView.map((_, cov))).par
       (for {
         result <- results
-        candInfo = getCandInfo(result.code.toString)
+        candInfo = getCandInfo(result.code)
       } yield (result, candInfo)).toList
 
     for ((Mutator.Result(mutatorName, mutatedCode), info) <- mutants)
@@ -181,13 +181,14 @@ class Fuzzer(
   )
 
   /** get candidate information */
-  def getCandInfo(code: String): CandInfo =
-    if (visited contains code) CandInfo(visited = true)
-    else if (!ValidityChecker(code)) CandInfo(invalid = true)
+  def getCandInfo(code: Code): CandInfo =
+    val sourceText = code.toString
+    if (visited contains sourceText) CandInfo(visited = true)
+    else if (!ValidityChecker(sourceText)) CandInfo(invalid = true)
     else CandInfo(interp = Some(Try(cov.run(code))))
 
   /** add new program */
-  def add(code: Code): Boolean = add(code, getCandInfo(code.toString))
+  def add(code: Code): Boolean = add(code, getCandInfo(code))
 
   /** add new program with precomputed info */
   def add(code: Code, info: CandInfo): Boolean = handleResult(
@@ -275,12 +276,14 @@ class Fuzzer(
     SpecStringMutator(),
   )
   val builtinMutator: Mutator = WeightedMutator(
+    TargetMutator(),
     RandomMutator(),
   )
 
   /** all mutator names */
-  val mutatorNames =
-    (normalMutator.names ++ builtinMutator.names).distinct.sorted
+  val mutatorNames = (
+    normalMutator.names ++ builtinMutator.names
+  ).distinct.sorted
 
   /** mutator stat */
   val mutatorStat: MMap[String, Counter] = MMap()

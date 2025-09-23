@@ -6,6 +6,7 @@ import esmeta.cfg.*
 import esmeta.injector.*
 import esmeta.interpreter.*
 import esmeta.ir.{Expr, EParse, EBool, Name, EUndef, ICall, ISdoCall}
+import esmeta.parser.AstFrom
 import esmeta.spec.*
 import esmeta.ty.{*, given}
 import esmeta.es.*
@@ -90,24 +91,30 @@ case class Coverage(
     val interp = run(
       sourceText,
       ast.getOrElse(scriptParser.from(sourceText)),
+      Some(script.code),
       Some(script.name),
     )
     this.synchronized(check(script, interp))
 
   /** evaluate a given ECMAScript program */
-  def run(script: Script): Interp =
-    val sourceText = script.code.toString
+  def run(code: Code): Interp =
+    val sourceText = code.toString
     val ast = scriptParser.from(sourceText)
-    run(sourceText, ast, Some(script.name))
+    run(sourceText, ast, Some(code), None)
 
   /** evaluate a given ECMAScript program */
-  def run(sourceText: String): Interp =
-    run(sourceText, scriptParser.from(sourceText), None)
-
-  /** evaluate a given ECMAScript program */
-  def run(sourceText: String, ast: Ast, name: Option[String]): Interp =
-    val code = Code.Normal(sourceText)
-    val initSt = cfg.init.from(sourceText, Some(ast), Some(code), name)
+  def run(
+    sourceText: String,
+    ast: Ast,
+    code: Option[Code],
+    name: Option[String],
+  ): Interp =
+    val initSt = cfg.init.from(
+      sourceText,
+      Some(ast),
+      Some(code.getOrElse(Code.Normal(sourceText))),
+      name,
+    )
     val interp = Interp(
       initSt,
       tyCheck,
@@ -493,7 +500,33 @@ object Coverage {
               case ThisIdx(k) =>
                 Target(context.astOpt.flatMap(_.children.lift(k).flatten)).toSet
               case Named(name) => next(name)
-          case Some(_: BuiltinHead) => Set() // TODO find argument expressions
+          case Some(_: BuiltinHead) =>
+            import Code.*
+            import ParamKind.*
+            import Target.*
+            given assignExprParser: AstFrom =
+              st.cfg.esParser("AssignmentExpression", List(true, false, false))
+            st.sourceCode match
+              case Some(builtin: Builtin) =>
+                val targets = Target(builtin).toSet
+                param match
+                  case This =>
+                    targets.collect { case target: BuiltinThis => target }.toSet
+                  case Named(name) =>
+                    val args = st
+                      .heap(st(Name("__args__")).asAddr)
+                      .asInstanceOf[RecordObj]
+                      .map
+                      .keys
+                      .toList // !FIXME: ad-hoc; we need to modify compiler
+                    val idx = args.indexOf(name)
+                    // println(s"code: ${builtin.toString}") // !debug
+                    // println(s"args: $args -- $name --> $idx") // !debug
+                    targets.collect {
+                      case target: BuiltinArg if target.idx == idx => target
+                    }.toSet
+                  case _ => Set()
+              case s => Set()
           case _ => next(param.asInstanceOf[ParamKind.Named].name)
         }
       } yield target
@@ -519,7 +552,9 @@ object Coverage {
       }
 
     // get nearest target
-    private def getNearest: Set[Target] = st.context.nearest.toSet
+    private def getNearest: Set[Target] = (for {
+      nearest <- st.context.nearest
+    } yield Target.Normal(nearest.loc)).toSet
   }
 
   /** meta-information for each script */
