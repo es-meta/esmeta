@@ -58,6 +58,7 @@ trait UnitWalker extends BasicUnitWalker {
     case InvokeShorthandStep(name, args) => walk(name); walkList(args, walk)
     case AppendStep(expr, ref)           => walk(expr); walk(ref)
     case PrependStep(expr, ref)          => walk(expr); walk(ref)
+    case InsertStep(expr, ref)           => walk(expr); walk(ref)
     case AddStep(expr, ref)              => walk(expr); walk(ref)
     case RemoveStep(target, p, list)     => walk(target); walk(p); walk(list)
     case PushContextStep(ref)            => walk(ref)
@@ -134,9 +135,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case ListCopyExpression(expr) =>
       walk(expr)
-    case RecordExpression(ty, fields, article) =>
+    case RecordExpression(ty, fields, _) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) });
-      walk(article)
     case LengthExpression(expr) =>
       walk(expr)
     case SubstringExpression(expr, from, to) =>

@@ -62,6 +62,7 @@ trait Parsers extends IndentParsers {
     invokeShorthandStep |
     appendStep |
     prependStep |
+    insertStep |
     addStep |
     removeStep |
     pushCtxtStep |
@@ -129,9 +130,11 @@ trait Parsers extends IndentParsers {
   // prepend steps
   lazy val prependStep: PL[PrependStep] =
     "prepend" ~> expr ~ ("to" ~> ref) <~ end
-    ^^ { case e ~ r => PrependStep(e, r) } |
-    "insert" ~> expr ~ ("as the first element of" ~> ref) <~ end
     ^^ { case e ~ r => PrependStep(e, r) }
+
+  lazy val insertStep: PL[InsertStep] =
+    "insert" ~> expr ~ ("as the first element of" ~> ref) <~ end
+    ^^ { case e ~ r => InsertStep(e, r) }
 
   // add steps
   lazy val addStep: PL[AddStep] =
@@ -384,28 +387,40 @@ trait Parsers extends IndentParsers {
     }
 
   // record expressions
-  lazy val recordExpr: PL[RecordExpression] = {
-    opt("the") ~ tname ~
-    ("{" ~> repsep((fieldLiteral <~ ":") ~ expr, ",") <~ "}")
-  } ^^ {
-    case a ~ t ~ fs =>
-      RecordExpression(t, fs.map { case f ~ e => f -> e }, a.isDefined)
-  } | {
-    ("a new" ~> tname) ~
-    ("whose" ~> fieldLiteral) ~
-    ("is" ~> expr)
-  } ^^ {
-    case t ~ f ~ e => RecordExpression(t, List(f -> e))
-  } | {
-    opt("an " | "a ") ~ ("newly created" | "new") ~
-    guard(not("Realm")) ~> tname <~ opt(
-      "containing no bindings" |
-      "with no fields" |
-      "that initially has no fields",
-    )
-  } ^^ {
-    case t => RecordExpression(t, List())
-  }
+  lazy val recordExpr: PL[RecordExpression] =
+    import RecordExpressionForm.*
+    {
+      opt("the") ~ tname ~
+      ("{" ~> repsep((fieldLiteral <~ ":") ~ expr, ",") <~ "}")
+    } ^^ {
+      case a ~ t ~ fs =>
+        RecordExpression(
+          t,
+          fs.map { case f ~ e => f -> e },
+          RecordExpressionForm.Normal(a.isDefined),
+        )
+    } | {
+      ("a new" ~> tname) ~
+      ("whose" ~> fieldLiteral) ~
+      ("is" ~> expr)
+    } ^^ {
+      case t ~ f ~ e =>
+        RecordExpression(t, List(f -> e), RecordExpressionForm.Text)
+    } | {
+      ("a newly created" | "a new") ~
+      (guard(not("Realm")) ~> tname) ~ opt(
+        "containing no bindings" |
+        "with no fields" |
+        "that initially has no fields",
+      )
+    } ^^ {
+      case pre ~ t ~ post =>
+        RecordExpression(
+          t,
+          List(),
+          RecordExpressionForm.TextWithNoElement(pre, post),
+        )
+    }
 
   // `length of` expressions
   lazy val lengthExpr: PL[LengthExpression] =
@@ -467,9 +482,8 @@ trait Parsers extends IndentParsers {
       "captures nothing" ^^^ Nil |
       "captures" ~> repsep(variable, sep("and"))
 
-    "a new" ~ opt(
-      "Job",
-    ) ~ "Abstract Closure with" ~> params ~ ("that" ~> captured) ~
+    ("a new" ~ opt("Job") ~ "Abstract Closure with" ~> params) ~
+    ("that" ~> captured) ~
     ("and performs the following steps when called:" ~> blockStep) ^^ {
       case ps ~ cs ~ body => AbstractClosureExpression(ps, cs, body)
     }
@@ -539,16 +553,13 @@ trait Parsers extends IndentParsers {
   // TODO cleanup spec.html
   lazy val xrefExpr: PL[XRefExpression] =
     import XRefExpressionOperator.*
-    lazy val xrefOp: P[XRefExpressionOperator] = {
-      "the definition specified in" |
-      "the algorithm steps defined in" |
-      "the ordinary object internal method defined in"
-    } ^^ { Algo(_) } | {
-      "the internal slots listed in"
-    } ^^^ InternalSlots | {
+    lazy val xrefOp: P[XRefExpressionOperator] =
+      "the definition specified in" ^^^ Definition |
+      "the algorithm steps defined in" ^^^ Algo |
+      "the ordinary object internal method defined in" ^^^ OrdinaryObjectInternalMethod |
+      "the internal slots listed in" ^^^ InternalSlots |
       "the number of non-optional parameters of" ~
-      "the function definition in"
-    } ^^^ ParamLength
+      "the function definition in" ^^^ ParamLength
     xrefOp ~ xrefId ^^ { case op ~ id => XRefExpression(op, id) }
 
   // the sole element expressions
@@ -749,8 +760,8 @@ trait Parsers extends IndentParsers {
   // metalanguage invocation expressions
   lazy val invokeExpr: PL[InvokeExpression] =
     invokeAOExpr |
-    tagged { invokeNumericExpr } |
-    tagged { invokeClosureExpr } |
+    invokeNumericExpr |
+    invokeClosureExpr |
     invokeAMExpr |
     invokeSDOExpr
 
@@ -902,9 +913,7 @@ trait Parsers extends IndentParsers {
     // _TypedArray_
     "the String value of the Constructor Name value specified in" ~
     "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref>" ~
-    "for this" ~> word <~ "constructor" ^^ {
-      StringLiteral(_, StringLiteralForm.TypedArrayCtor)
-    }
+    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_) }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
@@ -1401,8 +1410,7 @@ trait Parsers extends IndentParsers {
   // closure types
   // TODO more details
   lazy val cloTy: P[ValueTy] =
-    "an" ~ "Abstract Closure" ~ "with" ~>
-    ("no" ~ "parameters") ^^ { case _ => CloT }
+    "an Abstract Closure with no parameters" ^^! CloT
 
   // AST types
   lazy val astTy: P[ValueTy] =
@@ -1485,7 +1493,7 @@ trait Parsers extends IndentParsers {
   private lazy val end: Parser[StepUpdater] =
     val pre =
       "\\(.*\\)".r |
-      "as defined in" ~ withTag("") ^^ { case a ~ b => a + b } |
+      "as defined in" ~ withTag("") ^^ { case a ~ b => a + " " + b.tagString } |
       "; that is[^.]*".r |
       ""
     val post = opt {
@@ -1520,7 +1528,13 @@ trait Parsers extends IndentParsers {
     multiParser | parser
 
   // html tags
-  case class Tagged[T](content: T, tag: String, fields: Map[String, String])
+  case class Tagged[T](content: T, tag: String, fields: Map[String, String]) {
+    def tagString: String =
+      val fieldStr = fields.foldLeft("") { (acc, entry) =>
+        acc + s" ${entry._1}=\"${entry._2}\""
+      }
+      s"<$tag$fieldStr></$tag>"
+  }
   private def tagged[T](parser: Parser[T]): Parser[T] =
     val tagStart: Parser[String] = "<[^>]+>".r
     val tagEnd: Parser[String] = "</[a-z-]+>".r

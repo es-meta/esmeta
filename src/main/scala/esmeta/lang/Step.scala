@@ -4,7 +4,7 @@ import esmeta.lang.util.*
 
 // metalanguage steps
 sealed trait Step extends Syntax {
-  var endingChar = "." // "." or ";"
+  var endingChar = "."
   lazy val isNextUpper = endingChar == ".";
 
   var prefix = ""
@@ -49,6 +49,9 @@ case class AppendStep(elem: Expression, ref: Reference) extends Step
 
 // prepend steps
 case class PrependStep(elem: Expression, ref: Reference) extends Step
+
+// insert steps
+case class InsertStep(elem: Expression, ref: Reference) extends Step
 
 // add steps
 case class AddStep(elem: Expression, ref: Reference) extends Step

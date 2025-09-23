@@ -40,6 +40,8 @@ class CaseCollector extends UnitWalker {
         s"append {{ expr }} to {{ ref }}."
       case PrependStep(expr, ref) =>
         s"prepend {{ expr }} to {{ ref }}."
+      case InsertStep(expr, ref) =>
+        s"insert {{ expr }} as the first element of {{ ref }}."
       case AddStep(expr, ref) =>
         s"add {{ expr }} to {{ ref }}."
       case RemoveStep(target, prep, list) =>
@@ -151,14 +153,22 @@ class CaseCollector extends UnitWalker {
     import ConversionExpressionOperator.*
     add(expr match {
       case StringConcatExpression(exprs) =>
-        s"the string-concatenation of {{ expr }}*"
+        "the string-concatenation of {{ expr }}*"
       case ListConcatExpression(exprs) =>
-        s"the list-concatenation of {{ expr }}*"
+        "the list-concatenation of {{ expr }}*"
       case ListCopyExpression(expr) =>
-        s"a List whose elements are the elements of {{ expr }}"
-      case RecordExpression(ty, fields, article) =>
-        val a = if (article) "the " else ""
-        s"$a{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
+        "a List whose elements are the elements of {{ expr }}"
+      case RecordExpression(ty, fields, form) =>
+        import RecordExpressionForm.*
+        form match {
+          case Normal(hasArticle) =>
+            val a = if (hasArticle) "the " else ""
+            s"$a{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
+          case Text =>
+            "a new {{ ty }} whose {{ field }} is {{ expr }}"
+          case TextWithNoElement(prefix, postfix) =>
+            s"$prefix {{ ty }} $postfix"
+        }
       case LengthExpression(expr) =>
         s"the length of {{ expr }}"
       case SubstringExpression(expr, from, to) =>
@@ -265,8 +275,6 @@ class CaseCollector extends UnitWalker {
           case EmptyString  => "the empty String"
           case EmptyUnicode => "the empty sequence of Unicode code points"
           case Code         => "<code>{{ str }}</code>"
-          case TypedArrayCtor =>
-            "the String value of the Constructor Name value specified in <emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for this {{ str }} constructor"
         }
       case FieldLiteral(name) =>
         s"[[{{ str }}]]"

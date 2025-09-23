@@ -20,8 +20,12 @@ case class ListCopyExpression(expr: Expression) extends Expression
 case class RecordExpression(
   tname: String,
   fields: List[(FieldLiteral, Expression)],
-  article: Boolean = false,
+  form: RecordExpressionForm,
 ) extends Expression
+enum RecordExpressionForm:
+  case Normal(hasArticle: Boolean)
+  case Text
+  case TextWithNoElement(prefix: String, postfix: Option[String])
 
 // `length of <string>` expressions
 case class LengthExpression(expr: Expression) extends Expression
@@ -80,9 +84,8 @@ case class IntListExpression(
 case class XRefExpression(kind: XRefExpressionOperator, id: String)
   extends Expression
 enum XRefExpressionOperator extends LangElem:
-  case Algo(desc: String)
-  case InternalSlots
-  case ParamLength
+  case Algo, Definition, OrdinaryObjectInternalMethod, InternalSlots,
+  ParamLength
 
 // the sole element expressions
 case class SoleElementExpression(list: Expression) extends Expression
@@ -306,9 +309,8 @@ case class StringLiteral(
 // EmptyString: "the empty String"
 // EmptyUnicode: "the empty sequence of Unicode code points"
 // Code: <code>{{ string value }}</code>
-// TypedArrayCtor: the String value of the Constructor Name value specified in <emu-xref href="#table-the-typedarray-constructors"></emu-xref> for this {{ str }} constructor
 enum StringLiteralForm {
-  case Normal, EmptyString, EmptyUnicode, Code, TypedArrayCtor
+  case Normal, EmptyString, EmptyUnicode, Code
 }
 
 // field literals

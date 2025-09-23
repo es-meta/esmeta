@@ -252,6 +252,8 @@ class Compiler(
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
     case PrependStep(expr, ref) =>
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
+    case InsertStep(expr, ref) =>
+      fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), true))
     case AddStep(expr, ref) =>
       // TODO: current IR does not support a set data structure.
       // AddStep represents an element addition to a set.
@@ -734,7 +736,11 @@ class Compiler(
           prefix = prefix,
         )
         EClo(name, captured.map(compile))
-      case XRefExpression(XRefExpressionOperator.Algo(_), id) =>
+      case XRefExpression(
+            XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
+            XRefExpressionOperator.OrdinaryObjectInternalMethod,
+            id,
+          ) =>
         EClo(normalize(normalize(spec.getAlgoById(id).head.fname)), Nil)
       case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
         EMath(spec.getAlgoById(id).head.originalParams.length)

@@ -99,6 +99,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("append ") >> expr >> " to " >> ref >> "."
       case PrependStep(expr, ref) =>
         app >> First("prepend ") >> expr >> " to " >> ref >> "."
+      case InsertStep(expr, ref) =>
+        app >> First("insert ") >> expr >> " to " >> ref >> "."
       case AddStep(expr, ref) =>
         app >> First("add ") >> expr >> " to " >> ref >> "."
       case RemoveStep(target, prep, list) =>
@@ -290,17 +292,30 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the list-concatenation of " >> exprs
       case ListCopyExpression(expr) =>
         app >> "a List whose elements are the elements of " >> expr
-      case RecordExpression(ty, fields, article) =>
-        val a = if (article) "the " else ""
-        given Rule[(FieldLiteral, Expression)] = {
-          case (app, (field, expr)) =>
-            app >> field >> ": " >> expr
+      case RecordExpression(ty, fields, form) =>
+        import RecordExpressionForm.*
+        form match {
+          case Normal(hasArticle) =>
+            val a = if (hasArticle) "the " else ""
+            given Rule[(FieldLiteral, Expression)] = {
+              case (app, (field, expr)) =>
+                app >> field >> ": " >> expr
+            }
+            given Rule[List[(FieldLiteral, Expression)]] =
+              iterableRule("{ ", ", ", " }")
+            app >> a >> ty >> " "
+            if (fields.isEmpty) app >> "{ }"
+            else app >> fields
+          case Text =>
+            val (field, expr) = fields.head
+            app >> "a new " >> ty >> " whose " >> field >> " is " >> expr
+          case TextWithNoElement(prefix, postfix) =>
+            val post = postfix match {
+              case Some(p) => s" $p"
+              case None    => ""
+            }
+            app >> s"$prefix " >> ty >> post
         }
-        given Rule[List[(FieldLiteral, Expression)]] =
-          iterableRule("{ ", ", ", " }")
-        app >> a >> ty >> " "
-        if (fields.isEmpty) app >> "{ }"
-        else app >> fields
       case LengthExpression(expr) =>
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
@@ -523,7 +538,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given xrefExprOpRule: Rule[XRefExpressionOperator] = (app, op) =>
     import XRefExpressionOperator.*
     app >> (op match {
-      case Algo(desc)    => desc
+      case Definition => "the definition specified in"
+      case Algo       => "the algorithm steps defined in"
+      case OrdinaryObjectInternalMethod =>
+        "the ordinary object internal method defined in"
       case InternalSlots => "the internal slots listed in"
       case ParamLength =>
         "the number of non-optional parameters of the function definition in"
@@ -573,10 +591,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case EmptyUnicode =>
             app >> "the empty sequence of Unicode code points"
           case Code => app >> "<code>\"" >> str >> "\"</code>"
-          case TypedArrayCtor =>
-            app >> "the String value of the Constructor Name value specified in " +
-            "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref> for this " +
-            str + " constructor"
         }
       case FieldLiteral(name) => app >> "[[" >> name >> "]]"
       case SymbolLiteral(sym) => app >> "%Symbol." >> sym >> "%"

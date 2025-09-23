@@ -58,6 +58,7 @@ trait Walker extends BasicWalker {
     case InvokeShorthandStep(x, a)  => InvokeShorthandStep(x, walkList(a, walk))
     case AppendStep(expr, ref)      => AppendStep(walk(expr), walk(ref))
     case PrependStep(expr, ref)     => PrependStep(walk(expr), walk(ref))
+    case InsertStep(expr, ref)      => InsertStep(walk(expr), walk(ref))
     case AddStep(expr, ref)         => AddStep(walk(expr), walk(ref))
     case RemoveStep(t, p, l)        => RemoveStep(walk(t), walk(p), walk(l))
     case PushContextStep(ref)       => PushContextStep(walk(ref))
@@ -166,10 +167,10 @@ trait Walker extends BasicWalker {
       ListConcatExpression(walkList(exprs, walk))
     case ListCopyExpression(expr) =>
       ListCopyExpression(walk(expr))
-    case RecordExpression(ty, fields, article) =>
+    case RecordExpression(ty, fields, form) =>
       lazy val newFields =
         walkList(fields, { case (f, e) => (walk(f), walk(e)) })
-      RecordExpression(walk(ty), newFields, walk(article))
+      RecordExpression(walk(ty), newFields, form)
     case LengthExpression(expr) =>
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>

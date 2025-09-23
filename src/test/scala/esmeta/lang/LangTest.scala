@@ -146,9 +146,13 @@ object LangTest {
     ListConcatExpression(List(refExpr, refExpr, refExpr))
   lazy val listCopyExpr = ListCopyExpression(refExpr)
   lazy val recordEmptyExpr =
-    RecordExpression("Object", Nil)
+    RecordExpression("Object", Nil, RecordExpressionForm.Normal(false))
   lazy val recordExpr =
-    RecordExpression("Object", List(fieldLit -> refExpr))
+    RecordExpression(
+      "Object",
+      List(fieldLit -> refExpr),
+      RecordExpressionForm.Normal(false),
+    )
   lazy val lengthExpr = LengthExpression(refExpr)
   lazy val substrExpr = SubstringExpression(refExpr, refExpr, None)
   lazy val substrExprTo = SubstringExpression(refExpr, refExpr, Some(refExpr))
@@ -223,10 +227,8 @@ object LangTest {
   lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
   lazy val emptyListExpr = ListExpression(Nil, false)
   lazy val listExpr = ListExpression(List(refExpr, refExpr), false)
-  lazy val xrefAlgoExpr = XRefExpression(
-    XRefExpressionOperator.Algo("the definition specified in"),
-    "sec-x",
-  )
+  lazy val xrefAlgoExpr =
+    XRefExpression(XRefExpressionOperator.Definition, "sec-x")
   lazy val xrefSlotsExpr =
     XRefExpression(XRefExpressionOperator.InternalSlots, "sec-x")
   lazy val xrefLenExpr =
