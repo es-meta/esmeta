@@ -513,15 +513,11 @@ object Coverage {
                   case This =>
                     targets.collect { case target: BuiltinThis => target }.toSet
                   case Named(name) =>
-                    val args = st
-                      .heap(st(Name("__args__")).asAddr)
-                      .asInstanceOf[RecordObj]
-                      .map
-                      .keys
-                      .toList // !FIXME: ad-hoc; we need to modify compiler
-                    val idx = args.indexOf(name)
-                    // println(s"code: ${builtin.toString}") // !debug
-                    // println(s"args: $args -- $name --> $idx") // !debug
+                    val idx = (for {
+                      case addr: Addr <- st.locals.get(Name("__args__"))
+                      case record: RecordObj <- st.heap.map.get(addr)
+                      args = record.map.keys.toList
+                    } yield args.indexOf(name)).getOrElse(-1)
                     targets.collect {
                       case target: BuiltinArg if target.idx == idx => target
                     }.toSet

@@ -268,7 +268,6 @@ trait AbsTransferDecl { analyzer: ParamFlowAnalyzer =>
           v <- get(_(x))
         } yield v
       case f @ Field(Name("this"), EMath(k)) =>
-        // FIXME: ad-hoc impl. to handle precise this
         AbsValue(ParamKind.ThisIdx(k.toInt))
       case Field(base, expr) =>
         for {
