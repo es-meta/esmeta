@@ -295,26 +295,21 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case RecordExpression(ty, fields, form) =>
         import RecordExpressionForm.*
         form match {
-          case Normal(hasArticle) =>
-            val a = if (hasArticle) "the " else ""
+          case SyntaxLiteral(prefix) =>
             given Rule[(FieldLiteral, Expression)] = {
               case (app, (field, expr)) =>
                 app >> field >> ": " >> expr
             }
             given Rule[List[(FieldLiteral, Expression)]] =
               iterableRule("{ ", ", ", " }")
-            app >> a >> ty >> " "
+            app >> prefix.fold("")(_ + " ") >> ty >> " "
             if (fields.isEmpty) app >> "{ }"
             else app >> fields
           case Text =>
             val (field, expr) = fields.head
             app >> "a new " >> ty >> " whose " >> field >> " is " >> expr
           case TextWithNoElement(prefix, postfix) =>
-            val post = postfix match {
-              case Some(p) => s" $p"
-              case None    => ""
-            }
-            app >> s"$prefix " >> ty >> post
+            app >> s"$prefix " >> ty >> postfix.fold("")(" " + _)
         }
       case LengthExpression(expr) =>
         app >> "the length of " >> expr
@@ -330,10 +325,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case (false, false) => "no"
         )
         app >> " white space removed"
-      case NumberOfExpression(name, pre, expr) =>
+      case NumberOfExpression(name, pre, expr, exclude) =>
         app >> "the number of " >> name >> " in "
         pre.map(app >> "the " >> _ >> " ")
         app >> expr
+        exclude.fold(app)(app >> ", excluding all occurrences of " >> _)
       case SourceTextExpression(expr) =>
         app >> "the source text matched by " >> expr
       case CoveredByExpression(code, rule) =>
@@ -343,8 +339,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> ", in source text order"
       case IntrinsicExpression(intr) =>
         app >> intr
-      case XRefExpression(kind, id) =>
-        xrefRule(app >> kind >> " ", id)
+      case XRefExpression(op, id) =>
+        import XRefExpressionOperator.*
+        val o = op match
+          case Algo       => "the algorithm steps defined in"
+          case Definition => "the definition specified in"
+          case OrdinaryObjectInternalMethod =>
+            "the ordinary object internal method defined in"
+          case InternalSlots => "the internal slots listed in"
+          case ParamLength =>
+            "the number of non-optional parameters of the function definition in"
+        xrefRule(app >> o >> " ", id)
       case expr: CalcExpression =>
         calcExprRule(app, expr)
       case ClampExpression(target, lower, upper) =>
@@ -356,22 +361,28 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " and " >> right
       case expr: InvokeExpression =>
         invokeExprRule(app, expr)
-      case ListExpression(entries, true) =>
-        entries match
-          case Nil    => app >> "a new empty List"
-          case e :: _ => app >> "a List whose sole element is " >> e
-      case ListExpression(entries, false) =>
-        entries match
-          case Nil => app >> "« »"
-          case _ =>
-            given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
-            app >> entries
-      case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
-        app >> "a List of the integers in the interval from " >> from
-        app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
-        app >> " to " >> to
-        app >> " (" >> (if (isToInc) "inclusive" else "exclusive") >> ")"
-        app >> ", in " >> (if (isInc) "ascending" else "descending") >> " order"
+      case ListExpression(form) =>
+        import ListExpressionForm.*
+        form match
+          case LiteralSyntax(entries) =>
+            entries match
+              case Nil => app >> "« »"
+              case _ =>
+                given Rule[Iterable[Expression]] =
+                  iterableRule("« ", ", ", " »")
+                app >> entries
+          case SoleElement(e) =>
+            app >> "a List whose sole element is " >> e
+          case EmptyList(isNewUsed, typeDesc) =>
+            if (isNewUsed) app >> "a new empty List"
+            else app >> s"an empty List of $typeDesc"
+          case IntRange(from, isFromInc, to, isToInc, isInc) =>
+            app >> "a List of the integers in the interval from " >> from
+            app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
+            app >> " to " >> to
+            app >> " (" >> (if (isToInc) "inclusive" else "exclusive") >> ")"
+            app >> ", in " >> (if (isInc) "ascending"
+                               else "descending") >> " order"
       case SoleElementExpression(expr) =>
         app >> "the sole element of " >> expr
       case CodeUnitAtExpression(base, index) =>
@@ -582,7 +593,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case StringLiteral(str, form) =>
         import StringLiteralForm.*
         form match {
-          case Normal =>
+          case SyntaxLiteral =>
             val replaced = str
               .replace("\\", "\\\\")
               .replace("*", "\\*")

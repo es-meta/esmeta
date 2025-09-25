@@ -23,7 +23,7 @@ case class RecordExpression(
   form: RecordExpressionForm,
 ) extends Expression
 enum RecordExpressionForm:
-  case Normal(hasArticle: Boolean)
+  case SyntaxLiteral(prefix: Option[String])
   case Text
   case TextWithNoElement(prefix: String, postfix: Option[String])
 
@@ -49,6 +49,7 @@ case class NumberOfExpression(
   name: String,
   pre: Option[String],
   expr: Expression,
+  exclude: Option[Expression],
 ) extends Expression
 
 // intrinsic expressions
@@ -68,17 +69,18 @@ case class GetItemsExpression(nt: Expression, expr: Expression)
   extends Expression
 
 // list expressions
-case class ListExpression(entries: List[Expression], verbose: Boolean)
-  extends Expression
-
-// integer list expressions
-case class IntListExpression(
-  from: CalcExpression,
-  isFromInclusive: Boolean,
-  to: CalcExpression,
-  isToInclusive: Boolean,
-  isAscending: Boolean,
-) extends Expression
+case class ListExpression(form: ListExpressionForm) extends Expression
+enum ListExpressionForm:
+  case LiteralSyntax(entries: List[Expression])
+  case SoleElement(entry: Expression)
+  case EmptyList(isNewUsed: Boolean, typeDesc: Option[String])
+  case IntRange(
+    from: CalcExpression,
+    isFromInclusive: Boolean,
+    to: CalcExpression,
+    isToInclusive: Boolean,
+    isAscending: Boolean,
+  )
 
 // emu-xref expressions
 case class XRefExpression(kind: XRefExpressionOperator, id: String)
@@ -141,7 +143,7 @@ case class InvokeSyntaxDirectedOperationExpression(
   args: List[Expression],
   prefix: Option[
     String,
-  ], // Some("the result of performing" | "the result of" | "the")
+  ], // `the result of performing`, `the result of` or `the`
   tag: HtmlTag,
 ) extends InvokeExpression
 
@@ -263,7 +265,7 @@ object Literal extends Parser.From(Parser.literal)
 
 // `this` literals
 case class ThisLiteral(
-  article: Boolean = false,
+  hasArticle: Boolean = false,
 ) extends Literal
 
 case class ThisParseNodeLiteral(desc: Option[NonterminalLiteral])
@@ -293,7 +295,7 @@ case class NonterminalLiteral(
   ordinal: Option[Int],
   name: String,
   flags: List[String],
-  article: Boolean = false,
+  hasArticle: Boolean = false,
 ) extends Literal
 
 // enum literals
@@ -302,7 +304,7 @@ case class EnumLiteral(name: String) extends Literal
 // string literals
 case class StringLiteral(
   s: String,
-  form: StringLiteralForm = StringLiteralForm.Normal,
+  form: StringLiteralForm = StringLiteralForm.SyntaxLiteral,
 ) extends Literal
 
 // Normal: "{{ string value }}"
@@ -310,7 +312,7 @@ case class StringLiteral(
 // EmptyUnicode: "the empty sequence of Unicode code points"
 // Code: <code>{{ string value }}</code>
 enum StringLiteralForm {
-  case Normal, EmptyString, EmptyUnicode, Code
+  case SyntaxLiteral, EmptyString, EmptyUnicode, Code
 }
 
 // field literals

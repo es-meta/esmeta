@@ -146,12 +146,16 @@ object LangTest {
     ListConcatExpression(List(refExpr, refExpr, refExpr))
   lazy val listCopyExpr = ListCopyExpression(refExpr)
   lazy val recordEmptyExpr =
-    RecordExpression("Object", Nil, RecordExpressionForm.Normal(false))
+    RecordExpression(
+      "Object",
+      Nil,
+      RecordExpressionForm.SyntaxLiteral(None),
+    )
   lazy val recordExpr =
     RecordExpression(
       "Object",
       List(fieldLit -> refExpr),
-      RecordExpressionForm.Normal(false),
+      RecordExpressionForm.SyntaxLiteral(None),
     )
   lazy val lengthExpr = LengthExpression(refExpr)
   lazy val substrExpr = SubstringExpression(refExpr, refExpr, None)
@@ -159,10 +163,10 @@ object LangTest {
   lazy val trim = TrimExpression(refExpr, T, T)
   lazy val trimStart = TrimExpression(refExpr, T, F)
   lazy val trimEnd = TrimExpression(refExpr, F, T)
-  lazy val numberOfExpr = NumberOfExpression("elements", None, refExpr)
-  lazy val numberOfBytesExpr = NumberOfExpression("bytes", None, refExpr)
+  lazy val numberOfExpr = NumberOfExpression("elements", None, refExpr, None)
+  lazy val numberOfBytesExpr = NumberOfExpression("bytes", None, refExpr, None)
   lazy val numberOfListExpr =
-    NumberOfExpression("elements", Some("List"), refExpr)
+    NumberOfExpression("elements", Some("List"), refExpr, None)
   lazy val sourceTextExpr = SourceTextExpression(nt)
   lazy val coveredByExpr = CoveredByExpression(nt, nt)
   lazy val getItemsExpr = GetItemsExpression(nt, refExpr)
@@ -225,8 +229,12 @@ object LangTest {
     )
   lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, T)
   lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
-  lazy val emptyListExpr = ListExpression(Nil, false)
-  lazy val listExpr = ListExpression(List(refExpr, refExpr), false)
+  lazy val emptyListExpr = ListExpression(
+    ListExpressionForm.LiteralSyntax(Nil),
+  )
+  lazy val listExpr = ListExpression(
+    ListExpressionForm.LiteralSyntax(List(refExpr, refExpr)),
+  )
   lazy val xrefAlgoExpr =
     XRefExpression(XRefExpressionOperator.Definition, "sec-x")
   lazy val xrefSlotsExpr =

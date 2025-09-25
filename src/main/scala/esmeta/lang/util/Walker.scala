@@ -177,8 +177,13 @@ trait Walker extends BasicWalker {
       SubstringExpression(walk(expr), walk(from), walkOpt(to, walk))
     case TrimExpression(expr, leading, trailing) =>
       TrimExpression(walk(expr), walk(leading), walk(trailing))
-    case NumberOfExpression(name, pre, expr) =>
-      NumberOfExpression(walk(name), walkOpt(pre, walk), walk(expr))
+    case NumberOfExpression(name, pre, expr, exclude) =>
+      NumberOfExpression(
+        walk(name),
+        walkOpt(pre, walk),
+        walk(expr),
+        walkOpt(exclude, walk),
+      )
     case SourceTextExpression(expr) =>
       SourceTextExpression(walk(expr))
     case CoveredByExpression(code, rule) =>
@@ -197,10 +202,19 @@ trait Walker extends BasicWalker {
       BitwiseExpression(walk(left), walk(op), walk(right))
     case invoke: InvokeExpression =>
       walk(invoke)
-    case ListExpression(entries, verbose) =>
-      ListExpression(walkList(entries, walk), verbose)
-    case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
-      IntListExpression(walk(from), isFromInc, walk(to), isToInc, isInc)
+    case ListExpression(form) =>
+      import ListExpressionForm.*
+      ListExpression(
+        form match
+          case LiteralSyntax(entries) =>
+            LiteralSyntax(walkList(entries, walk))
+          case SoleElement(entry) =>
+            SoleElement(walk(entry))
+          case EmptyList(isNewUsed, typeDesc) =>
+            EmptyList(isNewUsed, typeDesc)
+          case IntRange(from, fromInc, to, toInc, asc) =>
+            IntRange(walk(from), fromInc, walk(to), toInc, asc),
+      )
     case XRefExpression(kind, id) =>
       XRefExpression(walk(kind), id)
     case SoleElementExpression(expr) =>

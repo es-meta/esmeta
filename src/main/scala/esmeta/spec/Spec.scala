@@ -103,9 +103,9 @@ case class Spec(
 
   /** get an algorithm by id attribute */
   def getAlgoById(id: String): Algorithm =
-    algorithms.filter(_.elem.getId == id) match
-      case algo :: Nil => algo
-      case _           => raise(s"no algorithms found for $id")
+    algorithms.find(_.elem.getId == id) match
+      case Some(algo) => algo
+      case None       => raise(s"no algorithms found for $id")
 
   /** empty check */
   def isEmpty: Boolean =

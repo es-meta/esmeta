@@ -584,7 +584,7 @@ class Compiler(
           case (false, true)  => ETrim(compile(fb, expr), false)
           case (true, true)   => ETrim(ETrim(compile(fb, expr), true), false)
         }
-      case NumberOfExpression(_, _, expr) =>
+      case NumberOfExpression(_, _, expr, _) =>
         ESizeOf(compile(fb, expr))
       case IntrinsicExpression(intr) =>
         toEIntrinsic(currentIntrinsics, intr)
@@ -639,35 +639,43 @@ class Compiler(
         xExpr
       case ReturnIfAbruptExpression(expr, check) =>
         returnIfAbrupt(fb, compile(fb, expr), check, false)
-      case ListExpression(entries, _) =>
-        EList(entries.map(compile(fb, _)))
-      case IntListExpression(from, fInc, to, tInc, asc) =>
-        val (f, fExpr) = fb.newTIdWithExpr
-        val (t, tExpr) = fb.newTIdWithExpr
-        val (i, iExpr) = fb.newTIdWithExpr
-        val (list, listExpr) = fb.newTIdWithExpr
-        fb.addInst(
-          IAssign(f, compile(fb, from)),
-          IAssign(t, compile(fb, to)),
-          IAssign(
-            i,
-            if (asc) (if (fInc) fExpr else inc(fExpr))
-            else if (tInc) tExpr
-            else dec(tExpr),
-          ),
-          IAssign(list, EList(Nil)),
-        )
-        fb.addInst(
-          IWhile(
-            if (asc) lessThan(iExpr, if (tInc) inc(tExpr) else tExpr)
-            else lessThan(if (fInc) dec(fExpr) else fExpr, iExpr),
-            fb.newScope {
-              fb.addInst(IPush(iExpr, listExpr, false))
-              fb.addInst(IAssign(i, if (asc) inc(iExpr) else dec(iExpr)))
-            },
-          ),
-        )
-        listExpr
+      case ListExpression(form) =>
+        import ListExpressionForm.*
+        form match {
+          case LiteralSyntax(entries) =>
+            EList(entries.map(compile(fb, _)))
+          case SoleElement(entry) =>
+            EList(List(compile(fb, entry)))
+          case EmptyList(_, _) =>
+            EList(Nil)
+          case IntRange(from, fInc, to, tInc, asc) =>
+            val (f, fExpr) = fb.newTIdWithExpr
+            val (t, tExpr) = fb.newTIdWithExpr
+            val (i, iExpr) = fb.newTIdWithExpr
+            val (list, listExpr) = fb.newTIdWithExpr
+            fb.addInst(
+              IAssign(f, compile(fb, from)),
+              IAssign(t, compile(fb, to)),
+              IAssign(
+                i,
+                if (asc) (if (fInc) fExpr else inc(fExpr))
+                else if (tInc) tExpr
+                else dec(tExpr),
+              ),
+              IAssign(list, EList(Nil)),
+            )
+            fb.addInst(
+              IWhile(
+                if (asc) lessThan(iExpr, if (tInc) inc(tExpr) else tExpr)
+                else lessThan(if (fInc) dec(fExpr) else fExpr, iExpr),
+                fb.newScope {
+                  fb.addInst(IPush(iExpr, listExpr, false))
+                  fb.addInst(IAssign(i, if (asc) inc(iExpr) else dec(iExpr)))
+                },
+              ),
+            )
+            listExpr
+        }
       case yet: YetExpression =>
         val yetStr = yet.toString(true, false)
         unusedRules -= yetStr

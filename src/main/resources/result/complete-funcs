@@ -758,11 +758,13 @@ ExportDeclaration[3,0].ExportedNames
 ExportDeclaration[3,0].LexicallyScopedDeclarations
 ExportDeclaration[3,0].ModuleRequests
 ExportDeclaration[4,0].Evaluation
+ExportDeclaration[4,0].ExportEntries
 ExportDeclaration[4,0].ExportedBindings
 ExportDeclaration[4,0].ExportedNames
 ExportDeclaration[4,0].LexicallyScopedDeclarations
 ExportDeclaration[4,0].ModuleRequests
 ExportDeclaration[5,0].Evaluation
+ExportDeclaration[5,0].ExportEntries
 ExportDeclaration[5,0].ExportedBindings
 ExportDeclaration[5,0].ExportedNames
 ExportDeclaration[5,0].LexicallyScopedDeclarations
@@ -780,8 +782,10 @@ ExportFromClause[0,0].ExportedNames
 ExportFromClause[1,0].ExportEntriesForModule
 ExportFromClause[1,0].ExportedNames
 ExportFromClause[2,0].ExportedNames
+ExportSpecifier[0,0].ExportEntriesForModule
 ExportSpecifier[0,0].ExportedBindings
 ExportSpecifier[0,0].ExportedNames
+ExportSpecifier[1,0].ExportEntriesForModule
 ExportSpecifier[1,0].ExportedBindings
 ExportSpecifier[1,0].ExportedNames
 ExportSpecifier[1,0].ReferencedBindings
@@ -1113,6 +1117,7 @@ GetNamedTimeZoneOffsetNanoseconds
 GetNewTarget
 GetOwnPropertyKeys
 GetPromiseResolve
+GetSetRecord
 GetStringIndex
 GetSuperBase
 GetSuperConstructor
@@ -2419,6 +2424,12 @@ Statement[9,0].LabelledEvaluation
 StrDecimalLiteral[2,0].StringNumericValue
 StrNumericLiteral[1,0].StringNumericValue
 StrUnsignedDecimalLiteral[0,0].StringNumericValue
+StrUnsignedDecimalLiteral[1,0].StringNumericValue
+StrUnsignedDecimalLiteral[1,1].StringNumericValue
+StrUnsignedDecimalLiteral[1,2].StringNumericValue
+StrUnsignedDecimalLiteral[1,3].StringNumericValue
+StrUnsignedDecimalLiteral[2,0].StringNumericValue
+StrUnsignedDecimalLiteral[2,1].StringNumericValue
 StrUnsignedDecimalLiteral[3,0].StringNumericValue
 StrUnsignedDecimalLiteral[3,1].StringNumericValue
 StringCreate

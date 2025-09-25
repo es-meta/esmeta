@@ -356,7 +356,6 @@ trait Parsers extends IndentParsers {
     mathOpExpr |
     bitwiseExpr |
     listExpr |
-    intListExpr |
     xrefExpr |
     soleExpr |
     codeUnitAtExpr |
@@ -390,22 +389,20 @@ trait Parsers extends IndentParsers {
   lazy val recordExpr: PL[RecordExpression] =
     import RecordExpressionForm.*
     {
-      opt("the") ~ tname ~
+      opt("a new" | "the") ~ tname ~
       ("{" ~> repsep((fieldLiteral <~ ":") ~ expr, ",") <~ "}")
     } ^^ {
-      case a ~ t ~ fs =>
+      case pre ~ t ~ fs =>
         RecordExpression(
           t,
           fs.map { case f ~ e => f -> e },
-          RecordExpressionForm.Normal(a.isDefined),
+          SyntaxLiteral(pre),
         )
     } | {
-      ("a new" ~> tname) ~
-      ("whose" ~> fieldLiteral) ~
-      ("is" ~> expr)
+      ("a new" ~> tname) ~ ("whose" ~> fieldLiteral) ~ ("is" ~> expr)
     } ^^ {
       case t ~ f ~ e =>
-        RecordExpression(t, List(f -> e), RecordExpressionForm.Text)
+        RecordExpression(t, List(f -> e), Text)
     } | {
       ("a newly created" | "a new") ~
       (guard(not("Realm")) ~> tname) ~ opt(
@@ -415,20 +412,12 @@ trait Parsers extends IndentParsers {
       )
     } ^^ {
       case pre ~ t ~ post =>
-        RecordExpression(
-          t,
-          List(),
-          RecordExpressionForm.TextWithNoElement(pre, post),
-        )
+        RecordExpression(t, List(), TextWithNoElement(pre, post))
     }
 
   // `length of` expressions
   lazy val lengthExpr: PL[LengthExpression] =
-    "the length of" ~> expr ^^ { LengthExpression(_) } |
-    "the number of code" ~
-    ("units" | "unit elements") ~ "in" ~> expr ^^ {
-      LengthExpression(_)
-    }
+    "the length of" ~> expr ^^ { LengthExpression(_) }
 
   // `substring of` expressions
   lazy val substrExpr: PL[SubstringExpression] =
@@ -447,18 +436,18 @@ trait Parsers extends IndentParsers {
       case e ~ (l, t) => TrimExpression(e, l, t)
     }
 
-  // `the number of elements in` expressions
+  // `the number of elements in <list>` expressions
   lazy val numberOfExpr: PL[NumberOfExpression] =
-    ("the number of" ~> word <~ "in") ~ opt("the" ~> "List") ~ expr ^^ {
-      case n ~ p ~ e => NumberOfExpression(n, p, e)
+    val elements = rep1(guard(not("in")) ~> word) ^^ { _.mkString(" ") }
+    ("the number of" ~> elements) ~
+    ("in" ~> opt("the" ~> "List")) ~ expr ~
+    opt("," ~ "excluding all occurrences of" ~> expr) ^^ {
+      case e ~ p ~ x ~ o => NumberOfExpression(e, p, x, o)
     }
 
   // `source text` expressions
   lazy val sourceTextExpr: PL[SourceTextExpression] =
-    ("the source text matched by" ~> expr) ^^ {
-      case e =>
-        SourceTextExpression(e)
-    }
+    ("the source text matched by" ~> expr) ^^ { SourceTextExpression(_) }
 
   // `covered by` expressions
   lazy val coveredByExpr: PL[CoveredByExpression] =
@@ -510,7 +499,7 @@ trait Parsers extends IndentParsers {
     import UnaryExpressionOperator.*
 
     lazy val unary: PL[CalcExpression] =
-      (("-" | "the result of negating") ^^^ Neg) ~
+      ("-" ^^^ Neg) ~
       baseCalcExpr ^^ { case o ~ e => UnaryExpression(o, e) } |
       baseCalcExpr
 
@@ -554,8 +543,8 @@ trait Parsers extends IndentParsers {
   lazy val xrefExpr: PL[XRefExpression] =
     import XRefExpressionOperator.*
     lazy val xrefOp: P[XRefExpressionOperator] =
-      "the definition specified in" ^^^ Definition |
       "the algorithm steps defined in" ^^^ Algo |
+      "the definition specified in" ^^^ Definition |
       "the ordinary object internal method defined in" ^^^ OrdinaryObjectInternalMethod |
       "the internal slots listed in" ^^^ InternalSlots |
       "the number of non-optional parameters of" ~
@@ -564,8 +553,7 @@ trait Parsers extends IndentParsers {
 
   // the sole element expressions
   lazy val soleExpr: PL[SoleElementExpression] =
-    ("the sole element of" | "the string that is the only element of")
-    ~> expr ^^ { SoleElementExpression(_) }
+    "the sole element of" ~> expr ^^ { SoleElementExpression(_) }
 
   // reference expressions
   lazy val refExpr: PL[ReferenceExpression] = ref ^^ { ReferenceExpression(_) }
@@ -685,7 +673,7 @@ trait Parsers extends IndentParsers {
       case t ~ l ~ u => ClampExpression(t, l, u)
     }
 
-// mathematical operation expressions
+  // mathematical operation expressions
   lazy val mathOpExpr: PL[MathOpExpression] =
     opt("the result of") ~ opt("the") ~> {
       import MathOpExpressionOperator.*
@@ -874,19 +862,20 @@ trait Parsers extends IndentParsers {
 
   // list expressions
   lazy val listExpr: PL[ListExpression] =
-    "a new empty List" ^^! ListExpression(Nil, true) |
-    "«" ~> repsep(expr, ",") <~ "»" ^^ { ListExpression(_, false) } |
-    "a List whose sole element is" ~> expr ^^ { e =>
-      ListExpression(List(e), true)
-    }
-
-  // integer list expressions
-  lazy val intListExpr: PL[IntListExpression] =
+    import ListExpressionForm.*
     val inc = "(" ~> ("inclusive" ^^^ true | "exclusive" ^^^ false) <~ ")"
     val asc = "in" ~> ("ascending" ^^^ true | "descending" ^^^ false) <~ "order"
-    "a List of the integers in the interval from" ~>
+    "«" ~> repsep(expr, ",") <~ "»" ^^ { e =>
+      ListExpression(LiteralSyntax(e))
+    } |
+    "a List whose sole element is" ~> expr ^^ { e =>
+      ListExpression(SoleElement(e))
+    } |
+    (("an" | "a") ~> opt("new") <~ "empty List") ~ opt("of" ~> word) ^^ {
+      case n ~ t => ListExpression(EmptyList(n.isDefined, t))
+    } | "a List of the integers in the interval from" ~>
     (calcExpr ~ inc <~ "to") ~ (calcExpr ~ inc <~ ",") ~ asc ^^ {
-      case (f ~ fi) ~ (t ~ ti) ~ a => IntListExpression(f, fi, t, ti, a)
+      case (f ~ fi) ~ (t ~ ti) ~ a => ListExpression(IntRange(f, fi, t, ti, a))
     }
 
   // the code unit expression at specific index of a string
@@ -1549,6 +1538,7 @@ trait Parsers extends IndentParsers {
       case l ~ fs ~ c ~ r if l == r => Tagged(c, l, fs)
     }
 
+  // TODO: return html class info
   lazy val xrefId: P[String] = withTag("") ^? {
     case Tagged("", "emu-xref", fs)
         if fs.get("href").exists(_.startsWith("#")) =>

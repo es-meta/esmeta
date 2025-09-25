@@ -161,22 +161,20 @@ class CaseCollector extends UnitWalker {
       case RecordExpression(ty, fields, form) =>
         import RecordExpressionForm.*
         form match {
-          case Normal(hasArticle) =>
-            val a = if (hasArticle) "the " else ""
-            s"$a{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
+          case SyntaxLiteral(prefix) =>
+            val p = prefix.fold("")(_ + " ")
+            s"$p{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
           case Text =>
             "a new {{ ty }} whose {{ field }} is {{ expr }}"
           case TextWithNoElement(prefix, postfix) =>
-            s"$prefix {{ ty }} $postfix"
+            val p = postfix.fold("")(" " + _)
+            s"$prefix {{ ty }}$p"
         }
       case LengthExpression(expr) =>
-        s"the length of {{ expr }}"
+        "the length of {{ expr }}"
       case SubstringExpression(expr, from, to) =>
-        to match
-          case Some(to) =>
-            s"the substring of {{ expr }} from {{ expr }} to {{ expr }}"
-          case None =>
-            s"the substring of {{ expr }} from {{ expr }}"
+        val t = to.fold("")(_ => " to {{ expr }}")
+        s"the substring of {{ expr }} from {{ expr }}$t"
       case TrimExpression(expr, leading, trailing) =>
         val str = (leading, trailing) match
           case (true, true)   => "both leading and trailing"
@@ -184,18 +182,30 @@ class CaseCollector extends UnitWalker {
           case (false, true)  => "trailing"
           case (false, false) => "no"
         s"the String value that is a copy of {{ expr }} with $str whitespace removed"
-      case NumberOfExpression(name, pre, expr) =>
-        s"the number of $name in ${pre.fold("")("the " + _ + " ")}{{ expr }}"
+      case NumberOfExpression(name, pre, expr, exclude) =>
+        val p = pre.fold("")("the " + _ + " ")
+        val e =
+          exclude.fold("")(_ => ", excluding all occurrences of {{ expr }}")
+        s"the number of $name in $p{{ expr }}$e"
       case SourceTextExpression(expr) =>
-        s"the source text matched by {{ expr }}"
+        "the source text matched by {{ expr }}"
       case CoveredByExpression(code, rule) =>
-        s"the {{ expr }} that is covered by {{ expr }}"
+        "the {{ expr }} that is covered by {{ expr }}"
       case GetItemsExpression(nt, expr) =>
-        s"the List of items in {{ expr }}, in source text order"
+        s"the List of {{ nt }} items in {{ expr }}, in source text order"
       case IntrinsicExpression(intr) =>
         s"%{{ str }}%"
-      case XRefExpression(kind, id) =>
-        s"<emu-xref href=\"#{{ str }}\"></emu-xref>."
+      case XRefExpression(op, id) =>
+        import XRefExpressionOperator.*
+        val o = op match
+          case Algo       => "the definition specified in"
+          case Definition => "the algorithm steps defined in"
+          case OrdinaryObjectInternalMethod =>
+            "the ordinary object internal method defined in"
+          case InternalSlots => "the internal slots listed in"
+          case ParamLength =>
+            "the number of non-optional parameters of the function definition in"
+        s"$o <emu-xref href=\"#{{ str }}\"></emu-xref>."
       case ReturnIfAbruptExpression(expr, check) =>
         val op = if (check) "?" else "!"
         s"$op {{ expr }}"
@@ -271,10 +281,10 @@ class CaseCollector extends UnitWalker {
       case StringLiteral(str, form) =>
         import StringLiteralForm.*
         form match {
-          case Normal       => "*\"{{ str }}\"*"
-          case EmptyString  => "the empty String"
-          case EmptyUnicode => "the empty sequence of Unicode code points"
-          case Code         => "<code>{{ str }}</code>"
+          case SyntaxLiteral => "*\"{{ str }}\"*"
+          case EmptyString   => "the empty String"
+          case EmptyUnicode  => "the empty sequence of Unicode code points"
+          case Code          => "<code>{{ str }}</code>"
         }
       case FieldLiteral(name) =>
         s"[[{{ str }}]]"
@@ -361,19 +371,22 @@ class CaseCollector extends UnitWalker {
           s"$a{{ str }} of {{ expr }} with no arguments"
         else
           s"$a{{ str }} of {{ expr }} with argument(s) {{ expr }}*"
-      case ListExpression(entries, true) =>
-        entries match
-          case Nil => s"a new empty List"
-          case _   => s"a List whose sole element is {{ expr }}"
-      case ListExpression(entries, false) =>
-        entries match
-          case Nil => "« »"
-          case _   => s"« {{ expr }}* »"
-      case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
-        val from = if (isFromInc) "inclusive" else "exclusive"
-        val to = if (isToInc) "inclusive" else "exclusive"
-        val asc = if (isInc) "ascending" else "descending"
-        s"a List of the integers in the interval from {{ expr }} ($from) to {{ expr }} ($to), in $asc order"
+      case ListExpression(form) =>
+        import ListExpressionForm.*
+        form match
+          case LiteralSyntax(e) =>
+            e match
+              case Nil => "« »"
+              case _   => s"« {{ expr }}* »"
+          case SoleElement(e) =>
+            "a List whose sole element is {{ expr }}"
+          case EmptyList(isNewUsed, typeDesc) =>
+            if (isNewUsed) "a new empty List" else s"an empty List of $typeDesc"
+          case IntRange(from, isFromInc, to, isToInc, isInc) =>
+            val from = if (isFromInc) "inclusive" else "exclusive"
+            val to = if (isToInc) "inclusive" else "exclusive"
+            val asc = if (isInc) "ascending" else "descending"
+            s"a List of the integers in the interval from {{ expr }} ($from) to {{ expr }} ($to), in $asc order"
       case SoleElementExpression(expr) =>
         s"the sole element of {{ expr }}"
       case CodeUnitAtExpression(base, index) =>

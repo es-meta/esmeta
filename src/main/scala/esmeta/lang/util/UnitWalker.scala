@@ -143,8 +143,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(from); walkOpt(to, walk)
     case TrimExpression(expr, leading, trailing) =>
       walk(expr); walk(leading); walk(trailing)
-    case NumberOfExpression(name, pre, expr) =>
-      walk(name); walkOpt(pre, walk); walk(expr)
+    case NumberOfExpression(name, pre, expr, exclude) =>
+      walk(name); walkOpt(pre, walk); walk(expr); walkOpt(exclude, walk)
     case SourceTextExpression(expr) =>
       walk(expr)
     case CoveredByExpression(from, to) =>
@@ -163,10 +163,17 @@ trait UnitWalker extends BasicUnitWalker {
       walk(left); walk(op); walk(right)
     case invoke: InvokeExpression =>
       walk(invoke)
-    case ListExpression(entries, _) =>
-      walkList(entries, walk)
-    case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
-      walk(from); walk(to)
+    case ListExpression(form) =>
+      import ListExpressionForm.*
+      form match
+        case LiteralSyntax(entries) =>
+          walkList(entries, walk)
+        case SoleElement(entry) =>
+          walk(entry)
+        case EmptyList(isNewUsed, typeDesc) =>
+          walk(isNewUsed)
+        case IntRange(from, fromInc, to, toInc, asc) =>
+          walk(from); walk(fromInc); walk(to); walk(toInc); walk(asc)
     case XRefExpression(kind, id) =>
       walk(kind);
     case SoleElementExpression(expr) =>
