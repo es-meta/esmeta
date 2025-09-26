@@ -65,6 +65,7 @@ class StringifyTinyTest extends LangTest {
       assertStep -> "assert: _x_ and _x_.",
       ifStep -> "if _x_, let _x_ be _x_.",
       ifElseInlineStep -> "if _x_, let _x_ be _x_. Else, let _x_ be _x_.",
+      ifElseInlineSemicolonStep -> "if _x_, let _x_ be _x_; else, let _x_ be _x_.",
       ifOtherwiseInlineStep -> "if _x_, let _x_ be _x_. Otherwise, let _x_ be _x_.",
       ifOtherwiseInlineNoCommaStep -> "if _x_, let _x_ be _x_. Otherwise let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """

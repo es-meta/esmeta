@@ -28,40 +28,58 @@ object LangTest {
   // ---------------------------------------------------------------------------
   // algorithm steps
   // ---------------------------------------------------------------------------
-  lazy val letStep = LetStep(x, refExpr)
+  trait StepUpdater { def apply[T <: Step](s: T): T }
+
+  def genStepEnder(punctuation: String): StepUpdater =
+    new StepUpdater {
+      def apply[T <: Step](s: T): T =
+        s.endingChar = punctuation
+        s
+    }
+  lazy val dot = genStepEnder(".")
+  lazy val semicolon = genStepEnder(";")
+
+  lazy val letStep = dot(LetStep(x, refExpr))
+  lazy val letStepSemicolon = semicolon(LetStep(x, refExpr))
   lazy val letStepClosure =
     LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
-  lazy val setStep = SetStep(x, addExpr)
-  lazy val setAsStep = SetAsStep(x, "specified", "id")
+  lazy val setStep = dot(SetStep(x, addExpr))
+  lazy val setAsStep = dot(SetAsStep(x, "specified", "id"))
   lazy val setEvalStateStep = SetEvaluationStateStep(x, x, Nil)
   lazy val setEvalStateArgStep = SetEvaluationStateStep(x, x, List(refExpr))
   lazy val setEvalStateArgsStep =
     SetEvaluationStateStep(x, x, List(refExpr, refExpr))
-  lazy val performStep = PerformStep(invokeAOExpr)
-  lazy val invokeShorthandStep = InvokeShorthandStep(
-    "IfAbruptCloseIterator",
-    List(refExpr, refExpr),
+  lazy val performStep = dot(PerformStep(invokeAOExpr))
+  lazy val invokeShorthandStep = dot(
+    InvokeShorthandStep(
+      "IfAbruptCloseIterator",
+      List(refExpr, refExpr),
+    ),
   )
-  lazy val appendStep = AppendStep(refExpr, fieldRef)
-  lazy val prependStep = PrependStep(refExpr, fieldRef)
-  lazy val addStep = AddStep(refExpr, fieldRef)
+  lazy val appendStep = dot(AppendStep(refExpr, fieldRef))
+  lazy val prependStep = dot(PrependStep(refExpr, fieldRef))
+  lazy val addStep = dot(AddStep(refExpr, fieldRef))
   import RemoveStep.Target.*
-  lazy val removeStep = RemoveStep(Element(refExpr), "from", refExpr)
-  lazy val removeFirstStep = RemoveStep(First(Some(refExpr)), "from", refExpr)
-  lazy val removeLastStep = RemoveStep(Last(None), "of", refExpr)
-  lazy val pushCtxtStep = PushContextStep(x)
-  lazy val suspendStep = SuspendStep(None, F)
-  lazy val suspendRefStep = SuspendStep(Some(x), F)
-  lazy val suspendAndRemoveStep = SuspendStep(Some(x), T)
+  lazy val removeStep = dot(RemoveStep(Element(refExpr), "from", refExpr))
+  lazy val removeFirstStep = dot(
+    RemoveStep(First(Some(refExpr)), "from", refExpr),
+  )
+  lazy val removeLastStep = dot(RemoveStep(Last(None), "of", refExpr))
+  lazy val pushCtxtStep = dot(PushContextStep(x))
+  lazy val suspendStep = dot(SuspendStep(None, F))
+  lazy val suspendRefStep = dot(SuspendStep(Some(x), F))
+  lazy val suspendAndRemoveStep = dot(SuspendStep(Some(x), T))
   import RemoveContextStep.RestoreTarget.*
-  lazy val removeCtxtStep = RemoveContextStep(x, NoRestore)
-  lazy val removeCtxtRestoreTopStep = RemoveContextStep(x, StackTop)
-  lazy val removeCtxtRestoreStep = RemoveContextStep(x, Context(x))
-  lazy val assertStep = AssertStep(compCond)
+  lazy val removeCtxtStep = dot(RemoveContextStep(x, NoRestore))
+  lazy val removeCtxtRestoreTopStep = dot(RemoveContextStep(x, StackTop))
+  lazy val removeCtxtRestoreStep = dot(RemoveContextStep(x, Context(x)))
+  lazy val assertStep = dot(AssertStep(compCond))
   import IfStep.ElseConfig
   lazy val ifStep = IfStep(exprCond, letStep, None)
   lazy val ifElseInlineStep =
     IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", T))
+  lazy val ifElseInlineSemicolonStep =
+    IfStep(exprCond, letStepSemicolon, Some(letStep), ElseConfig(F, "else", T))
   lazy val ifOtherwiseInlineStep =
     IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T))
   lazy val ifOtherwiseInlineNoCommaStep =
@@ -105,8 +123,8 @@ object LangTest {
     ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
     letStep,
   )
-  lazy val returnStep = ReturnStep(refExpr)
-  lazy val throwStep = ThrowStep("ReferenceError")
+  lazy val returnStep = dot(ReturnStep(refExpr))
+  lazy val throwStep = dot(ThrowStep("ReferenceError"))
   lazy val resumeStep = ResumeStep(x, refExpr, x, x, List(subStep))
   lazy val resumeEvalStep = ResumeEvaluationStep(x, None, None, List(subStep))
   lazy val resumeEvalArgStep =

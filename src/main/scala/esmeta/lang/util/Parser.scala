@@ -129,12 +129,12 @@ trait Parsers extends IndentParsers {
 
   // prepend steps
   lazy val prependStep: PL[PrependStep] =
-    "prepend" ~> expr ~ ("to" ~> ref) <~ end
-    ^^ { case e ~ r => PrependStep(e, r) }
+    "prepend" ~> expr ~ ("to" ~> ref) ~ end
+    ^^ { case e ~ r ~ f => f(PrependStep(e, r)) }
 
   lazy val insertStep: PL[InsertStep] =
-    "insert" ~> expr ~ ("as the first element of" ~> ref) <~ end
-    ^^ { case e ~ r => InsertStep(e, r) }
+    "insert" ~> expr ~ ("as the first element of" ~> ref) ~ end
+    ^^ { case e ~ r ~ f => f(InsertStep(e, r)) }
 
   // add steps
   lazy val addStep: PL[AddStep] =
@@ -277,7 +277,9 @@ trait Parsers extends IndentParsers {
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
     lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
-    "throw" ~ article ~> errorName <~ "exception" ~ end ^^ { ThrowStep(_) }
+    ("throw" ~ article ~> errorName <~ "exception") ~ end ^^ {
+      case e ~ f => f(ThrowStep(e))
+    }
 
   // resume steps
   lazy val resumeStep: PL[ResumeStep] =
@@ -1486,7 +1488,7 @@ trait Parsers extends IndentParsers {
       "; that is[^.]*".r |
       ""
     val post = opt {
-      note |
+      note ^^ { "NOTE: " + _ } |
       "\\(.*\\)".r |
       "This may be.*".r
     } ^^ { _.getOrElse("") }

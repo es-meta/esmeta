@@ -84,7 +84,7 @@ class CaseCollector extends UnitWalker {
         val IfStep.ElseConfig(newLine, keyword, comma) = config
 
         val e = thenStep.endingChar
-        val k = if (thenStep.isNextUpper) keyword.toFirstUpper else keyword
+        val k = if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
         val n = if (newLine) "<NEWLINE> " else ""
         val c = if (comma) "," else ""
 

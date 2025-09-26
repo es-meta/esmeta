@@ -76,14 +76,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
     given Rule[First] = firstRule(upper)
     step match {
       case LetStep(x, expr) =>
-        given Rule[Expression] = endWithExprRule(step.endingChar)
-        app >> First("let ") >> x >> " be " >> expr >> step.postfix
+        app >> First("let ") >> x >> " be " >> expr
       case SetStep(x, expr) =>
-        given Rule[Expression] = endWithExprRule(step.endingChar)
-        app >> First("set ") >> x >> " to " >> expr >> step.postfix
+        app >> First("set ") >> x >> " to " >> expr
       case SetAsStep(x, verb, id) =>
         app >> First("set ") >> x >> " as " >> verb >> " in "
-        xrefRule(app, id) >> "."
+        xrefRule(app, id)
       case SetEvaluationStateStep(context, func, args) =>
         given Rule[List[Expression]] = argsRule(showNoArg = true)
         app >> First("set the code evaluation state of ") >> context
@@ -91,45 +89,40 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " for that execution context, "
         app >> func >> " will be called" >> args >> "."
       case PerformStep(expr) =>
-        app >> First("perform ") >> expr >> "."
+        app >> First("perform ") >> expr
       case InvokeShorthandStep(name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> name >> args >> "."
+        app >> name >> args
       case AppendStep(expr, ref) =>
-        app >> First("append ") >> expr >> " to " >> ref >> "."
+        app >> First("append ") >> expr >> " to " >> ref
       case PrependStep(expr, ref) =>
-        app >> First("prepend ") >> expr >> " to " >> ref >> "."
+        app >> First("prepend ") >> expr >> " to " >> ref
       case InsertStep(expr, ref) =>
-        app >> First("insert ") >> expr >> " to " >> ref >> "."
+        app >> First("insert ") >> expr >> " to " >> ref
       case AddStep(expr, ref) =>
-        app >> First("add ") >> expr >> " to " >> ref >> "."
+        app >> First("add ") >> expr >> " to " >> ref
       case RemoveStep(target, prep, list) =>
-        app >> First("remove ") >> target >> " " >> prep >> " " >> list >> "."
+        app >> First("remove ") >> target >> " " >> prep >> " " >> list
       case PushContextStep(ref) =>
         app >> First("push ") >> ref >> " onto the execution context stack;"
-        app >> " " >> ref >> " is now the running execution context."
+        app >> " " >> ref >> " is now the running execution context"
       case SuspendStep(xOpt, remove) =>
         app >> First("suspend ")
         xOpt match
           case Some(x) => app >> x
           case None    => app >> "the running execution context"
         if (remove) app >> " and remove it from the execution context stack"
-        app >> "."
       case RemoveContextStep(context, restoreTarget) =>
         app >> First("remove ") >> context
-        app >> " from the execution context stack" >> restoreTarget >> "."
+        app >> " from the execution context stack" >> restoreTarget
       case AssertStep(cond) =>
-        app >> First("assert: ") >> cond >> "."
+        app >> First("assert: ") >> cond
       case IfStep(cond, thenStep, elseStep, config) =>
         val IfStep.ElseConfig(newLine, keyword, comma) = config
-        val k = if (thenStep.isNextUpper) keyword.toFirstUpper else keyword
-
+        val k = if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
         app >> First("if ") >> cond >> ", "
-
-        if (thenStep.isInstanceOf[BlockStep])
-          app >> "then"
+        if (thenStep.isInstanceOf[BlockStep]) app >> "then"
         app >> thenStep
-
         elseStep.fold(app) { step =>
           if (newLine)
             step match
@@ -182,12 +175,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
       case ReturnStep(expr) =>
-        given Rule[Expression] = endWithExprRule(step.endingChar)
-        val postfix = if (step.postfix == "") "" else s" ${step.postfix}"
-        app >> First("return ") >> expr >> postfix
+        app >> First("return ") >> expr
       case ThrowStep(name) =>
         app >> First("throw ")
-        app >> ("*" + name + "*").withIndefArticle >> " exception."
+        app >> ("*" + name + "*").withIndefArticle >> " exception"
       case ResumeStep(callerCtxt, arg, genCtxt, param, steps) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> "Resume " >> callerCtxt >> " passing " >> arg >> ". "
@@ -208,8 +199,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         for ((param, kind) <- paramOpt)
           app >> " Let " >> param
           app >> " be the " >> kind >> " returned by the resumed computation."
-        for (step <- body)
-          app :> "1. " >> step
+        for (step <- body) app :> "1. " >> step
         app
       case ResumeTopContextStep() =>
         app >> "Resume the context that is now on the top of the "
@@ -233,6 +223,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
     }
+    app >> step.endString
   }
 
   given removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
@@ -273,12 +264,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   private def firstRule(upper: Boolean): Rule[First] = (app, first) => {
     val First(str) = first
     app >> (if (upper) str.toFirstUpper else str)
-  }
-  private def endWithExprRule(end: String): Rule[Expression] = (app, expr) => {
-    expr match {
-      case multi: MultilineExpression => app >> expr
-      case _                          => app >> expr >> end
-    }
   }
 
   // expressions
