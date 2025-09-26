@@ -381,7 +381,8 @@ class CaseCollector extends UnitWalker {
           case SoleElement(e) =>
             "a List whose sole element is {{ expr }}"
           case EmptyList(isNewUsed, typeDesc) =>
-            if (isNewUsed) "a new empty List" else s"an empty List of $typeDesc"
+            if (isNewUsed) "a new empty List"
+            else s"an empty List of ${typeDesc.get}"
           case IntRange(from, isFromInc, to, isToInc, isInc) =>
             val from = if (isFromInc) "inclusive" else "exclusive"
             val to = if (isToInc) "inclusive" else "exclusive"

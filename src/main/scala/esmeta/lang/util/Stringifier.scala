@@ -360,7 +360,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
             app >> "a List whose sole element is " >> e
           case EmptyList(isNewUsed, typeDesc) =>
             if (isNewUsed) app >> "a new empty List"
-            else app >> s"an empty List of $typeDesc"
+            else app >> s"an empty List of ${typeDesc.get}"
           case IntRange(from, isFromInc, to, isToInc, isInc) =>
             app >> "a List of the integers in the interval from " >> from
             app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
