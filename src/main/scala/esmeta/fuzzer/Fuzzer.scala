@@ -278,6 +278,7 @@ class Fuzzer(
   val builtinMutator: Mutator = WeightedMutator(
     TargetMutator(),
     RandomMutator(),
+    SpecStringMutator(),
   )
 
   /** all mutator names */

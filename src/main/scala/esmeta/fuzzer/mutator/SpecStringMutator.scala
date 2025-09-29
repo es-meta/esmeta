@@ -32,7 +32,17 @@ class SpecStringMutator(using cfg: CFG)(
     target: Option[(CondView, Coverage)],
   ): Seq[Result] = code match
     case Code.Normal(str) => apply(str, n, target)
-    case _: Code.Builtin  => Nil // TODO
+    case builtin: Code.Builtin =>
+      val mutTargets = Target(builtin)(using assignExprParser)
+      if (mutTargets.isEmpty) Nil
+      else
+        import Target.*
+        val mutTarget = choose(mutTargets.toVector)
+        for {
+          ast <- this.apply(mutTarget.ast, n, target)
+          str = ast.toString(grammar = Some(cfg.grammar)).trim
+          newCode = mutTarget.updateCode(builtin, str)
+        } yield Result(name, newCode)
 
   /** mutate ASTs */
   def apply(
