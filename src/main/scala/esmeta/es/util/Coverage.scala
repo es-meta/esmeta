@@ -2,10 +2,10 @@ package esmeta.es.util
 
 import esmeta.analyzer.paramflow.{ParamFlowAnalyzer, ParamKind}
 import esmeta.{LINE_SEP, TEST262TEST_LOG_DIR}
-import esmeta.cfg.*
+import esmeta.cfg.{Func => CFGFunc, *}
 import esmeta.injector.*
 import esmeta.interpreter.*
-import esmeta.ir.{Expr, EParse, EBool, Name, EUndef, ICall, ISdoCall}
+import esmeta.ir.*
 import esmeta.parser.AstFrom
 import esmeta.spec.*
 import esmeta.ty.{*, given}
@@ -142,16 +142,21 @@ case class Coverage(
     for ((nodeView, target) <- interp.touchedNodeViews)
       touchedNodeViews += nodeView -> target
       getScripts(nodeView) match
-        case None => update(nodeView, script); updated = true; covered = true
+        case None =>
+          script.code match
+            case _: Code.Normal if nodeView.node.isInBuiltin => ()
+            case _ => update(nodeView, script); updated = true; covered = true
         case Some(scripts) =>
           if (all) {
-            update(nodeView, script)
-            updated = true
+            script.code match
+              case _: Code.Normal if nodeView.node.isInBuiltin => ()
+              case _ => update(nodeView, script); updated = true
           } else {
             val originalScript = scripts.head
             if (originalScript.code.size > code.size) {
-              update(nodeView, script)
-              updated = true
+              script.code match
+                case _: Code.Normal if nodeView.node.isInBuiltin => ()
+                case _ => update(nodeView, script); updated = true
               blockingScripts += originalScript
             } else {
               blockingScripts += script
@@ -163,16 +168,21 @@ case class Coverage(
       touchedCondViews += condView -> target
       getScripts(condView) match
         case None =>
-          update(condView, target, script); updated = true; covered = true
+          script.code match
+            case _: Code.Normal if condView.cond.branch.isInBuiltin => ()
+            case _ =>
+              update(condView, target, script); updated = true; covered = true
         case Some(scripts) =>
           if (all) {
-            update(condView, target, script)
-            updated = true
+            script.code match
+              case _: Code.Normal if condView.cond.branch.isInBuiltin => ()
+              case _ => update(condView, target, script); updated = true
           } else {
             val originalScript = scripts.head
             if (originalScript.code.size > code.size) {
-              update(condView, target, script)
-              updated = true
+              script.code match
+                case _: Code.Normal if condView.cond.branch.isInBuiltin => ()
+                case _ => update(condView, target, script); updated = true
               blockingScripts += originalScript
             } else {
               blockingScripts += script
@@ -325,6 +335,13 @@ case class Coverage(
           } nodes ++= childNodes
         case _ => /* do nothing */
       nodes
+  }
+
+  /** extension for Node */
+  extension (node: Node) {
+
+    /** check if node is inside builtin algorithm */
+    def isInBuiltin: Boolean = cfg.funcOf(node).kind == FuncKind.Builtin
   }
 
   // ---------------------------------------------------------------------------
@@ -576,7 +593,7 @@ object Coverage {
     def neg: CondView = copy(cond = cond.neg)
   }
 
-  case class FuncView(func: Func, view: View) {
+  case class FuncView(func: CFGFunc, view: View) {
     override def toString: String = func.name + stringOfView(view)
   }
 
