@@ -225,9 +225,9 @@ class CaseCollector extends UnitWalker {
             "the second to top element of the execution context stack"
           case PropertyReference(base, nt: NonterminalProperty) =>
             "the |{{ nt }}| of {{ base }}"
-          case PropertyReference(base, ip: IndexProperty) =>
-            if (ip.isTextForm) "the {{ index }} {{ base }}"
-            else "{{ base }} {{ index }}"
+          case PropertyReference(base, PositionalElementProperty(isFirst)) =>
+            val pos = if (isFirst) "first" else "last"
+            s"the $pos element of {{ base }}"
           case PropertyReference(base, cp: ComponentProperty) =>
             if (cp.form == ComponentPropertyForm.Text) "{{ comp }} {{ base }}"
             else "{{ base }} {{ cp }}"

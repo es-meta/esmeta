@@ -862,9 +862,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the second to top element of the execution context stack"
       case PropertyReference(base, nt: NonterminalProperty) =>
         app >> nt >> " " >> base
-      case PropertyReference(base, ip: IndexProperty) =>
-        if (ip.isTextForm) app >> ip >> " " >> base
-        else app >> base >> ip
+      case PropertyReference(base, pos: PositionalElementProperty) =>
+        app >> pos >> " " >> base
       case PropertyReference(base, cp: ComponentProperty) =>
         if (cp.form == ComponentPropertyForm.Text) app >> cp >> " " >> base
         else app >> base >> cp
@@ -902,10 +901,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case Text       => app >> "the " >> name >> " of"
         }
       case BindingProperty(expr) => app >> "the binding for " >> expr >> " in"
-      case IndexProperty(DecimalMathValueLiteral(index), true) =>
-        app >> "the " >> (index.toInt + 1).toOrdinal >> " element of"
-      case IndexProperty(index, _) =>
+      case IndexProperty(index) =>
         app >> "[" >> index >> "]"
+      case PositionalElementProperty(isFirst) =>
+        if (isFirst) app >> "the first element of"
+        else app >> "the last element of"
       case IntrinsicProperty(intr)   => app >> ".[[" >> intr >> "]]"
       case NonterminalProperty(name) => app >> "the |" >> name >> "| of"
     }

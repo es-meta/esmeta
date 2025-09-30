@@ -64,8 +64,10 @@ enum ComponentPropertyForm {
 case class BindingProperty(binding: Expression) extends Property
 
 // index property
-case class IndexProperty(index: Expression, isTextForm: Boolean = false)
-  extends Property
+case class IndexProperty(index: Expression) extends Property
+
+// positional element property (first, last)
+case class PositionalElementProperty(isFirst: Boolean) extends Property
 
 // intrinsic property
 case class IntrinsicProperty(intrinsic: Intrinsic) extends Property

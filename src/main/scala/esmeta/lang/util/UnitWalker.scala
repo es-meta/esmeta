@@ -311,7 +311,9 @@ trait UnitWalker extends BasicUnitWalker {
     case FieldProperty(n, _)     =>
     case ComponentProperty(c, _) =>
     case BindingProperty(b)      => walk(b)
-    case IndexProperty(e, _)     => walk(e)
+    case IndexProperty(e)        => walk(e)
+    case PositionalElementProperty(isFirst) =>
+      walk(isFirst)
     case IntrinsicProperty(intr) => walk(intr)
     case NonterminalProperty(n)  =>
   }

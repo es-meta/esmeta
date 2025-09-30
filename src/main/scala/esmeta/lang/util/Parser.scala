@@ -1249,10 +1249,9 @@ trait Parsers extends IndentParsers {
     ("the List that is" ~> propRef)
   } | {
     // AsyncGeneratorCompleteStep
-    ("the" ~> ordinal <~ "element") ~ (("of" | "from") ~> ref)
+    ("the" ~> ("first" ^^^ true | "last" ^^^ false) <~ "element") ~ ("of" ~> ref)
   } ^^ {
-    case o ~ b =>
-      PropertyReference(b, IndexProperty(DecimalMathValueLiteral(o - 1), true))
+    case p ~ b => PropertyReference(b, PositionalElementProperty(p))
   } | {
     // AgentSignifier or AgentCanSuspend
     "the Agent Record of the surrounding agent" ^^! AgentRecord()

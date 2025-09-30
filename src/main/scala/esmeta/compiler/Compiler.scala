@@ -539,7 +539,12 @@ class Compiler(
       case ComponentProperty(name, _) => Field(baseRef, EStr(name))
       case BindingProperty(expr) =>
         Field(toStrRef(baseRef, INNER_MAP), compile(fb, expr))
-      case IndexProperty(index, _)   => Field(baseRef, compile(fb, index))
+      case IndexProperty(index) => Field(baseRef, compile(fb, index))
+      case PositionalElementProperty(isFirst) =>
+        val index =
+          if (isFirst) zero
+          else dec(ESizeOf(ERef(compile(fb, base))))
+        Field(baseRef, index)
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Field(baseRef, EStr(name))
 

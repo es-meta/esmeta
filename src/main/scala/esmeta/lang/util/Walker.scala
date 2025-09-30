@@ -371,7 +371,9 @@ trait Walker extends BasicWalker {
     case FieldProperty(n, f)     => FieldProperty(n, f)
     case ComponentProperty(c, f) => ComponentProperty(c, f)
     case BindingProperty(b)      => BindingProperty(walk(b))
-    case IndexProperty(e, t)     => IndexProperty(walk(e), t)
+    case IndexProperty(e)        => IndexProperty(walk(e))
+    case PositionalElementProperty(isFirst) =>
+      PositionalElementProperty(walk(isFirst))
     case IntrinsicProperty(intr) => IntrinsicProperty(walk(intr))
     case NonterminalProperty(n)  => NonterminalProperty(n)
   }
