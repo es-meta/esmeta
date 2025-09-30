@@ -1223,9 +1223,6 @@ trait Parsers extends IndentParsers {
 
   // special reference
   lazy val specialRef: P[Reference] = {
-    // IsLessThan
-    "the" ~> variable <~ "flag"
-  } | {
     // GetPrototypeFromConstructor
     (variable <~ "'s intrinsic object named") ~ variable
   } ^^ {
@@ -1244,9 +1241,6 @@ trait Parsers extends IndentParsers {
   } ^^ {
     case b ~ f =>
       PropertyReference(b, FieldProperty(f, FieldPropertyForm.Value))
-  } | {
-    // Set.prototype.add
-    ("the List that is" ~> propRef)
   } | {
     // AsyncGeneratorCompleteStep
     ("the" ~> ("first" ^^^ true | "last" ^^^ false) <~ "element") ~ ("of" ~> ref)
