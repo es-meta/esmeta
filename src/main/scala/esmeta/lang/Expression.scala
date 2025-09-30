@@ -86,8 +86,7 @@ enum ListExpressionForm:
 case class XRefExpression(kind: XRefExpressionOperator, id: String)
   extends Expression
 enum XRefExpressionOperator extends LangElem:
-  case Algo, Definition, OrdinaryObjectInternalMethod, InternalSlots,
-  ParamLength
+  case Algo, Definition, InternalMethod, InternalSlots, ParamLength
 
 // the sole element expressions
 case class SoleElementExpression(list: Expression) extends Expression

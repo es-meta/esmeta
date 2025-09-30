@@ -746,7 +746,7 @@ class Compiler(
         EClo(name, captured.map(compile))
       case XRefExpression(
             XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
-            XRefExpressionOperator.OrdinaryObjectInternalMethod,
+            XRefExpressionOperator.InternalMethod,
             id,
           ) =>
         EClo(normalize(normalize(spec.getAlgoById(id).head.fname)), Nil)

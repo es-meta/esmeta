@@ -329,7 +329,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         val o = op match
           case Algo       => "the algorithm steps defined in"
           case Definition => "the definition specified in"
-          case OrdinaryObjectInternalMethod =>
+          case InternalMethod =>
             "the ordinary object internal method defined in"
           case InternalSlots => "the internal slots listed in"
           case ParamLength =>
@@ -536,7 +536,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> (op match {
       case Definition => "the definition specified in"
       case Algo       => "the algorithm steps defined in"
-      case OrdinaryObjectInternalMethod =>
+      case InternalMethod =>
         "the ordinary object internal method defined in"
       case InternalSlots => "the internal slots listed in"
       case ParamLength =>

@@ -167,8 +167,9 @@ class CaseCollector extends UnitWalker {
           case Text =>
             "a new {{ ty }} whose {{ field }} is {{ expr }}"
           case TextWithNoElement(prefix, postfix) =>
-            val p = postfix.fold("")(" " + _)
-            s"$prefix {{ ty }}$p"
+            val pre = " " + prefix
+            val post = postfix.fold("")(" " + _)
+            s"$pre{{ ty }}$post"
         }
       case LengthExpression(expr) =>
         "the length of {{ expr }}"
@@ -185,7 +186,8 @@ class CaseCollector extends UnitWalker {
       case NumberOfExpression(name, pre, expr, exclude) =>
         val p = pre.fold("")("the " + _ + " ")
         val e =
-          exclude.fold("")(_ => ", excluding all occurrences of {{ expr }}")
+          if (exclude.isDefined) ", excluding all occurrences of {{ expr }}"
+          else ""
         s"the number of $name in $p{{ expr }}$e"
       case SourceTextExpression(expr) =>
         "the source text matched by {{ expr }}"
@@ -200,7 +202,7 @@ class CaseCollector extends UnitWalker {
         val o = op match
           case Algo       => "the definition specified in"
           case Definition => "the algorithm steps defined in"
-          case OrdinaryObjectInternalMethod =>
+          case InternalMethod =>
             "the ordinary object internal method defined in"
           case InternalSlots => "the internal slots listed in"
           case ParamLength =>

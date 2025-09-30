@@ -547,7 +547,7 @@ trait Parsers extends IndentParsers {
     lazy val xrefOp: P[XRefExpressionOperator] =
       "the algorithm steps defined in" ^^^ Algo |
       "the definition specified in" ^^^ Definition |
-      "the ordinary object internal method defined in" ^^^ OrdinaryObjectInternalMethod |
+      "the ordinary object internal method defined in" ^^^ InternalMethod |
       "the internal slots listed in" ^^^ InternalSlots |
       "the number of non-optional parameters of" ~
       "the function definition in" ^^^ ParamLength
@@ -1274,9 +1274,8 @@ trait Parsers extends IndentParsers {
     "[" ~> expr <~ "]" ^^ { IndexProperty(_) } |||
     ("'s" | ".") ~ camel.filter(validProp(_)) ^^ {
       case op ~ n =>
-        val form =
-          if (op == ".") ComponentPropertyForm.Dot
-          else ComponentPropertyForm.Apostrophe
+        import ComponentPropertyForm.*
+        val form = if (op == ".") Dot else Apostrophe
         ComponentProperty(n, form)
     } |||
     "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
