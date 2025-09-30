@@ -22,7 +22,10 @@ case class CurrentRealmRecord() extends Reference
 case class ActiveFunctionObject() extends Reference
 
 // references to property
-case class PropertyReference(base: Reference, prop: Property) extends Reference
+case class PropertyReference(
+  base: Reference,
+  prop: Property,
+) extends Reference
 
 // references to agent record
 case class AgentRecord() extends Reference
@@ -39,15 +42,11 @@ case class FieldProperty(
   form: FieldPropertyForm = FieldPropertyForm.Dot,
 ) extends Property
 
-// Dot: "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_) }
-// Attribute: ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute")
-// Value: (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"
-// StrictBinding: ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
-// IntrinsicObject: (variable <~ "'s intrinsic object named") ~ variable
-// InitCond: ref ~ ("has been" ^^^ false | "has not" ~ opt("yet") ~ "been" ^^^ true) <~ "initialized"
-enum FieldPropertyForm {
-  case Dot, Attribute, Value, StrictBinding, IntrinsicObject, InitCond
-}
+// Dot: base.[[ field ]]
+// Value: {{ base }}'s [[ {{ field }} ]] value
+// Attribute: the value of {{ base }}'s {{ field }} attribute
+enum FieldPropertyForm:
+  case Dot, Value, Attribute
 
 // component property
 case class ComponentProperty(name: String, form: ComponentPropertyForm)
@@ -56,9 +55,9 @@ case class ComponentProperty(name: String, form: ComponentPropertyForm)
 // Dot: Something.Property
 // Apostrophe: Something's Property
 // Text: the Property of Something
-enum ComponentPropertyForm {
-  case Dot, Apostrophe, Text
-}
+enum ComponentPropertyForm:
+  case Dot, Apostrophe
+  case Text(desc: Option[String])
 
 // binding property
 case class BindingProperty(binding: Expression) extends Property

@@ -865,8 +865,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case PropertyReference(base, pos: PositionalElementProperty) =>
         app >> pos >> " " >> base
       case PropertyReference(base, cp: ComponentProperty) =>
-        if (cp.form == ComponentPropertyForm.Text) app >> cp >> " " >> base
-        else app >> base >> cp
+        cp.form match
+          case ComponentPropertyForm.Text(_) =>
+            app >> cp >> " " >> base
+          case _ =>
+            app >> base >> cp
       case PropertyReference(base, fp: FieldProperty) =>
         if (fp.form == FieldPropertyForm.Attribute)
           app >> "the value of " >> base >> fp
@@ -890,15 +893,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
             app >> "'s " >> "[[" >> f >> "]]" >> " attribute"
           case Value =>
             app >> "'s " >> "[[" >> f >> "]]" >> " value"
-          case StrictBinding   => ???
-          case IntrinsicObject => ???
-          case InitCond        => ???
       case ComponentProperty(name, form) =>
         import ComponentPropertyForm.*
         form match {
           case Dot        => app >> "." >> name
           case Apostrophe => app >> "'s " >> name
-          case Text       => app >> "the " >> name >> " of"
+          case Text(desc) =>
+            desc match
+              case Some(d) => app >> "the " >> name >> " " >> d >> " of"
+              case None    => app >> "the " >> name >> " of"
         }
       case BindingProperty(expr) => app >> "the binding for " >> expr >> " in"
       case IndexProperty(index) =>

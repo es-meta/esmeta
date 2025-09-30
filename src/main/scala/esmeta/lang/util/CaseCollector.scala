@@ -224,17 +224,29 @@ class CaseCollector extends UnitWalker {
           case _: SecondExecutionContext =>
             "the second to top element of the execution context stack"
           case PropertyReference(base, nt: NonterminalProperty) =>
-            "the |{{ nt }}| of {{ base }}"
+            "the | nt | of {{ base }}"
+          case PropertyReference(base, bp: BindingProperty) =>
+            "the binding for {{ expr }} in {{ base }}"
           case PropertyReference(base, PositionalElementProperty(isFirst)) =>
             val pos = if (isFirst) "first" else "last"
             s"the $pos element of {{ base }}"
           case PropertyReference(base, cp: ComponentProperty) =>
-            if (cp.form == ComponentPropertyForm.Text) "{{ comp }} {{ base }}"
-            else "{{ base }} {{ cp }}"
+            import ComponentPropertyForm.*
+            cp.form match
+              case Dot        => "{{ base }}.{{ cp }}"
+              case Apostrophe => "{{ base }}'s {{ cp }}"
+              case Text(desc) =>
+                desc match
+                  case Some(d) => s"the {{ component }} $d of {{ base }}"
+                  case None    => s"the {{ component }} of {{ base }}"
           case PropertyReference(base, fp: FieldProperty) =>
-            if (fp.form == FieldPropertyForm.Attribute)
-              "the value of {{ base }} {{ field }}"
-            else "{{ base }} {{ field }}"
+            fp.form match
+              case FieldPropertyForm.Dot =>
+                "{{ base }}.[[ {{ field }} ]]"
+              case FieldPropertyForm.Value =>
+                "{{ base }}'s [[ {{ field }} ]] value"
+              case FieldPropertyForm.Attribute =>
+                "the value of {{ base }}'s {{ field }} attribute"
           case PropertyReference(base, prop) =>
             "{{ base }} {{ prop }}"
           case AgentRecord() =>

@@ -1258,18 +1258,17 @@ trait Parsers extends IndentParsers {
   lazy val preProp: PL[Property] = {
     "the" ~> nt <~ "of" ^^ { NonterminalProperty(_) } |||
     "the binding for" ~> expr <~ "in" ^^ { BindingProperty(_) } |||
-    "the" ~> component <~ opt("component") ~ "of" ^^ {
-      ComponentProperty(_, ComponentPropertyForm.Text)
+    "the" ~> component ~ opt("component") <~ "of" ^^ {
+      case c ~ d =>
+        ComponentProperty(c, ComponentPropertyForm.Text(d))
     }
   }.named("lang.Property")
 
   lazy val postProp: PL[Property] = {
+    import ComponentPropertyForm.*
     "[" ~> expr <~ "]" ^^ { IndexProperty(_) } |||
-    ("'s" | ".") ~ camel.filter(validProp(_)) ^^ {
-      case op ~ n =>
-        import ComponentPropertyForm.*
-        val form = if (op == ".") Dot else Apostrophe
-        ComponentProperty(n, form)
+    ("'s" ^^^ Apostrophe | "." ^^^ Dot) ~ camel.filter(validProp(_)) ^^ {
+      case op ~ n => ComponentProperty(n, op)
     } |||
     "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
     "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_, FieldPropertyForm.Dot) }
