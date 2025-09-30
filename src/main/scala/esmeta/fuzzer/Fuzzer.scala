@@ -156,6 +156,7 @@ class Fuzzer(
       val mutator = code match
         case _: Normal  => normalMutator
         case _: Builtin => builtinMutator
+        case _: Test262 => throw Exception("impossible match")
       val results = mutator(code, 100, condView.map((_, cov))).par
       (for {
         result <- results

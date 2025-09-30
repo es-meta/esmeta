@@ -18,6 +18,7 @@ enum Code {
     isConstruct: Boolean = false,
     receiver: Boolean = false,
   )
+  case Test262(codeStr: String)
 
   override def toString: String = this match {
     case Normal(codeStr) => codeStr
@@ -39,6 +40,7 @@ enum Code {
             val argsStr = args.get.mkString("(", ", ", ")")
             s"new $pathStr$argsStr;"
           } else s"new $pathStr;"
+    case Test262(codeStr) => codeStr
   }
 
   def size: Int = toString.length
