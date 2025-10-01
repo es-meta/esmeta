@@ -23,9 +23,9 @@ class StringifyTinyTest extends SpecTest {
       Summary(
         Some(version),
         GrammarSummary(145, 16, 195, 28),
-        AlgorithmSummary(2258, 365),
-        StepSummary(18307, 754),
-        TypeSummary(5469, 439, 1543),
+        AlgorithmSummary(2623, 2258, 0),
+        StepSummary(19061, 18307),
+        TypeSummary(5908, 5469, 439),
         89,
         58,
         101,
@@ -37,14 +37,14 @@ class StringifyTinyTest extends SpecTest {
          |    - numeric string: 16
          |    - syntactic: 195
          |  - extended productions for web: 28
-         |- algorithms: 2258
-         |  - complete: 365 (16.16%)
+         |- algorithms: 2623
+         |  - complete: 2258 (86.08%)
          |  - equals: 0 (0.00%)
-         |- algorithm steps: 18307
-         |  - complete: 754 (4.12%)
-         |- types: 5469
-         |  - known: 439 (8.03%)
-         |  - yet: 1543 (28.21%)
+         |- algorithm steps: 19061
+         |  - complete: 18307 (96.04%)
+         |- types: 5908
+         |  - known: 5469 (92.57%)
+         |  - yet: 439 (7.43%)
          |- tables: 89
          |- type model: 58
          |- intrinsics: 101""".stripMargin,
