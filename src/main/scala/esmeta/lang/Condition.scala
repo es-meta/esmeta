@@ -27,26 +27,16 @@ case class HasFieldCondition(
   ref: Reference,
   negation: Boolean,
   field: Expression,
-  form: HasFieldConditionForm,
+  form: HasFieldConditionOperator,
 ) extends Condition
 
-enum HasFieldConditionForm {
+enum HasFieldConditionOperator:
   case Field, InternalSlot, InternalMethod
 
-  override def toString: String = this match {
+  override def toString: String = this match
     case Field          => "field"
     case InternalSlot   => "internal slot"
     case InternalMethod => "internal method"
-  }
-}
-
-object HasFieldConditionForm {
-  def fromString(str: String): HasFieldConditionForm = str match {
-    case "internal method" => InternalMethod
-    case "internal slot"   => InternalSlot
-    case _                 => Field
-  }
-}
 
 // binding inclusion conditions
 case class HasBindingCondition(

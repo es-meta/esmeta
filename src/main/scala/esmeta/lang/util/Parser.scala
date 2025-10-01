@@ -645,14 +645,14 @@ trait Parsers extends IndentParsers {
     "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ Nil
 
   // string literals
-  lazy val strLiteral: PL[StringLiteral] = opt("the String") ~> (
-    """\*"[^"]*"\*""".r ^^ { str =>
-      str.drop(2).dropRight(2).replace("\\*", "*").replace("\\\\", "\\")
-    } ^^ { StringLiteral(_) }
-    | "<code>" ~> """"[^"]*"""".r <~ "</code>" ^^ {
+  lazy val strLiteral: PL[StringLiteral] = opt("the String") ~> {
+    """\*"[^"]*"\*""".r ^^ {
+      _.drop(2).dropRight(2).replace("\\*", "*").replace("\\\\", "\\")
+    } ^^ { StringLiteral(_, StringLiteralForm.SyntaxLiteral) } |
+    "<code>" ~> """"[^"]*"""".r <~ "</code>" ^^ {
       _.drop(1).dropRight(1)
     } ^^ { StringLiteral(_, StringLiteralForm.Code) }
-  )
+  }
 
   // production literals
   // XXX need to be generalized?
@@ -889,11 +889,11 @@ trait Parsers extends IndentParsers {
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
-    import ConversionExpressionOperator.*
+    import StringLiteralForm.*
     // ClassStaticBlockDefinitionEvaluation
     "the empty sequence of Unicode code points" ^^! StringLiteral(
       "",
-      StringLiteralForm.EmptyUnicode,
+      EmptyUnicode,
     ) |
     // Array.prototype.join
     "the single-element String" ~> strLiteral |
@@ -904,7 +904,7 @@ trait Parsers extends IndentParsers {
     // _TypedArray_
     "the String value of the Constructor Name value specified in" ~
     "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref>" ~
-    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_) }
+    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_, SyntaxLiteral) }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
@@ -972,12 +972,17 @@ trait Parsers extends IndentParsers {
 
   // field includsion conditions
   lazy val hasFieldCond: PL[HasFieldCondition] =
-    lazy val fieldStr = "field" | "internal method" | "internal slot"
+    import HasFieldConditionOperator.*
+    lazy val op =
+      "field" ^^^ Field |
+      "internal method" ^^^ InternalMethod |
+      "internal slot" ^^^ InternalSlot
+
     // GeneratorValidate
     (ref <~ opt("also")) ~
     ("has" ^^^ false | "does not have" ^^^ true) ~
-    (("an " | "a ") ~> expr) ~ (fieldStr ^^ HasFieldConditionForm.fromString) ^^ {
-      case r ~ n ~ f ~ form => HasFieldCondition(r, n, f, form)
+    (("an " | "a ") ~> expr) ~ op ^^ {
+      case r ~ n ~ f ~ o => HasFieldCondition(r, n, f, o)
     }
 
   // binding includsion conditions
@@ -1147,7 +1152,8 @@ trait Parsers extends IndentParsers {
     ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
   } ^^ {
     case r ~ n =>
-      val ref = PropertyReference(r, FieldProperty("__STRICT__"))
+      val ref =
+        PropertyReference(r, FieldProperty("__STRICT__", FieldPropertyForm.Dot))
       IsAreCondition(
         List(ReferenceExpression(ref)),
         n,
@@ -1158,7 +1164,10 @@ trait Parsers extends IndentParsers {
     "initialized"
   } ^^ {
     case r ~ n =>
-      val ref = PropertyReference(r, FieldProperty("__INITIALIZED__"))
+      val ref = PropertyReference(
+        r,
+        FieldProperty("__INITIALIZED__", FieldPropertyForm.Dot),
+      )
       IsAreCondition(
         List(ReferenceExpression(ref)),
         n,
@@ -1227,7 +1236,10 @@ trait Parsers extends IndentParsers {
     (variable <~ "'s intrinsic object named") ~ variable
   } ^^ {
     case realm ~ v =>
-      val intrBase = PropertyReference(realm, FieldProperty("Intrinsics"))
+      val intrBase = PropertyReference(
+        realm,
+        FieldProperty("Intrinsics", FieldPropertyForm.Dot),
+      )
       PropertyReference(intrBase, IndexProperty(getRefExpr(v)))
   } | {
     // OrdinaryGetOwnProperty

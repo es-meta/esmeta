@@ -162,12 +162,12 @@ class CaseCollector extends UnitWalker {
         import RecordExpressionForm.*
         form match {
           case SyntaxLiteral(prefix) =>
-            val p = prefix.fold("")(_ + " ")
-            s"$p{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
+            val pre = prefix.fold("")(_ + " ")
+            s"$pre{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
           case Text =>
             "a new {{ ty }} whose {{ field }} is {{ expr }}"
           case TextWithNoElement(prefix, postfix) =>
-            val pre = " " + prefix
+            val pre = prefix + " "
             val post = postfix.fold("")(" " + _)
             s"$pre{{ ty }}$post"
         }
@@ -194,7 +194,7 @@ class CaseCollector extends UnitWalker {
       case CoveredByExpression(code, rule) =>
         "the {{ expr }} that is covered by {{ expr }}"
       case GetItemsExpression(nt, expr) =>
-        s"the List of {{ nt }} items in {{ expr }}, in source text order"
+        s"the List of {{ expr }} items in {{ expr }}, in source text order"
       case IntrinsicExpression(intr) =>
         s"%{{ str }}%"
       case XRefExpression(op, id) =>
@@ -214,7 +214,7 @@ class CaseCollector extends UnitWalker {
       case ReferenceExpression(ref) =>
         ref match {
           case Variable(_) =>
-            "_{{ name }}_"
+            "_{{ str }}_"
           case _: CurrentRealmRecord =>
             "the current Realm Record"
           case _: ActiveFunctionObject =>
@@ -224,31 +224,31 @@ class CaseCollector extends UnitWalker {
           case _: SecondExecutionContext =>
             "the second to top element of the execution context stack"
           case PropertyReference(base, nt: NonterminalProperty) =>
-            "the | nt | of {{ base }}"
+            "the | nt | of {{ ref }}"
           case PropertyReference(base, bp: BindingProperty) =>
-            "the binding for {{ expr }} in {{ base }}"
+            "the binding for {{ expr }} in {{ ref }}"
           case PropertyReference(base, PositionalElementProperty(isFirst)) =>
             val pos = if (isFirst) "first" else "last"
-            s"the $pos element of {{ base }}"
+            s"the $pos element of {{ ref }}"
           case PropertyReference(base, cp: ComponentProperty) =>
             import ComponentPropertyForm.*
             cp.form match
-              case Dot        => "{{ base }}.{{ cp }}"
-              case Apostrophe => "{{ base }}'s {{ cp }}"
+              case Dot        => "{{ ref }}.{{ str }}"
+              case Apostrophe => "{{ ref }}'s {{ str }}"
               case Text(desc) =>
                 desc match
-                  case Some(d) => s"the {{ component }} $d of {{ base }}"
-                  case None    => s"the {{ component }} of {{ base }}"
+                  case Some(d) => s"the {{ str }} $d of {{ ref }}"
+                  case None    => s"the {{ str }} of {{ ref }}"
           case PropertyReference(base, fp: FieldProperty) =>
             fp.form match
               case FieldPropertyForm.Dot =>
-                "{{ base }}.[[ {{ field }} ]]"
+                "{{ ref }}.[[ {{ str }} ]]"
               case FieldPropertyForm.Value =>
-                "{{ base }}'s [[ {{ field }} ]] value"
+                "{{ ref }}'s [[ {{ str }} ]] value"
               case FieldPropertyForm.Attribute =>
-                "the value of {{ base }}'s {{ field }} attribute"
+                "the value of {{ ref }}'s [[ {{ str }} ]] attribute"
           case PropertyReference(base, prop) =>
-            "{{ base }} {{ prop }}"
+            "{{ ref }} {{ prop }}"
           case AgentRecord() =>
             "the Agent Record of the surrounding agent"
         }
@@ -272,7 +272,7 @@ class CaseCollector extends UnitWalker {
       case ThisParseNodeLiteral(nt) =>
         nt match {
           case None     => s"this Parse Node"
-          case Some(nt) => s"this |{{ expr }}|"
+          case Some(nt) => s"this | {{ nt }} |"
         }
       case _: NewTargetLiteral =>
         s"NewTarget"
@@ -375,10 +375,7 @@ class CaseCollector extends UnitWalker {
             article,
             tag,
           ) =>
-        val a = article match {
-          case None        => ""
-          case Some(value) => s"$value "
-        }
+        val a = article.fold("")(_ + " ")
         if (name == "Contains")
           s"{{ expr }} Contains {{ expr }}"
         else if (args.isEmpty)
@@ -395,8 +392,9 @@ class CaseCollector extends UnitWalker {
           case SoleElement(e) =>
             "a List whose sole element is {{ expr }}"
           case EmptyList(isNewUsed, typeDesc) =>
-            if (isNewUsed) "a new empty List"
-            else s"an empty List of ${typeDesc.get}"
+            val a = if (isNewUsed) "a new" else "an"
+            val t = if (typeDesc.isDefined) " of " + typeDesc.get else ""
+            s"$a empty List$t"
           case IntRange(from, isFromInc, to, isToInc, isInc) =>
             val from = if (isFromInc) "inclusive" else "exclusive"
             val to = if (isToInc) "inclusive" else "exclusive"
@@ -424,8 +422,8 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }}"
       case TypeCheckCondition(expr, neg, ty) =>
         s"{{ expr }} is {{ ty }}*"
-      case HasFieldCondition(ref, neg, field, form) =>
-        s"{{ ref }} has a {{ field }} $form"
+      case HasFieldCondition(ref, neg, field, op) =>
+        s"{{ ref }} has a {{ field }} $op"
       case HasBindingCondition(ref, neg, binding) =>
         s"{{ ref }} has a binding for {{ binding }}"
       case ProductionCondition(nt, lhs, rhs) =>

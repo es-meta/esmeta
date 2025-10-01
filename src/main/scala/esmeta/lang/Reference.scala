@@ -22,10 +22,7 @@ case class CurrentRealmRecord() extends Reference
 case class ActiveFunctionObject() extends Reference
 
 // references to property
-case class PropertyReference(
-  base: Reference,
-  prop: Property,
-) extends Reference
+case class PropertyReference(base: Reference, prop: Property) extends Reference
 
 // references to agent record
 case class AgentRecord() extends Reference
@@ -37,10 +34,7 @@ sealed trait Property extends Syntax
 object Property extends Parser.From(Parser.prop)
 
 // field property
-case class FieldProperty(
-  name: String,
-  form: FieldPropertyForm = FieldPropertyForm.Dot,
-) extends Property
+case class FieldProperty(name: String, form: FieldPropertyForm) extends Property
 
 // Dot: base.[[ field ]]
 // Value: {{ base }}'s [[ {{ field }} ]] value

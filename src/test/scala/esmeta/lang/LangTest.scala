@@ -323,10 +323,11 @@ object LangTest {
   lazy val ntFlags =
     NonterminalLiteral(None, "A", List("~Yield", "+Await"), false)
   lazy val empty = EnumLiteral("empty")
-  lazy val emptyStr = StringLiteral("")
-  lazy val str = StringLiteral("abc")
-  lazy val strWithStar = StringLiteral("abc*")
-  lazy val strWithBasckSlash = StringLiteral("abc\\")
+  lazy val emptyStr = StringLiteral("", StringLiteralForm.SyntaxLiteral)
+  lazy val str = StringLiteral("abc", StringLiteralForm.SyntaxLiteral)
+  lazy val strWithStar = StringLiteral("abc*", StringLiteralForm.SyntaxLiteral)
+  lazy val strWithBasckSlash =
+    StringLiteral("abc\\", StringLiteralForm.SyntaxLiteral)
   lazy val fieldLit = FieldLiteral("Value")
   lazy val sym = SymbolLiteral("iterator")
   lazy val errObj = ErrorObjectLiteral("TypeError")
@@ -361,9 +362,9 @@ object LangTest {
   lazy val neitherTypeCheckCond =
     TypeCheckCondition(refExpr, T, List(ty, ty))
   lazy val hasFieldCond =
-    HasFieldCondition(x, F, fieldLit, HasFieldConditionForm.InternalSlot)
+    HasFieldCondition(x, F, fieldLit, HasFieldConditionOperator.InternalSlot)
   lazy val noHasFieldCond =
-    HasFieldCondition(x, T, fieldLit, HasFieldConditionForm.InternalSlot)
+    HasFieldCondition(x, T, fieldLit, HasFieldConditionOperator.InternalSlot)
   lazy val hasBindingCond = HasBindingCondition(x, F, refExpr)
   lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
@@ -440,7 +441,7 @@ object LangTest {
   lazy val ntRef = PropertyReference(x, NonterminalProperty("Arguments"))
 
   // algorithm references
-  lazy val fieldProp = FieldProperty("Value")
+  lazy val fieldProp = FieldProperty("Value", FieldPropertyForm.Dot)
   lazy val componentProp = ComponentProperty("Realm", ComponentPropertyForm.Dot)
   lazy val bindingProp = BindingProperty(refExpr)
   lazy val indexProp = IndexProperty(refExpr)

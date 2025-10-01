@@ -301,10 +301,7 @@ case class NonterminalLiteral(
 case class EnumLiteral(name: String) extends Literal
 
 // string literals
-case class StringLiteral(
-  s: String,
-  form: StringLiteralForm = StringLiteralForm.SyntaxLiteral,
-) extends Literal
+case class StringLiteral(s: String, form: StringLiteralForm) extends Literal
 
 // Normal: "{{ string value }}"
 // EmptyString: "the empty String"

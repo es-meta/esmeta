@@ -637,7 +637,7 @@ class Compiler(
         fb.addInst(ICall(x, fexpr, bExpr :: args.map(compile(fb, _))))
         xExpr
       case InvokeSyntaxDirectedOperationExpression(base, name, args, _, _) =>
-        // XXX BUG in Static Semancis: CharacterValue
+        // XXX BUG in Static Semantics: CharacterValue
         val baseExpr = compile(fb, base)
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ISdoCall(x, baseExpr, name, args.map(compile(fb, _))))
