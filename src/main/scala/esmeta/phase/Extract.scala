@@ -135,7 +135,7 @@ case object Extract extends Phase[Unit, Spec] {
       iterable = spec.algorithms,
       dirname = s"$EXTRACT_LOG_DIR/algos_json",
       getName = algo => s"${algo.normalizedName}.json",
-      getData = algo => algo.asJson.toString()
+      getData = algo => algo.asJson.toString(),
     )
 
     dumpFile(

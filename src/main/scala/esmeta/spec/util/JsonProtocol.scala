@@ -98,20 +98,30 @@ object JsonProtocol extends BasicJsonProtocol {
   // Algorithms
   // ---------------------------------------------------------------------------
   given Decoder[Algorithm] = deriveDecoder
-  given Encoder[Algorithm] = encoderWithType[Algorithm](using deriveEncoder[Algorithm])
-  
+  given Encoder[Algorithm] =
+    encoderWithType[Algorithm](using deriveEncoder[Algorithm])
+
   given Decoder[AbstractOperationHead] = deriveDecoder
-  given Encoder[AbstractOperationHead] = encoderWithType[AbstractOperationHead](using deriveEncoder[AbstractOperationHead])
+  given Encoder[AbstractOperationHead] = encoderWithType[AbstractOperationHead](
+    using deriveEncoder[AbstractOperationHead],
+  )
   given Decoder[NumericMethodHead] = deriveDecoder
-  given Encoder[NumericMethodHead] = encoderWithType[NumericMethodHead](using deriveEncoder[NumericMethodHead])
+  given Encoder[NumericMethodHead] =
+    encoderWithType[NumericMethodHead](using deriveEncoder[NumericMethodHead])
   given Decoder[SyntaxDirectedOperationHead] = deriveDecoder
-  given Encoder[SyntaxDirectedOperationHead] = encoderWithType[SyntaxDirectedOperationHead](using deriveEncoder[SyntaxDirectedOperationHead])
+  given Encoder[SyntaxDirectedOperationHead] =
+    encoderWithType[SyntaxDirectedOperationHead](using
+      deriveEncoder[SyntaxDirectedOperationHead],
+    )
   given Decoder[ConcreteMethodHead] = deriveDecoder
-  given Encoder[ConcreteMethodHead] = encoderWithType[ConcreteMethodHead](using deriveEncoder[ConcreteMethodHead])
+  given Encoder[ConcreteMethodHead] =
+    encoderWithType[ConcreteMethodHead](using deriveEncoder[ConcreteMethodHead])
   given Decoder[InternalMethodHead] = deriveDecoder
-  given Encoder[InternalMethodHead] = encoderWithType[InternalMethodHead](using deriveEncoder[InternalMethodHead])
+  given Encoder[InternalMethodHead] =
+    encoderWithType[InternalMethodHead](using deriveEncoder[InternalMethodHead])
   given Decoder[BuiltinHead] = deriveDecoder
-  given Encoder[BuiltinHead] = encoderWithType[BuiltinHead](using deriveEncoder[BuiltinHead])
+  given Encoder[BuiltinHead] =
+    encoderWithType[BuiltinHead](using deriveEncoder[BuiltinHead])
   given Decoder[Head] = deriveDecoder
   given Encoder[Head] = Encoder.instance {
     case head: AbstractOperationHead       => head.asJson
@@ -123,10 +133,11 @@ object JsonProtocol extends BasicJsonProtocol {
   }
 
   given Decoder[SdoHeadTarget] = deriveDecoder
-  given Encoder[SdoHeadTarget] = encoderWithType[SdoHeadTarget](using deriveEncoder[SdoHeadTarget])
+  given Encoder[SdoHeadTarget] =
+    encoderWithType[SdoHeadTarget](using deriveEncoder[SdoHeadTarget])
   given Decoder[BuiltinPath] = deriveDecoder
   given Encoder[BuiltinPath] = deriveEncoder
-  
+
   // algorithm parameters
   given Decoder[Param] = deriveDecoder
   given Encoder[Param] = encoderWithType[Param](using deriveEncoder[Param])
