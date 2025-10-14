@@ -29,6 +29,7 @@ class RandomMutator(using cfg: CFG)(
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
+    elapsedBlock: Int,
   ): Seq[Result] = code match
     case Code.Normal(str) => apply(str, n, target)
     case builtin: Code.Builtin =>

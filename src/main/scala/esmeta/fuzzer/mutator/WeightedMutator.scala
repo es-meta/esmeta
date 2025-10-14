@@ -22,7 +22,8 @@ class WeightedMutator(using cfg: CFG)(
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[Result] = chooseMutator(code, n, target)
+    elapsedBlock: Int,
+  ): Seq[Result] = chooseMutator(code, n, target, elapsedBlock)
 
   /** mutate ASTs */
   def apply(

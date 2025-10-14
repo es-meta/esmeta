@@ -41,6 +41,7 @@ trait Mutator(using val cfg: CFG) {
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
+    elapsedBlock: Int = 0,
   ): Seq[Result]
 
   /** mutate ASTs */
@@ -66,8 +67,8 @@ object Mutator {
 
     /** Get the location from normal target */
     def loc: Loc = target match
-      case Target.Normal(loc) => loc
-      case _                  => raise("target must be normal")
+      case Target.Normal(loc, _) => loc
+      case _                     => raise("target must be normal")
 
     /** Get the AST from builtin target */
     def ast: Ast = target match

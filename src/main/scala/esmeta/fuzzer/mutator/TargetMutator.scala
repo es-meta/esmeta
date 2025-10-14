@@ -8,6 +8,7 @@ import esmeta.es.util.Coverage.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
+import scala.math.*
 
 /** A target ECMAScript AST mutator */
 class TargetMutator(using cfg: CFG)(
@@ -30,11 +31,14 @@ class TargetMutator(using cfg: CFG)(
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
+    elapsedBlock: Int,
   ): Seq[Result] = (for {
     (condView, cov) <- target
     CondView(cond, view) = condView
-    mutTargets =
-      cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
+    sites = cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
+    nearests = sites.collect { case n @ Target.Normal(_, true) => n }
+    sources = sites -- nearests
+    mutTargets = if (randBool(pow(0.95, elapsedBlock))) nearests else sources
     if mutTargets.nonEmpty
     mutTarget = choose(mutTargets.toVector)
   } yield {
@@ -42,7 +46,7 @@ class TargetMutator(using cfg: CFG)(
     code match
       case Normal(codeStr) =>
         mutTarget match
-          case Target.Normal(loc) =>
+          case Target.Normal(loc, _) =>
             Walker(loc, n)
               .walk(scriptParser.from(codeStr))
               .map(ast =>

@@ -157,7 +157,7 @@ class Fuzzer(
         case _: Normal  => normalMutator
         case _: Builtin => builtinMutator
         case _: Test262 => throw Exception("impossible match")
-      val results = mutator(code, 100, condView.map((_, cov))).par
+      val results = mutator(code, 100, condView.map((_, cov)), elapsedBlock).par
       (for {
         result <- results
         candInfo = getCandInfo(result.code)
@@ -322,6 +322,7 @@ class Fuzzer(
   // evaluation start time
   private var startTime: Long = 0L
   private def elapsed: Long = System.currentTimeMillis - startTime
+  private def elapsedBlock: Int = elapsed.toInt / (600 * 1000)
   private def timeout = duration.fold(false)(_ * 1000 < elapsed)
   private var startInterval: Long = 0L
   private def interval: Long = System.currentTimeMillis - startInterval

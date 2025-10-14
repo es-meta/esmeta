@@ -7,7 +7,7 @@ import esmeta.util.Loc
 
 /** Target Information */
 enum Target:
-  case Normal(loc: Loc)
+  case Normal(loc: Loc, isNearest: Boolean)
   case BuiltinThis(ast: Ast)
   case BuiltinArg(ast: Ast, idx: Int)
 
@@ -16,10 +16,12 @@ object Target {
   import Code.*
 
   /** create Target from AST */
-  def apply(ast: Option[Ast])(using cfg: CFG): Option[Target] = for {
+  def apply(ast: Option[Ast], isNearest: Boolean = false)(using
+    cfg: CFG,
+  ): Option[Target] = for {
     case ast: Syntactic <- ast
     loc <- ast.loc
-  } yield Normal(loc)
+  } yield Normal(loc, isNearest)
 
   /** create list of Target from Builtin */
   def apply(builtin: Code.Builtin)(using
