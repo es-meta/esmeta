@@ -706,7 +706,7 @@ class Compiler(
             )
             xExpr
           case _ => raise(s"invalid math operation: $expr")
-      case ConversionExpression(op, expr) =>
+      case ConversionExpression(op, expr, _) =>
         import ConversionExpressionOperator.*
         op match
           case ToApproxNumber => EConvert(COp.ToApproxNumber, compile(fb, expr))

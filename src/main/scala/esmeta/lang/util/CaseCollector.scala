@@ -150,7 +150,7 @@ class CaseCollector extends UnitWalker {
 
   override def walk(expr: Expression): Unit = {
     val add = getAdd(exprs, expr)
-    import ConversionExpressionOperator.*
+    import ConversionExpressionForm.*
     add(expr match {
       case StringConcatExpression(exprs) =>
         "the string-concatenation of {{ expr }}*"
@@ -254,12 +254,11 @@ class CaseCollector extends UnitWalker {
         }
       case MathFuncExpression(op, args) =>
         s"$op({{ expr }}*)"
-      case ConversionExpression(ToApproxNumber, expr) =>
-        s"an implementation-approximated Number value representing {{ expr }}"
-      case ConversionExpression(o, e: (CalcExpression | InvokeExpression)) =>
-        s"$o({{ expr }})"
-      case ConversionExpression(op, expr) =>
-        s"the $op value of {{ expr }}"
+      case ConversionExpression(op, expr, SyntaxLiteral) =>
+        s"$op({{ expr }})"
+      case ConversionExpression(op, expr, Text(a, pre, post)) =>
+        val postStr = post.fold("")(" " + _)
+        s"$a $op value $pre {{expr}}$postStr"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"
       case BinaryExpression(left, op, right) =>

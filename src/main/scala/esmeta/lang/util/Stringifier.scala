@@ -115,6 +115,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case RemoveContextStep(context, restoreTarget) =>
         app >> First("remove ") >> context
         app >> " from the execution context stack" >> restoreTarget
+      case AssertStep(ExpressionCondition(YetExpression(yet, None))) =>
+        app >> First("assert: ") >> yet >> "."
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond
       case IfStep(cond, thenStep, elseStep, config) =>
@@ -450,7 +452,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
           given Rule[List[Variable]] = iterableRule(sep = ", ")
           app >> " parameters (" >> params >> ") "
         }
-        app >> "that captures " >> captured
+        app >> "that captures "
+        if (captured.isEmpty) app >> "nothing"
+        else app >> captured
         app >> " and performs the following steps when called:" >> body
     }
 
@@ -458,7 +462,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given calcExprRule: Rule[CalcExpression] = calcExprRuleWithLevel(0)
 
   def calcExprRuleWithLevel(level: Int): Rule[CalcExpression] = (app, expr) =>
-    import ConversionExpressionOperator.*
+    import ConversionExpressionForm.*
     given Rule[CalcExpression] = calcExprRuleWithLevel(expr.level)
     if (expr.level < level) app >> "("
     expr match {
@@ -469,15 +473,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case MathFuncExpression(op, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> op >> args
-      case ConversionExpression(ToApproxNumber, expr) =>
-        app >> "an implementation-approximated Number value representing "
-        app >> expr
-      case ConversionExpression(o, e: (CalcExpression | InvokeExpression)) =>
+      case ConversionExpression(o, expr, SyntaxLiteral) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = false)
-        app >> o >> "(" >> e >> ")"
-      case ConversionExpression(op, expr) =>
+        app >> o >> "(" >> expr >> ")"
+      case ConversionExpression(op, expr, Text(a, pre, post)) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = true)
-        app >> "the " >> op >> " value of " >> expr
+        val postStr = post.fold("")(" " + _)
+        app >> s"$a " >> op >> s" value $pre " >> expr >> postStr
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
       case BinaryExpression(left, op, right) =>
@@ -1017,7 +1019,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
     // TODO more precise
     // closures
-    if (!ty.clo.isBottom) tys :+= "abstract closure".withArticle(article)
+    if (!ty.clo.isBottom) tys :+= "Abstract Closure".withArticle(article)
 
     // TODO more precise
     // math values

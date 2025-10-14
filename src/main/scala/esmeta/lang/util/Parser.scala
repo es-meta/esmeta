@@ -525,20 +525,31 @@ trait Parsers extends IndentParsers {
   // conversion expressions
   lazy val convExpr: PL[ConversionExpression] =
     import ConversionExpressionOperator.*
-    lazy val opFormat = (
-      "𝔽" ^^^ ToNumber | "ℤ" ^^^ ToBigInt | "ℝ" ^^^ ToMath
-    ) ~ ("(" ~> expr <~ ")")
+    lazy val opFormat =
+      ("𝔽" ^^^ ToNumber | "ℤ" ^^^ ToBigInt | "ℝ" ^^^ ToMath) ~
+      ("(" ~> expr <~ ")") ^^ {
+        case op ~ e =>
+          ConversionExpression(op, e, ConversionExpressionForm.SyntaxLiteral)
+      }
     lazy val textFormat =
-      ("the " | "an " | "a ") ~> (
+      ("the " | "an " | "a ") ~ (
         "implementation-approximated Number" ^^^ ToApproxNumber |
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
         opt("integer that is the") ~ "numeric" ^^^ ToMath
       ) ~
-      ("value" ~ ("of" | "for" | "representing" | "that represents" | "that corresponds to") ~> expr) <~
-      opt(textFormatPostfix)
-    lazy val textFormatPostfix = opt(",") ~ ("rounded" | "rounding") ~ "[^.]+".r
-    (opFormat | textFormat) ^^ { case op ~ e => ConversionExpression(op, e) }
+      ("value" ~> ("of" | "for" | "representing" | "that represents" | "that corresponds to")) ~ expr ~
+      opt(textFormatPostfix) ^^ {
+        case a ~ op ~ pre ~ e ~ post =>
+          val form = ConversionExpressionForm.Text(a.trim, pre, post)
+          ConversionExpression(op, e, form)
+      }
+    lazy val textFormatPostfix =
+      opt(",") ~ ("rounded" | "rounding") ~ "[^.]+".r ^^ {
+        case a ~ b ~ c => a.fold("")(_ + " ") + b + " " + c
+      }
+
+    opFormat | textFormat
 
   // emu-xref expressions
   // TODO cleanup spec.html

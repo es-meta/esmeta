@@ -287,25 +287,44 @@ object LangTest {
     ConversionExpression(
       ConversionExpressionOperator.ToApproxNumber,
       refExpr,
+      ConversionExpressionForm.Text("an", "representing", None),
     )
   lazy val convToNumberTextExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToNumber,
       codeUnitAtExpr,
+      ConversionExpressionForm.Text("the", "of", None),
     )
   lazy val convToBigIntTextExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToBigInt,
       codeUnitAtExpr,
+      ConversionExpressionForm.Text("the", "of", None),
     )
   lazy val convToMathTextExpr =
-    ConversionExpression(ConversionExpressionOperator.ToMath, codeUnitAtExpr)
+    ConversionExpression(
+      ConversionExpressionOperator.ToMath,
+      codeUnitAtExpr,
+      ConversionExpressionForm.Text("the", "of", None),
+    )
   lazy val convToNumberExpr =
-    ConversionExpression(ConversionExpressionOperator.ToNumber, refExpr)
+    ConversionExpression(
+      ConversionExpressionOperator.ToNumber,
+      refExpr,
+      ConversionExpressionForm.SyntaxLiteral,
+    )
   lazy val convToBigIntExpr =
-    ConversionExpression(ConversionExpressionOperator.ToBigInt, refExpr)
+    ConversionExpression(
+      ConversionExpressionOperator.ToBigInt,
+      refExpr,
+      ConversionExpressionForm.SyntaxLiteral,
+    )
   lazy val convToMathExpr =
-    ConversionExpression(ConversionExpressionOperator.ToMath, refExpr)
+    ConversionExpression(
+      ConversionExpressionOperator.ToMath,
+      refExpr,
+      ConversionExpressionForm.SyntaxLiteral,
+    )
 
   // algorithm literals
   lazy val hex = HexLiteral(0x0024, None, false)

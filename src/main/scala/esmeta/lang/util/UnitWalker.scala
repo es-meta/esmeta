@@ -202,7 +202,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(ref)
     case MathFuncExpression(op, args) =>
       walk(op); walkList(args, walk)
-    case ConversionExpression(op, expr) =>
+    case ConversionExpression(op, expr, form) =>
       walk(op); walk(expr)
     case ExponentiationExpression(base, power) =>
       walk(base); walk(power)
