@@ -282,8 +282,9 @@ case class NewTargetLiteral() extends Literal
 // code unit literals with hexadecimal numbers
 case class HexLiteral(
   hex: Int,
-  name: Option[String],
   hasCodeUnitDescription: Boolean,
+  isUnicodePrefix: Boolean,
+  name: Option[String],
 ) extends Literal
 
 // code literals

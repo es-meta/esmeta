@@ -98,7 +98,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case PrependStep(expr, ref) =>
         app >> First("prepend ") >> expr >> " to " >> ref
       case InsertStep(expr, ref) =>
-        app >> First("insert ") >> expr >> " to " >> ref
+        app >> First("insert ") >> expr >> " as the first element of " >> ref
       case AddStep(expr, ref) =>
         app >> First("add ") >> expr >> " to " >> ref
       case RemoveStep(target, prep, list) =>
@@ -557,9 +557,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case Some(nt) => app >> "this" >> " " >> nt
         }
       case _: NewTargetLiteral => app >> "NewTarget"
-      case HexLiteral(hex, name, codeUnitDesc) =>
+      case HexLiteral(hex, codeUnitDesc, isUnicodePrefix, name) =>
         if (codeUnitDesc) app >> "the code unit "
-        app >> f"0x$hex%04X"
+        app >> (if (isUnicodePrefix) "U+" else "0x")
+        app >> f"$hex%04X"
         name.map(app >> " (" >> _ >> ")")
         app
       case CodeLiteral(code) => app >> "`" >> code >> "`"

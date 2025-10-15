@@ -275,10 +275,11 @@ class CaseCollector extends UnitWalker {
         }
       case _: NewTargetLiteral =>
         s"NewTarget"
-      case HexLiteral(hex, name, codeunit) =>
-        val prefix = if (codeunit) "the code unit " else ""
-        val desc = name.fold("")(" (" + _ + ")")
-        f"${prefix}0x$hex%04X$desc"
+      case HexLiteral(hex, unicode, codeunit, name) =>
+        val codeUnitStr = if (codeunit) "the code unit " else ""
+        val prefixStr = if (unicode) "U+" else "0x"
+        val nameStr = name.fold("")(" (" + _ + ")")
+        f"$codeUnitStr$prefixStr$hex%04X$nameStr"
       case CodeLiteral(code) =>
         s"`{{ str }}`"
       case GrammarSymbolLiteral(name, flags) =>

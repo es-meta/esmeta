@@ -132,6 +132,7 @@ trait Parsers extends IndentParsers {
     "prepend" ~> expr ~ ("to" ~> ref) ~ end
     ^^ { case e ~ r ~ f => f(PrependStep(e, r)) }
 
+  // insert steps
   lazy val insertStep: PL[InsertStep] =
     "insert" ~> expr ~ ("as the first element of" ~> ref) ~ end
     ^^ { case e ~ r ~ f => f(InsertStep(e, r)) }
@@ -634,11 +635,10 @@ trait Parsers extends IndentParsers {
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
-    opt("the code unit") ~
-    (("0x" | "U+") ~> "[0-9A-F]+".r) ~
+    opt("the code unit") ~ ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
     opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
-      case c ~ n ~ x =>
-        HexLiteral(Integer.parseInt(n, 16), x, c.isDefined)
+      case c ~ p ~ n ~ x =>
+        HexLiteral(Integer.parseInt(n, 16), c.isDefined, p, x)
     }
   // grammar symboll iterals
   lazy val grammarSymbolLiteral: PL[GrammarSymbolLiteral] =

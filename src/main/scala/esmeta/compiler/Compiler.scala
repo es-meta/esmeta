@@ -820,7 +820,7 @@ class Compiler(
     case ThisLiteral(_)          => ENAME_THIS
     case ThisParseNodeLiteral(_) => ENAME_THIS
     case NewTargetLiteral()      => ENAME_NEW_TARGET
-    case HexLiteral(hex, name, _) =>
+    case HexLiteral(hex, _, _, name) =>
       if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)
     case CodeLiteral(code) => EStr(code)
     case GrammarSymbolLiteral(name, flags) =>

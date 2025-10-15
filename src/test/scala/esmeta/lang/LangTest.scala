@@ -327,8 +327,8 @@ object LangTest {
     )
 
   // algorithm literals
-  lazy val hex = HexLiteral(0x0024, None, false)
-  lazy val hexWithName = HexLiteral(0x0024, Some("DOLLAR SIGN"), false)
+  lazy val hex = HexLiteral(0x0024, false, false, None)
+  lazy val hexWithName = HexLiteral(0x0024, false, false, Some("DOLLAR SIGN"))
   lazy val code = CodeLiteral("|")
   lazy val grSym = GrammarSymbolLiteral("A", Nil)
   lazy val grSymIdx = GrammarSymbolLiteral("A", List("~Yield", "+Await"))
