@@ -1010,10 +1010,19 @@ class Stringifier(detail: Boolean, location: Boolean) {
             m -= "Object"
             tys :+= "constructor".withArticle(article)
         }
-        for ((name, _) <- m) {
-          // split camel case with a space
-          tys :+= name.split("(?=[A-Z])").mkString(" ").withArticle(article)
-        }
+
+        if (!map.isEmpty && m.forall((name, _) => name.isEmpty))
+          // unnamed records
+          for ((_, field) <- m)
+            val fieldStr =
+              field.map.keys.map("[[" + _ + "]]").mkString(" { ", ", ", " }")
+            tys :+= ("Record" + fieldStr).withArticle(article)
+        else
+          // other named records
+          for ((name, _) <- m) {
+            // split camel case with a space
+            tys :+= name.split("(?=[A-Z])").mkString(" ").withArticle(article)
+          }
       }
     }
 
@@ -1055,6 +1064,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     // numbers
     if (ty.number == NumberTy.Int)
       tys :+= "integral Number".withArticle(article)
+    else if (ty.number == NumberTy.NaN)
+      tys :+= "NaN".withArticle(article)
     else if (!ty.number.isBottom) tys :+= "Number".withArticle(article)
 
     // big integers
