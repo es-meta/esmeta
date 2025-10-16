@@ -1033,9 +1033,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
     // closures
     if (!ty.clo.isBottom) tys :+= "Abstract Closure".withArticle(article)
 
-    // TODO more precise
     // math values
-    if (!ty.math.isBottom) tys :+= "math value".withArticle(article)
+    if (ty.math == MathTy.Int)
+      tys :+= "integer".withArticle(article)
+    else if (!ty.math.isBottom)
+      tys :+= "math value".withArticle(article)
 
     // TODO more precise
     // grammar symbol

@@ -1498,7 +1498,9 @@ trait Parsers extends IndentParsers {
   private lazy val end: Parser[StepUpdater] =
     val pre =
       "\\(.*\\)".r |
-      "as defined in" ~ withTag("") ^^ { case a ~ b => a + " " + b.tagString } |
+      "as defined in" ~> withTag("") ^^ {
+        case b => " as defined in " + b.tagString
+      } |
       "; that is[^.]*".r |
       ""
     val post = opt {
