@@ -1212,16 +1212,16 @@ trait Parsers extends IndentParsers {
   }.named("lang.Reference")
 
   // property references
-  lazy val propRef: PL[PropertyReference] = opt(
-    "the" ~ opt("String") ~ "value" ~ opt("of"),
-  ) ~> {
-    prop ~ baseRef ^^ {
-      case p ~ base => PropertyReference(base, p)
-    } ||| baseRef ~ prop ~ rep(prop) ^^ {
-      case base ~ p ~ ps =>
-        ps.foldLeft(PropertyReference(base, p))(PropertyReference(_, _))
+  lazy val propRef: PL[PropertyReference] =
+    lazy val prefix = opt(("the" ~> opt("String")) ~ ("value" ~> opt("of")) ^^ {
+      case a ~ b => "the" + a.fold("")(" " + _) + " value" + b.fold("")(" " + _)
+    })
+    prefix ~ prop ~ baseRef ^^ {
+      case pre ~ p ~ base => PropertyReference(base, p, pre)
+    } ||| prefix ~ baseRef ~ prop ~ rep(prop) ^^ {
+      case pre ~ base ~ p ~ ps =>
+        ps.foldLeft(PropertyReference(base, p, pre))(PropertyReference(_, _))
     }
-  }
 
   // base references
   lazy val baseRef: PL[Reference] =

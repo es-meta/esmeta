@@ -863,22 +863,24 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the running execution context"
       case _: SecondExecutionContext =>
         app >> "the second to top element of the execution context stack"
-      case PropertyReference(base, nt: NonterminalProperty) =>
+      case PropertyReference(base, nt: NonterminalProperty, _) =>
         app >> nt >> " " >> base
-      case PropertyReference(base, pos: PositionalElementProperty) =>
+      case PropertyReference(base, pos: PositionalElementProperty, _) =>
         app >> pos >> " " >> base
-      case PropertyReference(base, cp: ComponentProperty) =>
+      case PropertyReference(base, cp: ComponentProperty, pre) =>
+        app >> pre.fold("")(_ + " ")
         cp.form match
           case ComponentPropertyForm.Text(_) =>
             app >> cp >> " " >> base
           case _ =>
             app >> base >> cp
-      case PropertyReference(base, fp: FieldProperty) =>
+      case PropertyReference(base, fp: FieldProperty, pre) =>
         if (fp.form == FieldPropertyForm.Attribute)
           app >> "the value of " >> base >> fp
-        else app >> base >> fp
-      case PropertyReference(base, prop) =>
-        app >> base >> prop
+        else
+          app >> pre.fold("")(_ + " ") >> base >> fp
+      case PropertyReference(base, prop, pre) =>
+        app >> pre.fold("")(_ + " ") >> base >> prop
       case AgentRecord() =>
         app >> "the Agent Record of the surrounding agent"
     }

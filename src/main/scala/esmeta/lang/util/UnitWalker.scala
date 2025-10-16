@@ -304,7 +304,7 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(x: Variable): Unit = {}
 
   def walk(propRef: PropertyReference): Unit = propRef match {
-    case PropertyReference(base, prop) => walk(base); walk(prop)
+    case PropertyReference(base, prop, _) => walk(base); walk(prop)
   }
 
   def walk(prop: Property): Unit = prop match {

@@ -532,7 +532,7 @@ class Compiler(
     })
 
   def compile(fb: FuncBuilder, ref: PropertyReference): Field =
-    val PropertyReference(base, prop) = ref
+    val PropertyReference(base, prop, _) = ref
     val baseRef = compile(fb, base)
     prop match
       case FieldProperty(name, _)     => Field(baseRef, EStr(name))

@@ -22,7 +22,11 @@ case class CurrentRealmRecord() extends Reference
 case class ActiveFunctionObject() extends Reference
 
 // references to property
-case class PropertyReference(base: Reference, prop: Property) extends Reference
+case class PropertyReference(
+  base: Reference,
+  prop: Property,
+  prefix: Option[String] = None,
+) extends Reference
 
 // references to agent record
 case class AgentRecord() extends Reference

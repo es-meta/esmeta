@@ -363,8 +363,8 @@ trait Walker extends BasicWalker {
   def walk(x: Variable): Variable = Variable(x.name)
 
   def walk(propRef: PropertyReference): PropertyReference = propRef match {
-    case PropertyReference(base, prop) =>
-      PropertyReference(walk(base), walk(prop))
+    case PropertyReference(base, prop, pre) =>
+      PropertyReference(walk(base), walk(prop), pre)
   }
 
   def walk(prop: Property): Property = prop match {

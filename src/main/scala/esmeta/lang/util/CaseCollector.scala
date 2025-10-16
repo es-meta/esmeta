@@ -223,14 +223,14 @@ class CaseCollector extends UnitWalker {
             "the running execution context"
           case _: SecondExecutionContext =>
             "the second to top element of the execution context stack"
-          case PropertyReference(base, nt: NonterminalProperty) =>
+          case PropertyReference(base, nt: NonterminalProperty, _) =>
             "the | nt | of {{ ref }}"
-          case PropertyReference(base, bp: BindingProperty) =>
+          case PropertyReference(base, bp: BindingProperty, _) =>
             "the binding for {{ expr }} in {{ ref }}"
-          case PropertyReference(base, PositionalElementProperty(isFirst)) =>
+          case PropertyReference(base, PositionalElementProperty(isFirst), _) =>
             val pos = if (isFirst) "first" else "last"
             s"the $pos element of {{ ref }}"
-          case PropertyReference(base, cp: ComponentProperty) =>
+          case PropertyReference(base, cp: ComponentProperty, _) =>
             import ComponentPropertyForm.*
             cp.form match
               case Dot        => "{{ ref }}.{{ str }}"
@@ -239,7 +239,7 @@ class CaseCollector extends UnitWalker {
                 desc match
                   case Some(d) => s"the {{ str }} $d of {{ ref }}"
                   case None    => s"the {{ str }} of {{ ref }}"
-          case PropertyReference(base, fp: FieldProperty) =>
+          case PropertyReference(base, fp: FieldProperty, _) =>
             fp.form match
               case FieldPropertyForm.Dot =>
                 "{{ ref }}.[[ {{ str }} ]]"
@@ -247,8 +247,9 @@ class CaseCollector extends UnitWalker {
                 "{{ ref }}'s [[ {{ str }} ]] value"
               case FieldPropertyForm.Attribute =>
                 "the value of {{ ref }}'s [[ {{ str }} ]] attribute"
-          case PropertyReference(base, prop) =>
-            "{{ ref }} {{ prop }}"
+          case PropertyReference(base, prop, pre) =>
+            val prefix = pre.fold("")(_ + " ")
+            s"$prefix{{ ref }} {{ prop }}"
           case AgentRecord() =>
             "the Agent Record of the surrounding agent"
         }
