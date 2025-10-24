@@ -182,8 +182,10 @@ trait Parsers extends IndentParsers {
   // if-then-else steps
   lazy val ifStep: PL[IfStep] =
     val ifPart = "if" ~> (
-      (cond <~ ",") <~ opt("then") |
-      yetCond(", then")
+      // if <cond>, then\n<block>
+      cond <~ ", then" | yetCond(", then") |
+      // if <cond>, <step>
+      (cond <~ ",")
     ) ~ (step | yetStep)
     val elsePart =
       exists(subStepPrefix) ~
@@ -1106,7 +1108,7 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(FalseLiteral())
 
   // not yet supported conditions
-  def yetCond(post: String): PL[Condition] = ".+".r ^^ { str =>
+  def yetCond(post: String): PL[Condition] = s".+$post".r ^^ { str =>
     val s = str.replaceAll(post + "$", "")
     ExpressionCondition(YetExpression(s, None))
   }
