@@ -230,26 +230,30 @@ class CaseCollector extends UnitWalker {
           case PropertyReference(base, PositionalElementProperty(isFirst), _) =>
             val pos = if (isFirst) "first" else "last"
             s"the $pos element of {{ ref }}"
-          case PropertyReference(base, cp: ComponentProperty, _) =>
+          case PropertyReference(base, cp: ComponentProperty, prefix) =>
             import ComponentPropertyForm.*
-            cp.form match
+            val pre = prefix.fold("")(_ + " ")
+            val body = cp.form match
               case Dot        => "{{ ref }}.{{ str }}"
               case Apostrophe => "{{ ref }}'s {{ str }}"
               case Text(desc) =>
                 desc match
                   case Some(d) => s"the {{ str }} $d of {{ ref }}"
                   case None    => s"the {{ str }} of {{ ref }}"
-          case PropertyReference(base, fp: FieldProperty, _) =>
-            fp.form match
+            pre + body
+          case PropertyReference(base, fp: FieldProperty, prefix) =>
+            val pre = prefix.fold("")(_ + " ")
+            val body = fp.form match
               case FieldPropertyForm.Dot =>
                 "{{ ref }}.[[ {{ str }} ]]"
               case FieldPropertyForm.Value =>
                 "{{ ref }}'s [[ {{ str }} ]] value"
               case FieldPropertyForm.Attribute =>
                 "the value of {{ ref }}'s [[ {{ str }} ]] attribute"
-          case PropertyReference(base, prop, pre) =>
-            val prefix = pre.fold("")(_ + " ")
-            s"$prefix{{ ref }} {{ prop }}"
+            pre + body
+          case PropertyReference(base, prop, prefix) =>
+            val pre = prefix.fold("")(_ + " ")
+            s"$pre{{ ref }} {{ prop }}"
           case AgentRecord() =>
             "the Agent Record of the surrounding agent"
         }
@@ -257,9 +261,14 @@ class CaseCollector extends UnitWalker {
         s"$op({{ expr }}*)"
       case ConversionExpression(op, expr, SyntaxLiteral) =>
         s"$op({{ expr }})"
-      case ConversionExpression(op, expr, Text(a, pre, post)) =>
-        val postStr = post.fold("")(" " + _)
-        s"$a $op value $pre {{expr}}$postStr"
+      case ConversionExpression(op, expr, Text(a, pre)) =>
+        import ConversionExpressionOperator.*
+        val opStr = op match
+          case ToNumber       => "Number"
+          case ToBigInt       => "BigInt"
+          case ToMath         => "Math"
+          case ToApproxNumber => "implementation-approximated Number"
+        s"$a $opStr value $pre {{expr}}"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"
       case BinaryExpression(left, op, right) =>
@@ -270,27 +279,25 @@ class CaseCollector extends UnitWalker {
         val a = if (article) "the " else ""
         s"$a*this* value"
       case ThisParseNodeLiteral(nt) =>
-        nt match {
+        nt match
           case None     => s"this Parse Node"
           case Some(nt) => s"this | {{ nt }} |"
-        }
       case _: NewTargetLiteral =>
         s"NewTarget"
       case HexLiteral(hex, unicode, codeunit, name) =>
         val codeUnitStr = if (codeunit) "the code unit " else ""
-        val prefixStr = if (unicode) "U+" else "0x"
+        val pre = if (unicode) "U+" else "0x"
         val nameStr = name.fold("")(" (" + _ + ")")
-        f"$codeUnitStr$prefixStr$hex%04X$nameStr"
+        f"$codeUnitStr$pre$hex%04X$nameStr"
       case CodeLiteral(code) =>
         s"`{{ str }}`"
       case GrammarSymbolLiteral(name, flags) =>
         s"the grammar symbol |{{ str }}|"
       case NonterminalLiteral(ordinal, name, flags, article) =>
-        val prefix = ordinal match
+        val pre = ordinal match
           case Some(value) => ordinal.fold("")(s"the " + _.toOrdinal + " ")
           case None        => if (article) "the " else ""
-
-        s"$prefix|{{ str }}|"
+        s"$pre|{{ str }}|"
       case EnumLiteral(name) =>
         s"~{{ str }}~"
       case StringLiteral(str, form) =>

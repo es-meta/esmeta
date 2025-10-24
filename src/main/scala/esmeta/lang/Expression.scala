@@ -211,9 +211,9 @@ enum ConversionExpressionOperator extends LangElem:
   case ToApproxNumber, ToNumber, ToBigInt, ToMath
 enum ConversionExpressionForm:
   case SyntaxLiteral
-  // e.g. the {{ op }} value of {{ expr }}", rounded to ...
-  // `the`: article, `of`: pre, `rounded to ...`: post
-  case Text(article: String, pre: String, post: Option[String])
+  // e.g. the {{ op }} value that corresponds to {{ expr }}"
+  // `the`: article, `that corresponds to`: pre
+  case Text(article: String, pre: String)
 
 // -----------------------------------------------------------------------------
 // clamp expressions

@@ -476,10 +476,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ConversionExpression(o, expr, SyntaxLiteral) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = false)
         app >> o >> "(" >> expr >> ")"
-      case ConversionExpression(op, expr, Text(a, pre, post)) =>
+      case ConversionExpression(op, expr, Text(a, pre)) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = true)
-        val postStr = post.fold("")(" " + _)
-        app >> s"$a " >> op >> s" value $pre " >> expr >> postStr
+        app >> s"$a " >> op >> s" value $pre " >> expr
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
       case BinaryExpression(left, op, right) =>

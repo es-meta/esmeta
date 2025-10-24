@@ -287,25 +287,25 @@ object LangTest {
     ConversionExpression(
       ConversionExpressionOperator.ToApproxNumber,
       refExpr,
-      ConversionExpressionForm.Text("an", "representing", None),
+      ConversionExpressionForm.Text("an", "representing"),
     )
   lazy val convToNumberTextExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToNumber,
       codeUnitAtExpr,
-      ConversionExpressionForm.Text("the", "of", None),
+      ConversionExpressionForm.Text("the", "of"),
     )
   lazy val convToBigIntTextExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToBigInt,
       codeUnitAtExpr,
-      ConversionExpressionForm.Text("the", "of", None),
+      ConversionExpressionForm.Text("the", "of"),
     )
   lazy val convToMathTextExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToMath,
       codeUnitAtExpr,
-      ConversionExpressionForm.Text("the", "of", None),
+      ConversionExpressionForm.Text("the", "of"),
     )
   lazy val convToNumberExpr =
     ConversionExpression(

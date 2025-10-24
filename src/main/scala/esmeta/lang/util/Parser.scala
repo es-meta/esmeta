@@ -526,11 +526,12 @@ trait Parsers extends IndentParsers {
   // conversion expressions
   lazy val convExpr: PL[ConversionExpression] =
     import ConversionExpressionOperator.*
+    import ConversionExpressionForm.*
     lazy val opFormat =
       ("𝔽" ^^^ ToNumber | "ℤ" ^^^ ToBigInt | "ℝ" ^^^ ToMath) ~
       ("(" ~> expr <~ ")") ^^ {
         case op ~ e =>
-          ConversionExpression(op, e, ConversionExpressionForm.SyntaxLiteral)
+          ConversionExpression(op, e, SyntaxLiteral)
       }
     lazy val textFormat =
       ("the " | "an " | "a ") ~ (
@@ -539,17 +540,10 @@ trait Parsers extends IndentParsers {
         "BigInt" ^^^ ToBigInt |
         opt("integer that is the") ~ "numeric" ^^^ ToMath
       ) ~
-      ("value" ~> ("of" | "for" | "representing" | "that represents" | "that corresponds to")) ~ expr ~
-      opt(textFormatPostfix) ^^ {
-        case a ~ op ~ pre ~ e ~ post =>
-          val form = ConversionExpressionForm.Text(a.trim, pre, post)
-          ConversionExpression(op, e, form)
+      ("value" ~> ("of" | "for" | "representing" | "that corresponds to")) ~ expr ^^ {
+        case a ~ op ~ pre ~ e =>
+          ConversionExpression(op, e, Text(a.trim, pre))
       }
-    lazy val textFormatPostfix =
-      opt(",") ~ ("rounded" | "rounding") ~ "[^.]+".r ^^ {
-        case a ~ b ~ c => a.fold("")(_ + " ") + b + " " + c
-      }
-
     opFormat | textFormat
 
   // emu-xref expressions
@@ -1468,7 +1462,7 @@ trait Parsers extends IndentParsers {
     "TypedArray" ^^^ TypedArrayT |
     opt("initialized") ~ "RegExp" ~ opt("instance") ^^^ RegExpT |
     "non-negative integral Number" ^^^ NumberNonNegIntT |
-    ("*NaN*" | "NaN") ^^! NaNT |
+    "*NaN*" ^^! NaNT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }
@@ -1496,8 +1490,9 @@ trait Parsers extends IndentParsers {
   // end of step
   trait StepUpdater { def apply[T <: Step](s: T): T }
   private lazy val end: Parser[StepUpdater] =
+    // todo: check existence of spaces & pass to stringifier
     val pre =
-      "\\(.*\\)".r |
+      "\\(.*\\)".r ^^ { " " + _ } |
       "as defined in" ~> withTag("") ^^ {
         case b => " as defined in " + b.tagString
       } |
