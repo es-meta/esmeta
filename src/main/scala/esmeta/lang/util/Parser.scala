@@ -182,8 +182,10 @@ trait Parsers extends IndentParsers {
   // if-then-else steps
   lazy val ifStep: PL[IfStep] =
     val ifPart = "if" ~> (
-      (cond <~ ",") <~ opt("then") |
-      yetCond(", then")
+      // if <cond>, then\n<block>
+      guard(".+, then".r) ~> (cond <~ "," ~ "then" | yetCond(", then")) |
+      // if <cond>, <step>
+      (cond <~ ",")
     ) ~ (step | yetStep)
     val elsePart =
       exists(subStepPrefix) ~
