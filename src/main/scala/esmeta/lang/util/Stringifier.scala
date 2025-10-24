@@ -27,6 +27,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: CompoundConditionOperator => compCondOpRule(app, elem)
       case elem: MathOpExpressionOperator  => mathOpRule(app, elem)
       case elem: BitwiseExpressionOperator => bitExprOpRule(app, elem)
+      case elem: HasFieldConditionOperator => hasFieldCondOpRule(app, elem)
     }
 
   // syntax
@@ -752,6 +753,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
     }
   }
+
+  // operators for field inclusion conditions
+  given hasFieldCondOpRule: Rule[HasFieldConditionOperator] = (app, op) =>
+    import HasFieldConditionOperator.*
+    app >> (op match {
+      case Field          => "field"
+      case InternalSlot   => "internal slot"
+      case InternalMethod => "internal method"
+    })
 
   // operators for predicate conditions
   given predCondOpRule: Rule[PredicateConditionOperator] = (app, op) =>

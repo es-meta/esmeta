@@ -29,14 +29,8 @@ case class HasFieldCondition(
   field: Expression,
   form: HasFieldConditionOperator,
 ) extends Condition
-
-enum HasFieldConditionOperator:
+enum HasFieldConditionOperator extends LangElem:
   case Field, InternalSlot, InternalMethod
-
-  override def toString: String = this match
-    case Field          => "field"
-    case InternalSlot   => "internal slot"
-    case InternalMethod => "internal method"
 
 // binding inclusion conditions
 case class HasBindingCondition(
