@@ -131,9 +131,9 @@ case object Extract extends Phase[Unit, Spec] {
     )
 
     dumpDir(
-      name = "algorithms_json",
+      name = "algorithms in JSON format",
       iterable = spec.algorithms,
-      dirname = s"$EXTRACT_LOG_DIR/algos_json",
+      dirname = s"$EXTRACT_LOG_DIR/algos-json",
       getName = algo => s"${algo.normalizedName}.json",
       getData = algo => algo.asJson.toString(),
     )
