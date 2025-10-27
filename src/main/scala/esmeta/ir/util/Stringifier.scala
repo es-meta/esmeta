@@ -268,25 +268,24 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given bopRule: Rule[BOp] = (app, bop) =>
     import BOp.*
     app >> (bop match
-      case Add     => "+"
-      case Sub     => "-"
-      case Mul     => "*"
-      case Pow     => "**"
-      case Div     => "/"
-      case UMod    => "%%"
-      case Mod     => "%"
-      case Eq      => "="
-      case Equal   => "=="
-      case And     => "&&"
-      case Or      => "||"
-      case Xor     => "^^"
-      case BAnd    => "&"
-      case BOr     => "|"
-      case BXOr    => "^"
-      case LShift  => "<<"
-      case Lt      => "<"
-      case URShift => ">>>"
-      case SRShift => ">>"
+      case Add    => "+"
+      case Sub    => "-"
+      case Mul    => "*"
+      case Pow    => "**"
+      case Div    => "/"
+      case UMod   => "%%"
+      case Mod    => "%"
+      case Eq     => "="
+      case Equal  => "=="
+      case And    => "&&"
+      case Or     => "||"
+      case Xor    => "^^"
+      case BAnd   => "&"
+      case BOr    => "|"
+      case BXOr   => "^"
+      case LShift => "<<"
+      case Lt     => "<"
+      case RShift => ">>"
     )
 
   // variadic operators
@@ -337,6 +336,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "[str"
         radix.map(app >> " " >> _)
         app >> "]"
+      case ToCodeUnit => app >> "[codeUnit]"
     }
 
   // references

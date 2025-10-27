@@ -1,6 +1,7 @@
 package esmeta.extractor
 
 import esmeta.*
+import esmeta.es.builtin.Intrinsics
 import esmeta.lang.*
 import esmeta.lang.{util => LangUtil}
 import esmeta.spec.{*, given}
@@ -56,7 +57,8 @@ class Extractor(
       grammar = grammar,
       algorithms = algorithms,
       tables = tables,
-      tyModel = tyModel, // TODO automatic extraction
+      tyModel = tyModel,
+      intrinsics = intrinsics,
     )
     spec.document = document
     spec
@@ -75,6 +77,9 @@ class Extractor(
 
   /** type model */
   lazy val tyModel = extractTyModel
+
+  /** intrinsics */
+  lazy val intrinsics = extractIntrinsics
 
   /** extracts a grammar */
   def extractGrammar: Grammar = {
@@ -110,13 +115,21 @@ class Extractor(
     concurrent(manualJobs ++ jobs).toList.flatten
 
   /** extracts an algorithm */
-  def extractAlgorithm(elem: Element): List[Algorithm] = for {
-    head <- extractHeads(elem)
-    code = elem.html.unescapeHtml
-    body = parser.parseBy(parser.step)(code)
-    algo = Algorithm(head, body, code)
-    _ = algo.elem = elem
-  } yield algo
+  def extractAlgorithm(elem: Element): List[Algorithm] =
+    val parent = elem.parent
+    val instancePattern = "INTRINSICS.(\\w+).*".r
+    for {
+      head <- extractHeads(elem)
+      parent = elem.parent
+      baseCode = elem.html.unescapeHtml
+      code = (getTemplateName(parent), head.fname) match
+        case (Some(name), instancePattern(x)) =>
+          baseCode.replaceAll("<var>" + name + "</var>", x)
+        case _ => baseCode
+      body = parser.parseBy(parser.step)(code)
+      algo = Algorithm(head, body, code)
+      _ = algo.elem = elem
+    } yield algo
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(
@@ -176,8 +189,13 @@ class Extractor(
     } yield row.getChildren.map(_.text)).toList
   } yield id -> Table(id, datas.head, datas.tail)).toMap
 
+  // TODO automatic extraction
   /** extracts a type model */
-  def extractTyModel: TyModel = ManualInfo.tyModel // TODO automatic extraction
+  def extractTyModel: TyModel = ManualInfo.tyModel
+
+  // TODO automatic extraction
+  /** extracts intrinsics */
+  def extractIntrinsics: Intrinsics = ManualInfo.intrinsics
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -256,9 +274,13 @@ class Extractor(
     parent: Element,
     elem: Element,
   ): List[BuiltinHead] =
-    val headContent = getHeadContent(parent)
+    var headContent = getHeadContent(parent)
+    val headContents = getTemplateName(parent).fold(List(headContent)) { name =>
+      for ((instance, _) <- intrinsics.getInstances(name).toList)
+        yield headContent.replaceAll("_" + name + "_", instance)
+    }
     val prevContent = elem.getPrevContent
-    val heads = List(parseBy(builtinHead)(headContent))
+    val heads = headContents.map(parseBy(builtinHead))
     prevContent match
       case builtinHeadPattern(name) =>
         heads.map(_.copy(params = List(Param(name, UnknownType))))
@@ -297,4 +319,11 @@ class Extractor(
   // get head contents from parent elements
   private def getHeadContent(parent: Element): String =
     parent.getFirstChildContent
+
+  // extract template name
+  private val templatePattern = "_(\\w+)_.*".r
+  private def getTemplateName(parent: Element): Option[String] =
+    getHeadContent(parent) match
+      case templatePattern(name) => Some(name)
+      case _                     => None
 }

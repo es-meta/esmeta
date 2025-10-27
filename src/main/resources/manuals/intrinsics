@@ -1,0 +1,973 @@
+// -----------------------------------------------------------------------------
+// Fundamental Objects
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-fundamental-objects
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-properties-of-the-object-constructor
+Object = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  prototype: [FFF] #INTRINSICS.Object.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-object.assign
+Object.assign = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+// https://tc39.es/ecma262/#sec-properties-of-the-object-prototype-object
+Object.prototype = ImmutablePrototypeExoticObject [
+  Extensible: true;
+  Prototype: null;
+] {
+  constructor: [TFT] #INTRINSICS.Object;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-function-constructor
+Function = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  prototype: [FFF] #INTRINSICS.Function.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-function-prototype-object
+Function.prototype = BuiltinFunctionObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+  __CODE__: clo<INTRINSICS.Function.prototype>;
+] {
+  length: [FFT] 0.0f;
+  name: [FFT] "";
+  constructor: [TFT] #INTRINSICS.Function;
+  %Symbol.hasInstance%: [FFF] #INTRINSICS.Function.prototype[%Symbol.hasInstance%];
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-boolean-constructor
+Boolean = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.Boolean.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-boolean-prototype-object
+Boolean.prototype = OrdinaryObject [
+  Extensible: true;
+  BooleanData: false;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.Boolean;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-symbol-constructor
+Symbol = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  asyncIterator: [FFF] #INTRINSICS.Symbol.asyncIterator;
+  hasInstance: [FFF] #INTRINSICS.Symbol.hasInstance;
+  isConcatSpreadable: [FFF] #INTRINSICS.Symbol.isConcatSpreadable;
+  iterator: [FFF] #INTRINSICS.Symbol.iterator;
+  match: [FFF] #INTRINSICS.Symbol.match;
+  matchAll: [FFF] #INTRINSICS.Symbol.matchAll;
+  prototype: [FFF] #INTRINSICS.Symbol.prototype;
+  replace: [FFF] #INTRINSICS.Symbol.replace;
+  search: [FFF] #INTRINSICS.Symbol.search;
+  species: [FFF] #INTRINSICS.Symbol.species;
+  split: [FFF] #INTRINSICS.Symbol.split;
+  toPrimitive: [FFF] #INTRINSICS.Symbol.toPrimitive;
+  toStringTag:[FFF] #INTRINSICS.Symbol.toStringTag;
+  unscopables:[FFF] #INTRINSICS.Symbol.unscopables;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-symbol-prototype-object
+Symbol.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.Symbol;
+  %Symbol.toPrimitive%: [FFT] #INTRINSICS.Symbol.prototype[%Symbol.toPrimitive%];
+  %Symbol.toStringTag%: [FFT] "Symbol";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-error-constructor
+Error = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.Error.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-error-prototype-object
+Error.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.Error;
+  message: [TFT] "";
+  name: [TFT] "Error";
+}
+
+// https://tc39.es/ecma262/#sec-native-error-types-used-in-this-standard
+_NativeError_ is {
+  EvalError
+  RangeError
+  ReferenceError
+  SyntaxError
+  TypeError
+  URIError
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-nativeerror-constructors
+_NativeError_ = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.Error;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.(( NativeError )).prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-nativeerror-prototype-objects
+_NativeError_.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Error.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.(( NativeError ));
+  message: [TFT] "";
+  name: [TFT] "(( NativeError ))";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-aggregate-error-constructors
+AggregateError = BuiltinFunctionObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Error;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.AggregateError.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-aggregate-error-prototype-objects
+AggregateError.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Error.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.AggregateError;
+  message: [TFT] "";
+  name: [TFT] "AggregateError";
+}
+
+
+
+
+// -----------------------------------------------------------------------------
+// Numbers and Dates
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-numbers-and-dates
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-properties-of-the-number-constructor
+Number = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  EPSILON: [FFF] 2.2204460492503130808472633361816e-16f;
+  MAX_SAFE_INTEGER: [FFF] 9007199254740991.0f;
+  MAX_VALUE: [FFF] 1.7976931348623157e308f;
+  MIN_SAFE_INTEGER:[FFF] -9007199254740991.0f;
+  MIN_VALUE: [FFF] 5e-324f;
+  NaN: [FFF] NaN;
+  NEGATIVE_INFINITY: [FFF] -NUM_INF;
+  parseFloat: [TFT] #INTRINSICS.parseFloat;
+  parseInt: [TFT] #INTRINSICS.parseInt;
+  POSITIVE_INFINITY: [FFF] +NUM_INF;
+  prototype: [FFF] #INTRINSICS.Number.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-number-prototype-object
+Number.prototype = OrdinaryObject [
+  Extensible: true;
+  NumberData: 0.0f;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.Number;
+}
+
+// https://tc39.es/ecma262/#sec-number.prototype.tostring
+Number.prototype.toString = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// https://tc39.es/ecma262/#sec-properties-of-the-bigint-constructor
+BigInt = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.BigInt.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-bigint-prototype-object
+BigInt.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.BigInt;
+  %Symbol.toStringTag%: [FFT] "BigInt";
+}
+
+// https://tc39.es/ecma262/#sec-math-object
+Math = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  E: [FFF] 2.7182818284590452354f;
+  LN10: [FFF] 2.302585092994046f;
+  LN2: [FFF] 0.6931471805599453f;
+  LOG10E: [FFF] 0.4342944819032518f;
+  LOG2E: [FFF] 1.4426950408889634f;
+  PI: [FFF] 3.1415926535897932f;
+  SQRT1_2: [FFF] 0.7071067811865476f;
+  SQRT2: [FFF] 1.4142135623730951f;
+  %Symbol.toStringTag%: [FFT] "Math";
+}
+
+// https://tc39.es/ecma262/#sec-math.hypot
+Math.hypot = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+// https://tc39.es/ecma262/#sec-math.max
+Math.max = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+// https://tc39.es/ecma262/#sec-math.min
+Math.min = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+// https://tc39.es/ecma262/#sec-properties-of-the-date-constructor
+Date = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 7.0f;
+  prototype: [FFF] #INTRINSICS.Date.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-date.utc
+Date.UTC = BuiltinFunctionObject { length: [FFT] 7.0f; }
+
+// https://tc39.es/ecma262/#sec-properties-of-the-date-prototype-object
+Date.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.Date;
+}
+
+// https://tc39.es/ecma262/#sec-date.prototype.setfullyear
+Date.prototype.setFullYear = BuiltinFunctionObject { length: [FFT] 3.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.sethours
+Date.prototype.setHours = BuiltinFunctionObject { length: [FFT] 4.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.setminutes
+Date.prototype.setMinutes = BuiltinFunctionObject { length: [FFT] 3.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.setmonth
+Date.prototype.setMonth = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.setseconds
+Date.prototype.setSeconds = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.setutcfullyear
+Date.prototype.setUTCFullYear = BuiltinFunctionObject { length: [FFT] 3.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.setutchours
+Date.prototype.setUTCHours = BuiltinFunctionObject { length: [FFT] 4.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.setutcminutes
+Date.prototype.setUTCMinutes = BuiltinFunctionObject { length: [FFT] 3.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.setutcmonth
+Date.prototype.setUTCMonth = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+// https://tc39.es/ecma262/#sec-date.prototype.setutcseconds
+Date.prototype.setUTCSeconds = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+
+
+
+// -----------------------------------------------------------------------------
+// Text Processing
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-text-processing
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-properties-of-the-string-constructor
+String = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.String.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-string.fromcharcode
+String.fromCharCode = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// https://tc39.es/ecma262/#sec-string.fromcodepoint
+String.fromCodePoint = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// https://tc39.es/ecma262/#sec-properties-of-the-string-prototype-object
+String.prototype = StringExoticObject [
+  Extensible: true;
+  StringData: "";
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  length: [FFF] 0.0f;
+  constructor: [TFT] #INTRINSICS.String;
+}
+
+// https://tc39.es/ecma262/#sec-string.prototype.concat
+String.prototype.concat = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-string-iterator-objects
+StringIteratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Iterator.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "String Iterator";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-regexp-constructor
+RegExp = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.RegExp.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-regexp-prototype-object
+RegExp.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.RegExp;
+}
+
+
+
+
+// -----------------------------------------------------------------------------
+// Indexed Collections
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-indexed-collections
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-properties-of-the-array-constructor
+Array = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  prototype: [FFF] #INTRINSICS.Array.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-array-prototype-object
+Array.prototype = Array [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  length: [TFF] 0.0f;
+  constructor: [TFT] #INTRINSICS.Array;
+  %Symbol.iterator%: [TFT] #INTRINSICS.Array.prototype.values;
+  %Symbol.unscopables%: [FFT] #INTRINSICS.Array.prototype[%Symbol.unscopables%];
+}
+
+// https://tc39.es/ecma262/#sec-array.prototype.concat
+Array.prototype.concat = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// https://tc39.es/ecma262/#sec-array.prototype.push
+Array.prototype.push = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// https://tc39.es/ecma262/#sec-array.prototype.unshift
+Array.prototype.unshift = BuiltinFunctionObject { length: [FFT] 1.0f; }
+
+// https://tc39.es/ecma262/#sec-array.prototype-%symbol.unscopables%
+Array.prototype[%Symbol.unscopables%] = OrdinaryObject [
+  Extensible: true;
+  Prototype: null;
+] {
+  at: [TTT] true;
+  copyWithin: [TTT] true;
+  entries: [TTT] true;
+  fill: [TTT] true;
+  find: [TTT] true;
+  findIndex: [TTT] true;
+  findLast: [TTT] true;
+  findLastIndex: [TTT] true;
+  flat: [TTT] true;
+  flatMap: [TTT] true;
+  includes: [TTT] true;
+  keys: [TTT] true;
+  toReversed: [TTT] true;
+  toSorted: [TTT] true;
+  toSpliced: [TTT] true;
+  values: [TTT] true;
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%arrayiteratorprototype%-object
+ArrayIteratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Iterator.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "Array Iterator";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%typedarray%-intrinsic-object
+TypedArray = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 0.0f;
+  name: [FFT] "TypedArray";
+  prototype: [FFF] #INTRINSICS.TypedArray.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-%typedarrayprototype%-object
+TypedArray.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.TypedArray;
+  toString: [TFT] #INTRINSICS.Array.prototype.toString;
+  %Symbol.iterator%: [TFT] #INTRINSICS.TypedArray.prototype.values;
+  %Symbol.toStringTag%: [FT] {
+    Get: #INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%];
+    Set: undefined;
+  };
+}
+
+// https://tc39.es/ecma262/#table-the-typedarray-constructors
+_TypedArray_ is {
+  Int8Array {
+    Intrinsic: #INTRINSICS.Int8Array;
+    ElementType: ~int8~;
+    ElementSize: 1;
+    ConversionOperation: clo<ToInt8>;
+  }
+  Uint8Array {
+    Intrinsic: #INTRINSICS.Uint8Array;
+    ElementType: ~uint8~;
+    ElementSize: 1;
+    ConversionOperation: clo<ToUint8>;
+  }
+  Uint8ClampedArray {
+    Intrinsic: #INTRINSICS.Uint8ClampedArray;
+    ElementType: ~uint8clamped~;
+    ElementSize: 1;
+    ConversionOperation: clo<ToUint8Clamp>;
+  }
+  Int16Array {
+    Intrinsic: #INTRINSICS.Int16Array;
+    ElementType: ~int16~;
+    ElementSize: 2;
+    ConversionOperation: clo<ToInt16>;
+  }
+  Uint16Array {
+    Intrinsic: #INTRINSICS.Uint16Array;
+    ElementType: ~uint16~;
+    ElementSize: 2;
+    ConversionOperation: clo<ToUint16>;
+  }
+  Int32Array {
+    Intrinsic: #INTRINSICS.Int32Array;
+    ElementType: ~int32~;
+    ElementSize: 4;
+    ConversionOperation: clo<ToInt32>;
+  }
+  Uint32Array {
+    Intrinsic: #INTRINSICS.Uint32Array;
+    ElementType: ~uint32~;
+    ElementSize: 4;
+    ConversionOperation: clo<ToUint32>;
+  }
+  BigInt64Array {
+    Intrinsic: #INTRINSICS.BigInt64Array;
+    ElementType: ~bigint64~;
+    ElementSize: 8;
+    ConversionOperation: clo<ToBigInt64>;
+  }
+  BigUint64Array {
+    Intrinsic: #INTRINSICS.BigUint64Array;
+    ElementType: ~biguint64~;
+    ElementSize: 8;
+    ConversionOperation: clo<ToBigUint64>;
+  }
+  Float16Array {
+    Intrinsic: #INTRINSICS.Float16Array;
+    ElementType: ~float16~;
+    ElementSize: 2;
+  }
+  Float32Array {
+    Intrinsic: #INTRINSICS.Float32Array;
+    ElementType: ~float32~;
+    ElementSize: 4;
+  }
+  Float64Array {
+    Intrinsic: #INTRINSICS.Float64Array;
+    ElementType: ~float64~;
+    ElementSize: 8;
+  }
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-typedarray-constructors
+_TypedArray_ = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.TypedArray;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 3.0f;
+  name: [FFT] "(( TypedArray ))";
+  BYTES_PER_ELEMENT: [FFF] (( TypedArray.ElementSize ))f;
+  prototype: [FFF] #INTRINSICS.(( TypedArray )).prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-typedarray-prototype-objects
+_TypedArray_.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.TypedArray.prototype;
+] {
+  BYTES_PER_ELEMENT: [FFF] (( TypedArray.ElementSize ))f;
+  constructor: [TFT] #INTRINSICS.(( TypedArray ));
+}
+
+
+
+
+// -----------------------------------------------------------------------------
+// Keyed Collections
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-keyed-collections
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-properties-of-the-map-constructor
+Map = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.Map.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-map-prototype-object
+Map.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.Map;
+  %Symbol.iterator%: [TFT] #INTRINSICS.Map.prototype.entries;
+  %Symbol.toStringTag%: [FFT] "Map";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%mapiteratorprototype%-object
+MapIteratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Iterator.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "Map Iterator";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-set-constructor
+Set = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.Set.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-set-prototype-object
+Set.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.Set;
+  keys: [TFT] #INTRINSICS.Set.prototype.values;
+  %Symbol.iterator%: [TFT] #INTRINSICS.Set.prototype.values;
+  %Symbol.toStringTag%: [FFT] "Set";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%setiteratorprototype%-object
+SetIteratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Iterator.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "Set Iterator";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-weakmap-constructor
+WeakMap = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.WeakMap.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-weakmap-prototype-object
+WeakMap.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WeakMap;
+  %Symbol.toStringTag%: [FFT] "WeakMap";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-weakset-constructor
+WeakSet = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.WeakSet.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-weakset-prototype-object
+WeakSet.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WeakSet;
+  %Symbol.toStringTag%: [FFT] "WeakSet";
+}
+
+
+
+
+// -----------------------------------------------------------------------------
+// Structured Data
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-structured-data
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-properties-of-the-arraybuffer-constructor
+ArrayBuffer = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.ArrayBuffer.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-arraybuffer-prototype-object
+ArrayBuffer.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.ArrayBuffer;
+  %Symbol.toStringTag%: [FFT] "ArrayBuffer";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-sharedarraybuffer-constructor
+SharedArrayBuffer = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.SharedArrayBuffer.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-sharedarraybuffer-prototype-object
+SharedArrayBuffer.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.SharedArrayBuffer;
+  %Symbol.toStringTag%: [FFT] "SharedArrayBuffer";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-dataview-constructor
+DataView = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.DataView.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-dataview-prototype-object
+DataView.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.DataView;
+  %Symbol.toStringTag%: [FFT] "DataView";
+}
+
+// https://tc39.es/ecma262/#sec-atomics-object
+Atomics = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "Atomics";
+}
+
+// https://tc39.es/ecma262/#sec-json-object
+JSON = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "JSON";
+}
+
+// https://tc39.es/ecma262/#sec-json.parse
+JSON.parse = BuiltinFunctionObject { length: [FFT] 2.0f; }
+
+// https://tc39.es/ecma262/#sec-json.stringify
+JSON.stringify = BuiltinFunctionObject { length: [FFT] 3.0f; }
+
+
+
+
+// -----------------------------------------------------------------------------
+// Managing Memory
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-managing-memory
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-properties-of-the-weak-ref-constructor
+WeakRef = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.WeakRef.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-weak-ref-prototype-object
+WeakRef.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.WeakRef;
+  %Symbol.toStringTag%: [FFT] "WeakRef";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-finalization-registry-constructor
+FinalizationRegistry = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.FinalizationRegistry.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-finalization-registry-prototype-object
+FinalizationRegistry.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.FinalizationRegistry;
+  %Symbol.toStringTag%: [FFT] "FinalizationRegistry";
+}
+
+
+
+
+// -----------------------------------------------------------------------------
+// Control Abstraction Objects
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-control-abstraction-objects
+// -----------------------------------------------------------------------------
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%iteratorhelperprototype%-object
+IteratorHelperPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Iterator.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "Iterator Helper";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-iterator-constructor
+Iterator = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF] #INTRINSICS.Iterator.prototype;
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%wrapforvaliditeratorprototype%-object
+WrapForValidIteratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Iterator.prototype;
+]
+
+// https://tc39.es/ecma262/#sec-%iterator.prototype%-object
+Iterator.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [FT] {
+    Get: #INTRINSICS.get:Iterator.prototype.constructor;
+    Set: #INTRINSICS.set:Iterator.prototype.constructor;
+  };
+  %Symbol.toStringTag%: [FT] {
+    Get: #INTRINSICS.get:Iterator.prototype[%Symbol.toStringTag%];
+    Set: #INTRINSICS.set:Iterator.prototype[%Symbol.toStringTag%];
+  };
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-asynciteratorprototype
+AsyncIteratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+]
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-asynciteratorprototype
+AsyncFromSyncIteratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.AsyncIteratorPrototype;
+]
+
+// TODO https://tc39.es/ecma262/#sec-promise-reject-functions
+// TODO https://tc39.es/ecma262/#sec-promise-resolve-functions
+
+// https://tc39.es/ecma262/#sec-properties-of-the-promise-constructor
+Promise = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  prototype: [FFF]#INTRINSICS.Promise.prototype;
+}
+
+// TODO https://tc39.es/ecma262/#sec-promise.all-resolve-element-functions
+// TODO https://tc39.es/ecma262/#sec-promise.allsettled-resolve-element-functions
+// TODO https://tc39.es/ecma262/#sec-promise.allsettled-reject-element-functions
+// TODO https://tc39.es/ecma262/#sec-promise.any-reject-element-functions
+
+// https://tc39.es/ecma262/#sec-properties-of-the-promise-prototype-object
+Promise.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  constructor: [TFT] #INTRINSICS.Promise;
+  %Symbol.toStringTag%: [FFT] "Promise";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-properties-of-the-generatorfunction-constructor
+GeneratorFunction = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.Function;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "GeneratorFunction";
+  prototype: [FFF] #INTRINSICS.GeneratorFunction.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-generatorfunction-prototype-object
+GeneratorFunction.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Function.prototype;
+] {
+  constructor: [FFT] #INTRINSICS.GeneratorFunction;
+  prototype: [FFT] #INTRINSICS.GeneratorPrototype;
+  %Symbol.toStringTag%: [FFT] "GeneratorFunction";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-properties-of-asyncgeneratorfunction
+AsyncGeneratorFunction = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.Function;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "AsyncGeneratorFunction";
+  prototype: [FFF] #INTRINSICS.AsyncGeneratorFunction.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-asyncgeneratorfunction-prototype
+AsyncGeneratorFunction.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Function.prototype;
+] {
+  constructor: [FFT] #INTRINSICS.AsyncGeneratorFunction;
+  prototype: [FFT] #INTRINSICS.AsyncGeneratorPrototype;
+  %Symbol.toStringTag%: [FFT] "AsyncGeneratorFunction";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-properties-of-generator-prototype
+GeneratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Iterator.prototype;
+] {
+  constructor: [FFT] #INTRINSICS.GeneratorFunction.prototype;
+  %Symbol.toStringTag%: [FFT] "Generator";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-properties-of-asyncgenerator-prototype
+AsyncGeneratorPrototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.AsyncIteratorPrototype;
+] {
+  constructor: [FFT] #INTRINSICS.AsyncGeneratorFunction.prototype;
+  %Symbol.toStringTag%: [FFT] "AsyncGenerator";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-async-function-constructor-properties
+AsyncFunction = BuiltinFunctionObject [
+  Prototype: #INTRINSICS.Function;
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+] {
+  length: [FFT] 1.0f;
+  name: [FFT] "AsyncFunction";
+  prototype: [FFF] #INTRINSICS.AsyncFunction.prototype;
+}
+
+// https://tc39.es/ecma262/#sec-async-function-prototype-properties
+AsyncFunction.prototype = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Function.prototype;
+] {
+  constructor: [FFT] #INTRINSICS.AsyncFunction;
+  %Symbol.toStringTag%: [FFT] "AsyncFunction";
+}
+
+
+
+
+// -----------------------------------------------------------------------------
+// Reflection
+// -----------------------------------------------------------------------------
+// https://tc39.es/ecma262/#sec-reflection
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-reflection
+Reflect = OrdinaryObject [
+  Extensible: true;
+  Prototype: #INTRINSICS.Object.prototype;
+] {
+  %Symbol.toStringTag%: [FFT] "Reflect";
+}
+
+// https://tc39.es/ecma262/#sec-properties-of-the-proxy-constructor
+Proxy = BuiltinFunctionObject [
+  Construct: clo<Record[BuiltinFunctionObject].Construct>;
+]
+
+// TODO https://tc39.es/ecma262/#sec-module-namespace-objects
+
+
+
+
+// -----------------------------------------------------------------------------
+// Others
+// -----------------------------------------------------------------------------
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%throwtypeerror%
+ThrowTypeError = BuiltinFunctionObject [
+  Extensible: false;
+] {
+  length: [FFF] 0.0f;
+  name: [FFF] "";
+}
+
+// TODO use hidden %...%
+// https://tc39.es/ecma262/#sec-%foriniteratorprototype%-object
+ForInIteratorPrototype = OrdinaryObject [
+  Prototype: #INTRINSICS.Iterator.prototype;
+]
+
+
+
+
+// -----------------------------------------------------------------------------
+// Host-Defined Functions for Test262
+// -----------------------------------------------------------------------------
+// https://github.com/tc39/test262/blob/main/INTERPRETING.md#host-defined-functions
+// -----------------------------------------------------------------------------
+print = BuiltinFunctionObject [
+  Extensible: true;
+  ScriptOrModule: null;
+  Realm: #REALM;
+  __CODE__: clo<INTRINSICS.print>;
+  Prototype: #INTRINSICS.Function.prototype;
+  InitialName: "print";
+] {
+  length: [FFT] 0.0f;
+}

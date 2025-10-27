@@ -4,9 +4,12 @@ import esmeta.*
 import esmeta.cfg.util.*
 import esmeta.error.*
 import esmeta.es.Initialize
+import esmeta.es.builtin.Intrinsics
 import esmeta.ir.Program
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.{Spec, Grammar}
+import esmeta.state.Value
+import esmeta.state.util.{Parser => StateParser}
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -25,6 +28,10 @@ case class CFG(
 
   /** the main function */
   lazy val main: Func = getUnique(funcs, _.irFunc.main, "main function")
+
+  /** parser for states */
+  lazy val stateParser: StateParser = StateParser(this)
+  lazy val valueParser: String => Value = stateParser.parseBy(stateParser.value)
 
   /** an ECMAScript parser */
   lazy val esParser: ESParser = program.esParser
@@ -60,6 +67,9 @@ case class CFG(
 
   /** get a type model */
   lazy val tyModel: TyModel = spec.tyModel
+
+  /** get the intrinsics */
+  lazy val intrinsics: Intrinsics = spec.intrinsics
 
   /** get the corresponding specification */
   lazy val spec: Spec = program.spec
@@ -172,4 +182,8 @@ case class CFG(
       val dotPath = s"$path.dot"
       val pdfPath = if (pdf) Some(s"$path.pdf") else None
       func.dumpDot(dotPath, pdfPath)
+
+  override def equals(that: Any): Boolean = that match
+    case that: CFG => this eq that
+    case _         => false
 }

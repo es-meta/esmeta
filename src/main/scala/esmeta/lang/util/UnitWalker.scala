@@ -142,8 +142,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr); walk(from); walkOpt(to, walk)
     case TrimExpression(expr, leading, trailing) =>
       walk(expr); walk(leading); walk(trailing)
-    case NumberOfExpression(expr) =>
-      walk(expr)
+    case NumberOfExpression(name, pre, expr) =>
+      walk(name); walkOpt(pre, walk); walk(expr)
     case SourceTextExpression(expr) =>
       walk(expr)
     case CoveredByExpression(from, to) =>

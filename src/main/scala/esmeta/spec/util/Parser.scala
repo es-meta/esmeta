@@ -266,7 +266,9 @@ trait Parsers extends LangParsers {
     lazy val name: Parser[String] = "[_`a-zA-Z0-9]+".r ^^ { _.trim }
     lazy val yet: Parser[String] = "[_`%a-zA-Z0-9.\\[\\]@: ]+".r ^^ { _.trim }
     lazy val pre: Parser[Path => Path] =
-      "get " ^^^ { Getter(_) } | "set " ^^^ { Setter(_) } | "" ^^^ { x => x }
+      "get[ :]".r ^^^ { Getter(_) } |
+      "set[ :]".r ^^^ { Setter(_) } |
+      "" ^^^ { x => x }
     lazy val base: Parser[Path] =
       opt("%") ~> name <~ opt("%") ^^ { Base(_) }
     lazy val access: Parser[Path => Path] =
@@ -324,8 +326,9 @@ trait Parsers extends LangParsers {
     } ^^ { case c ~ u ~ n => TypeSummary(c, u, n) }
     val tables = empty ~ "- tables:" ~> int
     val tyModel = empty ~ "- type model:" ~> int <~ empty
-    version ~ grammar ~ algos ~ steps ~ types ~ tables ~ tyModel ^^ {
-      case v ~ g ~ a ~ s ~ ty ~ t ~ m => Summary(v, g, a, s, ty, t, m)
+    val intr = empty ~ "- intrinsics:" ~> int <~ empty
+    version ~ grammar ~ algos ~ steps ~ types ~ tables ~ tyModel ~ intr ^^ {
+      case v ~ g ~ a ~ s ~ ty ~ t ~ m ~ i => Summary(v, g, a, s, ty, t, m, i)
     }
   }.named("spec.Summary")
 

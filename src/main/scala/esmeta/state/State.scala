@@ -145,7 +145,8 @@ case class State(
     )
 
   /** get type of value in current state */
-  def typeOf(value: Value, detail: Boolean = true): ValueTy = value match
+  def typeOf(value: Value): ValueTy = typeOf(value, detail = true)
+  def typeOf(value: Value, detail: Boolean): ValueTy = value match
     case addr: Addr          => typeOf(heap(addr), detail)
     case Clo(func, _)        => CloT(func.name)
     case Cont(func, _, _)    => ContT(func.id)
@@ -163,6 +164,7 @@ case class State(
     case Null                => NullT
 
   /** get type of addresses in current state */
+  def typeOf(obj: Obj): ValueTy = typeOf(obj, detail = true)
   def typeOf(obj: Obj, detail: Boolean): ValueTy = obj match
     case RecordObj(tname, map) if detail =>
       // recursively get detailed types for completion records

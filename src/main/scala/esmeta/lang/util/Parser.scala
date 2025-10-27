@@ -182,8 +182,10 @@ trait Parsers extends IndentParsers {
   // if-then-else steps
   lazy val ifStep: PL[IfStep] =
     val ifPart = "if" ~> (
-      (cond <~ ",") <~ opt("then") |
-      yetCond(", then")
+      // if <cond>, then\n<block>
+      cond <~ ", then" | yetCond(", then") |
+      // if <cond>, <step>
+      (cond <~ ",")
     ) ~ (step | yetStep)
     val elsePart =
       exists(subStepPrefix) ~
@@ -421,8 +423,8 @@ trait Parsers extends IndentParsers {
 
   // `the number of elements in` expressions
   lazy val numberOfExpr: PL[NumberOfExpression] =
-    ("the number of elements" ~ ("in" | "of") ~ opt("the List") ~> expr) ^^ {
-      NumberOfExpression(_)
+    ("the number of" ~> word <~ "in") ~ opt("the" ~> "List") ~ expr ^^ {
+      case n ~ p ~ e => NumberOfExpression(n, p, e)
     }
 
   // `source text` expressions
@@ -518,7 +520,8 @@ trait Parsers extends IndentParsers {
         opt("integer that is the") ~ "numeric" ^^^ ToMath
       ) ~
       ("value" ~ ("of" | "for" | "representing" | "that represents") ~> expr) <~
-      opt(textFormatPostfix)
+      opt(textFormatPostfix) |
+      ("the code unit whose numeric value is" ^^^ ToCodeUnit) ~ expr
     lazy val textFormatPostfix = opt(",") ~ ("rounded" | "rounding") ~ "[^.]+".r
     (opFormat | textFormat) ^^ { case op ~ e => ConversionExpression(op, e) }
 
@@ -626,15 +629,11 @@ trait Parsers extends IndentParsers {
     "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ Nil
 
   // string literals
-  lazy val strLiteral: PL[StringLiteral] =
-    opt("the String") ~> """\*"[^"]*"\*""".r ^^ {
-      case s =>
-        val str = s
-          .substring(2, s.length - 2)
-          .replace("\\*", "*")
-          .replace("\\\\", "\\")
-        StringLiteral(str)
-    }
+  lazy val strLiteral: PL[StringLiteral] = opt("the String") ~> (
+    """\*"[^"]*"\*""".r ^^ { str =>
+      str.drop(2).dropRight(2).replace("\\*", "*").replace("\\\\", "\\")
+    } | "<code>" ~> """"[^"]*"""".r <~ "</code>" ^^ { _.drop(1).dropRight(1) }
+  ) ^^ { StringLiteral(_) }
 
   // production literals
   // XXX need to be generalized?
@@ -849,7 +848,11 @@ trait Parsers extends IndentParsers {
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
     "an instance of" ~> prodLiteral |
     // NumberBitwiseOp
-    "the 32-bit two's complement bit string representing" ~> expr
+    "the 32-bit two's complement bit string representing" ~> expr |
+    // _TypedArray_
+    "the String value of the Constructor Name value specified in" ~
+    "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref>" ~
+    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_) }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
@@ -1084,14 +1087,14 @@ trait Parsers extends IndentParsers {
     ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
   } ^^ {
     case r ~ n =>
-      val ref = PropertyReference(r, FieldProperty("strict"))
+      val ref = PropertyReference(r, FieldProperty("__STRICT__"))
       IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
   } | {
     ref ~ ("has been" ^^^ false | "has not" ~ opt("yet") ~ "been" ^^^ true) <~
     "initialized"
   } ^^ {
     case r ~ n =>
-      val ref = PropertyReference(r, FieldProperty("initialized"))
+      val ref = PropertyReference(r, FieldProperty("__INITIALIZED__"))
       IsAreCondition(List(ReferenceExpression(ref)), n, List(TrueLiteral()))
   } | {
     // InitializeHostDefinedRealm
@@ -1106,7 +1109,7 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(FalseLiteral())
 
   // not yet supported conditions
-  def yetCond(post: String): PL[Condition] = ".+".r ^^ { str =>
+  def yetCond(post: String): PL[Condition] = s".+$post".r ^^ { str =>
     val s = str.replaceAll(post + "$", "")
     ExpressionCondition(YetExpression(s, None))
   }
@@ -1289,7 +1292,8 @@ trait Parsers extends IndentParsers {
       case fs => RecordT("", fs.map(_.name -> AnyT).toMap)
     } | opt("an " | "a ") ~> {
       "function object" ^^^ FunctionT |
-      "constructor" ^^^ ConstructorT | (
+      "constructor" ^^^ ConstructorT |
+      "Data Block" ^^^ DataBlockT | (
         "ordinary object" |
         "ECMAScript function object" |
         "built-in function object" |
@@ -1456,7 +1460,7 @@ trait Parsers extends IndentParsers {
     b: Parser[Boolean],
     p: Parser[T],
   ): Parser[Boolean ~ List[T]] =
-    lazy val compoundGuard = guard(not("is" | ">" | "(" | "of"))
+    lazy val compoundGuard = guard(not("is" | "<" | ">" | "(" | "of"))
     ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
     (b <~ "either") ~ p ~ ("or" ~> p) ^^ {
       case b ~ p0 ~ p1 => new ~(b, List(p0, p1))

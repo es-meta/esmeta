@@ -676,16 +676,11 @@ class Debugger(st: State) extends Interpreter(st) {
   /** extension for context */
   extension (ctxt: Context) {
 
-    /** ast of current context */
-    def astOpt: Option[Ast] =
-      if (ctxt.func.isRuntimeSDO) Some(ctxt.locals(NAME_THIS).asAst)
-      else None
-
     /** check if es call */
     def isEsCall: Boolean = ctxt.name == "Call" || ctxt.name == "Construct"
 
     /** location of ECMAScript code */
-    def esLocOpt: Option[(Int, Int)] = astOpt match
+    def esLocOpt: Option[(Int, Int)] = ctxt.astOpt match
       case Some(ast) =>
         Some(ast.loc match
           case Some(loc) => (loc.start.offset, loc.end.offset)

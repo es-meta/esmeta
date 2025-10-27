@@ -9,11 +9,7 @@ import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.parser.{ESParser, ESValueParser}
 import esmeta.state.*
-import esmeta.spec.{
-  SyntaxDirectedOperationHead,
-  AbstractOperationHead,
-  BuiltinHead,
-}
+import esmeta.spec.{Param => _, *}
 import esmeta.ty.*
 import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
@@ -53,6 +49,9 @@ class Interpreter(
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = cfg.esParser
+
+  /** runtime type checker */
+  lazy val typeChecker: TypeChecker = TypeChecker(st)
 
   /** step */
   def step: Boolean =
@@ -125,9 +124,13 @@ class Interpreter(
 
   /** transition for normal instructions */
   def eval(inst: NormalInst): Unit = inst match {
-    case IExpr(expr)         => eval(expr)
-    case ILet(lhs, expr)     => st.define(lhs, eval(expr))
-    case IAssign(ref, expr)  => st.update(eval(ref), eval(expr))
+    case IExpr(expr)     => eval(expr)
+    case ILet(lhs, expr) => st.define(lhs, eval(expr))
+    case IAssign(ref, expr) =>
+      val target = eval(ref)
+      val value = eval(expr)
+      if (tyCheck) typeChecker.fieldUpdateCheck(ref, target, expr, value)
+      st.update(target, value)
     case IExpand(base, expr) => st.expand(st(eval(base)), eval(expr))
     case IDelete(base, expr) => st.delete(st(eval(base)), eval(expr))
     case IPush(elem, list, front) =>
@@ -139,19 +142,7 @@ class Interpreter(
       st.context.locals += lhs -> st.pop(addr, front)
     case ret @ IReturn(expr) =>
       val retVal = eval(expr)
-      if (tyCheck) {
-        val retTy = st.context.func.irFunc.retTy.ty.toValue
-        if (
-          retTy.isDefined &&
-          retTy.safeContains(retVal, st) == Some(false)
-        ) {
-          val node = st.context.cursor match
-            case NodeCursor(_, node, _) => node
-            case _                      => raise("cursor is not node cursor")
-          val irp = InternalReturnPoint(st.context.func, node, ret)
-          st.typeErrors += ReturnTypeMismatch(irp, st.typeOf(retVal))
-        }
-      }
+      if (tyCheck) typeChecker.returnTyCheck(ret, retVal)
       st.context.retVal = Some(ret, retVal)
     case IAssert(expr) =>
       optional(eval(expr)) match
@@ -269,6 +260,7 @@ class Interpreter(
       (eval(expr), cop) match {
         // code unit
         case (CodeUnit(c), ToMath) => Math(c.toInt)
+        case (Math(n), ToCodeUnit) => CodeUnit(n.toChar)
         // extended mathematical value
         case (Infinity(true), ToNumber)  => NUMBER_POS_INF
         case (Infinity(false), ToNumber) => NUMBER_NEG_INF
@@ -377,10 +369,10 @@ class Interpreter(
     val func = callee.func
     val map = MMap[Local, Value]()
     @tailrec
-    def aux(ps: List[Param], as: List[Value]): Unit = (ps, as) match {
+    def aux(idx: Int, ps: List[Param], as: List[Value]): Unit = (ps, as) match {
       case (Nil, Nil) =>
       case (Param(lhs, ty, optional, _) :: pl, Nil) =>
-        if (optional) aux(pl, Nil)
+        if (optional) aux(idx + 1, pl, Nil)
         else RemainingParams(ps)
       case (Nil, args) =>
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
@@ -389,22 +381,10 @@ class Interpreter(
           case _       => throw RemainingArgs(args)
       case (param :: pl, arg :: al) =>
         map += param.lhs -> arg
-        if (tyCheck) {
-          val paramTy = param.ty.ty.toValue
-          val idx = params.indexOf(param)
-          if (func.isMethod && idx == 0) ()
-          else if (
-            paramTy.isDefined &&
-            paramTy.safeContains(arg, st) == Some(false)
-          ) {
-            val callPoint = CallPoint(st.context.func, caller, func)
-            val aap = ArgAssignPoint(callPoint, idx)
-            st.typeErrors += ParamTypeMismatch(aap, st.typeOf(arg))
-          }
-        }
-        aux(pl, al)
+        if (tyCheck) typeChecker.paramTyCheck(caller, func, idx, param, arg)
+        aux(idx + 1, pl, al)
     }
-    aux(params, args)
+    aux(0, params, args)
     map
   }
 
@@ -609,16 +589,12 @@ object Interpreter {
         Math(l.pow(r.toInt))
       case (Pow, Math(l), Math(r)) => Math(math.pow(l.toDouble, r.toDouble))
       // TODO consider 2's complement 32-bit strings
-      case (BAnd, Math(l), Math(r)) => Math(l.toLong & r.toLong)
-      case (BOr, Math(l), Math(r))  => Math(l.toLong | r.toLong)
-      case (BXOr, Math(l), Math(r)) => Math(l.toLong ^ r.toLong)
-      case (LShift, Math(l), Math(r)) =>
-        Math((l.toInt << r.toInt).toLong)
-      case (SRShift, Math(l), Math(r)) =>
-        Math((l.toInt >> r.toInt).toLong)
-      case (URShift, Math(l), Math(r)) =>
-        Math((l.toLong << 32) >>> (32 + (r.toLong % 32)))
-      case (Lt, Math(l), Math(r)) => Bool(l < r)
+      case (BAnd, Math(l), Math(r))   => Math(l.toBigInt & r.toBigInt)
+      case (BOr, Math(l), Math(r))    => Math(l.toBigInt | r.toBigInt)
+      case (BXOr, Math(l), Math(r))   => Math(l.toBigInt ^ r.toBigInt)
+      case (LShift, Math(l), Math(r)) => Math(l.toBigInt << r.toInt)
+      case (RShift, Math(l), Math(r)) => Math(l.toBigInt >> r.toInt)
+      case (Lt, Math(l), Math(r))     => Bool(l < r)
 
       // extended mathematical value operations
       case (Add, POS_INF, Math(_))          => POS_INF
@@ -673,19 +649,19 @@ object Interpreter {
       case (Equal, Math(_), NEG_INF)         => Bool(false)
 
       // big integers
-      case (Add, BigInt(l), BigInt(r))     => BigInt(l + r)
-      case (LShift, BigInt(l), BigInt(r))  => BigInt(l << r.toInt)
-      case (SRShift, BigInt(l), BigInt(r)) => BigInt(l >> r.toInt)
-      case (Sub, BigInt(l), BigInt(r))     => BigInt(l - r)
-      case (Mul, BigInt(l), BigInt(r))     => BigInt(l * r)
-      case (Div, BigInt(l), BigInt(r))     => BigInt(l / r)
-      case (Mod, BigInt(l), BigInt(r))     => BigInt(l % r)
-      case (UMod, BigInt(l), BigInt(r))    => BigInt(l %% r)
-      case (Lt, BigInt(l), BigInt(r))      => Bool(l < r)
-      case (BAnd, BigInt(l), BigInt(r))    => BigInt(l & r)
-      case (BOr, BigInt(l), BigInt(r))     => BigInt(l | r)
-      case (BXOr, BigInt(l), BigInt(r))    => BigInt(l ^ r)
-      case (Pow, BigInt(l), BigInt(r))     => BigInt(l.pow(r.toInt))
+      case (Add, BigInt(l), BigInt(r))    => BigInt(l + r)
+      case (LShift, BigInt(l), BigInt(r)) => BigInt(l << r.toInt)
+      case (RShift, BigInt(l), BigInt(r)) => BigInt(l >> r.toInt)
+      case (Sub, BigInt(l), BigInt(r))    => BigInt(l - r)
+      case (Mul, BigInt(l), BigInt(r))    => BigInt(l * r)
+      case (Div, BigInt(l), BigInt(r))    => BigInt(l / r)
+      case (Mod, BigInt(l), BigInt(r))    => BigInt(l % r)
+      case (UMod, BigInt(l), BigInt(r))   => BigInt(l %% r)
+      case (Lt, BigInt(l), BigInt(r))     => Bool(l < r)
+      case (BAnd, BigInt(l), BigInt(r))   => BigInt(l & r)
+      case (BOr, BigInt(l), BigInt(r))    => BigInt(l | r)
+      case (BXOr, BigInt(l), BigInt(r))   => BigInt(l ^ r)
+      case (Pow, BigInt(l), BigInt(r))    => BigInt(l.pow(r.toInt))
 
       case (_, lval, rval) => throw InvalidBinaryOp(bop, lval, rval)
     }

@@ -28,6 +28,7 @@ class StringifyTinyTest extends SpecTest {
         TypeSummary(5469, 439, 1543),
         89,
         58,
+        101,
       ) ->
       s"""- version: d048f32e861c2ed4a26f59a50d392918f26da3ba (es2023)
          |- grammar:
@@ -47,7 +48,8 @@ class StringifyTinyTest extends SpecTest {
          |  - yet: 439
          |  - unknown: 1543
          |- tables: 89
-         |- type model: 58""".stripMargin,
+         |- type model: 58
+         |- intrinsics: 101""".stripMargin,
     )
     // -------------------------------------------------------------------------
     // Grammar
@@ -137,7 +139,7 @@ class StringifyTinyTest extends SpecTest {
       numHead -> """[numeric method] Number::unaryMinus(
       |  _x_: a Number,
       |): unknown""".stripMargin,
-      sdoHead1 -> """[sdo] (static) <DEFAULT>.VarDeclaredNames(
+      sdoHead1 -> """[sdo] (static) DEFAULT:VarDeclaredNames(
       |  _withParam_,
       |): unknown""".stripMargin,
       sdoHead2 -> """[sdo] (static) ForStatement[0, 5].VarDeclaredNames(
@@ -160,8 +162,8 @@ class StringifyTinyTest extends SpecTest {
     checkStringify("BuiltinPath")(
       Base("A") -> "A",
       NormalAccess(Base("A"), "B") -> "A.B",
-      Getter(NormalAccess(Base("A"), "B")) -> "get A.B",
-      Setter(NormalAccess(Base("A"), "B")) -> "set A.B",
+      Getter(NormalAccess(Base("A"), "B")) -> "get:A.B",
+      Setter(NormalAccess(Base("A"), "B")) -> "set:A.B",
       SymbolAccess(Base("A"), "B") -> "A[%Symbol.B%]",
       YetPath("A B C") -> "yet:ABC",
     )

@@ -39,9 +39,6 @@ case class Func(
     val idx = params.indexWhere(_.optional)
     val len = params.length
     (if (idx == -1) len else idx, len)
-
-  /** normalized function name */
-  def normalizedName: String = name.replace("/", "").replace("`", "")
 }
 object Func extends Parser.From(Parser.func)
 

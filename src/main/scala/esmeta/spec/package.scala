@@ -1,6 +1,7 @@
 package esmeta.spec
 
 import esmeta.spec.util.Stringifier
+import esmeta.state.*
 import esmeta.util.BaseUtils.stringify
 import org.jsoup.nodes.Element
 

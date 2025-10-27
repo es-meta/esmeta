@@ -4,6 +4,7 @@ import esmeta.cfg.{CFG, Func}
 import esmeta.error.*
 import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
+import esmeta.state.util.*
 import esmeta.ty.*
 import esmeta.util.DoubleEquals
 import java.math.MathContext.UNLIMITED
@@ -42,6 +43,12 @@ sealed trait Value extends StateElem {
       st(addr) match
         case l: ListObj => l
         case obj        => throw NoList(obj)
+    case _ => throw NoAddr(this)
+  def asRecord(st: State): RecordObj = this match
+    case addr: Addr =>
+      st(addr) match
+        case r: RecordObj => r
+        case obj          => throw NoRecord(obj)
     case _ => throw NoAddr(this)
 }
 

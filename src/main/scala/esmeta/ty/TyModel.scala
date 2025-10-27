@@ -78,6 +78,11 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     else fieldsOf(t).getOrElse(f, Binding.Absent)
   }
 
+  /** check field existence */
+  lazy val exists: ((String, String)) => Boolean = cached { field =>
+    getField(field) != Binding.Absent
+  }
+
   /** get diff field type map */
   lazy val diffOf: ((String, String)) => Option[FieldMap] = cached { (u, l) =>
     if (u == l) Some(FieldMap.Top)

@@ -32,13 +32,7 @@ trait Parsers extends TyParsers {
     }
   }.named("ir.Func")
 
-  lazy val funcName: Parser[String] =
-    // no space
-    ("""[<>\w|:\.\[\],@\/`]+""".r |||
-    // intrinsic functions contain space
-    (("""[<>\w|:\.\[\],@\/]+?(\.get|\.set)\s[<>\w|:\.\[\],@\/]+""".r) ^^ {
-      case (a) => a
-    }))
+  lazy val funcName: Parser[String] = """[\w%:\.\[\],`]+""".r
 
   lazy val main: Parser[Boolean] = opt("@main") ^^ { _.isDefined }
 
@@ -278,8 +272,7 @@ trait Parsers extends TyParsers {
     "^" ^^^ BXOr |
     "<<" ^^^ LShift |
     "<" ^^^ Lt |
-    ">>>" ^^^ URShift |
-    ">>" ^^^ SRShift
+    ">>" ^^^ RShift
   }.named("ir.BOp")
 
   // variadic operators
@@ -323,7 +316,8 @@ trait Parsers extends TyParsers {
     "[number]" ^^^ ToNumber |
     "[bigInt]" ^^^ ToBigInt |
     "[math]" ^^^ ToMath |
-    "[str" ~> opt(expr) <~ "]" ^^ { ToStr(_) }
+    "[str" ~> opt(expr) <~ "]" ^^ { ToStr(_) } |
+    "[codeUnit]" ^^^ ToCodeUnit
   }.named("ir.COp")
 
   // references

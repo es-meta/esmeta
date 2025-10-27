@@ -1,6 +1,7 @@
 package esmeta.ir
 
 import esmeta.*
+import esmeta.es.builtin.Intrinsics
 import esmeta.ir.util.{Parser, YetCollector}
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.Spec
@@ -36,8 +37,11 @@ case class Program(
   /** incomplete functions */
   lazy val incompleteFuncs: List[Func] = funcs.filter(!_.complete)
 
-  /** get a type model */
-  def tyModel: TyModel = spec.tyModel
+  /** get the type model */
+  lazy val tyModel: TyModel = spec.tyModel
+
+  /** get the intrinsics */
+  lazy val intrinsics: Intrinsics = spec.intrinsics
 
   /** dump IR program */
   def dumpTo(baseDir: String, loc: Boolean = false): Unit =
@@ -46,7 +50,7 @@ case class Program(
       name = "IR functions",
       iterable = ProgressBar("Dump IR functions", funcs, detail = false),
       dirname = dirname,
-      getName = func => s"${func.normalizedName}.ir",
+      getName = func => s"${func.name}.ir",
       getData = func => func.toString(detail = true, location = loc),
     )
 }

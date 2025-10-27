@@ -1,0 +1,7 @@
+def <BUILTIN>:INTRINSICS.TypedArray.prototype.toLocaleString(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Object] | Undefined,
+): Unknown = {
+  (yet "[YET] TypedArray.prototype.toLocaleString")
+}

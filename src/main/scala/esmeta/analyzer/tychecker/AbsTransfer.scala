@@ -740,6 +740,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           } yield {
             val lty = lv.ty
             val rty = rv.ty
+            val lnumber = lty.number
+            val rnumber = rty.number
             val lmath = lty.math
             val rmath = rty.math
             def aux(
@@ -748,10 +750,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               pos: Boolean,
               isLt: Boolean,
             ): Option[ValueTy] = {
-              var math = lty.math
-              val infinity = lty.infinity --
-                (if (!(isLt ^ pos)) InfinityTy.Pos else InfinityTy.Neg)
-              if (lty.math <= MathTy.Int) rty.getSingle match
+              var math = lmath
+              if (lmath <= MathTy.Int) rty.getSingle match
                 case One(Math(0)) =>
                   math = (isLt, pos) match
                     case (true, true)   => /* x < 0 */ MathTy.NegInt
@@ -771,10 +771,34 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                     case (false, true)  => /* x > P */ MathTy.PosInt
                     case (false, false) => /* x <= P */ MathTy.Int
                 case _ =>
+              val infinity = lty.infinity --
+                (if (!(isLt ^ pos)) InfinityTy.Pos else InfinityTy.Neg)
+              var number = lnumber
+              // TODO distinguish -0 and +0
+              if (lnumber <= NumberTy.Int) rty.getSingle match
+                case One(Number(0)) =>
+                  number = (isLt, pos) match
+                    case (true, true)   => /* x < 0 */ NumberTy.NegInt
+                    case (true, false)  => /* x >= 0 */ NumberTy.NonNegInt
+                    case (false, true)  => /* x > 0 */ NumberTy.PosInt
+                    case (false, false) => /* x <= 0 */ NumberTy.NonPosInt
+                case One(Number(v)) if v < 0 =>
+                  number = (isLt, pos) match
+                    case (true, true)   => /* x < N */ NumberTy.NegInt
+                    case (true, false)  => /* x >= N */ NumberTy.Int
+                    case (false, true)  => /* x > N */ NumberTy.Int
+                    case (false, false) => /* x <= N */ NumberTy.NegInt
+                case One(Number(v)) if v > 0 =>
+                  number = (isLt, pos) match
+                    case (true, true)   => /* x < P */ NumberTy.Int
+                    case (true, false)  => /* x >= P */ NumberTy.PosInt
+                    case (false, true)  => /* x > P */ NumberTy.PosInt
+                    case (false, false) => /* x <= P */ NumberTy.Int
+                case _ =>
               val refinedTy = ValueTy(
                 math = math,
                 infinity = infinity,
-                number = lty.number,
+                number = number,
                 bigInt = lty.bigInt,
               )
               if (lty != refinedTy) Some(refinedTy) else None
@@ -1088,7 +1112,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState <- get
           v <-
             if (b.ty <= RealmT) {
-              val ty = cfg.init.intr.kinds.getOrElse(
+              val ty = cfg.init.intrTypes.getOrElse(
                 name,
                 if (name.startsWith("%Symbol.")) SymbolT else ObjectT,
               )
@@ -1154,31 +1178,30 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         binary.bop match
           case Add | Sub | Mul | Pow | Div | UMod | Mod | Lt | Equal =>
             checkBinary(binary, lhsTy, rhsTy, Set(ExtMathT, NumberT, BigIntT))
-          case LShift | SRShift | URShift | BAnd | BOr | BXOr =>
+          case LShift | RShift | BAnd | BOr | BXOr =>
             checkBinary(binary, lhsTy, rhsTy, Set(MathT, BigIntT))
           case And | Or | Xor =>
             checkBinary(binary, lhsTy, rhsTy, Set(BoolT))
           case Eq =>
       binary.bop match {
-        case BAnd    => left & right
-        case BOr     => left | right
-        case BXOr    => left ^ right
-        case Eq      => left =^= right
-        case Equal   => left ==^== right
-        case Lt      => left < right
-        case And     => left && right
-        case Or      => left || right
-        case Xor     => left ^^ right
-        case Add     => left + right
-        case Sub     => left sub right
-        case Div     => left / right
-        case Mul     => left * right
-        case Mod     => left % right
-        case UMod    => left %% right
-        case Pow     => left ** right
-        case LShift  => left << right
-        case SRShift => left >> right
-        case URShift => left >>> right
+        case BAnd   => left & right
+        case BOr    => left | right
+        case BXOr   => left ^ right
+        case Eq     => left =^= right
+        case Equal  => left ==^== right
+        case Lt     => left < right
+        case And    => left && right
+        case Or     => left || right
+        case Xor    => left ^^ right
+        case Add    => left + right
+        case Sub    => left sub right
+        case Div    => left / right
+        case Mul    => left * right
+        case Mod    => left % right
+        case UMod   => left %% right
+        case Pow    => left ** right
+        case LShift => left << right
+        case RShift => left >> right
       }
     }
 

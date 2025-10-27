@@ -309,8 +309,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case (false, false) => "no"
         )
         app >> " white space removed"
-      case NumberOfExpression(expr) =>
-        app >> "the number of elements in " >> expr
+      case NumberOfExpression(name, pre, expr) =>
+        app >> "the number of " >> name >> " in "
+        pre.map(app >> "the " >> _ >> " ")
+        app >> expr
       case SourceTextExpression(expr) =>
         app >> "the source text matched by " >> expr
       case CoveredByExpression(code, rule) =>
@@ -485,6 +487,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case ToNumber       => if (text) "Number" else "𝔽"
         case ToBigInt       => if (text) "BigInt" else "ℤ"
         case ToMath         => if (text) "numeric" else "ℝ"
+        case ToCodeUnit     => "code unit"
       })
 
   // operators for binary expressions

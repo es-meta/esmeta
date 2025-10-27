@@ -40,7 +40,11 @@ case class TrimExpression(
 ) extends Expression
 
 // `the number of elements in <list>` expressions
-case class NumberOfExpression(expr: Expression) extends Expression
+case class NumberOfExpression(
+  name: String,
+  pre: Option[String],
+  expr: Expression,
+) extends Expression
 
 // intrinsic expressions
 case class IntrinsicExpression(intr: Intrinsic) extends Expression
@@ -184,7 +188,7 @@ case class ConversionExpression(
   expr: Expression,
 ) extends CalcExpression
 enum ConversionExpressionOperator extends LangElem:
-  case ToApproxNumber, ToNumber, ToBigInt, ToMath
+  case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit
 
 // -----------------------------------------------------------------------------
 // clamp expressions

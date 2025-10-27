@@ -1,7 +1,7 @@
 package esmeta.compiler
 
 import esmeta.MANUALS_DIR
-import esmeta.es.builtin.{INNER_MAP, PRIVATE_ELEMENTS}
+import esmeta.es.builtin.*
 import esmeta.ir.{
   Type => IRType,
   UnknownType => IRUnknownType,
@@ -196,7 +196,7 @@ class Compiler(
   def compile(algo: Algorithm): Unit =
     import FuncKind.*
     val kind = getKind(algo.head)
-    val name = algo.head.fname
+    val name = normalize(algo.head.fname)
     val params = algo.head.funcParams.map(compile)
     val retTy = compile(algo.retTy)
     val needRetComp = kind match
@@ -221,7 +221,7 @@ class Compiler(
     case SetStep(ref, expr) =>
       fb.addInst(IAssign(compile(fb, ref), compile(fb, expr)))
     case SetAsStep(ref, verb, id) =>
-      val expr = EClo(spec.getAlgoById(id).head.fname, Nil)
+      val expr = EClo(normalize(spec.getAlgoById(id).head.fname), Nil)
       fb.addInst(IAssign(compile(fb, ref), expr))
     case SetEvaluationStateStep(context, func, args) =>
       val ctxt = compile(fb, context)
@@ -240,7 +240,7 @@ class Compiler(
         contFB.addReturnToResume(ctxt, x)
       }
       funcs += contFB.getFunc(inst)
-      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+      fb.addInst(IAssign(toStrRef(ctxt, RESUME_CONT), ECont(contName)))
     case PerformStep(expr) =>
       val e = compile(fb, expr)
       if (!e.isPure) fb.addInst(IExpr(e))
@@ -460,13 +460,13 @@ class Compiler(
         ),
         body = BlockStep(StepBlock(steps)),
       )
-      fb.addInst(IAssign(toStrRef(ctxt, "ResumeCont"), ECont(contName)))
+      fb.addInst(IAssign(toStrRef(ctxt, RESUME_CONT), ECont(contName)))
       fb.addReturnToResume(compile(fb, context), compile(fb, arg))
     case ResumeEvaluationStep(context, argOpt, paramOpt, steps) =>
       val ctxt = compile(fb, context)
-      val returnCont = toStrRef(ctxt, "ReturnCont")
+      val returnCont = toStrRef(ctxt, RETURN_CONT)
       val (eResumeCont, eReturnCont) =
-        (toStrERef(ctxt, "ResumeCont"), ERef(returnCont))
+        (toStrERef(ctxt, RESUME_CONT), ERef(returnCont))
       val contName = fb.nextContName
       val ps = toParams(paramOpt.map(_._1))
       val bodyStep = BlockStep(StepBlock(steps))
@@ -582,12 +582,8 @@ class Compiler(
           case (false, true)  => ETrim(compile(fb, expr), false)
           case (true, true)   => ETrim(ETrim(compile(fb, expr), true), false)
         }
-      case NumberOfExpression(ReferenceExpression(ref)) =>
-        ESizeOf(ERef(compile(fb, ref)))
-      case NumberOfExpression(expr) =>
-        val (x, xExpr) = fb.newTIdWithExpr
-        fb.addInst(IAssign(x, compile(fb, expr)))
-        ESizeOf(xExpr)
+      case NumberOfExpression(_, _, expr) =>
+        ESizeOf(compile(fb, expr))
       case IntrinsicExpression(intr) =>
         toEIntrinsic(currentIntrinsics, intr)
       case SourceTextExpression(expr) =>
@@ -609,12 +605,12 @@ class Compiler(
         else if (shorthands contains name) compileShorthand(fb, name, as)
         else
           val (x, xExpr) = fb.newTIdWithExpr
-          val f = EClo(name, Nil)
+          val f = EClo(normalize(name), Nil)
           fb.addInst(ICall(x, f, as))
           xExpr
       case InvokeNumericMethodExpression(ty, name, args) =>
         val (x, xExpr) = fb.newTIdWithExpr
-        val f = EClo(s"$ty::$name", Nil)
+        val f = EClo(normalize(s"$ty::$name"), Nil)
         fb.addInst(ICall(x, f, args.map(compile(fb, _))))
         xExpr
       case InvokeAbstractClosureExpression(ref, args) =>
@@ -699,6 +695,7 @@ class Compiler(
           case ToNumber       => EConvert(COp.ToNumber, compile(fb, expr))
           case ToBigInt       => EConvert(COp.ToBigInt, compile(fb, expr))
           case ToMath         => EConvert(COp.ToMath, compile(fb, expr))
+          case ToCodeUnit     => EConvert(COp.ToCodeUnit, compile(fb, expr))
       case ExponentiationExpression(base, power) =>
         EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
       case BinaryExpression(left, op, right) =>
@@ -716,23 +713,15 @@ class Compiler(
       case BitwiseExpression(left, op, right) =>
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case AbstractClosureExpression(params, captured, body) =>
-        val algoName = fb.algo.head.fname
+        val algoName = normalize(fb.algo.head.fname)
         val hasPrefix = fixClosurePrefixAOs.exists(_.matches(algoName))
-        val (ck, cn, ps) =
-          if (hasPrefix)
-            (
-              FuncKind.Clo,
-              fb.nextCloName,
-              List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET),
-            )
-          else
-            (
-              FuncKind.Clo,
-              fb.nextCloName,
-              params.map(x => IRParam(compile(x), IRUnknownType, false)),
-            )
+        val kind = FuncKind.Clo
+        val name = fb.nextCloName
+        val ps =
+          if (hasPrefix) List(PARAM_THIS, PARAM_ARGS_LIST, PARAM_NEW_TARGET)
+          else params.map(x => IRParam(compile(x), IRUnknownType, false))
         val retTy = IRUnknownType
-        val cloFB = FuncBuilder(spec, ck, cn, ps, retTy, fb.algo, true)
+        val cloFB = FuncBuilder(spec, kind, name, ps, retTy, fb.algo, true)
         val prefix =
           if (hasPrefix)
             getBuiltinPrefix(cloFB, params.map(x => Param(x.name, UnknownType)))
@@ -742,9 +731,9 @@ class Compiler(
           body = body,
           prefix = prefix,
         )
-        EClo(cn, captured.map(compile))
+        EClo(name, captured.map(compile))
       case XRefExpression(XRefExpressionOperator.Algo, id) =>
-        EClo(spec.getAlgoById(id).head.fname, Nil)
+        EClo(normalize(normalize(spec.getAlgoById(id).head.fname)), Nil)
       case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
         EMath(spec.getAlgoById(id).head.originalParams.length)
       case XRefExpression(XRefExpressionOperator.InternalSlots, id) =>
@@ -1228,4 +1217,6 @@ class Compiler(
       case (fb, List(expr)) => returnIfAbrupt(fb, expr, true, false)
     }),
   )
+
+  def normalize(name: String): String = name.replace("/", "")
 }

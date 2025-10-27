@@ -3,6 +3,7 @@ package esmeta.spec
 import esmeta.*
 import esmeta.compiler.Compiler
 import esmeta.lang.*
+import esmeta.es.builtin.Intrinsics
 import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.util.*
 import esmeta.ty.*
@@ -18,6 +19,7 @@ case class Spec(
   algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
   tables: Map[String, Table] = Map(), // tables
   tyModel: TyModel = TyModel(), // type models
+  intrinsics: Intrinsics = Intrinsics(), // intrinsics
 ) extends SpecElem {
 
   /** HTML Document element */
@@ -111,7 +113,8 @@ case class Spec(
     grammar == Grammar() &&
     algorithms.isEmpty &&
     tables.isEmpty &&
-    tyModel == TyModel()
+    tyModel == TyModel() &&
+    intrinsics == Intrinsics()
 
   /** ECMAScript version string */
   lazy val versionString: String = version.fold("<none>")(_.toString)

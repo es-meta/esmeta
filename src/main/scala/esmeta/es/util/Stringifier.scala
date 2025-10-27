@@ -1,10 +1,13 @@
 package esmeta.es.util
 
+import esmeta.LINE_SEP
+import esmeta.es.*
+import esmeta.es.builtin.*
 import esmeta.spec.*
+import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
-import esmeta.es.*
 
 /** stringifier for ECMAScript */
 class Stringifier(
@@ -12,11 +15,18 @@ class Stringifier(
   location: Boolean,
   grammar: Option[Grammar],
 ) {
+  lazy val _stateStringifier = StateElem.getStringifier(false, false)
+
   // elements
   given elemRule: Rule[ESElem] = (app, elem) =>
     elem match
-      case elem: Script => scriptRule(app, elem)
-      case elem: Ast    => astRule(app, elem)
+      case elem: Script     => scriptRule(app, elem)
+      case elem: Ast        => astRule(app, elem)
+      case elem: Intrinsics => intrRule(app, elem)
+      case elem: Template   => templateRule(app, elem)
+      case elem: Model      => modelRule(app, elem)
+      case elem: PropKey    => propKeyRule(app, elem)
+      case elem: PropDesc   => propDescRule(app, elem)
 
   // ECMAScript script program
   given scriptRule: Rule[Script] = (app, script) => app >> script.code
@@ -61,4 +71,62 @@ class Stringifier(
       case Lexical(name, str) =>
         app >> "|" >> name >> "|(" >> str >> ")"
         if (detail && ast.loc.isDefined) app >> ast.loc.get else app
+
+  // intrinsics
+  given intrRule: Rule[Intrinsics] = (app, intr) => {
+    given iterRule[T: Rule]: Rule[Iterable[T]] =
+      iterableRule(sep = LINE_SEP + LINE_SEP)
+    val Intrinsics(templates, models) = intr
+    app >> templates >> LINE_SEP
+    app :> models
+  }
+
+  // templates
+  given templateRule: Rule[Template] = (app, template) => {
+    val Template(name, instances) = template
+    app >> "_" >> name >> "_ is "
+    app.wrap("{", "}") {
+      for ((x, props) <- instances) {
+        app :> x
+        if (props.nonEmpty) app.wrap("{", "}") {
+          for ((key, value) <- props) {
+            app :> key >> ": " >> value >> ";"
+          }
+        }
+      }
+    }
+  }
+
+  // models
+  given modelRule: Rule[Model] = (app, model) => {
+    val Model(name, tname, imap, nmap) = model
+    app >> name >> " = " >> tname
+    if (imap.nonEmpty) app.wrap(" [", "]") {
+      for ((k, v) <- imap) app :> k >> ": " >> v >> ";"
+    }
+    if (nmap.nonEmpty) app.wrap(" {", "}") {
+      for ((key, desc) <- nmap) app :> key >> ": " >> desc >> ";"
+    }
+    app
+  }
+
+  // property keys
+  given propKeyRule: Rule[PropKey] = (app, prop) =>
+    prop match
+      case PropKey.Str(str) => app >> str
+      case PropKey.Sym(sym) => app >> s"%Symbol.$sym%"
+
+  // property descriptors
+  given propDescRule: Rule[PropDesc] = (app, prop) =>
+    val stateStringifier = _stateStringifier
+    import stateStringifier.{*, given}
+    given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+    prop match
+      case DataDesc(value, w, e, c) =>
+        app >> "[" >> w >> e >> c >> "] " >> value
+      case AccessorDesc(get, set, e, c) =>
+        (app >> "[" >> e >> c >> "] ").wrap("{", "}") {
+          app :> "Get: " >> get >> ";"
+          app :> "Set: " >> set >> ";"
+        }
 }

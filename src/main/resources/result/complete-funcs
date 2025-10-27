@@ -1,8 +1,6 @@
-<DEFAULT>.AllPrivateIdentifiersValid
-<DEFAULT>.Contains
-<DEFAULT>.ContainsArguments
 AddEntriesFromIterable
 AddRestrictedFunctionProperties
+AddToKeptObjects
 AdditiveExpression[1,0].AssignmentTargetType
 AdditiveExpression[1,0].Evaluation
 AdditiveExpression[1,0].HasCallInTailPosition
@@ -15,6 +13,7 @@ AdvanceStringIndex
 AgentCanSuspend
 AgentSignifier
 AllImportAttributesSupported
+AllocateArrayBuffer
 AllocateTypedArray
 AllocateTypedArrayBuffer
 Alternative[0,0].CompileSubpattern
@@ -57,6 +56,7 @@ ArrayBindingPattern[2,2].IteratorBindingInitialization
 ArrayBindingPattern[2,3].BoundNames
 ArrayBindingPattern[2,3].ContainsExpression
 ArrayBindingPattern[2,3].IteratorBindingInitialization
+ArrayBufferByteLength
 ArrayBufferCopyAndDetach
 ArrayCreate
 ArrayLiteral[0,0].Evaluation
@@ -565,6 +565,7 @@ ClassUnion[0,0].MayContainStrings
 ClassUnion[0,1].MayContainStrings
 ClassUnion[1,0].MayContainStrings
 ClassUnion[1,1].MayContainStrings
+ClearKeptObjects
 CloneArrayBuffer
 CoalesceExpression[0,0].AssignmentTargetType
 CoalesceExpression[0,0].Evaluation
@@ -605,6 +606,7 @@ CreateArrayIterator
 CreateAsyncFromSyncIterator
 CreateAsyncIteratorFromClosure
 CreateBuiltinFunction
+CreateByteDataBlock
 CreateDataProperty
 CreateDataPropertyOrThrow
 CreateDefaultExportSyntheticModule
@@ -628,6 +630,9 @@ CreateResolvingFunctions
 CreateSetIterator
 CreateSetIterator:clo0
 CreateUnmappedArgumentsObject
+DEFAULT:AllPrivateIdentifiersValid
+DEFAULT:Contains
+DEFAULT:ContainsArguments
 DateFromTime
 DayFromYear
 DaysInYear
@@ -803,7 +808,7 @@ ForDeclaration[0,0].BoundNames
 ForDeclaration[0,0].ForDeclarationBindingInitialization
 ForDeclaration[0,0].ForDeclarationBindingInstantiation
 ForDeclaration[0,0].IsDestructuring
-ForIn/OfHeadEvaluation
+ForInOfHeadEvaluation
 ForInOfStatement[0,0].ContainsDuplicateLabels
 ForInOfStatement[0,0].ContainsUndefinedBreakTarget
 ForInOfStatement[0,0].ContainsUndefinedContinueTarget
@@ -1111,6 +1116,7 @@ GetUTCEpochNanoseconds
 GetV
 GetValue
 GetViewByteLength
+GetViewValue
 GlobalDeclarationInstantiation
 GroupBy
 GroupName[0,0].CapturingGroupName
@@ -1137,6 +1143,7 @@ HostFinalizeImportMeta
 HostGetImportMetaProperties
 HostMakeJobCallback
 HostPromiseRejectionTracker
+HostResizeArrayBuffer
 INTRINSICS.AggregateError
 INTRINSICS.Array.from
 INTRINSICS.Array.isArray
@@ -1449,6 +1456,7 @@ INTRINSICS.SetIteratorPrototype.next
 INTRINSICS.SharedArrayBuffer
 INTRINSICS.SharedArrayBuffer.prototype.slice
 INTRINSICS.String
+INTRINSICS.String.fromCharCode
 INTRINSICS.String.fromCodePoint
 INTRINSICS.String.prototype.at
 INTRINSICS.String.prototype.charAt
@@ -1538,49 +1546,49 @@ INTRINSICS.decodeURIComponent
 INTRINSICS.encodeURI
 INTRINSICS.encodeURIComponent
 INTRINSICS.eval
-INTRINSICS.get ArrayBuffer.prototype.byteLength
-INTRINSICS.get ArrayBuffer.prototype.detached
-INTRINSICS.get ArrayBuffer.prototype.maxByteLength
-INTRINSICS.get ArrayBuffer.prototype.resizable
-INTRINSICS.get ArrayBuffer[%Symbol.species%]
-INTRINSICS.get Array[%Symbol.species%]
-INTRINSICS.get DataView.prototype.buffer
-INTRINSICS.get DataView.prototype.byteLength
-INTRINSICS.get DataView.prototype.byteOffset
-INTRINSICS.get Iterator.prototype.constructor
-INTRINSICS.get Iterator.prototype[%Symbol.toStringTag%]
-INTRINSICS.get Map.prototype.size
-INTRINSICS.get Map[%Symbol.species%]
-INTRINSICS.get Object.prototype.__proto__
-INTRINSICS.get Promise[%Symbol.species%]
-INTRINSICS.get RegExp.prototype.dotAll
-INTRINSICS.get RegExp.prototype.global
-INTRINSICS.get RegExp.prototype.hasIndices
-INTRINSICS.get RegExp.prototype.ignoreCase
-INTRINSICS.get RegExp.prototype.multiline
-INTRINSICS.get RegExp.prototype.source
-INTRINSICS.get RegExp.prototype.sticky
-INTRINSICS.get RegExp.prototype.unicode
-INTRINSICS.get RegExp.prototype.unicodeSets
-INTRINSICS.get RegExp[%Symbol.species%]
-INTRINSICS.get Set.prototype.size
-INTRINSICS.get Set[%Symbol.species%]
-INTRINSICS.get SharedArrayBuffer.prototype.byteLength
-INTRINSICS.get SharedArrayBuffer.prototype.growable
-INTRINSICS.get SharedArrayBuffer.prototype.maxByteLength
-INTRINSICS.get SharedArrayBuffer[%Symbol.species%]
-INTRINSICS.get Symbol.prototype.description
-INTRINSICS.get TypedArray.prototype.buffer
-INTRINSICS.get TypedArray.prototype.byteLength
-INTRINSICS.get TypedArray.prototype.byteOffset
-INTRINSICS.get TypedArray.prototype[%Symbol.toStringTag%]
-INTRINSICS.get TypedArray[%Symbol.species%]
+INTRINSICS.get:ArrayBuffer.prototype.byteLength
+INTRINSICS.get:ArrayBuffer.prototype.detached
+INTRINSICS.get:ArrayBuffer.prototype.maxByteLength
+INTRINSICS.get:ArrayBuffer.prototype.resizable
+INTRINSICS.get:ArrayBuffer[%Symbol.species%]
+INTRINSICS.get:Array[%Symbol.species%]
+INTRINSICS.get:DataView.prototype.buffer
+INTRINSICS.get:DataView.prototype.byteLength
+INTRINSICS.get:DataView.prototype.byteOffset
+INTRINSICS.get:Iterator.prototype.constructor
+INTRINSICS.get:Iterator.prototype[%Symbol.toStringTag%]
+INTRINSICS.get:Map.prototype.size
+INTRINSICS.get:Map[%Symbol.species%]
+INTRINSICS.get:Object.prototype.__proto__
+INTRINSICS.get:Promise[%Symbol.species%]
+INTRINSICS.get:RegExp.prototype.dotAll
+INTRINSICS.get:RegExp.prototype.global
+INTRINSICS.get:RegExp.prototype.hasIndices
+INTRINSICS.get:RegExp.prototype.ignoreCase
+INTRINSICS.get:RegExp.prototype.multiline
+INTRINSICS.get:RegExp.prototype.source
+INTRINSICS.get:RegExp.prototype.sticky
+INTRINSICS.get:RegExp.prototype.unicode
+INTRINSICS.get:RegExp.prototype.unicodeSets
+INTRINSICS.get:RegExp[%Symbol.species%]
+INTRINSICS.get:Set.prototype.size
+INTRINSICS.get:Set[%Symbol.species%]
+INTRINSICS.get:SharedArrayBuffer.prototype.byteLength
+INTRINSICS.get:SharedArrayBuffer.prototype.growable
+INTRINSICS.get:SharedArrayBuffer.prototype.maxByteLength
+INTRINSICS.get:SharedArrayBuffer[%Symbol.species%]
+INTRINSICS.get:Symbol.prototype.description
+INTRINSICS.get:TypedArray.prototype.buffer
+INTRINSICS.get:TypedArray.prototype.byteLength
+INTRINSICS.get:TypedArray.prototype.byteOffset
+INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%]
+INTRINSICS.get:TypedArray[%Symbol.species%]
 INTRINSICS.isFinite
 INTRINSICS.isNaN
 INTRINSICS.print
-INTRINSICS.set Iterator.prototype.constructor
-INTRINSICS.set Iterator.prototype[%Symbol.toStringTag%]
-INTRINSICS.set Object.prototype.__proto__
+INTRINSICS.set:Iterator.prototype.constructor
+INTRINSICS.set:Iterator.prototype[%Symbol.toStringTag%]
+INTRINSICS.set:Object.prototype.__proto__
 INTRINSICS.yet:PromiseRejectFunction
 INTRINSICS.yet:PromiseResolveFunction
 INTRINSICS.yet:`Promise.allSettled`RejectElementFunction
@@ -1688,6 +1696,7 @@ IsTypedArrayFixedLength
 IsUnclampedIntegerElementType
 IsUnresolvableReference
 IsUnsignedElementType
+IsValidIntegerIndex
 IterationStatement[0,0].LoopEvaluation
 IterationStatement[1,0].LoopEvaluation
 IterationStatement[2,0].LoopEvaluation
@@ -1941,6 +1950,7 @@ Number::bitwiseXOR
 Number::divide
 Number::equal
 Number::leftShift
+Number::multiply
 Number::sameValue
 Number::sameValueZero
 Number::signedRightShift
@@ -2285,6 +2295,7 @@ SetIntegrityLevel
 SetSyntheticModuleExport
 SetTypedArrayFromArrayLike
 SetTypedArrayFromTypedArray
+SetViewValue
 SetterThatIgnoresPrototypeProperties
 ShiftExpression[1,0].AssignmentTargetType
 ShiftExpression[1,0].Evaluation
@@ -2405,6 +2416,7 @@ StrUnsignedDecimalLiteral[0,0].StringNumericValue
 StrUnsignedDecimalLiteral[3,0].StringNumericValue
 StrUnsignedDecimalLiteral[3,1].StringNumericValue
 StringCreate
+StringGetOwnProperty
 StringIndexOf
 StringLastIndexOf
 StringNumericLiteral[0,0].StringNumericValue
@@ -2505,6 +2517,8 @@ TryStatement[2,0].VarScopedDeclarations
 TypedArrayByteLength
 TypedArrayCreate
 TypedArrayCreateFromConstructor
+TypedArrayElementSize
+TypedArrayElementType
 TypedArrayGetElement
 TypedArrayLength
 TypedArraySetElement
@@ -2601,6 +2615,7 @@ __APPEND_LIST__
 __CLAMP__
 __FLAT_LIST__
 __GET_ITEMS__
+__GET_TYPED_ARRAY_INFO_FROM_TYPE__
 __HAS_DUPLICATE__
 __IS_ARRAY_INDEX__
 __NEW_ERROR_OBJ__

@@ -34,6 +34,11 @@ def recordObj(tname: String)(using CFG): RecordObj = recordObj(tname)()
 /** create a record object with concrete methods */
 def recordObj(tname: String)(
   fields: (String, Value)*,
+)(using cfg: CFG): RecordObj = recordObj(tname)(fields)
+
+/** create a record object with concrete methods */
+def recordObj(tname: String)(
+  fields: Iterable[(String, Value)],
 )(using cfg: CFG): RecordObj = {
   val obj = RecordObj(tname, fields.toMap)
   for {

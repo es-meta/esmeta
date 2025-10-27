@@ -5,15 +5,16 @@
     - numeric string: 16
     - syntactic: 198
   - extended productions for web: 29
-- algorithms: 2851 (86.50%)
-  - complete: 2466
-  - incomplete: 385
-- algorithm steps: 21532 (96.41%)
-  - complete: 20759
-  - incomplete: 773
-- types: 7538 (97.47%)
-  - known: 7347
+- algorithms: 2867 (86.36%)
+  - complete: 2476
+  - incomplete: 391
+- algorithm steps: 22043 (96.51%)
+  - complete: 21273
+  - incomplete: 770
+- types: 7586 (97.48%)
+  - known: 7395
   - yet: 191
-  - unknown: 658
+  - unknown: 674
 - tables: 99
-- type model: 107
+- type model: 109
+- intrinsics: 101

@@ -155,7 +155,10 @@ object LangTest {
   lazy val trim = TrimExpression(refExpr, T, T)
   lazy val trimStart = TrimExpression(refExpr, T, F)
   lazy val trimEnd = TrimExpression(refExpr, F, T)
-  lazy val numberOfExpr = NumberOfExpression(refExpr)
+  lazy val numberOfExpr = NumberOfExpression("elements", None, refExpr)
+  lazy val numberOfBytesExpr = NumberOfExpression("bytes", None, refExpr)
+  lazy val numberOfListExpr =
+    NumberOfExpression("elements", Some("List"), refExpr)
   lazy val sourceTextExpr = SourceTextExpression(nt)
   lazy val coveredByExpr = CoveredByExpression(nt, nt)
   lazy val getItemsExpr = GetItemsExpression(nt, refExpr)

@@ -2,6 +2,8 @@ package esmeta.util
 
 import esmeta.MANUALS_DIR
 import esmeta.analyzer.tychecker.TyChecker.Ignore
+import esmeta.cfg.CFG
+import esmeta.es.builtin.*
 import esmeta.spec.Spec
 import esmeta.test262.util.ManualConfig
 import esmeta.ty.TyModel
@@ -38,8 +40,11 @@ object ManualInfo {
 
   /** type model */
   lazy val tyModel: TyModel =
-    import esmeta.ty.util.JsonProtocol.given
     TyModel.fromFile(s"$MANUALS_DIR/types")
+
+  /** intrinsics */
+  lazy val intrinsics: Intrinsics =
+    Intrinsics.fromFile(s"$MANUALS_DIR/intrinsics")
 
   /** get test262 manual configuration */
   lazy val test262Config: ManualConfig = ManualConfig(
