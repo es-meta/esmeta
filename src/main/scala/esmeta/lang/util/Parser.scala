@@ -520,7 +520,8 @@ trait Parsers extends IndentParsers {
         opt("integer that is the") ~ "numeric" ^^^ ToMath
       ) ~
       ("value" ~ ("of" | "for" | "representing" | "that represents") ~> expr) <~
-      opt(textFormatPostfix)
+      opt(textFormatPostfix) |
+      ("the code unit whose numeric value is" ^^^ ToCodeUnit) ~ expr
     lazy val textFormatPostfix = opt(",") ~ ("rounded" | "rounding") ~ "[^.]+".r
     (opFormat | textFormat) ^^ { case op ~ e => ConversionExpression(op, e) }
 

@@ -1456,6 +1456,7 @@ INTRINSICS.SetIteratorPrototype.next
 INTRINSICS.SharedArrayBuffer
 INTRINSICS.SharedArrayBuffer.prototype.slice
 INTRINSICS.String
+INTRINSICS.String.fromCharCode
 INTRINSICS.String.fromCodePoint
 INTRINSICS.String.prototype.at
 INTRINSICS.String.prototype.charAt

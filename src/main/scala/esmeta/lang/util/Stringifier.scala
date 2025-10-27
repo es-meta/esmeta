@@ -487,6 +487,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case ToNumber       => if (text) "Number" else "𝔽"
         case ToBigInt       => if (text) "BigInt" else "ℤ"
         case ToMath         => if (text) "numeric" else "ℝ"
+        case ToCodeUnit     => "code unit"
       })
 
   // operators for binary expressions
