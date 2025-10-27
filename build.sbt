@@ -20,7 +20,7 @@ ThisBuild / scalacOptions := Seq(
   // disable import suggestions related bug: https://github.com/scala/scala3/issues/12876
   "-Ximport-suggestion-timeout",
   "0",
-  "-Xmax-inlines",
+  "-Xmax-inlines", // set max number of inlines from 32 to 64
   "64",
 )
 
