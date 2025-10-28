@@ -46,7 +46,7 @@ trait BasicParsers extends JavaTokenParsers {
   lazy val newline = "\r?\n|\r|\f".r
 
   // any word
-  lazy val word = "\\w+".r
+  lazy val word = "[_a-zA-Z][_a-zA-Z0-9]*".r
 
   // camel case
   lazy val camel = "[A-Z][a-zA-Z0-9]+".r

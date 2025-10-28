@@ -9,7 +9,7 @@
   - complete: 2495 (87.02%)
   - equals: 2652 (92.50%)
 - algorithm steps: 22044
-  - complete: 21317 (96.70%)
+  - complete: 21316 (96.70%)
 - types: 8260
   - known: 7395 (89.53%)
   - yet: 191 (2.31%)
