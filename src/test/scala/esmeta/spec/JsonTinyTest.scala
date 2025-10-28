@@ -224,19 +224,25 @@ class JsonTinyTest extends SpecTest {
           "name" -> "StringIndexOf".asJson,
           "params" -> Json.arr(
             Json.obj(
-              "name" -> "string".asJson,
-              "ty" -> "a String".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "string".asJson,
+                "ty" -> "a String".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
             Json.obj(
-              "name" -> "searchValue".asJson,
-              "ty" -> "a String".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "searchValue".asJson,
+                "ty" -> "a String".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
             Json.obj(
-              "name" -> "fromIndex".asJson,
-              "ty" -> "a Number".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "fromIndex".asJson,
+                "ty" -> "a Number".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
           ),
           "retTy" -> "unknown".asJson,
@@ -248,9 +254,11 @@ class JsonTinyTest extends SpecTest {
           "name" -> "unaryMinus".asJson,
           "params" -> Json.arr(
             Json.obj(
-              "name" -> "x".asJson,
-              "ty" -> "a Number".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "x".asJson,
+                "ty" -> "a Number".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
           ),
           "retTy" -> "unknown".asJson,
@@ -263,9 +271,11 @@ class JsonTinyTest extends SpecTest {
           "isStatic" -> Json.True,
           "withParams" -> Json.arr(
             Json.obj(
-              "name" -> "withParam".asJson,
-              "ty" -> "unknown".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "withParam".asJson,
+                "ty" -> "unknown".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
           ),
           "retTy" -> "unknown".asJson,
@@ -274,17 +284,21 @@ class JsonTinyTest extends SpecTest {
       sdoHead2 -> Json.obj(
         "SyntaxDirectedOperationHead" -> Json.obj(
           "target" -> Json.obj(
-            "lhsName" -> "ForStatement".asJson,
-            "idx" -> 0.asJson,
-            "subIdx" -> 5.asJson,
+            "Target" -> Json.obj(
+              "lhsName" -> "ForStatement".asJson,
+              "idx" -> 0.asJson,
+              "subIdx" -> 5.asJson,
+            ),
           ),
           "methodName" -> "VarDeclaredNames".asJson,
           "isStatic" -> Json.True,
           "withParams" -> Json.arr(
             Json.obj(
-              "name" -> "withParam".asJson,
-              "ty" -> "unknown".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "withParam".asJson,
+                "ty" -> "unknown".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
           ),
           "retTy" -> "unknown".asJson,
@@ -293,9 +307,11 @@ class JsonTinyTest extends SpecTest {
       sdoHead3 -> Json.obj(
         "SyntaxDirectedOperationHead" -> Json.obj(
           "target" -> Json.obj(
-            "lhsName" -> "AdditiveExpression".asJson,
-            "idx" -> 1.asJson,
-            "subIdx" -> 0.asJson,
+            "Target" -> Json.obj(
+              "lhsName" -> "AdditiveExpression".asJson,
+              "idx" -> 1.asJson,
+              "subIdx" -> 0.asJson,
+            ),
           ),
           "methodName" -> "Evaluation".asJson,
           "isStatic" -> Json.False,
@@ -307,15 +323,19 @@ class JsonTinyTest extends SpecTest {
         "ConcreteMethodHead" -> Json.obj(
           "concMethodName" -> "HasBinding".asJson,
           "receiver" -> Json.obj(
-            "name" -> "envRec".asJson,
-            "ty" -> "unknown".asJson,
-            "kind" -> Json.obj("Normal" -> Json.obj()),
+            "Param" -> Json.obj(
+              "name" -> "envRec".asJson,
+              "ty" -> "unknown".asJson,
+              "kind" -> Json.obj("Normal" -> Json.obj()),
+            ),
           ),
           "params" -> Json.arr(
             Json.obj(
-              "name" -> "N".asJson,
-              "ty" -> "a String".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "N".asJson,
+                "ty" -> "a String".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
           ),
           "retTy" -> "unknown".asJson,
@@ -325,15 +345,19 @@ class JsonTinyTest extends SpecTest {
         "InternalMethodHead" -> Json.obj(
           "methodName" -> "SetPrototypeOf".asJson,
           "receiver" -> Json.obj(
-            "name" -> "O".asJson,
-            "ty" -> "unknown".asJson,
-            "kind" -> Json.obj("Normal" -> Json.obj()),
+            "Param" -> Json.obj(
+              "name" -> "O".asJson,
+              "ty" -> "unknown".asJson,
+              "kind" -> Json.obj("Normal" -> Json.obj()),
+            ),
           ),
           "params" -> Json.arr(
             Json.obj(
-              "name" -> "V".asJson,
-              "ty" -> "an Object or *null*".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "V".asJson,
+                "ty" -> "an Object or *null*".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
           ),
           "retTy" -> "unknown".asJson,
@@ -348,9 +372,11 @@ class JsonTinyTest extends SpecTest {
           ),
           "params" -> Json.arr(
             Json.obj(
-              "name" -> "value".asJson,
-              "ty" -> "unknown".asJson,
-              "kind" -> Json.obj("Normal" -> Json.obj()),
+              "Param" -> Json.obj(
+                "name" -> "value".asJson,
+                "ty" -> "unknown".asJson,
+                "kind" -> Json.obj("Normal" -> Json.obj()),
+              ),
             ),
           ),
           "retTy" -> "unknown".asJson,
