@@ -27,9 +27,9 @@ case class HasFieldCondition(
   ref: Reference,
   negation: Boolean,
   field: Expression,
-  form: HasFieldConditionOperator,
+  form: HasFieldConditionForm,
 ) extends Condition
-enum HasFieldConditionOperator extends LangElem:
+enum HasFieldConditionForm:
   case Field, InternalSlot, InternalMethod
 
 // binding inclusion conditions

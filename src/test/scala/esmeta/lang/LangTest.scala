@@ -58,6 +58,7 @@ object LangTest {
   )
   lazy val appendStep = dot(AppendStep(refExpr, fieldRef))
   lazy val prependStep = dot(PrependStep(refExpr, fieldRef))
+  lazy val insertStep = dot(InsertStep(refExpr, fieldRef))
   lazy val addStep = dot(AddStep(refExpr, fieldRef))
   import RemoveStep.Target.*
   lazy val removeStep = dot(RemoveStep(Element(refExpr), "from", refExpr))
@@ -381,9 +382,9 @@ object LangTest {
   lazy val neitherTypeCheckCond =
     TypeCheckCondition(refExpr, T, List(ty, ty))
   lazy val hasFieldCond =
-    HasFieldCondition(x, F, fieldLit, HasFieldConditionOperator.InternalSlot)
+    HasFieldCondition(x, F, fieldLit, HasFieldConditionForm.InternalSlot)
   lazy val noHasFieldCond =
-    HasFieldCondition(x, T, fieldLit, HasFieldConditionOperator.InternalSlot)
+    HasFieldCondition(x, T, fieldLit, HasFieldConditionForm.InternalMethod)
   lazy val hasBindingCond = HasBindingCondition(x, F, refExpr)
   lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
@@ -464,6 +465,8 @@ object LangTest {
   lazy val componentProp = ComponentProperty("Realm", ComponentPropertyForm.Dot)
   lazy val bindingProp = BindingProperty(refExpr)
   lazy val indexProp = IndexProperty(refExpr)
+  lazy val firstProp = PositionalElementProperty(true)
+  lazy val lastProp = PositionalElementProperty(false)
   lazy val intrProp = IntrinsicProperty(intr)
   lazy val propIntrProp = IntrinsicProperty(propIntr)
 

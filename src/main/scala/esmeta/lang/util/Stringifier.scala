@@ -27,7 +27,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: CompoundConditionOperator => compCondOpRule(app, elem)
       case elem: MathOpExpressionOperator  => mathOpRule(app, elem)
       case elem: BitwiseExpressionOperator => bitExprOpRule(app, elem)
-      case elem: HasFieldConditionOperator => hasFieldCondOpRule(app, elem)
     }
 
   // syntax
@@ -297,7 +296,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
             val (field, expr) = fields.head
             app >> "a new " >> ty >> " whose " >> field >> " is " >> expr
           case TextWithNoElement(prefix, postfix) =>
-            app >> s"$prefix " >> ty >> postfix.fold("")(" " + _)
+            app >> prefix >> " " >> ty >> postfix.fold("")(" " + _)
         }
       case LengthExpression(expr) =>
         app >> "the length of " >> expr
@@ -363,7 +362,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
             app >> "a List whose sole element is " >> e
           case EmptyList(isNewUsed, typeDesc) =>
             if (isNewUsed) app >> "a new empty List"
-            else app >> s"an empty List of ${typeDesc.get}"
+            else app >> s"an empty List"
+            typeDesc.fold(app)(app >> " of " >> _)
           case IntRange(from, isFromInc, to, isToInc, isInc) =>
             app >> "a List of the integers in the interval from " >> from
             app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
@@ -479,7 +479,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> o >> "(" >> expr >> ")"
       case ConversionExpression(op, expr, Text(a, pre)) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = true)
-        app >> s"$a " >> op >> s" value $pre " >> expr
+        app >> a >> " " >> op >> " value " >> pre >> " " >> expr
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
       case BinaryExpression(left, op, right) =>
@@ -551,7 +551,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     lit match {
       case ThisLiteral(article) =>
         val a = if (article) "the " else ""
-        app >> s"$a*this* value"
+        app >> a >> "*this* value"
       case ThisParseNodeLiteral(nt) =>
         nt match {
           case None     => app >> "this Parse Node"
@@ -702,7 +702,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case HasFieldCondition(ref, neg, field, form) =>
         app >> ref >> hasStr(neg)
         app >> field.toString.indefArticle
-        app >> " " >> field >> s" $form"
+        app >> " " >> field >> " "
+        import HasFieldConditionForm.*
+        app >> (form match {
+          case Field          => "field"
+          case InternalSlot   => "internal slot"
+          case InternalMethod => "internal method"
+        })
       case HasBindingCondition(ref, neg, binding) =>
         app >> ref >> hasStr(neg)
         app >> "a binding for " >> binding
@@ -742,7 +748,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           if (neg) app >> " not"
           app >> " in the inclusive interval from " >> from
           app >> " to " >> to
-        else app >> s"$from ≤ $left ≤ $to"
+        else app >> from >> " ≤ " >> left >> " ≤ " >> to
       case ContainsCondition(list, neg, expr) =>
         app >> list >> (if (neg) " does not contain " else " contains ") >> expr
       case CompoundCondition(left, op, right) =>
@@ -754,15 +760,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
     }
   }
-
-  // operators for field inclusion conditions
-  given hasFieldCondOpRule: Rule[HasFieldConditionOperator] = (app, op) =>
-    import HasFieldConditionOperator.*
-    app >> (op match {
-      case Field          => "field"
-      case InternalSlot   => "internal slot"
-      case InternalMethod => "internal method"
-    })
 
   // operators for predicate conditions
   given predCondOpRule: Rule[PredicateConditionOperator] = (app, op) =>
@@ -864,7 +861,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given refRule: Rule[Reference] = withLoc { (app, ref) =>
     ref match {
       case Variable(name: String) =>
-        app >> s"_${name}_"
+        app >> "_" >> name >> "_"
       case _: CurrentRealmRecord =>
         app >> "the current Realm Record"
       case _: ActiveFunctionObject =>
@@ -1144,7 +1141,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // user-code effects
   def effect(app: Appender, c: String = "effects")(body: => Unit): Appender = {
-    app >> s"<emu-meta $c=\"user-code\">"
+    app >> "<emu-meta " >> c >> "=\"user-code\">"
     body
     app >> "</emu-meta>"
   }

@@ -140,9 +140,7 @@ case class InvokeSyntaxDirectedOperationExpression(
   base: Expression,
   name: String,
   args: List[Expression],
-  prefix: Option[
-    String,
-  ], // `the result of performing`, `the result of` or `the`
+  prefix: Option[String], // `the result of` or `the`
   tag: HtmlTag,
 ) extends InvokeExpression
 

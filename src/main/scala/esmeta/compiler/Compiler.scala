@@ -539,12 +539,12 @@ class Compiler(
       case ComponentProperty(name, _) => Field(baseRef, EStr(name))
       case BindingProperty(expr) =>
         Field(toStrRef(baseRef, INNER_MAP), compile(fb, expr))
-      case IndexProperty(index) => Field(baseRef, compile(fb, index))
-      case PositionalElementProperty(isFirst) =>
-        val index =
-          if (isFirst) zero
-          else dec(ESizeOf(ERef(compile(fb, base))))
-        Field(baseRef, index)
+      case IndexProperty(index)            => Field(baseRef, compile(fb, index))
+      case PositionalElementProperty(true) => Field(baseRef, zero)
+      case PositionalElementProperty(false) =>
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(IAssign(x, ERef(baseRef)))
+        Field(x, dec(ESizeOf(xExpr)))
       case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
       case NonterminalProperty(name) => Field(baseRef, EStr(name))
 
@@ -597,12 +597,9 @@ class Compiler(
         ESourceText(compile(fb, expr))
       case CoveredByExpression(code, rule) =>
         EParse(compile(fb, code), compile(fb, rule))
-      case GetItemsExpression(
-            nt,
-            expr @ NonterminalLiteral(_, name, flags, _),
-          ) =>
+      case GetItemsExpression(nt, l @ NonterminalLiteral(_, name, flags, _)) =>
         val n = compile(fb, nt)
-        val e = compile(fb, expr)
+        val e = compile(fb, l)
         val args = List(e, n, EGrammarSymbol(name, flags.map(_ startsWith "+")))
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, AUX_GET_ITEMS, args))

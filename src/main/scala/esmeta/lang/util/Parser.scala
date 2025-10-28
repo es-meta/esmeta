@@ -697,7 +697,8 @@ trait Parsers extends IndentParsers {
         case l ~ r => MathOpExpression(Sub, List(l, r))
       } | (baseCalcExpr) ~ ("raised to the power" ~> baseCalcExpr) ^^ {
         case l ~ r => MathOpExpression(Pow, List(l, r))
-      } | ("raising" ~> baseCalcExpr) ~ ("to the" ~> baseCalcExpr <~ "power") ^^ {
+      } | ("raising" ~> baseCalcExpr) ~
+      ("to the" ~> baseCalcExpr <~ "power") ^^ {
         case l ~ r => MathOpExpression(Pow, List(l, r))
       } | "subtracting 1 from the exponential function of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Expm1, List(e))
@@ -727,7 +728,8 @@ trait Parsers extends IndentParsers {
         case e => MathOpExpression(Atanh, List(e))
       } | "inverse sine of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Asin, List(e))
-      } | ("inverse tangent of the quotient" ~> baseCalcExpr) ~ ("/" ~> baseCalcExpr) ^^ {
+      } | ("inverse tangent of the quotient" ~> baseCalcExpr) ~
+      ("/" ~> baseCalcExpr) ^^ {
         case x ~ y => MathOpExpression(Atan2, List(x, y))
       } | "inverse tangent of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Atan, List(e))
@@ -821,11 +823,8 @@ trait Parsers extends IndentParsers {
 
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: PL[InvokeSyntaxDirectedOperationExpression] =
-    lazy val name =
-      opt("the result of performing" | "the result of" | "the") ~ (guard(
-        not(component),
-      ) ~> camel)
-    lazy val base = ("of" ~> expr)
+    lazy val name = opt("the result of" | "the") ~ (not(component) ~> camel)
+    lazy val base = "of" ~> expr
 
     // normal SDO
     lazy val normalSDOExpr =
@@ -980,8 +979,8 @@ trait Parsers extends IndentParsers {
 
   // field includsion conditions
   lazy val hasFieldCond: PL[HasFieldCondition] =
-    import HasFieldConditionOperator.*
-    lazy val op =
+    import HasFieldConditionForm.*
+    lazy val form =
       "field" ^^^ Field |
       "internal method" ^^^ InternalMethod |
       "internal slot" ^^^ InternalSlot
@@ -989,8 +988,8 @@ trait Parsers extends IndentParsers {
     // GeneratorValidate
     (ref <~ opt("also")) ~
     ("has" ^^^ false | "does not have" ^^^ true) ~
-    (("an " | "a ") ~> expr) ~ op ^^ {
-      case r ~ n ~ f ~ o => HasFieldCondition(r, n, f, o)
+    (("an " | "a ") ~> expr) ~ form ^^ {
+      case r ~ n ~ f ~ m => HasFieldCondition(r, n, f, m)
     }
 
   // binding includsion conditions
@@ -1213,11 +1212,13 @@ trait Parsers extends IndentParsers {
     lazy val prefix = opt(("the" ~> opt("String")) ~ ("value" ~> opt("of")) ^^ {
       case a ~ b => "the" + a.fold("")(" " + _) + " value" + b.fold("")(" " + _)
     })
-    prefix ~ prop ~ baseRef ^^ {
-      case pre ~ p ~ base => PropertyReference(base, p, pre)
-    } ||| prefix ~ baseRef ~ prop ~ rep(prop) ^^ {
-      case pre ~ base ~ p ~ ps =>
-        ps.foldLeft(PropertyReference(base, p, pre))(PropertyReference(_, _))
+    prefix ~ preProp ~ baseRef ~ rep(postProp) ^^ {
+      case s ~ pre ~ base ~ posts =>
+        PropertyReference(posts.foldLeft(base)(PropertyReference(_, _)), pre, s)
+    } | prefix ~ baseRef ~ postProp ~ rep(postProp) ^^ {
+      case s ~ base ~ p ~ ps =>
+        ps.foldLeft(PropertyReference(base, p))(PropertyReference(_, _))
+          .copy(prefix = s)
     }
 
   // base references
@@ -1262,11 +1263,6 @@ trait Parsers extends IndentParsers {
     case b ~ f =>
       PropertyReference(b, FieldProperty(f, FieldPropertyForm.Value))
   } | {
-    // AsyncGeneratorCompleteStep
-    ("the" ~> ("first" ^^^ true | "last" ^^^ false) <~ "element") ~ ("of" ~> ref)
-  } ^^ {
-    case p ~ b => PropertyReference(b, PositionalElementProperty(p))
-  } | {
     // AgentSignifier or AgentCanSuspend
     "the Agent Record of the surrounding agent" ^^! AgentRecord()
   }
@@ -1276,11 +1272,12 @@ trait Parsers extends IndentParsers {
   // ---------------------------------------------------------------------------
   given prop: PL[Property] = preProp | postProp
   lazy val preProp: PL[Property] = {
-    "the" ~> nt <~ "of" ^^ { NonterminalProperty(_) } |||
-    "the binding for" ~> expr <~ "in" ^^ { BindingProperty(_) } |||
+    "the" ~> nt <~ "of" ^^ { NonterminalProperty(_) } |
+    "the binding for" ~> expr <~ "in" ^^ { BindingProperty(_) } |
+    "the" ~> ("first" ^^^ true | "last" ^^^ false) <~
+    "element" ~ "of" ^^ { PositionalElementProperty(_) } |
     "the" ~> component ~ opt("component") <~ "of" ^^ {
-      case c ~ d =>
-        ComponentProperty(c, ComponentPropertyForm.Text(d))
+      case c ~ d => ComponentProperty(c, ComponentPropertyForm.Text(d))
     }
   }.named("lang.Property")
 

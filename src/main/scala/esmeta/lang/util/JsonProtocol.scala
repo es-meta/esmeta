@@ -240,8 +240,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[TypeCheckCondition] = deriveEncoderWithType
   given Decoder[HasFieldCondition] = deriveDecoderWithType
   given Encoder[HasFieldCondition] = deriveEncoderWithType
-  given Decoder[HasFieldConditionOperator] = deriveDecoderWithType
-  given Encoder[HasFieldConditionOperator] = deriveEncoderWithType
+  given Decoder[HasFieldConditionForm] = deriveDecoderWithType
+  given Encoder[HasFieldConditionForm] = deriveEncoderWithType
   given Decoder[HasBindingCondition] = deriveDecoderWithType
   given Encoder[HasBindingCondition] = deriveEncoderWithType
   given Decoder[ProductionCondition] = deriveDecoderWithType
