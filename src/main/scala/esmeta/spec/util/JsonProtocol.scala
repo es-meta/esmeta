@@ -102,24 +102,38 @@ object JsonProtocol extends BasicJsonProtocol {
   // ---------------------------------------------------------------------------
   // Algorithms
   // ---------------------------------------------------------------------------
-  given Decoder[Algorithm] = deriveDecoder
-  given Encoder[Algorithm] = deriveEncoder
-  // algorithm heads
-  given Decoder[Head] = deriveDecoder
-  given Encoder[Head] = deriveEncoder
-  given Decoder[SdoHeadTarget] = deriveDecoder
-  given Encoder[SdoHeadTarget] = deriveEncoder
-  given Decoder[BuiltinPath] = deriveDecoder
-  given Encoder[BuiltinPath] = deriveEncoder
+  given Decoder[Algorithm] = deriveDecoderWithType
+  given Encoder[Algorithm] = deriveEncoderWithType
+
+  given Decoder[AbstractOperationHead] = deriveDecoderWithType
+  given Encoder[AbstractOperationHead] = deriveEncoderWithType
+  given Decoder[NumericMethodHead] = deriveDecoderWithType
+  given Encoder[NumericMethodHead] = deriveEncoderWithType
+  given Decoder[SyntaxDirectedOperationHead] = deriveDecoderWithType
+  given Encoder[SyntaxDirectedOperationHead] = deriveEncoderWithType
+  given Decoder[ConcreteMethodHead] = deriveDecoderWithType
+  given Encoder[ConcreteMethodHead] = deriveEncoderWithType
+  given Decoder[InternalMethodHead] = deriveDecoderWithType
+  given Encoder[InternalMethodHead] = deriveEncoderWithType
+  given Decoder[BuiltinHead] = deriveDecoderWithType
+  given Encoder[BuiltinHead] = deriveEncoderWithType
+  given Decoder[Head] = deriveDecoderWithType
+  given Encoder[Head] = deriveEncoderWithType
+
+  given Decoder[SdoHeadTarget] = deriveDecoderWithType
+  given Encoder[SdoHeadTarget] = deriveEncoderWithType
+  given Decoder[BuiltinPath] = deriveDecoderWithType
+  given Encoder[BuiltinPath] = deriveEncoderWithType
+
   // algorithm parameters
-  given Decoder[Param] = deriveDecoder
-  given Encoder[Param] = deriveEncoder
-  given Decoder[ParamKind] = deriveDecoder
-  given Encoder[ParamKind] = deriveEncoder
+  given Decoder[Param] = deriveDecoderWithType
+  given Encoder[Param] = deriveEncoderWithType
+  given Decoder[ParamKind] = deriveDecoderWithType
+  given Encoder[ParamKind] = deriveEncoderWithType
 
   // type models
-  given Decoder[TyModel] = deriveDecoder
-  given Encoder[TyModel] = deriveEncoder
+  given Decoder[TyModel] = deriveDecoderWithType
+  given Encoder[TyModel] = deriveEncoderWithType
 
   // intrinsics
   given Decoder[Intrinsics] = decoderWithParser(Intrinsics.from)

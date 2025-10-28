@@ -196,8 +196,10 @@ trait Parsers extends IndentParsers {
   // if-then-else steps
   lazy val ifStep: PL[IfStep] =
     val ifPart = "if" ~> (
-      (cond <~ ",") <~ opt("then") |
-      yetCond(", then")
+      // if <cond>, then\n<block>
+      cond <~ ", then" | yetCond(", then") |
+      // if <cond>, <step>
+      (cond <~ ",")
     ) ~ (step | yetStep)
     val elsePart =
       exists(subStepPrefix) ~
@@ -538,11 +540,12 @@ trait Parsers extends IndentParsers {
         "implementation-approximated Number" ^^^ ToApproxNumber |
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
-        opt("integer that is the") ~ "numeric" ^^^ ToMath
-      ) ~
-      ("value" ~> ("of" | "for" | "representing" | "that corresponds to")) ~ expr ^^ {
-        case a ~ op ~ pre ~ e =>
-          ConversionExpression(op, e, Text(a.trim, pre))
+        "numeric" ^^^ ToMath |
+        "code unit whose numeric" ^^^ ToCodeUnit
+      ) ~ ("value" ~> (
+        "of" | "for" | "representing" | "that corresponds to" | "is"
+      )) ~ expr ^^ {
+        case a ~ op ~ pre ~ e => ConversionExpression(op, e, Text(a.trim, pre))
       }
     opFormat | textFormat
 
@@ -1191,7 +1194,7 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(FalseLiteral())
 
   // not yet supported conditions
-  def yetCond(post: String): PL[Condition] = ".+".r ^^ { str =>
+  def yetCond(post: String): PL[Condition] = s".+$post".r ^^ { str =>
     val s = str.replaceAll(post + "$", "")
     ExpressionCondition(YetExpression(s, None))
   }

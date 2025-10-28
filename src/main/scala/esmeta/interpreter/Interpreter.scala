@@ -260,6 +260,7 @@ class Interpreter(
       (eval(expr), cop) match {
         // code unit
         case (CodeUnit(c), ToMath) => Math(c.toInt)
+        case (Math(n), ToCodeUnit) => CodeUnit(n.toChar)
         // extended mathematical value
         case (Infinity(true), ToNumber)  => NUMBER_POS_INF
         case (Infinity(false), ToNumber) => NUMBER_NEG_INF

@@ -8,8 +8,10 @@ import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
+import esmeta.spec.util.JsonProtocol.given
 import java.nio.file.Paths
 import scala.io.StdIn.readLine
+import io.circe.syntax._
 
 /** `extract` phase */
 case object Extract extends Phase[Unit, Spec] {
@@ -134,6 +136,14 @@ case object Extract extends Phase[Unit, Spec] {
       getData = algo => algo.lineDiffStr,
       dirname = s"$EXTRACT_LOG_DIR/yet-equal-algos",
       getName = algo => s"${algo.normalizedName}.diff",
+    )
+
+    dumpDir(
+      name = "algorithms in JSON format",
+      iterable = spec.algorithms,
+      dirname = s"$EXTRACT_LOG_DIR/algos-json",
+      getName = algo => s"${algo.normalizedName}.json",
+      getData = algo => algo.asJson.toString(),
     )
 
     dumpFile(
