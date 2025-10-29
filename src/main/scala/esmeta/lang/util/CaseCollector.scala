@@ -11,6 +11,7 @@ class CaseCollector extends UnitWalker {
   val steps: MMap[String, MMap[String, ListBuffer[Step]]] = MMap()
   val exprs: MMap[String, MMap[String, ListBuffer[Expression]]] = MMap()
   val conds: MMap[String, MMap[String, ListBuffer[Condition]]] = MMap()
+  val refs: MMap[String, MMap[String, ListBuffer[Reference]]] = MMap()
 
   def getAdd[T](
     map: MMap[String, MMap[String, ListBuffer[T]]],
@@ -212,51 +213,7 @@ class CaseCollector extends UnitWalker {
         val op = if (check) "?" else "!"
         s"$op {{ expr }}"
       case ReferenceExpression(ref) =>
-        import AccessKind.*, AccessForm.*
-        def str(kind: AccessKind): String = kind match
-          case Field            => "[[ {{ str }} ]]"
-          case Component(false) => "{{ str }}"
-          case Component(true)  => "{{ str }} component"
-        ref match {
-          case Variable(_, None) =>
-            "_{{ str }}_"
-          case Variable(_, Some(_)) =>
-            "|{{ str }}| _{{ str }}_"
-          case Access(_, _, kind, Dot) =>
-            s"{{ ref }}.$kind"
-          case Access(_, _, kind, Of) =>
-            s"the $kind of {{ ref }}"
-          case Access(_, _, kind, Apo(None)) =>
-            s"{{ ref }}'s $kind"
-          case Access(_, _, kind, Apo(Some(desc))) =>
-            s"{{ ref }}'s $kind $desc"
-          case ValueOf(_) =>
-            "the value of {{ ref }}"
-          case IntrinsicField(_, _) =>
-            "{{ ref }}.[[ %{{ str }}% ]]"
-          case IndexLookup(_, _) =>
-            "{{ ref }}[ {{ expr }} ]"
-          case BindingLookup(_, _) =>
-            "the binding for {{ expr }} in {{ expr }}"
-          case NonterminalLookup(_, _) =>
-            "the |{{ str }}| of {{ ref }}"
-          case PositionalElement(_, true) =>
-            "the first element of {{ ref }}"
-          case PositionalElement(_, false) =>
-            "the last element of {{ ref }}"
-          case IntrinsicObject(base, expr) =>
-            "{{ ref }}'s intrinsic object named {{ expr }}"
-          case _: RunningExecutionContext =>
-            "the running execution context"
-          case _: SecondExecutionContext =>
-            "the second to top element of the execution context stack"
-          case _: CurrentRealmRecord =>
-            "the current Realm Record"
-          case _: ActiveFunctionObject =>
-            "the active function object"
-          case AgentRecord() =>
-            "the Agent Record of the surrounding agent"
-        }
+        "{{ ref }}"
       case MathFuncExpression(op, args) =>
         s"$op({{ expr }}*)"
       case ConversionExpression(op, expr, SyntaxLiteral) =>
@@ -288,8 +245,8 @@ class CaseCollector extends UnitWalker {
       case HexLiteral(hex, unicode, codeunit, name) =>
         val codeUnitStr = if (codeunit) "the code unit " else ""
         val pre = if (unicode) "U+" else "0x"
-        val nameStr = name.fold("")(" (" + _ + ")")
-        f"$codeUnitStr$pre$hex%04X$nameStr"
+        val nameStr = if (name.isDefined) " (NAME)" else ""
+        f"$codeUnitStr${pre}XXXX$nameStr"
       case CodeLiteral(code) =>
         s"`{{ str }}`"
       case GrammarSymbolLiteral(name, flags) =>
@@ -461,6 +418,56 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }} $op {{ expr }}"
     })
     super.walk(cond)
+  }
+
+  override def walk(ref: Reference): Unit = {
+    val add = getAdd(refs, ref)
+    import AccessKind.*, AccessForm.*
+    def str(kind: AccessKind): String = kind match
+      case Field            => "[[ {{ str }} ]]"
+      case Component(false) => "{{ str }}"
+      case Component(true)  => "{{ str }} component"
+    add(ref match {
+      case Variable(_, None) =>
+        "_{{ str }}_"
+      case Variable(_, Some(_)) =>
+        "|{{ str }}| _{{ str }}_"
+      case Access(_, _, kind, Dot) =>
+        s"{{ ref }}.${str(kind)}"
+      case Access(_, _, kind, Of) =>
+        s"the ${str(kind)} of {{ ref }}"
+      case Access(_, _, kind, Apo(None)) =>
+        s"{{ ref }}'s ${str(kind)}"
+      case Access(_, _, kind, Apo(Some(desc))) =>
+        s"{{ ref }}'s ${str(kind)} $desc"
+      case ValueOf(_) =>
+        "the value of {{ ref }}"
+      case IntrinsicField(_, _) =>
+        "{{ ref }}.[[ %{{ str }}% ]]"
+      case IndexLookup(_, _) =>
+        "{{ ref }}[ {{ expr }} ]"
+      case BindingLookup(_, _) =>
+        "the binding for {{ expr }} in {{ expr }}"
+      case NonterminalLookup(_, _) =>
+        "the |{{ str }}| of {{ ref }}"
+      case PositionalElement(_, true) =>
+        "the first element of {{ ref }}"
+      case PositionalElement(_, false) =>
+        "the last element of {{ ref }}"
+      case IntrinsicObject(base, expr) =>
+        "{{ ref }}'s intrinsic object named {{ expr }}"
+      case _: RunningExecutionContext =>
+        "the running execution context"
+      case _: SecondExecutionContext =>
+        "the second to top element of the execution context stack"
+      case _: CurrentRealmRecord =>
+        "the current Realm Record"
+      case _: ActiveFunctionObject =>
+        "the active function object"
+      case AgentRecord() =>
+        "the Agent Record of the surrounding agent"
+    })
+    super.walk(ref)
   }
 }
 

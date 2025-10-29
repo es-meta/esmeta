@@ -24,6 +24,7 @@ class Stats(spec: Spec) {
     dumpFile(CaseStat.getStepString, s"$baseDir/step-details")
     dumpFile(CaseStat.getExprString, s"$baseDir/expr-details")
     dumpFile(CaseStat.getCondString, s"$baseDir/cond-details")
+    dumpFile(CaseStat.getRefString, s"$baseDir/ref-details")
 
   /** statistics for pass/total */
   private case class PassStat(pass: Int = 0, total: Int = 0):
@@ -144,6 +145,7 @@ class Stats(spec: Spec) {
     def getStepString: String = getString(steps)
     def getExprString: String = getString(exprs)
     def getCondString: String = getString(conds)
+    def getRefString: String = getString(refs)
     private def getString[T](
       map: MMap[String, MMap[String, ListBuffer[T]]],
     ): String =
