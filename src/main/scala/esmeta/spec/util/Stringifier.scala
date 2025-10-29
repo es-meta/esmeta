@@ -47,8 +47,16 @@ object Stringifier {
   // for specification summaries
   given summaryRule: Rule[Summary] = (app, summary) =>
     import ProductionKind.*
-    val Summary(version, grammar, algos, steps, types, tables, tyModel, intr) =
-      summary
+    val Summary(
+      version,
+      grammar,
+      algos,
+      steps,
+      types,
+      tables,
+      tyModel,
+      intr,
+    ) = summary
     version.map(app >> "- version: " >> _.toString >> LINE_SEP)
     app >> "- grammar:"
     app :> "  - productions: " >> grammar.productions
@@ -56,16 +64,14 @@ object Stringifier {
     app :> "    - numeric string: " >> grammar.numeric
     app :> "    - syntactic: " >> grammar.syntactic
     app :> "  - extended productions for web: " >> grammar.web
-    app :> "- algorithms: " >> algos.total >> " " >> algos.ratioString
-    app :> "  - complete: " >> algos.complete
-    app :> "  - incomplete: " >> algos.incomplete
-    app :> "- algorithm steps: " >> steps.total >> " " >> steps.ratioString
-    app :> "  - complete: " >> steps.complete
-    app :> "  - incomplete: " >> steps.incomplete
-    app :> "- types: " >> types.total >> " " >> types.ratioString
-    app :> "  - known: " >> types.known
-    app :> "  - yet: " >> types.yet
-    app :> "  - unknown: " >> types.unknown
+    app :> "- algorithms: " >> algos.total
+    app :> "  - complete: " >> algos.complete >> " " >> algos.completeRatio
+    app :> "  - equals: " >> algos.equal >> " " >> algos.equalRatio
+    app :> "- algorithm steps: " >> steps.total
+    app :> "  - complete: " >> steps.complete >> " " >> steps.completeRatio
+    app :> "- types: " >> types.total
+    app :> "  - known: " >> types.known >> " " >> types.completeRatio
+    app :> "  - yet: " >> types.yet >> " " >> types.yetRatio
     app :> "- tables: " >> tables
     app :> "- type model: " >> tyModel
     app :> "- intrinsics: " >> intr

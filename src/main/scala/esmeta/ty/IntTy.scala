@@ -1,7 +1,7 @@
 package esmeta.ty
 
 import esmeta.util.Lattice
-import esmeta.interpreter.Interpreter
+import esmeta.interpreter.{Interpreter, *}
 import esmeta.state.{Math, Number}
 import esmeta.util.Flat
 
@@ -32,7 +32,8 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case _ if this eq that                    => this
     case (IntSetTy(lset), IntSetTy(rset))     => IntSetTy(lset intersect rset)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign && rsign)
-    case (l, r)                               => IntSignTy(l.toSign && r.toSign)
+    case (IntSetTy(set), IntSignTy(sign)) => IntSetTy(set.filter(sign.contains))
+    case (IntSignTy(sign), IntSetTy(set)) => IntSetTy(set.filter(sign.contains))
 
   def --(that: => IntTy): IntTy = (this, that) match
     case _ if this eq that                    => Bot
@@ -41,29 +42,25 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case (l, r)                               => IntSignTy(l.toSign -- r.toSign)
 
   def +(that: => IntTy): IntTy = (this, that) match
-    case (l @ IntSetTy(lset), r @ IntSetTy(rset))
-        if single(l, r, _ + _) != Top =>
+    case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ + _) != Top =>
       single(l, r, _ + _)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign + rsign)
     case (l, r)                               => l.toSignTy + r.toSignTy
 
   def -(that: => IntTy): IntTy = (this, that) match
-    case (l @ IntSetTy(lset), r @ IntSetTy(rset))
-        if single(l, r, _ - _) != Top =>
+    case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ - _) != Top =>
       single(l, r, _ - _)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign - rsign)
     case (l, r)                               => l.toSignTy - r.toSignTy
 
   def *(that: => IntTy): IntTy = (this, that) match
-    case (l @ IntSetTy(lset), r @ IntSetTy(rset))
-        if single(l, r, _ * _) != Top =>
+    case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ * _) != Top =>
       single(l, r, _ * _)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign * rsign)
     case (l, r)                               => l.toSignTy * r.toSignTy
 
   def /(that: => IntTy): IntTy = (this, that) match
-    case (l @ IntSetTy(lset), r @ IntSetTy(rset))
-        if single(l, r, _ / _) != Top =>
+    case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ / _) != Top =>
       single(l, r, _ / _)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign / rsign)
     case (l, r)                               => l.toSignTy / r.toSignTy
@@ -71,9 +68,22 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
   def %(that: => IntTy): IntTy =
     import esmeta.util.*
     (this, that) match
-      case (IntSetTy(lset), IntSetTy(rset))
-          if single(this, that, _ % _) != Top =>
-        single(this, that, _ % _)
+      case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ / _) != Top =>
+        single(l, r, _ % _)
+      case (l, IntSetTy(rset)) if rset.size == 1 =>
+        val r = rset.head
+        l match
+          case IntSetTy(lset) => IntSetTy(lset.map(l => l %% r))
+          case IntSignTy(lsign) =>
+            val zero = lsign.zero
+            if (r.abs > 8) Top
+            else if (r > 0) {
+              if (zero) IntSetTy((0 until r.toInt).toSet.map(BigInt(_)))
+              else IntSetTy((1 until r.toInt).toSet.map(BigInt(_)))
+            } else {
+              if (zero) IntSetTy((r.toInt + 1 to 0).toSet.map(BigInt(_)))
+              else IntSetTy((r.toInt + 1 until 0).toSet.map(BigInt(_)))
+            }
       case _ => Top
 
   def **(that: => IntTy): IntTy =

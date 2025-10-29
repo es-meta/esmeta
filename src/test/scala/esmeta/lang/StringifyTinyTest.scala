@@ -51,6 +51,7 @@ class StringifyTinyTest extends LangTest {
       invokeShorthandStep -> "IfAbruptCloseIterator(_x_, _x_).",
       appendStep -> "append _x_ to _x_.[[Value]].",
       prependStep -> "prepend _x_ to _x_.[[Value]].",
+      insertStep -> "insert _x_ as the first element of _x_.[[Value]].",
       addStep -> "add _x_ to _x_.[[Value]].",
       removeStep -> "remove _x_ from _x_.",
       removeFirstStep -> "remove the first _x_ elements from _x_.",
@@ -65,6 +66,7 @@ class StringifyTinyTest extends LangTest {
       assertStep -> "assert: _x_ and _x_.",
       ifStep -> "if _x_, let _x_ be _x_.",
       ifElseInlineStep -> "if _x_, let _x_ be _x_. Else, let _x_ be _x_.",
+      ifElseInlineSemicolonStep -> "if _x_, let _x_ be _x_; else, let _x_ be _x_.",
       ifOtherwiseInlineStep -> "if _x_, let _x_ be _x_. Otherwise, let _x_ be _x_.",
       ifOtherwiseInlineNoCommaStep -> "if _x_, let _x_ be _x_. Otherwise let _x_ be _x_.",
       toBlockStep(ifBlockStep) -> """
@@ -165,7 +167,7 @@ class StringifyTinyTest extends LangTest {
       invokeSDOExprZero -> "StringValue of |Identifier|",
       invokeSDOExprSingle -> ("StringValue of |Identifier| with argument |Identifier|"),
       invokeSDOExprMulti -> ("StringValue of |Identifier| with arguments |Identifier| and _x_"),
-      invokeSDOExprEval -> "the result of evaluating |Identifier|",
+      invokeSDOExprEval -> "Evaluation of |Identifier|",
       invokeSDOExprContains -> "|Identifier| Contains _x_",
       riaCheckExpr -> "? ToObject(_x_ + _x_, -_x_)",
       riaNoCheckExpr -> "! ToObject(_x_ + _x_, -_x_)",
@@ -313,14 +315,18 @@ class StringifyTinyTest extends LangTest {
     // algorithm literals
     // -------------------------------------------------------------------------
     checkParseAndStringify("Literal", Expression)(
-      ThisLiteral() -> "*this* value",
+      ThisLiteral(false) -> "*this* value",
+      ThisLiteral(true) -> "the *this* value",
+      ThisParseNodeLiteral(None) -> "this Parse Node",
       NewTargetLiteral() -> "NewTarget",
       hex -> "0x0024",
       hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",
       nt -> "|Identifier|",
-      firstNt -> "the first |Identifier|",
-      secondNt -> "the second |Identifier|",
+      firstNt -> "first |Identifier|",
+      firstNtWithArticle -> "the first |Identifier|",
+      secondNt -> "second |Identifier|",
+      secondNtWithArticle -> "the second |Identifier|",
       ntFlags -> "|A[~Yield, +Await]|",
       empty -> "~empty~",
       emptyStr -> """*""*""",
@@ -382,7 +388,7 @@ class StringifyTinyTest extends LangTest {
       eitherTypeCheckCond -> "_x_ is either a Base, a Base, or a Base",
       neitherTypeCheckCond -> "_x_ is neither a Base nor a Base",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
-      noHasFieldCond -> "_x_ does not have a [[Value]] internal slot",
+      noHasFieldCond -> "_x_ does not have a [[Value]] internal method",
       hasBindingCond -> "_x_ has a binding for _x_",
       noHasBindingCond -> "_x_ does not have a binding for _x_",
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
@@ -399,6 +405,7 @@ class StringifyTinyTest extends LangTest {
       isEitherCond -> "_x_ is either *true* or *false*",
       isNeitherCond -> "_x_ is neither *true* nor *false*",
       binaryCondLt -> "_x_ < _x_ + _x_",
+      inclusiveIntervalCondShort -> "2 ≤ _x_ ≤ 32",
       inclusiveIntervalCond -> "_x_ is in the inclusive interval from 2 to 32",
       notInclusiveIntervalCond -> "_x_ is not in the inclusive interval from 2 to 32",
       containsCond -> "_x_ contains _x_",
@@ -414,28 +421,28 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     checkParseAndStringify("Reference", Reference)(
       x -> "_x_",
-      RunningExecutionContext() -> "the running execution context",
-      SecondExecutionContext() -> "the second to top element of the execution context stack",
-      CurrentRealmRecord() -> "the current Realm Record",
-      ActiveFunctionObject() -> "the active function object",
-      fieldRef -> "_x_.[[Value]]",
-      intrFieldRef -> "_x_.[[%Array%]]",
-      propIntrFieldRef -> "_x_.[[%Array.prototype.toString%]]",
-      componentRef -> "_x_.Realm",
-      indexRef -> "_x_[_x_]",
-      ntRef -> "the |Arguments| of _x_",
-    )
-
-    // -------------------------------------------------------------------------
-    // algorithm references
-    // -------------------------------------------------------------------------
-    checkParseAndStringify("Property", Property)(
-      fieldProp -> ".[[Value]]",
-      componentProp -> ".Realm",
-      bindingProp -> "the binding for _x_ in",
-      indexProp -> "[_x_]",
-      intrProp -> ".[[%Array%]]",
-      propIntrProp -> ".[[%Array.prototype.toString%]]",
+      xWithNt -> "|ArgumentList| _x_",
+      access -> "_x_.[[Value]]",
+      accessFieldDot -> "_x_.[[Value]]",
+      accessCompDot -> "_x_.Value",
+      accessFieldOf -> "the [[Value]] of _x_",
+      accessCompOf -> "the Value component of _x_",
+      accessFieldApo -> "_x_'s [[Value]] attribute",
+      accessCompApo -> "_x_'s Value",
+      valueOf -> "the value of _x_",
+      intrField -> "_x_.[[%Array%]]",
+      indexLookup -> "_x_[_x_]",
+      bindingLookup -> "the binding for _x_ in _x_",
+      ntLookup -> "the |Arguments| of _x_",
+      firstElement -> "the first element of _x_",
+      lastElement -> "the last element of _x_",
+      intrObj -> "_x_'s intrinsic object named _x_",
+      runningExecCtx -> "the running execution context",
+      secondExecCtx ->
+      "the second to top element of the execution context stack",
+      currentRealmRec -> "the current Realm Record",
+      activeFuncObj -> "the active function object",
+      agentRec -> "the Agent Record of the surrounding agent",
     )
 
     // -------------------------------------------------------------------------

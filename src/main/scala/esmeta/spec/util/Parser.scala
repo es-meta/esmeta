@@ -309,21 +309,19 @@ trait Parsers extends LangParsers {
       (empty ~ "- extended productions for web:" ~> int)
     } ^^ { case l ~ n ~ s ~ w => GrammarSummary(l, n, s, w) }
     val algos = {
-      (empty ~ "- algorithms:" ~ ".*".r) ~>
-      (empty ~ "- complete:" ~> int) ~
-      (empty ~ "- incomplete:" ~> int)
-    } ^^ { case c ~ i => AlgorithmSummary(c, i) }
+      (empty ~ "- algorithms:" ~> int) ~
+      (empty ~ "- complete:" ~> int <~ ".*".r) ~
+      (empty ~ "- equals:" ~> int <~ ".*".r)
+    } ^^ { case t ~ c ~ e => AlgorithmSummary(t, c, e) }
     val steps = {
-      (empty ~ "- algorithm steps:" ~ ".*".r) ~>
-      (empty ~ "- complete:" ~> int) ~
-      (empty ~ "- incomplete:" ~> int)
-    } ^^ { case c ~ i => StepSummary(c, i) }
+      (empty ~ "- algorithm steps:" ~> int) ~
+      (empty ~ "- complete:" ~> int <~ ".*".r)
+    } ^^ { case t ~ c => StepSummary(t, c) }
     val types = {
-      (empty ~ "- types:" ~ ".*".r) ~>
-      (empty ~ "- known:" ~> int) ~
-      (empty ~ "- yet:" ~> int) ~
-      (empty ~ "- unknown:" ~> int)
-    } ^^ { case c ~ u ~ n => TypeSummary(c, u, n) }
+      (empty ~ "- types:" ~> int) ~
+      (empty ~ "- known:" ~> int <~ ".*".r) ~
+      (empty ~ "- yet:" ~> int <~ ".*".r)
+    } ^^ { case t ~ k ~ y => TypeSummary(t, k, y) }
     val tables = empty ~ "- tables:" ~> int
     val tyModel = empty ~ "- type model:" ~> int <~ empty
     val intr = empty ~ "- intrinsics:" ~> int <~ empty

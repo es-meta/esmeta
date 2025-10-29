@@ -39,7 +39,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case syn: Condition  => condRule(app, syn)
       case syn: Reference  => refRule(app, syn)
       case syn: Type       => typeRule(app, syn)
-      case syn: Property   => propRule(app, syn)
       case syn: Intrinsic  => intrRule(app, syn)
     }
 
@@ -76,15 +75,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
     given Rule[First] = firstRule(upper)
     step match {
       case LetStep(x, expr) =>
-        given Rule[Expression] = endWithExprRule
         app >> First("let ") >> x >> " be " >> expr
       case SetStep(x, expr) =>
-        given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " to " >> expr
       case SetAsStep(x, verb, id) =>
-        given Rule[Expression] = endWithExprRule
         app >> First("set ") >> x >> " as " >> verb >> " in "
-        xrefRule(app, id) >> "."
+        xrefRule(app, id)
       case SetEvaluationStateStep(context, func, args) =>
         given Rule[List[Expression]] = argsRule(showNoArg = true)
         app >> First("set the code evaluation state of ") >> context
@@ -92,56 +88,60 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " for that execution context, "
         app >> func >> " will be called" >> args >> "."
       case PerformStep(expr) =>
-        app >> First("perform ") >> expr >> "."
+        app >> First("perform ") >> expr
       case InvokeShorthandStep(name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> name >> args >> "."
+        app >> name >> args
       case AppendStep(expr, ref) =>
-        app >> First("append ") >> expr >> " to " >> ref >> "."
+        app >> First("append ") >> expr >> " to " >> ref
       case PrependStep(expr, ref) =>
-        app >> First("prepend ") >> expr >> " to " >> ref >> "."
+        app >> First("prepend ") >> expr >> " to " >> ref
+      case InsertStep(expr, ref) =>
+        app >> First("insert ") >> expr >> " as the first element of " >> ref
       case AddStep(expr, ref) =>
-        app >> First("add ") >> expr >> " to " >> ref >> "."
+        app >> First("add ") >> expr >> " to " >> ref
       case RemoveStep(target, prep, list) =>
-        app >> First("remove ") >> target >> " " >> prep >> " " >> list >> "."
+        app >> First("remove ") >> target >> " " >> prep >> " " >> list
       case PushContextStep(ref) =>
         app >> First("push ") >> ref >> " onto the execution context stack;"
-        app >> " " >> ref >> " is now the running execution context."
+        app >> " " >> ref >> " is now the running execution context"
       case SuspendStep(xOpt, remove) =>
         app >> First("suspend ")
         xOpt match
           case Some(x) => app >> x
           case None    => app >> "the running execution context"
         if (remove) app >> " and remove it from the execution context stack"
-        app >> "."
       case RemoveContextStep(context, restoreTarget) =>
         app >> First("remove ") >> context
-        app >> " from the execution context stack" >> restoreTarget >> "."
+        app >> " from the execution context stack" >> restoreTarget
+      case AssertStep(ExpressionCondition(YetExpression(yet, None))) =>
+        app >> First("assert: ") >> yet >> "."
       case AssertStep(cond) =>
-        app >> First("assert: ") >> cond >> "."
+        app >> First("assert: ") >> cond
       case IfStep(cond, thenStep, elseStep, config) =>
         val IfStep.ElseConfig(newLine, keyword, comma) = config
+        val k = if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
         app >> thenStep
         elseStep.fold(app) { step =>
-          val k = keyword.toFirstUpper
           if (newLine)
             step match
               case _: IfStep    => app :> "1. " >> k >> " " >> step
               case _: BlockStep => app :> "1. " >> k >> "," >> step
               case _            => app :> "1. " >> k >> ", " >> step
           else
-            app >> " " >> keyword.toFirstUpper
+            app >> " " >> k
             app >> (if (comma) ", " else " ") >> step
         }
       case RepeatStep(cond, body) =>
         import RepeatStep.LoopCondition.*
-        app >> First("repeat, ")
+        app >> First("repeat,")
         cond match
           case NoCondition =>
-          case While(c)    => app >> "while " >> c >> ","
-          case Until(c)    => app >> "until " >> c >> ","
+            if (!body.isInstanceOf[BlockStep]) app >> " "
+          case While(c) => app >> " " >> "while " >> c >> ","
+          case Until(c) => app >> " " >> "until " >> c >> ","
         app >> body
       case ForEachStep(ty, elem, expr, forward, body) =>
         app >> First("for each ")
@@ -176,11 +176,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("for each child node ") >> x
         app >> " of " >> expr >> ", do" >> body
       case ReturnStep(expr) =>
-        given Rule[Expression] = endWithExprRule
         app >> First("return ") >> expr
       case ThrowStep(name) =>
         app >> First("throw ")
-        app >> ("*" + name + "*").withIndefArticle >> " exception."
+        app >> ("*" + name + "*").withIndefArticle >> " exception"
       case ResumeStep(callerCtxt, arg, genCtxt, param, steps) =>
         given Rule[Step] = stepWithUpperRule(true)
         app >> "Resume " >> callerCtxt >> " passing " >> arg >> ". "
@@ -201,8 +200,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         for ((param, kind) <- paramOpt)
           app >> " Let " >> param
           app >> " be the " >> kind >> " returned by the resumed computation."
-        for (step <- body)
-          app :> "1. " >> step
+        for (step <- body) app :> "1. " >> step
         app
       case ResumeTopContextStep() =>
         app >> "Resume the context that is now on the top of the "
@@ -226,6 +224,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
     }
+    app >> step.endString
   }
 
   given removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
@@ -267,12 +266,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
     val First(str) = first
     app >> (if (upper) str.toFirstUpper else str)
   }
-  private def endWithExprRule: Rule[Expression] = (app, expr) => {
-    expr match {
-      case multi: MultilineExpression => app >> expr
-      case _                          => app >> expr >> "."
-    }
-  }
 
   // expressions
   given exprRule: Rule[Expression] = withLoc { (app, expr) =>
@@ -285,16 +278,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the list-concatenation of " >> exprs
       case ListCopyExpression(expr) =>
         app >> "a List whose elements are the elements of " >> expr
-      case RecordExpression(ty, fields) =>
-        given Rule[(FieldLiteral, Expression)] = {
-          case (app, (field, expr)) =>
-            app >> field >> ": " >> expr
+      case RecordExpression(ty, fields, form) =>
+        import RecordExpressionForm.*
+        form match {
+          case SyntaxLiteral(prefix) =>
+            given Rule[(FieldLiteral, Expression)] = {
+              case (app, (field, expr)) =>
+                app >> field >> ": " >> expr
+            }
+            given Rule[List[(FieldLiteral, Expression)]] =
+              iterableRule("{ ", ", ", " }")
+            app >> prefix.fold("")(_ + " ") >> ty >> " "
+            if (fields.isEmpty) app >> "{ }"
+            else app >> fields
+          case Text =>
+            val (field, expr) = fields.head
+            app >> "a new " >> ty >> " whose " >> field >> " is " >> expr
+          case TextWithNoElement(prefix, postfix) =>
+            app >> prefix >> " " >> ty >> postfix.fold("")(" " + _)
         }
-        given Rule[List[(FieldLiteral, Expression)]] =
-          iterableRule("{ ", ", ", " }")
-        app >> ty >> " "
-        if (fields.isEmpty) app >> "{ }"
-        else app >> fields
       case LengthExpression(expr) =>
         app >> "the length of " >> expr
       case SubstringExpression(expr, from, to) =>
@@ -309,10 +311,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case (false, false) => "no"
         )
         app >> " white space removed"
-      case NumberOfExpression(name, pre, expr) =>
+      case NumberOfExpression(name, pre, expr, exclude) =>
         app >> "the number of " >> name >> " in "
         pre.map(app >> "the " >> _ >> " ")
         app >> expr
+        exclude.fold(app)(app >> ", excluding all occurrences of " >> _)
       case SourceTextExpression(expr) =>
         app >> "the source text matched by " >> expr
       case CoveredByExpression(code, rule) =>
@@ -322,8 +325,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> ", in source text order"
       case IntrinsicExpression(intr) =>
         app >> intr
-      case XRefExpression(kind, id) =>
-        xrefRule(app >> kind >> " ", id)
+      case XRefExpression(op, id) =>
+        import XRefExpressionOperator.*
+        val o = op match
+          case Algo       => "the algorithm steps defined in"
+          case Definition => "the definition specified in"
+          case InternalMethod =>
+            "the ordinary object internal method defined in"
+          case InternalSlots => "the internal slots listed in"
+          case ParamLength =>
+            "the number of non-optional parameters of the function definition in"
+        xrefRule(app >> o >> " ", id)
       case expr: CalcExpression =>
         calcExprRule(app, expr)
       case ClampExpression(target, lower, upper) =>
@@ -335,20 +347,35 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> " and " >> right
       case expr: InvokeExpression =>
         invokeExprRule(app, expr)
-      case ListExpression(Nil) => app >> "« »"
-      case ListExpression(entries) =>
-        given Rule[Iterable[Expression]] = iterableRule("« ", ", ", " »")
-        app >> entries
-      case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
-        app >> "a List of the integers in the interval from " >> from
-        app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
-        app >> " to " >> to
-        app >> " (" >> (if (isToInc) "inclusive" else "exclusive") >> ")"
-        app >> ", in " >> (if (isInc) "ascending" else "descending") >> "order"
+      case ListExpression(form) =>
+        import ListExpressionForm.*
+        form match
+          case LiteralSyntax(entries) =>
+            entries match
+              case Nil => app >> "« »"
+              case _ =>
+                given Rule[Iterable[Expression]] =
+                  iterableRule("« ", ", ", " »")
+                app >> entries
+          case SoleElement(e) =>
+            app >> "a List whose sole element is " >> e
+          case EmptyList(isNewUsed, typeDesc) =>
+            if (isNewUsed) app >> "a new empty List"
+            else app >> s"an empty List"
+            typeDesc.fold(app)(app >> " of " >> _)
+          case IntRange(from, isFromInc, to, isToInc, isInc) =>
+            app >> "a List of the integers in the interval from " >> from
+            app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
+            app >> " to " >> to
+            app >> " (" >> (if (isToInc) "inclusive" else "exclusive") >> ")"
+            app >> ", in " >> (if (isInc) "ascending"
+                               else "descending") >> " order"
       case SoleElementExpression(expr) =>
         app >> "the sole element of " >> expr
       case CodeUnitAtExpression(base, index) =>
         app >> "the code unit at index " >> index >> " within " >> base
+      case StringExpression(expr) =>
+        app >> "the String value " >> expr
       case YetExpression(str, block) =>
         app >> str
         block.fold(app)(app >> _)
@@ -427,7 +454,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
           given Rule[List[Variable]] = iterableRule(sep = ", ")
           app >> " parameters (" >> params >> ") "
         }
-        app >> "that captures " >> captured
+        app >> "that captures "
+        if (captured.isEmpty) app >> "nothing"
+        else app >> captured
         app >> " and performs the following steps when called:" >> body
     }
 
@@ -435,7 +464,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given calcExprRule: Rule[CalcExpression] = calcExprRuleWithLevel(0)
 
   def calcExprRuleWithLevel(level: Int): Rule[CalcExpression] = (app, expr) =>
-    import ConversionExpressionOperator.*
+    import ConversionExpressionForm.*
     given Rule[CalcExpression] = calcExprRuleWithLevel(expr.level)
     if (expr.level < level) app >> "("
     expr match {
@@ -446,15 +475,12 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case MathFuncExpression(op, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> op >> args
-      case ConversionExpression(ToApproxNumber, expr) =>
-        app >> "an implementation-approximated Number value representing "
-        app >> expr
-      case ConversionExpression(o, e: (CalcExpression | InvokeExpression)) =>
+      case ConversionExpression(o, expr, SyntaxLiteral) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = false)
-        app >> o >> "(" >> e >> ")"
-      case ConversionExpression(op, expr) =>
+        app >> o >> "(" >> expr >> ")"
+      case ConversionExpression(op, expr, Text(a, pre)) =>
         given Rule[ConversionExpressionOperator] = convExprOpRule(text = true)
-        app >> "the " >> op >> " value of " >> expr
+        app >> a >> " " >> op >> " value " >> pre >> " " >> expr
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
       case BinaryExpression(left, op, right) =>
@@ -487,7 +513,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case ToNumber       => if (text) "Number" else "𝔽"
         case ToBigInt       => if (text) "BigInt" else "ℤ"
         case ToMath         => if (text) "numeric" else "ℝ"
-        case ToCodeUnit     => "code unit"
+        case ToCodeUnit     => "code unit whose numeric value"
       })
 
   // operators for binary expressions
@@ -512,7 +538,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given xrefExprOpRule: Rule[XRefExpressionOperator] = (app, op) =>
     import XRefExpressionOperator.*
     app >> (op match {
-      case Algo          => "the definition specified in"
+      case Definition => "the definition specified in"
+      case Algo       => "the algorithm steps defined in"
+      case InternalMethod =>
+        "the ordinary object internal method defined in"
       case InternalSlots => "the internal slots listed in"
       case ParamLength =>
         "the number of non-optional parameters of the function definition in"
@@ -521,10 +550,19 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // literals
   given litRule: Rule[Literal] = (app, lit) =>
     lit match {
-      case _: ThisLiteral      => app >> "*this* value"
+      case ThisLiteral(article) =>
+        val a = if (article) "the " else ""
+        app >> a >> "*this* value"
+      case ThisParseNodeLiteral(nt) =>
+        nt match {
+          case None     => app >> "this Parse Node"
+          case Some(nt) => app >> "this" >> " " >> nt
+        }
       case _: NewTargetLiteral => app >> "NewTarget"
-      case HexLiteral(hex, name) =>
-        app >> f"0x$hex%04x"
+      case HexLiteral(hex, codeUnitDesc, isUnicodePrefix, name) =>
+        if (codeUnitDesc) app >> "the code unit "
+        app >> (if (isUnicodePrefix) "U+" else "0x")
+        app >> f"$hex%04X"
         name.map(app >> " (" >> _ >> ")")
         app
       case CodeLiteral(code) => app >> "`" >> code >> "`"
@@ -534,18 +572,27 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "|" >> name
         if (!flags.isEmpty) app >> flags
         app >> "|"
-      case NonterminalLiteral(ordinal, name, flags) =>
+      case NonterminalLiteral(ordinal, name, flags, article) =>
         given Rule[Iterable[String]] = iterableRule("[", ", ", "]")
-        ordinal.map(ordinal => app >> "the " >> ordinal.toOrdinal >> " ")
+        if (article) app >> "the "
+        ordinal.map(ord => app >> ord.toOrdinal >> " ")
         app >> "|" >> name
         if (!flags.isEmpty) app >> flags
         app >> "|"
       case EnumLiteral(name) => app >> "~" >> name >> "~"
-      case StringLiteral(str) =>
-        val replaced = str
-          .replace("\\", "\\\\")
-          .replace("*", "\\*")
-        app >> "*\"" >> replaced >> "\"*"
+      case StringLiteral(str, form) =>
+        import StringLiteralForm.*
+        form match {
+          case SyntaxLiteral =>
+            val replaced = str
+              .replace("\\", "\\\\")
+              .replace("*", "\\*")
+            app >> "*\"" >> replaced >> "\"*"
+          case EmptyString => app >> "the empty String"
+          case EmptyUnicode =>
+            app >> "the empty sequence of Unicode code points"
+          case Code => app >> "<code>\"" >> str >> "\"</code>"
+        }
       case FieldLiteral(name) => app >> "[[" >> name >> "]]"
       case SymbolLiteral(sym) => app >> "%Symbol." >> sym >> "%"
       case ProductionLiteral(lhs, rhs) =>
@@ -595,27 +642,35 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // metalanguage invocation expressions
   given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
     expr match {
-      case InvokeAbstractOperationExpression(name, args) =>
+      case InvokeAbstractOperationExpression(name, args, tag) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> name >> args
+        tagEffect(app, tag)(app >> name, app >> args)
       case InvokeNumericMethodExpression(base, name, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> base >> "::" >> name >> args
       case InvokeAbstractClosureExpression(x, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> x >> args
-      case InvokeMethodExpression(base, args) =>
+      case InvokeMethodExpression(access, args, tag) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        app >> base >> args
-      case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-        // handle Evaluation
-        if (name == "Evaluation") app >> "the result of evaluating " >> base
+        tagEffect(app, tag)(app >> access, app >> args)
+      case InvokeSyntaxDirectedOperationExpression(
+            base,
+            name,
+            args,
+            article,
+            tag,
+          ) =>
         // XXX handle Contains, Contains always takes one argument
-        else if (name == "Contains") app >> base >> " Contains " >> args.head
+        if (name == "Contains") app >> base >> " Contains " >> args.head
         // Otherwise
         else {
           given Rule[List[Expression]] = argsRule(showNoArg = false)
-          app >> name >> " of " >> base >> args
+          val a = article match {
+            case None        => ""
+            case Some(value) => s"$value "
+          }
+          tagEffect(app, tag)(app >> a >> name >> " of " >> base, app >> args)
         }
         app
     }
@@ -645,11 +700,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
             given Rule[List[Type]] = listNamedSepRule(left, namedSep)
             app >> ty
         }
-      case HasFieldCondition(ref, neg, field) =>
+      case HasFieldCondition(ref, neg, field, form) =>
         app >> ref >> hasStr(neg)
-        // TODO use a/an based on the fields
-        app >> "a"
-        app >> " " >> field >> " internal slot"
+        app >> field.toString.indefArticle
+        app >> " " >> field >> " "
+        import HasFieldConditionForm.*
+        app >> (form match {
+          case Field          => "field"
+          case InternalSlot   => "internal slot"
+          case InternalMethod => "internal method"
+        })
       case HasBindingCondition(ref, neg, binding) =>
         app >> ref >> hasStr(neg)
         app >> "a binding for " >> binding
@@ -683,11 +743,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
       case BinaryCondition(left, op, right) =>
         app >> left >> " " >> op >> " " >> right
-      case InclusiveIntervalCondition(left, neg, from, to) =>
-        app >> left >> " is"
-        if (neg) app >> " not"
-        app >> " in the inclusive interval from " >> from
-        app >> " to " >> to
+      case InclusiveIntervalCondition(left, neg, from, to, verbose) =>
+        if (verbose)
+          app >> left >> " is"
+          if (neg) app >> " not"
+          app >> " in the inclusive interval from " >> from
+          app >> " to " >> to
+        else app >> from >> " ≤ " >> left >> " ≤ " >> to
       case ContainsCondition(list, neg, expr) =>
         app >> list >> (if (neg) " does not contain " else " contains ") >> expr
       case CompoundCondition(left, op, right) =>
@@ -798,36 +860,50 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // references
   given refRule: Rule[Reference] = withLoc { (app, ref) =>
+    given Rule[(String, AccessKind)] = (app, pair) => {
+      import AccessKind.*
+      val (name, kind) = pair
+      kind match
+        case Field           => app >> "[[" >> name >> "]]"
+        case Component(post) => app >> name >> (if (post) " component" else "")
+    }
     ref match {
-      case Variable(name: String) =>
-        app >> s"_${name}_"
-      case _: CurrentRealmRecord =>
-        app >> "the current Realm Record"
-      case _: ActiveFunctionObject =>
-        app >> "the active function object"
+      case Variable(name, nt) =>
+        nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
+      case Access(base, name, kind, AccessForm.Dot) =>
+        app >> base >> "." >> (name, kind)
+      case Access(base, name, kind, AccessForm.Of) =>
+        app >> "the " >> (name, kind) >> " of " >> base
+      case Access(base, name, kind, AccessForm.Apo(desc)) =>
+        app >> base >> "'s " >> (name, kind)
+        desc.fold(app)(app >> " " >> _)
+      case ValueOf(base) =>
+        app >> "the value of " >> base
+      case IntrinsicField(base, intr) =>
+        app >> base >> "." >> "[[" >> intr >> "]]"
+      case IndexLookup(base, index) =>
+        app >> base >> "[" >> index >> "]"
+      case BindingLookup(base, binding) =>
+        app >> "the binding for " >> binding >> " in " >> base
+      case NonterminalLookup(base, nt) =>
+        app >> "the |" >> nt >> "| of " >> base
+      case PositionalElement(base, isFirst) =>
+        if (isFirst) app >> "the first element of " >> base
+        else app >> "the last element of " >> base
+      case IntrinsicObject(base, expr) =>
+        app >> base >> "'s intrinsic object named " >> expr
       case _: RunningExecutionContext =>
         app >> "the running execution context"
       case _: SecondExecutionContext =>
         app >> "the second to top element of the execution context stack"
-      case PropertyReference(base, nt: NonterminalProperty) =>
-        app >> nt >> " " >> base
-      case PropertyReference(base, prop) =>
-        app >> base >> prop
+      case _: CurrentRealmRecord =>
+        app >> "the current Realm Record"
+      case _: ActiveFunctionObject =>
+        app >> "the active function object"
       case AgentRecord() =>
         app >> "the Agent Record of the surrounding agent"
     }
   }
-
-  // properties
-  given propRule: Rule[Property] = (app, prop) =>
-    prop match {
-      case FieldProperty(f)        => app >> ".[[" >> f >> "]]"
-      case ComponentProperty(name) => app >> "." >> name
-      case BindingProperty(expr)   => app >> "the binding for " >> expr >> " in"
-      case IndexProperty(index)    => app >> "[" >> index >> "]"
-      case IntrinsicProperty(intr) => app >> ".[[" >> intr >> "]]"
-      case NonterminalProperty(name) => app >> "the |" >> name >> "| of"
-    }
 
   // intrinsics
   given intrRule: Rule[Intrinsic] = (app, intr) =>
@@ -924,20 +1000,31 @@ class Stringifier(detail: Boolean, location: Boolean) {
             m -= "Object"
             tys :+= "constructor".withArticle(article)
         }
-        for ((name, _) <- m) {
-          // split camel case with a space
-          tys :+= name.split("(?=[A-Z])").mkString(" ").withArticle(article)
-        }
+
+        if (!map.isEmpty && m.forall((name, _) => name.isEmpty))
+          // unnamed records
+          for ((_, field) <- m)
+            val fieldStr =
+              field.map.keys.map("[[" + _ + "]]").mkString(" { ", ", ", " }")
+            tys :+= ("Record" + fieldStr).withArticle(article)
+        else
+          // other named records
+          for ((name, _) <- m) {
+            // split camel case with a space
+            tys :+= name.split("(?=[A-Z])").mkString(" ").withArticle(article)
+          }
       }
     }
 
     // TODO more precise
     // closures
-    if (!ty.clo.isBottom) tys :+= "abstract closure".withArticle(article)
+    if (!ty.clo.isBottom) tys :+= "Abstract Closure".withArticle(article)
 
-    // TODO more precise
     // math values
-    if (!ty.math.isBottom) tys :+= "math value".withArticle(article)
+    if (ty.math == MathTy.Int)
+      tys :+= "integer".withArticle(article)
+    else if (!ty.math.isBottom)
+      tys :+= "math value".withArticle(article)
 
     // TODO more precise
     // grammar symbol
@@ -967,7 +1054,11 @@ class Stringifier(detail: Boolean, location: Boolean) {
         for (name <- set.toList.sorted) tys :+= s"~$name~"
 
     // numbers
-    if (!ty.number.isBottom) tys :+= "Number".withArticle(article)
+    if (ty.number == NumberTy.Int)
+      tys :+= "integral Number".withArticle(article)
+    else if (ty.number == NumberTy.NaN)
+      tys :+= "NaN".withArticle(article)
+    else if (!ty.number.isBottom) tys :+= "Number".withArticle(article)
 
     // big integers
     if (!ty.bigInt.isBottom) tys :+= "BigInt".withArticle(article)
@@ -1029,9 +1120,29 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> "<emu-xref href=\"#" >> id >> "\"></emu-xref>"
 
   // user-code effects
-  def effect(app: Appender)(body: => Unit): Appender = {
-    app >> "<emu-meta effects=\"user-code\">"
+  def effect(app: Appender, c: String = "effects")(body: => Unit): Appender = {
+    app >> "<emu-meta " >> c >> "=\"user-code\">"
     body
     app >> "</emu-meta>"
+  }
+
+  def tagEffect(
+    app: Appender,
+    tag: HtmlTag,
+  )(before: => Appender, after: => Appender): Appender = {
+    tag match
+      case HtmlTag.None =>
+        before
+        after
+      case HtmlTag.BeforeCall(c) =>
+        effect(app, c) {
+          before
+        }
+        after
+      case HtmlTag.AfterCall(c) =>
+        effect(app, c) {
+          before
+          after
+        }
   }
 }

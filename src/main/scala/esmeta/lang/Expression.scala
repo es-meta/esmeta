@@ -20,7 +20,12 @@ case class ListCopyExpression(expr: Expression) extends Expression
 case class RecordExpression(
   tname: String,
   fields: List[(FieldLiteral, Expression)],
+  form: RecordExpressionForm,
 ) extends Expression
+enum RecordExpressionForm:
+  case SyntaxLiteral(prefix: Option[String])
+  case Text
+  case TextWithNoElement(prefix: String, postfix: Option[String])
 
 // `length of <string>` expressions
 case class LengthExpression(expr: Expression) extends Expression
@@ -44,6 +49,7 @@ case class NumberOfExpression(
   name: String,
   pre: Option[String],
   expr: Expression,
+  exclude: Option[Expression],
 ) extends Expression
 
 // intrinsic expressions
@@ -63,22 +69,24 @@ case class GetItemsExpression(nt: Expression, expr: Expression)
   extends Expression
 
 // list expressions
-case class ListExpression(entries: List[Expression]) extends Expression
-
-// integer list expressions
-case class IntListExpression(
-  from: CalcExpression,
-  isFromInclusive: Boolean,
-  to: CalcExpression,
-  isToInclusive: Boolean,
-  isAscending: Boolean,
-) extends Expression
+case class ListExpression(form: ListExpressionForm) extends Expression
+enum ListExpressionForm:
+  case LiteralSyntax(entries: List[Expression])
+  case SoleElement(entry: Expression)
+  case EmptyList(isNewUsed: Boolean, typeDesc: Option[String])
+  case IntRange(
+    from: CalcExpression,
+    isFromInclusive: Boolean,
+    to: CalcExpression,
+    isToInclusive: Boolean,
+    isAscending: Boolean,
+  )
 
 // emu-xref expressions
 case class XRefExpression(kind: XRefExpressionOperator, id: String)
   extends Expression
 enum XRefExpressionOperator extends LangElem:
-  case Algo, InternalSlots, ParamLength
+  case Algo, Definition, InternalMethod, InternalSlots, ParamLength
 
 // the sole element expressions
 case class SoleElementExpression(list: Expression) extends Expression
@@ -86,6 +94,9 @@ case class SoleElementExpression(list: Expression) extends Expression
 // the code unit expression at a specific index of a string
 case class CodeUnitAtExpression(base: Expression, index: Expression)
   extends Expression
+
+// string value
+case class StringExpression(expr: Expression) extends Expression
 
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
@@ -95,10 +106,16 @@ case class YetExpression(str: String, block: Option[Block]) extends Expression
 // -----------------------------------------------------------------------------
 sealed trait InvokeExpression extends Expression
 
+enum HtmlTag:
+  case None
+  case BeforeCall(c: String)
+  case AfterCall(c: String)
+
 // abstract operation (AO) invocation expressions
 case class InvokeAbstractOperationExpression(
   name: String,
   args: List[Expression],
+  tag: HtmlTag,
 ) extends InvokeExpression
 
 // numeric method invocation expression
@@ -116,8 +133,9 @@ case class InvokeAbstractClosureExpression(
 
 // method invocation expressions
 case class InvokeMethodExpression(
-  ref: PropertyReference,
+  access: Access,
   args: List[Expression],
+  tag: HtmlTag,
 ) extends InvokeExpression
 
 // syntax-directed operation (SDO) invocation expressions
@@ -125,6 +143,8 @@ case class InvokeSyntaxDirectedOperationExpression(
   base: Expression,
   name: String,
   args: List[Expression],
+  prefix: Option[String], // `the result of` or `the`
+  tag: HtmlTag,
 ) extends InvokeExpression
 
 // -----------------------------------------------------------------------------
@@ -186,9 +206,15 @@ enum UnaryExpressionOperator extends LangElem:
 case class ConversionExpression(
   op: ConversionExpressionOperator,
   expr: Expression,
+  form: ConversionExpressionForm,
 ) extends CalcExpression
 enum ConversionExpressionOperator extends LangElem:
   case ToApproxNumber, ToNumber, ToBigInt, ToMath, ToCodeUnit
+enum ConversionExpressionForm:
+  case SyntaxLiteral
+  // e.g. the {{ op }} value that corresponds to {{ expr }}"
+  // `the`: article, `that corresponds to`: pre
+  case Text(article: String, pre: String)
 
 // -----------------------------------------------------------------------------
 // clamp expressions
@@ -244,13 +270,23 @@ sealed trait Literal extends CalcExpression
 object Literal extends Parser.From(Parser.literal)
 
 // `this` literals
-case class ThisLiteral() extends Literal
+case class ThisLiteral(
+  hasArticle: Boolean = false,
+) extends Literal
+
+case class ThisParseNodeLiteral(desc: Option[NonterminalLiteral])
+  extends Literal
 
 // NewTarget literals
 case class NewTargetLiteral() extends Literal
 
 // code unit literals with hexadecimal numbers
-case class HexLiteral(hex: Int, name: Option[String]) extends Literal
+case class HexLiteral(
+  hex: Int,
+  hasCodeUnitDescription: Boolean,
+  isUnicodePrefix: Boolean,
+  name: Option[String],
+) extends Literal
 
 // code literals
 case class CodeLiteral(code: String) extends Literal
@@ -266,13 +302,21 @@ case class NonterminalLiteral(
   ordinal: Option[Int],
   name: String,
   flags: List[String],
+  hasArticle: Boolean = false,
 ) extends Literal
 
 // enum literals
 case class EnumLiteral(name: String) extends Literal
 
 // string literals
-case class StringLiteral(s: String) extends Literal
+case class StringLiteral(s: String, form: StringLiteralForm) extends Literal
+
+// Normal: "{{ string value }}"
+// EmptyString: "the empty String"
+// EmptyUnicode: "the empty sequence of Unicode code points"
+// Code: <code>{{ string value }}</code>
+enum StringLiteralForm:
+  case SyntaxLiteral, EmptyString, EmptyUnicode, Code
 
 // field literals
 case class FieldLiteral(name: String) extends Literal

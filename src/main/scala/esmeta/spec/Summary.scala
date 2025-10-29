@@ -24,6 +24,7 @@ object Summary extends Parser.From[Summary](Parser.summary) {
     val prodsBy = prods.groupBy(_.kind)
     val completeAlgos = spec.completeAlgorithms.length
     val completeSteps = spec.completeSteps.length
+    val equalAlgos = spec.algorithms.filter(_.equals).length
     val knownTypes = spec.knownTypes.length
     val yetTypes = spec.yetTypes.length
     Summary(
@@ -35,16 +36,17 @@ object Summary extends Parser.From[Summary](Parser.summary) {
         web = grammar.prodsForWeb.length,
       ),
       algos = AlgorithmSummary(
+        total = algos.length,
         complete = completeAlgos,
-        incomplete = algos.length - completeAlgos,
+        equal = equalAlgos,
       ),
       steps = StepSummary(
+        total = spec.allSteps.length,
         complete = completeSteps,
-        incomplete = spec.allSteps.length - completeSteps,
       ),
       types = TypeSummary(
+        total = spec.types.length,
         known = knownTypes,
-        unknown = spec.types.length - knownTypes - yetTypes,
         yet = yetTypes,
       ),
       tables = tables.size,
@@ -67,28 +69,32 @@ case class GrammarSummary(
 
 /** algorithm element */
 case class AlgorithmSummary(
+  total: Int = 0,
   complete: Int = 0,
-  incomplete: Int = 0,
+  equal: Int = 0,
 ) {
-  def total: Int = complete + incomplete
-  def ratioString: String = percentString(complete, total)
+  def incomplete: Int = total - complete
+  def inequal: Int = total - equal
+  def completeRatio: String = percentString(complete, total)
+  def equalRatio: String = percentString(equal, total)
 }
 
 /** algorithm step element */
 case class StepSummary(
+  total: Int = 0,
   complete: Int = 0,
-  incomplete: Int = 0,
 ) {
-  def total: Int = complete + incomplete
-  def ratioString: String = percentString(complete, total)
+  def incomplete: Int = total - complete
+  def completeRatio: String = percentString(complete, total)
 }
 
 /** type element */
 case class TypeSummary(
+  total: Int = 0,
   known: Int = 0,
   yet: Int = 0,
-  unknown: Int = 0,
 ) {
-  def total: Int = known + yet
-  def ratioString: String = percentString(known, total)
+  def unknown: Int = total - known - yet
+  def completeRatio: String = percentString(known, total)
+  def yetRatio: String = percentString(yet, total)
 }

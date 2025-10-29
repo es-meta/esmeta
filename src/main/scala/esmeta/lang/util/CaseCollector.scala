@@ -11,6 +11,7 @@ class CaseCollector extends UnitWalker {
   val steps: MMap[String, MMap[String, ListBuffer[Step]]] = MMap()
   val exprs: MMap[String, MMap[String, ListBuffer[Expression]]] = MMap()
   val conds: MMap[String, MMap[String, ListBuffer[Condition]]] = MMap()
+  val refs: MMap[String, MMap[String, ListBuffer[Reference]]] = MMap()
 
   def getAdd[T](
     map: MMap[String, MMap[String, ListBuffer[T]]],
@@ -40,6 +41,8 @@ class CaseCollector extends UnitWalker {
         s"append {{ expr }} to {{ ref }}."
       case PrependStep(expr, ref) =>
         s"prepend {{ expr }} to {{ ref }}."
+      case InsertStep(expr, ref) =>
+        s"insert {{ expr }} as the first element of {{ ref }}."
       case AddStep(expr, ref) =>
         s"add {{ expr }} to {{ ref }}."
       case RemoveStep(target, prep, list) =>
@@ -80,15 +83,13 @@ class CaseCollector extends UnitWalker {
         s"assert: {{ cond }}."
       case IfStep(cond, thenStep, elseStep, config) =>
         val IfStep.ElseConfig(newLine, keyword, comma) = config
-        (newLine, comma) match
-          case (true, true) =>
-            s"if {{ cond }}, {{ step }}. <NEWLINE> $keyword, {{ step }}."
-          case (true, false) =>
-            s"if {{ cond }}, {{ step }}. <NEWLINE> $keyword {{ step }}."
-          case (false, true) =>
-            s"if {{ cond }}, {{ step }}. $keyword, {{ step }}."
-          case (false, false) =>
-            s"if {{ cond }}, {{ step }}. $keyword {{ step }}."
+
+        val e = thenStep.endingChar
+        val k = if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
+        val n = if (newLine) "<NEWLINE> " else ""
+        val c = if (comma) "," else ""
+
+        s"if {{ cond }}, {{ step }}$e $n$k$c {{ step }}."
       case RepeatStep(cond, body) =>
         import RepeatStep.LoopCondition.*
         cond match
@@ -150,24 +151,32 @@ class CaseCollector extends UnitWalker {
 
   override def walk(expr: Expression): Unit = {
     val add = getAdd(exprs, expr)
-    import ConversionExpressionOperator.*
+    import ConversionExpressionForm.*
     add(expr match {
       case StringConcatExpression(exprs) =>
-        s"the string-concatenation of {{ expr }}*"
+        "the string-concatenation of {{ expr }}*"
       case ListConcatExpression(exprs) =>
-        s"the list-concatenation of {{ expr }}*"
+        "the list-concatenation of {{ expr }}*"
       case ListCopyExpression(expr) =>
-        s"a List whose elements are the elements of {{ expr }}"
-      case RecordExpression(ty, fields) =>
-        s"{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
+        "a List whose elements are the elements of {{ expr }}"
+      case RecordExpression(ty, fields, form) =>
+        import RecordExpressionForm.*
+        form match {
+          case SyntaxLiteral(prefix) =>
+            val pre = prefix.fold("")(_ + " ")
+            s"$pre{{ ty }} { [ {{ field }}: {{ expr }} ]* }"
+          case Text =>
+            "a new {{ ty }} whose {{ field }} is {{ expr }}"
+          case TextWithNoElement(prefix, postfix) =>
+            val pre = prefix + " "
+            val post = postfix.fold("")(" " + _)
+            s"$pre{{ ty }}$post"
+        }
       case LengthExpression(expr) =>
-        s"the length of {{ expr }}"
+        "the length of {{ expr }}"
       case SubstringExpression(expr, from, to) =>
-        to match
-          case Some(to) =>
-            s"the substring of {{ expr }} from {{ expr }} to {{ expr }}"
-          case None =>
-            s"the substring of {{ expr }} from {{ expr }}"
+        val t = to.fold("")(_ => " to {{ expr }}")
+        s"the substring of {{ expr }} from {{ expr }}$t"
       case TrimExpression(expr, leading, trailing) =>
         val str = (leading, trailing) match
           case (true, true)   => "both leading and trailing"
@@ -175,55 +184,88 @@ class CaseCollector extends UnitWalker {
           case (false, true)  => "trailing"
           case (false, false) => "no"
         s"the String value that is a copy of {{ expr }} with $str whitespace removed"
-      case NumberOfExpression(name, pre, expr) =>
-        s"the number of $name in ${pre.fold("")("the " + _ + " ")}{{ expr }}"
+      case NumberOfExpression(name, pre, expr, exclude) =>
+        val p = pre.fold("")("the " + _ + " ")
+        val e =
+          if (exclude.isDefined) ", excluding all occurrences of {{ expr }}"
+          else ""
+        s"the number of $name in $p{{ expr }}$e"
       case SourceTextExpression(expr) =>
-        s"the source text matched by {{ expr }}"
+        "the source text matched by {{ expr }}"
       case CoveredByExpression(code, rule) =>
-        s"the {{ expr }} that is covered by {{ expr }}"
+        "the {{ expr }} that is covered by {{ expr }}"
       case GetItemsExpression(nt, expr) =>
-        s"the List of items in {{ expr }}, in source text order"
+        s"the List of {{ expr }} items in {{ expr }}, in source text order"
       case IntrinsicExpression(intr) =>
         s"%{{ str }}%"
-      case XRefExpression(kind, id) =>
-        s"<emu-xref href=\"#{{ str }}\"></emu-xref>."
+      case XRefExpression(op, id) =>
+        import XRefExpressionOperator.*
+        val o = op match
+          case Algo       => "the definition specified in"
+          case Definition => "the algorithm steps defined in"
+          case InternalMethod =>
+            "the ordinary object internal method defined in"
+          case InternalSlots => "the internal slots listed in"
+          case ParamLength =>
+            "the number of non-optional parameters of the function definition in"
+        s"$o <emu-xref href=\"#{{ str }}\"></emu-xref>."
       case ReturnIfAbruptExpression(expr, check) =>
         val op = if (check) "?" else "!"
         s"$op {{ expr }}"
       case ReferenceExpression(ref) =>
-        s"{{ ref }}"
+        "{{ ref }}"
       case MathFuncExpression(op, args) =>
         s"$op({{ expr }}*)"
-      case ConversionExpression(ToApproxNumber, expr) =>
-        s"an implementation-approximated Number value representing {{ expr }}"
-      case ConversionExpression(o, e: (CalcExpression | InvokeExpression)) =>
-        s"$o({{ expr }})"
-      case ConversionExpression(op, expr) =>
-        s"the $op value of {{ expr }}"
+      case ConversionExpression(op, expr, SyntaxLiteral) =>
+        s"$op({{ expr }})"
+      case ConversionExpression(op, expr, Text(a, pre)) =>
+        import ConversionExpressionOperator.*
+        val opStr = op match
+          case ToNumber       => "Number"
+          case ToBigInt       => "BigInt"
+          case ToMath         => "Math"
+          case ToApproxNumber => "implementation-approximated Number"
+          case ToCodeUnit     => "code unit whose numeric value is"
+        s"$a $opStr value $pre {{expr}}"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"
       case BinaryExpression(left, op, right) =>
         s"{{ expr }} $op {{ expr }}"
       case UnaryExpression(op, expr) =>
         s"$op {{ expr }}"
-      case _: ThisLiteral =>
-        s"*this* value"
+      case ThisLiteral(article) =>
+        val a = if (article) "the " else ""
+        s"$a*this* value"
+      case ThisParseNodeLiteral(nt) =>
+        nt match
+          case None     => s"this Parse Node"
+          case Some(nt) => s"this |{{ str }}|"
       case _: NewTargetLiteral =>
         s"NewTarget"
-      case HexLiteral(hex, name) =>
-        val desc = name.fold("")(" (" + _ + ")")
-        f"0x$hex%04x$desc"
+      case HexLiteral(hex, unicode, codeunit, name) =>
+        val codeUnitStr = if (codeunit) "the code unit " else ""
+        val pre = if (unicode) "U+" else "0x"
+        val nameStr = if (name.isDefined) " (NAME)" else ""
+        f"$codeUnitStr${pre}XXXX$nameStr"
       case CodeLiteral(code) =>
         s"`{{ str }}`"
       case GrammarSymbolLiteral(name, flags) =>
         s"the grammar symbol |{{ str }}|"
-      case NonterminalLiteral(ordinal, name, flags) =>
-        val ord = ordinal.fold("")(s"the " + _.toOrdinal + " ")
-        s"$ord|{{ str }}|"
+      case NonterminalLiteral(ordinal, name, flags, article) =>
+        val pre = ordinal match
+          case Some(value) => ordinal.fold("")(s"the " + _.toOrdinal + " ")
+          case None        => if (article) "the " else ""
+        s"$pre|{{ str }}|"
       case EnumLiteral(name) =>
         s"~{{ str }}~"
-      case StringLiteral(str) =>
-        "*\"{{ str }}\"*"
+      case StringLiteral(str, form) =>
+        import StringLiteralForm.*
+        form match {
+          case SyntaxLiteral => "*\"{{ str }}\"*"
+          case EmptyString   => "the empty String"
+          case EmptyUnicode  => "the empty sequence of Unicode code points"
+          case Code          => "<code>{{ str }}</code>"
+        }
       case FieldLiteral(name) =>
         s"[[{{ str }}]]"
       case SymbolLiteral(sym) =>
@@ -274,36 +316,62 @@ class CaseCollector extends UnitWalker {
         s"$op ..."
       case BitwiseExpression(left, op, right) =>
         s"the result of applying the $op to {{ expr }} and {{ expr }}"
-      case InvokeAbstractOperationExpression(name, args) =>
-        s"{{ str }}({{ expr }}*)"
+      case InvokeAbstractOperationExpression(name, args, tag) =>
+        tag match
+          case HtmlTag.None => s"{{ str }}({{ expr }}*)"
+          case HtmlTag.BeforeCall(c) =>
+            s"<emu-meta>{{ str }}</emu-meta>({{ expr }}*)"
+          case HtmlTag.AfterCall(c) =>
+            s"<emu-meta>{{ str }}({{ expr }}*)</emu-meta>"
       case InvokeNumericMethodExpression(base, name, args) =>
         s"{{ str }}::{{ str }}({{ expr }}*)"
       case InvokeAbstractClosureExpression(x, args) =>
         s"{{ var }}({{ expr }}*)"
-      case InvokeMethodExpression(base, args) =>
-        s"{{ ... }}({{ expr }}*)"
-      case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
-        if (name == "Evaluation")
-          s"the result of evaluating {{ expr }}"
-        else if (name == "Contains")
+      case InvokeMethodExpression(base, args, tag) =>
+        tag match
+          case HtmlTag.None => s"{{ str }}({{ expr }}*)"
+          case HtmlTag.BeforeCall(c) =>
+            s"<emu-meta>{{ str }}</emu-meta>({{ expr }}*)"
+          case HtmlTag.AfterCall(c) =>
+            s"<emu-meta>{{ str }}({{ expr }}*)</emu-meta>"
+      case InvokeSyntaxDirectedOperationExpression(
+            base,
+            name,
+            args,
+            article,
+            tag,
+          ) =>
+        val a = article.fold("")(_ + " ")
+        if (name == "Contains")
           s"{{ expr }} Contains {{ expr }}"
         else if (args.isEmpty)
-          "{{ str }} of {{ expr }} with no arguments"
+          s"$a{{ str }} of {{ expr }} with no arguments"
         else
-          "{{ str }} of {{ expr }} with argument(s) {{ expr }}*"
-      case ListExpression(Nil) =>
-        s"« »"
-      case ListExpression(entries) =>
-        s"« {{ expr }}* »"
-      case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
-        val from = if (isFromInc) "inclusive" else "exclusive"
-        val to = if (isToInc) "inclusive" else "exclusive"
-        val asc = if (isInc) "ascending" else "descending"
-        s"a List of the integers in the interval from {{ expr }} ($from) to {{ expr }} ($to), in $asc order"
+          s"$a{{ str }} of {{ expr }} with argument(s) {{ expr }}*"
+      case ListExpression(form) =>
+        import ListExpressionForm.*
+        form match
+          case LiteralSyntax(e) =>
+            e match
+              case Nil => "« »"
+              case _   => s"« {{ expr }}* »"
+          case SoleElement(e) =>
+            "a List whose sole element is {{ expr }}"
+          case EmptyList(isNewUsed, typeDesc) =>
+            val a = if (isNewUsed) "a new" else "an"
+            val t = if (typeDesc.isDefined) " of " + typeDesc.get else ""
+            s"$a empty List$t"
+          case IntRange(from, isFromInc, to, isToInc, isInc) =>
+            val from = if (isFromInc) "inclusive" else "exclusive"
+            val to = if (isToInc) "inclusive" else "exclusive"
+            val asc = if (isInc) "ascending" else "descending"
+            s"a List of the integers in the interval from {{ expr }} ($from) to {{ expr }} ($to), in $asc order"
       case SoleElementExpression(expr) =>
         s"the sole element of {{ expr }}"
       case CodeUnitAtExpression(base, index) =>
         s"the code unit at index {{ expr }} within {{ expr }}"
+      case StringExpression(expr) =>
+        s"the String value {{ expr }}"
       case YetExpression(str, block) =>
         s"..."
       case AbstractClosureExpression(params, captured, body) =>
@@ -322,8 +390,8 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }}"
       case TypeCheckCondition(expr, neg, ty) =>
         s"{{ expr }} is {{ ty }}*"
-      case HasFieldCondition(ref, neg, field) =>
-        s"{{ ref }} has a {{ field }} internal slot"
+      case HasFieldCondition(ref, neg, field, op) =>
+        s"{{ ref }} has a {{ field }} $op"
       case HasBindingCondition(ref, neg, binding) =>
         s"{{ ref }} has a binding for {{ binding }}"
       case ProductionCondition(nt, lhs, rhs) =>
@@ -336,9 +404,11 @@ class CaseCollector extends UnitWalker {
         else s"{{ expr }}* is/are {{ expr }}*"
       case BinaryCondition(left, op, right) =>
         s"{{ expr }} $op {{ expr }}"
-      case InclusiveIntervalCondition(left, neg, from, to) =>
-        val n = if (neg) " not" else ""
-        s"{{ expr }} is${n} in the inclusive interval from {{ expr }} to {{ expr }}"
+      case InclusiveIntervalCondition(left, neg, from, to, isTextForm) =>
+        if (isTextForm)
+          val n = if (neg) " not" else ""
+          s"{{ expr }} is${n} in the inclusive interval from {{ expr }} to {{ expr }}"
+        else s"{{ expr }} ≤ {{ expr }} ≤ {{ expr }}"
       case ContainsCondition(list, neg, expr) =>
         val c = if (neg) "does not contain" else "contains"
         s"{{ expr }} $c {{ expr }}"
@@ -348,6 +418,56 @@ class CaseCollector extends UnitWalker {
         s"{{ expr }} $op {{ expr }}"
     })
     super.walk(cond)
+  }
+
+  override def walk(ref: Reference): Unit = {
+    val add = getAdd(refs, ref)
+    import AccessKind.*, AccessForm.*
+    def str(kind: AccessKind): String = kind match
+      case Field            => "[[ {{ str }} ]]"
+      case Component(false) => "{{ str }}"
+      case Component(true)  => "{{ str }} component"
+    add(ref match {
+      case Variable(_, None) =>
+        "_{{ str }}_"
+      case Variable(_, Some(_)) =>
+        "|{{ str }}| _{{ str }}_"
+      case Access(_, _, kind, Dot) =>
+        s"{{ ref }}.${str(kind)}"
+      case Access(_, _, kind, Of) =>
+        s"the ${str(kind)} of {{ ref }}"
+      case Access(_, _, kind, Apo(None)) =>
+        s"{{ ref }}'s ${str(kind)}"
+      case Access(_, _, kind, Apo(Some(desc))) =>
+        s"{{ ref }}'s ${str(kind)} $desc"
+      case ValueOf(_) =>
+        "the value of {{ ref }}"
+      case IntrinsicField(_, _) =>
+        "{{ ref }}.[[ %{{ str }}% ]]"
+      case IndexLookup(_, _) =>
+        "{{ ref }}[ {{ expr }} ]"
+      case BindingLookup(_, _) =>
+        "the binding for {{ expr }} in {{ expr }}"
+      case NonterminalLookup(_, _) =>
+        "the |{{ str }}| of {{ ref }}"
+      case PositionalElement(_, true) =>
+        "the first element of {{ ref }}"
+      case PositionalElement(_, false) =>
+        "the last element of {{ ref }}"
+      case IntrinsicObject(base, expr) =>
+        "{{ ref }}'s intrinsic object named {{ expr }}"
+      case _: RunningExecutionContext =>
+        "the running execution context"
+      case _: SecondExecutionContext =>
+        "the second to top element of the execution context stack"
+      case _: CurrentRealmRecord =>
+        "the current Realm Record"
+      case _: ActiveFunctionObject =>
+        "the active function object"
+      case AgentRecord() =>
+        "the Agent Record of the surrounding agent"
+    })
+    super.walk(ref)
   }
 }
 

@@ -12,8 +12,30 @@ object JsonProtocol extends BasicJsonProtocol {
   import stringifier.given
 
   // references
+  given Decoder[Reference] = deriveDecoderWithType
+  given Encoder[Reference] = deriveEncoderWithType
   given Decoder[Variable] = deriveDecoderWithType
   given Encoder[Variable] = deriveEncoderWithType
+  given Decoder[Access] = deriveDecoderWithType
+  given Encoder[Access] = deriveEncoderWithType
+  given Decoder[AccessKind] = deriveDecoderWithType
+  given Encoder[AccessKind] = deriveEncoderWithType
+  given Decoder[AccessForm] = deriveDecoderWithType
+  given Encoder[AccessForm] = deriveEncoderWithType
+  given Decoder[ValueOf] = deriveDecoderWithType
+  given Encoder[ValueOf] = deriveEncoderWithType
+  given Decoder[IntrinsicField] = deriveDecoderWithType
+  given Encoder[IntrinsicField] = deriveEncoderWithType
+  given Decoder[IndexLookup] = deriveDecoderWithType
+  given Encoder[IndexLookup] = deriveEncoderWithType
+  given Decoder[BindingLookup] = deriveDecoderWithType
+  given Encoder[BindingLookup] = deriveEncoderWithType
+  given Decoder[NonterminalLookup] = deriveDecoderWithType
+  given Encoder[NonterminalLookup] = deriveEncoderWithType
+  given Decoder[PositionalElement] = deriveDecoderWithType
+  given Encoder[PositionalElement] = deriveEncoderWithType
+  given Decoder[IntrinsicObject] = deriveDecoderWithType
+  given Encoder[IntrinsicObject] = deriveEncoderWithType
   given Decoder[RunningExecutionContext] = deriveDecoderWithType
   given Encoder[RunningExecutionContext] = deriveEncoderWithType
   given Decoder[SecondExecutionContext] = deriveDecoderWithType
@@ -22,34 +44,16 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[CurrentRealmRecord] = deriveEncoderWithType
   given Decoder[ActiveFunctionObject] = deriveDecoderWithType
   given Encoder[ActiveFunctionObject] = deriveEncoderWithType
-  given Decoder[PropertyReference] = deriveDecoderWithType
-  given Encoder[PropertyReference] = deriveEncoderWithType
   given Decoder[AgentRecord] = deriveDecoderWithType
   given Encoder[AgentRecord] = deriveEncoderWithType
-  given Decoder[Reference] = deriveDecoderWithType
-  given Encoder[Reference] = deriveEncoderWithType
-
-  // properties
-  given Decoder[FieldProperty] = deriveDecoderWithType
-  given Encoder[FieldProperty] = deriveEncoderWithType
-  given Decoder[ComponentProperty] = deriveDecoderWithType
-  given Encoder[ComponentProperty] = deriveEncoderWithType
-  given Decoder[BindingProperty] = deriveDecoderWithType
-  given Encoder[BindingProperty] = deriveEncoderWithType
-  given Decoder[IndexProperty] = deriveDecoderWithType
-  given Encoder[IndexProperty] = deriveEncoderWithType
-  given Decoder[IntrinsicProperty] = deriveDecoderWithType
-  given Encoder[IntrinsicProperty] = deriveEncoderWithType
-  given Decoder[NonterminalProperty] = deriveDecoderWithType
-  given Encoder[NonterminalProperty] = deriveEncoderWithType
-  given Decoder[Property] = deriveDecoderWithType
-  given Encoder[Property] = deriveEncoderWithType
 
   // intrinsics
   given Decoder[Intrinsic] = deriveDecoderWithType
   given Encoder[Intrinsic] = deriveEncoderWithType
 
   // expressions
+  given Decoder[Expression] = deriveDecoderWithType
+  given Encoder[Expression] = deriveEncoderWithType
   given Decoder[StringConcatExpression] = deriveDecoderWithType
   given Encoder[StringConcatExpression] = deriveEncoderWithType
   given Decoder[ListConcatExpression] = deriveDecoderWithType
@@ -58,6 +62,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[ListCopyExpression] = deriveEncoderWithType
   given Decoder[RecordExpression] = deriveDecoderWithType
   given Encoder[RecordExpression] = deriveEncoderWithType
+  given Decoder[RecordExpressionForm] = deriveDecoderWithType
+  given Encoder[RecordExpressionForm] = deriveEncoderWithType
   given Decoder[LengthExpression] = deriveDecoderWithType
   given Encoder[LengthExpression] = deriveEncoderWithType
   given Decoder[SubstringExpression] = deriveDecoderWithType
@@ -76,8 +82,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[GetItemsExpression] = deriveEncoderWithType
   given Decoder[ListExpression] = deriveDecoderWithType
   given Encoder[ListExpression] = deriveEncoderWithType
-  given Decoder[IntListExpression] = deriveDecoderWithType
-  given Encoder[IntListExpression] = deriveEncoderWithType
+  given Decoder[ListExpressionForm] = deriveDecoderWithType
+  given Encoder[ListExpressionForm] = deriveEncoderWithType
   given Decoder[XRefExpression] = deriveDecoderWithType
   given Encoder[XRefExpression] = deriveEncoderWithType
   given Decoder[XRefExpressionOperator] = deriveDecoderWithType
@@ -88,6 +94,12 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[CodeUnitAtExpression] = deriveEncoderWithType
   given Decoder[YetExpression] = deriveDecoderWithType
   given Encoder[YetExpression] = deriveEncoderWithType
+
+  // invocation expressions
+  given Decoder[InvokeExpression] = deriveDecoderWithType
+  given Encoder[InvokeExpression] = deriveEncoderWithType
+  given Decoder[HtmlTag] = deriveDecoderWithType
+  given Encoder[HtmlTag] = deriveEncoderWithType
   given Decoder[InvokeAbstractOperationExpression] = deriveDecoderWithType
   given Encoder[InvokeAbstractOperationExpression] = deriveEncoderWithType
   given Decoder[InvokeNumericMethodExpression] = deriveDecoderWithType
@@ -98,6 +110,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[InvokeMethodExpression] = deriveEncoderWithType
   given Decoder[InvokeSyntaxDirectedOperationExpression] = deriveDecoderWithType
   given Encoder[InvokeSyntaxDirectedOperationExpression] = deriveEncoderWithType
+
+  // calculation expressions
+  given Decoder[CalcExpression] = deriveDecoderWithType
+  given Encoder[CalcExpression] = deriveEncoderWithType
   given Decoder[ReturnIfAbruptExpression] = deriveDecoderWithType
   given Encoder[ReturnIfAbruptExpression] = deriveEncoderWithType
   given Decoder[ReferenceExpression] = deriveDecoderWithType
@@ -120,24 +136,34 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[ConversionExpression] = deriveEncoderWithType
   given Decoder[ConversionExpressionOperator] = deriveDecoderWithType
   given Encoder[ConversionExpressionOperator] = deriveEncoderWithType
-  given Decoder[CalcExpression] = deriveDecoderWithType
-  given Encoder[CalcExpression] = deriveEncoderWithType
+  given Decoder[ConversionExpressionForm] = deriveDecoderWithType
+  given Encoder[ConversionExpressionForm] = deriveEncoderWithType
+
+  // clamp expressions
   given Decoder[ClampExpression] = deriveDecoderWithType
   given Encoder[ClampExpression] = deriveEncoderWithType
+
+  // mathematical operation expressions
   given Decoder[MathOpExpression] = deriveDecoderWithType
   given Encoder[MathOpExpression] = deriveEncoderWithType
   given Decoder[MathOpExpressionOperator] = deriveDecoderWithType
   given Encoder[MathOpExpressionOperator] = deriveEncoderWithType
+
+  // bitwise expressions
   given Decoder[BitwiseExpression] = deriveDecoderWithType
   given Encoder[BitwiseExpression] = deriveEncoderWithType
   given Decoder[BitwiseExpressionOperator] = deriveDecoderWithType
   given Encoder[BitwiseExpressionOperator] = deriveEncoderWithType
+
+  // multiline expressions
+  given Decoder[MultilineExpression] = deriveDecoderWithType
+  given Encoder[MultilineExpression] = deriveEncoderWithType
   given Decoder[AbstractClosureExpression] = deriveDecoderWithType
   given Encoder[AbstractClosureExpression] = deriveEncoderWithType
-  given Decoder[Expression] = deriveDecoderWithType
-  given Encoder[Expression] = deriveEncoderWithType
 
   // literals
+  given Decoder[Literal] = deriveDecoderWithType
+  given Encoder[Literal] = deriveEncoderWithType
   given Decoder[ThisLiteral] = deriveDecoderWithType
   given Encoder[ThisLiteral] = deriveEncoderWithType
   given Decoder[NewTargetLiteral] = deriveDecoderWithType
@@ -154,6 +180,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[EnumLiteral] = deriveEncoderWithType
   given Decoder[StringLiteral] = deriveDecoderWithType
   given Encoder[StringLiteral] = deriveEncoderWithType
+  given Decoder[StringLiteralForm] = deriveDecoderWithType
+  given Encoder[StringLiteralForm] = deriveEncoderWithType
   given Decoder[FieldLiteral] = deriveDecoderWithType
   given Encoder[FieldLiteral] = deriveEncoderWithType
   given Decoder[ProductionLiteral] = deriveDecoderWithType
@@ -198,16 +226,18 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[BigIntTypeLiteral] = deriveEncoderWithType
   given Decoder[ObjectTypeLiteral] = deriveDecoderWithType
   given Encoder[ObjectTypeLiteral] = deriveEncoderWithType
-  given Decoder[Literal] = deriveDecoderWithType
-  given Encoder[Literal] = deriveEncoderWithType
 
   // conditions
+  given Decoder[Condition] = deriveDecoderWithType
+  given Encoder[Condition] = deriveEncoderWithType
   given Decoder[ExpressionCondition] = deriveDecoderWithType
   given Encoder[ExpressionCondition] = deriveEncoderWithType
   given Decoder[TypeCheckCondition] = deriveDecoderWithType
   given Encoder[TypeCheckCondition] = deriveEncoderWithType
   given Decoder[HasFieldCondition] = deriveDecoderWithType
   given Encoder[HasFieldCondition] = deriveEncoderWithType
+  given Decoder[HasFieldConditionForm] = deriveDecoderWithType
+  given Encoder[HasFieldConditionForm] = deriveEncoderWithType
   given Decoder[HasBindingCondition] = deriveDecoderWithType
   given Encoder[HasBindingCondition] = deriveEncoderWithType
   given Decoder[ProductionCondition] = deriveDecoderWithType
@@ -232,8 +262,6 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[CompoundCondition] = deriveEncoderWithType
   given Decoder[CompoundConditionOperator] = deriveDecoderWithType
   given Encoder[CompoundConditionOperator] = deriveEncoderWithType
-  given Decoder[Condition] = deriveDecoderWithType
-  given Encoder[Condition] = deriveEncoderWithType
 
   // types
   given Decoder[Type] = decoderWithParser(Type.from)

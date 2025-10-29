@@ -1,0 +1,8 @@
+def HostLoadImportedModule(
+  referrer: Record[ScriptRecord | CyclicModuleRecord | RealmRecord],
+  moduleRequest: Record[ModuleRequestRecord],
+  hostDefined: Any,
+  payload: Record[GraphLoadingStateRecord | PromiseCapabilityRecord],
+): Enum[~unused~] = {
+  return ~unused~
+}

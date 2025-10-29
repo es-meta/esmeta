@@ -1176,7 +1176,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       if (config.checkBinaryOp)
         val (lhsTy, rhsTy) = (left.ty, right.ty)
         binary.bop match
-          case Add | Sub | Mul | Pow | Div | UMod | Mod | Lt | Equal =>
+          case Add | Sub | Mul | Pow | Div | Mod | Lt | Equal =>
             checkBinary(binary, lhsTy, rhsTy, Set(ExtMathT, NumberT, BigIntT))
           case LShift | RShift | BAnd | BOr | BXOr =>
             checkBinary(binary, lhsTy, rhsTy, Set(MathT, BigIntT))
@@ -1198,7 +1198,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case Div    => left / right
         case Mul    => left * right
         case Mod    => left % right
-        case UMod   => left %% right
         case Pow    => left ** right
         case LShift => left << right
         case RShift => left >> right

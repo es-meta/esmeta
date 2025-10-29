@@ -27,7 +27,6 @@ trait Walker extends BasicWalker {
     case syn: Condition  => walk(syn)
     case syn: Reference  => walk(syn)
     case syn: Type       => walk(syn)
-    case syn: Property   => walk(syn)
     case syn: Intrinsic  => walk(syn)
   }
 
@@ -58,6 +57,7 @@ trait Walker extends BasicWalker {
     case InvokeShorthandStep(x, a)  => InvokeShorthandStep(x, walkList(a, walk))
     case AppendStep(expr, ref)      => AppendStep(walk(expr), walk(ref))
     case PrependStep(expr, ref)     => PrependStep(walk(expr), walk(ref))
+    case InsertStep(expr, ref)      => InsertStep(walk(expr), walk(ref))
     case AddStep(expr, ref)         => AddStep(walk(expr), walk(ref))
     case RemoveStep(t, p, l)        => RemoveStep(walk(t), walk(p), walk(l))
     case PushContextStep(ref)       => PushContextStep(walk(ref))
@@ -166,18 +166,23 @@ trait Walker extends BasicWalker {
       ListConcatExpression(walkList(exprs, walk))
     case ListCopyExpression(expr) =>
       ListCopyExpression(walk(expr))
-    case RecordExpression(ty, fields) =>
+    case RecordExpression(ty, fields, form) =>
       lazy val newFields =
         walkList(fields, { case (f, e) => (walk(f), walk(e)) })
-      RecordExpression(walk(ty), newFields)
+      RecordExpression(walk(ty), newFields, form)
     case LengthExpression(expr) =>
       LengthExpression(walk(expr))
     case SubstringExpression(expr, from, to) =>
       SubstringExpression(walk(expr), walk(from), walkOpt(to, walk))
     case TrimExpression(expr, leading, trailing) =>
       TrimExpression(walk(expr), walk(leading), walk(trailing))
-    case NumberOfExpression(name, pre, expr) =>
-      NumberOfExpression(walk(name), walkOpt(pre, walk), walk(expr))
+    case NumberOfExpression(name, pre, expr, exclude) =>
+      NumberOfExpression(
+        walk(name),
+        walkOpt(pre, walk),
+        walk(expr),
+        walkOpt(exclude, walk),
+      )
     case SourceTextExpression(expr) =>
       SourceTextExpression(walk(expr))
     case CoveredByExpression(code, rule) =>
@@ -196,16 +201,27 @@ trait Walker extends BasicWalker {
       BitwiseExpression(walk(left), walk(op), walk(right))
     case invoke: InvokeExpression =>
       walk(invoke)
-    case ListExpression(entries) =>
-      ListExpression(walkList(entries, walk))
-    case IntListExpression(from, isFromInc, to, isToInc, isInc) =>
-      IntListExpression(walk(from), isFromInc, walk(to), isToInc, isInc)
+    case ListExpression(form) =>
+      import ListExpressionForm.*
+      ListExpression(
+        form match
+          case LiteralSyntax(entries) =>
+            LiteralSyntax(walkList(entries, walk))
+          case SoleElement(entry) =>
+            SoleElement(walk(entry))
+          case EmptyList(isNewUsed, typeDesc) =>
+            EmptyList(isNewUsed, typeDesc)
+          case IntRange(from, fromInc, to, toInc, asc) =>
+            IntRange(walk(from), fromInc, walk(to), toInc, asc),
+      )
     case XRefExpression(kind, id) =>
       XRefExpression(walk(kind), id)
     case SoleElementExpression(expr) =>
       SoleElementExpression(walk(expr))
     case CodeUnitAtExpression(base, index) =>
       CodeUnitAtExpression(walk(base), walk(index))
+    case StringExpression(expr) =>
+      StringExpression(walk(expr))
     case multi: MultilineExpression => walk(multi)
     case yet: YetExpression =>
       walk(yet)
@@ -233,8 +249,8 @@ trait Walker extends BasicWalker {
       walk(lit)
     case MathFuncExpression(op, args) =>
       MathFuncExpression(walk(op), walkList(args, walk))
-    case ConversionExpression(op, expr) =>
-      ConversionExpression(walk(op), walk(expr))
+    case ConversionExpression(op, expr, form) =>
+      ConversionExpression(walk(op), walk(expr), form)
     case ExponentiationExpression(base, power) =>
       ExponentiationExpression(walk(base), walk(power))
     case BinaryExpression(left, op, right) =>
@@ -265,19 +281,27 @@ trait Walker extends BasicWalker {
   def walk(flit: FieldLiteral): FieldLiteral = flit
 
   def walk(invoke: InvokeExpression): InvokeExpression = invoke match {
-    case InvokeAbstractOperationExpression(name, args) =>
-      InvokeAbstractOperationExpression(name, walkList(args, walk))
+    case InvokeAbstractOperationExpression(name, args, tag) =>
+      InvokeAbstractOperationExpression(name, walkList(args, walk), tag)
     case InvokeNumericMethodExpression(ty, name, args) =>
       InvokeNumericMethodExpression(walk(ty), name, walkList(args, walk))
     case InvokeAbstractClosureExpression(x, args) =>
       InvokeAbstractClosureExpression(walk(x), walkList(args, walk))
-    case InvokeMethodExpression(ref, args) =>
-      InvokeMethodExpression(walk(ref), walkList(args, walk))
-    case InvokeSyntaxDirectedOperationExpression(base, name, args) =>
+    case InvokeMethodExpression(access, args, tag) =>
+      InvokeMethodExpression(walk(access), walkList(args, walk), tag)
+    case InvokeSyntaxDirectedOperationExpression(
+          base,
+          name,
+          args,
+          article,
+          tag,
+        ) =>
       InvokeSyntaxDirectedOperationExpression(
         walk(base),
         name,
         walkList(args, walk),
+        None,
+        tag,
       )
   }
 
@@ -286,8 +310,8 @@ trait Walker extends BasicWalker {
       ExpressionCondition(walk(expr))
     case TypeCheckCondition(expr, neg, ty) =>
       TypeCheckCondition(walk(expr), walk(neg), walkList(ty, walk))
-    case HasFieldCondition(ref, neg, field) =>
-      HasFieldCondition(walk(ref), walk(neg), walk(field))
+    case HasFieldCondition(ref, neg, field, form) =>
+      HasFieldCondition(walk(ref), walk(neg), walk(field), form)
     case HasBindingCondition(ref, neg, binding) =>
       HasBindingCondition(walk(ref), walk(neg), walk(binding))
     case ProductionCondition(nt, lhs, rhs) =>
@@ -298,8 +322,14 @@ trait Walker extends BasicWalker {
       IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>
       BinaryCondition(walk(left), walk(op), walk(right))
-    case InclusiveIntervalCondition(left, neg, from, to) =>
-      InclusiveIntervalCondition(walk(left), walk(neg), walk(from), walk(to))
+    case InclusiveIntervalCondition(left, neg, from, to, verbose) =>
+      InclusiveIntervalCondition(
+        walk(left),
+        walk(neg),
+        walk(from),
+        walk(to),
+        walk(verbose),
+      )
     case ContainsCondition(list, neg, target) =>
       ContainsCondition(walk(list), walk(neg), walk(target))
     case CompoundCondition(left, op, right) =>
@@ -322,30 +352,38 @@ trait Walker extends BasicWalker {
   def walk(op: CompoundConditionOperator): CompoundConditionOperator = op
 
   def walk(ref: Reference): Reference = ref match {
-    case x: Variable                => walk(x)
-    case RunningExecutionContext()  => RunningExecutionContext()
-    case SecondExecutionContext()   => SecondExecutionContext()
-    case CurrentRealmRecord()       => CurrentRealmRecord()
-    case ActiveFunctionObject()     => ActiveFunctionObject()
-    case propRef: PropertyReference => walk(propRef)
-    case AgentRecord()              => AgentRecord()
+    case x: Variable => walk(x)
+    case x: Access   => walk(x)
+    case ValueOf(base) =>
+      ValueOf(walk(base))
+    case IntrinsicField(base, intr) =>
+      IntrinsicField(walk(base), walk(intr))
+    case IndexLookup(base, index) =>
+      IndexLookup(walk(base), walk(index))
+    case BindingLookup(base, binding) =>
+      BindingLookup(walk(base), walk(binding))
+    case NonterminalLookup(base, nt) =>
+      NonterminalLookup(walk(base), nt)
+    case PositionalElement(base, isFirst) =>
+      PositionalElement(walk(base), isFirst)
+    case IntrinsicObject(base, expr) =>
+      IntrinsicObject(walk(base), walk(expr))
+    case RunningExecutionContext() => RunningExecutionContext()
+    case SecondExecutionContext()  => SecondExecutionContext()
+    case CurrentRealmRecord()      => CurrentRealmRecord()
+    case ActiveFunctionObject()    => ActiveFunctionObject()
+    case AgentRecord()             => AgentRecord()
   }
 
-  def walk(x: Variable): Variable = Variable(x.name)
+  def walk(x: Variable): Variable = Variable(x.name, walkOpt(x.nt, walk))
 
-  def walk(propRef: PropertyReference): PropertyReference = propRef match {
-    case PropertyReference(base, prop) =>
-      PropertyReference(walk(base), walk(prop))
-  }
+  def walk(access: Access): Access = access match
+    case Access(base, name, kind, form) =>
+      Access(walk(base), name, walk(kind), walk(form))
 
-  def walk(prop: Property): Property = prop match {
-    case FieldProperty(n)        => FieldProperty(n)
-    case ComponentProperty(c)    => ComponentProperty(c)
-    case BindingProperty(b)      => BindingProperty(walk(b))
-    case IndexProperty(e)        => IndexProperty(walk(e))
-    case IntrinsicProperty(intr) => IntrinsicProperty(walk(intr))
-    case NonterminalProperty(n)  => NonterminalProperty(n)
-  }
+  def walk(kind: AccessKind): AccessKind = kind
+
+  def walk(form: AccessForm): AccessForm = form
 
   def walk(intr: Intrinsic): Intrinsic = intr
 

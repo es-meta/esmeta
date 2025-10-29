@@ -27,7 +27,10 @@ case class HasFieldCondition(
   ref: Reference,
   negation: Boolean,
   field: Expression,
+  form: HasFieldConditionForm,
 ) extends Condition
+enum HasFieldConditionForm:
+  case Field, InternalSlot, InternalMethod
 
 // binding inclusion conditions
 case class HasBindingCondition(
@@ -79,6 +82,7 @@ case class InclusiveIntervalCondition(
   negation: Boolean,
   from: Expression,
   to: Expression,
+  isTextForm: Boolean,
 ) extends Condition
 
 // `contiains` conditions

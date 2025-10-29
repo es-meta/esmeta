@@ -22,7 +22,7 @@ enum BOp extends Op:
   // equality (e.g. is, are)
   case Eq
   // numeric values
-  case Add, Sub, Mul, Pow, Div, UMod, Mod, Lt, Equal
+  case Add, Sub, Mul, Pow, Div, Mod, Lt, Equal
   // bitwise
   case BAnd, BOr, BXOr
   // shift

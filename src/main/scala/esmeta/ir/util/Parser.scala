@@ -260,7 +260,6 @@ trait Parsers extends TyParsers {
     "**" ^^^ Pow |
     "*" ^^^ Mul |
     "/" ^^^ Div |
-    "%%" ^^^ UMod |
     "%" ^^^ Mod |
     "==" ^^^ Equal |
     "=" ^^^ Eq |

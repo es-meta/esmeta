@@ -4,6 +4,15 @@ import esmeta.lang.util.*
 
 // metalanguage steps
 sealed trait Step extends Syntax {
+  var endingChar = ""
+  lazy val isNextLowercase = endingChar == ";";
+
+  var prefix = ""
+  var postfix = ""
+
+  lazy val endString =
+    val space = if (postfix.isEmpty) "" else " "
+    prefix + endingChar + space + postfix
 
   /** check whether it is complete */
   def complete: Boolean = this match
@@ -44,6 +53,9 @@ case class AppendStep(elem: Expression, ref: Reference) extends Step
 
 // prepend steps
 case class PrependStep(elem: Expression, ref: Reference) extends Step
+
+// insert steps
+case class InsertStep(elem: Expression, ref: Reference) extends Step
 
 // add steps
 case class AddStep(elem: Expression, ref: Reference) extends Step

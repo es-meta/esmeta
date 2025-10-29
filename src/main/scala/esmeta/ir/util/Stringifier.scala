@@ -273,7 +273,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Mul    => "*"
       case Pow    => "**"
       case Div    => "/"
-      case UMod   => "%%"
       case Mod    => "%"
       case Eq     => "="
       case Equal  => "=="

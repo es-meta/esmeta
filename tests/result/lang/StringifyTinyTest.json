@@ -8,7 +8,6 @@
   "Intrinsic" : true,
   "Literal" : true,
   "MathOpExpression" : true,
-  "Property" : true,
   "Reference" : true,
   "Step" : true,
   "Type" : true

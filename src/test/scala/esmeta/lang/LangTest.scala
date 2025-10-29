@@ -28,40 +28,59 @@ object LangTest {
   // ---------------------------------------------------------------------------
   // algorithm steps
   // ---------------------------------------------------------------------------
-  lazy val letStep = LetStep(x, refExpr)
+  trait StepUpdater { def apply[T <: Step](s: T): T }
+
+  def genStepEnder(punctuation: String): StepUpdater =
+    new StepUpdater {
+      def apply[T <: Step](s: T): T =
+        s.endingChar = punctuation
+        s
+    }
+  lazy val dot = genStepEnder(".")
+  lazy val semicolon = genStepEnder(";")
+
+  lazy val letStep = dot(LetStep(x, refExpr))
+  lazy val letStepSemicolon = semicolon(LetStep(x, refExpr))
   lazy val letStepClosure =
     LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
-  lazy val setStep = SetStep(x, addExpr)
-  lazy val setAsStep = SetAsStep(x, "specified", "id")
+  lazy val setStep = dot(SetStep(x, addExpr))
+  lazy val setAsStep = dot(SetAsStep(x, "specified", "id"))
   lazy val setEvalStateStep = SetEvaluationStateStep(x, x, Nil)
   lazy val setEvalStateArgStep = SetEvaluationStateStep(x, x, List(refExpr))
   lazy val setEvalStateArgsStep =
     SetEvaluationStateStep(x, x, List(refExpr, refExpr))
-  lazy val performStep = PerformStep(invokeAOExpr)
-  lazy val invokeShorthandStep = InvokeShorthandStep(
-    "IfAbruptCloseIterator",
-    List(refExpr, refExpr),
+  lazy val performStep = dot(PerformStep(invokeAOExpr))
+  lazy val invokeShorthandStep = dot(
+    InvokeShorthandStep(
+      "IfAbruptCloseIterator",
+      List(refExpr, refExpr),
+    ),
   )
-  lazy val appendStep = AppendStep(refExpr, fieldRef)
-  lazy val prependStep = PrependStep(refExpr, fieldRef)
-  lazy val addStep = AddStep(refExpr, fieldRef)
+  lazy val appendStep = dot(AppendStep(refExpr, access))
+  lazy val prependStep = dot(PrependStep(refExpr, access))
+  lazy val insertStep = dot(InsertStep(refExpr, access))
+  lazy val addStep = dot(AddStep(refExpr, access))
   import RemoveStep.Target.*
-  lazy val removeStep = RemoveStep(Element(refExpr), "from", refExpr)
-  lazy val removeFirstStep = RemoveStep(First(Some(refExpr)), "from", refExpr)
-  lazy val removeLastStep = RemoveStep(Last(None), "of", refExpr)
-  lazy val pushCtxtStep = PushContextStep(x)
-  lazy val suspendStep = SuspendStep(None, F)
-  lazy val suspendRefStep = SuspendStep(Some(x), F)
-  lazy val suspendAndRemoveStep = SuspendStep(Some(x), T)
+  lazy val removeStep = dot(RemoveStep(Element(refExpr), "from", refExpr))
+  lazy val removeFirstStep = dot(
+    RemoveStep(First(Some(refExpr)), "from", refExpr),
+  )
+  lazy val removeLastStep = dot(RemoveStep(Last(None), "of", refExpr))
+  lazy val pushCtxtStep = dot(PushContextStep(x))
+  lazy val suspendStep = dot(SuspendStep(None, F))
+  lazy val suspendRefStep = dot(SuspendStep(Some(x), F))
+  lazy val suspendAndRemoveStep = dot(SuspendStep(Some(x), T))
   import RemoveContextStep.RestoreTarget.*
-  lazy val removeCtxtStep = RemoveContextStep(x, NoRestore)
-  lazy val removeCtxtRestoreTopStep = RemoveContextStep(x, StackTop)
-  lazy val removeCtxtRestoreStep = RemoveContextStep(x, Context(x))
-  lazy val assertStep = AssertStep(compCond)
+  lazy val removeCtxtStep = dot(RemoveContextStep(x, NoRestore))
+  lazy val removeCtxtRestoreTopStep = dot(RemoveContextStep(x, StackTop))
+  lazy val removeCtxtRestoreStep = dot(RemoveContextStep(x, Context(x)))
+  lazy val assertStep = dot(AssertStep(compCond))
   import IfStep.ElseConfig
   lazy val ifStep = IfStep(exprCond, letStep, None)
   lazy val ifElseInlineStep =
     IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "else", T))
+  lazy val ifElseInlineSemicolonStep =
+    IfStep(exprCond, letStepSemicolon, Some(letStep), ElseConfig(F, "else", T))
   lazy val ifOtherwiseInlineStep =
     IfStep(exprCond, letStep, Some(letStep), ElseConfig(F, "otherwise", T))
   lazy val ifOtherwiseInlineNoCommaStep =
@@ -105,8 +124,8 @@ object LangTest {
     ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
     letStep,
   )
-  lazy val returnStep = ReturnStep(refExpr)
-  lazy val throwStep = ThrowStep("ReferenceError")
+  lazy val returnStep = dot(ReturnStep(refExpr))
+  lazy val throwStep = dot(ThrowStep("ReferenceError"))
   lazy val resumeStep = ResumeStep(x, refExpr, x, x, List(subStep))
   lazy val resumeEvalStep = ResumeEvaluationStep(x, None, None, List(subStep))
   lazy val resumeEvalArgStep =
@@ -146,25 +165,37 @@ object LangTest {
     ListConcatExpression(List(refExpr, refExpr, refExpr))
   lazy val listCopyExpr = ListCopyExpression(refExpr)
   lazy val recordEmptyExpr =
-    RecordExpression("Object", Nil)
+    RecordExpression(
+      "Object",
+      Nil,
+      RecordExpressionForm.SyntaxLiteral(None),
+    )
   lazy val recordExpr =
-    RecordExpression("Object", List(fieldLit -> refExpr))
+    RecordExpression(
+      "Object",
+      List(fieldLit -> refExpr),
+      RecordExpressionForm.SyntaxLiteral(None),
+    )
   lazy val lengthExpr = LengthExpression(refExpr)
   lazy val substrExpr = SubstringExpression(refExpr, refExpr, None)
   lazy val substrExprTo = SubstringExpression(refExpr, refExpr, Some(refExpr))
   lazy val trim = TrimExpression(refExpr, T, T)
   lazy val trimStart = TrimExpression(refExpr, T, F)
   lazy val trimEnd = TrimExpression(refExpr, F, T)
-  lazy val numberOfExpr = NumberOfExpression("elements", None, refExpr)
-  lazy val numberOfBytesExpr = NumberOfExpression("bytes", None, refExpr)
+  lazy val numberOfExpr = NumberOfExpression("elements", None, refExpr, None)
+  lazy val numberOfBytesExpr = NumberOfExpression("bytes", None, refExpr, None)
   lazy val numberOfListExpr =
-    NumberOfExpression("elements", Some("List"), refExpr)
+    NumberOfExpression("elements", Some("List"), refExpr, None)
   lazy val sourceTextExpr = SourceTextExpression(nt)
   lazy val coveredByExpr = CoveredByExpression(nt, nt)
   lazy val getItemsExpr = GetItemsExpression(nt, refExpr)
   lazy val intrExpr = IntrinsicExpression(intr)
   lazy val invokeAOExpr =
-    InvokeAbstractOperationExpression("ToObject", List(addExpr, unExpr))
+    InvokeAbstractOperationExpression(
+      "ToObject",
+      List(addExpr, unExpr),
+      HtmlTag.None,
+    )
   lazy val invokeNumericExpr =
     InvokeNumericMethodExpression(
       "Number",
@@ -174,38 +205,57 @@ object LangTest {
   lazy val invokeClosureExpr =
     InvokeAbstractClosureExpression(x, List(refExpr))
   lazy val invokeMethodExpr =
-    InvokeMethodExpression(fieldRef, List(addExpr, unExpr))
+    InvokeMethodExpression(access, List(addExpr, unExpr), HtmlTag.None)
   lazy val invokeSDOExprZero =
-    InvokeSyntaxDirectedOperationExpression(nt, "StringValue", Nil)
+    InvokeSyntaxDirectedOperationExpression(
+      nt,
+      "StringValue",
+      Nil,
+      None,
+      HtmlTag.None,
+    )
   lazy val invokeSDOExprSingle =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "StringValue",
       List(nt),
+      None,
+      HtmlTag.None,
     )
   lazy val invokeSDOExprMulti =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "StringValue",
       List(nt, refExpr),
+      None,
+      HtmlTag.None,
     )
   lazy val invokeSDOExprEval =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "Evaluation",
       Nil,
+      None,
+      HtmlTag.None,
     )
   lazy val invokeSDOExprContains =
     InvokeSyntaxDirectedOperationExpression(
       nt,
       "Contains",
       List(refExpr),
+      None,
+      HtmlTag.None,
     )
   lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, T)
   lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
-  lazy val emptyListExpr = ListExpression(Nil)
-  lazy val listExpr = ListExpression(List(refExpr, refExpr))
-  lazy val xrefAlgoExpr = XRefExpression(XRefExpressionOperator.Algo, "sec-x")
+  lazy val emptyListExpr = ListExpression(
+    ListExpressionForm.LiteralSyntax(Nil),
+  )
+  lazy val listExpr = ListExpression(
+    ListExpressionForm.LiteralSyntax(List(refExpr, refExpr)),
+  )
+  lazy val xrefAlgoExpr =
+    XRefExpression(XRefExpressionOperator.Definition, "sec-x")
   lazy val xrefSlotsExpr =
     XRefExpression(XRefExpressionOperator.InternalSlots, "sec-x")
   lazy val xrefLenExpr =
@@ -238,41 +288,66 @@ object LangTest {
     ConversionExpression(
       ConversionExpressionOperator.ToApproxNumber,
       refExpr,
+      ConversionExpressionForm.Text("an", "representing"),
     )
   lazy val convToNumberTextExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToNumber,
       codeUnitAtExpr,
+      ConversionExpressionForm.Text("the", "of"),
     )
   lazy val convToBigIntTextExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToBigInt,
       codeUnitAtExpr,
+      ConversionExpressionForm.Text("the", "of"),
     )
   lazy val convToMathTextExpr =
-    ConversionExpression(ConversionExpressionOperator.ToMath, codeUnitAtExpr)
+    ConversionExpression(
+      ConversionExpressionOperator.ToMath,
+      codeUnitAtExpr,
+      ConversionExpressionForm.Text("the", "of"),
+    )
   lazy val convToNumberExpr =
-    ConversionExpression(ConversionExpressionOperator.ToNumber, refExpr)
+    ConversionExpression(
+      ConversionExpressionOperator.ToNumber,
+      refExpr,
+      ConversionExpressionForm.SyntaxLiteral,
+    )
   lazy val convToBigIntExpr =
-    ConversionExpression(ConversionExpressionOperator.ToBigInt, refExpr)
+    ConversionExpression(
+      ConversionExpressionOperator.ToBigInt,
+      refExpr,
+      ConversionExpressionForm.SyntaxLiteral,
+    )
   lazy val convToMathExpr =
-    ConversionExpression(ConversionExpressionOperator.ToMath, refExpr)
+    ConversionExpression(
+      ConversionExpressionOperator.ToMath,
+      refExpr,
+      ConversionExpressionForm.SyntaxLiteral,
+    )
 
   // algorithm literals
-  lazy val hex = HexLiteral(0x0024, None)
-  lazy val hexWithName = HexLiteral(0x0024, Some("DOLLAR SIGN"))
+  lazy val hex = HexLiteral(0x0024, false, false, None)
+  lazy val hexWithName = HexLiteral(0x0024, false, false, Some("DOLLAR SIGN"))
   lazy val code = CodeLiteral("|")
   lazy val grSym = GrammarSymbolLiteral("A", Nil)
   lazy val grSymIdx = GrammarSymbolLiteral("A", List("~Yield", "+Await"))
-  lazy val nt = NonterminalLiteral(None, "Identifier", Nil)
-  lazy val firstNt = NonterminalLiteral(Some(1), "Identifier", Nil)
-  lazy val secondNt = NonterminalLiteral(Some(2), "Identifier", Nil)
-  lazy val ntFlags = NonterminalLiteral(None, "A", List("~Yield", "+Await"))
+  lazy val nt = NonterminalLiteral(None, "Identifier", Nil, false)
+  lazy val firstNt = NonterminalLiteral(Some(1), "Identifier", Nil, false)
+  lazy val firstNtWithArticle =
+    NonterminalLiteral(Some(1), "Identifier", Nil, true)
+  lazy val secondNt = NonterminalLiteral(Some(2), "Identifier", Nil, false)
+  lazy val secondNtWithArticle =
+    NonterminalLiteral(Some(2), "Identifier", Nil, true)
+  lazy val ntFlags =
+    NonterminalLiteral(None, "A", List("~Yield", "+Await"), false)
   lazy val empty = EnumLiteral("empty")
-  lazy val emptyStr = StringLiteral("")
-  lazy val str = StringLiteral("abc")
-  lazy val strWithStar = StringLiteral("abc*")
-  lazy val strWithBasckSlash = StringLiteral("abc\\")
+  lazy val emptyStr = StringLiteral("", StringLiteralForm.SyntaxLiteral)
+  lazy val str = StringLiteral("abc", StringLiteralForm.SyntaxLiteral)
+  lazy val strWithStar = StringLiteral("abc*", StringLiteralForm.SyntaxLiteral)
+  lazy val strWithBasckSlash =
+    StringLiteral("abc\\", StringLiteralForm.SyntaxLiteral)
   lazy val fieldLit = FieldLiteral("Value")
   lazy val sym = SymbolLiteral("iterator")
   lazy val errObj = ErrorObjectLiteral("TypeError")
@@ -306,8 +381,10 @@ object LangTest {
     TypeCheckCondition(refExpr, F, List(ty, ty, ty))
   lazy val neitherTypeCheckCond =
     TypeCheckCondition(refExpr, T, List(ty, ty))
-  lazy val hasFieldCond = HasFieldCondition(x, F, fieldLit)
-  lazy val noHasFieldCond = HasFieldCondition(x, T, fieldLit)
+  lazy val hasFieldCond =
+    HasFieldCondition(x, F, fieldLit, HasFieldConditionForm.InternalSlot)
+  lazy val noHasFieldCond =
+    HasFieldCondition(x, T, fieldLit, HasFieldConditionForm.InternalMethod)
   lazy val hasBindingCond = HasBindingCondition(x, F, refExpr)
   lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
@@ -336,12 +413,21 @@ object LangTest {
     IsAreCondition(List(refExpr), T, List(TrueLiteral(), FalseLiteral()))
   lazy val binaryCondLt =
     BinaryCondition(refExpr, BinaryConditionOperator.LessThan, addExpr)
+  lazy val inclusiveIntervalCondShort =
+    InclusiveIntervalCondition(
+      refExpr,
+      F,
+      DecimalMathValueLiteral(BigDecimal(2)),
+      DecimalMathValueLiteral(BigDecimal(32)),
+      false,
+    )
   lazy val inclusiveIntervalCond =
     InclusiveIntervalCondition(
       refExpr,
       F,
       DecimalMathValueLiteral(BigDecimal(2)),
       DecimalMathValueLiteral(BigDecimal(32)),
+      true,
     )
   lazy val notInclusiveIntervalCond =
     inclusiveIntervalCond.copy(negation = T)
@@ -365,22 +451,29 @@ object LangTest {
     CompoundCondition(isCond, CompoundConditionOperator.Imply, isEitherCond)
 
   // algorithm references
+  import AccessKind.*, AccessForm.*
   lazy val x = Variable("x")
-  lazy val fieldRef = PropertyReference(x, fieldProp)
-  lazy val intrFieldRef = PropertyReference(x, intrProp)
-  lazy val propIntrFieldRef =
-    PropertyReference(x, propIntrProp)
-  lazy val componentRef = PropertyReference(x, componentProp)
-  lazy val indexRef = PropertyReference(x, indexProp)
-  lazy val ntRef = PropertyReference(x, NonterminalProperty("Arguments"))
-
-  // algorithm references
-  lazy val fieldProp = FieldProperty("Value")
-  lazy val componentProp = ComponentProperty("Realm")
-  lazy val bindingProp = BindingProperty(refExpr)
-  lazy val indexProp = IndexProperty(refExpr)
-  lazy val intrProp = IntrinsicProperty(intr)
-  lazy val propIntrProp = IntrinsicProperty(propIntr)
+  lazy val xWithNt = Variable("x", Some("ArgumentList"))
+  lazy val access = Access(x, "Value")
+  lazy val accessFieldDot = Access(x, "Value", Field, Dot)
+  lazy val accessCompDot = Access(x, "Value", Component(), Dot)
+  lazy val accessFieldOf = Access(x, "Value", Field, Of)
+  lazy val accessCompOf = Access(x, "Value", Component(true), Of)
+  lazy val accessFieldApo = Access(x, "Value", Field, Apo(Some("attribute")))
+  lazy val accessCompApo = Access(x, "Value", Component(), Apo())
+  lazy val valueOf = ValueOf(x)
+  lazy val intrField = IntrinsicField(x, intr)
+  lazy val indexLookup = IndexLookup(x, refExpr)
+  lazy val bindingLookup = BindingLookup(x, refExpr)
+  lazy val ntLookup = NonterminalLookup(x, "Arguments")
+  lazy val firstElement = PositionalElement(x, T)
+  lazy val lastElement = PositionalElement(x, F)
+  lazy val intrObj = IntrinsicObject(x, refExpr)
+  lazy val runningExecCtx = RunningExecutionContext()
+  lazy val secondExecCtx = SecondExecutionContext()
+  lazy val currentRealmRec = CurrentRealmRecord()
+  lazy val activeFuncObj = ActiveFunctionObject()
+  lazy val agentRec = AgentRecord()
 
   // algorithm intrinsics
   lazy val intr = Intrinsic("Array", Nil)

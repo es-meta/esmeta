@@ -207,7 +207,6 @@ class StringifyTinyTest extends IRTest {
       BOp.Mul -> "*",
       BOp.Pow -> "**",
       BOp.Div -> "/",
-      BOp.UMod -> "%%",
       BOp.Mod -> "%",
       BOp.Eq -> "=",
       BOp.Equal -> "==",

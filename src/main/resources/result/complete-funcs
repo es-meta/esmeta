@@ -147,6 +147,7 @@ AsyncConciseBody[0,0].LexicallyDeclaredNames
 AsyncConciseBody[0,0].LexicallyScopedDeclarations
 AsyncConciseBody[0,0].VarDeclaredNames
 AsyncConciseBody[0,0].VarScopedDeclarations
+AsyncConciseBody[1,0].AsyncConciseBodyContainsUseStrict
 AsyncFromSyncIteratorContinuation
 AsyncFromSyncIteratorContinuation:clo0
 AsyncFromSyncIteratorContinuation:clo1
@@ -466,8 +467,10 @@ CharacterClassEscape[6,0].CompileToCharSet
 CharacterClassEscape[7,0].MayContainStrings
 CharacterClass[0,0].CompileCharacterClass
 CharacterClass[1,0].CompileCharacterClass
+CharacterEscape[2,0].CharacterValue
 CharacterEscape[3,0].CharacterValue
 ClassAtomNoDash[0,0].IsCharacterClass
+ClassAtom[0,0].CharacterValue
 ClassAtom[0,0].IsCharacterClass
 ClassBody[0,0].AllPrivateIdentifiersValid
 ClassContents[0,0].MayContainStrings
@@ -515,7 +518,9 @@ ClassElement[5,0].ComputedPropertyContains
 ClassElement[5,0].IsStatic
 ClassElement[5,0].PrivateBoundIdentifiers
 ClassElement[5,0].PropName
+ClassEscape[0,0].CharacterValue
 ClassEscape[0,0].IsCharacterClass
+ClassEscape[1,0].CharacterValue
 ClassEscape[1,0].IsCharacterClass
 ClassEscape[2,0].IsCharacterClass
 ClassEscape[3,0].IsCharacterClass
@@ -528,6 +533,7 @@ ClassExpression[0,1].HasName
 ClassExpression[0,1].IsFunctionDefinition
 ClassIntersection[0,0].MayContainStrings
 ClassIntersection[1,0].MayContainStrings
+ClassSetCharacter[3,0].CharacterValue
 ClassSetOperand[0,0].CompileToCharSet
 ClassSetOperand[1,0].CompileToCharSet
 ClassSetOperand[2,0].CompileToCharSet
@@ -584,6 +590,7 @@ ConciseBody[0,0].LexicallyDeclaredNames
 ConciseBody[0,0].LexicallyScopedDeclarations
 ConciseBody[0,0].VarDeclaredNames
 ConciseBody[0,0].VarScopedDeclarations
+ConciseBody[1,0].ConciseBodyContainsUseStrict
 ConditionalExpression[1,0].AssignmentTargetType
 ConditionalExpression[1,0].Evaluation
 ConditionalExpression[1,0].HasCallInTailPosition
@@ -753,11 +760,13 @@ ExportDeclaration[3,0].ExportedNames
 ExportDeclaration[3,0].LexicallyScopedDeclarations
 ExportDeclaration[3,0].ModuleRequests
 ExportDeclaration[4,0].Evaluation
+ExportDeclaration[4,0].ExportEntries
 ExportDeclaration[4,0].ExportedBindings
 ExportDeclaration[4,0].ExportedNames
 ExportDeclaration[4,0].LexicallyScopedDeclarations
 ExportDeclaration[4,0].ModuleRequests
 ExportDeclaration[5,0].Evaluation
+ExportDeclaration[5,0].ExportEntries
 ExportDeclaration[5,0].ExportedBindings
 ExportDeclaration[5,0].ExportedNames
 ExportDeclaration[5,0].LexicallyScopedDeclarations
@@ -775,8 +784,10 @@ ExportFromClause[0,0].ExportedNames
 ExportFromClause[1,0].ExportEntriesForModule
 ExportFromClause[1,0].ExportedNames
 ExportFromClause[2,0].ExportedNames
+ExportSpecifier[0,0].ExportEntriesForModule
 ExportSpecifier[0,0].ExportedBindings
 ExportSpecifier[0,0].ExportedNames
+ExportSpecifier[1,0].ExportEntriesForModule
 ExportSpecifier[1,0].ExportedBindings
 ExportSpecifier[1,0].ExportedNames
 ExportSpecifier[1,0].ReferencedBindings
@@ -1099,6 +1110,8 @@ GetIterator
 GetIteratorDirect
 GetIteratorFlattenable
 GetIteratorFromMethod
+GetMatchIndexPair
+GetMatchString
 GetMethod
 GetModuleNamespace
 GetNamedTimeZoneEpochNanoseconds
@@ -1106,6 +1119,7 @@ GetNamedTimeZoneOffsetNanoseconds
 GetNewTarget
 GetOwnPropertyKeys
 GetPromiseResolve
+GetSetRecord
 GetStringIndex
 GetSuperBase
 GetSuperConstructor
@@ -1141,6 +1155,7 @@ HostEnqueuePromiseJob
 HostEnsureCanCompileStrings
 HostFinalizeImportMeta
 HostGetImportMetaProperties
+HostLoadImportedModule
 HostMakeJobCallback
 HostPromiseRejectionTracker
 HostResizeArrayBuffer
@@ -2413,6 +2428,12 @@ Statement[9,0].LabelledEvaluation
 StrDecimalLiteral[2,0].StringNumericValue
 StrNumericLiteral[1,0].StringNumericValue
 StrUnsignedDecimalLiteral[0,0].StringNumericValue
+StrUnsignedDecimalLiteral[1,0].StringNumericValue
+StrUnsignedDecimalLiteral[1,1].StringNumericValue
+StrUnsignedDecimalLiteral[1,2].StringNumericValue
+StrUnsignedDecimalLiteral[1,3].StringNumericValue
+StrUnsignedDecimalLiteral[2,0].StringNumericValue
+StrUnsignedDecimalLiteral[2,1].StringNumericValue
 StrUnsignedDecimalLiteral[3,0].StringNumericValue
 StrUnsignedDecimalLiteral[3,1].StringNumericValue
 StringCreate
