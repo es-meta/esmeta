@@ -56,10 +56,10 @@ object LangTest {
       List(refExpr, refExpr),
     ),
   )
-  lazy val appendStep = dot(AppendStep(refExpr, fieldRef))
-  lazy val prependStep = dot(PrependStep(refExpr, fieldRef))
-  lazy val insertStep = dot(InsertStep(refExpr, fieldRef))
-  lazy val addStep = dot(AddStep(refExpr, fieldRef))
+  lazy val appendStep = dot(AppendStep(refExpr, access))
+  lazy val prependStep = dot(PrependStep(refExpr, access))
+  lazy val insertStep = dot(InsertStep(refExpr, access))
+  lazy val addStep = dot(AddStep(refExpr, access))
   import RemoveStep.Target.*
   lazy val removeStep = dot(RemoveStep(Element(refExpr), "from", refExpr))
   lazy val removeFirstStep = dot(
@@ -205,7 +205,7 @@ object LangTest {
   lazy val invokeClosureExpr =
     InvokeAbstractClosureExpression(x, List(refExpr))
   lazy val invokeMethodExpr =
-    InvokeMethodExpression(fieldRef, List(addExpr, unExpr), HtmlTag.None)
+    InvokeMethodExpression(access, List(addExpr, unExpr), HtmlTag.None)
   lazy val invokeSDOExprZero =
     InvokeSyntaxDirectedOperationExpression(
       nt,
@@ -451,24 +451,29 @@ object LangTest {
     CompoundCondition(isCond, CompoundConditionOperator.Imply, isEitherCond)
 
   // algorithm references
+  import AccessKind.*, AccessForm.*
   lazy val x = Variable("x")
-  lazy val fieldRef = PropertyReference(x, fieldProp)
-  lazy val intrFieldRef = PropertyReference(x, intrProp)
-  lazy val propIntrFieldRef =
-    PropertyReference(x, propIntrProp)
-  lazy val componentRef = PropertyReference(x, componentProp)
-  lazy val indexRef = PropertyReference(x, indexProp)
-  lazy val ntRef = PropertyReference(x, NonterminalProperty("Arguments"))
-
-  // algorithm references
-  lazy val fieldProp = FieldProperty("Value", FieldPropertyForm.Dot)
-  lazy val componentProp = ComponentProperty("Realm", ComponentPropertyForm.Dot)
-  lazy val bindingProp = BindingProperty(refExpr)
-  lazy val indexProp = IndexProperty(refExpr)
-  lazy val firstProp = PositionalElementProperty(true)
-  lazy val lastProp = PositionalElementProperty(false)
-  lazy val intrProp = IntrinsicProperty(intr)
-  lazy val propIntrProp = IntrinsicProperty(propIntr)
+  lazy val xWithNt = Variable("x", Some("ArgumentList"))
+  lazy val access = Access(x, "Value")
+  lazy val accessFieldDot = Access(x, "Value", Field, Dot)
+  lazy val accessCompDot = Access(x, "Value", Component(), Dot)
+  lazy val accessFieldOf = Access(x, "Value", Field, Of)
+  lazy val accessCompOf = Access(x, "Value", Component(true), Of)
+  lazy val accessFieldApo = Access(x, "Value", Field, Apo(Some("attribute")))
+  lazy val accessCompApo = Access(x, "Value", Component(), Apo())
+  lazy val valueOf = ValueOf(x)
+  lazy val intrField = IntrinsicField(x, intr)
+  lazy val indexLookup = IndexLookup(x, refExpr)
+  lazy val bindingLookup = BindingLookup(x, refExpr)
+  lazy val ntLookup = NonterminalLookup(x, "Arguments")
+  lazy val firstElement = PositionalElement(x, T)
+  lazy val lastElement = PositionalElement(x, F)
+  lazy val intrObj = IntrinsicObject(x, refExpr)
+  lazy val runningExecCtx = RunningExecutionContext()
+  lazy val secondExecCtx = SecondExecutionContext()
+  lazy val currentRealmRec = CurrentRealmRecord()
+  lazy val activeFuncObj = ActiveFunctionObject()
+  lazy val agentRec = AgentRecord()
 
   // algorithm intrinsics
   lazy val intr = Intrinsic("Array", Nil)

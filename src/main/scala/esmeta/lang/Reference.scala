@@ -7,7 +7,67 @@ sealed trait Reference extends Syntax
 object Reference extends Parser.From(Parser.ref)
 
 // variables
-case class Variable(name: String) extends Reference
+case class Variable(name: String, nt: Option[String] = None) extends Reference
+
+// access
+case class Access(
+  base: Reference,
+  name: String,
+  kind: AccessKind = AccessKind.Field,
+  form: AccessForm = AccessForm.Dot,
+) extends Reference
+
+// Field: [[name]]
+// Component: name (component)
+enum AccessKind:
+  case Field
+  case Component(hasPostfix: Boolean = false) // ~ component
+
+// Dot: base.field
+// Of: the field of base
+// Apo: base's field (desc)
+enum AccessForm:
+  case Dot, Of
+  case Apo(desc: Option[String] = None)
+
+// value of
+case class ValueOf(base: Reference) extends Reference
+
+// intrinsic field
+case class IntrinsicField(
+  base: Reference,
+  intr: Intrinsic,
+) extends Reference
+
+// index lookup
+case class IndexLookup(
+  base: Reference,
+  index: Expression,
+) extends Reference
+
+// binding lookup
+case class BindingLookup(
+  base: Reference,
+  binding: Expression,
+) extends Reference
+
+// nonterminal lookup
+case class NonterminalLookup(
+  base: Reference,
+  nt: String,
+) extends Reference
+
+// positional element
+case class PositionalElement(
+  base: Reference,
+  isFirst: Boolean,
+) extends Reference
+
+// intrinsic objects with names
+case class IntrinsicObject(
+  base: Reference,
+  expr: Expression,
+) extends Reference
 
 // the running execution context literals
 case class RunningExecutionContext() extends Reference
@@ -21,56 +81,8 @@ case class CurrentRealmRecord() extends Reference
 // the active function object
 case class ActiveFunctionObject() extends Reference
 
-// references to property
-case class PropertyReference(
-  base: Reference,
-  prop: Property,
-  prefix: Option[String] = None,
-) extends Reference
-
 // references to agent record
 case class AgentRecord() extends Reference
-
-// -----------------------------------------------------------------------------
-// metalanguage properties
-// -----------------------------------------------------------------------------
-sealed trait Property extends Syntax
-object Property extends Parser.From(Parser.prop)
-
-// field property
-case class FieldProperty(name: String, form: FieldPropertyForm) extends Property
-
-// Dot: base.[[ field ]]
-// Value: {{ base }}'s [[ {{ field }} ]] value
-// Attribute: the value of {{ base }}'s {{ field }} attribute
-enum FieldPropertyForm:
-  case Dot, Value, Attribute
-
-// component property
-case class ComponentProperty(name: String, form: ComponentPropertyForm)
-  extends Property
-
-// Dot: Something.Property
-// Apostrophe: Something's Property
-// Text: the Property of Something
-enum ComponentPropertyForm:
-  case Dot, Apostrophe
-  case Text(desc: Option[String])
-
-// binding property
-case class BindingProperty(binding: Expression) extends Property
-
-// index property
-case class IndexProperty(index: Expression) extends Property
-
-// positional element property (first, last)
-case class PositionalElementProperty(isFirst: Boolean) extends Property
-
-// intrinsic property
-case class IntrinsicProperty(intrinsic: Intrinsic) extends Property
-
-// nonterminal property
-case class NonterminalProperty(name: String) extends Property
 
 // -----------------------------------------------------------------------------
 // intrinsics

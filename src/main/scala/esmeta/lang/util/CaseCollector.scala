@@ -212,48 +212,48 @@ class CaseCollector extends UnitWalker {
         val op = if (check) "?" else "!"
         s"$op {{ expr }}"
       case ReferenceExpression(ref) =>
+        import AccessKind.*, AccessForm.*
+        def str(kind: AccessKind): String = kind match
+          case Field            => "[[ {{ str }} ]]"
+          case Component(false) => "{{ str }}"
+          case Component(true)  => "{{ str }} component"
         ref match {
-          case Variable(_) =>
+          case Variable(_, None) =>
             "_{{ str }}_"
-          case _: CurrentRealmRecord =>
-            "the current Realm Record"
-          case _: ActiveFunctionObject =>
-            "the active function object"
+          case Variable(_, Some(_)) =>
+            "|{{ str }}| _{{ str }}_"
+          case Access(_, _, kind, Dot) =>
+            s"{{ ref }}.$kind"
+          case Access(_, _, kind, Of) =>
+            s"the $kind of {{ ref }}"
+          case Access(_, _, kind, Apo(None)) =>
+            s"{{ ref }}'s $kind"
+          case Access(_, _, kind, Apo(Some(desc))) =>
+            s"{{ ref }}'s $kind $desc"
+          case ValueOf(_) =>
+            "the value of {{ ref }}"
+          case IntrinsicField(_, _) =>
+            "{{ ref }}.[[ %{{ str }}% ]]"
+          case IndexLookup(_, _) =>
+            "{{ ref }}[ {{ expr }} ]"
+          case BindingLookup(_, _) =>
+            "the binding for {{ expr }} in {{ expr }}"
+          case NonterminalLookup(_, _) =>
+            "the |{{ str }}| of {{ ref }}"
+          case PositionalElement(_, true) =>
+            "the first element of {{ ref }}"
+          case PositionalElement(_, false) =>
+            "the last element of {{ ref }}"
+          case IntrinsicObject(base, expr) =>
+            "{{ ref }}'s intrinsic object named {{ expr }}"
           case _: RunningExecutionContext =>
             "the running execution context"
           case _: SecondExecutionContext =>
             "the second to top element of the execution context stack"
-          case PropertyReference(base, nt: NonterminalProperty, _) =>
-            "the | nt | of {{ ref }}"
-          case PropertyReference(base, bp: BindingProperty, _) =>
-            "the binding for {{ expr }} in {{ ref }}"
-          case PropertyReference(base, PositionalElementProperty(isFirst), _) =>
-            val pos = if (isFirst) "first" else "last"
-            s"the $pos element of {{ ref }}"
-          case PropertyReference(base, cp: ComponentProperty, prefix) =>
-            import ComponentPropertyForm.*
-            val pre = prefix.fold("")(_ + " ")
-            val body = cp.form match
-              case Dot        => "{{ ref }}.{{ str }}"
-              case Apostrophe => "{{ ref }}'s {{ str }}"
-              case Text(desc) =>
-                desc match
-                  case Some(d) => s"the {{ str }} $d of {{ ref }}"
-                  case None    => s"the {{ str }} of {{ ref }}"
-            pre + body
-          case PropertyReference(base, fp: FieldProperty, prefix) =>
-            val pre = prefix.fold("")(_ + " ")
-            val body = fp.form match
-              case FieldPropertyForm.Dot =>
-                "{{ ref }}.[[ {{ str }} ]]"
-              case FieldPropertyForm.Value =>
-                "{{ ref }}'s [[ {{ str }} ]] value"
-              case FieldPropertyForm.Attribute =>
-                "the value of {{ ref }}'s [[ {{ str }} ]] attribute"
-            pre + body
-          case PropertyReference(base, prop, prefix) =>
-            val pre = prefix.fold("")(_ + " ")
-            s"$pre{{ ref }} {{ prop }}"
+          case _: CurrentRealmRecord =>
+            "the current Realm Record"
+          case _: ActiveFunctionObject =>
+            "the active function object"
           case AgentRecord() =>
             "the Agent Record of the surrounding agent"
         }
@@ -282,7 +282,7 @@ class CaseCollector extends UnitWalker {
       case ThisParseNodeLiteral(nt) =>
         nt match
           case None     => s"this Parse Node"
-          case Some(nt) => s"this | {{ nt }} |"
+          case Some(nt) => s"this |{{ str }}|"
       case _: NewTargetLiteral =>
         s"NewTarget"
       case HexLiteral(hex, unicode, codeunit, name) =>
@@ -413,6 +413,8 @@ class CaseCollector extends UnitWalker {
         s"the sole element of {{ expr }}"
       case CodeUnitAtExpression(base, index) =>
         s"the code unit at index {{ expr }} within {{ expr }}"
+      case StringExpression(expr) =>
+        s"the String value {{ expr }}"
       case YetExpression(str, block) =>
         s"..."
       case AbstractClosureExpression(params, captured, body) =>

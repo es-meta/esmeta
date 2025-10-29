@@ -522,31 +522,31 @@ class Compiler(
   /** compile references */
   def compile(fb: FuncBuilder, ref: Reference): Ref =
     fb.withLang(ref)(ref match {
-      case x: Variable               => compile(x)
+      case x: Variable              => compile(x)
+      case Access(base, name, _, _) => Field(compile(fb, base), EStr(name))
+      case ValueOf(base)            => compile(fb, base)
+      case IntrinsicField(base, intr) =>
+        toIntrinsic(compile(fb, base), intr)
+      case IndexLookup(base, index) =>
+        Field(compile(fb, base), compile(fb, index))
+      case BindingLookup(base, binding) =>
+        Field(toStrRef(compile(fb, base), INNER_MAP), compile(fb, binding))
+      case NonterminalLookup(base, nt) =>
+        Field(compile(fb, base), EStr(nt))
+      case PositionalElement(base, true) =>
+        Field(compile(fb, base), zero)
+      case PositionalElement(base, isFirst) =>
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(IAssign(x, ERef(compile(fb, base))))
+        Field(x, dec(ESizeOf(xExpr)))
+      case IntrinsicObject(base, expr) =>
+        Field(Field(compile(fb, base), EStr("Intrinsics")), compile(fb, expr))
       case RunningExecutionContext() => GLOBAL_CONTEXT
       case SecondExecutionContext()  => toRef(GLOBAL_EXECUTION_STACK, EMath(1))
       case CurrentRealmRecord()      => currentRealm
       case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
-      case ref: PropertyReference    => compile(fb, ref)
       case AgentRecord()             => GLOBAL_AGENT_RECORD
     })
-
-  def compile(fb: FuncBuilder, ref: PropertyReference): Field =
-    val PropertyReference(base, prop, _) = ref
-    val baseRef = compile(fb, base)
-    prop match
-      case FieldProperty(name, _)     => Field(baseRef, EStr(name))
-      case ComponentProperty(name, _) => Field(baseRef, EStr(name))
-      case BindingProperty(expr) =>
-        Field(toStrRef(baseRef, INNER_MAP), compile(fb, expr))
-      case IndexProperty(index)            => Field(baseRef, compile(fb, index))
-      case PositionalElementProperty(true) => Field(baseRef, zero)
-      case PositionalElementProperty(false) =>
-        val (x, xExpr) = fb.newTIdWithExpr
-        fb.addInst(IAssign(x, ERef(baseRef)))
-        Field(x, dec(ESizeOf(xExpr)))
-      case IntrinsicProperty(intr)   => toIntrinsic(baseRef, intr)
-      case NonterminalProperty(name) => Field(baseRef, EStr(name))
 
   /** compile expressions */
   def compile(fb: FuncBuilder, expr: Expression): Expr =
@@ -624,8 +624,9 @@ class Compiler(
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, ERef(compile(fb, ref)), args.map(compile(fb, _))))
         xExpr
-      case InvokeMethodExpression(ref, args, _) =>
-        val Field(base, method) = compile(fb, ref)
+      case InvokeMethodExpression(access, args, _) =>
+        val base = compile(fb, access.base)
+        val method = EStr(access.name)
         val (b, bExpr) =
           if (base.isPure) (base, ERef(base))
           else fb.newTIdWithExpr(ERef(base))
@@ -765,6 +766,8 @@ class Compiler(
         toERef(fb, compile(fb, list), zero)
       case CodeUnitAtExpression(base, index) =>
         toERef(fb, compile(fb, base), compile(fb, index))
+      case StringExpression(expr) =>
+        compile(fb, expr)
       case lit: Literal => compile(fb, lit)
     })
 

@@ -364,6 +364,7 @@ trait Parsers extends IndentParsers {
     xrefExpr |
     soleExpr |
     codeUnitAtExpr |
+    stringExpr |
     invokeExpr |
     calcExpr |
     specialExpr
@@ -817,13 +818,15 @@ trait Parsers extends IndentParsers {
 
   // method invocation expressions
   lazy val invokeAMExpr: PL[InvokeMethodExpression] =
-    withTagForInvoke(propRef, invokeArgs) ^^ {
-      case (p, as, tag) => InvokeMethodExpression(p, as, tag)
+    withTagForInvoke(simpleDotAccess, invokeArgs) ^^ {
+      case (a, as, tag) => InvokeMethodExpression(a, as, tag)
     }
 
   // syntax-directed operation (SDO) invocation expressions
   lazy val invokeSDOExpr: PL[InvokeSyntaxDirectedOperationExpression] =
-    lazy val name = opt("the result of" | "the") ~ (not(component) ~> camel)
+    lazy val invalid =
+      Set("LexicalEnvironment", "VariableEnvironment", "PrivateEnvironment")
+    lazy val name = opt("the result of" | "the") ~ camel.filter(!invalid(_))
     lazy val base = "of" ~> expr
 
     // normal SDO
@@ -850,7 +853,7 @@ trait Parsers extends IndentParsers {
 
     // Contains SDO
     lazy val containsSDOExpr =
-      expr ~ ("Contains" ~> expr) ^^ {
+      calcExpr ~ ("Contains" ~> expr) ^^ {
         case b ~ arg =>
           InvokeSyntaxDirectedOperationExpression(
             b,
@@ -893,6 +896,10 @@ trait Parsers extends IndentParsers {
     ("within" ~ opt("the String") ~> expr) ^^ {
       case i ~ b => CodeUnitAtExpression(b, i)
     }
+
+  // string expressions
+  lazy val stringExpr: PL[StringExpression] =
+    "the String value" ~> expr ^^ { StringExpression(_) }
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
@@ -1159,10 +1166,8 @@ trait Parsers extends IndentParsers {
     ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
   } ^^ {
     case r ~ n =>
-      val ref =
-        PropertyReference(r, FieldProperty("__STRICT__", FieldPropertyForm.Dot))
       IsAreCondition(
-        List(ReferenceExpression(ref)),
+        List(ReferenceExpression(Access(r, "__STRICT__"))),
         n,
         List(TrueLiteral()),
       )
@@ -1171,12 +1176,8 @@ trait Parsers extends IndentParsers {
     "initialized"
   } ^^ {
     case r ~ n =>
-      val ref = PropertyReference(
-        r,
-        FieldProperty("__INITIALIZED__", FieldPropertyForm.Dot),
-      )
       IsAreCondition(
-        List(ReferenceExpression(ref)),
+        List(ReferenceExpression(Access(r, "__INITIALIZED__"))),
         n,
         List(TrueLiteral()),
       )
@@ -1202,116 +1203,75 @@ trait Parsers extends IndentParsers {
   // metalanguage references
   // ---------------------------------------------------------------------------
   given ref: PL[Reference] = {
-    specialRef |||
-    propRef |||
-    baseRef
+    ("the binding for" ~> expr <~ "in") ~ ref ^^ {
+      case b ~ r => BindingLookup(r, b)
+    } | ("the" ~> nt <~ "of") ~ ref ^^ {
+      case n ~ r => NonterminalLookup(r, n)
+    } | ("the" ~> ("first" ^^^ true | "last" ^^^ false) <~
+    "element" ~ "of") ~ ref ^^ {
+      case f ~ r => PositionalElement(r, f)
+    } | "the value of" ~> ref ^^ {
+      case r => ValueOf(r)
+      // GetPrototypeFromConstructor
+    } | (variable <~ "'s intrinsic object named") ~ expr ^^ {
+      case r ~ e => IntrinsicObject(r, e)
+    } | ofAccess | apoAccess | termRef
   }.named("lang.Reference")
 
-  // property references
-  lazy val propRef: PL[PropertyReference] =
-    lazy val prefix = opt(("the" ~> opt("String")) ~ ("value" ~> opt("of")) ^^ {
-      case a ~ b => "the" + a.fold("")(" " + _) + " value" + b.fold("")(" " + _)
-    })
-    prefix ~ preProp ~ baseRef ~ rep(postProp) ^^ {
-      case s ~ pre ~ base ~ posts =>
-        PropertyReference(posts.foldLeft(base)(PropertyReference(_, _)), pre, s)
-    } | prefix ~ baseRef ~ postProp ~ rep(postProp) ^^ {
-      case s ~ base ~ p ~ ps =>
-        ps.foldLeft(PropertyReference(base, p))(PropertyReference(_, _))
-          .copy(prefix = s)
-    }
+  // variables
+  lazy val variable: PL[Variable] = opt(nt) ~ "_[^_]+_".r ^^ {
+    case n ~ s => Variable(s.substring(1, s.length - 1), n)
+  }
 
   // base references
-  lazy val baseRef: PL[Reference] =
-    opt(nt) ~> variable |
-    "the" ~ opt("currently") ~ "running execution context" ^^! {
+  lazy val baseRef: PL[Reference] = variable ~ rep(
+    "." ~> nameWithKind ^^ { case (n, k) => Access(_, n, k, AccessForm.Dot) } |
+    ".[[" ~> intr <~ "]]" ^^ { case i => IntrinsicField(_, i) } |
+    "[" ~> expr <~ "]" ^^ { case i => IndexLookup(_, i) },
+  ) ^^ { case b ~ cs => cs.foldLeft(b: Reference) { case (r, c) => c(r) } }
+
+  lazy val simpleDotAccess: PL[Access] = variable ~ ("." ~> nameWithKind) ^^ {
+    case b ~ (n, k) => Access(b, n, k, AccessForm.Dot)
+  }
+
+  // term references
+  lazy val termRef: PL[Reference] =
+    "the running execution context" ^^! {
       RunningExecutionContext()
     } | "the current Realm Record" ^^! {
       CurrentRealmRecord()
-    } | ("the active function object" | "the active function") ^^! {
+      // built-in functions
+    } | "the active function object" ^^! {
       ActiveFunctionObject()
+      // AsyncGeneratorYield
     } | "the second to top element of the execution context stack" ^^! {
       SecondExecutionContext()
-    }
+      // AgentSignifier or AgentCanSuspend
+    } | "the Agent Record of the surrounding agent" ^^! {
+      AgentRecord()
+    } | baseRef
 
-  // variables
-  lazy val variable: PL[Variable] = "_[^_]+_".r ^^ {
-    case s => Variable(s.substring(1, s.length - 1))
+  // helper parsers for accesses
+  private lazy val nameWithKind: Parser[(String, AccessKind)] =
+    val invalid = Set("Otherwise", "If", "Else", "Return", "Throw")
+    val name = camel.filter(!invalid(_))
+    import AccessKind.*
+    "[[" ~> word <~ "]]" ^^ (_ -> Field) |
+    name ~ opt("component") ^^ { case x ~ p => x -> Component(p.isDefined) }
+
+  // of-style access
+  lazy val ofAccess: PL[Access] = ("the" ~> nameWithKind <~ "of") ~ ref ^^ {
+    case (n, k) ~ b => Access(b, n, k, AccessForm.Of)
   }
 
-  // special reference
-  lazy val specialRef: P[Reference] = {
-    // GetPrototypeFromConstructor
-    (variable <~ "'s intrinsic object named") ~ variable
-  } ^^ {
-    case realm ~ v =>
-      val intrBase = PropertyReference(
-        realm,
-        FieldProperty("Intrinsics", FieldPropertyForm.Dot),
-      )
-      PropertyReference(intrBase, IndexProperty(getRefExpr(v)))
-  } | {
-    // OrdinaryGetOwnProperty
-    ("the value of" ~> variable <~ "'s") ~ ("[[" ~> word <~ "]]" ~ "attribute")
-  } ^^ {
-    case v ~ a =>
-      PropertyReference(v, FieldProperty(a, FieldPropertyForm.Attribute))
-  } | {
-    // SetFunctionName, SymbolDescriptiveString
-    (variable <~ "'s") ~ ("[[" ~> word <~ "]]") <~ "value"
-  } ^^ {
-    case b ~ f =>
-      PropertyReference(b, FieldProperty(f, FieldPropertyForm.Value))
-  } | {
-    // AgentSignifier or AgentCanSuspend
-    "the Agent Record of the surrounding agent" ^^! AgentRecord()
-  }
-
-  // ---------------------------------------------------------------------------
-  // metalanguage properties
-  // ---------------------------------------------------------------------------
-  given prop: PL[Property] = preProp | postProp
-  lazy val preProp: PL[Property] = {
-    "the" ~> nt <~ "of" ^^ { NonterminalProperty(_) } |
-    "the binding for" ~> expr <~ "in" ^^ { BindingProperty(_) } |
-    "the" ~> ("first" ^^^ true | "last" ^^^ false) <~
-    "element" ~ "of" ^^ { PositionalElementProperty(_) } |
-    "the" ~> component ~ opt("component") <~ "of" ^^ {
-      case c ~ d => ComponentProperty(c, ComponentPropertyForm.Text(d))
+  // apostrophe-style access
+  lazy val apoAccess: PL[Access] =
+    lazy val desc =
+      "attribute" | // OrdinaryGetOwnProperty
+      "value" // SetFunctionName, SymbolDescriptiveString
+    termRef ~ ("'s" ~> nameWithKind) ~ opt(desc) ^^ {
+      case b ~ (n, k) ~ d => Access(b, n, k, AccessForm.Apo(d))
     }
-  }.named("lang.Property")
-
-  lazy val postProp: PL[Property] = {
-    import ComponentPropertyForm.*
-    "[" ~> expr <~ "]" ^^ { IndexProperty(_) } |||
-    ("'s" ^^^ Apostrophe | "." ^^^ Dot) ~ camel.filter(validProp(_)) ^^ {
-      case op ~ n => ComponentProperty(n, op)
-    } |||
-    "." ~ "[[" ~> intr <~ "]]" ^^ { i => IntrinsicProperty(i) } |||
-    "." ~> "[[" ~> word <~ "]]" ^^ { FieldProperty(_, FieldPropertyForm.Dot) }
-  }.named("lang.Property")
-
-  def validProp(str: String): Boolean = !noPropSet.contains(str.toLowerCase)
-  lazy val noPropSet: Set[String] = Set(
-    "if",
-    "else",
-    "otherwise",
-    "for",
-    "repeat",
-    "return",
-    "throw",
-  )
-
-  // TODO extract component name from spec.html
-  lazy val component: Parser[String] =
-    "LexicalEnvironment" |
-    "Function" |
-    "Generator" |
-    "PrivateEnvironment" |
-    "Realm" |
-    "ScriptOrModule" |
-    "VariableEnvironment" |
-    "value"
 
   // ---------------------------------------------------------------------------
   // metalanguage intrinsics

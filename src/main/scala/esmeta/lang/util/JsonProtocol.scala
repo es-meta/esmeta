@@ -16,6 +16,26 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[Reference] = deriveEncoderWithType
   given Decoder[Variable] = deriveDecoderWithType
   given Encoder[Variable] = deriveEncoderWithType
+  given Decoder[Access] = deriveDecoderWithType
+  given Encoder[Access] = deriveEncoderWithType
+  given Decoder[AccessKind] = deriveDecoderWithType
+  given Encoder[AccessKind] = deriveEncoderWithType
+  given Decoder[AccessForm] = deriveDecoderWithType
+  given Encoder[AccessForm] = deriveEncoderWithType
+  given Decoder[ValueOf] = deriveDecoderWithType
+  given Encoder[ValueOf] = deriveEncoderWithType
+  given Decoder[IntrinsicField] = deriveDecoderWithType
+  given Encoder[IntrinsicField] = deriveEncoderWithType
+  given Decoder[IndexLookup] = deriveDecoderWithType
+  given Encoder[IndexLookup] = deriveEncoderWithType
+  given Decoder[BindingLookup] = deriveDecoderWithType
+  given Encoder[BindingLookup] = deriveEncoderWithType
+  given Decoder[NonterminalLookup] = deriveDecoderWithType
+  given Encoder[NonterminalLookup] = deriveEncoderWithType
+  given Decoder[PositionalElement] = deriveDecoderWithType
+  given Encoder[PositionalElement] = deriveEncoderWithType
+  given Decoder[IntrinsicObject] = deriveDecoderWithType
+  given Encoder[IntrinsicObject] = deriveEncoderWithType
   given Decoder[RunningExecutionContext] = deriveDecoderWithType
   given Encoder[RunningExecutionContext] = deriveEncoderWithType
   given Decoder[SecondExecutionContext] = deriveDecoderWithType
@@ -24,32 +44,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[CurrentRealmRecord] = deriveEncoderWithType
   given Decoder[ActiveFunctionObject] = deriveDecoderWithType
   given Encoder[ActiveFunctionObject] = deriveEncoderWithType
-  given Decoder[PropertyReference] = deriveDecoderWithType
-  given Encoder[PropertyReference] = deriveEncoderWithType
   given Decoder[AgentRecord] = deriveDecoderWithType
   given Encoder[AgentRecord] = deriveEncoderWithType
-
-  // properties
-  given Decoder[Property] = deriveDecoderWithType
-  given Encoder[Property] = deriveEncoderWithType
-  given Decoder[FieldProperty] = deriveDecoderWithType
-  given Encoder[FieldProperty] = deriveEncoderWithType
-  given Decoder[FieldPropertyForm] = deriveDecoderWithType
-  given Encoder[FieldPropertyForm] = deriveEncoderWithType
-  given Decoder[ComponentProperty] = deriveDecoderWithType
-  given Encoder[ComponentProperty] = deriveEncoderWithType
-  given Decoder[ComponentPropertyForm] = deriveDecoderWithType
-  given Encoder[ComponentPropertyForm] = deriveEncoderWithType
-  given Decoder[BindingProperty] = deriveDecoderWithType
-  given Encoder[BindingProperty] = deriveEncoderWithType
-  given Decoder[IndexProperty] = deriveDecoderWithType
-  given Encoder[IndexProperty] = deriveEncoderWithType
-  given Decoder[PositionalElementProperty] = deriveDecoderWithType
-  given Encoder[PositionalElementProperty] = deriveEncoderWithType
-  given Decoder[IntrinsicProperty] = deriveDecoderWithType
-  given Encoder[IntrinsicProperty] = deriveEncoderWithType
-  given Decoder[NonterminalProperty] = deriveDecoderWithType
-  given Encoder[NonterminalProperty] = deriveEncoderWithType
 
   // intrinsics
   given Decoder[Intrinsic] = deriveDecoderWithType

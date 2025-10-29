@@ -421,30 +421,28 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     checkParseAndStringify("Reference", Reference)(
       x -> "_x_",
-      RunningExecutionContext() -> "the running execution context",
-      SecondExecutionContext() -> "the second to top element of the execution context stack",
-      CurrentRealmRecord() -> "the current Realm Record",
-      ActiveFunctionObject() -> "the active function object",
-      fieldRef -> "_x_.[[Value]]",
-      intrFieldRef -> "_x_.[[%Array%]]",
-      propIntrFieldRef -> "_x_.[[%Array.prototype.toString%]]",
-      componentRef -> "_x_.Realm",
-      indexRef -> "_x_[_x_]",
-      ntRef -> "the |Arguments| of _x_",
-    )
-
-    // -------------------------------------------------------------------------
-    // algorithm references
-    // -------------------------------------------------------------------------
-    checkParseAndStringify("Property", Property)(
-      fieldProp -> ".[[Value]]",
-      componentProp -> ".Realm",
-      bindingProp -> "the binding for _x_ in",
-      indexProp -> "[_x_]",
-      firstProp -> "the first element of",
-      lastProp -> "the last element of",
-      intrProp -> ".[[%Array%]]",
-      propIntrProp -> ".[[%Array.prototype.toString%]]",
+      xWithNt -> "|ArgumentList| _x_",
+      access -> "_x_.[[Value]]",
+      accessFieldDot -> "_x_.[[Value]]",
+      accessCompDot -> "_x_.Value",
+      accessFieldOf -> "the [[Value]] of _x_",
+      accessCompOf -> "the Value component of _x_",
+      accessFieldApo -> "_x_'s [[Value]] attribute",
+      accessCompApo -> "_x_'s Value",
+      valueOf -> "the value of _x_",
+      intrField -> "_x_.[[%Array%]]",
+      indexLookup -> "_x_[_x_]",
+      bindingLookup -> "the binding for _x_ in _x_",
+      ntLookup -> "the |Arguments| of _x_",
+      firstElement -> "the first element of _x_",
+      lastElement -> "the last element of _x_",
+      intrObj -> "_x_'s intrinsic object named _x_",
+      runningExecCtx -> "the running execution context",
+      secondExecCtx ->
+      "the second to top element of the execution context stack",
+      currentRealmRec -> "the current Realm Record",
+      activeFuncObj -> "the active function object",
+      agentRec -> "the Agent Record of the surrounding agent",
     )
 
     // -------------------------------------------------------------------------

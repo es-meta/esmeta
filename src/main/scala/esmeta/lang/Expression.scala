@@ -95,6 +95,9 @@ case class SoleElementExpression(list: Expression) extends Expression
 case class CodeUnitAtExpression(base: Expression, index: Expression)
   extends Expression
 
+// string value
+case class StringExpression(expr: Expression) extends Expression
+
 // not yet supported expressions
 case class YetExpression(str: String, block: Option[Block]) extends Expression
 
@@ -130,7 +133,7 @@ case class InvokeAbstractClosureExpression(
 
 // method invocation expressions
 case class InvokeMethodExpression(
-  ref: PropertyReference,
+  access: Access,
   args: List[Expression],
   tag: HtmlTag,
 ) extends InvokeExpression

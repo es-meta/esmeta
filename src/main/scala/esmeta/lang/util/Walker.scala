@@ -27,7 +27,6 @@ trait Walker extends BasicWalker {
     case syn: Condition  => walk(syn)
     case syn: Reference  => walk(syn)
     case syn: Type       => walk(syn)
-    case syn: Property   => walk(syn)
     case syn: Intrinsic  => walk(syn)
   }
 
@@ -221,6 +220,8 @@ trait Walker extends BasicWalker {
       SoleElementExpression(walk(expr))
     case CodeUnitAtExpression(base, index) =>
       CodeUnitAtExpression(walk(base), walk(index))
+    case StringExpression(expr) =>
+      StringExpression(walk(expr))
     case multi: MultilineExpression => walk(multi)
     case yet: YetExpression =>
       walk(yet)
@@ -286,8 +287,8 @@ trait Walker extends BasicWalker {
       InvokeNumericMethodExpression(walk(ty), name, walkList(args, walk))
     case InvokeAbstractClosureExpression(x, args) =>
       InvokeAbstractClosureExpression(walk(x), walkList(args, walk))
-    case InvokeMethodExpression(ref, args, tag) =>
-      InvokeMethodExpression(walk(ref), walkList(args, walk), tag)
+    case InvokeMethodExpression(access, args, tag) =>
+      InvokeMethodExpression(walk(access), walkList(args, walk), tag)
     case InvokeSyntaxDirectedOperationExpression(
           base,
           name,
@@ -351,32 +352,38 @@ trait Walker extends BasicWalker {
   def walk(op: CompoundConditionOperator): CompoundConditionOperator = op
 
   def walk(ref: Reference): Reference = ref match {
-    case x: Variable                => walk(x)
-    case RunningExecutionContext()  => RunningExecutionContext()
-    case SecondExecutionContext()   => SecondExecutionContext()
-    case CurrentRealmRecord()       => CurrentRealmRecord()
-    case ActiveFunctionObject()     => ActiveFunctionObject()
-    case propRef: PropertyReference => walk(propRef)
-    case AgentRecord()              => AgentRecord()
+    case x: Variable => walk(x)
+    case x: Access   => walk(x)
+    case ValueOf(base) =>
+      ValueOf(walk(base))
+    case IntrinsicField(base, intr) =>
+      IntrinsicField(walk(base), walk(intr))
+    case IndexLookup(base, index) =>
+      IndexLookup(walk(base), walk(index))
+    case BindingLookup(base, binding) =>
+      BindingLookup(walk(base), walk(binding))
+    case NonterminalLookup(base, nt) =>
+      NonterminalLookup(walk(base), nt)
+    case PositionalElement(base, isFirst) =>
+      PositionalElement(walk(base), isFirst)
+    case IntrinsicObject(base, expr) =>
+      IntrinsicObject(walk(base), walk(expr))
+    case RunningExecutionContext() => RunningExecutionContext()
+    case SecondExecutionContext()  => SecondExecutionContext()
+    case CurrentRealmRecord()      => CurrentRealmRecord()
+    case ActiveFunctionObject()    => ActiveFunctionObject()
+    case AgentRecord()             => AgentRecord()
   }
 
-  def walk(x: Variable): Variable = Variable(x.name)
+  def walk(x: Variable): Variable = Variable(x.name, walkOpt(x.nt, walk))
 
-  def walk(propRef: PropertyReference): PropertyReference = propRef match {
-    case PropertyReference(base, prop, pre) =>
-      PropertyReference(walk(base), walk(prop), pre)
-  }
+  def walk(access: Access): Access = access match
+    case Access(base, name, kind, form) =>
+      Access(walk(base), name, walk(kind), walk(form))
 
-  def walk(prop: Property): Property = prop match {
-    case FieldProperty(n, f)     => FieldProperty(n, f)
-    case ComponentProperty(c, f) => ComponentProperty(c, f)
-    case BindingProperty(b)      => BindingProperty(walk(b))
-    case IndexProperty(e)        => IndexProperty(walk(e))
-    case PositionalElementProperty(isFirst) =>
-      PositionalElementProperty(walk(isFirst))
-    case IntrinsicProperty(intr) => IntrinsicProperty(walk(intr))
-    case NonterminalProperty(n)  => NonterminalProperty(n)
-  }
+  def walk(kind: AccessKind): AccessKind = kind
+
+  def walk(form: AccessForm): AccessForm = form
 
   def walk(intr: Intrinsic): Intrinsic = intr
 

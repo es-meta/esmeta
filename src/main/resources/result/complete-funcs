@@ -147,6 +147,7 @@ AsyncConciseBody[0,0].LexicallyDeclaredNames
 AsyncConciseBody[0,0].LexicallyScopedDeclarations
 AsyncConciseBody[0,0].VarDeclaredNames
 AsyncConciseBody[0,0].VarScopedDeclarations
+AsyncConciseBody[1,0].AsyncConciseBodyContainsUseStrict
 AsyncFromSyncIteratorContinuation
 AsyncFromSyncIteratorContinuation:clo0
 AsyncFromSyncIteratorContinuation:clo1
@@ -589,6 +590,7 @@ ConciseBody[0,0].LexicallyDeclaredNames
 ConciseBody[0,0].LexicallyScopedDeclarations
 ConciseBody[0,0].VarDeclaredNames
 ConciseBody[0,0].VarScopedDeclarations
+ConciseBody[1,0].ConciseBodyContainsUseStrict
 ConditionalExpression[1,0].AssignmentTargetType
 ConditionalExpression[1,0].Evaluation
 ConditionalExpression[1,0].HasCallInTailPosition

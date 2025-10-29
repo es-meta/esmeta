@@ -39,7 +39,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case syn: Condition  => condRule(app, syn)
       case syn: Reference  => refRule(app, syn)
       case syn: Type       => typeRule(app, syn)
-      case syn: Property   => propRule(app, syn)
       case syn: Intrinsic  => intrRule(app, syn)
     }
 
@@ -375,6 +374,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the sole element of " >> expr
       case CodeUnitAtExpression(base, index) =>
         app >> "the code unit at index " >> index >> " within " >> base
+      case StringExpression(expr) =>
+        app >> "the String value " >> expr
       case YetExpression(str, block) =>
         app >> str
         block.fold(app)(app >> _)
@@ -650,9 +651,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case InvokeAbstractClosureExpression(x, args) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
         app >> x >> args
-      case InvokeMethodExpression(base, args, tag) =>
+      case InvokeMethodExpression(access, args, tag) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
-        tagEffect(app, tag)(app >> base, app >> args)
+        tagEffect(app, tag)(app >> access, app >> args)
       case InvokeSyntaxDirectedOperationExpression(
             base,
             name,
@@ -859,71 +860,50 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // references
   given refRule: Rule[Reference] = withLoc { (app, ref) =>
+    given Rule[(String, AccessKind)] = (app, pair) => {
+      import AccessKind.*
+      val (name, kind) = pair
+      kind match
+        case Field           => app >> "[[" >> name >> "]]"
+        case Component(post) => app >> name >> (if (post) " component" else "")
+    }
     ref match {
-      case Variable(name: String) =>
-        app >> "_" >> name >> "_"
-      case _: CurrentRealmRecord =>
-        app >> "the current Realm Record"
-      case _: ActiveFunctionObject =>
-        app >> "the active function object"
+      case Variable(name, nt) =>
+        nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
+      case Access(base, name, kind, AccessForm.Dot) =>
+        app >> base >> "." >> (name, kind)
+      case Access(base, name, kind, AccessForm.Of) =>
+        app >> "the " >> (name, kind) >> " of " >> base
+      case Access(base, name, kind, AccessForm.Apo(desc)) =>
+        app >> base >> "'s " >> (name, kind)
+        desc.fold(app)(app >> " " >> _)
+      case ValueOf(base) =>
+        app >> "the value of " >> base
+      case IntrinsicField(base, intr) =>
+        app >> base >> "." >> "[[" >> intr >> "]]"
+      case IndexLookup(base, index) =>
+        app >> base >> "[" >> index >> "]"
+      case BindingLookup(base, binding) =>
+        app >> "the binding for " >> binding >> " in " >> base
+      case NonterminalLookup(base, nt) =>
+        app >> "the |" >> nt >> "| of " >> base
+      case PositionalElement(base, isFirst) =>
+        if (isFirst) app >> "the first element of " >> base
+        else app >> "the last element of " >> base
+      case IntrinsicObject(base, expr) =>
+        app >> base >> "'s intrinsic object named " >> expr
       case _: RunningExecutionContext =>
         app >> "the running execution context"
       case _: SecondExecutionContext =>
         app >> "the second to top element of the execution context stack"
-      case PropertyReference(base, nt: NonterminalProperty, _) =>
-        app >> nt >> " " >> base
-      case PropertyReference(base, pos: PositionalElementProperty, _) =>
-        app >> pos >> " " >> base
-      case PropertyReference(base, cp: ComponentProperty, pre) =>
-        app >> pre.fold("")(_ + " ")
-        cp.form match
-          case ComponentPropertyForm.Text(_) =>
-            app >> cp >> " " >> base
-          case _ =>
-            app >> base >> cp
-      case PropertyReference(base, fp: FieldProperty, pre) =>
-        if (fp.form == FieldPropertyForm.Attribute)
-          app >> "the value of " >> base >> fp
-        else
-          app >> pre.fold("")(_ + " ") >> base >> fp
-      case PropertyReference(base, prop, pre) =>
-        app >> pre.fold("")(_ + " ") >> base >> prop
+      case _: CurrentRealmRecord =>
+        app >> "the current Realm Record"
+      case _: ActiveFunctionObject =>
+        app >> "the active function object"
       case AgentRecord() =>
         app >> "the Agent Record of the surrounding agent"
     }
   }
-
-  // properties
-  given propRule: Rule[Property] = (app, prop) =>
-    prop match {
-      case FieldProperty(f, form) =>
-        import FieldPropertyForm.*
-        form match
-          case Dot =>
-            app >> ".[[" >> f >> "]]"
-          case Attribute =>
-            app >> "'s " >> "[[" >> f >> "]]" >> " attribute"
-          case Value =>
-            app >> "'s " >> "[[" >> f >> "]]" >> " value"
-      case ComponentProperty(name, form) =>
-        import ComponentPropertyForm.*
-        form match {
-          case Dot        => app >> "." >> name
-          case Apostrophe => app >> "'s " >> name
-          case Text(desc) =>
-            desc match
-              case Some(d) => app >> "the " >> name >> " " >> d >> " of"
-              case None    => app >> "the " >> name >> " of"
-        }
-      case BindingProperty(expr) => app >> "the binding for " >> expr >> " in"
-      case IndexProperty(index) =>
-        app >> "[" >> index >> "]"
-      case PositionalElementProperty(isFirst) =>
-        if (isFirst) app >> "the first element of"
-        else app >> "the last element of"
-      case IntrinsicProperty(intr)   => app >> ".[[" >> intr >> "]]"
-      case NonterminalProperty(name) => app >> "the |" >> name >> "| of"
-    }
 
   // intrinsics
   given intrRule: Rule[Intrinsic] = (app, intr) =>
