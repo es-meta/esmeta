@@ -7,11 +7,11 @@ class ParseLargeTest extends Test262Test {
 
   // registration
   def init: Unit = check(name) {
-    val summary = Test262Test.test262.parseTest(
+    val summary = Test262.parseTest(
       concurrent = CP.Auto,
       log = true,
       verbose = true,
-    )
+    )(using Test262Test.test262)
     val f = summary.failCount
     if (f > 0) fail(s"$f tests are failed.")
   }

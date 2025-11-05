@@ -1,8 +1,8 @@
-package esmeta.util
+package esmeta.test262.util
 
 import esmeta.error.NotSupported.*
+import esmeta.util.*
 import esmeta.util.Appender.Rule
-import esmeta.util.Summary.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
@@ -10,10 +10,10 @@ import scala.collection.concurrent.TrieMap
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
 case class Summary(
-  notSupported: Elem = Elem(), // not yet supported elements
-  timeout: Elem = Elem(), // timeout elements
-  fail: Elem = Elem(), // failed elements
-  pass: Elem = Elem(), // passed elements
+  notSupported: Summary.Elem = Summary.Elem(), // not yet supported elements
+  timeout: Summary.Elem = Summary.Elem(), // timeout elements
+  fail: Summary.Elem = Summary.Elem(), // failed elements
+  pass: Summary.Elem = Summary.Elem(), // passed elements
 ) {
 
   // the number of not yet supported elements
@@ -95,12 +95,12 @@ case class Summary(
   private given Rule[(String, Int)] = {
     case (app, (name, count)) => app >> f"- $name: $count%,d"
   }
-  private given Rule[(Reason, Elem)] = {
-    case (app, (reason, elem @ Elem(seq, map))) =>
+  private given Rule[(Reason, Summary.Elem)] = {
+    case (app, (reason, elem @ Summary.Elem(seq, map))) =>
       app >> reason -> elem.size
       if (!map.isEmpty)
         var pairs = map.toList.sortBy(-_._2.size)
-        if (!seq.isEmpty) pairs :+= "others" -> Elem(seq)
+        if (!seq.isEmpty) pairs :+= "others" -> Summary.Elem(seq)
         app.wrapIterable("", "", "")(pairs)
       app
   }

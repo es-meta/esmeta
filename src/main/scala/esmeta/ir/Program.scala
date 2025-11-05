@@ -7,7 +7,6 @@ import esmeta.parser.{ESParser, AstFrom}
 import esmeta.spec.Spec
 import esmeta.ty.TyModel
 import esmeta.util.BaseUtils.*
-import esmeta.util.ProgressBar
 import esmeta.util.SystemUtils.*
 
 /** IR programs */
@@ -48,7 +47,7 @@ case class Program(
     val dirname = s"$baseDir/func"
     dumpDir(
       name = "IR functions",
-      iterable = ProgressBar("Dump IR functions", funcs, detail = false),
+      iterable = funcs,
       dirname = dirname,
       getName = func => s"${func.name}.ir",
       getData = func => func.toString(detail = true, location = loc),

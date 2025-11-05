@@ -1,7 +1,7 @@
 package esmeta.error
 
 import esmeta.LINE_SEP
-import esmeta.util.Summary
+import esmeta.test262.util.Summary
 
 sealed abstract class Test262Error(msg: String)
   extends ESMetaError(msg, s"Test262Error")
