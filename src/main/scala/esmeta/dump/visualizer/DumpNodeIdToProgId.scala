@@ -36,14 +36,21 @@ object DumpNodeIdToProgId {
       MMap.empty
     val progIdSet: MSet[Int] = MSet.empty
 
-    val progress = ProgressBar(
-      msg = "Dump nodeIdToProgId",
-      iterable = nvList,
-      getName = (nv, _) => s"node ${nv.nodeView.node.id}",
-      detail = false,
-    )
-    progress.foreach {
-      case NodeViewInfoJson(_, NodeViewJson(node, view), scriptStr) =>
+    new JobRunner[NodeViewInfoJson, Unit](
+      targets = nvList,
+      showProgressBar = true,
+      // getName = (nv, _) => s"node ${nv.nodeView.node.id}",
+      // detail = false,
+    ) {
+
+      override def preJob: Unit = {
+        println("Dump nodeIdToProgId")
+      }
+
+      override def postJob: Unit = ()
+
+      override def job(t: NodeViewInfoJson, idx: Int) = {
+        val NodeViewInfoJson(_, NodeViewJson(node, view), scriptStr) = t
         val script = scriptStr.toInt
         progIdSet += script
 
@@ -89,7 +96,8 @@ object DumpNodeIdToProgId {
               .getOrElseUpdate("", MMap.empty)
               .getOrElseUpdate("", (script, stepCnt))
         nodeIdToProgId += (node.id -> featIdToProgId)
-    }
+      }
+    }.result
 
     progIdSet.foreach { progId =>
       val codeWithOutUseStrict = readFile(s"$RECENT_DIR/minimal/$progId.js")

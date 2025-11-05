@@ -12,7 +12,7 @@ import esmeta.util.SystemUtils.*
 import esmeta.es.*
 import esmeta.es.util.Coverage
 import esmeta.test262.{*, given}
-import esmeta.test262.util.TestFilter
+import esmeta.test262.util.{TestFilter, Summary}
 import java.io.File
 import java.util.concurrent.TimeoutException
 
@@ -43,7 +43,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       )
 
     // run test262 eval test
-    val summary = test262.evalTest(
+    val summary = Test262.evalTest(
       targets,
       config.features,
       config.tyCheck,
@@ -56,7 +56,7 @@ case object Test262Test extends Phase[CFG, Summary] {
       config.allTests,
       config.timeLimit,
       config.concurrent,
-    )
+    )(using test262)
 
     // if summary has failed test case, throws an exception
     if (summary.failCount > 0) throw Test262Fail(summary.fail)
