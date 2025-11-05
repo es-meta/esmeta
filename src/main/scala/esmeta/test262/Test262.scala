@@ -7,23 +7,21 @@ import esmeta.error.NotSupported.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
-import esmeta.parser.ESParser
+import esmeta.state.*
 import esmeta.ty.{*, given}
 import esmeta.ty.util.TypeErrorCollector
-import esmeta.state.*
 import esmeta.test262.util.*
-import esmeta.util.*
+import esmeta.util.{ConcurrentPolicy as CP, *}
 import esmeta.util.BaseUtils.*
-import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
 
 /** data in Test262 */
-case class Test262(
-  version: Test262.Version,
-  cfg: CFG,
-  withYet: Boolean = false,
+class Test262(
+  val version: Test262.Version,
+  val cfg: CFG,
+  val withYet: Boolean = false,
 ) {
 
   type Filename = String
@@ -65,9 +63,6 @@ case class Test262(
   /** specification */
   val spec = cfg.spec
 
-  /** type error collector */
-  lazy val collector: TypeErrorCollector = new TypeErrorCollector
-
   /** load test262 */
   def loadTest(filename: String): Code =
     loadTest(filename, Test(filename).includes)
@@ -88,41 +83,18 @@ case class Test262(
     if (log) println("- Extracting tests of Test262 tests...")
     Test.fromDirs(paths.getOrElse(List(TEST262_TEST_DIR)), features)
 
-  /** get tests */
-  def getProgressBar(
-    name: String,
-    targetTests: List[Test],
-    log: Boolean = false,
-    pw: PrintWriter,
-    removed: Iterable[(Test, ReasonPath)] = Nil,
-    useProgress: Boolean = false,
-    useErrorHandler: Boolean = true,
-    concurrent: CP = CP.Single,
-    verbose: Boolean = false,
-  ): ProgressBar[Test] = ProgressBar(
-    msg = s"Run Test262 $name tests",
-    iterable = targetTests,
-    notSupported = removed,
-    getName = (test, _) => test.relName,
-    errorHandler = (e, summary, name) =>
-      if (useErrorHandler) e match
-        case NotSupported(reasons) =>
-          summary.notSupported.add(name, reasons)
-        case _: TimeoutException =>
-          if (log)
-            pw.println(s"[TIMEOUT] $name")
-            pw.flush
-          summary.timeout.add(name)
-        case e: Throwable =>
-          if (log)
-            pw.println(s"[FAIL   ] $name")
-            pw.println(e.getStackTrace.mkString(LINE_SEP))
-            pw.flush
-          summary.fail.add(name, getMessage(e))
-      else throw e,
-    verbose = useProgress,
-    concurrent = concurrent,
-  )
+  // ---------------------------------------------------------------------------
+  // private helpers
+  // ---------------------------------------------------------------------------
+  // parse ECMAScript code
+  private lazy val scriptParser = cfg.scriptParser
+  private def parse(code: String): Code =
+    scriptParser.fromWithCode(code)
+  private def parseFile(filename: String): Code =
+    scriptParser.fromFileWithCode(filename)
+
+}
+object Test262 extends Git(TEST262_DIR) {
 
   /** interpreter test */
   def evalTest(
@@ -139,15 +111,22 @@ case class Test262(
     timeLimit: Option[Int] = None, // default: no limit
     concurrent: CP = CP.Single,
     verbose: Boolean = false,
-  ): Summary = {
-    // extract tests from paths
-    val tests: List[Test] = getTests(paths, features)
+  )(using test262: Test262): Summary = {
 
-    // use error handler for multiple targets
-    val multiple = tests.length > 1
+    lazy val cov = Coverage(
+      cfg = test262.cfg,
+      timeLimit = timeLimit,
+      kFs = kFs,
+      cp = cp,
+      all = allTests,
+      isTargetNode = (_, st) => !Test262.inHarness(st),
+      isTargetBranch = (_, st) => !Test262.inHarness(st),
+    )
 
-    // get target tests and removed tests
-    val (targetTests, removed) = testFilter(tests, withYet)
+    // pre-jobs
+    val tests: List[Test] = test262.getTests(paths, features)
+    val (targetTests, removed) = test262.testFilter(tests, test262.withYet)
+    val multiple = targetTests.length > 1
 
     // dump test id to path for -test262test:all-tests
     if (allTests)
@@ -155,170 +134,148 @@ case class Test262(
         targetTests.map(_.relName).zipWithIndex.map(_.swap).toMap,
         s"$TEST262TEST_LOG_DIR/test262IdToTest262.json",
       )
+    val name = "eval"
+    val logDir = s"$TEST262TEST_LOG_DIR/$name-$dateStr"
+    val symlink = s"$TEST262TEST_LOG_DIR/recent"
 
-    // open log file
-    val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
+    // setting for logging
+    if (log)
+      mkdir(logDir)
+      dumpFile(test262.spec.versionString, s"$logDir/ecma262-version")
+      dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
 
-    // get progress bar for extracted tests
-    val progressBar = getProgressBar(
-      name = "eval",
-      targetTests = targetTests,
-      log = log,
-      pw = logPW,
-      removed = removed,
-      useProgress = useProgress,
-      useErrorHandler = multiple,
+    new Test262Runner(
+      msg = s"Run Test262 $name tests",
+      targets = targetTests,
+      notSupported = removed,
       concurrent = concurrent,
-    )
+      showProgressBar = useProgress,
+      detail = detail,
+    ) {
 
-    // coverage with time limit
-    lazy val cov = Coverage(
-      cfg = cfg,
-      timeLimit = timeLimit,
-      kFs = kFs,
-      cp = cp,
-      all = allTests,
-      isTargetNode = (_, st) => !inHarness(st),
-      isTargetBranch = (_, st) => !inHarness(st),
-    )
+      override lazy val getName = (test, _) => test.relName
 
-    // run tests with logging
-    logForTests(
-      name = "eval",
-      progressBar = progressBar,
-      pw = logPW,
-      postSummary = if (useCoverage) cov.toString else "",
-      log = log && multiple,
-    )(
-      // check final execution status of each Test262 test
-      check = test =>
+      val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
+
+      /** type error collector */
+      lazy val collector: TypeErrorCollector = new TypeErrorCollector
+
+      override def errorHandler(
+        error: Throwable,
+        summary: Summary,
+        name: String,
+      ): Unit =
+        if (multiple) error match
+          case NotSupported(reasons) =>
+            summary.notSupported.add(name, reasons)
+          case _: TimeoutException =>
+            if (log)
+              logPW.println(s"[TIMEOUT] $name")
+              logPW.flush
+            summary.timeout.add(name)
+          case e: Throwable =>
+            if (log)
+              logPW.println(s"[FAIL   ] $name")
+              logPW.println(e.getStackTrace.mkString(LINE_SEP))
+              logPW.flush
+            summary.fail.add(name, getMessage(e))
+        else throw error
+
+      override def postJob: Summary = {
+        val summary = super.postJob
+
+        val postSummary =
+          if (useCoverage) cov.toString else ""
+
+        // logging after tests
+        if (log)
+          summary.dumpTo(logDir)
+          val summaryStr =
+            if (postSummary.isEmpty) s"$summary"
+            else s"$summary$LINE_SEP$postSummary"
+          dumpFile(
+            s"Test262 $name test summary",
+            summaryStr,
+            s"$logDir/summary",
+          )
+
+          // dump type errors (dump names only when there are multiple tests)
+          if (tyCheck) collector.dumpTo(logDir, withNames = multiple)
+          // dump coverage
+          if (useCoverage) cov.dumpTo(logDir)
+
+        if exists(logDir) then createSymLink(symlink, logDir, overwrite = true)
+        logPW.close()
+        summary
+      }
+
+      override def runTest(test: Test): Unit = {
         val filename = test.path
-        val st =
-          if (!useCoverage)
+        val st = useCoverage match {
+          case false =>
             evalFile(
               filename,
               tyCheck,
               log && !multiple,
-              detail,
+              this.detail,
               Some(logPW),
               timeLimit,
             )
-          else {
-            val (ast, code) = loadTest(filename)
+          case true =>
+            val (ast, code) = test262.loadTest(filename)
             cov.runAndCheck(Script(code, filename), ast)._1
-          }
+        }
         if (tyCheck) collector.add(filename, st.typeErrors)
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
-      ,
-      // dump coverage
-      postJob = logDir => {
-        // dump type errors (dump names only when there are multiple tests)
-        if (tyCheck) collector.dumpTo(logDir, withNames = multiple)
-        // dump coverage
-        if (useCoverage) cov.dumpTo(logDir)
-      },
-    )
-
-    // close log file
-    logPW.close()
-
-    progressBar.summary
+      }
+    }.result
   }
 
   /** parse test */
   def parseTest(
-    paths: Option[List[String]] = None,
     log: Boolean = false,
-    useProgress: Boolean = false,
-    timeLimit: Option[Int] = None, // default: no limit
     concurrent: CP = CP.Single,
     verbose: Boolean = false,
-  ): Summary = {
+  )(using test262: Test262): Summary = {
     // extract tests from paths
-    val tests: List[Test] = getTests(paths)
+    val tests: List[Test] = test262.getTests(None)
 
     // get target tests and removed tests
-    val (targetTests, removed) = testFilter(tests, withYet)
+    val (targetTests, removed) = test262.testFilter(tests, test262.withYet)
 
     // open log file
     val logPW = getPrintWriter(s"$TEST262TEST_LOG_DIR/log")
 
-    // get progress bar for extracted tests
-    val progressBar = getProgressBar(
-      name = "parse",
-      targetTests = targetTests,
-      pw = logPW,
-      removed = removed,
-      useProgress = useProgress,
+    new Test262Runner(
+      msg = s"Parse Test262 tests",
+      targets = targetTests,
+      notSupported = removed,
       concurrent = concurrent,
-    )
+      showProgressBar = false,
+      detail = false,
+    ) {
 
-    // run tests with logging
-    logForTests(
-      name = "parse",
-      progressBar = progressBar,
-      pw = logPW,
-      log = log,
-    )(
-      // check parsing result with its corresponding code
-      check = test =>
+      override lazy val getName = (test, _) => test.relName
+
+      private lazy val scriptParser = test262.cfg.scriptParser
+      private def parse(code: String): Test262#Code =
+        scriptParser.fromWithCode(code)
+      private def parseFile(filename: String): Test262#Code =
+        scriptParser.fromFileWithCode(filename)
+
+      def runTest(test: Test): Unit = {
         val filename = test.path
         val (ast, _) = parseFile(filename)
-        val (newAst, _) = parse(ast.toString(grammar = Some(cfg.grammar)))
-        if (ast != newAst) throw UnexpectedParseResult,
-    )
-
-    // close log file
-    logPW.close()
-
-    progressBar.summary
+        val (newAst, _) = parse(
+          ast.toString(grammar = Some(test262.cfg.grammar)),
+        )
+        if (ast != newAst) throw UnexpectedParseResult
+      }
+    }.result
   }
 
-  // ---------------------------------------------------------------------------
-  // private helpers
-  // ---------------------------------------------------------------------------
-  // parse ECMAScript code
-  private lazy val scriptParser = cfg.scriptParser
-  private def parse(code: String): Code =
-    scriptParser.fromWithCode(code)
-  private def parseFile(filename: String): Code =
-    scriptParser.fromFileWithCode(filename)
-
-  // eval ECMAScript code
-  private def evalFile(
-    filename: String,
-    tyCheck: Boolean,
-    log: Boolean = false,
-    detail: Boolean = false,
-    logPW: Option[PrintWriter] = None,
-    timeLimit: Option[Int] = None,
-  ): State =
-    val (ast, code) = loadTest(filename)
-    eval(code, ast, filename, tyCheck, log, detail, logPW, timeLimit)
-
-  // eval ECMAScript code
-  private def eval(
-    code: String,
-    ast: Ast,
-    filename: String,
-    tyCheck: Boolean,
-    log: Boolean = false,
-    detail: Boolean = false,
-    logPW: Option[PrintWriter] = None,
-    timeLimit: Option[Int] = None,
-  ): State =
-    val st = cfg.init.from(code, ast)
-    Interpreter(
-      st = st,
-      tyCheck = tyCheck,
-      log = log,
-      detail = detail,
-      logPW = logPW,
-      timeLimit = timeLimit,
-    )
-
-  // check whether program point is in harness
+  /** check whether program point is in harness */
   private def inHarness(st: State): Boolean = (for {
     ast <- st.context.astOpt.orElse(
       st.callStack.view.flatMap(_.context.astOpt).headOption,
@@ -328,40 +285,24 @@ case class Test262(
     if filename.contains("test262/harness")
   } yield true).getOrElse(false)
 
-  // logging mode for tests
-  private def logForTests(
-    name: String,
-    progressBar: ProgressBar[Test],
-    pw: PrintWriter,
-    postSummary: => String = "",
+  /* eval ECMAScript code */
+  private def evalFile(
+    filename: String,
+    tyCheck: Boolean,
     log: Boolean = false,
-  )(
-    check: Test => Unit,
-    postJob: String => Unit = _ => {},
-  ): Unit =
-    val summary: Summary = progressBar.summary
-    val logDir = s"$TEST262TEST_LOG_DIR/$name-$dateStr"
-    val symlink = s"$TEST262TEST_LOG_DIR/recent"
+    detail: Boolean = false,
+    logPW: Option[PrintWriter] = None,
+    timeLimit: Option[Int] = None,
+  )(using test262: Test262): State =
+    val (ast, code) = test262.loadTest(filename)
+    val st = test262.cfg.init.from(code, ast)
+    Interpreter(
+      st = st,
+      tyCheck = tyCheck,
+      log = log,
+      detail = detail,
+      logPW = logPW,
+      timeLimit = timeLimit,
+    )
 
-    // setting for logging
-    if (log)
-      mkdir(logDir)
-      dumpFile(spec.versionString, s"$logDir/ecma262-version")
-      dumpFile(ESMeta.currentVersion, s"$logDir/esmeta-version")
-
-    // run tests
-    for (test <- progressBar) check(test)
-
-    // logging after tests
-    if (log)
-      summary.dumpTo(logDir)
-      val summaryStr =
-        if (postSummary.isEmpty) s"$summary"
-        else s"$summary$LINE_SEP$postSummary"
-      dumpFile(s"Test262 $name test summary", summaryStr, s"$logDir/summary")
-
-    // post job
-    postJob(logDir)
-    if exists(logDir) then createSymLink(symlink, logDir, overwrite = true)
 }
-object Test262 extends Git(TEST262_DIR)

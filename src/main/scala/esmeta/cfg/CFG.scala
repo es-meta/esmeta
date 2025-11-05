@@ -14,7 +14,6 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{ConcurrentPolicy => CP}
-import esmeta.util.ProgressBar
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap, Set => MSet}
 
@@ -158,7 +157,7 @@ case class CFG(
     val dirname = s"$baseDir/func"
     dumpDir(
       name = "CFG functions",
-      iterable = ProgressBar("Dump CFG functions", funcs, detail = false),
+      iterable = funcs,
       dirname = dirname,
       getName = func => s"${func.normalizedName}.cfg",
     )
@@ -170,14 +169,14 @@ case class CFG(
   ): Unit =
     mkdir(baseDir)
     val format = if (pdf) "DOT/PDF formats" else "a DOT format"
-    val progress = ProgressBar(
-      msg = s"Dump CFG functions in $format",
-      iterable = funcs,
-      getName = (x, _) => x.name,
-      detail = false,
-      concurrent = CP.Auto,
-    )
-    for (func <- progress)
+    // val progress = Test262ProgressBar(
+    //   msg = s"Dump CFG functions in $format",
+    //   iterable = funcs,
+    //   getName = (x, _) => x.name,
+    //   detail = false,
+    //   concurrent = CP.Auto,
+    // )
+    for (func <- funcs)
       val path = s"$baseDir/${func.normalizedName}"
       val dotPath = s"$path.dot"
       val pdfPath = if (pdf) Some(s"$path.pdf") else None
