@@ -160,6 +160,19 @@ case object CmdTest262Test
   override val needTarget = false
 }
 
+/** `test262-test` command */
+case object CmdJalangiTest
+  extends Command("jalangi-test", CmdBuildCFG >> JalangiTest) {
+  val help = "tests test262 tests, along with Jalangi (default: tests/test262)."
+  val examples = List(
+    "esmeta jalangi-test                                           # all ",
+    "esmeta jalangi-test tests/test262/test/built-ins/Map/map.js   # file",
+    "esmeta jalangi-test tests/test262/test/language/expressions   # directory",
+  )
+  override val targetName = "<js|dir>+"
+  override val needTarget = false
+}
+
 // -----------------------------------------------------------------------------
 // ECMAScript Fuzzer
 // -----------------------------------------------------------------------------
