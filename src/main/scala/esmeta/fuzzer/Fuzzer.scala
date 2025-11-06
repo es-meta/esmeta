@@ -156,7 +156,6 @@ class Fuzzer(
       val mutator = code match
         case _: Normal  => normalMutator
         case _: Builtin => builtinMutator
-        case _: Test262 => throw Exception("impossible match")
       val results = mutator(code, 100, condView.map((_, cov)), elapsedBlock).par
       (for {
         result <- results
@@ -198,23 +197,26 @@ class Fuzzer(
       if (info.visited) fail("ALREADY VISITED")
       visited += code.toString
       if (info.invalid) fail("INVALID PROGRAM")
-      val script = toScript(code)
       val interp = info.interp.get match
         case Success(v) => v
         case Failure(e) => throw e
       val finalState = interp.result
+      val supported = interp.supported
+      val script = toScript(code, supported)
       if (tyCheck) collector.add(code.toString, finalState.typeErrors)
       val (_, updated, covered) = cov.check(script, interp)
       if (!updated) fail("NO UPDATE")
-      covered
+      (covered, supported)
     },
   )
 
   /** handle add result */
-  def handleResult(code: Code, result: Try[Boolean]): Boolean = {
+  def handleResult(code: Code, result: Try[(Boolean, Boolean)]): Boolean = {
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     val pass = result match
-      case Success(covered)             => debugging(passMsg("")); covered
+      case Success(covered, supported) =>
+        debugging(passMsg(if supported then "" else "NOT SUPPORTED"));
+        covered
       case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
       case Failure(e: NotSupported) =>
         debugging(failMsg("NOT SUPPORTED")); false
@@ -327,8 +329,9 @@ class Fuzzer(
   private var startInterval: Long = 0L
   private def interval: Long = System.currentTimeMillis - startInterval
 
-  // conversion from `Code` object` to `Script` object
-  private def toScript(code: Code): Script = Script(code, s"$nextId.js")
+  // conversion from `Code` object to `Script` object
+  private def toScript(code: Code, supported: Boolean): Script =
+    Script(code, s"$nextId.js", supported)
 
   // check if the added code is visited
   private var visited: Set[String] = Set()

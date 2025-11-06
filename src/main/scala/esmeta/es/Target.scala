@@ -28,7 +28,7 @@ object Target {
     assignExprParser: AstFrom,
   ): List[Target] =
     val args = for {
-      (arg, idx) <- builtin.args.getOrElse(Nil).zipWithIndex
+      (arg, idx) <- builtin.args.zipWithIndex
       ast = assignExprParser.from(arg)
     } yield BuiltinArg(ast, idx)
     builtin.thisArg.fold(args)(arg =>

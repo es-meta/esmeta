@@ -27,29 +27,33 @@ class BuiltinSynthesizer(
     code <- path match
       case YetPath(_) => Nil
       case Getter(base) =>
-        List(
-          Code.Builtin(path),
-          Code.Builtin(path, receiver = true),
-        )
+        (getString(base) :: (base match
+          case Prototype(proto, prop) =>
+            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop;")
+          case _ => Nil
+        )).map(Code.Normal(_))
       case Setter(base) =>
-        List(
-          Code.Builtin(path, args = Some(List("0"))),
-          Code.Builtin(path, args = Some(List("0")), receiver = true),
-        )
+        (getString(base) :: (base match
+          case Prototype(proto, prop) =>
+            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop = 0;")
+          case _ => Nil
+        )).map(Code.Normal(_))
       case path =>
         val MAX_ARGS = 5
+        val pathStr = getString(path)
+        // calls
         val calls = for {
-          argsLen <- Range(0, MAX_ARGS).toList
+          argsLen <- Range(1, MAX_ARGS + 1).toList
           args = List.fill(argsLen)("0")
-        } yield Code.Builtin(path, Some("0"), Some(args))
+        } yield Code.Builtin(s"$pathStr.call", Some("0"), args)
         // construct without arguments
-        val construct = Code.Builtin(path, None, None, true)
+        val construct = Code.Normal(s"new $pathStr;")
         // constructs with arguments
         val constructs = for {
           argsLen <- Range(0, MAX_ARGS).toList
           args = List.fill(argsLen)("0")
-        } yield Code.Builtin(path, None, Some(args), true)
-        (calls ++ (construct :: constructs))
+        } yield Code.Builtin(s"new $pathStr", None, args)
+        calls ++ (construct :: constructs)
   } yield code).toVector
 
   // get prototype paths and properties

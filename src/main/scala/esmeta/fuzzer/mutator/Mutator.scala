@@ -81,7 +81,7 @@ object Mutator {
       target match
         case Target.BuiltinThis(_) => builtin.copy(thisArg = Some(str))
         case Target.BuiltinArg(_, i) =>
-          builtin.copy(args = Some(builtin.args.getOrElse(Nil).updated(i, str)))
+          builtin.copy(args = builtin.args.updated(i, str))
         case _ => raise("target must be builtin")
   }
 }

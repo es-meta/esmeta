@@ -34,7 +34,6 @@ class Remover(using cfg: CFG)(
   ): Seq[Result] = code match
     case Code.Normal(str) => apply(str, n, target)
     case _: Code.Builtin  => Nil // TODO
-    case _: Code.Test262  => throw Exception("impossible match")
 
   /** mutate ASTs */
   def apply(

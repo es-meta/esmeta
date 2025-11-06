@@ -169,7 +169,6 @@ lazy val root = project
       "io.circe" %% "circe-yaml-scalayaml" % CirceYamlVersion,
       "org.scalatest" %% "scalatest" % "3.2.19" % Test,
       "org.apache.commons" % "commons-text" % "1.13.0",
-      "org.apache.commons" % "commons-math3" % "3.6.1",
       "org.jsoup" % "jsoup" % "1.18.3",
       "org.jline" % "jline" % "3.29.0",
       "org.graalvm.polyglot" % "js" % "24.1.2" pomOnly (),

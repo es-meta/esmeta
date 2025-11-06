@@ -9,6 +9,7 @@ import esmeta.ir.*
 import esmeta.parser.AstFrom
 import esmeta.spec.*
 import esmeta.ty.{*, given}
+import esmeta.error.NotSupported
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.Coverage.Interp
@@ -128,7 +129,7 @@ case class Coverage(
     interp.result; interp
 
   def check(script: Script, interp: Interp): (State, Boolean, Boolean) = {
-    val Script(code, _) = script
+    val Script(code, _, supported) = script
     val finalSt = interp.result
 
     var covered = false
@@ -147,7 +148,10 @@ case class Coverage(
           if (all) { update(nodeView, script); updated = true }
           else {
             val originalScript = scripts.head
-            if (originalScript.code.size > code.size) {
+            if (
+              (!originalScript.supported && supported) ||
+              (originalScript.code.length > code.length)
+            ) {
               update(nodeView, script); updated = true
               blockingScripts += originalScript
             } else {
@@ -165,7 +169,10 @@ case class Coverage(
           if (all) { update(condView, targets, script); updated = true }
           else {
             val originalScript = scripts.head
-            if (originalScript.code.size > code.size) {
+            if (
+              (!originalScript.supported && supported) ||
+              (originalScript.code.length > code.length)
+            ) {
               update(condView, targets, script); updated = true
               blockingScripts += originalScript
             } else {
@@ -450,6 +457,16 @@ object Coverage {
   ) extends Interpreter(initSt, tyCheck = tyCheck, timeLimit = timeLimit) {
     var touchedNodeViews: Map[NodeView, Set[Target]] = Map()
     var touchedCondViews: Map[CondView, Set[Target]] = Map()
+    var supported = true
+
+    // override eval for cursor
+    override def eval(cursor: Cursor): Boolean =
+      cursor match
+        case NodeCursor(_, node, _) =>
+          st.context.visited += node
+          try { eval(node); true }
+          catch { case _: NotSupported => supported = false; false }
+        case _: ExitCursor => super.eval(cursor)
 
     // override eval for node
     override def eval(node: Node): Unit =

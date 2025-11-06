@@ -43,7 +43,6 @@ class RandomMutator(using cfg: CFG)(
           str = ast.toString(grammar = Some(cfg.grammar)).trim
           newCode = mutTarget.updateCode(builtin, str)
         } yield Result(name, newCode)
-    case _: Code.Test262 => throw Exception("impossible match")
 
   /** mutate ASTs */
   def apply(

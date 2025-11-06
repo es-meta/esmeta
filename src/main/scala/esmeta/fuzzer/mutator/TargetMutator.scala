@@ -68,7 +68,6 @@ class TargetMutator(using cfg: CFG)(
               newCode = mutTarget.updateCode(builtin, str)
             } yield Result(name, newCode)
           case _ => List()
-      case _: Code.Test262 => throw Exception("impossible match")
   }).getOrElse(randomMutator(code, n, target))
 
   /** mutate ASTs */
