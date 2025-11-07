@@ -7,9 +7,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.spec.util.GrammarGraph
 
 /** A simple ECMAScript AST synthesizer */
-class SimpleSynthesizer(
-  grammar: Grammar,
-) extends Synthesizer {
+class SimpleSynthesizer(grammar: Grammar) extends Synthesizer {
 
   val graph = GrammarGraph(grammar)
   import graph.*

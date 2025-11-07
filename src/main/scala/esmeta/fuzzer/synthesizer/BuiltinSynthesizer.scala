@@ -3,17 +3,14 @@ package esmeta.fuzzer.synthesizer
 import esmeta.cfg.*
 import esmeta.error.*
 import esmeta.es.*
-import esmeta.es.util.*
 import esmeta.spec.*
-import esmeta.spec.BuiltinPath.*
 import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 
 /** An ECMAScript AST synthesizer for built-in libraries */
-class BuiltinSynthesizer(
-  algorithms: List[Algorithm],
-) extends Synthesizer {
+class BuiltinSynthesizer(algorithms: List[Algorithm]) extends Synthesizer {
+  import BuiltinPath.*, Code.*
 
   /** synthesizer name */
   def name: String = "BuiltinSynthesizer"
@@ -27,32 +24,48 @@ class BuiltinSynthesizer(
     code <- path match
       case YetPath(_) => Nil
       case Getter(base) =>
-        (getString(base) :: (base match
+        Normal(getString(base)) :: (base match
           case Prototype(proto, prop) =>
-            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop;")
+            List(
+              Builtin(
+                "Object.setPrototypeOf",
+                None,
+                List("x", proto),
+                Some("var x = {};"),
+                Some(s"x$prop;"),
+              ),
+            )
           case _ => Nil
-        )).map(Code.Normal(_))
+        )
       case Setter(base) =>
-        (getString(base) :: (base match
+        Normal(getString(base)) :: (base match
           case Prototype(proto, prop) =>
-            List(s"var x = {}; Object.setPrototypeOf(x, $proto); x$prop = 0;")
+            List(
+              Builtin(
+                "Object.setPrototypeOf",
+                None,
+                List("x", proto),
+                Some("var x = {};"),
+                Some(s"x$prop = 0;"),
+              ),
+            )
           case _ => Nil
-        )).map(Code.Normal(_))
+        )
       case path =>
         val MAX_ARGS = 5
         val pathStr = getString(path)
         // calls
         val calls = for {
-          argsLen <- Range(1, MAX_ARGS + 1).toList
+          argsLen <- Range(0, MAX_ARGS).toList
           args = List.fill(argsLen)("0")
-        } yield Code.Builtin(s"$pathStr.call", Some("0"), args)
+        } yield Builtin(s"$pathStr.call", Some("0"), args, None, None)
         // construct without arguments
-        val construct = Code.Normal(s"new $pathStr;")
+        val construct = Normal(s"new $pathStr;")
         // constructs with arguments
         val constructs = for {
           argsLen <- Range(0, MAX_ARGS).toList
           args = List.fill(argsLen)("0")
-        } yield Code.Builtin(s"new $pathStr", None, args)
+        } yield Builtin(s"new $pathStr", None, args, None, None)
         calls ++ (construct :: constructs)
   } yield code).toVector
 

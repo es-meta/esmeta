@@ -10,36 +10,22 @@ import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
 
 /** A mutator selects one of given mutators under weight */
-class WeightedMutator(using cfg: CFG)(
-  val mutators: Seq[Mutator],
-) extends Mutator {
+class WeightedMutator(using cfg: CFG)(pairs: (Mutator, Int)*) extends Mutator {
   import Mutator.*
-
-  val weight: Int = 0
 
   /** mutate code */
   def apply(
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
-    elapsedBlock: Int,
-  ): Seq[Result] = chooseMutator(code, n, target, elapsedBlock)
+  ): Seq[Result] = weightedChoose(pairs)(code, n, target)
 
   /** mutate ASTs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[Ast] = chooseMutator(ast, n, target)
+  ): Seq[Ast] = weightedChoose(pairs)(ast, n, target)
 
-  /** choose a mutator under weight */
-  def chooseMutator: Mutator =
-    val weights = mutators.map(_.weight)
-    weightedChoose(mutators zip weights)
-
-  val names = mutators.toList.flatMap(_.names).sorted.distinct
-}
-object WeightedMutator {
-  def apply(mutators: Mutator*)(using CFG): WeightedMutator =
-    new WeightedMutator(mutators)
+  val names = pairs.toList.flatMap(_._1.names).sorted.distinct
 }

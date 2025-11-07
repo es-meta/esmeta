@@ -5,9 +5,7 @@ import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 
 /** A random ECMAScript AST synthesizer */
-class RandomSynthesizer(
-  val grammar: Grammar,
-) extends Synthesizer {
+class RandomSynthesizer(val grammar: Grammar) extends Synthesizer {
   import grammar.*
 
   /** synthesizer name */

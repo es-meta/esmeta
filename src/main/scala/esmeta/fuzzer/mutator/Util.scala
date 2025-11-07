@@ -8,17 +8,12 @@ import esmeta.util.*
 
 object Util {
   class AstCounter(pred: Ast => Boolean) extends UnitWalker {
-    def apply(ast: Ast): Int = {
-      _cnt = 0
-      walk(ast)
-      _cnt
-    }
+    def apply(ast: Ast): Int = { _cnt = 0; walk(ast); _cnt }
     private var _cnt = 0
 
-    override def walk(ast: Ast): Unit = {
+    override def walk(ast: Ast): Unit =
       if pred(ast) then _cnt += 1
       super.walk(ast)
-    }
   }
   val simpleAstCounter = new AstCounter(_ => true)
 

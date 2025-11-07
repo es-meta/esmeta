@@ -19,7 +19,6 @@ import java.math.MathContext.DECIMAL128
 import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
-import scala.math.{BigInt => SBigInt}
 
 /** extensible helper of IR interpreter with a CFG */
 class Interpreter(
@@ -483,11 +482,9 @@ class Interpreter(
       case Some(head: SyntaxDirectedOperationHead) =>
         val feature = SyntacticFeature(func, head)
         val nearest = for {
-          case AstValue(ast @ Syntactic(name, _, idx, _)) <- locals.get(
-            Name("this"),
-          )
+          case AstValue(ast: Syntactic) <- locals.get(Name("this"))
           loc <- ast.loc
-        } yield Nearest(name, idx, ast.subIdx, loc)
+        } yield Nearest(loc)
         Context(func, locals, feature :: prevFeatureStack, nearest)
       case Some(head: BuiltinHead) =>
         val feature = BuiltinFeature(func, head)

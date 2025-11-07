@@ -93,7 +93,7 @@ class Fuzzer(
       dumpFile(getSeed, s"$logDir/seed")
       genSummaryHeader
       genStatHeader(selector.names, selStatTsv)
-      genStatHeader(mutatorNames, mutStatTsv)
+      genStatHeader(mutator.names, mutStatTsv)
     }
     time(
       s"- initializing program pool with ${initPool.size} programs", {
@@ -152,15 +152,8 @@ class Fuzzer(
     debugFlush
 
     val mutants: List[(Mutator.Result, CandInfo)] =
-      import Code.*
-      val mutator = code match
-        case _: Normal  => normalMutator
-        case _: Builtin => builtinMutator
-      val results = mutator(code, 100, condView.map((_, cov)), elapsedBlock).par
-      (for {
-        result <- results
-        candInfo = getCandInfo(result.code)
-      } yield (result, candInfo)).toList
+      val results = mutator(code, 100, condView.map((_, cov))).par
+      results.map(result => (result, getCandInfo(result.code))).toList
 
     for ((Mutator.Result(mutatorName, mutatedCode), info) <- mutants)
       debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
@@ -215,11 +208,11 @@ class Fuzzer(
     debugging(f" ${"COVERAGE RESULT"}%30s: ", newline = false)
     val pass = result match
       case Success(covered, supported) =>
-        debugging(passMsg(if supported then "" else "NOT SUPPORTED"));
+        debugging(passMsg(if supported then "" else "NOT SUPPORTED"))
         covered
-      case Failure(e: TimeoutException) => debugging(failMsg("TIMEOUT")); false
-      case Failure(e: NotSupported) =>
-        debugging(failMsg("NOT SUPPORTED")); false
+      case Failure(e: TimeoutException) =>
+        debugging(failMsg("TIMEOUT"))
+        false
       case Failure(e: ESMetaError) =>
         debugging(failMsg("ESMETA ERROR"))
         esmetaErrors += e -> (esmetaErrors.getOrElse(e, Set()) + code.toString)
@@ -228,8 +221,7 @@ class Fuzzer(
         e.getMessage match
           case "ALREADY VISITED" | "INVALID PROGRAM" if debug == PARTIAL =>
             debugClean
-          case msg =>
-            debugging(failMsg(msg))
+          case msg => debugging(failMsg(msg))
         false
     debugFlush
     pass
@@ -253,9 +245,11 @@ class Fuzzer(
       }): _*,
     ).asJson
 
+  /** light-weight analyzer for fuzzing */
+  lazy val analyzer = ParamFlowAnalyzer(cfg)
+
   /** coverage */
   val cov: Coverage =
-    lazy val analyzer = ParamFlowAnalyzer(cfg)
     analyzer.analyze
     Coverage(cfg, tyCheck, kFs, cp, timeLimit, analyzer = Some(analyzer))
 
@@ -270,24 +264,15 @@ class Fuzzer(
 
   given CFG = cfg
 
-  /** normal/builtin mutators */
-  val normalMutator: Mutator = WeightedMutator(
-    TargetMutator(),
-    RandomMutator(),
-    StatementInserter(),
-    Remover(),
-    SpecStringMutator(),
+  /** mutator */
+  val mutator: Mutator = WeightedMutator(
+    // AdHocMutator() -> 6, // TODO
+    NearestMutator() -> 6, // FIXME: refactor using analyzed targets
+    RandomMutator() -> 3,
+    StatementInserter() -> 1,
+    Remover() -> 1,
+    SpecStringMutator() -> 1,
   )
-  val builtinMutator: Mutator = WeightedMutator(
-    TargetMutator(),
-    RandomMutator(),
-    SpecStringMutator(),
-  )
-
-  /** all mutator names */
-  val mutatorNames = (
-    normalMutator.names ++ builtinMutator.names
-  ).distinct.sorted
 
   /** mutator stat */
   val mutatorStat: MMap[String, Counter] = MMap()
@@ -324,7 +309,6 @@ class Fuzzer(
   // evaluation start time
   private var startTime: Long = 0L
   private def elapsed: Long = System.currentTimeMillis - startTime
-  private def elapsedBlock: Int = elapsed.toInt / (600 * 1000)
   private def timeout = duration.fold(false)(_ * 1000 < elapsed)
   private var startInterval: Long = 0L
   private def interval: Long = System.currentTimeMillis - startInterval
@@ -414,7 +398,7 @@ class Fuzzer(
     // dump coverage
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
     dumpStat(selector.names, selectorStat, selStatTsv)
-    dumpStat(mutatorNames, mutatorStat, mutStatTsv)
+    dumpStat(mutator.names, mutatorStat, mutStatTsv)
     // dump spec type error
     if (tyCheck) collector.dumpTo(logDir)
     // dump ESMeta errors

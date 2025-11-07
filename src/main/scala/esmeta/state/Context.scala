@@ -2,7 +2,7 @@ package esmeta.state
 
 import esmeta.cfg.{Func, Node, Block, Call}
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.es.Ast
+import esmeta.es.{Ast, Nearest}
 import esmeta.util.BaseUtils.raise
 import scala.collection.mutable.{Map => MMap}
 

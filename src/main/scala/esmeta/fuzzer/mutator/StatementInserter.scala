@@ -4,7 +4,6 @@ import esmeta.es.*
 import esmeta.es.util.{Walker => AstWalker}
 import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
-import esmeta.spec.Grammar
 import esmeta.fuzzer.synthesizer.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
@@ -14,8 +13,7 @@ class StatementInserter(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator
   with Util.MultiplicativeListWalker {
-  import StatementInserter.*
-  import Mutator.*
+  import Mutator.*, StatementInserter.*, Code.*
 
   val randomMutator = RandomMutator()
 
@@ -23,58 +21,57 @@ class StatementInserter(using cfg: CFG)(
 
   val synthesizer = synBuilder(cfg.grammar)
 
-  /** default weight for StatementInserter is 1 */
-  val weight: Int = 1
-
   /** mutate code */
   def apply(
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
-    elapsedBlock: Int,
   ): Seq[Result] = code match
-    case Code.Normal(str) => apply(str, n, target)
-    case _: Code.Builtin  => Nil
+    case Normal(str) =>
+      apply(str, n, target).map(str => Result(name, Normal(str)))
+    case builtin @ Builtin(_, _, _, preStmts, postStmts) =>
+      (preStmts, postStmts) match
+        case (Some(_), Some(_)) =>
+          if randBool then builtin.mutatePreStmts(n, target)
+          else builtin.mutatePostStmts(n, target)
+        case (Some(_), None) => builtin.mutatePreStmts(n, target)
+        case (None, Some(_)) => builtin.mutatePostStmts(n, target)
+        case (None, None) =>
+          List
+            .tabulate(n)(_ =>
+              newStmtItem(List(false, false, false))
+                .toString(grammar = Some(cfg.grammar)),
+            )
+            .map(stmts =>
+              if (randBool) Result(name, builtin.copy(preStmts = Some(stmts)))
+              else Result(name, builtin.copy(postStmts = Some(stmts))),
+            )
 
   /** mutate ASTs */
-  def apply(
-    ast: Ast,
-    n: Int,
-    _target: Option[(CondView, Coverage)],
-  ): Seq[Ast] = {
+  def apply(ast: Ast, n: Int, target: Option[(CondView, Coverage)]): Seq[Ast] =
     // count the number of stmtLists
     val k = stmtListCounter(ast)
 
-    if (k == 0) randomMutator(ast, n, _target)
+    if (k == 0) randomMutator(ast, n, target)
     else if (n == 1)
       // Insert one statement with 80% probability
-      k1 = k - 1
-      c1 = 1
-      k2 = 1
-      c2 = 5
-
-      sample(ast, n)
+      k1 = k - 1; c1 = 1; k2 = 1; c2 = 5
+      shuffle(walk(ast)).take(n)
     else {
       // calculate the most efficient parameters
       val (kc1, kc2) = calcParam(n, k)
       k1 = kc1._1; c1 = kc1._2
       k2 = kc2._1; c2 = kc2._2
-      sample(ast, n)
+      shuffle(walk(ast)).take(n)
     }
-  }
 
   /** parameter for sampler */
   private var (c1, c2, k1, k2) = (0, 0, 0, 0)
 
-  private def sample(ast: Ast, n: Int): Seq[Ast] =
-    shuffle(walk(ast)).take(n)
-
   private def decideGenNum =
-    if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then
-      k1 -= 1; c1
-    else if k2 > 0 then
-      k2 -= 1; c2
-    else throw new Error("This is a bug in Stmt Inserter")
+    if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then { k1 -= 1; c1 }
+    else if k2 > 0 then { k2 -= 1; c2 }
+    else throw new Error("This is a bug in StatementInserter")
 
   /** generate a new statement list item, either randomly or manually */
   private def newStmtItem(args: List[Boolean]) = choose(

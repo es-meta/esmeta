@@ -204,8 +204,8 @@ case class Test262(
               timeLimit,
             )
           else {
-            val (ast, codeStr) = loadTest(filename)
-            val script = Script(Code.Normal(codeStr), filename)
+            val (ast, sourceText) = loadTest(filename)
+            val script = Script(Code.Normal(sourceText), filename, true)
             cov.runAndCheck(script, Some(ast))._1
           }
         if (tyCheck) collector.add(filename, st.typeErrors)

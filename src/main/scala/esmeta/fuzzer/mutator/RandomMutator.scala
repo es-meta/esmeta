@@ -1,10 +1,8 @@
 package esmeta.fuzzer.mutator
 
 import esmeta.es.*
-import esmeta.es.util.{Walker => AstWalker}
-import esmeta.es.util.*
+import esmeta.es.util.{Walker => AstWalker, *}
 import esmeta.es.util.Coverage.*
-import esmeta.spec.Grammar
 import esmeta.util.BaseUtils.*
 import esmeta.fuzzer.synthesizer.*
 import esmeta.cfg.CFG
@@ -13,14 +11,10 @@ import esmeta.cfg.CFG
 class RandomMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator {
-  import RandomMutator.*
-  import Mutator.*
+  import Mutator.*, RandomMutator.*, Code.*
 
   /** synthesizer */
   val synthesizer = synBuilder(cfg.grammar)
-
-  /** default weight for RandomMutator is 3 */
-  val weight: Int = 3
 
   val names = List("RandomMutator")
 
@@ -29,53 +23,47 @@ class RandomMutator(using cfg: CFG)(
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
-    elapsedBlock: Int,
   ): Seq[Result] = code match
-    case Code.Normal(str) => apply(str, n, target)
-    case builtin: Code.Builtin =>
-      val mutTargets = Target(builtin)(using assignExprParser)
-      if (mutTargets.isEmpty) Nil
-      else
-        import Target.*
-        val mutTarget = choose(mutTargets.toVector)
-        for {
-          ast <- this.apply(mutTarget.ast, n, target)
-          str = ast.toString(grammar = Some(cfg.grammar)).trim
-          newCode = mutTarget.updateCode(builtin, str)
-        } yield Result(name, newCode)
+    case Normal(str) =>
+      apply(str, n, target).map(str => Result(name, Normal(str)))
+    case builtin @ Builtin(_, _, _, preStmts, postStmts) =>
+      if ((preStmts.isDefined || postStmts.isDefined) && randBool) {
+        // mutate statements
+        (preStmts, postStmts) match
+          case (Some(_), Some(_)) =>
+            if randBool then builtin.mutatePreStmts(n, target)
+            else builtin.mutatePostStmts(n, target)
+          case (Some(_), None) => builtin.mutatePreStmts(n, target)
+          case (None, Some(_)) => builtin.mutatePostStmts(n, target)
+          case (None, None)    => raise("unreachable")
+      } else {
+        // mutate builtin call arguments
+        builtin.mutateArgStr(n, target)
+      }
 
   /** mutate ASTs */
-  def apply(
-    ast: Ast,
-    n: Int,
-    target: Option[(CondView, Coverage)],
-  ): Seq[Ast] =
+  def apply(ast: Ast, n: Int, target: Option[(CondView, Coverage)]): Seq[Ast] =
+    // count of mutation target asts
     val k = targetAstCounter(ast)
-    if (k > 0) c = (n - 1) / k + 1
-    shuffle(Walker.walk(ast)).take(n)
+    if (k > 0) {
+      c = (n - 1) / k + 1
+      shuffle(Walker.walk(ast)).take(n)
+    } else List.fill(n)(ast)
 
-  /* number of new candidates to make for each target */
-  var c = 0
+  /** number of new candidates to make for each target */
+  private var c = 0
 
   /** internal walker */
   object Walker extends Util.AdditiveListWalker {
     override def walk(ast: Syntactic): List[Syntactic] =
       val mutants = super.walk(ast)
-      val assignExprParser = esParser("AssignmentExpression", ast.args)
       if (isTarget(ast))
         val manuals =
           if (ast.name == "AssignmentExpression")
-            List(
-              assignExprParser.from("-0.1"),
-              assignExprParser.from("-0"),
-              assignExprParser.from("-1"),
-              assignExprParser.from("-0n"),
-              assignExprParser.from("-1n"),
-              assignExprParser.from("-Infinity"),
-              assignExprParser.from("NaN"),
-              assignExprParser.from("Symbol()"),
-            ).map(_.asInstanceOf[Syntactic])
-          else List()
+            List("-0", "-0n", "-Infinity", "NaN", "Symbol()")
+              .map(esParser("AssignmentExpression", ast.args).from)
+              .map(_.asInstanceOf[Syntactic])
+          else Nil
         manuals ++ List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
       else mutants
     override def walk(lex: Lexical): List[Lexical] = lex.name match {
@@ -91,15 +79,13 @@ class RandomMutator(using cfg: CFG)(
 }
 object RandomMutator {
   // true if the given ast is target ast
-  def isTarget = (ast: Ast) =>
-    List(
-      "AssignmentExpression",
-      "PrimaryExpression",
-      "Statement",
-      "Declaration",
-    )
-      .contains(ast.name)
+  def isTarget(ast: Ast): Boolean = List(
+    "AssignmentExpression",
+    "PrimaryExpression",
+    "Statement",
+    "Declaration",
+  ).contains(ast.name)
 
-  // count the number of target sub-ast
+  // count the number of predefined target asts
   val targetAstCounter = new Util.AstCounter(isTarget)
 }

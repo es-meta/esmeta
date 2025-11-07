@@ -1,11 +1,11 @@
 package esmeta.fuzzer.mutator
 
-import esmeta.es.*
 import esmeta.cfg.{CFG, Func}
-import esmeta.spec.Grammar
-import esmeta.fuzzer.synthesizer.*
+import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
+import esmeta.fuzzer.synthesizer.*
+import esmeta.ir.*
 import esmeta.util.BaseUtils.*
 
 /** A mutator that generates based on strings in spec literals */
@@ -13,8 +13,7 @@ class SpecStringMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator
   with Walker {
-  import SpecStringMutator.*
-  import Mutator.*
+  import Mutator.*, SpecStringMutator.*, Code.*
 
   val randomMutator = RandomMutator()
 
@@ -22,57 +21,45 @@ class SpecStringMutator(using cfg: CFG)(
 
   val synthesizer = synBuilder(cfg.grammar)
 
-  /** default weight for SpecStringMutator is 1 */
-  val weight: Int = 1
-
   /** mutate code */
   def apply(
     code: Code,
     n: Int,
     target: Option[(CondView, Coverage)],
-    elapsedBlock: Int,
   ): Seq[Result] = code match
-    case Code.Normal(str) => apply(str, n, target)
-    case builtin: Code.Builtin =>
-      val mutTargets = Target(builtin)(using assignExprParser)
-      if (mutTargets.isEmpty) Nil
-      else
-        import Target.*
-        val mutTarget = choose(mutTargets.toVector)
-        for {
-          ast <- this.apply(mutTarget.ast, n, target)
-          str = ast.toString(grammar = Some(cfg.grammar)).trim
-          newCode = mutTarget.updateCode(builtin, str)
-        } yield Result(name, newCode)
+    case Normal(str) =>
+      apply(str, n, target).map(str => Result(name, Normal(str)))
+    case builtin @ Builtin(_, _, _, preStmts, postStmts) =>
+      if ((preStmts.isDefined || postStmts.isDefined) && randBool) {
+        // mutate statements
+        (preStmts, postStmts) match
+          case (Some(_), Some(_)) =>
+            if randBool then builtin.mutatePreStmts(n, target)
+            else builtin.mutatePostStmts(n, target)
+          case (Some(_), None) => builtin.mutatePreStmts(n, target)
+          case (None, Some(_)) => builtin.mutatePostStmts(n, target)
+          case (None, None)    => raise("unreachable")
+      } else {
+        // mutate builtin call arguments
+        builtin.mutateArgStr(n, target)
+      }
 
   /** mutate ASTs */
-  def apply(
-    ast: Ast,
-    n: Int,
-    target: Option[(CondView, Coverage)],
-  ): Seq[Ast] = {
+  def apply(ast: Ast, n: Int, target: Option[(CondView, Coverage)]): Seq[Ast] =
     // count the number of primary expressions
     val k = primaryCounter(ast)
-    if (k == 0) randomMutator(ast, n, target)
-    else
-      targetFunc = target.flatMap { (condView, _) =>
-        cfg.funcOf.get(condView.cond.branch)
-      }
-      targetCondStr = target.flatMap { (condView, _) =>
-        findCondStr(condView.cond.branch.cond)
-      }
-      sample(ast, n)
-  }
+    if (k > 0) {
+      for ((cv, _) <- target)
+        targetFunc = cfg.funcOf.get(cv.cond.branch)
+        targetCondStr = findCondStr(cv.cond.branch.cond)
+      Set.tabulate(n)(_ => walk(ast)).toSeq
+    } else randomMutator(ast, n, target)
 
   /** function where target branch is in */
   private var targetFunc: Option[Func] = None
 
   /** string in target branch */
   private var targetCondStr: Option[String] = None
-
-  /** sample n distinct asts using spec-strings */
-  private def sample(ast: Ast, n: Int): Seq[Ast] =
-    Set.tabulate[Ast](n)(_ => walk(ast)).toSeq
 
   /** ast walker */
   override def walk(syn: Syntactic): Syntactic =
@@ -181,14 +168,13 @@ object SpecStringMutator {
   val PRIMARY_EXPRESSION = "PrimaryExpression"
 
   // count the number of primaryExpressions
-  def isPrimary(ast: Ast): Boolean = ast match {
+  def isPrimary(ast: Ast): Boolean = ast match
     case Syntactic(PRIMARY_EXPRESSION, _, _, _) => true
     case _                                      => false
-  }
+
   val primaryCounter = Util.AstCounter(isPrimary)
 
-  // manually selected algorithms,
-  // whoose purposes is reading property
+  // manually selected algorithms, whose purpose is reading property
   val propReadingAlgos = Set(
     "HasProperty",
     "GetMethod",
@@ -211,13 +197,8 @@ object SpecStringMutator {
   )
 
   // find string literal in condition
-  def findCondStr(e: esmeta.ir.Expr): Option[String] = {
-    import esmeta.ir.*
-    e match {
-      case EBinary(BOp.Eq, EStr(str), _) => Some(str)
-      case EBinary(BOp.Eq, _, EStr(str)) => Some(str)
-      case _                             => None
-    }
-  }
-
+  def findCondStr(e: Expr): Option[String] = e match
+    case EBinary(BOp.Eq, EStr(str), _) => Some(str)
+    case EBinary(BOp.Eq, _, EStr(str)) => Some(str)
+    case _                             => None
 }
