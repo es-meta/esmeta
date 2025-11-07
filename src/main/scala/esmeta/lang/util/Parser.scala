@@ -883,7 +883,7 @@ trait Parsers extends IndentParsers {
     "a List whose sole element is" ~> expr ^^ { e =>
       ListExpression(SoleElement(e))
     } |
-    (("an" | "a") ~> opt("new") <~ "empty List") ~ opt("of" ~> word) ^^ {
+    (indefArticle ~> opt("new") <~ "empty List") ~ opt("of" ~> word) ^^ {
       case n ~ t => ListExpression(EmptyList(n.isDefined, t))
     } | "a List of the integers in the interval from" ~>
     (calcExpr ~ inc <~ "to") ~ (calcExpr ~ inc <~ ",") ~ asc ^^ {
@@ -949,10 +949,8 @@ trait Parsers extends IndentParsers {
     lazy val simpleImply: P[Condition] =
       "If" ~> compound(baseCond, "then" ^^^ Imply)
     lazy val compOr: P[Condition] = compound(simpleAnd, "or" ^^^ Or)
-    lazy val compAnd: P[Condition] = compound(simpleOr, "and" ^^^ And)
 
     compOr |||
-    compAnd |||
     simpleImply |||
     simpleOr |||
     simpleAnd |||
@@ -984,27 +982,27 @@ trait Parsers extends IndentParsers {
       case e ~ (n ~ t) => TypeCheckCondition(e, n, t)
     }
 
-  // field includsion conditions
+  // field inclusion conditions
   lazy val hasFieldCond: PL[HasFieldCondition] =
+    lazy val field =
+      indefArticle ~> expr ^^ { List(_) } |
+      (expr <~ "and") ~ expr ^^ { case f1 ~ f2 => List(f1, f2) }
+
     import HasFieldConditionForm.*
     lazy val form =
       "field" ^^^ Field |
       "internal method" ^^^ InternalMethod |
-      "internal slot" ^^^ InternalSlot
+      ("internal slots" | "internal slot") ^^^ InternalSlot
 
-    // GeneratorValidate
-    (ref <~ opt("also")) ~
-    ("has" ^^^ false | "does not have" ^^^ true) ~
-    (("an " | "a ") ~> expr) ~ form ^^ {
-      case r ~ n ~ f ~ m => HasFieldCondition(r, n, f, m)
+    lazy val fieldType = opt("whose value is" ~ indefArticle ~> langType)
+    (ref <~ opt("also")) ~ hasNeg ~ field ~ form ~ fieldType ^^ {
+      case r ~ n ~ f ~ m ~ t => HasFieldCondition(r, n, f, m, t)
     }
 
   // binding includsion conditions
   lazy val hasBindingCond: PL[HasBindingCondition] =
     // GeneratorValidate
-    (ref <~ opt("also")) ~
-    ("has" ^^^ false | "does not have" ^^^ true) ~
-    ("a binding for" ~> expr) ^^ {
+    ref ~ hasNeg ~ ("a binding for" ~> expr) ^^ {
       case r ~ n ~ f => HasBindingCondition(r, n, f)
     }
 
@@ -1128,11 +1126,6 @@ trait Parsers extends IndentParsers {
     // CreatePerIterationEnvironment
     expr <~ "has any elements"
   } ^^ { PredicateCondition(_, true, PredicateConditionOperator.Empty) } | {
-    // ForBodyEvaluation
-    expr ~ isNeg <~ "~[empty]~"
-  } ^^ {
-    case e ~ n => PredicateCondition(e, !n, PredicateConditionOperator.Present)
-  } | {
     // %ForInIteratorPrototype%.next
     ("there does not exist an element" ~> variable) ~
     ("of" ~> expr) ~
@@ -1163,7 +1156,7 @@ trait Parsers extends IndentParsers {
         IsAreCondition(List(getRefExpr(v1)), n, List(e)),
       )
   } | {
-    ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
+    ref ~ isNeg <~ "a strict binding"
   } ^^ {
     case r ~ n =>
       IsAreCondition(
@@ -1195,7 +1188,7 @@ trait Parsers extends IndentParsers {
 
   // not yet supported conditions
   def yetCond(post: String): PL[Condition] = s".+$post".r ^^ { str =>
-    val s = str.replaceAll(post + "$", "")
+    val s = str.stripSuffix(post)
     ExpressionCondition(YetExpression(s, None))
   }
 
@@ -1340,7 +1333,7 @@ trait Parsers extends IndentParsers {
   lazy val recordTy: P[ValueTy] =
     "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
       case fs => RecordT("", fs.map(_.name -> AnyT).toMap)
-    } | opt("an " | "a ") ~> {
+    } | opt(indefArticle) ~> {
       "function object" ^^^ FunctionT |
       "constructor" ^^^ ConstructorT |
       "Data Block" ^^^ DataBlockT | (
@@ -1364,7 +1357,7 @@ trait Parsers extends IndentParsers {
 
   // list types
   lazy val listTy: P[ValueTy] =
-    opt("an " | "a ") ~ "List of" ~> pureValueTy ^^ { ListT(_) }
+    opt(indefArticle) ~ "List of" ~> pureValueTy ^^ { ListT(_) }
 
   // closure types
   // TODO more details
@@ -1381,7 +1374,7 @@ trait Parsers extends IndentParsers {
   lazy val grammarSymbolTy: P[ValueTy] = "a grammar symbol" ^^^ GrammarSymbolT
 
   // simple types
-  lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
+  lazy val simpleTy: P[ValueTy] = opt(indefArticle) ~> {
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
@@ -1429,7 +1422,7 @@ trait Parsers extends IndentParsers {
   } <~ opt("s")
 
   // rarely used expressions
-  lazy val specialTy: P[Ty] = opt("an " | "a ") ~> {
+  lazy val specialTy: P[Ty] = opt(indefArticle) ~> {
     "List of" ~> word ^^ {
       case s => UnknownTy(s"List of $s")
     } | (nt | tname) ^^ {
@@ -1536,7 +1529,7 @@ trait Parsers extends IndentParsers {
     p: Parser[T],
   ): Parser[Boolean ~ List[T]] =
     lazy val compoundGuard = guard(not("is" | "<" | ">" | "(" | "of"))
-    ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
+    ((b ^^ { !_ }) <~ "neither") ~ repsep(p, sep("nor")) |
     (b <~ "either") ~ p ~ ("or" ~> p) ^^ {
       case b ~ p0 ~ p1 => new ~(b, List(p0, p1))
     } |
@@ -1552,7 +1545,8 @@ trait Parsers extends IndentParsers {
     ("are both not" | "are not") ^^^ true |
     ("are both" | "are") ^^^ false
   private def hasNeg: Parser[Boolean] =
-    "does not have" ^^^ true | "has" ^^^ false
+    ("does not already have" | "does not have") ^^^ true |
+    "has" ^^^ false
 
   // arguments part
   lazy val argsPart = "with" ~> (
@@ -1568,6 +1562,7 @@ trait Parsers extends IndentParsers {
   private val one = DecimalMathValueLiteral(1)
 
   // article
+  private val indefArticle = "an " | "a "
   private val article = opt("a " | "an " | "the ")
 
   // check existence

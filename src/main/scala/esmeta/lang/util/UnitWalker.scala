@@ -257,12 +257,13 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case TypeCheckCondition(expr, neg, ty) =>
       walk(expr); walk(neg); walkList(ty, walk)
-    case HasFieldCondition(ref, neg, field, _) =>
-      walk(ref); walk(neg); walk(field)
+    case HasFieldCondition(ref, neg, field, form, tyOpt) =>
+      walk(ref); walk(neg); walkList(field, walk); walk(form);
+      walkOpt(tyOpt, walk)
     case HasBindingCondition(ref, neg, binding) =>
       walk(ref); walk(neg); walk(binding)
     case ProductionCondition(nt, lhs, rhs) =>
-      walk(nt);
+      walk(nt); walk(lhs); walk(rhs)
     case PredicateCondition(expr, neg, op) =>
       walk(expr); walk(neg); walk(op)
     case IsAreCondition(ls, neg, rs) =>
@@ -276,6 +277,8 @@ trait UnitWalker extends BasicUnitWalker {
     case CompoundCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
   }
+
+  def walk(form: HasFieldConditionForm): Unit = {}
 
   def walk(op: PredicateConditionOperator): Unit = {}
 
@@ -321,4 +324,5 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(intr: Intrinsic): Unit = {}
 
   def walk(ty: Type): Unit = {}
+
 }

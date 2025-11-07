@@ -26,8 +26,9 @@ case class TypeCheckCondition(
 case class HasFieldCondition(
   ref: Reference,
   negation: Boolean,
-  field: Expression,
+  field: List[Expression],
   form: HasFieldConditionForm,
+  tyOpt: Option[Type] = None,
 ) extends Condition
 enum HasFieldConditionForm:
   case Field, InternalSlot, InternalMethod

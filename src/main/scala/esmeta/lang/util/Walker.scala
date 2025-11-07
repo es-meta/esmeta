@@ -310,10 +310,16 @@ trait Walker extends BasicWalker {
       ExpressionCondition(walk(expr))
     case TypeCheckCondition(expr, neg, ty) =>
       TypeCheckCondition(walk(expr), walk(neg), walkList(ty, walk))
-    case HasFieldCondition(ref, neg, field, form) =>
-      HasFieldCondition(walk(ref), walk(neg), walk(field), form)
-    case HasBindingCondition(ref, neg, binding) =>
-      HasBindingCondition(walk(ref), walk(neg), walk(binding))
+    case HasFieldCondition(ref, has, field, form, tyOpt) =>
+      HasFieldCondition(
+        walk(ref),
+        walk(has),
+        walkList(field, walk),
+        walk(form),
+        walkOpt(tyOpt, walk),
+      )
+    case HasBindingCondition(ref, has, binding) =>
+      HasBindingCondition(walk(ref), walk(has), walk(binding))
     case ProductionCondition(nt, lhs, rhs) =>
       ProductionCondition(walk(nt), lhs, rhs)
     case PredicateCondition(expr, neg, op) =>
@@ -335,6 +341,8 @@ trait Walker extends BasicWalker {
     case CompoundCondition(left, op, right) =>
       CompoundCondition(walk(left), walk(op), walk(right))
   }
+
+  def walk(form: HasFieldConditionForm): HasFieldConditionForm = form
 
   def walk(op: PredicateConditionOperator): PredicateConditionOperator = op
 

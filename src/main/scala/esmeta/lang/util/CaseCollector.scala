@@ -389,11 +389,20 @@ class CaseCollector extends UnitWalker {
       case ExpressionCondition(expr) =>
         s"{{ expr }}"
       case TypeCheckCondition(expr, neg, ty) =>
-        s"{{ expr }} is {{ ty }}*"
-      case HasFieldCondition(ref, neg, field, op) =>
-        s"{{ ref }} has a {{ field }} $op"
+        if (neg) s"{{ expr }} is not {{ ty }}*"
+        else s"{{ expr }} is {{ ty }}*"
+      case HasFieldCondition(ref, neg, field, form, tyOpt) =>
+        val h = if (neg) "does not have" else "has"
+        val f = form match
+          case HasFieldConditionForm.Field          => "field"
+          case HasFieldConditionForm.InternalMethod => "internal method"
+          case HasFieldConditionForm.InternalSlot   => "internal slot"
+        val post = tyOpt.fold("")(_ => " whose value is {{ ty }}")
+        if (field.length > 1) s"{{ ref }} $h {{ field }}* $f$post"
+        else s"{{ ref }} $h a {{ field }} $f$post"
       case HasBindingCondition(ref, neg, binding) =>
-        s"{{ ref }} has a binding for {{ binding }}"
+        val h = if (neg) "does not have" else "has"
+        s"{{ ref }} $h a binding for {{ binding }}"
       case ProductionCondition(nt, lhs, rhs) =>
         s"{{ expr }} is <emu-grammar>{{ str }} : {{ str }}</emu-grammar>"
       case PredicateCondition(x, neg, op) =>

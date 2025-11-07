@@ -1596,6 +1596,7 @@ INTRINSICS.get:Symbol.prototype.description
 INTRINSICS.get:TypedArray.prototype.buffer
 INTRINSICS.get:TypedArray.prototype.byteLength
 INTRINSICS.get:TypedArray.prototype.byteOffset
+INTRINSICS.get:TypedArray.prototype.length
 INTRINSICS.get:TypedArray.prototype[%Symbol.toStringTag%]
 INTRINSICS.get:TypedArray[%Symbol.species%]
 INTRINSICS.isFinite

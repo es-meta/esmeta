@@ -700,16 +700,22 @@ class Stringifier(detail: Boolean, location: Boolean) {
             given Rule[List[Type]] = listNamedSepRule(left, namedSep)
             app >> ty
         }
-      case HasFieldCondition(ref, neg, field, form) =>
+      case HasFieldCondition(ref, neg, field, form, tyOpt) =>
         app >> ref >> hasStr(neg)
-        app >> field.toString.indefArticle
-        app >> " " >> field >> " "
+        if (field.length > 1)
+          given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+          app >> field >> " "
+        else
+          app >> field.head.toString.indefArticle
+          app >> " " >> field.head >> " "
         import HasFieldConditionForm.*
         app >> (form match {
           case Field          => "field"
           case InternalSlot   => "internal slot"
           case InternalMethod => "internal method"
         })
+        if (field.length > 1) app >> "s"
+        tyOpt.fold(app)(app >> " whose value is " >> _)
       case HasBindingCondition(ref, neg, binding) =>
         app >> ref >> hasStr(neg)
         app >> "a binding for " >> binding
