@@ -177,16 +177,21 @@ trait Parsers extends LangParsers {
   // Algorithms
   // ---------------------------------------------------------------------------
 
+  /* skip newlines around the parser  */
+  private def surroundedBy[A](p: Parser[A]): Parser[A] =
+    val newlinable = "[ \n\t]+".r
+    rep(newlinable) ~> p <~ rep(newlinable)
+
   // abstract operation (AO) heads
   lazy val absOpHeadGen: Parser[Boolean => AbstractOperationHead] = {
-    opt(semanticsKind) ~> name ~ params ~ retTy ^^ {
+    surroundedBy(opt(semanticsKind) ~> name ~ params ~ retTy) ^^ {
       case name ~ params ~ rty => AbstractOperationHead(_, name, params, rty)
     }
   }.named("spec.AbstractOperationHead")
 
   // numeric method heads
   lazy val numMethodHead: Parser[NumericMethodHead] = {
-    (langType <~ "::") ~ name ~ params ~ retTy ^^ {
+    surroundedBy((langType <~ "::") ~ name ~ params ~ retTy) ^^ {
       case t ~ x ~ ps ~ rty => NumericMethodHead(t, x, ps, rty)
     }
   }.named("spec.NumericMethodHead")
@@ -232,7 +237,7 @@ trait Parsers extends LangParsers {
   lazy val sdoHeadGen: Parser[
     Option[SyntaxDirectedOperationHead.Target] => SyntaxDirectedOperationHead,
   ] = {
-    semanticsKind ~ name ~ params ~ retTy ^^ {
+    surroundedBy(semanticsKind ~ name ~ params ~ retTy) ^^ {
       case isStatic ~ x ~ params ~ rty =>
         SyntaxDirectedOperationHead(_, x, isStatic, params, rty)
     }
@@ -240,21 +245,21 @@ trait Parsers extends LangParsers {
 
   // concrete method head generator
   lazy val concMethodHeadGen: Parser[Param => ConcreteMethodHead] = {
-    name ~ params ~ retTy ^^ {
+    surroundedBy(name ~ params ~ retTy) ^^ {
       case name ~ params ~ rty => ConcreteMethodHead(name, _, params, rty)
     }
   }.named("spec.ConcreteMethodHead")
 
   // internal method head generator
   lazy val inMethodHeadGen: Parser[Param => InternalMethodHead] = {
-    ("[[" ~> name <~ "]]") ~ params ~ retTy ^^ {
+    surroundedBy(("[[" ~> name <~ "]]") ~ params ~ retTy) ^^ {
       case name ~ params ~ rty => InternalMethodHead(name, _, params, rty)
     }
   }.named("spec.InternalMethodHead")
 
   // built-in heads
   lazy val builtinHead: Parser[BuiltinHead] = {
-    builtinPath ~ params ~ retTy ^^ {
+    surroundedBy(builtinPath ~ params ~ retTy) ^^ {
       case r ~ params ~ rty => BuiltinHead(r, params, rty)
     }
   }.named("spec.BuiltinHead")

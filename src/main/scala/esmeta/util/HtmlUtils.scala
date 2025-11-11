@@ -4,6 +4,7 @@ import esmeta.*
 import org.apache.commons.text.StringEscapeUtils
 import org.jsoup.*
 import org.jsoup.nodes.*
+import org.jsoup.parser.*
 import org.jsoup.select.*
 
 /** HTML utilities */
@@ -23,7 +24,8 @@ object HtmlUtils {
 
     /** parse HTML string */
     def toHtml: Document =
-      val document = Jsoup.parse(str)
+      val parser = Parser.htmlParser().setTrackPosition(true)
+      val document = Jsoup.parse(str, parser)
       document.outputSettings.prettyPrint(false)
       document
   }
