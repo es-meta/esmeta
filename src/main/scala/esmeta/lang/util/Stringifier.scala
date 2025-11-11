@@ -758,13 +758,24 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else app >> from >> " ≤ " >> left >> " ≤ " >> to
       case ContainsCondition(list, neg, expr) =>
         app >> list >> (if (neg) " does not contain " else " contains ") >> expr
+      case CompoundCondition(left, CompoundConditionOperator.Imply, right) =>
+        app >> "If " >> left >> ", then " >> right
       case CompoundCondition(left, op, right) =>
-        op match {
-          case CompoundConditionOperator.Imply =>
-            // TODO handle upper case of `if`
-            app >> "If " >> left >> ", then " >> right
-          case _ => app >> left >> " " >> op >> " " >> right
+        // collect sub conditions of same level in a single list
+        def flatten(cond: Condition): List[Condition] = {
+          cond match {
+            case CompoundCondition(l, o, r) if o == op => l :: flatten(r)
+            case _                                     => List(cond)
+          }
         }
+        val conds = flatten(cond)
+        val sep = op match {
+          case CompoundConditionOperator.And   => "and"
+          case CompoundConditionOperator.Or    => "or"
+          case CompoundConditionOperator.Imply => "then" // not used
+        }
+        given Rule[List[Condition]] = listNamedSepRule(namedSep = sep)
+        app >> conds
     }
   }
 
