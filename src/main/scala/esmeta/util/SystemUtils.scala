@@ -262,11 +262,43 @@ object SystemUtils {
   def isNormalExit(str: String): Boolean = optional(executeCmd(str)).isDefined
 
   /** execute shell command with given dir, default to CUR_DIR */
-  def executeCmd(cmd: String, dir: String = CUR_DIR): String =
+  def executeCmd(
+    cmd: String,
+    dir: String = CUR_DIR,
+  ): String =
     var directory = File(dir)
     var process = Process(Seq("sh", "-c", cmd), directory)
     val sb = new StringBuilder
     process !! ProcessLogger(s => (), s => ())
+
+  def executeCmdTimeout(
+    cmd: String,
+    duration: FiniteDuration,
+    dir: String = CUR_DIR,
+  ): Option[String] = {
+    val sb = new StringBuilder
+    val processBuilder = Process(Seq("sh", "-c", cmd), new File(dir))
+    val process =
+      processBuilder.run(ProcessLogger(s => sb.append(s).append("\n"), s => ()))
+    val future = Future {
+      process.exitValue() // waits for completion
+    }
+    try
+      Await.result(future, duration)
+      Some(sb.toString())
+    catch
+      case _: TimeoutException =>
+        process.destroy() // terminate process
+        None
+  }
+
+  /** execute shell command with given dir, default to CUR_DIR */
+  def executeCmdNonZero(cmd: String, dir: String = CUR_DIR): (Int, String) =
+    var directory = File(dir)
+    var process = Process(Seq("sh", "-c", cmd), directory)
+    val sb = new StringBuilder
+    val code = process ! ProcessLogger(s => sb.append(s).append("\n"), s => ())
+    (code, sb.toString())
 
   /** set timeout with optional limitation */
   def timeout[T](f: => T, limit: Option[Int]): T =

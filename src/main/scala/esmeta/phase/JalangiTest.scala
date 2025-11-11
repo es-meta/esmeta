@@ -44,7 +44,9 @@ case object JalangiTest extends Phase[CFG, Unit] {
       )
 
     // run test262 eval test
-    Jalangi.test(targets)(using test262)
+    val summary = Jalangi.test(targets, timeLimit = Some(60000))(using test262)
+
+    println(summary)
 
   // if summary has failed test case, throws an exception
   // if (summary.failCount > 0) throw Test262Fail(summary.fail)

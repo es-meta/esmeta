@@ -164,6 +164,7 @@ object Test262 extends Git(TEST262_DIR) {
         error: Throwable,
         summary: Summary,
         name: String,
+        test: Test,
       ): Unit =
         if (multiple) error match
           case NotSupported(reasons) =>

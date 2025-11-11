@@ -39,7 +39,7 @@ abstract class Test262Runner(
     getError {
       runTest(t)
       summary.pass.add(name)
-    }.map(errorHandler(_, summary, name))
+    }.map(errorHandler(_, summary, name, t))
   }
 
   def postJob: Summary = summary
@@ -48,6 +48,7 @@ abstract class Test262Runner(
     error: Throwable,
     summary: Summary,
     name: String,
+    test: Test,
   ): Unit = summary.fail.add(name)
 
   /* postfix for summary */
