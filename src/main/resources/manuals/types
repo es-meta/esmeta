@@ -551,7 +551,7 @@ type RealmRecord {
   GlobalObject: Record[Object];
   GlobalEnv: Record[GlobalEnvironmentRecord];
   TemplateMap: List[Record[{ Site: Ast[TemplateLiteral], Array: Record[Array] }]];
-  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecord] }]];
+  LoadedModules: List[Record[LoadedModuleRequestRecord]];
   HostDefined: Undefined;
 }
 
