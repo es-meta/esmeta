@@ -12,7 +12,8 @@ trait AbsRetDecl { self: TyChecker =>
     def isBottom: Boolean = value.isBottom
 
     /** partial order */
-    def ⊑(that: AbsRet)(using AbsState): Boolean = this.value ⊑ that.value
+    def ⊑(that: AbsRet)(using AbsState): Boolean =
+      this.value ⊑ that.value
 
     /** not partial order */
     def !⊑(that: AbsRet)(using AbsState): Boolean = !(this ⊑ that)
