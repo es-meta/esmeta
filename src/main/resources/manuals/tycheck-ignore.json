@@ -9,8 +9,5 @@
   "FunctionBody[0,0].EvaluateFunctionBody",
   "GetViewByteLength",
   "Record[SourceTextModuleRecord].ExecuteModule",
-  "Record[SourceTextModuleRecord].GetExportedNames",
-  "Record[SourceTextModuleRecord].InitializeEnvironment",
-  "Record[SourceTextModuleRecord].ResolveExport",
   "TypedArrayLength"
 ]
