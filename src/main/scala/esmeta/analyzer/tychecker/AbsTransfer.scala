@@ -268,7 +268,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       if (canUseReturnTy(callee)) {
         val call = callerNp.node
         val retTy = callee.retTy.ty.toValue
-        val newRetV = (for {
+        var newRetV = (for {
           refiner <- manualRefiners.get(callee.name)
           v = refiner(callee, vs, retTy, callerSt)
           newV = instantiate(v, callerNp)
@@ -276,9 +276,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val v = AbsValue(retTy)
           v.lift
         }
+        if (useSyntacticKill) newRetV = newRetV.killMutable(using callerNp)
         for {
           nextNp <- getAfterCallNp(callerNp)
-          newSt = callerSt.define(call.lhs, newRetV.killMutable(using callerNp))
+          newSt = callerSt.define(call.lhs, newRetV)
         } analyzer += nextNp -> newSt
       }
       // get locals
@@ -477,7 +478,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case inst @ IReturn(expr) =>
         for {
           v <- transfer(expr)
-          _ <- doReturn(inst, v)
+          st <- get
+          _ <- doReturn(inst, st, v)
           _ <- put(AbsState.Bot)
         } yield ()
       case IAssert(expr: EYet) =>
@@ -518,10 +520,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** update return points */
     def doReturn(
       irReturn: Return,
+      givenSt: AbsState,
       v: AbsValue,
     )(using np: NodePoint[Node]): Unit =
       val NodePoint(func, node, view) = np
-      val givenSt = getResult(np)
       val irp = InternalReturnPoint(func, node, irReturn)
       val entryView = getEntryView(view)
       val entryNp = NodePoint(func, func.entry, entryView)
@@ -1205,8 +1207,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- get(_.get(x))
         } yield {
-          if (!forArg || v.isSymbolic) v
-          else AbsValue(SymTy.SVar(x), v.guard)
+          if (v.isSymbolic) v
+          else AbsValue(SVar(x), v.guard)
         }
       case field @ Field(base, expr) =>
         for {
@@ -1629,7 +1631,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           st.copy(symEnv = st.symEnv + (sym -> refinedTy))
       case x: Local =>
         for {
-          v <- transfer(x)
+          v <- get(_.get(x))
           given AbsState <- get
           refinedV = if (v.ty <= ty.toValue) v else v ⊓ AbsValue(ty)
           _ <- modify(_.update(x, refinedV, refine = true))

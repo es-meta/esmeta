@@ -254,7 +254,10 @@ trait AbsStateDecl { self: TyChecker =>
     def update(x: Var, value: AbsValue, refine: Boolean): AbsState = x match
       case x: Local =>
         val newSt = if (refine) this else this.kill(Set(x), update = true)
-        val newV = if (refine) value else value.kill(Set(x), update = true)
+        val newV =
+          if (!refine) value.kill(Set(x), update = true)
+          else if (value.hasLocalBase(x)) value.kill(Set(x), update = false)
+          else value
         newSt.copy(locals = newSt.locals + (x -> newV), constr = newSt.constr)
       case x: Global => this
 

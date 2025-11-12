@@ -82,6 +82,9 @@ trait AbsValueDecl { self: TyChecker =>
     def lift(using st: AbsState): AbsValue =
       AbsValue(symty, guard.lift(this.ty))
 
+    /** check whether it has a local variable as a base */
+    def hasLocalBase(x: Local): Boolean = bases.exists(_ == x)
+
     /** check whether it has a type guard */
     def hasTypeGuard(entrySt: AbsState): Boolean =
       import SymTy.*, SymExpr.*
