@@ -65,8 +65,13 @@ trait AbsStateDecl { self: TyChecker =>
             (this.kill(lxs, update = false), that.kill(rxs, update = false))
           else (this, that)
         val newLocals = (for {
-          x <- (l.locals.keySet ++ r.locals.keySet).toList
-          v = AbsValue.joinHelper(l.get(x), l, r.get(x), r)
+          x <- (this.locals.keySet ++ that.locals.keySet).toList
+          v = {
+            val lv = this.get(x)
+            val rv = that.get(x)
+            if (lv == rv) lv
+            else AbsValue.joinHelper(l.get(x), l, r.get(x), r)
+          }
         } yield x -> v).toMap
         val newSymEnv = (for {
           sym <- (l.symEnv.keySet ++ r.symEnv.keySet).toList

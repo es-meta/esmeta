@@ -8,7 +8,6 @@
   "FinishLoadingImportedModule",
   "FunctionBody[0,0].EvaluateFunctionBody",
   "GetViewByteLength",
-  "INTRINSICS.Atomics.compareExchange",
   "Record[SourceTextModuleRecord].ExecuteModule",
   "Record[SourceTextModuleRecord].GetExportedNames",
   "Record[SourceTextModuleRecord].InitializeEnvironment",
