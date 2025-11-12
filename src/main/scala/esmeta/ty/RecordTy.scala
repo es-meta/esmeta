@@ -183,7 +183,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
 
   lazy val Bot: RecordTy = Elem(Map.empty)
 
-  lazy val maxFieldDepth: Int = 2
+  lazy val maxFieldDepth: Int = 3
 
   def apply(names: String*): RecordTy =
     apply(names.toSet)
