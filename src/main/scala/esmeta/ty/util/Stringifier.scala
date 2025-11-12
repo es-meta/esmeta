@@ -368,10 +368,10 @@ class Stringifier(
         app >> field >> " in " >> func.name >> field.langOpt
       case UnaryOpPoint(func, node, unary) =>
         app >> "unary operation (" >> unary.uop >> ") in " >> func.name
-        app >> unary
+        app >> unary.langOpt
       case BinaryOpPoint(func, node, binary) =>
         app >> "binary operation (" >> binary.bop >> ") in " >> func.name
-        app >> binary
+        app >> binary.langOpt
 
   // appender rule for TypeErrorCollector
   def collectorRule(
