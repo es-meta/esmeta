@@ -183,6 +183,36 @@ class TracedInterpreter(
         throw NotSupported(
           "Turn off 'eval' for now, cause that makes too many issues.",
         )
+      case 10151 =>
+        /*
+        @jalangi-hook: read
+        1358: def <SYNTAX>:UnaryExpression[3,0].Evaluation(this: Ast[UnaryExpression[3]]): Unknown {
+          10142: sdo-call %0 = this[0]->Evaluation() -> 10143
+          10143: assert (? %0: Completion) -> 10144
+          10144: if (? %0: Abrupt) then 10145 else 10146
+          10145: return %0
+          10146: %0 = %0.Value -> 10147
+          10147: let val = %0 -> 10148
+          10148: if (? val: Record[ReferenceRecord]) then 10149 else 10153
+          10149: call %1 = clo<"IsUnresolvableReference">(val) -> 10150
+          10150: if (= %1 true) then 10151 else 10153
+          10151: call %2 = clo<"NormalCompletion">("undefined") -> 10152
+         */
+        {
+          st.context.locals.get(Name("val")) match {
+            case None =>
+            case Some(v) =>
+              if (v.isAddr) {
+                st(v.asAddr).get(Str("ReferencedName")) match
+                  case Some(value)
+                      if !JALANGI_READ_EXCLUDE_VARIABLES.contains(
+                        value.asStr,
+                      ) =>
+                    analysis.read(value.asStr)
+                  case _ =>
+              }
+          }
+        }
       case _ =>
     super.eval(node)
   }

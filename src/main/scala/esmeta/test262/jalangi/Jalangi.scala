@@ -80,7 +80,7 @@ class Jalangi(
         msg = "Jalangi Test262 Test",
         targets = targetTests,
         notSupported = removed,
-        concurrent = CP.Fixed(16),
+        concurrent = CP.Fixed(8),
         showProgressBar = true,
       ) {
 
