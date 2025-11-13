@@ -13,8 +13,10 @@ import esmeta.state.ExitCursor
 import esmeta.state.Value
 
 import esmeta.ir.Name
-import esmeta.ty.CompT
+import esmeta.ty.*
 import esmeta.state.*
+import esmeta.es.builtin.INTRINSICS
+import esmeta.error.NotSupported
 
 class TracedInterpreter(
   st: State,
@@ -136,9 +138,32 @@ class TracedInterpreter(
           1913: if (! (exists newTarget)) then 1914 else 1915
        */
       // analysis.invokeFunPre(s"???Construct ${st.context.locals(Name("F"))}")
+      case 18399 =>
+        /*
+      2077: def <BUILTIN>:INTRINSICS.Object.defineProperty(this: ESValue, ArgumentsList: List[ESValue], NewTarget: Record[Constructor] | Undefined): Unknown {
+        18399: let __args__ = (record)[#823] -> 18400
+         */
+        {
+          st.context.locals.get(Name("this")) match {
+            case Some(v) =>
+              val isSubTy = BuiltinFunctionObjectT.contains(v, st)
+              if (isSubTy) {
+                throw NotSupported(
+                  "Jalangi Traced Interpreter does not support " +
+                  "Object.defineProperty on BuiltinFunctionObject",
+                )
+              }
+
+            case _ =>
+          }
+        }
+
       case _ =>
     super.eval(node)
   }
+
+  lazy val BuiltinFunctionObjectT =
+    ValueTy(record = RecordTy("BuiltinFunctionObject"))
 
   extension (v: Value) {
     def isComp: Boolean = {

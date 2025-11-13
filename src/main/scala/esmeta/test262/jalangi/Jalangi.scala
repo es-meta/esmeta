@@ -6,12 +6,42 @@ import esmeta.util.{ConcurrentPolicy as CP}
 import esmeta.util.SystemUtils.*
 import java.io.PrintStream
 import esmeta.error.NotSupported
+import esmeta.es.*
 import scala.concurrent.TimeoutException
 import scala.concurrent.duration.*
 import esmeta.util.BaseUtils.getMessage
 import esmeta.LOG_DIR
 
 object Jalangi {
+
+  def runInterpreter(
+    code: String,
+    ast: Ast,
+    timeLimit: Option[Int],
+  )(using test262: Test262): String = {
+    // printlnIfSingle(s"Jalangi output:\n${str}")
+
+    val byteStream = new java.io.ByteArrayOutputStream()
+    val outputStream = new java.io.PrintStream(byteStream)
+
+    // printlnIfSingle("Running Traced Interpreter...")
+
+    Console.withOut(outputStream) {
+      TracedInterpreter(
+        test262.cfg.init.from(code, ast),
+        timeLimit = timeLimit,
+        analysis = new JalangiAnalysis(),
+      ).result
+    }
+
+    // printlnIfSingle("Finished Traced Interpreter.")
+
+    val output = { outputStream.close(); byteStream.toString() }
+
+    // printlnIfSingle(s"Traced Interpreter output:\n${output}")
+
+    output
+  }
 
   def test(
     paths: Option[List[String]],
@@ -29,12 +59,19 @@ object Jalangi {
 
     mkdir("/tmp/esmeta-jalangi/")
 
-    def isES5(filename: String): Boolean = {
-      val (exitcode, str) = executeCmdNonZero(
-        s"acorn --ecma5 $filename",
+    executeCmdNonZero(
+      s"npm run build",
+      dir = CHECK_SCRIPT_DIR,
+    ) match
+      case (a, b, c) =>
+        printlnIfSingle(s"Checkscript build output[${a}]:\n${b}\n${c}")
+
+    def isES5(filename: String): (Boolean, String, String) = {
+      val (exitcode, str, err) = executeCmdNonZero(
+        s"$CHECK_SCRIPT_COMMAND $filename",
       )
-      printlnIfSingle(s"ESLint output:\n${str.slice(0, 20)}...")
-      exitcode == 0
+      // printlnIfSingle(s"ESLint output:\n${str.slice(0, 20)}...")
+      (exitcode == 0, str, err)
     }
 
     val runner = {
@@ -57,17 +94,20 @@ object Jalangi {
 
           val jalangiCmd =
             s"""$JALANGI_COMMAND
-           | --inlineIID
-           | --inlineSource
-           | --analysis $ANALYSIS_FILE_PATH
-           | $tmpFilePath
-           |""".stripMargin.replaceAll("\n", " ")
+            | --inlineIID
+            | --inlineSource
+            | --analysis $ANALYSIS_FILE_PATH
+            | $tmpFilePath
+            |""".stripMargin.replaceAll("\n", " ")
 
           printlnIfSingle(s"Running Jalangi ${jalangiCmd}")
 
-          if (!isES5(tmpFilePath)) {
-            throw NotSupported("not es5")
-          }
+          isES5(tmpFilePath) match
+            case (false, str, err) => throw NotSupported(err)
+            case _                 => ()
+
+          // run Traced Interpreter first, so not supported features can be caught
+          val output = runInterpreter(code, ast, timeLimit)
 
           val (str, err) =
             try {
@@ -91,26 +131,6 @@ object Jalangi {
                 )
                 throw e;
             }
-          // printlnIfSingle(s"Jalangi output:\n${str}")
-
-          val byteStream = new java.io.ByteArrayOutputStream()
-          val outputStream = new java.io.PrintStream(byteStream)
-
-          // printlnIfSingle("Running Traced Interpreter...")
-
-          Console.withOut(outputStream) {
-            TracedInterpreter(
-              test262.cfg.init.from(code, ast),
-              timeLimit = timeLimit,
-              analysis = new JalangiAnalysis(),
-            ).result
-          }
-
-          // printlnIfSingle("Finished Traced Interpreter.")
-
-          val output = { outputStream.close(); byteStream.toString() }
-
-          // printlnIfSingle(s"Traced Interpreter output:\n${output}")
 
           printlnIfSingle("===================== Diff ====================")
           printlnIfSingle(Diff.get(str, output))
@@ -187,12 +207,26 @@ object Jalangi {
     )
     s"node ${home}/src/js/commands/jalangi.js"
   }
+  val CHECK_SCRIPT_DIR: String = {
+    val home = sys.env.getOrElse(
+      "ESMETA_HOME",
+      throw new RuntimeException("ESMETA_HOME not set"),
+    )
+    s"${home}/checkscript"
+  }
+  val CHECK_SCRIPT_COMMAND: String = {
+    val home = sys.env.getOrElse(
+      "ESMETA_HOME",
+      throw new RuntimeException("ESMETA_HOME not set"),
+    )
+    s"node ${home}/checkscript/dist/check.js"
+  }
   val ANALYSIS_FILE_PATH: String = {
     val home = sys.env.getOrElse(
       "ESMETA_HOME",
       throw new RuntimeException("ESMETA_HOME not set"),
     )
-    val path = java.nio.file.Paths.get(home, "analysis.js")
+    val path = java.nio.file.Paths.get(home, "analysis.compare.js")
     if (!java.nio.file.Files.exists(path))
       throw new java.io.FileNotFoundException(s"${path} not found")
     path.toString

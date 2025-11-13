@@ -1,4 +1,4 @@
-(function(){
+(function () {
     J$.analysis = {
 
      /**
@@ -14,7 +14,7 @@
        */
         read: function (iid, name, val, isGlobal, isScriptLocal) {
         if (name === 'eval')  { return {result: val}; }
-        console.log('read:', name);
+        console.log('read:', name, iid);
         return {result: val};
     },
 
@@ -37,6 +37,12 @@
         // const offSetStr = (typeof offset === 'string' || typeof offset === 'symbol') ? offset : (console.log("WTF"), offset.toString());
         // console.log('getField:', offSetStr, typeof offset, iid);
         return {result: val};
+        },
+
+        putField: function (iid, base, offset, val, isComputed, isOpAssign) {
+            // const offSetStr = (typeof offset === 'string' || typeof offset === 'symbol') ? offset : (console.log("WTF"), offset.toString());
+            // console.log('putField:', offSetStr, typeof offset, iid);
+            return {result: val};
         },
     
     /**

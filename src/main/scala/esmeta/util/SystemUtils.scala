@@ -299,12 +299,19 @@ object SystemUtils {
   }
 
   /** execute shell command with given dir, default to CUR_DIR */
-  def executeCmdNonZero(cmd: String, dir: String = CUR_DIR): (Int, String) =
+  def executeCmdNonZero(
+    cmd: String,
+    dir: String = CUR_DIR,
+  ): (Int, String, String) =
     var directory = File(dir)
     var process = Process(Seq("sh", "-c", cmd), directory)
-    val sb = new StringBuilder
-    val code = process ! ProcessLogger(s => sb.append(s).append("\n"), s => ())
-    (code, sb.toString())
+    val out = new StringBuilder
+    val err = new StringBuilder
+    val code = process ! ProcessLogger(
+      s => out.append(s).append("\n"),
+      s => err.append(s).append("\n"),
+    )
+    (code, out.toString(), err.toString())
 
   /** set timeout with optional limitation */
   def timeout[T](f: => T, limit: Option[Int]): T =
