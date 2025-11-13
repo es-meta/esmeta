@@ -82,14 +82,22 @@ class CaseCollector extends UnitWalker {
       case AssertStep(cond) =>
         s"assert: {{ cond }}."
       case IfStep(cond, thenStep, elseStep, config) =>
-        val IfStep.ElseConfig(newLine, keyword, comma) = config
-
-        val e = thenStep.endingChar
-        val k = if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
-        val n = if (newLine) "<NEWLINE> " else ""
-        val c = if (comma) "," else ""
-
-        s"if {{ cond }}, {{ step }}$e $n$k$c {{ step }}."
+        def stepStr(step: Step): String = step match {
+          case BlockStep(_)       => "then <NL> {{ block }}"
+          case IfStep(_, _, _, _) => "{{ elif }}"
+          case YetStep(_)         => "{{ step }}."
+          case _                  => "{{ step }}"
+        }
+        val thenStr = stepStr(thenStep) + thenStep.endingChar
+        val elseStr = elseStep.fold("") { elseStep =>
+          val IfStep.ElseConfig(newLine, keyword, comma) = config
+          val n = if (newLine) " <NL>" else ""
+          val k =
+            if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
+          val c = if (comma) "," else ""
+          n + " " + k + c + " " + stepStr(elseStep) + elseStep.endingChar
+        }
+        "if {{ cond }}, " + thenStr + elseStr
       case RepeatStep(cond, body) =>
         import RepeatStep.LoopCondition.*
         cond match
@@ -225,7 +233,7 @@ class CaseCollector extends UnitWalker {
           case ToBigInt       => "BigInt"
           case ToMath         => "Math"
           case ToApproxNumber => "implementation-approximated Number"
-          case ToCodeUnit     => "code unit whose numeric value is"
+          case ToCodeUnit     => "code unit whose numeric"
         s"$a $opStr value $pre {{expr}}"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"

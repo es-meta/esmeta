@@ -119,12 +119,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond
       case IfStep(cond, thenStep, elseStep, config) =>
-        val IfStep.ElseConfig(newLine, keyword, comma) = config
-        val k = if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
         app >> thenStep
         elseStep.fold(app) { step =>
+          val IfStep.ElseConfig(newLine, keyword, comma) = config
+          val k =
+            if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
           if (newLine)
             step match
               case _: IfStep    => app :> "1. " >> k >> " " >> step
@@ -513,7 +514,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case ToNumber       => if (text) "Number" else "𝔽"
         case ToBigInt       => if (text) "BigInt" else "ℤ"
         case ToMath         => if (text) "numeric" else "ℝ"
-        case ToCodeUnit     => "code unit whose numeric value"
+        case ToCodeUnit     => "code unit whose numeric"
       })
 
   // operators for binary expressions
