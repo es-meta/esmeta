@@ -76,6 +76,8 @@ case class TestFilter(spec: Spec) {
     ),
     // Tests in staging do not count towards the test262 coverage requirement for ...
     Staging -> ((test: Test) => test.relName.startsWith("staging/")),
+    // filter out for jalangi testing,
+    OnlyStrict -> ((test: Test) => test.flags.contains("onlyStrict")),
     // manually filtered tests categorized based on failure reasons
     test => manualFilterMap.get(removedExt(test.relName)),
   )

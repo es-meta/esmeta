@@ -28,4 +28,5 @@ object NotSupported:
     case Wrong extends Category("wrong")
     case Staging extends Category("staging")
     case YetCategorized extends Category("yet-categorized")
+    case OnlyStrict extends Category("only-strict")
   }
