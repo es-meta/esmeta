@@ -138,26 +138,51 @@ class TracedInterpreter(
           1913: if (! (exists newTarget)) then 1914 else 1915
        */
       // analysis.invokeFunPre(s"???Construct ${st.context.locals(Name("F"))}")
-      case 18399 =>
+      case 18403 | 18340 =>
         /*
-      2077: def <BUILTIN>:INTRINSICS.Object.defineProperty(this: ESValue, ArgumentsList: List[ESValue], NewTarget: Record[Constructor] | Undefined): Unknown {
-        18399: let __args__ = (record)[#823] -> 18400
+        2077: def <BUILTIN>:INTRINSICS.Object.defineProperty(this: ESValue, ArgumentsList: List[ESValue], NewTarget: Record[Constructor] | Undefined): Unknown {
+          18399: let __args__ = (record)[#823] -> 18400
+          18400: if (< 0 (sizeof ArgumentsList)) then 18401 else 18402
+          18401: {
+            pop O < ArgumentsList
+            expand __args__.O
+          } -> 18403
+          18402: let O = undefined -> 18403
+          18403: if (< 0 (sizeof ArgumentsList)) then 18404 else 18405
+         */
+        /*
+          2075: def <BUILTIN>:INTRINSICS.Object.defineProperties(this: ESValue, ArgumentsList: List[ESValue], NewTarget: Record[Constructor] | Undefined): Unknown {
+            18336: let __args__ = (record)[#820] -> 18337
+            18337: if (< 0 (sizeof ArgumentsList)) then 18338 else 18339
+            18338: {
+              pop O < ArgumentsList
+              expand __args__.O
+            } -> 18340
+            18339: let O = undefined -> 18340
+            18340: if (< 0 (sizeof ArgumentsList)) then 18341 else 18342
          */
         {
-          st.context.locals.get(Name("this")) match {
+          st.context.locals.get(Name("O")) match {
             case Some(v) =>
-              val isSubTy = BuiltinFunctionObjectT.contains(v, st)
-              if (isSubTy) {
+              val isIntrinsics = v match
+                case NamedAddr(name) => name.startsWith("INTRINSICS")
+                case _               => false
+              if (isIntrinsics) {
                 throw NotSupported(
-                  "Jalangi Traced Interpreter does not support " +
-                  "Object.defineProperty on BuiltinFunctionObject",
+                  "Jalangi Traced Interpreter does not support Object.defineProperty on BuiltinFunctionObject",
                 )
               }
-
             case _ =>
           }
         }
-
+      case 17757 =>
+        /*
+        2059: def PerformEval(x: ESValue, strictCaller: Boolean, direct: Boolean): Normal[ESValue] | Throw {
+          17757: assert (yet "If _direct_ is *false*, then _strictCaller_ is also *false*") -> 17758
+         */
+        throw NotSupported(
+          "Turn off 'eval' for now, cause that makes too many issues.",
+        )
       case _ =>
     super.eval(node)
   }
