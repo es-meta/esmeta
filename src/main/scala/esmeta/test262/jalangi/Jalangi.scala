@@ -12,7 +12,14 @@ import scala.concurrent.duration.*
 import esmeta.util.BaseUtils.getMessage
 import esmeta.LOG_DIR
 
-object Jalangi {
+class Jalangi(
+  paths: Option[List[String]],
+  log: Boolean = true,
+  timeLimit: Option[Int] = None,
+  noCompare: Boolean = false,
+)(using
+  test262: Test262,
+) {
 
   def runInterpreter(
     code: String,
@@ -43,13 +50,7 @@ object Jalangi {
     output
   }
 
-  def test(
-    paths: Option[List[String]],
-    log: Boolean = true,
-    timeLimit: Option[Int] = None,
-  )(using
-    test262: Test262,
-  ): Summary = {
+  def test: Summary = {
 
     // pre-jobs
     val tests: List[Test] = test262.getTests(paths, features = None)
@@ -226,7 +227,10 @@ object Jalangi {
       "ESMETA_HOME",
       throw new RuntimeException("ESMETA_HOME not set"),
     )
-    val path = java.nio.file.Paths.get(home, "analysis.compare.js")
+    val path = java.nio.file.Paths.get(
+      home,
+      if noCompare then "analysis.detail.js" else "analysis.compare.js",
+    )
     if (!java.nio.file.Files.exists(path))
       throw new java.io.FileNotFoundException(s"${path} not found")
     path.toString

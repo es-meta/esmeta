@@ -44,7 +44,10 @@ case object JalangiTest extends Phase[CFG, Unit] {
       )
 
     // run test262 eval test
-    val summary = Jalangi.test(targets, timeLimit = Some(60000))(using test262)
+    val summary =
+      Jalangi(targets, timeLimit = Some(60000), noCompare = config.noCompare)(
+        using test262,
+      ).test
 
     println(summary)
 
@@ -95,6 +98,11 @@ case object JalangiTest extends Phase[CFG, Unit] {
       "set the number of thread to use concurrently (default: no concurrent)." +
       " If number <= 0, use automatically determined number of threads.",
     ),
+    (
+      "no-compare",
+      BoolOption(_.noCompare = _),
+      "do not compare results with expected results.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -104,5 +112,6 @@ case object JalangiTest extends Phase[CFG, Unit] {
     var log: Boolean = false,
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
+    var noCompare: Boolean = false,
   )
 }
