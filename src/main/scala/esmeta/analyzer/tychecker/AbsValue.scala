@@ -54,14 +54,14 @@ trait AbsValueDecl { self: TyChecker =>
       this.copy(guard = (this.guard && guard).filter(this.ty))
 
     /** kill bases */
-    def kill(bases: Set[SymBase], update: Boolean)(using AbsState): AbsValue =
+    def kill(bases: Set[Base], update: Boolean)(using AbsState): AbsValue =
       val ty = this.symty.bases.exists(bases.contains) match
         case true  => STy(this.ty)
         case false => this.symty
       val guard = if (update) this.guard.kill(bases) else this.guard
       AbsValue(ty, guard)
 
-    /** normalize abstract values for return */
+    /** remove non-parameter local variables */
     def forReturn(
       givenSt: AbsState,
       func: Func,
@@ -70,40 +70,35 @@ trait AbsValueDecl { self: TyChecker =>
       given AbsState = givenSt
       if (isTypeGuardCandidate(func)) {
         val xs = givenSt.getImprecBases(entrySt)
-        this.forReturn(entrySt).kill(xs, update = false)
+        this.kill(xs, update = false)
       } else AbsValue(this.ty)
 
-    /** normalize abstract values for return */
-    def forReturn(entrySt: AbsState): AbsValue =
-      copy(guard = guard.forReturn(entrySt.symEnv))
-
     /** get symbols */
-    def bases: Set[SymBase] =
+    def bases: Set[Base] =
       val inSymty = symty.bases
       val inGuard = guard.bases
       inSymty ++ inGuard
 
-    /** get symbolic expression when it only has a symbolic expression */
-    // TODO: Erase this
-    // def getSymExpr: Option[SymExpr] = expr match
-    //   case One(expr) if lowerTy.isBottom => Some(expr)
-    //   case _                             => None
+    def lift(using st: AbsState): AbsValue =
+      AbsValue(symty, guard.lift(this.ty))
 
-    /** introduce a new type guard */
-    def getTypeGuard(using st: AbsState): TypeGuard = TypeGuard((for {
-      kind <- RefinementKind.from(this.ty).toList
-      pred = st.pred
-      if pred.nonTop
-    } yield kind -> pred).toMap)
+    /** check whether it has a local variable as a base */
+    def hasLocalBase(x: Local): Boolean = bases.exists(_ == x)
 
     /** check whether it has a type guard */
     def hasTypeGuard(entrySt: AbsState): Boolean =
-      guard.map.exists { (kind, pred) =>
-        pred.map.exists {
-          case (x: Sym, (ty, _)) => !(entrySt.getTy(x) <= ty)
+      import SymTy.*, SymExpr.*
+      guard.map.exists { (kind, constr) =>
+        constr.map.exists {
+          case (x: Sym, (ty, _)) => !(entrySt.getTy(SERef(SSym(x))) <= ty)
           case _                 => false
         }
       }
+
+    def killMutable(using np: NodePoint[_], st: AbsState) =
+      this.copy(guard = this.guard.kill(np.func.mutableLocals))
+
+    def isSymbolic: Boolean = symty.isSymbolic
 
     /** get lexical result */
     def getLexical(method: String)(using AbsState): AbsValue = {
@@ -474,8 +469,8 @@ trait AbsValueDecl { self: TyChecker =>
     given rule: Rule[AbsValue] = (app, elem) =>
       val irStringifier = IRElem.getStringifier(true, false)
       import irStringifier.given
-      given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
       given Ordering[Local] = Ordering.by(_.toString)
+      given Rule[Map[Local, ValueTy]] = sortedMapRule("[", "]", " <: ")
       val AbsValue(symty, guard) = elem
       app >> symty
       if (guard.nonEmpty) app >> " " >> guard

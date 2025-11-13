@@ -5,14 +5,8 @@
   "CompareTypedArrayElements",
   "DoWait",
   "EvaluateImportCall",
-  "FinishLoadingImportedModule",
   "FunctionBody[0,0].EvaluateFunctionBody",
   "GetViewByteLength",
-  "INTRINSICS.Atomics.compareExchange",
-  "INTRINSICS.Atomics.notify",
   "Record[SourceTextModuleRecord].ExecuteModule",
-  "Record[SourceTextModuleRecord].GetExportedNames",
-  "Record[SourceTextModuleRecord].InitializeEnvironment",
-  "Record[SourceTextModuleRecord].ResolveExport",
   "TypedArrayLength"
 ]

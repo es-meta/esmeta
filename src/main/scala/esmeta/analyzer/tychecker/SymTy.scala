@@ -12,39 +12,72 @@ import esmeta.util.BaseUtils.*
 trait SymTyDecl { self: TyChecker =>
   import tyStringifier.given
 
+  import SymTy.*
+
+  type Sym = Int
+  type Base = Sym | Local
+  type SymBase = SSym | SVar
+  type SymRef = SSym | SVar | SField
+
   enum SymTy {
     case STy(ty: ValueTy)
-    case SRef(ref: SymRef)
+    case SVar(x: Local)
+    case SSym(sym: Sym)
+    case SField(base: SymRef, field: SymTy)
     case SNormal(symty: SymTy)
 
     def isBottom: Boolean = this match
       case STy(ty)        => ty.isBottom
-      case SRef(ref)      => false
       case SNormal(symty) => symty.isBottom
+      case _              => false
 
     def isSingle(using st: AbsState): Boolean = this.ty.getSingle match
       case One(_) => true
       case _      => false
 
+    /* Evaluation of the Symbolic type */
     def ty(using st: AbsState): ValueTy = this match
-      case STy(ty)        => ty
-      case SRef(ref)      => st.getTy(ref)
-      case SNormal(symty) => NormalT(symty.ty)
+      case STy(ty)             => ty
+      case SVar(x)             => st.get(x).ty
+      case SSym(sym)           => st.get(sym)
+      case SField(base, field) => st.get(base.ty, field.ty)
+      case SNormal(symty)      => NormalT(symty.ty)
 
-    def has(base: SymBase): Boolean = this match
+    def has(base: Base): Boolean = this match
       case STy(ty)        => false
-      case SRef(ref)      => ref.has(base)
+      case SVar(x)        => base == SVar(x)
+      case SSym(sym)      => base == SSym(sym)
+      case SField(b, f)   => b.has(base) || f.has(base)
       case SNormal(symty) => symty.has(base)
 
-    def bases: Set[SymBase] = this match
-      case STy(ty)        => Set()
-      case SRef(ref)      => ref.bases
-      case SNormal(symty) => symty.bases
+    def bases: Set[Base] = this match
+      case STy(ty)             => Set()
+      case SVar(x)             => Set(x)
+      case SSym(sym)           => Set(sym)
+      case SField(base, field) => base.bases ++ field.bases
+      case SNormal(symty)      => symty.bases
 
-    def kill(bases: Set[SymBase]): Option[SymTy] = this match
-      case STy(ty)        => Some(this)
-      case SRef(ref)      => ref.kill(bases).map(SRef(_))
-      case SNormal(symty) => symty.kill(bases).map(SNormal(_))
+    def kill(bases: Set[Base], update: Boolean): Option[SymTy] = this match
+      case t: SymRef      => killRef(t, bases, update)
+      case STy(ty)        => Some(STy(ty))
+      case SNormal(symty) => symty.kill(bases, update).map(SNormal(_))
+
+    def killRef(
+      ref: SymRef,
+      bases: Set[Base],
+      update: Boolean,
+    ): Option[SymRef] = ref match
+      case SVar(x)   => if (bases contains x) None else Some(SVar(x))
+      case SSym(sym) => if (bases contains sym) None else Some(SSym(sym))
+      case SField(b, f) =>
+        for {
+          b <- killRef(b, bases, update)
+          f <- f.kill(bases, update)
+        } yield SField(b, f)
+
+    def isSymbolic: Boolean = this match
+      case STy(_) => false
+      case _      => true
 
     /** partial order in same state */
     def ⊑(that: SymTy)(using st: AbsState): Boolean =
@@ -97,14 +130,32 @@ trait SymTyDecl { self: TyChecker =>
   }
   object SymTy extends DomainLike[SymTy] {
     override def Top: SymTy = STy(ValueTy.Top)
-
     override def Bot: SymTy = STy(ValueTy.Bot)
 
     given rule: Rule[SymTy] = (app, elem) =>
       elem match {
-        case STy(ty)        => app >> ty
-        case SRef(ref)      => app >> ref
-        case SNormal(symty) => app >> "Normal[" >> symty >> "]"
+        case STy(ty)   => app >> ty
+        case SVar(x)   => app >> x.toString
+        case SSym(sym) => app >> "#" >> sym.toString
+        case SField(base, STy(x)) if x.isBottom =>
+          x.getSingle match
+            case One(f: String) => app >> base >> "." >> f
+            case _              => app >> base >> "[" >> x >> "]"
+        case SField(base, field) => app >> base >> "[" >> field >> "]"
+        case SNormal(symty)      => app >> "Normal[" >> symty >> "]"
       }
+    given Ordering[SymTy] = Ordering.by(_.toString)
+
+    given Rule[Base] = (app, elem) =>
+      elem match
+        case x: Local => app >> x.toString
+        case x: Sym   => app >> "#" >> x.toString
+    given Ordering[Base] = Ordering.by(_.toString)
+  }
+
+  extension (sb: SymBase) {
+    def toBase: Base = sb match
+      case SVar(x) => x
+      case SSym(s) => s
   }
 }

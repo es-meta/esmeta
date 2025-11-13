@@ -16,6 +16,10 @@ class TyChecker(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
   val inferTypeGuard: Boolean = true,
+  val useBooleanGuard: Boolean = false,
+  val useProvenance: Boolean = false,
+  val useSyntacticKill: Boolean = false,
+  val noRefine: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
@@ -102,6 +106,8 @@ class TyChecker(
           "options" -> Map(
             "typeSens" -> typeSens,
             "inferTypeGuard" -> inferTypeGuard,
+            "useProvenance" -> useProvenance,
+            "useSyntacticKill" -> useSyntacticKill,
           ),
           "duration" -> f"${time}%,d ms",
           "error" -> errors.size,
@@ -118,8 +124,15 @@ class TyChecker(
             "locals" -> refinedLocals,
             "avg. depth" -> refinedAvgDepth,
           )
+        if (detail && useProvenance)
+          info :+= "provenance" -> Map(
+            "size" -> provCnt,
+            "avg. size" -> provAvgSize,
+            "avg. depth" -> provAvgDepth,
+            "avg. leaf" -> provAvgLeaf,
+          )
         if (inferTypeGuard) info :+= "guards" -> typeGuards.size
-        Yaml(info: _*)
+        Yaml(info*)
       },
       filename = s"$ANALYZE_LOG_DIR/summary.yml",
       silent = silent,
@@ -161,6 +174,11 @@ class TyChecker(
         if (detail) refinedLocals else 0, // refined locals
         if (detail) refinedAvgDepth else 0, // refined avg. depth
         if (inferTypeGuard) typeGuards.size else 0, // guards
+        if (detail && useProvenance) provCnt else 0, // provenance
+        if (detail && useProvenance) provAvgSize else 0, // provenance avg. size
+        if (detail && useProvenance) provAvgDepth
+        else 0, // provenance avg. depth
+        if (detail && useProvenance) provAvgLeaf else 0, // provenance avg. leaf
       ).mkString("\t"),
       filename = s"$ANALYZE_LOG_DIR/summary",
       silent = silent,
@@ -188,11 +206,11 @@ class TyChecker(
           .groupBy(cfg.funcOf)
           .toList
           .sortBy(_._1)
-          .map {
-            case (f, ns) =>
-              f.nameWithId +
-              ns.sorted.map(LINE_SEP + "  " + _.name).mkString
-          }
+          .map(f =>
+            f._1.nameWithId + f._2.sorted
+              .map(n => s"$LINE_SEP  ${n.name}")
+              .mkString,
+          )
           .mkString(LINE_SEP),
         filename = s"$unreachableDir/nodes",
         silent = silent,
@@ -221,8 +239,7 @@ class TyChecker(
         filename = s"$ANALYZE_LOG_DIR/refined",
         silent = silent,
       )
-      if (inferTypeGuard)
-        val names = typeGuards.map(_._1.name).toSet
+      if (inferTypeGuard) {
         dumpFile(
           name = "type guard information",
           data = typeGuards
@@ -232,6 +249,75 @@ class TyChecker(
           filename = s"$ANALYZE_LOG_DIR/guards",
           silent = silent,
         )
+        if (useProvenance) {
+          dumpFile(
+            name = "provenance information",
+            data = provString,
+            filename = s"$ANALYZE_LOG_DIR/provenance-logs",
+            silent = silent,
+          )
+          // additionally, dump provenance logs split by function
+          val provDir = s"$ANALYZE_LOG_DIR/provenances"
+          mkdir(provDir)
+          // group provenances by function name (without ID)
+          val grouped = provenances.toList.groupBy {
+            case ((target, _, _), _) => target.func.name
+          }
+          // stringify helper matching provString format
+          def stringify(
+            m: Map[(RefinementTarget, Base, ValueTy), Provenance],
+          ): String =
+            given Rule[Map[(RefinementTarget, Base, ValueTy), Provenance]] =
+              (app, refined) =>
+                val sorted = refined.toList.sortBy { (t, _) =>
+                  (t._1.node.id, t._3.toString())
+                }
+                // Print only the provenance blocks, omitting the header line
+                for (((_, _, _), prov) <- sorted)
+                  app >> prov
+                  app >> LINE_SEP
+                app
+            (new Appender >> m).toString
+          for ((fname, entries) <- grouped) {
+            val data = stringify(entries.toMap)
+            dumpFile(
+              name = s"provenance information for $fname",
+              data = data,
+              filename = s"$provDir/$fname",
+              silent = true,
+            )
+          }
+
+          dumpFile(
+            name = "provenance graph",
+            data = sizeAndDepth,
+            filename = s"$ANALYZE_LOG_DIR/provenance-size-depth",
+            silent = silent,
+          )
+          dumpFile(
+            name = "provenance graph",
+            data = depthAndLeaf,
+            filename = s"$ANALYZE_LOG_DIR/provenance-depth-leaf",
+            silent = silent,
+          )
+          dumpFile(
+            name = "provenance graph",
+            data = sizeAndLeaf,
+            filename = s"$ANALYZE_LOG_DIR/provenance-size-leaf",
+            silent = silent,
+          )
+        }
+        if (useSyntacticKill) {
+          dumpFile(
+            name = "mutated locals",
+            data = cfg.funcs
+              .map(f => f.nameWithId -> f.mutableLocals.mkString(", "))
+              .mkString(LINE_SEP),
+            filename = s"$ANALYZE_LOG_DIR/mutated",
+            silent = silent,
+          )
+        }
+      }
   }
 
   /** refined targets */
@@ -252,22 +338,59 @@ class TyChecker(
         app
     (new Appender >> refined).toString
 
+  /** provenance information */
+  var provenances: Map[(RefinementTarget, Base, ValueTy), Provenance] = Map()
+  def provCnt = provenances.size
+  def provAvgSize = provenances.values.map(_.size).sum.toDouble / provCnt
+  def provAvgDepth = provenances.values.map(_.depth).sum.toDouble / provCnt
+  def provAvgLeaf = provenances.values.map(_.leafCnt).sum.toDouble / provCnt
+  def provString: String =
+    // Pretty print each provenance entry as a self-contained block
+    val app = new Appender
+    val entries = provenances.toList.sortBy {
+      case ((t, _, ty), _) =>
+        (t.func, t.node.id, ty.toString())
+    }
+    for (((_, _, _), prov) <- entries) {
+      app >> prov
+      app >> LINE_SEP
+    }
+    app.toString
+  def provList = provenances.values.toList
+  def sizeAndDepth = provList
+    .map(p => (p.size, p.depth))
+    .groupMapReduce(identity)(_ => 1)(_ + _)
+    .map { case ((size, depth), cnt) => s"$size,$depth,$cnt" }
+    .mkString(LINE_SEP)
+  def depthAndLeaf = provList
+    .map(p => (p.depth, p.leafCnt))
+    .groupMapReduce(identity)(_ => 1)(_ + _)
+    .map { case ((depth, leaf), cnt) => s"$depth,$leaf,$cnt" }
+    .mkString(LINE_SEP)
+  def sizeAndLeaf = provList
+    .map(p => (p.size, p.leafCnt))
+    .groupMapReduce(identity)(_ => 1)(_ + _)
+    .map { case ((size, leaf), cnt) => s"$size,$leaf,$cnt" }
+    .mkString(LINE_SEP)
+
   /** inferred type guards */
-  def getTypeGuards: List[(Func, AbsValue)] = for {
-    func <- cfg.funcs
-    entrySt = getResult(NodePoint(func, func.entry, emptyView))
-    AbsRet(value) = getResult(ReturnPoint(func, emptyView))
-    if value.hasTypeGuard(entrySt)
-    guard = TypeGuard(for {
-      (kind, pred) <- value.guard.map
-      newPred = SymPred(for {
-        pair <- pred.map
-        (x, (ty, prov)) = pair
-        if !(entrySt.getTy(x) <= ty)
-      } yield pair)
-      if newPred.nonTop
-    } yield kind -> newPred)
-  } yield func -> value.copy(guard = guard)
+  def getTypeGuards: List[(Func, AbsValue)] =
+    import SymTy.*, SymExpr.*
+    for {
+      func <- cfg.funcs
+      entrySt = getResult(NodePoint(func, func.entry, emptyView))
+      AbsRet(value) = getResult(ReturnPoint(func, emptyView))
+      if value.hasTypeGuard(entrySt)
+      guard = TypeGuard(for {
+        (dty, pred) <- value.guard.map
+        newPred = TypeConstr(for {
+          pair <- pred.map
+          (x, (ty, prov)) = pair
+          if !(entrySt.getTy(x) <= ty)
+        } yield pair)
+        if newPred.nonTop
+      } yield dty -> newPred)
+    } yield func -> value.copy(guard = guard)
 
   // ---------------------------------------------------------------------------
   // Implementation for Type Checker
@@ -298,19 +421,20 @@ class TyChecker(
   def getCalleeState(
     callerSt: AbsState,
     locals: List[(Local, AbsValue)],
+    callee: Func,
   ): AbsState =
-    import SymExpr.*, SymRef.*, SymTy.*
+    import SymExpr.*, SymTy.*
     given AbsState = callerSt
     if (inferTypeGuard) {
       val idxLocals = locals.zipWithIndex
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
-      } yield (
-        x -> AbsValue(SRef(SBase(sym))),
-        sym -> value.ty,
-      )).unzip
-      AbsState(true, newLocals.toMap, symEnv.toMap, SymPred())
-    } else AbsState(true, locals.toMap, Map(), SymPred())
+      } yield {
+        if (useSyntacticKill) (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
+        else (x -> AbsValue(SSym(sym)), sym -> value.ty)
+      }).unzip
+      AbsState(true, newLocals.toMap, symEnv.toMap, TypeConstr())
+    } else AbsState(true, locals.toMap, Map(), TypeConstr())
 
   /** get initial abstract states in each node point */
   private def getInitNpMap(
@@ -328,7 +452,7 @@ class TyChecker(
     }
     val locals = pairs.map { (x, v) => x -> AbsValue(v) }
     val view = if (typeSens) View(pairs.map(_._2)) else emptyView
-    List(view -> getCalleeState(AbsState.Empty, locals))
+    List(view -> getCalleeState(AbsState.Empty, locals, func))
 
   /** initialization of ECMAScript environment */
   lazy val init: Initialize = cfg.init
@@ -339,7 +463,7 @@ class TyChecker(
   } yield x -> AbsValue(t.toValue)
 
   /** arguments information for each callsite */
-  protected var argsInfo: Map[NodePoint[Call], List[(Expr, AbsValue)]] = Map()
+  var argsInfo: Map[NodePoint[Call], List[AbsValue]] = Map()
 
   /** unused ignore set */
   protected var _unusedSet: Set[String] = ignore.names
@@ -421,6 +545,61 @@ class TyChecker(
       val (param, ty) = pair
       app >> param >> ": " >> ty
     (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
+
+  /** For Expriement: Imitating Kent's work */
+
+  lazy val synCallGraph: Map[Func, Set[Func]] =
+    cfg.funcs
+      .map { func =>
+        val callees = func.nodes.flatMap {
+          case call: Call =>
+            call.inst.fold(Set[Func]()) {
+              case ICall(_, fexpr, _) =>
+                fexpr match
+                  case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
+                  case ECont(fname)   => cfg.funcs.filter(_.name == fname)
+                  case _              => Set()
+              case ISdoCall(_, base, _, _) =>
+                base match
+                  case EClo(fname, _) => cfg.funcs.filter(_.name == fname)
+                  case ECont(fname)   => cfg.funcs.filter(_.name == fname)
+                  case _              => Set()
+              case _ => Set()
+            }
+          case _ => Set()
+        }
+        for callee <- callees yield callee -> func
+      }
+      .flatMap(identity)
+      .groupMap(_._1)(_._2)
+      .map((k, v) => k -> v.toSet)
+
+  extension (inst: NormalInst) {
+    def mutable: Set[Local] =
+      def toBase(ref: Ref): Option[Local] = ref match
+        case Field(base, expr) => toBase(base)
+        case l: Local          => Some(l)
+        case _                 => None
+      inst match
+        case IAssign(ref, _)                => toBase(ref).toSet
+        case IPush(_, ERef(list: Local), _) => Set(list)
+        // case IExpand(base, expr) => XXX: Unsound
+        // case IDelete(base, expr) => XXX: Unsound
+        case _ => Set()
+  }
+  extension (node: Node) {
+    def mutable: Set[Local] = node match
+      case block: Block => block.insts.flatMap(_.mutable).toSet
+      case _            => Set()
+  }
+  extension (func: Func) {
+    def mutableLocals: Set[Base] = func.nodes.flatMap(_.mutable)
+  }
+  extension (np: NodePoint[?]) {
+    def isMutable(ref: Ref): Boolean = ref match
+      case l: Local => np.func.mutableLocals.contains(l)
+      case _        => false
+  }
 }
 
 object TyChecker:

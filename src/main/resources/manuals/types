@@ -440,18 +440,54 @@ type TypedArray extends ExoticObject {
 }
 
 // https://tc39.es/ecma262/#table-the-typedarray-constructors
-type Int8Array extends TypedArray { TypedArrayName: String["Int8Array"]; }
-type Uint8Array extends TypedArray { TypedArrayName: String["Uint8Array"]; }
-type Uint8ClampedArray extends TypedArray { TypedArrayName: String["Uint8ClampedArray"]; }
-type Int16Array extends TypedArray { TypedArrayName: String["Int16Array"]; }
-type Uint16Array extends TypedArray { TypedArrayName: String["Uint16Array"]; }
-type Int32Array extends TypedArray { TypedArrayName: String["Int32Array"]; }
-type Uint32Array extends TypedArray { TypedArrayName: String["Uint32Array"]; }
-type BigInt64Array extends TypedArray { TypedArrayName: String["BigInt64Array"]; }
-type BigUint64Array extends TypedArray { TypedArrayName: String["BigUint64Array"]; }
-type Float16Array extends TypedArray { TypedArrayName: String["Float16Array"]; }
-type Float32Array extends TypedArray { TypedArrayName: String["Float32Array"]; }
-type Float64Array extends TypedArray { TypedArrayName: String["Float64Array"]; }
+type Int8Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Int8Array"];
+}
+type Uint8Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Uint8Array"];
+}
+type Uint8ClampedArray extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Uint8ClampedArray"];
+}
+type Int16Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Int16Array"];
+}
+type Uint16Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Uint16Array"];
+}
+type Int32Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Int32Array"];
+}
+type Uint32Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Uint32Array"];
+}
+type BigInt64Array extends TypedArray {
+  ContentType: Enum[~bigint~];
+  TypedArrayName: String["BigInt64Array"];
+}
+type BigUint64Array extends TypedArray {
+  ContentType: Enum[~bigint~];
+  TypedArrayName: String["BigUint64Array"];
+}
+type Float16Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Float16Array"];
+}
+type Float32Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Float32Array"];
+}
+type Float64Array extends TypedArray {
+  ContentType: Enum[~number~];
+  TypedArrayName: String["Float64Array"];
+}
 
 // https://tc39.es/ecma262/#sec-module-namespace-exotic-objects
 type ModuleNamespaceExoticObject extends ExoticObject {
@@ -515,7 +551,7 @@ type RealmRecord {
   GlobalObject: Record[Object];
   GlobalEnv: Record[GlobalEnvironmentRecord];
   TemplateMap: List[Record[{ Site: Ast[TemplateLiteral], Array: Record[Array] }]];
-  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecord] }]];
+  LoadedModules: List[Record[LoadedModuleRequestRecord]];
   HostDefined: Undefined;
 }
 
@@ -625,8 +661,27 @@ type Iterator extends Object
 type ScriptRecord {
   Realm: Record[RealmRecord];
   ECMAScriptCode: Ast[Script];
-  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecord] }]];
+  LoadedModules: List[Record[LoadedModuleRequestRecord]];
   HostDefined: Enum[~empty~];
+}
+
+// https://tc39.es/ecma262/#modulerequest-record
+type ModuleRequestRecord {
+  Specifier: String;
+  Attributes: List[Record[ImportAttributeRecord]];
+}
+
+// https://tc39.es/ecma262/#loadedmodulerequest-record
+type LoadedModuleRequestRecord {
+  Specifier: String;
+  Attributes:	List[Record[ImportAttributeRecord]];
+  Module: Record[ModuleRecord];
+}
+
+// https://tc39.es/ecma262/#importattribute-record
+type ImportAttributeRecord {
+  Key: String;
+  Value: String;
 }
 
 // https://tc39.es/ecma262/#sec-abstract-module-records
@@ -659,8 +714,8 @@ type CyclicModuleRecord extends ModuleRecord {
   EvaluationError: Abrupt[throw] | Enum[~empty~];
   DFSIndex: Enum[~empty~] | Int;
   DFSAncestorIndex: Enum[~empty~] | Int;
-  RequestedModules: List[String];
-  LoadedModules: List[Record[{ Specifier: String, Module: Record[ModuleRecordN] }]];
+  RequestedModules: List[Record[ModuleRequestRecord]];
+  LoadedModules: List[Record[LoadedModuleRequestRecord]];
   CycleRoot: Record[CyclicModuleRecord] | Enum[~empty~];
   HasTLA: Boolean;
   AsyncEvaluation: Boolean;
@@ -701,7 +756,7 @@ type ResolvedBindingRecord {
 
 // https://tc39.es/ecma262/#importentry-record
 type ImportEntryRecord {
-  ModuleRequest: String;
+  ModuleRequest: Record[ModuleRequestRecord];
   ImportName: String | Enum[~namespace-object~];
   LocalName: String;
 }
@@ -709,7 +764,7 @@ type ImportEntryRecord {
 // https://tc39.es/ecma262/#exportentry-record
 type ExportEntryRecord {
   ExportName: String | Null;
-  ModuleRequest: String | Null;
+  ModuleRequest: Record[ModuleRequestRecord] | Null;
   ImportName: String | Null | Enum[~all~, ~all-but-default~];
   LocalName: String | Null;
 }
