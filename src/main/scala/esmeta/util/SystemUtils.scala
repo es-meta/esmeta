@@ -275,17 +275,23 @@ object SystemUtils {
     cmd: String,
     duration: FiniteDuration,
     dir: String = CUR_DIR,
-  ): Option[String] = {
-    val sb = new StringBuilder
+  ): Option[(String, String)] = {
+    val out = new StringBuilder
+    val err = new StringBuilder
     val processBuilder = Process(Seq("sh", "-c", cmd), new File(dir))
     val process =
-      processBuilder.run(ProcessLogger(s => sb.append(s).append("\n"), s => ()))
+      processBuilder.run(
+        ProcessLogger(
+          s => out.append(s).append("\n"),
+          s => err.append(s).append("\n"),
+        ),
+      )
     val future = Future {
       process.exitValue() // waits for completion
     }
     try
       Await.result(future, duration)
-      Some(sb.toString())
+      Some(out.toString() -> err.toString())
     catch
       case _: TimeoutException =>
         process.destroy() // terminate process

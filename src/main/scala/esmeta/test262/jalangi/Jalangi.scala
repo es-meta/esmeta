@@ -69,10 +69,10 @@ object Jalangi {
             throw NotSupported("not es5")
           }
 
-          val str =
+          val (str, err) =
             try {
               // printlnIfSingle(s"Executing Jalangi command: $jalangiCmd")
-              val s =
+              val (s, err) =
                 executeCmdTimeout(jalangiCmd, duration = 60.seconds).getOrElse(
                   throw java.util.concurrent.TimeoutException(
                     "Jalangi timed out, maybe because of ES6+ features?",
@@ -82,7 +82,7 @@ object Jalangi {
                 throw NotSupported(
                   "The test may include new features not supported by Jalangi",
                 )
-              s
+              (s, err)
               // maybe test includes new features not supported by Jalangi
             } catch {
               case e: Throwable =>
@@ -115,6 +115,8 @@ object Jalangi {
           printlnIfSingle("===================== Diff ====================")
           printlnIfSingle(Diff.get(str, output))
           printlnIfSingle("==============================================")
+
+          printlnIfSingle(s"Jalangi error output:\n${err}")
 
           if (str == output)
             printlnIfSingle(
