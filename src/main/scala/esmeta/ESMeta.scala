@@ -19,6 +19,10 @@ object ESMeta extends Git(BASE_DIR) {
           case None      => throw NoCmdError(str)
         }
   catch
+    // NotSupported: print only the error message and no status mode.
+    case e: NotSupported =>
+      Console.err.println(getMessage(e))
+      if (ERROR_MODE) throw e
     // ESMetaError: print only the error message.
     case e: ESMetaError =>
       Console.err.println(getMessage(e))
