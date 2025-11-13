@@ -143,9 +143,10 @@ class SpecStringMutator(using cfg: CFG)(
       case None => specProps.values.flatten.toVector.distinct
     val k = choose(props)
     val getter = s"{ get $k () {} }"
+    val throwingGetter = s"{ get $k () { throw 42; } }"
     cfg
       .esParser(PRIMARY_EXPRESSION, args)
-      .from(getter)
+      .from(choose(List(getter, throwingGetter)))
       .asInstanceOf[Syntactic] -> props.size
   def generateSetterWithWeight(args: List[Boolean]): (Syntactic, Int) =
     val props = targetFunc match
@@ -157,9 +158,10 @@ class SpecStringMutator(using cfg: CFG)(
       case None => specProps.values.flatten.toVector.distinct
     val k = choose(props)
     val setter = s"{ set $k (_) {} }"
+    val throwingSetter = s"{ set $k (_) { throw 42; } }"
     cfg
       .esParser(PRIMARY_EXPRESSION, args)
-      .from(setter)
+      .from(choose(List(setter, throwingSetter)))
       .asInstanceOf[Syntactic] -> props.size
 }
 
