@@ -25,6 +25,14 @@ function printVersion(): void {
   console.log('unknown');
 }
 
+function parseES5(code: string): Program {
+  try {
+    return parse(code, { ecmaVersion: 5, sourceType: 'script', locations: true });
+  } catch {
+    // emit error without details
+    throw new Error('Maybe not a valid ES5 script.');
+  }
+}
 
 export default async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
   const flag = resolveArgv(argv);
@@ -50,7 +58,7 @@ export default async function main(argv: string[] = process.argv.slice(2)): Prom
   }
 
   try {
-    const ast = parse(code, { ecmaVersion: 5, sourceType: 'script', locations: true });
+    const ast = parseES5(code);
     const contains = containsTopLevelThis(ast);
     if (contains) throw new Error('Top-level "this" is not allowed in ES5 scripts.');
     console.log('✔ parsed successfully');
