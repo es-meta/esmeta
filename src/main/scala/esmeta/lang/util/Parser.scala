@@ -169,8 +169,8 @@ trait Parsers extends IndentParsers {
     "suspend" ~> (
       variable ^^ { Some(_) } |
       "the running execution context" ^^^ None
-    ) ~ opt("and remove it from the execution context stack") ~ end ^^ {
-      case x ~ r ~ f => f(SuspendStep(x, r.isDefined))
+    ) ~ exists("and remove it from the execution context stack") ~ end ^^ {
+      case x ~ r ~ f => f(SuspendStep(x, r))
     }
 
   // remove execution context step
@@ -280,7 +280,7 @@ trait Parsers extends IndentParsers {
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
     lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
-    ("throw" ~ article ~> errorName <~ "exception") ~ end ^^ {
+    ("throw" ~ opt(article) ~> errorName <~ "exception") ~ end ^^ {
       case e ~ f => f(ThrowStep(e))
     }
 
@@ -311,7 +311,7 @@ trait Parsers extends IndentParsers {
     "as the running execution context." ^^! { ResumeTopContextStep() }
 
   // note steps
-  lazy val noteStep: PL[NoteStep] = note ^^ { str => NoteStep(str) }
+  lazy val noteStep: PL[NoteStep] = note ^^ { NoteStep(_) }
   lazy val note: Parser[String] = "NOTE:" ~> ".*".r
 
   // block steps
@@ -537,7 +537,7 @@ trait Parsers extends IndentParsers {
           ConversionExpression(op, e, SyntaxLiteral)
       }
     lazy val textFormat =
-      ("the " | "an " | "a ") ~ (
+      article ~ (
         "implementation-approximated Number" ^^^ ToApproxNumber |
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
@@ -585,7 +585,7 @@ trait Parsers extends IndentParsers {
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
-    opt("the") <~ "*this* value" ^^ { case a => ThisLiteral(a.isDefined) } |
+    exists("the") <~ "*this* value" ^^ { ThisLiteral(_) } |
     "this Parse Node" ^^! ThisParseNodeLiteral(None) |
     "this" ~> ntLiteral ^^ { case nt => ThisParseNodeLiteral(Some(nt)) } |
     "NewTarget" ^^! NewTargetLiteral() |
@@ -633,12 +633,12 @@ trait Parsers extends IndentParsers {
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
-    opt("the code unit") ~ ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
+    exists("the code unit") ~ ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
     opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
-      case c ~ p ~ n ~ x =>
-        HexLiteral(Integer.parseInt(n, 16), c.isDefined, p, x)
+      case c ~ p ~ n ~ x => HexLiteral(Integer.parseInt(n, 16), c, p, x)
     }
-  // grammar symboll iterals
+
+  // grammar symbol iterals
   lazy val grammarSymbolLiteral: PL[GrammarSymbolLiteral] =
     "the grammar symbol" ~ "|" ~> (word <~ opt("?")) ~ flags <~ "|" ^^ {
       case x ~ fs => GrammarSymbolLiteral(x, fs)
@@ -646,8 +646,8 @@ trait Parsers extends IndentParsers {
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    opt("the") ~ opt(ordinal) ~ ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
-      case a ~ ord ~ x ~ fs => NonterminalLiteral(ord, x, fs, a.isDefined)
+    exists("the") ~ opt(ordinal) ~ ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
+      case a ~ ord ~ x ~ fs => NonterminalLiteral(ord, x, fs, a)
     }
 
   lazy val flags: P[List[String]] =
@@ -696,10 +696,9 @@ trait Parsers extends IndentParsers {
         case l ~ r => MathOpExpression(Mul, List(l, r))
       } | ("difference" ~> baseCalcExpr) ~ ("minus" ~> baseCalcExpr) ^^ {
         case l ~ r => MathOpExpression(Sub, List(l, r))
-      } | (baseCalcExpr) ~ ("raised to the power" ~> baseCalcExpr) ^^ {
+      } | baseCalcExpr ~ ("raised to the power" ~> baseCalcExpr) ^^ {
         case l ~ r => MathOpExpression(Pow, List(l, r))
-      } | ("raising" ~> baseCalcExpr) ~
-      ("to the" ~> baseCalcExpr <~ "power") ^^ {
+      } | ("raising" ~> baseCalcExpr) ~ ("to the" ~> baseCalcExpr <~ "power") ^^ {
         case l ~ r => MathOpExpression(Pow, List(l, r))
       } | "subtracting 1 from the exponential function of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Expm1, List(e))
@@ -883,8 +882,8 @@ trait Parsers extends IndentParsers {
     "a List whose sole element is" ~> expr ^^ { e =>
       ListExpression(SoleElement(e))
     } |
-    (indefArticle ~> opt("new") <~ "empty List") ~ opt("of" ~> word) ^^ {
-      case n ~ t => ListExpression(EmptyList(n.isDefined, t))
+    (indefArticle ~> exists("new") <~ "empty List") ~ opt("of" ~> word) ^^ {
+      case n ~ t => ListExpression(EmptyList(n, t))
     } | "a List of the integers in the interval from" ~>
     (calcExpr ~ inc <~ "to") ~ (calcExpr ~ inc <~ ",") ~ asc ^^ {
       case (f ~ fi) ~ (t ~ ti) ~ a => ListExpression(IntRange(f, fi, t, ti, a))
@@ -1072,12 +1071,9 @@ trait Parsers extends IndentParsers {
 
   // inclusive interval conditions
   lazy val inclusiveIntervalCond: PL[InclusiveIntervalCondition] = {
-    (expr <~ "is") ~
-    opt("not") ~
-    ("in the inclusive interval from" ~> expr) ~
-    ("to" ~> expr)
+    expr ~ isNeg ~ ("in the inclusive interval from" ~> expr) ~ ("to" ~> expr)
   } ^^ {
-    case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n.isDefined, f, t, true)
+    case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n, f, t, true)
   } | {
     (expr <~ "≤") ~ expr ~ ("≤" ~> expr)
   } ^^ {
@@ -1250,7 +1246,7 @@ trait Parsers extends IndentParsers {
     val name = camel.filter(!invalid(_))
     import AccessKind.*
     "[[" ~> word <~ "]]" ^^ (_ -> Field) |
-    name ~ opt("component") ^^ { case x ~ p => x -> Component(p.isDefined) }
+    name ~ exists("component") ^^ { case x ~ p => x -> Component(p) }
 
   // of-style access
   lazy val ofAccess: PL[Access] = ("the" ~> nameWithKind <~ "of") ~ ref ^^ {
@@ -1366,8 +1362,8 @@ trait Parsers extends IndentParsers {
 
   // AST types
   lazy val astTy: P[ValueTy] =
-    val singleAstTy = article ~> nt <~ opt("Parse Node")
-    article ~ "Parse Node" ~ opt("s") ^^^ AstT |
+    val singleAstTy = opt(article) ~> nt <~ opt("Parse Node")
+    opt(article) ~ "Parse Node" ~ opt("s") ^^^ AstT |
     rep1sep(singleAstTy, sep("or")) ^^ { ss => AstT(ss.toSet) }
 
   // grammar symbol types
@@ -1563,7 +1559,7 @@ trait Parsers extends IndentParsers {
 
   // article
   private val indefArticle = "an " | "a "
-  private val article = opt("a " | "an " | "the ")
+  private val article = "a " | "an " | "the "
 
   // check existence
   def exists[T](p: Parser[T]): Parser[Boolean] = opt(p) ^^ { _.isDefined }
