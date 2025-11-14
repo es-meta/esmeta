@@ -12,6 +12,12 @@ trait CFGElem {
     val stringifier = CFGElem.getStringifier(detail, location)
     import stringifier.elemRule
     stringify(this)
+
+  /** string of flow information */
+  def flowString: String = FlowStringifier(this)
+
+  /** fingerprint for validation */
+  def fingerprint: String = sha512Hash(this.flowString)
 }
 object CFGElem {
   val getStringifier =

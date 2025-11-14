@@ -34,6 +34,15 @@ case object BuildCFG extends Phase[Program, CFG] {
         config.pdf = false
       cfg.dumpDot(dotDir, config.pdf)
 
+    val (t, _) = time {
+      for (_ <- 0 until 100) cfg.flowString
+    }
+    println(s"[BuildCFG] flowString time: ${t / 100.0}ms")
+
+    println(cfg.flowString.length)
+
+    println(cfg.fingerprint)
+
     cfg
   }
   def defaultConfig: Config = Config()
