@@ -1,10 +1,12 @@
 package esmeta.util
 
 import Math.{log, round}
-import java.text.SimpleDateFormat
-import java.util.Date
 import esmeta.*
 import esmeta.error.*
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
+import java.text.SimpleDateFormat
+import java.util.Date
 import scala.Console.*
 import scala.collection.mutable
 import scala.concurrent.ExecutionException
@@ -284,4 +286,19 @@ object BaseUtils {
   }
 
   val WORDS_FOR_A = Set("URIError")
+
+  /** compute SHA-256 hash */
+  def sha256Hash(data: Any): String = getHash("SHA-256", data)
+
+  /** compute SHA-512 hash */
+  def sha512Hash(data: Any): String = getHash("SHA-512", data)
+
+  /** compute hash with a given method */
+  def getHash(method: String, data: Any): String =
+    // convert to UTF-8 bytes
+    val bytes = data.toString.getBytes(StandardCharsets.UTF_8)
+    // compute SHA-256 hash
+    val digest = MessageDigest.getInstance(method).digest(bytes)
+    // convert to hex string
+    digest.map("%02x".format(_)).mkString
 }
