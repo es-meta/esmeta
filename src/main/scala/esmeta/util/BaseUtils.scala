@@ -288,13 +288,13 @@ object BaseUtils {
   val WORDS_FOR_A = Set("URIError")
 
   /** compute SHA-256 hash */
-  def sha256Hash(data: Any): String = getHas("SHA-256", data)
+  def sha256Hash(data: Any): String = getHash("SHA-256", data)
 
   /** compute SHA-512 hash */
-  def sha512Hash(data: Any): String = getHas("SHA-512", data)
+  def sha512Hash(data: Any): String = getHash("SHA-512", data)
 
   /** compute hash with a given method */
-  def getHas(method: String, data: Any): String =
+  def getHash(method: String, data: Any): String =
     // convert to UTF-8 bytes
     val bytes = data.toString.getBytes(StandardCharsets.UTF_8)
     // compute SHA-256 hash
