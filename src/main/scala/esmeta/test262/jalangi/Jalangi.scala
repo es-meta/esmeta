@@ -27,8 +27,11 @@ class Jalangi(
   lazy val multiple = targetTests.length > 1
   def printlnIfSingle(s: => String): Unit = if (!multiple) println(s)
 
+  lazy val TEMP_FILE_BASE =
+    s"$LOG_DIR/tempfiles-esmetajalangi" // can't use /tmp/esmeta-jalangi/ cause of docker volume
+
   def test: Summary = {
-    mkdir("/tmp/esmeta-jalangi/")
+    mkdir(TEMP_FILE_BASE)
 
     executeCmdNonZero(
       s"npm run build",
@@ -51,7 +54,7 @@ class Jalangi(
         def runTest(test: Test): Unit = {
 
           val tmpFilePath =
-            s"/tmp/esmeta-jalangi/${test.relName.replace("/", "_")}"
+            s"$TEMP_FILE_BASE/${test.relName.replace("/", "_")}"
           val (ast, code) = test262.loadTest(test.absPath)
           dumpFile(code, tmpFilePath)
 
@@ -85,7 +88,7 @@ class Jalangi(
           printlnIfSingle(s"Jalangi error output:\n${jalangiErr}")
 
           val (npOutput, npErr) = Aux.runNodeProf(
-            wd = "/tmp/esmeta-jalangi",
+            wd = TEMP_FILE_BASE,
             analysisPath = ANALYSIS_FILE_PATH_COPIED_TO_TMP,
             testPath = tmpFilePath,
           )
@@ -196,7 +199,7 @@ class Jalangi(
   }
 
   lazy val ANALYSIS_FILE_PATH_COPIED_TO_TMP: String = {
-    val destPath = s"/tmp/esmeta-jalangi/analysis.js"
+    val destPath = s"$TEMP_FILE_BASE/analysis.js"
     copyFile(ANALYSIS_FILE_PATH, destPath)
     destPath
   }
