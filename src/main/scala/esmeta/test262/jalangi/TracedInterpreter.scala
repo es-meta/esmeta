@@ -25,6 +25,8 @@ class TracedInterpreter(
   detail: Boolean = true, // turn off GC
   logPW: Option[PrintWriter] = None,
   timeLimit: Option[Int] = None,
+  // TODO print detailed log when noCompare is true
+  // noCompare: Boolean = false,
 ) extends Interpreter(
     st = st,
     tyCheck = false,

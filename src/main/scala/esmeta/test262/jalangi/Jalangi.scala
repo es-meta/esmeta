@@ -19,53 +19,15 @@ class Jalangi(
   noCompare: Boolean = false,
 )(using
   test262: Test262,
-) {
+) { jalangi =>
 
-  private def runNodeJs(
-    testpath: String,
-  ): Boolean = {
-    val (exitcode, _, _) = executeCmdNonZero(s"node $testpath")
-    exitcode == 0
-    // if it doesn't pass node.js, it is not worth to run Jalangi
-  }
-
-  def runInterpreter(
-    code: String,
-    ast: Ast,
-    timeLimit: Option[Int],
-  )(using test262: Test262): String = {
-    // printlnIfSingle(s"Jalangi output:\n${str}")
-
-    val byteStream = new java.io.ByteArrayOutputStream()
-    val outputStream = new java.io.PrintStream(byteStream)
-
-    // printlnIfSingle("Running Traced Interpreter...")
-
-    Console.withOut(outputStream) {
-      TracedInterpreter(
-        test262.cfg.init.from(code, ast),
-        timeLimit = timeLimit,
-        analysis = new JalangiAnalysis(),
-      ).result
-    }
-
-    // printlnIfSingle("Finished Traced Interpreter.")
-
-    val output = { outputStream.close(); byteStream.toString() }
-
-    // printlnIfSingle(s"Traced Interpreter output:\n${output}")
-
-    output
-  }
+  // pre-jobs
+  lazy val tests: List[Test] = test262.getTests(paths, features = None)
+  lazy val (targetTests, removed) = test262.testFilter(tests, test262.withYet)
+  lazy val multiple = targetTests.length > 1
+  def printlnIfSingle(s: => String): Unit = if (!multiple) println(s)
 
   def test: Summary = {
-
-    // pre-jobs
-    val tests: List[Test] = test262.getTests(paths, features = None)
-    val (targetTests, removed) = test262.testFilter(tests, test262.withYet)
-    val multiple = targetTests.length > 1
-    def printlnIfSingle(s: => String): Unit = if (!multiple) println(s)
-
     mkdir("/tmp/esmeta-jalangi/")
 
     executeCmdNonZero(
@@ -74,14 +36,6 @@ class Jalangi(
     ) match
       case (a, b, c) =>
         printlnIfSingle(s"Checkscript build output[${a}]:\n${b}\n${c}")
-
-    def isES5(filename: String): (Boolean, String, String) = {
-      val (exitcode, str, err) = executeCmdNonZero(
-        s"$CHECK_SCRIPT_COMMAND $filename",
-      )
-      // printlnIfSingle(s"ESLint output:\n${str.slice(0, 20)}...")
-      (exitcode == 0, str, err)
-    }
 
     val runner = {
       new Test262Runner(
@@ -111,58 +65,58 @@ class Jalangi(
 
           printlnIfSingle(s"Running Jalangi ${jalangiCmd}")
 
-          isES5(tmpFilePath) match
+          Aux.checkSyntax(tmpFilePath) match
             case (false, str, err) => throw NotSupported(err)
             case _                 => ()
 
           // run Traced Interpreter first, so not supported features can be caught
-          val output = runInterpreter(code, ast, timeLimit)
+          val esmetaOutput = Aux.runESMetaInterp(code, ast, timeLimit)
 
-          runNodeJs(tmpFilePath) match
+          Aux.runNodeJs(tmpFilePath) match
             case false => throw NotSupported("Does not pass Node.js")
             case true  => ()
 
-          val (str, err) =
-            try {
-              // printlnIfSingle(s"Executing Jalangi command: $jalangiCmd")
-              val (s, err) =
-                executeCmdTimeout(jalangiCmd, duration = 60.seconds).getOrElse(
-                  throw java.util.concurrent.TimeoutException(
-                    "Jalangi timed out, maybe because of ES6+ features?",
-                  ),
-                )
-              if (s.startsWith("Failed to instrument"))
-                throw NotSupported(
-                  "The test may include new features not supported by Jalangi",
-                )
-              (s, err)
-              // maybe test includes new features not supported by Jalangi
-            } catch {
-              case e: Throwable =>
-                printlnIfSingle(
-                  s"Error in Jalangi Test262 Test: ${e.getStackTrace()}",
-                )
-                throw e;
-            }
+          val (jalangiOutput, jalangiErr) = Aux.runJalangi(jalangiCmd)
+          lazy val passJalangi = jalangiOutput == esmetaOutput
 
-          printlnIfSingle("===================== Diff ====================")
-          printlnIfSingle(Diff.get(str, output))
+          printlnIfSingle("============ Diff (esmeta-jalangi) ===========")
+          printlnIfSingle(Diff.get(esmetaOutput, jalangiOutput))
           printlnIfSingle("==============================================")
+          printlnIfSingle(s"Jalangi error output:\n${jalangiErr}")
 
-          printlnIfSingle(s"Jalangi error output:\n${err}")
+          val (npOutput, npErr) = Aux.runNodeProf(
+            wd = "/tmp/esmeta-jalangi",
+            analysisPath = ANALYSIS_FILE_PATH_COPIED_TO_TMP,
+            testPath = tmpFilePath,
+          )
+          lazy val passNodeProf = npOutput == esmetaOutput
 
-          if (str == output)
+          printlnIfSingle("======== Diff (esmeta-nodeprof) =======")
+          printlnIfSingle(Diff.get(esmetaOutput, npOutput))
+          printlnIfSingle("=======================================")
+          printlnIfSingle(s"NodeProf error output:\n${npErr}")
+
+          if (passJalangi && passNodeProf)
             printlnIfSingle(
               s"${Console.GREEN}Test ${test.relName} passed.${Console.RESET}",
             )
           // summary.pass.add(test.relName)
           // it is added automatically?
+          else if (!passJalangi)
+            printlnIfSingle(
+              s"${Console.RED}Test ${test.relName} failed. (Jalangi)${Console.RESET}",
+            )
+            throw new Exception("Test failed for Jalangi")
+          else if (!passNodeProf)
+            printlnIfSingle(
+              s"${Console.RED}Test ${test.relName} failed. (NodeProf)${Console.RESET}",
+            )
+            throw new Exception("Test failed for NodeProf")
           else
             printlnIfSingle(
-              s"${Console.RED}Test ${test.relName} failed.${Console.RESET}",
+              s"${Console.RED}Test ${test.relName} failed. (Jalangi & NodeProf)${Console.RESET}",
             )
-            throw new Exception("Test failed")
-
+            throw new Exception("Test failed for both Jalangi and NodeProf")
         }
 
         override def errorHandler(
@@ -227,13 +181,6 @@ class Jalangi(
     )
     s"${home}/checkscript"
   }
-  val CHECK_SCRIPT_COMMAND: String = {
-    val home = sys.env.getOrElse(
-      "ESMETA_HOME",
-      throw new RuntimeException("ESMETA_HOME not set"),
-    )
-    s"node ${home}/checkscript/dist/check.js"
-  }
   val ANALYSIS_FILE_PATH: String = {
     val home = sys.env.getOrElse(
       "ESMETA_HOME",
@@ -248,4 +195,163 @@ class Jalangi(
     path.toString
   }
 
+  lazy val ANALYSIS_FILE_PATH_COPIED_TO_TMP: String = {
+    val destPath = s"/tmp/esmeta-jalangi/analysis.js"
+    copyFile(ANALYSIS_FILE_PATH, destPath)
+    destPath
+  }
+
+  object Aux {
+
+    private val CHECK_SCRIPT_COMMAND: String = {
+      val home = sys.env.getOrElse(
+        "ESMETA_HOME",
+        throw new RuntimeException("ESMETA_HOME not set"),
+      )
+      s"node ${home}/checkscript/dist/check.js"
+    }
+
+    /** Check syntax of a test file using acorn and some requirements. It should
+      * be a valid ES5 syntax, not include `this`, `use strict`, etc.
+      */
+    def checkSyntax(filename: String): (Boolean, String, String) = {
+      val (exitcode, str, err) = executeCmdNonZero(
+        s"$CHECK_SCRIPT_COMMAND $filename",
+      )
+      // printlnIfSingle(s"ESLint output:\n${str.slice(0, 20)}...")
+      (exitcode == 0, str, err)
+    }
+
+    def runNodeJs(
+      testpath: String,
+    ): Boolean = {
+      val (exitcode, _, _) = executeCmdNonZero(s"node $testpath")
+      exitcode == 0
+      // if it doesn't pass node.js, it is not worth to run Jalangi
+    }
+
+    /** @param wd
+      *   absolute working directory
+      * @param analysisPath
+      *   absolute analysis file path
+      * @param testPath
+      *   absolute test file path
+      * @return
+      *   Jalangi output
+      */
+    def runNodeProf(
+      wd: String,
+      analysisPath: String,
+      testPath: String,
+    ): (String, String) = jalangi.synchronized {
+
+      import java.nio.file.{Path, Paths, Files}
+
+      val wdPath: Path = Paths.get(wd).toAbsolutePath.normalize()
+      val analysisP: Path = Paths.get(analysisPath).toAbsolutePath.normalize()
+      val testP: Path = Paths.get(testPath).toAbsolutePath.normalize()
+      def ensureUnder(wd: Path, p: Path, name: String): Boolean =
+        p.startsWith(wd)
+      require(
+        ensureUnder(wdPath, analysisP, "analysisPath"),
+        s"$analysisPath is not under working directory $wd",
+      )
+      require(
+        ensureUnder(wdPath, testP, "testPath"),
+        s"$testPath is not under working directory $wd",
+      )
+
+      val relAnalysis: String =
+        wdPath
+          .relativize(analysisP)
+          .toString
+          .replace(java.io.File.separatorChar, '/')
+      val relTest: String =
+        wdPath
+          .relativize(testP)
+          .toString
+          .replace(java.io.File.separatorChar, '/')
+
+      val cmd =
+        s"docker run --rm -v $wd:/works/nodeprof.js/input nodeprof jalangi --analysis $relAnalysis $relTest"
+      val (str, err) =
+        try {
+          // printlnIfSingle(s"Executing Jalangi command: $cmd")
+          val (s, err) =
+            executeCmdTimeout(cmd, duration = 60.seconds).getOrElse(
+              throw java.util.concurrent.TimeoutException(
+                "NodeProf timed out, maybe because of ES6+ features?",
+              ),
+            )
+          if (s.startsWith("Failed to instrument"))
+            throw NotSupported(
+              "The test may include new features not supported by NodeProf",
+            )
+          (s, err)
+          // maybe test includes new features not supported by Jalangi
+        } catch {
+          case e: Throwable =>
+            printlnIfSingle(
+              s"Error in NodeProf Test262 Test: ${e.getStackTrace()}",
+            )
+            throw e;
+        }
+      (str, err)
+    }
+
+    def runESMetaInterp(
+      code: String,
+      ast: Ast,
+      timeLimit: Option[Int],
+    )(using test262: Test262): String = {
+      // printlnIfSingle(s"Jalangi output:\n${str}")
+
+      val byteStream = new java.io.ByteArrayOutputStream()
+      val outputStream = new java.io.PrintStream(byteStream)
+
+      // printlnIfSingle("Running Traced Interpreter...")
+
+      Console.withOut(outputStream) {
+        TracedInterpreter(
+          test262.cfg.init.from(code, ast),
+          timeLimit = timeLimit,
+          analysis = new JalangiAnalysis(),
+        ).result
+      }
+
+      // printlnIfSingle("Finished Traced Interpreter.")
+
+      val output = { outputStream.close(); byteStream.toString() }
+
+      // printlnIfSingle(s"Traced Interpreter output:\n${output}")
+
+      output
+    }
+
+    def runJalangi(jalangiCmd: String): (String, String) = {
+      val (str, err) =
+        try {
+          // printlnIfSingle(s"Executing Jalangi command: $jalangiCmd")
+          val (s, err) =
+            executeCmdTimeout(jalangiCmd, duration = 60.seconds).getOrElse(
+              throw java.util.concurrent.TimeoutException(
+                "Jalangi timed out, maybe because of ES6+ features?",
+              ),
+            )
+          if (s.startsWith("Failed to instrument"))
+            throw NotSupported(
+              "The test may include new features not supported by Jalangi",
+            )
+          (s, err)
+          // maybe test includes new features not supported by Jalangi
+        } catch {
+          case e: Throwable =>
+            printlnIfSingle(
+              s"Error in Jalangi Test262 Test: ${e.getStackTrace()}",
+            )
+            throw e;
+        }
+      (str, err)
+    }
+  }
 }
