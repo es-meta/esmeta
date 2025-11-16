@@ -246,7 +246,7 @@ class Jalangi(
       wd: String,
       analysisPath: String,
       testPath: String,
-    ): (String, String) = jalangi.synchronized {
+    ): (String, String) = {
 
       import java.nio.file.{Path, Paths, Files}
 
