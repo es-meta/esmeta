@@ -58,15 +58,7 @@ class Jalangi(
           val (ast, code) = test262.loadTest(test.absPath)
           dumpFile(code, tmpFilePath)
 
-          val jalangiCmd =
-            s"""$JALANGI_COMMAND
-            | --inlineIID
-            | --inlineSource
-            | --analysis $ANALYSIS_FILE_PATH
-            | $tmpFilePath
-            |""".stripMargin.replaceAll("\n", " ")
-
-          printlnIfSingle(s"Running Jalangi ${jalangiCmd}")
+          printlnIfSingle(s"Running Jalangi for ${tmpFilePath}")
 
           Aux.checkSyntax(tmpFilePath) match
             case (false, str, err) => throw NotSupported(err)
@@ -79,7 +71,7 @@ class Jalangi(
             case false => throw NotSupported("Does not pass Node.js")
             case true  => ()
 
-          val (jalangiOutput, jalangiErr) = Aux.runJalangi(jalangiCmd)
+          val (jalangiOutput, jalangiErr) = Aux.runJalangi(tmpFilePath)
           lazy val passJalangi = jalangiOutput == esmetaOutput
 
           printlnIfSingle("============ Diff (esmeta-jalangi) ===========")
@@ -98,6 +90,8 @@ class Jalangi(
           printlnIfSingle(Diff.get(esmetaOutput, npOutput))
           printlnIfSingle("=======================================")
           printlnIfSingle(s"NodeProf error output:\n${npErr}")
+
+          // val passNodeProf = true // temporarily disable NodeProf comparison
 
           if (passJalangi && passNodeProf)
             printlnIfSingle(
@@ -170,12 +164,11 @@ class Jalangi(
     runner.result
   }
 
-  val JALANGI_COMMAND: String = {
-    val home = sys.env.getOrElse(
+  val JALANGI_HOME: String = {
+    sys.env.getOrElse(
       "JALANGI_HOME",
       throw new RuntimeException("JALANGI_HOME not set"),
     )
-    s"node ${home}/src/js/commands/jalangi.js"
   }
   val CHECK_SCRIPT_DIR: String = {
     val home = sys.env.getOrElse(
@@ -225,10 +218,15 @@ class Jalangi(
       (exitcode == 0, str, err)
     }
 
+    val BOOTSTRAP_NODE_JS: String =
+      s"${sys.env.getOrElse("ESMETA_HOME", throw new RuntimeException("ESMETA_HOME not set"))}/bootstrap-node.js"
+
     def runNodeJs(
       testpath: String,
     ): Boolean = {
-      val (exitcode, _, _) = executeCmdNonZero(s"node $testpath")
+      val (exitcode, _, _) = executeCmdNonZero(
+        s"node --require $BOOTSTRAP_NODE_JS $testpath",
+      )
       exitcode == 0
       // if it doesn't pass node.js, it is not worth to run Jalangi
     }
@@ -264,6 +262,7 @@ class Jalangi(
         s"$testPath is not under working directory $wd",
       )
 
+      // TODO how to --require ${BOOTSTRAP_NODE_JS} in NodeProf ...?
       val relAnalysis: String =
         wdPath
           .relativize(analysisP)
@@ -331,12 +330,15 @@ class Jalangi(
       output
     }
 
-    def runJalangi(jalangiCmd: String): (String, String) = {
+    def runJalangi(tmpFilePath: String): (String, String) = {
       val (str, err) =
         try {
           // printlnIfSingle(s"Executing Jalangi command: $jalangiCmd")
           val (s, err) =
-            executeCmdTimeout(jalangiCmd, duration = 60.seconds).getOrElse(
+            executeCmdTimeout(
+              s"node --require ${BOOTSTRAP_NODE_JS} ${JALANGI_HOME}/src/js/commands/jalangi.js --inlineIID --inlineSource --analysis $ANALYSIS_FILE_PATH $tmpFilePath",
+              duration = 60.seconds,
+            ).getOrElse(
               throw java.util.concurrent.TimeoutException(
                 "Jalangi timed out, maybe because of ES6+ features?",
               ),
