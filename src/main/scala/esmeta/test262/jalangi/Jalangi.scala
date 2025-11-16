@@ -21,6 +21,14 @@ class Jalangi(
   test262: Test262,
 ) {
 
+  private def runNodeJs(
+    testpath: String,
+  ): Boolean = {
+    val (exitcode, _, _) = executeCmdNonZero(s"node $testpath")
+    exitcode == 0
+    // if it doesn't pass node.js, it is not worth to run Jalangi
+  }
+
   def runInterpreter(
     code: String,
     ast: Ast,
@@ -109,6 +117,10 @@ class Jalangi(
 
           // run Traced Interpreter first, so not supported features can be caught
           val output = runInterpreter(code, ast, timeLimit)
+
+          runNodeJs(tmpFilePath) match
+            case false => throw NotSupported("Does not pass Node.js")
+            case true  => ()
 
           val (str, err) =
             try {
