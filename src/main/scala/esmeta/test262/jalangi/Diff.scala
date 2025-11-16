@@ -18,8 +18,7 @@ object Diff {
     a: String,
     b: String,
     colorOpt: ColorOption = ColorOption.Always,
-  ): String = this.synchronized {
-    // TODO better concurrency without synchronization with sophisticated name mgmt
+  ): String = {
     val fileA = Files.createTempFile("a", ".txt")
     val fileB = Files.createTempFile("b", ".txt")
     Files.write(fileA, a.getBytes(StandardCharsets.UTF_8))
