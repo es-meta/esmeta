@@ -86,7 +86,7 @@ class Jalangi(
             testPath = tmpFilePath,
           )
           lazy val passNodeProf =
-            if nodeprof then true else npOutput == esmetaOutput
+            if nodeprof then npOutput == esmetaOutput else true
 
           if (nodeprof) {
             printlnIfSingle("======== Diff (esmeta-nodeprof) =======")
