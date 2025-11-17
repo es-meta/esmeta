@@ -265,11 +265,12 @@ class Jalangi(
         try {
           // printlnIfSingle(s"Executing Jalangi command: $cmd")
           val (s, err) =
-            executeCmdTimeout(cmd, duration = 60.seconds, dir = NODEPROF_HOME).getOrElse(
-              throw java.util.concurrent.TimeoutException(
-                "NodeProf timed out, maybe because of ES6+ features?",
-              ),
-            )
+            executeCmdTimeout(cmd, duration = 60.seconds, dir = NODEPROF_HOME)
+              .getOrElse(
+                throw java.util.concurrent.TimeoutException(
+                  "NodeProf timed out, maybe because of ES6+ features?",
+                ),
+              )
           if (s.startsWith("Failed to instrument"))
             throw NotSupported(
               "The test may include new features not supported by NodeProf",
