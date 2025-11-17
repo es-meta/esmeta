@@ -80,8 +80,7 @@ class Jalangi(
           printlnIfSingle("==============================================")
           printlnIfSingle(s"Jalangi error output:\n${jalangiErr}")
 
-          lazy val (npOutput, npErr) = Aux.runNodeProf(
-            wd = TEMP_FILE_BASE,
+          val (npOutput, npErr) = Aux.runNodeProf(
             analysisPath = ANALYSIS_FILE_PATH_COPIED_TO_TMP,
             testPath = tmpFilePath,
           )
@@ -168,6 +167,12 @@ class Jalangi(
     runner.result
   }
 
+  val NODEPROF_HOME: String = {
+    sys.env.getOrElse(
+      "NODEPROF_HOME",
+      throw new RuntimeException("NODEPROF_HOME not set"),
+    )
+  }
   val JALANGI_HOME: String = {
     sys.env.getOrElse(
       "JALANGI_HOME",
@@ -245,46 +250,22 @@ class Jalangi(
       *   Jalangi output
       */
     def runNodeProf(
-      wd: String,
       analysisPath: String,
       testPath: String,
     ): (String, String) = {
 
       import java.nio.file.{Path, Paths, Files}
 
-      val wdPath: Path = Paths.get(wd).toAbsolutePath.normalize()
-      val analysisP: Path = Paths.get(analysisPath).toAbsolutePath.normalize()
-      val testP: Path = Paths.get(testPath).toAbsolutePath.normalize()
-      def ensureUnder(wd: Path, p: Path, name: String): Boolean =
-        p.startsWith(wd)
-      require(
-        ensureUnder(wdPath, analysisP, "analysisPath"),
-        s"$analysisPath is not under working directory $wd",
-      )
-      require(
-        ensureUnder(wdPath, testP, "testPath"),
-        s"$testPath is not under working directory $wd",
-      )
-
-      // TODO how to --require ${BOOTSTRAP_NODE_JS} in NodeProf ...?
-      val relAnalysis: String =
-        wdPath
-          .relativize(analysisP)
-          .toString
-          .replace(java.io.File.separatorChar, '/')
-      val relTest: String =
-        wdPath
-          .relativize(testP)
-          .toString
-          .replace(java.io.File.separatorChar, '/')
+      // TODO make sure mx jalangi's boot.js has same content as BOOTSTRAP_NODE_JS
 
       val cmd =
-        s"docker run --rm -v $wd:/works/nodeprof.js/input nodeprof jalangi --analysis $relAnalysis $relTest"
+        // s"docker run --rm -v $wd:/works/nodeprof.js/input nodeprof jalangi --analysis $relAnalysis $relTest"
+        s"mx jalangi --analysis $analysisPath $testPath"
       val (str, err) =
         try {
           // printlnIfSingle(s"Executing Jalangi command: $cmd")
           val (s, err) =
-            executeCmdTimeout(cmd, duration = 60.seconds).getOrElse(
+            executeCmdTimeout(cmd, duration = 60.seconds, dir = NODEPROF_HOME).getOrElse(
               throw java.util.concurrent.TimeoutException(
                 "NodeProf timed out, maybe because of ES6+ features?",
               ),
