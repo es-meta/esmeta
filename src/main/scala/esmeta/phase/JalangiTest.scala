@@ -45,7 +45,12 @@ case object JalangiTest extends Phase[CFG, Unit] {
 
     // run test262 eval test
     val summary =
-      Jalangi(targets, timeLimit = Some(60000), noCompare = config.noCompare)(
+      Jalangi(
+        targets,
+        timeLimit = Some(60000),
+        noCompare = config.noCompare,
+        nodeprof = config.nodeprof,
+      )(
         using test262,
       ).test
 
@@ -103,6 +108,11 @@ case object JalangiTest extends Phase[CFG, Unit] {
       BoolOption(_.noCompare = _),
       "do not compare results with expected results.",
     ),
+    (
+      "skip-nodeprof",
+      BoolOption((c, b) => c.nodeprof = !b),
+      "skip NodeProf instrumentation even if NodeProf is available.",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -113,5 +123,6 @@ case object JalangiTest extends Phase[CFG, Unit] {
     var detail: Boolean = false,
     var concurrent: CP = CP.Single,
     var noCompare: Boolean = false,
+    var nodeprof: Boolean = true,
   )
 }

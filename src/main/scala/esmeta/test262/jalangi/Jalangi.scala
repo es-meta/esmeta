@@ -17,6 +17,7 @@ class Jalangi(
   log: Boolean = true,
   timeLimit: Option[Int] = None,
   noCompare: Boolean = false,
+  nodeprof: Boolean = true,
 )(using
   test262: Test262,
 ) { jalangi =>
@@ -79,17 +80,20 @@ class Jalangi(
           printlnIfSingle("==============================================")
           printlnIfSingle(s"Jalangi error output:\n${jalangiErr}")
 
-          val (npOutput, npErr) = Aux.runNodeProf(
+          lazy val (npOutput, npErr) = Aux.runNodeProf(
             wd = TEMP_FILE_BASE,
             analysisPath = ANALYSIS_FILE_PATH_COPIED_TO_TMP,
             testPath = tmpFilePath,
           )
-          lazy val passNodeProf = npOutput == esmetaOutput
+          lazy val passNodeProf =
+            if nodeprof then true else npOutput == esmetaOutput
 
-          printlnIfSingle("======== Diff (esmeta-nodeprof) =======")
-          printlnIfSingle(Diff.get(esmetaOutput, npOutput))
-          printlnIfSingle("=======================================")
-          printlnIfSingle(s"NodeProf error output:\n${npErr}")
+          if (nodeprof) {
+            printlnIfSingle("======== Diff (esmeta-nodeprof) =======")
+            printlnIfSingle(Diff.get(esmetaOutput, npOutput))
+            printlnIfSingle("=======================================")
+            printlnIfSingle(s"NodeProf error output:\n${npErr}")
+          }
 
           // val passNodeProf = true // temporarily disable NodeProf comparison
 

@@ -22,7 +22,7 @@ _esmeta_completions() {
   evalOpt="-eval:timeout -eval:multiple -eval:tycheck -eval:log -eval:detail-log"
   webOpt="-web:host -web:port"
   test262testOpt="-test262-test:target -test262-test:features -test262-test:tycheck -test262-test:progress -test262-test:coverage -test262-test:k-fs -test262-test:cp -test262-test:all-tests -test262-test:timeout -test262-test:with-yet -test262-test:log -test262-test:detail-log -test262-test:concurrent"
-  jalangitestOpt="-jalangi-test:target -jalangi-test:progress -jalangi-test:timeout -jalangi-test:with-yet -jalangi-test:log -jalangi-test:detail-log -jalangi-test:concurrent -jalangi-test:no-compare"
+  jalangitestOpt="-jalangi-test:target -jalangi-test:progress -jalangi-test:timeout -jalangi-test:with-yet -jalangi-test:log -jalangi-test:detail-log -jalangi-test:concurrent -jalangi-test:no-compare -jalangi-test:skip-nodeprof"
   fuzzOpt="-fuzz:tycheck -fuzz:log -fuzz:log-interval -fuzz:out -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:init -fuzz:k-fs -fuzz:cp"
   injectOpt="-inject:defs -inject:out -inject:log"
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
