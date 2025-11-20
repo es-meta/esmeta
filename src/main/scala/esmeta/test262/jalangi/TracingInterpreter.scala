@@ -6,10 +6,11 @@ import java.io.PrintWriter
 import esmeta.cfg.*
 import esmeta.state.*
 
-import esmeta.ir.Name
+import esmeta.ir.*
 import esmeta.ty.*
 import esmeta.es.builtin.INTRINSICS
 import esmeta.error.NotSupported
+import esmeta.util.BaseUtils.raise
 
 class TracingInterpreter(
   st: State,
@@ -28,6 +29,14 @@ class TracingInterpreter(
     logPW = logPW,
     timeLimit = timeLimit,
   ) {
+
+  override def eval(inst: NormalInst): Unit =  inst match 
+    case IPrint(expr) =>
+        val v = eval(expr)
+        v match 
+          case Str(str) => analysis.__print(str)
+          case _ => raise(s"Jalangi Tracing Interpreter: IPrint with non-string value: $v")
+    case _ => super.eval(inst)
 
   lazy val trace = { result; TraceLog(analysis.ts.toVector) }
 

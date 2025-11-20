@@ -17,4 +17,8 @@ class Analysis {
   def getFieldPre(offset: Option[String])(using Set[TraceMode]): Unit = this.synchronized{
     // ts.append(Trace(summon[Set[TraceMode]], s"getFieldPre: ${offset.getOrElse("...")}"))
   }
+
+  def __print(str: String): Unit = this.synchronized {
+    ts.append(Trace(TraceMode.All, str))
+  }
 }

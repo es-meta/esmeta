@@ -8,7 +8,11 @@ def <BUILTIN>:INTRINSICS.print(
     pop x < ArgumentsList
     expand __args__.x
   } else let x = undefined
-  print x
-  call %0 = clo<"NormalCompletion">(undefined)
-  return %0
+  call %0 = clo<"ToString">(x)
+  assert (? %0: Completion)
+  if (? %0: Abrupt) return %0
+  else %0 = %0.Value
+  print %0
+  call %1 = clo<"NormalCompletion">(undefined)
+  return %1
 }
