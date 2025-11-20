@@ -70,15 +70,15 @@ class TracingInterpreter(
 
   override def eval(node: Node): Unit = {
     node.id match
-      case 671 =>
+      case 676 =>
         /*
           @jalangi-hook: read
           89: def GetValue(V: ESValue | Record[ReferenceRecord]): Normal[ESValue] | Abrupt {
           ...
-          671: {
-          let base = V.Base
-          assert (? base: Record[EnvironmentRecord])
-          } -> 672
+          676: {
+            let base = V.Base
+            assert (? base: Record[EnvironmentRecord])
+          } -> 677
          */
         {
           st.context.locals.get(Name("V")) match {
@@ -88,28 +88,30 @@ class TracingInterpreter(
                 st(v.asAddr).get(Str("ReferencedName")) match
                   case Some(value) =>
                     given Set[TraceMode] = readmode(value.asStr) 
+                    println(s"read: ${value.asStr}")
                     analysis.read(value.asStr)
                   case _ =>
               }
           }
         }
-      case 5699 =>
+      case 5704 =>
         /*
         @jalangi-hook: read
         1069: def ResolveThisBinding(): Normal[ESValue] | Throw {
-            5699: call %0 = clo<"GetThisEnvironment">() -> 5700 */
+        5704: call %0 = clo<"GetThisEnvironment">() -> 5705 */
         {
+          println(s"read: this")
           analysis.read("this")(using TraceMode.All)
         }
 
-      case 665 =>
+      case 670 =>
         /*
         @jalangi-hook: getField
         1068: def GetValue(V: ESValue | Record[ReferenceRecord]): Normal[ESValue] | Abrupt {
         ...
-        658: if (! (? V.ReferencedName: Record[Symbol] | String)) then 659 else 665
+        663: if (! (? V.ReferencedName: Record[Symbol] | String)) then 664 else 670
         ...
-        665: call %10 = clo<"GetThisValue">(V) -> 666
+        670: call %10 = clo<"GetThisValue">(V) -> 671
          */
         {
 
@@ -149,42 +151,42 @@ class TracingInterpreter(
               }
           }
         }
-      case 1901 =>
+      case 1906 =>
       /*
       @jalangi-hook: invokeFunPre
         165: def Call(F: ESValue, V: ESValue, argumentsList?: List[ESValue]): Normal[ESValue] | Throw {
-          1901: if (! (exists argumentsList)) then 1902 else 1903
+          1906: if (! (exists argumentsList)) then 1907 else 1908
        */
       // analysis.invokeFunPre(s"???Call ${st.context.locals(Name("F"))}")
-      case 1913 =>
+      case 1918 =>
       /*
         @jalangi-hook: invokeFunPre
         166: def Construct(F: Record[Constructor], argumentsList?: List[ESValue], newTarget?: Record[Constructor]): Normal[Record[Object]] | Throw {
-          1913: if (! (exists newTarget)) then 1914 else 1915
+        1918: if (! (exists newTarget)) then 1919 else 1920
        */
       // analysis.invokeFunPre(s"???Construct ${st.context.locals(Name("F"))}")
-      case 18403 | 18340 =>
+      case 18408 | 18345 =>
         /*
         2077: def <BUILTIN>:INTRINSICS.Object.defineProperty(this: ESValue, ArgumentsList: List[ESValue], NewTarget: Record[Constructor] | Undefined): Unknown {
-          18399: let __args__ = (record)[#823] -> 18400
-          18400: if (< 0 (sizeof ArgumentsList)) then 18401 else 18402
-          18401: {
+          18404: let __args__ = (record)[#823] -> 18405
+          18405: if (< 0 (sizeof ArgumentsList)) then 18406 else 18407
+          18406: {
             pop O < ArgumentsList
             expand __args__.O
-          } -> 18403
-          18402: let O = undefined -> 18403
-          18403: if (< 0 (sizeof ArgumentsList)) then 18404 else 18405
+          } -> 18408
+          18407: let O = undefined -> 18408
+          18408: if (< 0 (sizeof ArgumentsList)) then 18409 else 18410
          */
         /*
           2075: def <BUILTIN>:INTRINSICS.Object.defineProperties(this: ESValue, ArgumentsList: List[ESValue], NewTarget: Record[Constructor] | Undefined): Unknown {
-            18336: let __args__ = (record)[#820] -> 18337
-            18337: if (< 0 (sizeof ArgumentsList)) then 18338 else 18339
-            18338: {
+            18341: let __args__ = (record)[#820] -> 18342
+            18342: if (< 0 (sizeof ArgumentsList)) then 18343 else 18344
+            18343: {
               pop O < ArgumentsList
               expand __args__.O
-            } -> 18340
-            18339: let O = undefined -> 18340
-            18340: if (< 0 (sizeof ArgumentsList)) then 18341 else 18342
+            } -> 18345
+            18344: let O = undefined -> 18345
+            18345: if (< 0 (sizeof ArgumentsList)) then 18346 else 18347
          */
         {
           st.context.locals.get(Name("O")) match {
@@ -200,28 +202,28 @@ class TracingInterpreter(
             case _ =>
           }
         }
-      case 17757 =>
+      case 17762 =>
         /*
         2059: def PerformEval(x: ESValue, strictCaller: Boolean, direct: Boolean): Normal[ESValue] | Throw {
-          17757: assert (yet "If _direct_ is *false*, then _strictCaller_ is also *false*") -> 17758
+          17762: assert (yet "If _direct_ is *false*, then _strictCaller_ is also *false*") -> 17763
          */
         throw NotSupported(
           "Turn off 'eval' for now, cause that makes too many issues.",
         )
-      case 10151 =>
+      case 10156 =>
         /*
         @jalangi-hook: read
         1358: def <SYNTAX>:UnaryExpression[3,0].Evaluation(this: Ast[UnaryExpression[3]]): Unknown {
-          10142: sdo-call %0 = this[0]->Evaluation() -> 10143
-          10143: assert (? %0: Completion) -> 10144
-          10144: if (? %0: Abrupt) then 10145 else 10146
-          10145: return %0
-          10146: %0 = %0.Value -> 10147
-          10147: let val = %0 -> 10148
-          10148: if (? val: Record[ReferenceRecord]) then 10149 else 10153
-          10149: call %1 = clo<"IsUnresolvableReference">(val) -> 10150
-          10150: if (= %1 true) then 10151 else 10153
-          10151: call %2 = clo<"NormalCompletion">("undefined") -> 10152
+          10147: sdo-call %0 = this[0]->Evaluation() -> 10148
+          10148: assert (? %0: Completion) -> 10149
+          10149: if (? %0: Abrupt) then 10150 else 10151
+          10150: return %0
+          10151: %0 = %0.Value -> 10152
+          10152: let val = %0 -> 10153
+          10153: if (? val: Record[ReferenceRecord]) then 10154 else 10158
+          10154: call %1 = clo<"IsUnresolvableReference">(val) -> 10155
+          10155: if (= %1 true) then 10156 else 10158
+          10156: call %2 = clo<"NormalCompletion">("undefined") -> 10157
          */
         {
           st.context.locals.get(Name("val")) match {
@@ -231,6 +233,7 @@ class TracingInterpreter(
                 st(v.asAddr).get(Str("ReferencedName")) match
                   case Some(value) =>
                     given Set[TraceMode] = readmode(value.asStr)
+                    println(s"read: ${value.asStr}")
                     analysis.read(value.asStr)
                   case _ =>
               }
