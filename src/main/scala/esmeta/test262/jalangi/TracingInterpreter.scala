@@ -89,7 +89,6 @@ class TracingInterpreter(
                 st(v.asAddr).get(Str("ReferencedName")) match
                   case Some(value) =>
                     given Set[TraceMode] = readmode(value.asStr)
-                    println(s"read: ${value.asStr}")
                     analysis.read(value.asStr)
                   case _ =>
               }
@@ -101,7 +100,6 @@ class TracingInterpreter(
         1069: def ResolveThisBinding(): Normal[ESValue] | Throw {
         5704: call %0 = clo<"GetThisEnvironment">() -> 5705 */
         {
-          println(s"read: this")
           analysis.read("this")(using TraceMode.All)
         }
 
@@ -234,7 +232,6 @@ class TracingInterpreter(
                 st(v.asAddr).get(Str("ReferencedName")) match
                   case Some(value) =>
                     given Set[TraceMode] = readmode(value.asStr)
-                    println(s"read: ${value.asStr}")
                     analysis.read(value.asStr)
                   case _ =>
               }
