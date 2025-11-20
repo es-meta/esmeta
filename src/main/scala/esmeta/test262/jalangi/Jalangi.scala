@@ -66,17 +66,17 @@ class Jalangi(
             case _                 => ()
 
           // run Traced Interpreter first, so not supported features can be caught
-          val esmetaOutput = Aux.runESMetaInterp(code, ast, timeLimit)
+          val (esmetaOutputForJalangi, esmetaOutputForNodeProf) = Aux.runESMetaInterp(code, ast, timeLimit)
 
           Aux.runNodeJs(tmpFilePath) match
             case false => throw NotSupported("Does not pass Node.js")
             case true  => ()
 
           val (jalangiOutput, jalangiErr) = Aux.runJalangi(tmpFilePath)
-          lazy val passJalangi = jalangiOutput == esmetaOutput
+          lazy val passJalangi = jalangiOutput == esmetaOutputForJalangi
 
           printlnIfSingle("============ Diff (esmeta-jalangi) ===========")
-          printlnIfSingle(Diff.get(esmetaOutput, jalangiOutput))
+          printlnIfSingle(Diff.get(esmetaOutputForJalangi, jalangiOutput))
           printlnIfSingle("==============================================")
           printlnIfSingle(s"Jalangi error output:\n${jalangiErr}")
 
@@ -85,11 +85,11 @@ class Jalangi(
             testPath = tmpFilePath,
           )
           lazy val passNodeProf =
-            if nodeprof then npOutput == esmetaOutput else true
+            if nodeprof then npOutput == esmetaOutputForNodeProf else true
 
           if (nodeprof) {
             printlnIfSingle("======== Diff (esmeta-nodeprof) =======")
-            printlnIfSingle(Diff.get(esmetaOutput, npOutput))
+            printlnIfSingle(Diff.get(esmetaOutputForNodeProf, npOutput))
             printlnIfSingle("=======================================")
             printlnIfSingle(s"NodeProf error output:\n${npErr}")
           }
@@ -291,29 +291,25 @@ class Jalangi(
       code: String,
       ast: Ast,
       timeLimit: Option[Int],
-    )(using test262: Test262): String = {
+    )(using test262: Test262): (String, String) = {
       // printlnIfSingle(s"Jalangi output:\n${str}")
 
-      val byteStream = new java.io.ByteArrayOutputStream()
-      val outputStream = new java.io.PrintStream(byteStream)
+      // val byteStream = new java.io.ByteArrayOutputStream()
+      // val outputStream = new java.io.PrintStream(byteStream)
 
       // printlnIfSingle("Running Traced Interpreter...")
 
-      Console.withOut(outputStream) {
-        TracedInterpreter(
+      val t = TracingInterpreter(
           test262.cfg.init.from(code, ast),
           timeLimit = timeLimit,
-          analysis = new JalangiAnalysis(),
-        ).result
-      }
+          analysis = new Analysis(),
+      ).trace
 
       // printlnIfSingle("Finished Traced Interpreter.")
 
-      val output = { outputStream.close(); byteStream.toString() }
-
       // printlnIfSingle(s"Traced Interpreter output:\n${output}")
 
-      output
+      (t.sanitizedForJalangi.toString, t.sanitizedForNodeProf.toString)
     }
 
     def runJalangi(tmpFilePath: String): (String, String) = {

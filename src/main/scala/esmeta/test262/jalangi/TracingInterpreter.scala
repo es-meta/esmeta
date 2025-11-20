@@ -3,24 +3,17 @@ package esmeta.test262.jalangi
 import esmeta.interpreter.Interpreter
 import esmeta.state.State
 import java.io.PrintWriter
-import esmeta.cfg.Node
-import esmeta.cfg.Block
-import esmeta.cfg.Call
-import esmeta.cfg.Branch
-import esmeta.state.Cursor
-import esmeta.state.NodeCursor
-import esmeta.state.ExitCursor
-import esmeta.state.Value
+import esmeta.cfg.*
+import esmeta.state.*
 
 import esmeta.ir.Name
 import esmeta.ty.*
-import esmeta.state.*
 import esmeta.es.builtin.INTRINSICS
 import esmeta.error.NotSupported
 
-class TracedInterpreter(
+class TracingInterpreter(
   st: State,
-  analysis: JalangiAnalysis,
+  analysis: Analysis,
   log: Boolean = false,
   detail: Boolean = true, // turn off GC
   logPW: Option[PrintWriter] = None,
@@ -36,13 +29,35 @@ class TracedInterpreter(
     timeLimit = timeLimit,
   ) {
 
-  val JALANGI_READ_EXCLUDE_VARIABLES = Set(
-    "undefined",
-    "Infinity",
-    "NaN",
-    "null",
-    "eval", // eval()
-  )
+  lazy val trace = { result; TraceLog(analysis.ts.toVector) }
+
+  lazy val readmode =
+    val jalangiExclue = Set(
+                "undefined",
+                "Infinity",
+                "NaN",
+                "null",
+                "eval", // eval()
+              )
+    val nodeProfExclude =
+              Set(
+                "undefined",
+                "null",
+                "eval", // eval()
+              )
+    (str: String) => {
+      lazy val isJalangiRead =
+        !jalangiExclue.contains(str)
+      lazy val isNodeProfRead =
+        !nodeProfExclude.contains(str)
+      (isJalangiRead, isNodeProfRead) match
+        case (true, false)  => TraceMode.Jalangi.singleton
+        case (false, true)  => TraceMode.NodeProf.singleton
+        case (true, true)   => TraceMode.All
+        case (false, false) => TraceMode.Empty
+    }
+
+  
 
   override def eval(node: Node): Unit = {
     node.id match
@@ -62,10 +77,8 @@ class TracedInterpreter(
             case Some(v) =>
               if (v.isAddr) {
                 st(v.asAddr).get(Str("ReferencedName")) match
-                  case Some(value)
-                      if !JALANGI_READ_EXCLUDE_VARIABLES.contains(
-                        value.asStr,
-                      ) =>
+                  case Some(value) =>
+                    given Set[TraceMode] = readmode(value.asStr) 
                     analysis.read(value.asStr)
                   case _ =>
               }
@@ -77,7 +90,7 @@ class TracedInterpreter(
         1069: def ResolveThisBinding(): Normal[ESValue] | Throw {
             5699: call %0 = clo<"GetThisEnvironment">() -> 5700 */
         {
-          analysis.read("this")
+          analysis.read("this")(using TraceMode.All)
         }
 
       case 665 =>
@@ -121,6 +134,7 @@ class TracedInterpreter(
                       // case addr: Addr => Some(st(addr).toString)
                       // case v          => Some(v.toString)
                       case _ => None
+                    given Set[TraceMode] = readmode(offset.getOrElse(""))
                     analysis.getField(offset)
                   case _ =>
               }
@@ -206,10 +220,8 @@ class TracedInterpreter(
             case Some(v) =>
               if (v.isAddr) {
                 st(v.asAddr).get(Str("ReferencedName")) match
-                  case Some(value)
-                      if !JALANGI_READ_EXCLUDE_VARIABLES.contains(
-                        value.asStr,
-                      ) =>
+                  case Some(value) =>
+                    given Set[TraceMode] = readmode(value.asStr)
                     analysis.read(value.asStr)
                   case _ =>
               }
