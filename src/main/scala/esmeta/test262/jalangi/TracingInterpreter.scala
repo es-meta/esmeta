@@ -30,30 +30,33 @@ class TracingInterpreter(
     timeLimit = timeLimit,
   ) {
 
-  override def eval(inst: NormalInst): Unit =  inst match 
+  override def eval(inst: NormalInst): Unit = inst match
     case IPrint(expr) =>
-        val v = eval(expr)
-        v match 
-          case Str(str) => analysis.__print(str)
-          case _ => raise(s"Jalangi Tracing Interpreter: IPrint with non-string value: $v")
+      val v = eval(expr)
+      v match
+        case Str(str) => analysis.__print(str)
+        case _ =>
+          raise(
+            s"Jalangi Tracing Interpreter: IPrint with non-string value: $v",
+          )
     case _ => super.eval(inst)
 
   lazy val trace = { result; TraceLog(analysis.ts.toVector) }
 
   lazy val readmode =
     val jalangiExclue = Set(
-                "undefined",
-                "Infinity",
-                "NaN",
-                "null",
-                "eval", // eval()
-              )
+      "undefined",
+      "Infinity",
+      "NaN",
+      "null",
+      "eval", // eval()
+    )
     val nodeProfExclude =
-              Set(
-                "undefined",
-                "null",
-                "eval", // eval()
-              )
+      Set(
+        "undefined",
+        "null",
+        "eval", // eval()
+      )
     (str: String) => {
       lazy val isJalangiRead =
         !jalangiExclue.contains(str)
@@ -65,8 +68,6 @@ class TracingInterpreter(
         case (true, true)   => TraceMode.All
         case (false, false) => TraceMode.Empty
     }
-
-  
 
   override def eval(node: Node): Unit = {
     node.id match
@@ -87,7 +88,7 @@ class TracingInterpreter(
               if (v.isAddr) {
                 st(v.asAddr).get(Str("ReferencedName")) match
                   case Some(value) =>
-                    given Set[TraceMode] = readmode(value.asStr) 
+                    given Set[TraceMode] = readmode(value.asStr)
                     println(s"read: ${value.asStr}")
                     analysis.read(value.asStr)
                   case _ =>

@@ -66,7 +66,8 @@ class Jalangi(
             case _                 => ()
 
           // run Traced Interpreter first, so not supported features can be caught
-          val (esmetaOutputForJalangi, esmetaOutputForNodeProf) = Aux.runESMetaInterp(code, ast, timeLimit)
+          val (esmetaOutputForJalangi, esmetaOutputForNodeProf) =
+            Aux.runESMetaInterp(code, ast, timeLimit)
 
           Aux.runNodeJs(tmpFilePath) match
             case false => throw NotSupported("Does not pass Node.js")
@@ -300,9 +301,9 @@ class Jalangi(
       // printlnIfSingle("Running Traced Interpreter...")
 
       val t = TracingInterpreter(
-          test262.cfg.init.from(code, ast),
-          timeLimit = timeLimit,
-          analysis = new Analysis(),
+        test262.cfg.init.from(code, ast),
+        timeLimit = timeLimit,
+        analysis = new Analysis(),
       ).trace
 
       // printlnIfSingle("Finished Traced Interpreter.")
