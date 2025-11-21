@@ -891,8 +891,9 @@ class Compiler(
         val c = tys.map(t => ETypeCheck(e, compile(t))).reduce[Expr](or(_, _))
         if (neg) not(c) else c
       case HasFieldCondition(ref, neg, field, _, tyOpt) =>
+        val r = compile(fb, ref)
         val el = field.map { f =>
-          val e = toRef(compile(fb, ref), compile(fb, f))
+          val e = toRef(r, compile(fb, f))
           val ex = exists(e)
           val tc = tyOpt.fold(ex)(t => and(ex, ETypeCheck(ERef(e), compile(t))))
           if (neg) not(tc) else tc

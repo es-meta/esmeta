@@ -706,9 +706,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (field.length > 1)
           given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
           app >> field >> " "
-        else
-          app >> field.head.toString.indefArticle
-          app >> " " >> field.head >> " "
+        else app >> field.head.toString.withIndefArticle >> " "
         import HasFieldConditionForm.*
         app >> (form match {
           case Field          => "field"

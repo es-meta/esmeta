@@ -261,7 +261,7 @@ object BaseUtils {
       case _         => str.dropRight(2).toInt,
     )
     def indefArticle: String =
-      val word = str.trim.split("\\W+").find(_.nonEmpty).getOrElse("")
+      val word = str.trim.split("[^a-zA-Z0-9]+").find(_.nonEmpty).getOrElse("")
       if (WORDS_FOR_A.contains(word)) "a"
       else
         word.headOption.fold("") { c =>

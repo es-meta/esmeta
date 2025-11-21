@@ -406,7 +406,7 @@ class CaseCollector extends UnitWalker {
           case HasFieldConditionForm.InternalMethod => "internal method"
           case HasFieldConditionForm.InternalSlot   => "internal slot"
         val post = tyOpt.fold("")(_ => " whose value is {{ ty }}")
-        if (field.length > 1) s"{{ ref }} $h {{ field }}* $f$post"
+        if (field.length > 1) s"{{ ref }} $h {{ field }}* ${f}s$post"
         else s"{{ ref }} $h a {{ field }} $f$post"
       case HasBindingCondition(ref, neg, binding) =>
         val h = if (neg) "does not have" else "has"
