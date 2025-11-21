@@ -984,17 +984,16 @@ trait Parsers extends IndentParsers {
   // field inclusion conditions
   lazy val hasFieldCond: PL[HasFieldCondition] =
     lazy val field =
-      indefArticle ~> expr ^^ { List(_) } |
-      (expr <~ "and") ~ expr ^^ { case f1 ~ f2 => List(f1, f2) }
+      indefArticle ~> expr ^^ { List(_) } | repsep(expr, sep("and"))
 
     import HasFieldConditionForm.*
     lazy val form =
       "field" ^^^ Field |
       "internal method" ^^^ InternalMethod |
-      ("internal slots" | "internal slot") ^^^ InternalSlot
+      "internal slot" ^^^ InternalSlot
 
     lazy val fieldType = opt("whose value is" ~ indefArticle ~> langType)
-    (ref <~ opt("also")) ~ hasNeg ~ field ~ form ~ fieldType ^^ {
+    (ref <~ opt("also")) ~ hasNeg ~ field ~ (form <~ opt("s")) ~ fieldType ^^ {
       case r ~ n ~ f ~ m ~ t => HasFieldCondition(r, n, f, m, t)
     }
 
