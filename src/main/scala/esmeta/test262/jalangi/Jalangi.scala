@@ -228,8 +228,12 @@ class Jalangi(
       (exitcode == 0, str, err)
     }
 
-    val BOOTSTRAP_NODE_JS: String =
+    lazy val BOOTSTRAP_NODE_JS: String =
       s"${sys.env.getOrElse("ESMETA_HOME", throw new RuntimeException("ESMETA_HOME not set"))}/bootstrap-node.js"
+    
+    lazy val BOOTSTRAP_NODE_JS_COPIED: String = {
+      ???
+    }
 
     def runNodeJs(
       testpath: String,
@@ -239,6 +243,19 @@ class Jalangi(
       )
       exitcode == 0
       // if it doesn't pass node.js, it is not worth to run Jalangi
+    }
+
+    def runGraalNodeJs(
+      testpath: String,
+    ): Boolean = {
+      ???
+      // val (exitcode, _, _) = executeCmdNonZero(
+      //   s"""
+      //   $ALIAS_DECL;
+      //   nodeprof node --require $BOOTSTRAP_NODE_JS_COPIED $testpath""",
+      // )
+      // exitcode == 0
+      // // if it doesn't pass node.js, it is not worth to run Jalangi
     }
 
     /** @param wd
@@ -341,5 +358,7 @@ class Jalangi(
         }
       (str, err)
     }
+
+    lazy val ALIAS_DECL = "alias nodeprof='docker run --rm -v $(pwd):/works/nodeprof.js/input ghcr.io/stonechoe/nodeprof:latest'"
   }
 }
