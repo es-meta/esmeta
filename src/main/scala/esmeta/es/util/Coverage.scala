@@ -458,14 +458,15 @@ object Coverage {
     var touchedCondViews: Map[CondView, CondInfo] = Map()
     var supported = true
 
+    def isTest262Test: Boolean = initSt.filename.exists(_.contains("test262"))
+
     // override eval for cursor
-    override def eval(cursor: Cursor): Boolean =
-      cursor match
-        case NodeCursor(_, node, _) =>
-          st.context.visited += node
-          try { eval(node); true }
-          catch { case _: NotSupported => supported = false; false }
-        case _: ExitCursor => super.eval(cursor)
+    override def eval(cursor: Cursor): Boolean = cursor match
+      case NodeCursor(_, node, _) if !isTest262Test =>
+        st.context.visited += node
+        try { eval(node); true }
+        catch { case _: NotSupported => supported = false; false }
+      case _ => super.eval(cursor)
 
     // override eval for node
     override def eval(node: Node): Unit =
