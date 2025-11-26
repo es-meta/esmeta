@@ -2,6 +2,12 @@
   // mathematical values
   assert (= (min 1 2 3) 1)
   assert (= (min 3.2 2.4 3.3) 2.4)
+  assert (= (min -INF 0 1) -INF)
+  assert (= (min +INF 0 1) 0)
+  assert (= (min +INF +INF +INF) +INF)
   assert (= (max 1 2 3) 3)
   assert (= (max 3.2 2.4 3.3) 3.3)
+  assert (= (max -INF 0 1) 1)
+  assert (= (max +INF 0 1) +INF)
+  assert (= (max -INF -INF -INF) -INF)
 }
