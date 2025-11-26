@@ -678,9 +678,8 @@ object Interpreter {
         else {
           val filtered = vs.filter(_ != NEG_INF)
           if (filtered.isEmpty) NEG_INF
-          else vopEval(_.asMath, _ min _, Math(_), filtered)
+          else vopEval(_.asMath, _ max _, Math(_), filtered)
         }
-        vopEval(_.asMath, _ max _, Math(_), vs)
       case Concat =>
         def toString(v: Value): String = v match
           case Str(s)      => s
