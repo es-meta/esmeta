@@ -10,9 +10,24 @@ import esmeta.lang.util.{UnitWalker => LangUnitWalker}
 object PolyfillGenerator {
   def apply(spec: Spec): List[Polyfill] = new PolyfillGenerator(spec).result
 
-  val defaultTargets = List()
+  val defaultTargets = List(
+    "INTRINSICS.Array.prototype.",
+  )
 
-  val ignoreTargets = List()
+  val ignoreTargets = List(
+    "INTRINSICS.Array.prototype.concat",
+    "INTRINSICS.Array.prototype.join",
+    "INTRINSICS.Array.prototype.pop",
+    "INTRINSICS.Array.prototype.push",
+    "INTRINSICS.Array.prototype.reverse",
+    "INTRINSICS.Array.prototype.shift",
+    "INTRINSICS.Array.prototype.slice",
+    "INTRINSICS.Array.prototype.sort",
+    "INTRINSICS.Array.prototype.splice",
+    "INTRINSICS.Array.prototype.toLocaleString",
+    "INTRINSICS.Array.prototype.toString",
+    "INTRINSICS.Array.prototype.unshift",
+  )
 }
 
 /** extensible helper of polyfill generator */
@@ -108,7 +123,7 @@ class PolyfillGenerator(spec: Spec) {
     case LetStep(x, expr) =>
       pb.addStmt(NormalStmt(s"var ${compile(x)} = ${compile(pb, expr)};"))
     case SetStep(x, expr) =>
-      pb.addStmt(NormalStmt(s"${compile(x)} = ${compile(pb, expr)};"))
+      pb.addStmt(NormalStmt(s"${compile(pb, x)} = ${compile(pb, expr)};"))
     case SetAsStep(x, verb, id)                   => ???
     case SetEvaluationStateStep(base, func, args) => ???
     case PerformStep(expr) =>
@@ -116,8 +131,14 @@ class PolyfillGenerator(spec: Spec) {
     case InvokeShorthandStep(x, a) =>
       pb.addStmt(NormalStmt(s"$x(${compile(pb, a)});"))
     case AppendStep(expr, ref) =>
-      pb.addStmt(NormalStmt(s"Append(${compile(pb, expr)}, ${compile(ref)})"))
-    case PrependStep(expr, ref)     => ???
+      pb.addStmt(
+        NormalStmt(s"Append(${compile(pb, ref)}, ${compile(pb, expr)})"),
+      )
+    case InsertStep(expr, ref) => ???
+    case PrependStep(expr, ref) =>
+      pb.addStmt(
+        NormalStmt(s"Prepend(${compile(pb, ref)}, ${compile(pb, expr)})"),
+      )
     case AddStep(expr, ref)         => ???
     case RemoveStep(t, p, l)        => ???
     case PushContextStep(ref)       => ???
@@ -163,8 +184,7 @@ class PolyfillGenerator(spec: Spec) {
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(pb, substep.step)
     case YetStep(expr) =>
-      println(compile(pb, expr))
-      ???
+      pb.addStmt(NormalStmt(s"throw new Error(\"YET: ${compile(pb, expr)}\");"))
     case SetFieldsWithIntrinsicsStep(ref, desc) => ???
     case PerformBlockStep(b, d)                 => ???
   }
@@ -173,27 +193,24 @@ class PolyfillGenerator(spec: Spec) {
   def compile(x: Variable): String = x.name
 
   /** compile references */
-  def compile(ref: Reference): String = ref match {
-    case x: Variable               => compile(x)
-    case RunningExecutionContext() => ???
-    case SecondExecutionContext()  => ???
-    case CurrentRealmRecord()      => ???
-    case ActiveFunctionObject()    => ???
-    case ref: PropertyReference    => compile(ref)
-    case AgentRecord()             => ???
+  def compile(pb: PolyfillBuilder, ref: Reference): String = ref match {
+    case x: Variable                => compile(x)
+    case Access(base, name, _, _)   => s"${compile(pb, base)}[\"$name\"]"
+    case ValueOf(base)              => ???
+    case IntrinsicField(base, intr) => ???
+    case IndexLookup(base, index) =>
+      s"${compile(pb, base)}[\"${compile(pb, index)}\"]"
+    case BindingLookup(base, binding)     => ???
+    case NonterminalLookup(base, nt)      => ???
+    case PositionalElement(base, true)    => ???
+    case PositionalElement(base, isFirst) => ???
+    case IntrinsicObject(base, expr)      => ???
+    case RunningExecutionContext()        => ???
+    case SecondExecutionContext()         => ???
+    case CurrentRealmRecord()             => ???
+    case ActiveFunctionObject()           => ???
+    case AgentRecord()                    => ???
   }
-
-  /** compile property references */
-  def compile(ref: PropertyReference): String =
-    val PropertyReference(base, prop) = ref
-    val baseRef = compile(base)
-    prop match
-      case FieldProperty(name)       => s"$baseRef['$name']"
-      case ComponentProperty(name)   => ???
-      case BindingProperty(expr)     => ???
-      case IndexProperty(index)      => s"$baseRef[$index]"
-      case IntrinsicProperty(intr)   => ???
-      case NonterminalProperty(name) => ???
 
   /** compile expressions */
   def compile(pb: PolyfillBuilder, expr: Expression): String = expr match {
@@ -207,39 +224,59 @@ class PolyfillGenerator(spec: Spec) {
         .mkString(" + ")
     case ListConcatExpression(es) => ???
     case ListCopyExpression(expr) => ???
-    case RecordExpression(rawName, fields) =>
+    case RecordExpression(rawName, fields, form) =>
       s"{${fields.map((fieldLit, fieldExpr) => s"'${fieldLit.name}': ${compile(pb, fieldExpr)}").mkString(", ")}}"
-    case LengthExpression(ReferenceExpression(ref)) => s"${compile(ref)}.length"
-    case LengthExpression(expr)                     => ???
+    case LengthExpression(ReferenceExpression(ref)) =>
+      s"${compile(pb, ref)}.length"
+    case LengthExpression(expr) => ???
+    case StringExpression(str)  => s"'$str'"
     case SubstringExpression(expr, from, to) =>
       s"SubString(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
     case TrimExpression(expr, leading, trailing) => ???
-    case NumberOfExpression(_, _, ReferenceExpression(ref)) =>
-      s"${compile(ref)}.length"
-    case NumberOfExpression(_, _, expr) => ???
+    case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
+      s"${compile(pb, ref)}.length"
+    case NumberOfExpression(_, _, expr, _) => ???
     case IntrinsicExpression(intr) =>
       s"${intr.base}.${intr.props.mkString(".")}"
     case SourceTextExpression(expr)      => ???
     case CoveredByExpression(code, rule) => ???
-    case GetItemsExpression(nt, expr @ NonterminalLiteral(_, name, flags)) =>
+    case GetItemsExpression(nt, expr @ NonterminalLiteral(_, _, _, _)) =>
       ???
     case expr: GetItemsExpression => ???
-    case InvokeAbstractOperationExpression(name, args) =>
+    case InvokeAbstractOperationExpression(name, args, tag) =>
       s"ABS__$name(${compile(pb, args)})"
     case InvokeNumericMethodExpression(ty, name, args) =>
       s"NUM__$name(${compile(pb, args)})"
-    case InvokeAbstractClosureExpression(ref, args)                => ???
-    case InvokeMethodExpression(ref, args)                         => ???
-    case InvokeSyntaxDirectedOperationExpression(base, name, args) => ???
-    case ReturnIfAbruptExpression(expr, _) => compile(pb, expr)
-    case ListExpression(entries)           => s"[${compile(pb, entries)}]"
-    case IntListExpression(from, fInc, to, tInc, asc) => ???
-    case YetExpression(str, block) =>
-      println(s"YET: $str")
+    case InvokeAbstractClosureExpression(ref, args) => ???
+    case InvokeMethodExpression(ref, args, tag)     => ???
+    case InvokeSyntaxDirectedOperationExpression(
+          base,
+          name,
+          args,
+          prefix,
+          tag,
+        ) =>
       ???
-    case ReferenceExpression(ref)     => compile(ref)
+    case ReturnIfAbruptExpression(expr, _) => compile(pb, expr)
+    case ListExpression(form) =>
+      import ListExpressionForm.*
+      form match
+        case LiteralSyntax(entries)         => s"[${compile(pb, entries)}]"
+        case SoleElement(entry)             => s"[${compile(pb, entry)}]"
+        case EmptyList(isNewUsed, typeDesc) => "[]"
+        case IntRange(
+              from,
+              isFromInclusive,
+              to,
+              isToInclusive,
+              isAscending,
+            ) =>
+          ???
+    case YetExpression(str, block) =>
+      str.replace('"', ' ')
+    case ReferenceExpression(ref)     => compile(pb, ref)
     case MathFuncExpression(op, args) => s"${compile(op)}(${compile(pb, args)})"
-    case ConversionExpression(op, expr) => compile(pb, expr)
+    case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
       s"pow(${compile(pb, base)}, ${compile(pb, power)})"
     case BinaryExpression(left, op, right) =>
@@ -251,10 +288,8 @@ class PolyfillGenerator(spec: Spec) {
     case BitwiseExpression(left, op, right) => ???
     case AbstractClosureExpression(params, captured, body) =>
       s"function(${params.map(compile).mkString(", ")}) ${compileWithScope(pb, body)}"
-    case XRefExpression(XRefExpressionOperator.Algo, id)          => ???
-    case XRefExpression(XRefExpressionOperator.ParamLength, id)   => ???
-    case XRefExpression(XRefExpressionOperator.InternalSlots, id) => ???
-    case SoleElementExpression(list)                              => ???
+    case XRefExpression(op, id)      => ???
+    case SoleElementExpression(list) => ???
     case CodeUnitAtExpression(base, index) =>
       s"${compile(pb, base)}['${compile(pb, index)}']"
     case lit: Literal => compile(lit)
@@ -309,7 +344,7 @@ class PolyfillGenerator(spec: Spec) {
         .map(_.normalizedName.toLowerCase())
         .map(tyStr => s"typeof $compiledExpr === '$tyStr'")
         .reduce((l, r) => s"($l || $r)")
-    case HasFieldCondition(ref, neg, field)        => ???
+    case HasFieldCondition(ref, neg, field, form)  => ???
     case HasBindingCondition(ref, neg, binding)    => ???
     case ProductionCondition(nt, lhsName, rhsName) => ???
     case PredicateCondition(expr, neg, op) =>
@@ -362,14 +397,14 @@ class PolyfillGenerator(spec: Spec) {
         case GreaterThanEqual => s"$l >= $r"
         case SameCodeUnits    => ???
       }
-    case InclusiveIntervalCondition(left, neg, from, to) =>
+    case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)
       val e = s"($l >= ${compile(pb, from)} && $l <= ${compile(pb, to)})"
       (if (neg) s"!" else "") + e
-    case ContainsCondition(list, neg, target) =>
-      println(list)
-      println(target)
-      ???
+    case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
+      val c = s"Contains(${compile(pb, list)}, ${compile(pb, target)})"
+      (if (neg) s"!" else "") + c
+    case ContainsCondition(list, neg, _) => ???
     case CompoundCondition(left, op, right) =>
       import CompoundConditionOperator.*
       lazy val l = compile(pb, left)
@@ -382,35 +417,37 @@ class PolyfillGenerator(spec: Spec) {
 
   def compile(lit: Literal): String =
     lit match {
-      case _: ThisLiteral                           => "this"
-      case _: NewTargetLiteral                      => ???
-      case HexLiteral(hex, name)                    => s"0x${hex.toHexString}"
-      case CodeLiteral(code)                        => ???
-      case GrammarSymbolLiteral(name, flags)        => ???
-      case NonterminalLiteral(ordinal, name, flags) => ???
-      case EnumLiteral(name)                        => s"'$name'"
-      case StringLiteral(str)                       => s"'$str'"
-      case FieldLiteral(name)                       => s"'$name'"
-      case SymbolLiteral(sym)                       => s"Symbol.$sym"
-      case ProductionLiteral(lhs, rhs)              => ???
-      case ErrorObjectLiteral(name)                 => name
-      case _: PositiveInfinityMathValueLiteral      => "Infinity"
-      case _: NegativeInfinityMathValueLiteral      => "-Infinity"
-      case DecimalMathValueLiteral(n)               => s"$n"
-      case MathConstantLiteral(pre, name)           => ???
-      case NumberLiteral(n)                         => s"$n"
-      case BigIntLiteral(n)                         => s"${n}n"
-      case _: TrueLiteral                           => "true"
-      case _: FalseLiteral                          => "false"
-      case _: UndefinedLiteral                      => "undefined"
-      case _: NullLiteral                           => "null"
-      case _: UndefinedTypeLiteral                  => ???
-      case _: NullTypeLiteral                       => ???
-      case _: BooleanTypeLiteral                    => ???
-      case _: StringTypeLiteral                     => ???
-      case _: SymbolTypeLiteral                     => ???
-      case _: NumberTypeLiteral                     => ???
-      case _: BigIntTypeLiteral                     => ???
-      case _: ObjectTypeLiteral                     => ???
+      case _: ThisLiteral          => "this"
+      case _: ThisParseNodeLiteral => ???
+      case _: NewTargetLiteral     => ???
+      case HexLiteral(hex, hasCodeUnitDescription, isUnicodePrefix, name) =>
+        s"0x${hex.toHexString}"
+      case CodeLiteral(code)                                    => ???
+      case GrammarSymbolLiteral(name, flags)                    => ???
+      case NonterminalLiteral(ordinal, name, flags, hasArticle) => ???
+      case EnumLiteral(name)                                    => s"'$name'"
+      case StringLiteral(str, _)                                => s"'$str'"
+      case FieldLiteral(name)                                   => s"'$name'"
+      case SymbolLiteral(sym)                  => s"Symbol.$sym"
+      case ProductionLiteral(lhs, rhs)         => ???
+      case ErrorObjectLiteral(name)            => name
+      case _: PositiveInfinityMathValueLiteral => "Infinity"
+      case _: NegativeInfinityMathValueLiteral => "-Infinity"
+      case DecimalMathValueLiteral(n)          => s"$n"
+      case MathConstantLiteral(pre, name)      => ???
+      case NumberLiteral(n)                    => s"$n"
+      case BigIntLiteral(n)                    => s"${n}n"
+      case _: TrueLiteral                      => "true"
+      case _: FalseLiteral                     => "false"
+      case _: UndefinedLiteral                 => "undefined"
+      case _: NullLiteral                      => "null"
+      case _: UndefinedTypeLiteral             => ???
+      case _: NullTypeLiteral                  => ???
+      case _: BooleanTypeLiteral               => ???
+      case _: StringTypeLiteral                => ???
+      case _: SymbolTypeLiteral                => ???
+      case _: NumberTypeLiteral                => ???
+      case _: BigIntTypeLiteral                => ???
+      case _: ObjectTypeLiteral                => ???
     }
 }
