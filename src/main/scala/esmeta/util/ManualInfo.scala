@@ -40,11 +40,11 @@ object ManualInfo {
 
   /** type model */
   lazy val tyModel: TyModel =
-    TyModel.fromFile(s"$MANUALS_DIR/types")
+    TyModel.from(esmeta.BuildInfo.tyModel)
 
   /** intrinsics */
   lazy val intrinsics: Intrinsics =
-    Intrinsics.fromFile(s"$MANUALS_DIR/intrinsics")
+    Intrinsics.from(esmeta.BuildInfo.intrinsics)
 
   /** get test262 manual configuration */
   lazy val test262Config: ManualConfig = ManualConfig(

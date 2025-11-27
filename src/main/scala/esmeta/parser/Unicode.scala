@@ -7,8 +7,8 @@ import io.circe.*, io.circe.syntax.*, io.circe.parser.*
 object Unicode {
   val RECENT_VERSION = "17.0.0"
 
-  lazy val IDStart = get("ID_Start")
-  lazy val IDContinue = get("ID_Continue")
+  lazy val IDStart = getFromContent(esmeta.BuildInfo.idStart)
+  lazy val IDContinue = getFromContent(esmeta.BuildInfo.idContinue)
 
   /** unicode set getter
     *
@@ -17,6 +17,10 @@ object Unicode {
   def get(property: String, version: String = RECENT_VERSION): Set[Int] =
     val filename = s"$UNICODE_DIR/${property}_$version.json"
     val elems = readJson[List[Elem]](filename)
+    elems.flatMap(decode).toSet
+
+  def getFromContent(content: String): Set[Int] =
+    val elems = readJsonContent[List[Elem]](content)
     elems.flatMap(decode).toSet
 
   /** compressed unicode set elements */

@@ -10,7 +10,6 @@ import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.Git
 import esmeta.util.HtmlUtils.*
-import org.jsoup.nodes.Document
 
 /** ECMAScript specifications (ECMA-262) */
 case class Spec(
@@ -21,9 +20,6 @@ case class Spec(
   tyModel: TyModel = TyModel(), // type models
   intrinsics: Intrinsics = Intrinsics(), // intrinsics
 ) extends SpecElem {
-
-  /** HTML Document element */
-  var document: Document = Document("")
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = ESParser(grammar)
@@ -103,9 +99,7 @@ case class Spec(
 
   /** get an algorithm by id attribute */
   def getAlgoById(id: String): Algorithm =
-    algorithms.find(_.elem.getId == id) match
-      case Some(algo) => algo
-      case None       => raise(s"no algorithms found for $id")
+    ???
 
   /** empty check */
   def isEmpty: Boolean =

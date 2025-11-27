@@ -60,7 +60,6 @@ class Extractor(
       tyModel = tyModel,
       intrinsics = intrinsics,
     )
-    spec.document = document
     spec
 
   /** ECMAScript grammar */
@@ -116,21 +115,7 @@ class Extractor(
 
   /** extracts an algorithm */
   def extractAlgorithm(elem: Element): List[Algorithm] =
-    val parent = elem.parent
-    val instancePattern = "INTRINSICS.(\\w+).*".r
-    for {
-      (head, headParent) <- extractHeads(elem)
-      parent = elem.parent
-      baseCode = elem.html.unescapeHtml
-      code = (getTemplateName(parent), head.fname) match
-        case (Some(name), instancePattern(x)) =>
-          baseCode.replaceAll("<var>" + name + "</var>", x)
-        case _ => baseCode
-      body = parser.parseBy(parser.step)(code)
-      algo = Algorithm(head, body, code)
-      _ = algo.elem = elem
-      _ = algo.headElem = headParent.getFirstChildElem
-    } yield algo
+    ???
 
   /** TODO ignores elements whose parents' ids are in this list */
   val IGNORE_ALGO_PARENT_IDS = Set(

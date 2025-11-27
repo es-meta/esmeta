@@ -27,7 +27,6 @@ class Interpreter(
   val tyCheck: Boolean = false,
   val log: Boolean = false,
   val detail: Boolean = false,
-  val logPW: Option[PrintWriter] = None,
   val timeLimit: Option[Int] = None,
 ) {
   import Interpreter.*
@@ -42,8 +41,6 @@ class Interpreter(
   lazy val result: State =
     while (step) {}
     if (log)
-      pw.println(st)
-      pw.close
       println("[Interpreter] Logging finished")
     st
 
@@ -56,12 +53,6 @@ class Interpreter(
   /** step */
   def step: Boolean =
     try {
-      // text-based logging
-      if (log)
-        pw.println(st.getCursorString + s" StepCnt : $stepCnt")
-        if (detail) pw.println(st.context)
-        pw.flush
-
       // garbage collection
       iter += 1
       if (iter % ITER_CYCLE == 0) {
@@ -75,11 +66,6 @@ class Interpreter(
       eval(st.context.cursor)
     } catch {
       case e =>
-        if (log)
-          pw.println(st)
-          pw.println("[Interpreter] unexpected error: " + e)
-          pw.println(e.getStackTrace.mkString(LINE_SEP))
-          pw.flush
         throw e
     }
 
@@ -457,10 +443,6 @@ class Interpreter(
     prevLoc = curLoc
   def getStepCnt = stepCnt
 
-  /** logging */
-  private lazy val pw: PrintWriter =
-    logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
-
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
@@ -513,9 +495,8 @@ object Interpreter {
     tyCheck: Boolean = false,
     log: Boolean = false,
     detail: Boolean = false,
-    logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
-  ): State = new Interpreter(st, tyCheck, log, detail, logPW, timeLimit).result
+  ): State = new Interpreter(st, tyCheck, log, detail, timeLimit).result
 
   /** transition for lexical SDO */
   def eval(lex: Lexical, sdoName: String): Value = {

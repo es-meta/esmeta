@@ -211,18 +211,3 @@ case object CmdDumpVisualizer
     "esmeta dump-visualizer                      # dump resources",
   )
 }
-
-// -----------------------------------------------------------------------------
-// ECMA-262 GitHub Actions
-// -----------------------------------------------------------------------------
-/** `yet-check` command */
-case object CmdYetCheck extends Command("yet-check", CmdBase >> YetCheck) {
-  val help = "checks `yet-step` and `yet-type` in the specification."
-  val examples = List(
-    "esmeta yet-check es2024 es2025  # check yet-steps/types between versions.",
-  )
-  override def showResult(res: (Int, Int)): Unit = {
-    val (yetSteps, yetTypes) = res
-    println(s"Found $yetSteps yet-steps and $yetTypes yet-types.")
-  }
-}
