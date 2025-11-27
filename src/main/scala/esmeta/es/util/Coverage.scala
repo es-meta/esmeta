@@ -76,8 +76,8 @@ case class Coverage(
   def size: Int = counter.size
 
   // target conditional branches
-  private var _targetCondViews: Map[Cond, Map[View, CondInfo]] = Map()
-  def targetCondViews: Map[Cond, Map[View, CondInfo]] = _targetCondViews
+  private var _targetCondViews: Map[Cond, Map[View, Set[Target]]] = Map()
+  def targetCondViews: Map[Cond, Map[View, Set[Target]]] = _targetCondViews
 
   private lazy val scriptParser = cfg.scriptParser
 
@@ -136,12 +136,12 @@ case class Coverage(
     var updated = false
     var blockingScripts: Set[Script] = Set.empty
 
-    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
-    var touchedCondViews: Map[CondView, CondInfo] = Map()
+    var touchedNodeViews: Map[NodeView, Option[Target]] = Map()
+    var touchedCondViews: Map[CondView, Set[Target]] = Map()
 
     // update node coverage
-    for ((nodeView, targets) <- interp.touchedNodeViews)
-      touchedNodeViews += nodeView -> targets
+    for ((nodeView, nearest) <- interp.touchedNodeViews)
+      touchedNodeViews += nodeView -> nearest
       getScripts(nodeView) match
         case None => update(nodeView, script); updated = true; covered = true
         case Some(scripts) =>
@@ -160,20 +160,20 @@ case class Coverage(
           }
 
     // update branch coverage
-    for ((condView, condInfo) <- interp.touchedCondViews)
-      touchedCondViews += condView -> condInfo
+    for ((condView, targets) <- interp.touchedCondViews)
+      touchedCondViews += condView -> targets
       getScripts(condView) match
         case None =>
-          update(condView, condInfo, script); updated = true; covered = true
+          update(condView, targets, script); updated = true; covered = true
         case Some(scripts) =>
-          if (all) { update(condView, condInfo, script); updated = true }
+          if (all) { update(condView, targets, script); updated = true }
           else {
             val originalScript = scripts.head
             if (
               (!originalScript.supported && supported) ||
               (originalScript.code.length > code.length)
             ) {
-              update(condView, condInfo, script); updated = true
+              update(condView, targets, script); updated = true
               blockingScripts += originalScript
             } else {
               blockingScripts += script
@@ -340,7 +340,7 @@ case class Coverage(
   // update mapping from conditional branches to scripts
   private def update(
     condView: CondView,
-    condInfo: CondInfo,
+    targets: Set[Target],
     script: Script,
   ): Unit = {
     condViews += condView
@@ -349,11 +349,10 @@ case class Coverage(
     // update target branches
     val neg = condView.neg
     cond.branch match
-      case _ if condInfo.nearest.isEmpty   =>
-      case _ if condInfo.targets.isEmpty   =>
+      case _ if targets.isEmpty            =>
       case Branch(_, _, EBool(_), _, _, _) =>
       case _ if getScripts(neg).isDefined  => removeTargetCond(neg)
-      case _                               => addTargetCond(condView, condInfo)
+      case _                               => addTargetCond(condView, targets)
 
     condViewMap += cond -> updated(apply(cond), view, script)
   }
@@ -384,10 +383,10 @@ case class Coverage(
     }
 
   // add a cond to targetConds
-  private def addTargetCond(cv: CondView, ci: CondInfo): Unit =
+  private def addTargetCond(cv: CondView, targets: Set[Target]): Unit =
     val CondView(cond, view) = cv
     val origViews = _targetCondViews.getOrElse(cond, Map())
-    val newViews = origViews + (view -> ci)
+    val newViews = origViews + (view -> targets)
     _targetCondViews += cond -> newViews
 
   // remove a cond from targetConds
@@ -454,8 +453,8 @@ object Coverage {
     isTargetBranch: (Branch, State) => Boolean,
     analyzer: Option[ParamFlowAnalyzer] = None,
   ) extends Interpreter(initSt, tyCheck = tyCheck, timeLimit = timeLimit) {
-    var touchedNodeViews: Map[NodeView, Option[Nearest]] = Map()
-    var touchedCondViews: Map[CondView, CondInfo] = Map()
+    var touchedNodeViews: Map[NodeView, Option[Target]] = Map()
+    var touchedCondViews: Map[CondView, Set[Target]] = Map()
     var supported = true
 
     def isTest262Test: Boolean = initSt.filename.exists(_.contains("test262"))
@@ -544,11 +543,8 @@ object Coverage {
       // record touched conditional branch if it is a target branch
       if (isTargetBranch(branch, st))
         val cond = Cond(branch, b)
-        val condInfo = CondInfo(
-          nearest = getNearest,
-          targets = getTargets(st.context, st.callStack, branch, branch.cond),
-        )
-        touchedCondViews += CondView(cond, getView(cond)) -> condInfo
+        val targets = getTargets(st.context, st.callStack, branch, branch.cond)
+        touchedCondViews += CondView(cond, getView(cond)) -> targets
       super.moveBranch(branch, b)
 
     // get syntax-sensitive views
@@ -561,7 +557,7 @@ object Coverage {
       }
 
     // get nearest target
-    private def getNearest: Option[Nearest] = st.context.nearest
+    private def getNearest: Option[Target] = st.context.nearest
   }
 
   /** meta-information for each script */
@@ -569,12 +565,6 @@ object Coverage {
     // TODO test: ConformTest,
     touchedNodeViews: Iterable[NodeView],
     touchedCondViews: Iterable[CondView],
-  )
-
-  /** meta-information for each conditional branches */
-  case class CondInfo(
-    nearest: Option[Nearest] = None,
-    targets: Set[Target] = Set.empty,
   )
 
   /** syntax-sensitive view */

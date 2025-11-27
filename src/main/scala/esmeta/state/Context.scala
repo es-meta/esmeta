@@ -2,7 +2,7 @@ package esmeta.state
 
 import esmeta.cfg.{Func, Node, Block, Call}
 import esmeta.ir.{Func => IRFunc, *}
-import esmeta.es.{Ast, Nearest}
+import esmeta.es.{Ast, Target}
 import esmeta.util.BaseUtils.raise
 import scala.collection.mutable.{Map => MMap}
 
@@ -11,7 +11,7 @@ case class Context(
   val func: Func,
   val locals: MMap[Local, Value] = MMap(),
   val featureStack: List[Feature] = Nil,
-  val nearest: Option[Nearest] = None,
+  val nearest: Option[Target] = None,
   val callPath: CallPath = CallPath(),
 ) extends StateElem {
 

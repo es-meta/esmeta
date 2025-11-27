@@ -484,7 +484,7 @@ class Interpreter(
         val nearest = for {
           case AstValue(ast: Syntactic) <- locals.get(Name("this"))
           loc <- ast.loc
-        } yield Nearest(loc)
+        } yield Target.Normal(loc)
         Context(func, locals, feature :: prevFeatureStack, nearest)
       case Some(head: BuiltinHead) =>
         val feature = BuiltinFeature(func, head)

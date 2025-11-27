@@ -266,11 +266,11 @@ class Fuzzer(
 
   /** mutator */
   val mutator: Mutator = WeightedMutator(
-    NearestMutator() -> 6, // FIXME: refactor using analyzed targets
+    TargetMutator() -> 6,
     RandomMutator() -> 3,
     StatementInserter() -> 1,
     Remover() -> 1,
-    SpecStringMutator() -> 1, // TODO: extend to lookup callee functions
+    SpecStringMutator() -> 1,
   )
 
   /** mutator stat */
