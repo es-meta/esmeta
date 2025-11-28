@@ -13,8 +13,9 @@ trait Locational {
     start: Pos,
     end: Pos,
     filename: Option[String] = None,
+    originText: Option[String] = None,
     steps: List[Int] = Nil,
-  ): this.type = setLoc(Some(Loc(start, end, filename, steps)))
+  ): this.type = setLoc(Some(Loc(start, end, filename, originText, steps)))
 
   /** set source location if not already set */
   def setLoc(locOpt: Option[Loc]): this.type =
@@ -36,9 +37,10 @@ trait Locational {
   *   (3:2-4:7 @ path) for `Loc(Pos(3,2), Pos(4,7), Some("path"), Nil)`
   */
 case class Loc(
-  var start: Pos,
-  var end: Pos,
+  start: Pos,
+  end: Pos,
   var filename: Option[String] = None,
+  var originText: Option[String] = None,
   var steps: List[Int] = Nil,
 ) {
 
@@ -107,10 +109,10 @@ case class Loc(
 
   /** merge locations */
   def merge(that: Loc): Option[Loc] =
-    val Loc(start, _, lname, lsteps) = this
-    val Loc(_, end, rname, rsteps) = that
-    if (lname != rname || lsteps != rsteps) return None
-    Some(Loc(start, end, lname, lsteps))
+    val Loc(start, _, lname, ltext, lsteps) = this
+    val Loc(_, end, rname, rtext, rsteps) = that
+    if (lname != rname || ltext != rtext || lsteps != rsteps) return None
+    Some(Loc(start, end, lname, ltext, lsteps))
 
   /** conversion to string */
   override def toString: String =
@@ -141,10 +143,17 @@ object Loc {
   *   3:2(5) for `Pos(3,2,5)` -- line 3, column 2, offset 5
   */
 case class Pos(
-  var line: Int,
-  var column: Int,
-  var offset: Int,
+  line: Int,
+  column: Int,
+  offset: Int,
 ) {
+
+  final def +(that: Pos): Pos =
+    Pos(
+      this.line + that.line,
+      this.column + that.column,
+      this.offset + that.offset,
+    )
 
   /** conversion to string */
   override def toString: String = s"$line:$column($offset)"

@@ -196,11 +196,15 @@ class Interpreter(
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
     case EParse(code, rule) =>
-      val (str, args, locOpt) = eval(code) match
-        case Str(s) => (s, List(), None)
+      val (str, args, locOpt, orig) = eval(code) match
+        case Str(s) => (s, List(), None, None)
         case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
-        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
+          syn.loc.flatMap(l => l.originText.map(l -> _)) match
+            case Some(loc -> originText) =>
+              (loc.getString(originText), syn.args, syn.loc, Some(originText))
+            case _ =>
+              (syn.toString(grammar = Some(grammar)), syn.args, syn.loc, None)
+        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc, None)
         case v                      => throw InvalidParseSource(code, v)
       try {
         (str, eval(rule).asGrammarSymbol, st.sourceText, st.cachedAst) match
@@ -211,9 +215,12 @@ class Interpreter(
           case (x, GrammarSymbol(name, params), _, _) =>
             val ast =
               esParser(name, if (params.isEmpty) args else params).from(x)
-            // TODO handle span of re-parsed ast
-            ast.clearLoc
-            ast.setChildLoc(locOpt)
+            orig match
+              case Some(originText) =>
+                ast.rebaseLoc(locOpt.get.start, Some(originText))
+              case None =>
+                ast.clearLoc
+                ast.setChildLoc(locOpt)
             AstValue(ast)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
