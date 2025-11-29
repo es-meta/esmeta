@@ -138,6 +138,9 @@ object Loc {
 }
 
 /** positions in algorithms
+  * - `line`   starts from 1
+  * - `column` starts from 1
+  * - `offset` starts from 0
   *
   * @example
   *   3:2(5) for `Pos(3,2,5)` -- line 3, column 2, offset 5
@@ -150,8 +153,9 @@ case class Pos(
 
   final def +(that: Pos): Pos =
     Pos(
-      this.line + that.line,
-      this.column + that.column,
+      this.line + that.line - 1,
+      // TODO fix column addition, which cannot be simply added
+      0,
       this.offset + that.offset,
     )
 
