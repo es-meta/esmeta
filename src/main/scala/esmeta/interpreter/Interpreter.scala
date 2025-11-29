@@ -215,9 +215,9 @@ class Interpreter(
           case (x, GrammarSymbol(name, params), _, _) =>
             val ast =
               esParser(name, if (params.isEmpty) args else params).from(x)
-            orig match
-              case Some(originText) =>
-                ast.rebaseLoc(locOpt.get.start, Some(originText))
+            (orig zip locOpt) match
+              case Some((originText, loc)) =>
+                ast.rebaseLoc(loc.start, Some(originText))
               case None =>
                 ast.clearLoc
                 ast.setChildLoc(locOpt)
