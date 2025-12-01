@@ -34,7 +34,9 @@ case class ESParser(
         ast
       def from(str: String): Ast =
         if (debug) println(debugWelcome)
-        parse(parser, str).get
+        val ast = parse(parser, str).get
+        updateOriginText(ast, str)
+        ast
       def fromFileWithCode(filename: String): (Ast, String) =
         if (debug) println(debugWelcome)
         val res = parse(parser, fileReader(filename))
@@ -44,7 +46,10 @@ case class ESParser(
       def fromWithCode(str: String): (Ast, String) =
         if (debug) println(debugWelcome)
         val res = parse(parser, str)
-        (res.get, res.next.source.toString)
+        val ast = res.get
+        val code = res.next.source.toString
+        updateOriginText(ast, code)
+        (ast, code)
     }
 
   // parsers
@@ -63,9 +68,19 @@ case class ESParser(
 
   /** recursively update the filename in the location information of the AST */
   def updateFilename(ast: Ast, name: String): Unit =
-    for (loc <- ast.loc) loc.filename = Some(name)
+    for (loc <- ast.loc) {
+      loc.filename = Some(name)
+    }
     ast match
       case ast: Syntactic => ast.children.map(_.map(updateFilename(_, name)))
+      case _              =>
+
+  def updateOriginText(ast: Ast, text: String): Unit =
+    for (loc <- ast.loc) {
+      loc.originText = Some(text)
+    }
+    ast match
+      case ast: Syntactic => ast.children.map(_.map(updateOriginText(_, text)))
       case _              =>
 
   // ---------------------------------------------------------------------------

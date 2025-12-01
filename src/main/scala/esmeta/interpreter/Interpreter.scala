@@ -198,10 +198,9 @@ class Interpreter(
     case EParse(code, rule) =>
       val (str, args, locOpt) = eval(code) match
         case Str(s) => (s, List(), None)
-        case AstValue(syn: Syntactic) =>
-          (syn.toString(grammar = Some(grammar)), syn.args, syn.loc)
-        case AstValue(lex: Lexical) => (lex.str, List(), lex.loc)
-        case v                      => throw InvalidParseSource(code, v)
+        case AstValue(ast) =>
+          (ast.toString(grammar = Some(grammar)), ast.getArgs, ast.loc)
+        case v => throw InvalidParseSource(code, v)
       try {
         (str, eval(rule).asGrammarSymbol, st.sourceText, st.cachedAst) match
           // optimize the initial parsing using the given cached AST
@@ -211,9 +210,7 @@ class Interpreter(
           case (x, GrammarSymbol(name, params), _, _) =>
             val ast =
               esParser(name, if (params.isEmpty) args else params).from(x)
-            // TODO handle span of re-parsed ast
-            ast.clearLoc
-            ast.setChildLoc(locOpt)
+            locOpt.map(ast.rebaseLoc)
             AstValue(ast)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors

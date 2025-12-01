@@ -69,12 +69,15 @@ sealed trait Ast extends ESElem with Locational {
         syn.loc = None; syn
       case lex: Lexical => lex.loc = None; lex
 
-  /** set location including children */
-  def setChildLoc(locOpt: Option[Loc]): Ast = this match
+  /** rebase location based on a given Loc (applies recursively to children) */
+  def rebaseLoc(base: Loc): Ast = this match
     case syn: Syntactic =>
-      for { child <- syn.children.flatten } child.setChildLoc(locOpt)
-      syn.loc = locOpt; syn
-    case lex: Lexical => lex.loc = locOpt; lex
+      for { child <- syn.children.flatten } child.rebaseLoc(base)
+      syn.loc = syn.loc.map(_.rebase(base))
+      syn
+    case lex: Lexical =>
+      lex.loc = lex.loc.map(_.rebase(base))
+      lex
 
   /** safe getter */
   def get(field: Value)(using cfg: CFG): Option[Ast] = (this, field) match

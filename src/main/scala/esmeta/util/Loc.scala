@@ -13,8 +13,9 @@ trait Locational {
     start: Pos,
     end: Pos,
     filename: Option[String] = None,
+    originText: Option[String] = None,
     steps: List[Int] = Nil,
-  ): this.type = setLoc(Some(Loc(start, end, filename, steps)))
+  ): this.type = setLoc(Some(Loc(start, end, filename, originText, steps)))
 
   /** set source location if not already set */
   def setLoc(locOpt: Option[Loc]): this.type =
@@ -36,9 +37,10 @@ trait Locational {
   *   (3:2-4:7 @ path) for `Loc(Pos(3,2), Pos(4,7), Some("path"), Nil)`
   */
 case class Loc(
-  var start: Pos,
-  var end: Pos,
+  start: Pos,
+  end: Pos,
   var filename: Option[String] = None,
+  var originText: Option[String] = None,
   var steps: List[Int] = Nil,
 ) {
 
@@ -107,10 +109,17 @@ case class Loc(
 
   /** merge locations */
   def merge(that: Loc): Option[Loc] =
-    val Loc(start, _, lname, lsteps) = this
-    val Loc(_, end, rname, rsteps) = that
-    if (lname != rname || lsteps != rsteps) return None
-    Some(Loc(start, end, lname, lsteps))
+    val Loc(start, _, lname, ltext, lsteps) = this
+    val Loc(_, end, rname, rtext, rsteps) = that
+    if (lname != rname || ltext != rtext || lsteps != rsteps) return None
+    Some(Loc(start, end, lname, ltext, lsteps))
+
+  /** rebase a location by another location */
+  def rebase(base: Loc): Loc = this.copy(
+    start = start.rebase(base.start),
+    end = end.rebase(base.start),
+    originText = base.originText,
+  )
 
   /** conversion to string */
   override def toString: String =
@@ -136,15 +145,26 @@ object Loc {
 }
 
 /** positions in algorithms
+  *   - `line` starts from 1
+  *   - `column` starts from 1
+  *   - `offset` starts from 0
   *
   * @example
   *   3:2(5) for `Pos(3,2,5)` -- line 3, column 2, offset 5
   */
 case class Pos(
-  var line: Int,
-  var column: Int,
-  var offset: Int,
+  line: Int,
+  column: Int,
+  offset: Int,
 ) {
+
+  /** rebase this position by another position */
+  final def rebase(base: Pos): Pos =
+    Pos(
+      base.line + this.line - 1,
+      if (this.line == 1) base.column + this.column - 1 else this.column,
+      base.offset + this.offset,
+    )
 
   /** conversion to string */
   override def toString: String = s"$line:$column($offset)"
