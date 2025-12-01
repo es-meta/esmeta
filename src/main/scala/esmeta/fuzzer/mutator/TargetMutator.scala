@@ -6,6 +6,7 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
+import scala.util.Try
 
 /** A target ECMAScript AST mutator */
 class TargetMutator(using cfg: CFG)(
@@ -37,16 +38,25 @@ class TargetMutator(using cfg: CFG)(
   } yield {
     code match
       case Normal(str) =>
-        if (normalTargets.nonEmpty) {
-          val mutationCite = choose(normalTargets)
+        val filtered = normalTargets.filter { nt =>
+          Try(str == nt.loc.getString(str)).toOption.getOrElse(false)
+        } // FIXME: bug in location managing
+        if (filtered.nonEmpty) {
+          val mutationCite = choose(filtered)
           Walker(mutationCite, n)
             .walk(scriptParser.from(str))
             .map(_.toString(grammar = Some(cfg.grammar)))
             .map(str => Result(name, Normal(str)))
         } else apply(str, n, target).map(str => Result(name, Normal(str)))
       case builtin: Builtin =>
-        if (builtinTargets.nonEmpty) {
-          val mutationCite = choose(builtinTargets)
+        val filtered = builtinTargets.filter { bt =>
+          bt match
+            case Target.BuiltinThis(thisArg) => builtin.thisArg == Some(thisArg)
+            case Target.BuiltinArg(arg, i) => builtin.args.lift(i) == Some(arg)
+            case _                         => false
+        } // FIXME: bug in localization
+        if (filtered.nonEmpty) {
+          val mutationCite = choose(filtered)
           val argStr = mutationCite.argStr
           for {
             mutatedAst <- apply(argumentListParser.from(argStr), n, target)
