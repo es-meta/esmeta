@@ -280,7 +280,7 @@ trait Parsers extends IndentParsers {
   // throw steps
   lazy val throwStep: PL[ThrowStep] =
     lazy val errorName = "*" ~> word.filter(_.endsWith("Error")) <~ "*"
-    ("throw" ~ opt(article) ~> errorName <~ "exception") ~ end ^^ {
+    ("throw" ~ article ~> errorName <~ "exception") ~ end ^^ {
       case e ~ f => f(ThrowStep(e))
     }
 
