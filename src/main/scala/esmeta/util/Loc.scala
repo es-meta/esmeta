@@ -114,6 +114,13 @@ case class Loc(
     if (lname != rname || ltext != rtext || lsteps != rsteps) return None
     Some(Loc(start, end, lname, ltext, lsteps))
 
+  /** rebase a location by another location */
+  def rebase(base: Loc): Loc = this.copy(
+    start = start.rebase(base.start),
+    end = end.rebase(base.start),
+    originText = base.originText,
+  )
+
   /** conversion to string */
   override def toString: String =
     val app = new Appender
@@ -151,12 +158,12 @@ case class Pos(
   offset: Int,
 ) {
 
-  final def +(that: Pos): Pos =
+  /** rebase this position by another position */
+  final def rebase(base: Pos): Pos =
     Pos(
-      this.line + that.line - 1,
-      if (that.line == 1) this.column + that.column - 1 else that.column,
-      0,
-      this.offset + that.offset,
+      base.line + this.line - 1,
+      if (this.line == 1) base.column + this.column - 1 else this.column,
+      base.offset + this.offset,
     )
 
   /** conversion to string */
