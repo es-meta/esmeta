@@ -69,7 +69,7 @@ sealed trait Ast extends ESElem with Locational {
         syn.loc = None; syn
       case lex: Lexical => lex.loc = None; lex
 
-  /** rebase location based on a given Pos (applies recursively to children) */
+  /** rebase location based on a given Loc (applies recursively to children) */
   def rebaseLoc(base: Loc): Ast = this match
     case syn: Syntactic =>
       for { child <- syn.children.flatten } child.rebaseLoc(base)
