@@ -382,9 +382,21 @@ object LangTest {
   lazy val neitherTypeCheckCond =
     TypeCheckCondition(refExpr, T, List(ty, ty))
   lazy val hasFieldCond =
-    HasFieldCondition(x, F, fieldLit, HasFieldConditionForm.InternalSlot)
+    HasFieldCondition(x, F, List(fieldLit), HasFieldConditionForm.InternalSlot)
+  lazy val hasMultipleFieldsCond =
+    HasFieldCondition(
+      x,
+      F,
+      List(fieldLit, fieldLit, fieldLit),
+      HasFieldConditionForm.InternalSlot,
+    )
   lazy val noHasFieldCond =
-    HasFieldCondition(x, T, fieldLit, HasFieldConditionForm.InternalMethod)
+    HasFieldCondition(
+      x,
+      T,
+      List(fieldLit),
+      HasFieldConditionForm.InternalMethod,
+    )
   lazy val hasBindingCond = HasBindingCondition(x, F, refExpr)
   lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")

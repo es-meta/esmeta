@@ -119,12 +119,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case AssertStep(cond) =>
         app >> First("assert: ") >> cond
       case IfStep(cond, thenStep, elseStep, config) =>
-        val IfStep.ElseConfig(newLine, keyword, comma) = config
-        val k = if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
         app >> First("if ") >> cond >> ", "
         if (thenStep.isInstanceOf[BlockStep]) app >> "then"
         app >> thenStep
         elseStep.fold(app) { step =>
+          val IfStep.ElseConfig(newLine, keyword, comma) = config
+          val k =
+            if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
           if (newLine)
             step match
               case _: IfStep    => app :> "1. " >> k >> " " >> step
@@ -513,7 +514,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case ToNumber       => if (text) "Number" else "𝔽"
         case ToBigInt       => if (text) "BigInt" else "ℤ"
         case ToMath         => if (text) "numeric" else "ℝ"
-        case ToCodeUnit     => "code unit whose numeric value"
+        case ToCodeUnit     => "code unit whose numeric"
       })
 
   // operators for binary expressions
@@ -700,16 +701,20 @@ class Stringifier(detail: Boolean, location: Boolean) {
             given Rule[List[Type]] = listNamedSepRule(left, namedSep)
             app >> ty
         }
-      case HasFieldCondition(ref, neg, field, form) =>
+      case HasFieldCondition(ref, neg, field, form, tyOpt) =>
         app >> ref >> hasStr(neg)
-        app >> field.toString.indefArticle
-        app >> " " >> field >> " "
+        if (field.length > 1)
+          given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+          app >> field >> " "
+        else app >> field.head.toString.withIndefArticle >> " "
         import HasFieldConditionForm.*
         app >> (form match {
           case Field          => "field"
           case InternalSlot   => "internal slot"
           case InternalMethod => "internal method"
         })
+        if (field.length > 1) app >> "s"
+        tyOpt.fold(app)(app >> " whose value is " >> _)
       case HasBindingCondition(ref, neg, binding) =>
         app >> ref >> hasStr(neg)
         app >> "a binding for " >> binding
@@ -752,13 +757,24 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else app >> from >> " ≤ " >> left >> " ≤ " >> to
       case ContainsCondition(list, neg, expr) =>
         app >> list >> (if (neg) " does not contain " else " contains ") >> expr
+      case CompoundCondition(left, CompoundConditionOperator.Imply, right) =>
+        app >> "If " >> left >> ", then " >> right
       case CompoundCondition(left, op, right) =>
-        op match {
-          case CompoundConditionOperator.Imply =>
-            // TODO handle upper case of `if`
-            app >> "If " >> left >> ", then " >> right
-          case _ => app >> left >> " " >> op >> " " >> right
+        // collect sub conditions of same level in a single list
+        def flatten(cond: Condition): List[Condition] = {
+          cond match {
+            case CompoundCondition(l, o, r) if o == op => l :: flatten(r)
+            case _                                     => List(cond)
+          }
         }
+        val conds = flatten(cond)
+        val sep = op match {
+          case CompoundConditionOperator.And   => "and"
+          case CompoundConditionOperator.Or    => "or"
+          case CompoundConditionOperator.Imply => "then" // not used
+        }
+        given Rule[List[Condition]] = listNamedSepRule(namedSep = sep)
+        app >> conds
     }
   }
 
