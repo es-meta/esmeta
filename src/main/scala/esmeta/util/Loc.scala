@@ -154,7 +154,7 @@ case class Pos(
   final def +(that: Pos): Pos =
     Pos(
       this.line + that.line - 1,
-      // TODO fix column addition, which cannot be simply added
+      if (that.line == 1) this.column + that.column - 1 else that.column,
       0,
       this.offset + that.offset,
     )
