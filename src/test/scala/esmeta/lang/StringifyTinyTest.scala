@@ -388,6 +388,7 @@ class StringifyTinyTest extends LangTest {
       eitherTypeCheckCond -> "_x_ is either a Base, a Base, or a Base",
       neitherTypeCheckCond -> "_x_ is neither a Base nor a Base",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
+      hasMultipleFieldsCond -> "_x_ has [[Value]], [[Value]], and [[Value]] internal slots",
       noHasFieldCond -> "_x_ does not have a [[Value]] internal method",
       hasBindingCond -> "_x_ has a binding for _x_",
       noHasBindingCond -> "_x_ does not have a binding for _x_",

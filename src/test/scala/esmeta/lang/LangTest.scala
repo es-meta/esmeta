@@ -383,6 +383,13 @@ object LangTest {
     TypeCheckCondition(refExpr, T, List(ty, ty))
   lazy val hasFieldCond =
     HasFieldCondition(x, F, List(fieldLit), HasFieldConditionForm.InternalSlot)
+  lazy val hasMultipleFieldsCond =
+    HasFieldCondition(
+      x,
+      F,
+      List(fieldLit, fieldLit, fieldLit),
+      HasFieldConditionForm.InternalSlot,
+    )
   lazy val noHasFieldCond =
     HasFieldCondition(
       x,
