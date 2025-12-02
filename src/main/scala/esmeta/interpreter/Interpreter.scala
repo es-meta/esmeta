@@ -196,22 +196,30 @@ class Interpreter(
   /** transition for expressions */
   def eval(expr: Expr): Value = expr match {
     case EParse(code, rule) =>
-      val (str, args, locOpt) = eval(code) match
-        case Str(s) => (s, List(), None)
-        case AstValue(ast) =>
-          (ast.toString(grammar = Some(grammar)), ast.getArgs, ast.loc)
-        case v => throw InvalidParseSource(code, v)
       try {
-        (str, eval(rule).asGrammarSymbol, st.sourceText, st.cachedAst) match
+        (
+          eval(code),
+          eval(rule).asGrammarSymbol,
+          st.sourceText,
+          st.cachedAst,
+        ) match
           // optimize the initial parsing using the given cached AST
-          case (x, GrammarSymbol("Script", Nil), Some(y), Some(ast))
+          case (Str(x), GrammarSymbol("Script", Nil), Some(y), Some(ast))
               if x == y =>
             AstValue(ast)
-          case (x, GrammarSymbol(name, params), _, _) =>
-            val ast =
-              esParser(name, if (params.isEmpty) args else params).from(x)
-            locOpt.map(ast.rebaseLoc)
+          // parse string at runtime (e.g., `eval` or `Function` constructor)
+          case (Str(x), GrammarSymbol(name, params), _, _) =>
+            val ast = esParser(name, params).from(x)
+            ast.clearLoc
             AstValue(ast)
+          // re-parse from existing AST because of `covered-by` phrase
+          case (AstValue(ast), GrammarSymbol(name, params), _, _) =>
+            val x = ast.toString(grammar = Some(grammar))
+            val parserArgs = if (params.isEmpty) ast.getArgs else params
+            val newAst = esParser(name, parserArgs).from(x)
+            ast.loc.map(newAst.rebaseLoc)
+            AstValue(newAst)
+          case (v, _, _, _) => throw InvalidParseSource(code, v)
       } catch {
         case _: Throwable => st.allocList(Nil) // NOTE: throw a List of errors
       }
