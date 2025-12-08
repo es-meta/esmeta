@@ -48,7 +48,7 @@ case class Coverage(
   private var nodeViewMap: Map[Node, Map[View, Set[Script]]] = Map()
   private var nodeViews: Set[NodeView] = Set()
   private var condViewMap: Map[Cond, Map[View, Set[Script]]] = Map()
-  private var condViews: Set[CondView] = Set()
+  var condViews: Set[CondView] = Set() // temporal public for instrumentation
 
   // meta-info for -test262test:all-tests
   private val pathMap: Map[String, Int] = if (all) {

@@ -162,6 +162,32 @@ class Fuzzer(
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
+    condView match // instrumentation
+      case Some(cv) =>
+        import Coverage.*
+        if (cov.condViews contains cv.neg) {
+          val mutatorName = mutants.head._1.name
+          val origCodeStr = code.toString
+          val mutatedCodeStr = cov.getScript(cv.neg).get.toString
+          val newInstr = Instr(
+            isFlipped = true,
+            trial = cvCounter.getOrElse(cv, 0) + 1,
+            mutationEvent = Some((mutatorName, origCodeStr, mutatedCodeStr)),
+            progress = Some((iter, Time(elapsed).simpleString)),
+          )
+          instMap.update(cv, newInstr)
+        } else {
+          val newInstr = Instr(
+            isFlipped = false,
+            trial = cvCounter.getOrElse(cv, 0) + 1,
+            mutationEvent = None,
+            progress = None,
+          )
+          instMap.update(cv, newInstr)
+        }
+        cvCounter.update(cv, cvCounter.getOrElse(cv, 0) + 1)
+      case None => ()
+
     val duration = Time(System.currentTimeMillis - startTime)
     debugging(s"iter/end: $iter - $duration")
   }
@@ -275,6 +301,12 @@ class Fuzzer(
 
   /** mutator stat */
   val mutatorStat: MMap[String, Counter] = MMap()
+
+  /** selected CondView (instrumentation) */
+  val cvCounter: MMap[Coverage.CondView, Int] = MMap()
+
+  /** instrumentation */
+  val instMap: MMap[Coverage.CondView, Instr] = MMap()
 
   /** initial pool */
   val initPool = init
@@ -412,6 +444,26 @@ class Fuzzer(
         }
         .mkString(LINE_SEP + LINE_SEP),
       filename = s"$logDir/esmeta-errors",
+    )
+    // dump instrumentation
+    dumpFile(
+      name = "instrumentation",
+      data = instMap.toList
+        .sortBy(-_._2.trial)
+        .map {
+          case (cv, instr) =>
+            val key = cv.toString
+            val obj = JsonObject(
+              "covered" -> instr.covered.asJson,
+              "isFlipped" -> instr.isFlipped.asJson,
+              "trial" -> instr.trial.asJson,
+              "mutationEvent" -> instr.mutationEvent.asJson,
+              "progress" -> instr.progress.asJson,
+            ).asJson
+            s"$key: ${obj.noSpaces}"
+        }
+        .mkString(LINE_SEP),
+      filename = s"$logDir/instrumentation",
     )
 
   private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
