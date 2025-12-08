@@ -6,7 +6,6 @@ import esmeta.es.util.*
 import esmeta.es.util.Coverage.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
-import scala.util.Try
 
 /** A target ECMAScript AST mutator */
 class TargetMutator(using cfg: CFG)(
@@ -39,8 +38,8 @@ class TargetMutator(using cfg: CFG)(
     code match
       case Normal(str) =>
         val filtered = normalTargets.filter { nt =>
-          Try(str == nt.loc.getString(str)).toOption.getOrElse(false)
-        } // FIXME: bug in location managing
+          scala.util.Try(str == nt.loc.getString(str)).toOption.getOrElse(false)
+        } // FIXME: temporal patch for bug in localization
         if (filtered.nonEmpty) {
           val mutationCite = choose(filtered)
           Walker(mutationCite, n)
@@ -54,7 +53,7 @@ class TargetMutator(using cfg: CFG)(
             case Target.BuiltinThis(thisArg) => builtin.thisArg == Some(thisArg)
             case Target.BuiltinArg(arg, i) => builtin.args.lift(i) == Some(arg)
             case _                         => false
-        } // FIXME: bug in localization
+        } // FIXME: temporal patch for bug in localization
         if (filtered.nonEmpty) {
           val mutationCite = choose(filtered)
           val argStr = mutationCite.argStr
