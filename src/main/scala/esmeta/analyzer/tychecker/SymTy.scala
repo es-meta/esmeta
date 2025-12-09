@@ -57,12 +57,12 @@ trait SymTyDecl { self: TyChecker =>
       case SField(base, field) => base.bases ++ field.bases
       case SNormal(symty)      => symty.bases
 
-    def kill(bases: Set[Base], update: Boolean): Option[SymTy] = this match
-      case t: SymRef      => killRef(t, bases, update)
+    def weaken(bases: Set[Base], update: Boolean): Option[SymTy] = this match
+      case t: SymRef      => weakenRef(t, bases, update)
       case STy(ty)        => Some(STy(ty))
-      case SNormal(symty) => symty.kill(bases, update).map(SNormal(_))
+      case SNormal(symty) => symty.weaken(bases, update).map(SNormal(_))
 
-    def killRef(
+    def weakenRef(
       ref: SymRef,
       bases: Set[Base],
       update: Boolean,
@@ -71,8 +71,8 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(sym) => if (bases contains sym) None else Some(SSym(sym))
       case SField(b, f) =>
         for {
-          b <- killRef(b, bases, update)
-          f <- f.kill(bases, update)
+          b <- weakenRef(b, bases, update)
+          f <- f.weaken(bases, update)
         } yield SField(b, f)
 
     def isSymbolic: Boolean = this match

@@ -53,12 +53,12 @@ trait AbsValueDecl { self: TyChecker =>
     def addGuard(guard: TypeGuard)(using AbsState): AbsValue =
       this.copy(guard = (this.guard && guard).filter(this.ty))
 
-    /** kill bases */
-    def kill(bases: Set[Base], update: Boolean)(using AbsState): AbsValue =
+    /** weaken bases */
+    def weaken(bases: Set[Base], update: Boolean)(using AbsState): AbsValue =
       val ty = this.symty.bases.exists(bases.contains) match
         case true  => STy(this.ty)
         case false => this.symty
-      val guard = if (update) this.guard.kill(bases) else this.guard
+      val guard = if (update) this.guard.weaken(bases) else this.guard
       AbsValue(ty, guard)
 
     /** remove non-parameter local variables */
@@ -70,7 +70,7 @@ trait AbsValueDecl { self: TyChecker =>
       given AbsState = givenSt
       if (isTypeGuardCandidate(func)) {
         val xs = givenSt.getImprecBases(entrySt)
-        this.kill(xs, update = false)
+        this.weaken(xs, update = false)
       } else AbsValue(this.ty)
 
     /** get symbols */
@@ -95,8 +95,8 @@ trait AbsValueDecl { self: TyChecker =>
         }
       }
 
-    def killMutable(using np: NodePoint[_], st: AbsState) =
-      this.copy(guard = this.guard.kill(np.func.mutableLocals))
+    def weakenMutable(using np: NodePoint[_], st: AbsState) =
+      this.copy(guard = this.guard.weaken(np.func.mutableLocals))
 
     def isSymbolic: Boolean = symty.isSymbolic
 

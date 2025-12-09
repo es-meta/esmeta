@@ -23,9 +23,9 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def bases: Set[Base] = map.values.flatMap(_.bases).toSet
 
-    def kill(bases: Set[Base])(using AbsState): TypeGuard = TypeGuard(for {
+    def weaken(bases: Set[Base])(using AbsState): TypeGuard = TypeGuard(for {
       (dty, prop) <- map
-      newProp = prop.kill(bases)
+      newProp = prop.weaken(bases)
       if newProp.nonTop
     } yield dty -> newProp)
 
@@ -200,10 +200,10 @@ trait TypeGuardDecl { self: TyChecker =>
       map.keySet.collect { case s: Sym => s } ++
       sexpr.fold(Set[Base]())(_.bases)
 
-    def kill(bases: Set[Base])(using AbsState): TypeProp =
+    def weaken(bases: Set[Base])(using AbsState): TypeProp =
       this.copy(
         map.filter { case (x, _) => !bases.contains(x) },
-        sexpr.fold(None)(_.kill(bases)),
+        sexpr.fold(None)(_.weaken(bases)),
       )
 
     def forReturn(symEnv: Map[Sym, ValueTy]): TypeProp = TypeProp(
@@ -262,17 +262,17 @@ trait TypeGuardDecl { self: TyChecker =>
       case SETypeCheck(base, ty) => base.bases
       case SETypeOf(base)        => base.bases
       case SEEq(left, right)     => left.bases ++ right.bases
-    def kill(bases: Set[Base]): Option[SymExpr] = this match
+    def weaken(bases: Set[Base]): Option[SymExpr] = this match
       case SEBool(b) => Some(this)
       case SERef(ref) =>
-        ref.killRef(ref, bases, true).map(SERef(_)) // FIXME: check later
-      case SEExists(ref) => ref.killRef(ref, bases, true).map(SEExists(_))
-      case SETypeCheck(base, ty) => base.kill(bases).map(SETypeCheck(_, ty))
-      case SETypeOf(base)        => base.kill(bases).map(SETypeOf(_))
+        ref.weakenRef(ref, bases, true).map(SERef(_)) // FIXME: check later
+      case SEExists(ref) => ref.weakenRef(ref, bases, true).map(SEExists(_))
+      case SETypeCheck(base, ty) => base.weaken(bases).map(SETypeCheck(_, ty))
+      case SETypeOf(base)        => base.weaken(bases).map(SETypeOf(_))
       case SEEq(left, right) =>
         for {
-          l <- left.kill(bases)
-          r <- right.kill(bases)
+          l <- left.weaken(bases)
+          r <- right.weaken(bases)
         } yield SEEq(l, r)
     override def toString: String = (new Appender >> this).toString
   }
