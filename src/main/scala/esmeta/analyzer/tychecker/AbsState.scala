@@ -36,19 +36,13 @@ trait AbsStateDecl { self: TyChecker =>
             AbsState(_, llocals, lsymEnv, lprop),
             AbsState(_, rlocals, rsymEnv, rprop),
           ) =>
-        val TypeProp(lmap, lexpr) = lprop
-        val TypeProp(rmap, rexpr) = rprop
         llocals.forall { (x, lv) =>
           rlocals.get(x).fold(false) { rv =>
             AbsValue.orderHelper(lv, this, rv, that)
           }
         } &&
         lsymEnv.forall { (sym, ty) => rsymEnv.get(sym).fold(false)(ty <= _) } &&
-        rmap.forall {
-          case (r, (rty, rprov)) =>
-            lmap.get(r).fold(false) { (lty, _) => lty <= rty }
-        } &&
-        rexpr.forall { r => lexpr.fold(false)(_ == r) }
+        lprop <= rprop
 
     /** not partial order */
     def !⊑(that: AbsState): Boolean = !(this ⊑ that)
@@ -150,7 +144,9 @@ trait AbsStateDecl { self: TyChecker =>
     /** getter */
     def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue = {
       import SymExpr.*, SymTy.*
-      val guard = lookupGuard(base.guard, field)
+      val guard = field.ty.str.getSingle match
+        case One(s) => base.guard.fieldLookup(s)
+        case _      => TypeGuard.Empty
       (base.symty, field.ty.getSingle) match
         case (ref: SymRef, One(Str(f))) =>
           AbsValue(SField(ref, STy(StrT(f))), guard)
@@ -232,23 +228,6 @@ trait AbsStateDecl { self: TyChecker =>
       case MapTy.Top              => AnyT
       case MapTy.Elem(key, value) => value
       case MapTy.Bot              => BotT
-
-    // guard lookup
-    private def lookupGuard(
-      guard: TypeGuard,
-      field: AbsValue,
-    )(using AbsState): TypeGuard = {
-      import DemandType.*
-      field.ty.str.getSingle match
-        case One("Value") =>
-          TypeGuard(guard.map.collect {
-            case (DemandType(ty), map) if ty == NormalT(TrueT) =>
-              DemandType(TrueT) -> map
-            case (DemandType(ty), map) if ty == NormalT(FalseT) =>
-              DemandType(FalseT) -> map
-          })
-        case _ => TypeGuard.Empty
-    }
 
     /** define variables */
     def define(x: Var, value: AbsValue): AbsState = x match

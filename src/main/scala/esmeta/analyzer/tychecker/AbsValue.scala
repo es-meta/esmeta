@@ -51,7 +51,7 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** add type guard */
     def addGuard(guard: TypeGuard)(using AbsState): AbsValue =
-      this.copy(guard = (this.guard && guard).filter(this.ty))
+      this.copy(guard = this.guard && guard)
 
     /** weaken bases */
     def weaken(bases: Set[Base], update: Boolean)(using AbsState): AbsValue =
