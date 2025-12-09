@@ -88,8 +88,8 @@ trait AbsValueDecl { self: TyChecker =>
     /** check whether it has a type guard */
     def hasTypeGuard(entrySt: AbsState): Boolean =
       import SymTy.*, SymExpr.*
-      guard.map.exists { (kind, constr) =>
-        constr.map.exists {
+      guard.map.exists { (kind, prop) =>
+        prop.map.exists {
           case (x: Sym, (ty, _)) => !(entrySt.getTy(SERef(SSym(x))) <= ty)
           case _                 => false
         }

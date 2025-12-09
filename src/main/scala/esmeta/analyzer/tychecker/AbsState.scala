@@ -16,7 +16,7 @@ trait AbsStateDecl { self: TyChecker =>
     reachable: Boolean,
     locals: Map[Local, AbsValue],
     symEnv: Map[Sym, ValueTy],
-    constr: TypeConstr,
+    prop: TypeProp,
   ) extends AbsStateLike {
     import AbsState.*
 
@@ -33,11 +33,11 @@ trait AbsStateDecl { self: TyChecker =>
       case _ if this.isBottom => true
       case _ if that.isBottom => false
       case (
-            AbsState(_, llocals, lsymEnv, lconstr),
-            AbsState(_, rlocals, rsymEnv, rconstr),
+            AbsState(_, llocals, lsymEnv, lprop),
+            AbsState(_, rlocals, rsymEnv, rprop),
           ) =>
-        val TypeConstr(lmap, lexpr) = lconstr
-        val TypeConstr(rmap, rexpr) = rconstr
+        val TypeProp(lmap, lexpr) = lprop
+        val TypeProp(rmap, rexpr) = rprop
         llocals.forall { (x, lv) =>
           rlocals.get(x).fold(false) { rv =>
             AbsValue.orderHelper(lv, this, rv, that)
@@ -59,7 +59,7 @@ trait AbsStateDecl { self: TyChecker =>
       case _ if that.isBottom => this
       case _ =>
         val (l, r) =
-          if (this.constr != that.constr)
+          if (this.prop != that.prop)
             val lxs = this.getImprecBases(that)
             val rxs = that.getImprecBases(this)
             (this.kill(lxs, update = false), that.kill(rxs, update = false))
@@ -77,8 +77,8 @@ trait AbsStateDecl { self: TyChecker =>
           sym <- (l.symEnv.keySet ++ r.symEnv.keySet).toList
           ty = l.get(sym) || r.get(sym)
         } yield sym -> ty).toMap
-        val newConstr = l.constr || r.constr
-        AbsState(true, newLocals, newSymEnv, newConstr)
+        val newProp = l.prop || r.prop
+        AbsState(true, newLocals, newSymEnv, newProp)
 
     /** get imprecise bases compared with another state */
     def getImprecBases(that: AbsState): Set[Base] =
@@ -108,14 +108,14 @@ trait AbsStateDecl { self: TyChecker =>
           sym <- (l.symEnv.keySet intersect r.symEnv.keySet).toList
           ty = l.get(sym) ⊓ r.get(sym)
         } yield sym -> ty).toMap
-        val newConstr = l.constr && r.constr
-        AbsState(true, newLocals, newSymEnv, newConstr)
+        val newProp = l.prop && r.prop
+        AbsState(true, newLocals, newSymEnv, newProp)
 
     /** kill bases */
     def kill(bases: Set[Base], update: Boolean): AbsState =
       val newLocals = for { (x, v) <- locals } yield x -> v.kill(bases, update)
-      val newConstr = if (update) constr.kill(bases) else constr
-      AbsState(reachable, newLocals, symEnv, newConstr)
+      val newProp = if (update) prop.kill(bases) else prop
+      AbsState(reachable, newLocals, symEnv, newProp)
 
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
@@ -263,7 +263,7 @@ trait AbsStateDecl { self: TyChecker =>
           if (!refine) value.kill(Set(x), update = true)
           else if (value.hasLocalBase(x)) value.kill(Set(x), update = false)
           else value
-        newSt.copy(locals = newSt.locals + (x -> newV), constr = newSt.constr)
+        newSt.copy(locals = newSt.locals + (x -> newV), prop = newSt.prop)
       case x: Global => this
 
     /** type check */
@@ -333,11 +333,11 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** bottom element */
     lazy val Bot: AbsState =
-      AbsState(false, Map(), Map(), TypeConstr())
+      AbsState(false, Map(), Map(), TypeProp())
 
     /** empty element */
     lazy val Empty: AbsState =
-      AbsState(true, Map(), Map(), TypeConstr())
+      AbsState(true, Map(), Map(), TypeProp())
 
     /** appender */
     given rule: Rule[AbsState] = mkRule(true)
@@ -346,13 +346,13 @@ trait AbsStateDecl { self: TyChecker =>
     private def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) =>
       import SymTy.given
       if (!elem.isBottom) {
-        val AbsState(reachable, locals, symEnv, constr) = elem
+        val AbsState(reachable, locals, symEnv, prop) = elem
         given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
         given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")
-        given constrRule: Rule[Map[Base, ValueTy]] = sortedMapRule(sep = " <: ")
+        given propRule: Rule[Map[Base, ValueTy]] = sortedMapRule(sep = " <: ")
         if (locals.nonEmpty) app >> locals
         if (symEnv.nonEmpty) app >> symEnv
-        app >> constr
+        app >> prop
       } else app >> "⊥"
   }
 }
