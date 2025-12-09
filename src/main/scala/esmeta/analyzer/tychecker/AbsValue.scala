@@ -25,7 +25,7 @@ trait AbsValueDecl { self: TyChecker =>
     def isBottom: Boolean = symty.isBottom
 
     /** upper type */
-    def ty(using st: AbsState): ValueTy = symty.ty
+    def ty(using st: AbsState): ValueTy = symty.upper
 
     /** single check */
     def isSingle(using st: AbsState): Boolean = symty.isSingle && guard.isEmpty

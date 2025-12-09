@@ -1651,13 +1651,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val (ref, givenTy) = pair
       ref match
         case v @ SVar(x) =>
-          val ty = v.ty
+          val ty = v.upper
           if (ty <= givenTy) None else Some(x -> givenTy)
         case v @ SSym(s) =>
           val ty = st.get(s)
           if (ty <= givenTy) None else Some(s -> givenTy)
         case SField(base, STy(x)) if x <= StrT && x.isSingle =>
-          val bty = base.ty
+          val bty = base.upper
           val field = x.str.getSingle match
             case One(elem) => elem
             case _         => return None
