@@ -23,46 +23,46 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def lookup(ty: ValueTy): TypeProp =
       val lst = for {
-        (dty, p) <- map 
-        if ty <= dty.ty // maybe need cache? 
+        (dty, p) <- map
+        if ty <= dty.ty // maybe need cache?
       } yield p
       if lst.isEmpty then TypeProp()
       else lst.reduce(_ && _)
 
-    def update(ty: ValueTy, prop: TypeProp): TypeGuard = 
+    def update(ty: ValueTy, prop: TypeProp): TypeGuard =
       val r = for dty <- DemandType.set yield DemandType(dty) -> {
         val p = map.getOrElse(DemandType(dty), TypeProp())
-        if ty <= dty then prop && p 
-        else p 
+        if ty <= dty then prop && p
+        else p
       }
       TypeGuard(r.toMap)
 
-    def refine(ty: ValueTy): TypeGuard = 
+    def refine(ty: ValueTy): TypeGuard =
       TypeGuard(for {
-        (dty, p) <- map 
+        (dty, p) <- map
         if !(ty && dty.ty).isBottom
       } yield dty -> this.lookup(dty.ty))
 
-    def fieldLookup(fld: String): TypeGuard = 
-      val m = for 
-        (dty, p) <- map 
+    def fieldLookup(fld: String): TypeGuard =
+      val m = for
+        (dty, p) <- map
         ity = dty.ty.record(fld).value
         if DemandType.set.contains(ity)
       yield DemandType(ity) -> p
       m.foldLeft(TypeGuard.Empty) {
-        case (acc, curr) => 
+        case (acc, curr) =>
           val (dty, p) = curr
           acc.update(dty.ty, p)
       }
 
-    def fieldUpdate(fld: String, ty: ValueTy): TypeGuard = 
+    def fieldUpdate(fld: String, ty: ValueTy): TypeGuard =
       val m = for {
-        (dty, p) <- map 
+        (dty, p) <- map
         newTy = dty.ty.record.update(fld, ty, refine = false)
         newProp = p.fieldUpdate(fld, ty)
       } yield dty -> newProp
       m.foldLeft(TypeGuard.Empty) {
-        case (acc, curr) => 
+        case (acc, curr) =>
           val (dty, p) = curr
           acc.update(dty.ty, p)
       }
@@ -172,7 +172,7 @@ trait TypeGuardDecl { self: TyChecker =>
         .map(DemandType(_))
   }
 
-    case class TypeProp(
+  case class TypeProp(
     localEnv: Map[Local, (ValueTy, Provenance)] = Map(),
     symEnv: Map[Sym, (ValueTy, Provenance)] = Map(),
     sexpr: Option[SymExpr] = None,
@@ -281,8 +281,9 @@ trait TypeGuardDecl { self: TyChecker =>
       TypeProp(newLocal, newSym, None) // FIXME: None -> erased symexpr
 
     def depth: Int =
-      (localEnv.values.map(_._2.depth) ++ symEnv.values.map(_._2.depth))
-        .maxOption
+      (localEnv.values.map(_._2.depth) ++ symEnv.values.map(
+        _._2.depth,
+      )).maxOption
         .getOrElse(0)
 
     def lift(using st: AbsState): TypeProp =
