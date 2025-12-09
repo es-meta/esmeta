@@ -84,10 +84,10 @@ trait TypeGuardDecl { self: TyChecker =>
       if newProp.nonTop
     } yield dty -> newProp)
 
-    def lift(ty: ValueTy = ValueTy.Top)(using st: AbsState): TypeGuard =
+    def bind(ty: ValueTy = ValueTy.Top)(using st: AbsState): TypeGuard =
       this && TypeGuard((for {
         kind <- DemandType.from(ty).toList
-        prop = TypeProp().lift
+        prop = TypeProp().bind
         if prop.nonTop
       } yield kind -> prop).toMap)
 
@@ -286,7 +286,7 @@ trait TypeGuardDecl { self: TyChecker =>
       )).maxOption
         .getOrElse(0)
 
-    def lift(using st: AbsState): TypeProp =
+    def bind(using st: AbsState): TypeProp =
       this && st.prop
 
     override def toString: String = (new Appender >> this).toString

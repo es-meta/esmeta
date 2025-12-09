@@ -90,8 +90,8 @@ trait AbsValueDecl { self: TyChecker =>
       val inGuard = guard.bases
       inSymty ++ inGuard
 
-    def lift(using st: AbsState): AbsValue =
-      AbsValue(symty, guard.lift(this.ty))
+    def bind(using st: AbsState): AbsValue =
+      AbsValue(symty, guard.bind(this.ty))
 
     /** check whether it has a local variable as a base */
     def hasLocalBase(x: Local): Boolean = bases.exists(_ == x)
