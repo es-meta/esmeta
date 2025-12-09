@@ -12,28 +12,28 @@ import esmeta.util.SystemUtils.exists
 trait TypeGuardDecl { self: TyChecker =>
 
   /** type guard */
-  case class TypeGuard(map: Map[DemandType, TypeConstr] = Map()) {
+  case class TypeGuard(map: Map[DemandType, TypeProp] = Map()) {
     def isEmpty: Boolean = map.isEmpty
     def nonEmpty: Boolean = !isEmpty
     def dtys: Set[DemandType] = map.keySet
-    def get(dty: DemandType): Option[TypeConstr] = map.get(dty)
+    def get(dty: DemandType): Option[TypeProp] = map.get(dty)
 
-    def apply(dty: DemandType): TypeConstr =
-      map.getOrElse(dty, TypeConstr())
+    def apply(dty: DemandType): TypeProp =
+      map.getOrElse(dty, TypeProp())
 
     def bases: Set[Base] = map.values.flatMap(_.bases).toSet
 
     def kill(bases: Set[Base])(using AbsState): TypeGuard = TypeGuard(for {
-      (dty, constr) <- map
-      newConstr = constr.kill(bases)
-      if newConstr.nonTop
-    } yield dty -> newConstr)
+      (dty, prop) <- map
+      newProp = prop.kill(bases)
+      if newProp.nonTop
+    } yield dty -> newProp)
 
     def forReturn(symEnv: Map[Sym, ValueTy]): TypeGuard = TypeGuard(for {
-      (dty, constr) <- map
-      newConstr = constr.forReturn(symEnv)
-      if newConstr.nonTop
-    } yield dty -> newConstr)
+      (dty, prop) <- map
+      newProp = prop.forReturn(symEnv)
+      if newProp.nonTop
+    } yield dty -> newProp)
 
     def filter(ty: ValueTy): TypeGuard =
       TypeGuard(map.filter { (dty, _) => !(dty.ty && ty).isBottom })
@@ -41,9 +41,9 @@ trait TypeGuardDecl { self: TyChecker =>
     def lift(ty: ValueTy = ValueTy.Top)(using st: AbsState): TypeGuard =
       this && TypeGuard((for {
         kind <- DemandType.from(ty).toList
-        constr = TypeConstr().lift
-        if constr.nonTop
-      } yield kind -> constr).toMap)
+        prop = TypeProp().lift
+        if prop.nonTop
+      } yield kind -> prop).toMap)
 
     def has(x: Base): Boolean = map.values.exists(_.has(x))
 
@@ -61,34 +61,34 @@ trait TypeGuardDecl { self: TyChecker =>
       TypeGuard((for {
         dty <- dtys.toList
         ty = lty || rty
-        constr = (this.evaluate(ty, dty.ty), that.evaluate(ty, dty.ty)) match
+        prop = (this.evaluate(ty, dty.ty), that.evaluate(ty, dty.ty)) match
           case (l, r) if (lty && dty.ty).isBottom => r
           case (l, r) if (rty && dty.ty).isBottom => l
           case (l, r)                             => l || r
-        if !constr.isTop
-      } yield dty -> constr).toMap)
+        if !prop.isTop
+      } yield dty -> prop).toMap)
 
     def &&(that: TypeGuard): TypeGuard = TypeGuard((for {
       dty <- (this.dtys ++ that.dtys).toList
-      constr = this(dty) && that(dty)
-      if !constr.isTop
-    } yield dty -> constr).toMap)
+      prop = this(dty) && that(dty)
+      if !prop.isTop
+    } yield dty -> prop).toMap)
 
-    def evaluate(lty: ValueTy, rty: ValueTy): TypeConstr =
-      if (lty && rty).isBottom then TypeConstr()
+    def evaluate(lty: ValueTy, rty: ValueTy): TypeProp =
+      if (lty && rty).isBottom then TypeProp()
       else {
-        val constrs = for {
-          (dty, constr) <- map
+        val props = for {
+          (dty, prop) <- map
           if rty <= dty.ty
-        } yield constr
-        if constrs.isEmpty then TypeConstr()
-        else constrs.reduce(_ && _)
+        } yield prop
+        if props.isEmpty then TypeProp()
+        else props.reduce(_ && _)
       }
 
     def simple: TypeGuard =
-      TypeGuard(map.filterNot { (dty, constr) =>
+      TypeGuard(map.filterNot { (dty, prop) =>
         map.exists { (tdty, tconstr) =>
-          (dty.ty != tdty.ty && dty.ty <= tdty.ty && tconstr <= constr)
+          (dty.ty != tdty.ty && dty.ty <= tdty.ty && tconstr <= prop)
         }
       })
 
@@ -96,7 +96,7 @@ trait TypeGuardDecl { self: TyChecker =>
   }
   object TypeGuard {
     val Empty: TypeGuard = TypeGuard()
-    def apply(ps: (DemandType, TypeConstr)*): TypeGuard = TypeGuard(
+    def apply(ps: (DemandType, TypeProp)*): TypeGuard = TypeGuard(
       ps.toMap,
     )
   }
@@ -144,8 +144,8 @@ trait TypeGuardDecl { self: TyChecker =>
         .map(DemandType(_))
   }
 
-  /** type constraints */
-  case class TypeConstr(
+  /** type propositions */
+  case class TypeProp(
     map: Map[Base, (ValueTy, Provenance)] = Map(),
     sexpr: Option[SymExpr] = None,
   ) {
@@ -153,7 +153,7 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def nonTop: Boolean = !isTop
 
-    def <=(that: TypeConstr): Boolean =
+    def <=(that: TypeProp): Boolean =
       that.map.forall {
         case (x, (rty, rprov)) =>
           this.map.get(x).fold(false) {
@@ -163,8 +163,8 @@ trait TypeGuardDecl { self: TyChecker =>
           }
       } && (this.sexpr == that.sexpr)
 
-    def ||(that: TypeConstr): TypeConstr =
-      TypeConstr(
+    def ||(that: TypeProp): TypeProp =
+      TypeProp(
         map = (for {
           x <- (this.map.keySet intersect that.map.keySet).toList
           (lty, lprov) = this.map(x)
@@ -178,8 +178,8 @@ trait TypeGuardDecl { self: TyChecker =>
         sexpr = this.sexpr || that.sexpr,
       )
 
-    def &&(that: TypeConstr): TypeConstr =
-      TypeConstr(
+    def &&(that: TypeProp): TypeProp =
+      TypeProp(
         map = (for {
           x <- (this.map.keySet ++ that.map.keySet).toList
           (lty, lprov) = this.map.getOrElse(x, (ValueTy.Top, Provenance.Top))
@@ -200,13 +200,13 @@ trait TypeGuardDecl { self: TyChecker =>
       map.keySet.collect { case s: Sym => s } ++
       sexpr.fold(Set[Base]())(_.bases)
 
-    def kill(bases: Set[Base])(using AbsState): TypeConstr =
+    def kill(bases: Set[Base])(using AbsState): TypeProp =
       this.copy(
         map.filter { case (x, _) => !bases.contains(x) },
         sexpr.fold(None)(_.kill(bases)),
       )
 
-    def forReturn(symEnv: Map[Sym, ValueTy]): TypeConstr = TypeConstr(
+    def forReturn(symEnv: Map[Sym, ValueTy]): TypeProp = TypeProp(
       map = for {
         case (x: Sym, (ty, prov)) <- map
         origTy = symEnv.getOrElse(x, BotT)
@@ -216,16 +216,16 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def depth: Int = map.values.map(_._2).map(_.depth).max
 
-    def lift(using st: AbsState): TypeConstr =
-      this && st.constr
+    def lift(using st: AbsState): TypeProp =
+      this && st.prop
 
     override def toString: String = (new Appender >> this).toString
   }
-  object TypeConstr {
-    def apply(sexpr: SymExpr): TypeConstr =
-      TypeConstr(sexpr = Some(sexpr))
-    def apply(pairs: (Base, (ValueTy, Provenance))*): TypeConstr =
-      TypeConstr(pairs.toMap, None)
+  object TypeProp {
+    def apply(sexpr: SymExpr): TypeProp =
+      TypeProp(sexpr = Some(sexpr))
+    def apply(pairs: (Base, (ValueTy, Provenance))*): TypeProp =
+      TypeProp(pairs.toMap, None)
   }
 
   /** symbolic expressions */
@@ -668,21 +668,21 @@ trait TypeGuardDecl { self: TyChecker =>
   given Rule[Provenance] = (app, prov) => ProvTextPrinter.print(app, prov)
 
   /** TypeConstr */
-  given Rule[TypeConstr] = (app, constr) =>
-    import TypeConstr.*
+  given Rule[TypeProp] = (app, prop) =>
+    import TypeProp.*
     given Rule[(ValueTy, Provenance)] =
       case (app, (ty, prov)) if useProvenance => app >> ty >> " ~~\n" >> prov
       case (app, (ty, prov))                  => app >> ty
     import SymTy.given
     given Rule[Map[Base, (ValueTy, Provenance)]] = sortedMapRule(sep = ": ")
-    if (constr.map.nonEmpty) app >> constr.map
-    constr.sexpr.fold(app) { app >> _ }
+    if (prop.map.nonEmpty) app >> prop.map
+    prop.sexpr.fold(app) { app >> _ }
 
   /** TypeGuard */
   given Rule[TypeGuard] = (app, guard) =>
     given Ordering[DemandType] = Ordering.by(_.toString)
     given Rule[DemandType] = (app, dty) => app >> dty.ty
-    given Rule[Map[DemandType, TypeConstr]] =
+    given Rule[Map[DemandType, TypeProp]] =
       sortedMapRule("{", "}", " => ")
     app >> guard.simple.map
 
