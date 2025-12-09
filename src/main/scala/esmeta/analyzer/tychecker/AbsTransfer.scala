@@ -180,7 +180,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         given callerSt: AbsState = callInfo(callerNp)
         val retTy = rp.func.retTy.ty.toValue
         val newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
-        val nextSt = callerSt.update(callerNp.node.lhs, newV, refine = false)
+        val nextSt = callerSt.update(callerNp.node.lhs, newV)
         analyzer += nextNp -> nextSt
       }
     }
@@ -444,7 +444,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           v =
             if (useSyntacticweaken) AbsValue(tv.ty)
             else tv
-          _ <- modify(_.update(x, v, refine = false))
+          _ <- modify(_.update(x, v))
         } yield ()
       case IAssign(Field(x: Var, EStr(f)), expr) =>
         for {
@@ -453,7 +453,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           ty <- get(_.get(x).ty)
           record = ty.record.update(f, v.ty, refine = false)
           _ <- modify(
-            _.update(x, AbsValue(ty.copied(record = record)), refine = false),
+            _.update(x, AbsValue(ty.copied(record = record))),
           )
         } yield ()
       case IAssign(ref, expr)  => st => st /* TODO */
@@ -466,7 +466,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           v <- transfer(expr)
           elem = l.ty.list.elem || v.ty
           newV = AbsValue(ListT(elem))
-          _ <- modify(_.update(list, newV, refine = false))
+          _ <- modify(_.update(list, newV))
         } yield ()
       case IPush(expr, list, _) => st => st /* TODO */
       case IPop(lhs, list, front) =>
@@ -1475,7 +1475,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                     bigInt = lv.ty.bigInt,
                   ),
                 ),
-                refine = true,
               )
             }
             toLocal(r).fold(lst) { x =>
@@ -1496,7 +1495,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                     bigInt = rv.ty.bigInt,
                   ),
                 ),
-                refine = true,
               )
             }
           }
@@ -1630,7 +1628,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           v <- get(_.get(x))
           given AbsState <- get
           refinedV = if (v.ty <= ty.toValue) v else v ⊓ AbsValue(ty)
-          _ <- modify(_.update(x, refinedV, refine = true))
+          _ <- modify(_.update(x, refinedV))
           _ <- notice(v, refinedV) // propagate type guard
         } yield ()
 
@@ -1682,7 +1680,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         if (positive) lv ⊓ rv
         else if (rv.isSingle) lv -- rv
         else lv
-      _ <- modify(_.update(x, refinedV, refine = true))
+      _ <- modify(_.update(x, refinedV))
       _ <- notice(lv, refinedV)
     } yield ()
 
@@ -1713,7 +1711,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         record = lty.record.update(field, binding, refine = true),
       )
       refinedV = AbsValue(refinedTy)
-      _ <- modify(_.update(x, refinedV, refine = true))
+      _ <- modify(_.update(x, refinedV))
       _ <- notice(lv, refinedV)
     } yield ()
 
@@ -1741,7 +1739,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val value = AbsValue(ValueTy.fromTypeOf(tname))
           if (positive) lv ⊓ value else lv -- value
         case _ => lv
-      _ <- modify(_.update(x, refinedV, refine = true))
+      _ <- modify(_.update(x, refinedV))
     } yield ()
 
     /** refine types with type checks */
@@ -1758,7 +1756,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           else v ⊓ AbsValue(ty)
         else v -- AbsValue(ty)
       _ <- modify(ref match
-        case x: Local => _.update(x, refinedV, refine = true)
+        case x: Local => _.update(x, refinedV)
         case Field(x: Local, EStr(field)) =>
           refineField(x, field, Binding(ty), positive)
         case _ => identity,

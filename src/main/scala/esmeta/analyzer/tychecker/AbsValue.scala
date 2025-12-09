@@ -61,6 +61,15 @@ trait AbsValueDecl { self: TyChecker =>
       val guard = if (update) this.guard.weaken(bases) else this.guard
       AbsValue(ty, guard)
 
+    def refine(ty: ValueTy)(using st: AbsState): AbsValue = 
+      AbsValue(symty.refine(ty), guard.refine(ty))
+
+    def fieldUpdate(fld: String, value: AbsValue)(using AbsState): AbsValue = 
+      val (tty, vty) = (symty.upper, value.symty.upper)
+      val newSymTy = STy(tty.copied(record = tty.record.update(fld, vty, refine = false)))
+      val newGuard = guard.fieldUpdate(fld, vty)
+      AbsValue(newSymTy, newGuard)
+
     /** remove non-parameter local variables */
     def forReturn(
       givenSt: AbsState,
