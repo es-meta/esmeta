@@ -231,19 +231,36 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** define variables */
     def define(x: Var, value: AbsValue): AbsState = x match
-      case x: Local  => this.update(x, value, refine = false)
-      case x: Global => raise("do not support defining global variables")
+        case x: Local  => this.update(x, value)
+        case x: Global => raise("do not support defining global variables")
 
     /** identifier setter */
-    def update(x: Var, value: AbsValue, refine: Boolean): AbsState = x match
+    def update(x: Var, value: AbsValue): AbsState = x match
       case x: Local =>
-        val newSt = if (refine) this else this.weaken(Set(x), update = true)
-        val newV =
-          if (!refine) value.weaken(Set(x), update = true)
-          else if (value.hasLocalBase(x)) value.weaken(Set(x), update = false)
-          else value
+        val newSt = this.weaken(Set(x), update = true)
+        val newV = value.weaken(Set(x), update = true)
         newSt.copy(locals = newSt.locals + (x -> newV), prop = newSt.prop)
       case x: Global => this
+
+    // state[x |-> value]
+    def strongUpdate(x: Var, value: AbsValue): AbsState = x match
+      case x: Local =>
+        val newV =
+          if value.hasLocalBase(x) then value.weaken(Set(x), update = false)
+          else value
+        this.copy(locals = locals + (x -> value))
+      case x: Global => this
+
+    /** field update */
+    def update(lx: Local, fld: String, value: AbsValue): AbsState = {
+      val newLocals = (for (x, v) <- locals
+      yield
+        if v.ty.record.names.contains(fld) then
+          x -> v ⊔ v.fieldUpdate(fld, value)
+        else x -> v)
+        .updated(lx, this.get(lx).fieldUpdate(fld, value)) // strong update
+      this.copy(locals = newLocals.toMap)
+    }
 
     /** type check */
     def typeCheck(value: AbsValue, givenTy: ValueTy): ValueTy =
