@@ -1465,7 +1465,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 case (EMath(0), _) =>
                   math = if (positive) MathTy.NegInt else MathTy.NonNegInt
                 case l =>
-              st.update(
+              st.strongUpdate(
                 x,
                 AbsValue(
                   ValueTy(
@@ -1485,7 +1485,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 case (EMath(0), _) =>
                   math = if (positive) MathTy.PosInt else MathTy.NonPosInt
                 case _ => rmath
-              lst.update(
+              lst.strongUpdate(
                 x,
                 AbsValue(
                   ValueTy(
@@ -1627,9 +1627,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- get(_.get(x))
           given AbsState <- get
-          refinedV = if (v.ty <= ty.toValue) v else v ⊓ AbsValue(ty)
-          _ <- modify(_.update(x, refinedV))
-          _ <- notice(v, refinedV) // propagate type guard
+          refinedV = v.refine(ty)
+          _ <- modify(_.strongUpdate(x, refinedV))
+          _ <- modify(refine(v.guard(ty)))
         } yield ()
 
     def toBase(
@@ -1680,7 +1680,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         if (positive) lv ⊓ rv
         else if (rv.isSingle) lv -- rv
         else lv
-      _ <- modify(_.update(x, refinedV))
+      _ <- modify(_.strongUpdate(x, refinedV))
       _ <- notice(lv, refinedV)
     } yield ()
 
@@ -1711,7 +1711,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         record = lty.record.update(field, binding, refine = true),
       )
       refinedV = AbsValue(refinedTy)
-      _ <- modify(_.update(x, refinedV))
+      _ <- modify(_.strongUpdate(x, refinedV))
       _ <- notice(lv, refinedV)
     } yield ()
 
@@ -1739,7 +1739,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val value = AbsValue(ValueTy.fromTypeOf(tname))
           if (positive) lv ⊓ value else lv -- value
         case _ => lv
-      _ <- modify(_.update(x, refinedV))
+      _ <- modify(_.strongUpdate(x, refinedV))
     } yield ()
 
     /** refine types with type checks */
