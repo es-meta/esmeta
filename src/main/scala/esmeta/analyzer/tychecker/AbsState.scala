@@ -249,7 +249,7 @@ trait AbsStateDecl { self: TyChecker =>
         val newV =
           if value.hasLocalBase(x) then value.weaken(Set(x), update = false)
           else value
-        this.copy(locals = locals + (x -> value))
+        this.copy(locals = locals + (x -> newV))
       case x: Global => this
 
     /** field update */
