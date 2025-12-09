@@ -19,8 +19,7 @@ enum Target {
 }
 
 object Target {
-  import Target.*
-  import Code.*
+  import Target.*, Code.*
 
   /** create Target from AST */
   def apply(ast: Option[Ast])(using cfg: CFG): Option[Target] = for {

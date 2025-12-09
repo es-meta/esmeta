@@ -164,27 +164,21 @@ class Fuzzer(
 
     condView match // instrumentation
       case Some(cv) =>
-        import Coverage.*
-        if (cov.condViews contains cv.neg) {
-          val mutatorName = mutants.head._1.name
-          val origCodeStr = code.toString
-          val mutatedCodeStr = cov.getScript(cv.neg).get.toString
-          val newInstr = Instr(
-            isFlipped = true,
+        val mutatorName = mutants.head._1.name
+        val origCodeStr = code.toString
+        val isFlipped = cov.condViews.contains(cv.neg)
+        val mutatedCodeStr =
+          if (isFlipped) cov.getScript(cv.neg).get.toString
+          else "NOT_FLIPPED_YET"
+        instMap.update(
+          cv,
+          Instr(
+            isFlipped = isFlipped,
             trial = cvCounter.getOrElse(cv, 0) + 1,
             mutationEvent = Some((mutatorName, origCodeStr, mutatedCodeStr)),
             progress = Some((iter, Time(elapsed).simpleString)),
-          )
-          instMap.update(cv, newInstr)
-        } else {
-          val newInstr = Instr(
-            isFlipped = false,
-            trial = cvCounter.getOrElse(cv, 0) + 1,
-            mutationEvent = None,
-            progress = None,
-          )
-          instMap.update(cv, newInstr)
-        }
+          ),
+        )
         cvCounter.update(cv, cvCounter.getOrElse(cv, 0) + 1)
       case None => ()
 
