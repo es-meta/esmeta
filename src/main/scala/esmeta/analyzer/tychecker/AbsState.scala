@@ -62,7 +62,7 @@ trait AbsStateDecl { self: TyChecker =>
           if (this.prop != that.prop)
             val lxs = this.getImprecBases(that)
             val rxs = that.getImprecBases(this)
-            (this.kill(lxs, update = false), that.kill(rxs, update = false))
+            (this.weaken(lxs, update = false), that.weaken(rxs, update = false))
           else (this, that)
         val newLocals = (for {
           x <- (this.locals.keySet ++ that.locals.keySet).toList
@@ -111,10 +111,10 @@ trait AbsStateDecl { self: TyChecker =>
         val newProp = l.prop && r.prop
         AbsState(true, newLocals, newSymEnv, newProp)
 
-    /** kill bases */
-    def kill(bases: Set[Base], update: Boolean): AbsState =
-      val newLocals = for { (x, v) <- locals } yield x -> v.kill(bases, update)
-      val newProp = if (update) prop.kill(bases) else prop
+    /** weaken bases */
+    def weaken(bases: Set[Base], update: Boolean): AbsState =
+      val newLocals = for { (x, v) <- locals } yield x -> v.weaken(bases, update)
+      val newProp = if (update) prop.weaken(bases) else prop
       AbsState(reachable, newLocals, symEnv, newProp)
 
     /** has imprecise elements */
@@ -258,10 +258,10 @@ trait AbsStateDecl { self: TyChecker =>
     /** identifier setter */
     def update(x: Var, value: AbsValue, refine: Boolean): AbsState = x match
       case x: Local =>
-        val newSt = if (refine) this else this.kill(Set(x), update = true)
+        val newSt = if (refine) this else this.weaken(Set(x), update = true)
         val newV =
-          if (!refine) value.kill(Set(x), update = true)
-          else if (value.hasLocalBase(x)) value.kill(Set(x), update = false)
+          if (!refine) value.weaken(Set(x), update = true)
+          else if (value.hasLocalBase(x)) value.weaken(Set(x), update = false)
           else value
         newSt.copy(locals = newSt.locals + (x -> newV), prop = newSt.prop)
       case x: Global => this

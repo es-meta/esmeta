@@ -276,7 +276,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           val v = AbsValue(retTy)
           v.lift
         }
-        if (useSyntacticKill) newRetV = newRetV.killMutable(using callerNp)
+        if (useSyntacticweaken) newRetV = newRetV.weakenMutable(using callerNp)
         for {
           nextNp <- getAfterCallNp(callerNp)
           newSt = callerSt.define(call.lhs, newRetV)
@@ -442,7 +442,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState <- get
           tv <- transfer(expr)
           v =
-            if (useSyntacticKill) AbsValue(tv.ty)
+            if (useSyntacticweaken) AbsValue(tv.ty)
             else tv
           _ <- modify(_.update(x, v, refine = false))
         } yield ()
@@ -567,8 +567,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         guard <- if (inferTypeGuard) getTypeGuard(expr) else pure(TypeGuard())
         newV = if (inferTypeGuard) v.addGuard(guard) else v
       } yield
-        if (!useSyntacticKill) newV
-        else newV.killMutable)(st)
+        if (!useSyntacticweaken) newV
+        else newV.weakenMutable)(st)
       // No propagation if the result of the expression is bottom
       if (v.isBottom) (v, AbsState.Bot) else (v, newSt)
     }
@@ -1358,8 +1358,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         case (v, i) => i -> v
       }.toMap
       val newV = instantiate(call, value, map)
-      if (inferTypeGuard && useSyntacticKill)
-        newV.lift.killMutable(using callerNp)
+      if (inferTypeGuard && useSyntacticweaken)
+        newV.lift.weakenMutable(using callerNp)
       else if (inferTypeGuard) newV.lift
       else newV
 
