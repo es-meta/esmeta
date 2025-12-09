@@ -123,7 +123,7 @@ trait AbsStateDecl { self: TyChecker =>
 
     def get(sty: SymTy): AbsValue = AbsValue(sty)
 
-    def getTy(sty: SymTy): ValueTy = sty.ty
+    def getTy(sty: SymTy): ValueTy = sty.upper
 
     def getTy(base: Base): ValueTy = base match
       case l: Local => get(l).ty
