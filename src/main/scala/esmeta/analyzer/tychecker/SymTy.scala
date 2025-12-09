@@ -124,7 +124,7 @@ trait SymTyDecl { self: TyChecker =>
     def --(that: SymTy)(lst: AbsState, rst: AbsState): SymTy =
       (this, that) match
         case (l, r) if r.isBottom => l
-        case (l, r)               => STy(l.upper(using lst) -- r.upper(using rst))
+        case (l, r) => STy(l.upper(using lst) -- r.upper(using rst))
 
     def refine(ty: ValueTy)(using st: AbsState): SymTy =
       if (this ⊑ STy(ty)) this

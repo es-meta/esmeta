@@ -107,7 +107,8 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** weaken bases */
     def weaken(bases: Set[Base], update: Boolean): AbsState =
-      val newLocals = for { (x, v) <- locals } yield x -> v.weaken(bases, update)
+      val newLocals =
+        for { (x, v) <- locals } yield x -> v.weaken(bases, update)
       val newProp = if (update) prop.weaken(bases) else prop
       AbsState(reachable, newLocals, symEnv, newProp)
 
@@ -231,8 +232,8 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** define variables */
     def define(x: Var, value: AbsValue): AbsState = x match
-        case x: Local  => this.update(x, value)
-        case x: Global => raise("do not support defining global variables")
+      case x: Local  => this.update(x, value)
+      case x: Global => raise("do not support defining global variables")
 
     /** identifier setter */
     def update(x: Var, value: AbsValue): AbsState = x match

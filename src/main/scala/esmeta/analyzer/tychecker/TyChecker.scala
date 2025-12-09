@@ -430,7 +430,8 @@ class TyChecker(
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
       } yield {
-        if (useSyntacticweaken) (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
+        if (useSyntacticweaken)
+          (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
         else (x -> AbsValue(SSym(sym)), sym -> value.ty)
       }).unzip
       AbsState(true, newLocals.toMap, symEnv.toMap, TypeProp())
