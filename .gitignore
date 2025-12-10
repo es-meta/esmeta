@@ -27,6 +27,7 @@ bin/
 
 ## temporal files
 .*.js
+.*.json
 
 ## vscode
 .vscode

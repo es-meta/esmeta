@@ -1,6 +1,7 @@
 package esmeta.es.util
 
 import esmeta.cfg.*
+import esmeta.es.*
 import esmeta.state.util.{JsonProtocol as StateJsonProtocol}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -53,4 +54,47 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   // coverage constructor
   given coverageConstructorDecoder: Decoder[CoverageConstructor] = deriveDecoder
   given coverageConstructorEncoder: Encoder[CoverageConstructor] = deriveEncoder
+
+  // code object
+  import Code.*
+  given Decoder[Normal] = deriveDecoder
+  given Encoder[Normal] = deriveEncoder
+  given Decoder[Builtin] = deriveDecoder
+  given Encoder[Builtin] = deriveEncoder
+
+  given codeDecoder: Decoder[Code] = Decoder.instance { c =>
+    c.get[String]("kind").flatMap {
+      case "Normal" =>
+        c.get[Normal]("info").map { info => Normal(info.sourceText) }
+      case "Builtin" =>
+        c.get[Builtin]("info").map { info =>
+          Builtin(
+            func = info.func,
+            thisArg = info.thisArg,
+            args = info.args,
+            preStmts = info.preStmts,
+            postStmts = info.postStmts,
+          )
+        }
+    }
+  }
+  given codeEncoder: Encoder[Code] = Encoder.instance { code =>
+    code match
+      case Normal(sourceText) =>
+        Json.obj(
+          "kind" -> "Normal".asJson,
+          "info" -> Json.obj("sourceText" -> sourceText.asJson),
+        )
+      case Builtin(func, thisArg, args, preStmts, postStmts) =>
+        Json.obj(
+          "kind" -> "Builtin".asJson,
+          "info" -> Json.obj(
+            "func" -> func.asJson,
+            "thisArg" -> thisArg.asJson,
+            "args" -> args.asJson,
+            "preStmts" -> preStmts.asJson,
+            "postStmts" -> postStmts.asJson,
+          ),
+        )
+  }
 }

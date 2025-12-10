@@ -1,4 +1,4 @@
-package esmeta.fuzzer
+package esmeta.fuzzer.util
 
 case class Instr(
   covered: Boolean = true,

@@ -18,8 +18,9 @@ import io.circe.*, io.circe.syntax.*
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
 import scala.collection.mutable.{Map => MMap}
-import scala.collection.parallel.CollectionConverters._
+import scala.collection.parallel.CollectionConverters.*
 import scala.util.*
+import esmeta.fuzzer.util.Instr
 
 /** ECMAScript program fuzzer with ECMA-262 */
 object Fuzzer {

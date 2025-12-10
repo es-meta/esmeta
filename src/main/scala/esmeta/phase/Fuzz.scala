@@ -113,7 +113,6 @@ case object Fuzz extends Phase[CFG, Coverage] {
       BoolOption((c, b) => c.cp = b),
       "turn on the call-path mode (default: false) (meaningful if k-fs > 0).",
     ),
-    // TODO: targeted fuzz by config (target-cond-id, code, mutator) in json format
   )
   case class Config(
     var tyCheck: Boolean = false,
