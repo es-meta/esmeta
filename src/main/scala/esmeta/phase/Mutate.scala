@@ -29,53 +29,53 @@ case object Mutate extends Phase[CFG, String] {
       else if (filename.endsWith(".json")) readJson[Code](filename)
       else raise("invalid filename")
 
-    val mutator = config.builder(using cfg)
     val analyzer = ParamFlowAnalyzer(cfg)
+    analyzer.analyze
+    val cov = Coverage(cfg, analyzer = Some(analyzer))
+
+    val target = config.untilCovered match
+      case Some(str) =>
+        val (rawId, rawCond) = str.splitAt(str.indexOf(":"))
+        val (prefix, suffix) = ("Branch[", "]")
+        val tid = if (rawId.startsWith(prefix) && rawId.endsWith(suffix)) {
+          rawId.substring(prefix.length, rawId.length - 1).toInt
+        } else raise("invalid target")
+        val tcond = rawCond.drop(1) match
+          case "T" => true; case "F" => false
+          case _   => raise("invalid target")
+        val touchedCondViews = cov.run(code).touchedCondViews.keySet
+        touchedCondViews
+          .filter(cv => cv.cond.branch.id == tid && cv.cond.cond == tcond)
+          .headOption
+          .map((_, cov))
+      case None => None
+
+    val mutator = config.builder(using cfg)
     var iter = 0
 
-    analyzer.analyze
-    val cov = Coverage(cfg)
-
     // get a mutated code
-    var mutatedCode = mutator(code).code
+    var mutatedCode = mutator(code, target).code
 
     // get string of mutated code
     def mutated = mutatedCode.toString
 
     iter += 1
 
-    // get a target branch (format: Branch[<id>]:<cond>)
-    val targetBranch: Option[(Int, Boolean)] =
-      config.untilCovered match
-        case Some(str) =>
-          val (rawId, rawCond) = str.splitAt(str.indexOf(":"))
-          val (prefix, suffix) = ("Branch[", "]")
-          val id = if (rawId.startsWith(prefix) && rawId.endsWith(suffix)) {
-            rawId.substring(prefix.length, rawId.length - 1).toInt
-          } else raise("invalid target")
-          val cond = rawCond.drop(1) match
-            case "T" => true; case "F" => false
-            case _   => raise("invalid target")
-          Some((id, cond))
-        case None => None
-
-    def coversTarget(code: Code): Boolean = targetBranch match
-      case Some((tid, tcond)) =>
-        cov.run(code).touchedCondViews.keySet.map(_.cond).exists {
-          case Cond(branch, cond) => branch.id == tid && cond == tcond
-        }
+    def isFlipped(code: Code): Boolean = target match
+      case Some((cv, _)) =>
+        cov.run(code).touchedCondViews.keySet.contains(cv.neg)
       case None => false
 
-    // repeat until the mutated program is valid and covers target (threshold: 10_000)
+    // repeat until the mutated program is valid and covers target
     config.untilCovered match
       case Some(str) =>
-        while (!(ValidityChecker(mutated) && coversTarget(mutatedCode))) {
-          mutatedCode = mutator(code).code; iter += 1
+        while (!(ValidityChecker(mutated) && isFlipped(mutatedCode))) {
+          mutatedCode = mutator(code, target).code; iter += 1
           if (iter >= config.trial.getOrElse(10000))
             raise(s"Failed to cover $str after $iter iters")
         }
         println(s"Covered with $iter iters")
-      case None =>
+      case None => ()
 
     // dump the mutated ECMAScript program
     for (filename <- config.out)

@@ -18,8 +18,10 @@ trait Mutator(using val cfg: CFG) {
     esParser("ArgumentList", List(false, false))
 
   /** mutate code */
-  def apply(code: Code): Result = apply(code, 1, None).head
-  def apply(code: Code, n: Int): Seq[Result] = apply(code, n, None)
+  def apply(
+    code: Code,
+    target: Option[(CondView, Coverage)],
+  ): Result = apply(code, 1, target).head
   def apply(
     code: Code,
     n: Int,
@@ -27,8 +29,10 @@ trait Mutator(using val cfg: CFG) {
   ): Seq[Result]
 
   /** mutate string */
-  def apply(str: String): String = apply(str, 1, None).head
-  def apply(str: String, n: Int): Seq[String] = apply(str, n, None)
+  def apply(
+    str: String,
+    target: Option[(CondView, Coverage)],
+  ): String = apply(str, 1, target).head
   def apply(
     str: String,
     n: Int,
@@ -38,8 +42,10 @@ trait Mutator(using val cfg: CFG) {
   }
 
   /** mutate AST */
-  def apply(ast: Ast): Ast = apply(ast, 1, None).head
-  def apply(ast: Ast, n: Int): Seq[Ast] = apply(ast, n, None)
+  def apply(
+    ast: Ast,
+    target: Option[(CondView, Coverage)],
+  ): Ast = apply(ast, 1, None).head
   def apply(
     ast: Ast,
     n: Int,
