@@ -1,0 +1,12 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "Function.prototype[Symbol.hasInstance].call",
+    "thisArg" : "0",
+    "args" : [
+      "0"
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "Object.setPrototypeOf",
+    "thisArg" : null,
+    "args" : [
+      "x",
+      "TypedArray.prototype"
+    ],
+    "preStmts" : "var x = {};",
+    "postStmts" : "x.buffer;"
+  }
+}

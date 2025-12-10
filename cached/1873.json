@@ -1,0 +1,12 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "Math.cosh.call",
+    "thisArg" : "0",
+    "args" : [
+      "0"
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}

@@ -35,6 +35,7 @@ object Fuzzer {
     trial: Option[Int] = None, // `None` denotes no bound
     duration: Option[Int] = None, // `None` denotes no bound
     init: Option[String] = None, // initial pool directory path given by user
+    cached: Boolean = false,
     kFs: Int = 0,
     cp: Boolean = false,
   ): Coverage = new Fuzzer(
@@ -48,6 +49,7 @@ object Fuzzer {
     trial,
     duration,
     init,
+    cached,
     kFs,
     cp,
   ).result
@@ -70,6 +72,7 @@ class Fuzzer(
   trial: Option[Int],
   duration: Option[Int],
   init: Option[String],
+  cached: Boolean,
   kFs: Int,
   cp: Boolean,
 ) {
@@ -304,20 +307,30 @@ class Fuzzer(
   val instMap: MMap[Coverage.CondView, Instr] = MMap()
 
   /** initial pool */
-  val initPool = init
-    .map(d =>
-      listFiles(d).sorted.map(f =>
-        "GivenByUser" -> Code.Normal(
-          readFile(f.getPath).replace(USE_STRICT, ""),
-        ),
-      ),
-    )
-    .getOrElse(
-      SimpleSynthesizer(grammar).initPool
-        .map(SimpleSynthesizer(grammar).name -> _) ++
-      BuiltinSynthesizer(cfg.spec.algorithms).initPool
-        .map(BuiltinSynthesizer(cfg.spec.algorithms).name -> _),
-    )
+  val initPool =
+    if (cached) {
+      val jsonProtocol = new JsonProtocol(cfg)
+      import jsonProtocol.{*, given}
+      listFiles("./cached").sorted.map {
+        case f if f.getPath.endsWith(".json") =>
+          "GivenByUser" -> readJson[Code](f.getPath)
+      }
+    } else {
+      init
+        .map(d =>
+          listFiles(d).sorted.map(f =>
+            "GivenByUser" -> Code.Normal(
+              readFile(f.getPath).replace(USE_STRICT, ""),
+            ),
+          ),
+        )
+        .getOrElse(
+          SimpleSynthesizer(grammar).initPool
+            .map(SimpleSynthesizer(grammar).name -> _) ++
+          BuiltinSynthesizer(cfg.spec.algorithms).initPool
+            .map(BuiltinSynthesizer(cfg.spec.algorithms).name -> _),
+        )
+    }
 
   lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
   lazy val symlink: String = s"$FUZZ_LOG_DIR/recent"

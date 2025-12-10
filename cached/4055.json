@@ -1,0 +1,6 @@
+{
+  "kind" : "Normal",
+  "info" : {
+    "sourceText" : "new Int8Array;"
+  }
+}

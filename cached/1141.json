@@ -1,0 +1,11 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "Object.keys.call",
+    "thisArg" : "0",
+    "args" : [
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}

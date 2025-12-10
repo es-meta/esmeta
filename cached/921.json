@@ -1,0 +1,11 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "encodeURIComponent.call",
+    "thisArg" : "0",
+    "args" : [
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "WeakMap.prototype.delete.call",
+    "thisArg" : "0",
+    "args" : [
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}

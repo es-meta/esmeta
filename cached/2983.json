@@ -1,0 +1,11 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "String.prototype[Symbol.iterator].call",
+    "thisArg" : "0",
+    "args" : [
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}

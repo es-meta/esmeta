@@ -1,0 +1,12 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "Object.getOwnPropertyNames.call",
+    "thisArg" : "0",
+    "args" : [
+      "0"
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}

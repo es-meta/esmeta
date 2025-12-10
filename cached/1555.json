@@ -1,0 +1,13 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "SyntaxError.call",
+    "thisArg" : "0",
+    "args" : [
+      "0",
+      "0"
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}

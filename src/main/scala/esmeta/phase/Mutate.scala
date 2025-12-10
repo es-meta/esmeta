@@ -17,7 +17,7 @@ case object Mutate extends Phase[CFG, String] {
   val name = "mutate"
   val help = "mutates an ECMAScript program."
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
-    import Coverage.*
+    import Coverage.*, Target.*
 
     val jsonProtocol = new JsonProtocol(cfg)
     import jsonProtocol.{*, given}
@@ -33,7 +33,7 @@ case object Mutate extends Phase[CFG, String] {
     analyzer.analyze
     val cov = Coverage(cfg, analyzer = Some(analyzer))
 
-    val target = config.untilCovered match
+    val target = config.target match
       case Some(str) =>
         val (rawId, rawCond) = str.splitAt(str.indexOf(":"))
         val (prefix, suffix) = ("Branch[", "]")
@@ -43,15 +43,30 @@ case object Mutate extends Phase[CFG, String] {
         val tcond = rawCond.drop(1) match
           case "T" => true; case "F" => false
           case _   => raise("invalid target")
-        val touchedCondViews = cov.run(code).touchedCondViews.keySet
-        touchedCondViews
-          .filter(cv => cv.cond.branch.id == tid && cv.cond.cond == tcond)
-          .headOption
-          .map((_, cov))
+        val touchedCondViews = cov.run(code).touchedCondViews
+        val targetCondView = touchedCondViews.filter { (cv, targets) =>
+          cv.cond.branch.id == tid && cv.cond.cond == tcond
+        }.headOption
+        targetCondView match
+          case Some((cv, targets)) =>
+            if (config.debug)
+              val codeStr = code.toString
+              println(s"Original Code: $codeStr")
+              val localized = targets.map {
+                case Normal(loc) => s"Normal: ${loc.getString(codeStr)}"
+                case BuiltinThis(thisArg) => s"Builtin this: ${thisArg}"
+                case BuiltinArg(arg, idx) => s"Builtin ${idx}th arg: ${arg}"
+              }
+              println("Localized:")
+              localized.foreach(target => println(s"- $target"))
+            Some((cv, cov))
+          case None => None
       case None => None
 
     val mutator = config.builder(using cfg)
+    var blocked = Set[String]()
     var iter = 0
+    val trial = config.trial.getOrElse(10000)
 
     // get a mutated code
     var mutatedCode = mutator(code, target).code
@@ -61,20 +76,25 @@ case object Mutate extends Phase[CFG, String] {
 
     iter += 1
 
-    def isFlipped(code: Code): Boolean = target match
+    def coversFlipped(code: Code): Boolean = target match
       case Some((cv, _)) =>
-        cov.run(code).touchedCondViews.keySet.contains(cv.neg)
+        val flipped = cv.neg
+        if (config.debug) println(s"[iter: $iter] $code")
+        val covered = cov.run(code).touchedCondViews.keySet.contains(flipped)
+        if (covered) println(s"Covered $flipped with $iter iters")
+        covered
       case None => false
 
     // repeat until the mutated program is valid and covers target
-    config.untilCovered match
+    config.target match
       case Some(str) =>
-        while (!(ValidityChecker(mutated) && isFlipped(mutatedCode))) {
-          mutatedCode = mutator(code, target).code; iter += 1
-          if (iter >= config.trial.getOrElse(10000))
-            raise(s"Failed to cover $str after $iter iters")
+        while (!(ValidityChecker(mutated) && coversFlipped(mutatedCode))) {
+          while (blocked.contains(mutated))
+            mutatedCode = mutator(code, target).code
+          iter += 1
+          blocked += mutated
+          if (iter >= trial) raise(s"Failed to cover $str after $iter iters")
         }
-        println(s"Covered with $iter iters")
       case None => ()
 
     // dump the mutated ECMAScript program
@@ -108,8 +128,8 @@ case object Mutate extends Phase[CFG, String] {
       "select a mutator (default: RandomMutator).",
     ),
     (
-      "untilCovered",
-      StrOption((c, s) => c.untilCovered = Some(s)),
+      "target",
+      StrOption((c, s) => c.target = Some(s)),
       "repeat until the mutated program covers the targeted branch.",
     ),
     (
@@ -117,11 +137,17 @@ case object Mutate extends Phase[CFG, String] {
       NumOption((c, n) => c.trial = Some(n)),
       "set the number of trials (default: 10000).",
     ),
+    (
+      "debug",
+      BoolOption((c, b) => c.debug = b),
+      "turn on debugging mode.",
+    ),
   )
   class Config(
     var out: Option[String] = None,
     var builder: CFG ?=> Mutator = RandomMutator(),
-    var untilCovered: Option[String] = None,
+    var target: Option[String] = None,
     var trial: Option[Int] = None,
+    var debug: Boolean = false,
   )
 }

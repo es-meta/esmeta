@@ -1,0 +1,11 @@
+{
+  "kind" : "Builtin",
+  "info" : {
+    "func" : "new Map",
+    "thisArg" : null,
+    "args" : [
+    ],
+    "preStmts" : null,
+    "postStmts" : null
+  }
+}
