@@ -257,6 +257,14 @@ case class Coverage(
         getData = USE_STRICT + _.code + LINE_SEP,
         remove = true,
       )
+      dumpDir[Script]( // NOTE: experimental
+        name = "minimal ECMAScript programs in JSON",
+        iterable = _minimalScripts,
+        dirname = s"$baseDir/minimalJSON",
+        getName = _.name + "on", // ".json" = ".js" + "on"
+        getData = _.code.asJson,
+        remove = true,
+      )
       log("Dumped scripts")
     // TODO if (withScriptInfo)
     // TODO   dumpDir[(String, ScriptInfo)](
