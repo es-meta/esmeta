@@ -78,6 +78,9 @@ class Fuzzer(
 ) {
   import Fuzzer.*
 
+  val jsonProtocol = new JsonProtocol(cfg)
+  import jsonProtocol.{*, given}
+
   /** ECMAScript grammar */
   lazy val grammar = cfg.grammar
 
@@ -110,6 +113,7 @@ class Fuzzer(
       },
     )
     println(s"- the initial program pool consists of ${pool.size} programs.")
+    if (cached && !exists(cacheDir)) dumpCache
     time(
       "- repeatedly trying to fuzz new programs to increase coverage", {
         if (log) {
@@ -308,28 +312,25 @@ class Fuzzer(
 
   /** initial pool */
   val initPool =
-    if (cached) {
-      val jsonProtocol = new JsonProtocol(cfg)
-      import jsonProtocol.{*, given}
-      listFiles("./cached").sorted.map {
-        case f if f.getPath.endsWith(".json") =>
-          "GivenByUser" -> readJson[Code](f.getPath)
-      }
+    if (cached && exists(cacheDir)) {
+      listFiles(cacheDir).sorted
+        .filter(_.getPath.endsWith(".json"))
+        .map(f => "Cached" -> readJson[Code](f.getPath))
     } else {
-      init
-        .map(d =>
-          listFiles(d).sorted.map(f =>
-            "GivenByUser" -> Code.Normal(
-              readFile(f.getPath).replace(USE_STRICT, ""),
-            ),
-          ),
-        )
-        .getOrElse(
-          SimpleSynthesizer(grammar).initPool
-            .map(SimpleSynthesizer(grammar).name -> _) ++
-          BuiltinSynthesizer(cfg.spec.algorithms).initPool
-            .map(BuiltinSynthesizer(cfg.spec.algorithms).name -> _),
-        )
+      val initFiles = init.map(dir => listFiles(dir).sorted)
+      initFiles match
+        case Some(files) =>
+          files.map { file =>
+            val sourceText = readFile(file.getPath).replace(USE_STRICT, "")
+            "GivenByUser" -> Code.Normal(sourceText)
+          }
+        case None =>
+          SimpleSynthesizer(grammar).initPool.map { code =>
+            SimpleSynthesizer(grammar).name -> code
+          } ++
+          BuiltinSynthesizer(cfg.spec.algorithms).initPool.map { code =>
+            BuiltinSynthesizer(cfg.spec.algorithms).name -> code
+          }
     }
 
   lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
@@ -486,4 +487,19 @@ class Fuzzer(
     getPrintWriter(s"$logDir/selector-stat.tsv")
   private lazy val mutStatTsv: PrintWriter =
     getPrintWriter(s"$logDir/mutation-stat.tsv")
+
+  // dump cache for synthesized initial pool
+  private def dumpCache: Unit =
+    mkdir(cacheDir)
+    dumpDir[Script](
+      name = "minimal ECMAScript programs in JSON",
+      iterable = cov.minimalScripts,
+      dirname = cacheDir,
+      getName = _.name + "on", // ".json" = ".js" + "on"
+      getData = _.code.asJson,
+      remove = true,
+    )
+    println("Dumped cache for synthesized initial pool")
+
+  private lazy val cacheDir: String = s"$FUZZ_LOG_DIR/cached"
 }

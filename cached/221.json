@@ -1,6 +1,0 @@
-{
-  "kind" : "Normal",
-  "info" : {
-    "sourceText" : "class x { static x ; }"
-  }
-}

@@ -63,17 +63,19 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
   given Encoder[Builtin] = deriveEncoder
 
   given codeDecoder: Decoder[Code] = Decoder.instance { c =>
-    c.get[String]("kind").flatMap {
+    c.get[String]("tag").flatMap {
       case "Normal" =>
-        c.get[Normal]("info").map { info => Normal(info.sourceText) }
+        c.get[Normal]("code").map { normal =>
+          Normal(sourceText = normal.sourceText)
+        }
       case "Builtin" =>
-        c.get[Builtin]("info").map { info =>
+        c.get[Builtin]("code").map { builtin =>
           Builtin(
-            func = info.func,
-            thisArg = info.thisArg,
-            args = info.args,
-            preStmts = info.preStmts,
-            postStmts = info.postStmts,
+            func = builtin.func,
+            thisArg = builtin.thisArg,
+            args = builtin.args,
+            preStmts = builtin.preStmts,
+            postStmts = builtin.postStmts,
           )
         }
     }
@@ -82,13 +84,13 @@ class JsonProtocol(cfg: CFG) extends StateJsonProtocol(cfg) {
     code match
       case Normal(sourceText) =>
         Json.obj(
-          "kind" -> "Normal".asJson,
-          "info" -> Json.obj("sourceText" -> sourceText.asJson),
+          "tag" -> "Normal".asJson,
+          "code" -> Json.obj("sourceText" -> sourceText.asJson),
         )
       case Builtin(func, thisArg, args, preStmts, postStmts) =>
         Json.obj(
-          "kind" -> "Builtin".asJson,
-          "info" -> Json.obj(
+          "tag" -> "Builtin".asJson,
+          "code" -> Json.obj(
             "func" -> func.asJson,
             "thisArg" -> thisArg.asJson,
             "args" -> args.asJson,

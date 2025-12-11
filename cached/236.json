@@ -1,6 +1,0 @@
-{
-  "kind" : "Normal",
-  "info" : {
-    "sourceText" : "async function x ( ) { }"
-  }
-}

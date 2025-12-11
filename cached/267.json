@@ -1,6 +1,0 @@
-{
-  "kind" : "Normal",
-  "info" : {
-    "sourceText" : "switch ( x ) { default : ; }"
-  }
-}

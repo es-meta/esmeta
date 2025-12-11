@@ -102,7 +102,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     (
       "cached",
       BoolOption((c, b) => c.cached = b),
-      "set cached JSON dumped program to skip synthesizer startup (experimental).",
+      "set cached JSON dumped program to skip synthesizer startup.",
     ),
     (
       "init",
@@ -130,7 +130,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     var trial: Option[Int] = None,
     var duration: Option[Int] = None,
     var seed: Option[Int] = None,
-    var cached: Boolean = false, // experimental
+    var cached: Boolean = false,
     var init: Option[String] = None,
     var kFs: Int = 0,
     var cp: Boolean = false,
