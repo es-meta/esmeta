@@ -217,7 +217,9 @@ case class Test262(
         // dump type errors (dump names only when there are multiple tests)
         if (tyCheck) collector.dumpTo(logDir, withNames = multiple)
         // dump coverage
-        if (useCoverage) cov.dumpTo(logDir)
+        if (useCoverage)
+          if (detail) cov.dumpToWithDetail(logDir)
+          else cov.dumpTo(logDir)
       },
     )
 

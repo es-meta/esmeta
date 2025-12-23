@@ -349,7 +349,6 @@ case class Coverage(
     // update target branches
     val neg = condView.neg
     cond.branch match
-      case _ if targets.isEmpty            =>
       case Branch(_, _, EBool(_), _, _, _) =>
       case _ if getScripts(neg).isDefined  => removeTargetCond(neg)
       case _                               => addTargetCond(condView, targets)
