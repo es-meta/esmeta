@@ -221,8 +221,8 @@ case class Coverage(
     mkdir(baseDir)
     lazy val orderedNodeViews = nodeViews.toList.sorted
     lazy val orderedCondViews = condViews.toList.sorted
-    lazy val getNodeViewsId = orderedNodeViews.zipWithIndex.toMap
-    lazy val getCondViewsId = orderedCondViews.zipWithIndex.toMap
+    lazy val getNodeViewsId = orderedNodeViews.map(nv => (nv, nv.node.id)).toMap
+    lazy val getCondViewsId = orderedCondViews.map(cv => (cv, cv.cond.id)).toMap
     dumpJson(
       CoverageConstructor(kFs, cp, timeLimit),
       s"$baseDir/constructor.json",
@@ -349,9 +349,10 @@ case class Coverage(
     // update target branches
     val neg = condView.neg
     cond.branch match
-      case Branch(_, _, EBool(_), _, _, _) =>
-      case _ if getScripts(neg).isDefined  => removeTargetCond(neg)
-      case _                               => addTargetCond(condView, targets)
+      case _ if !script.name.contains("test262") && targets.isEmpty =>
+      case Branch(_, _, EBool(_), _, _, _)                          =>
+      case _ if getScript(neg).isDefined => removeTargetCond(neg)
+      case _                             => addTargetCond(condView, targets)
 
     condViewMap += cond -> updated(apply(cond), view, script)
   }
