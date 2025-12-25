@@ -1,0 +1,2207 @@
+Branch[286]:T : String.prototype.lastIndexOf.call(0, 0);
+Branch[286]:F : String.prototype.lastIndexOf.call({ } );
+Branch[286] : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
+
+Branch[288]:T : String.prototype.lastIndexOf.call(0, 0);
+Branch[288]:F : String.prototype.lastIndexOf.call({ } );
+Branch[288] : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
+
+Branch[307]:T : class x { } while ( x ) do ; while ( x , x = - Infinity , x ^= x ** x ) ;
+Branch[307]:F : var x = 0 ** ! x ;
+Branch[307] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-5-12.js"
+
+Branch[315]:T : class x { } while ( x ) do ; while ( x , x = - 0 , x ^= x -- ** x ) ;
+Branch[315]:F : var x = 1 ** ! x ;
+Branch[315] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-5-12.js"
+
+Branch[357]:T : var x = x >= [ ~ x * - ! ~ x , ] ;
+Branch[357]:F : '' * - `` ;
+Branch[357] : Test262 covered false branch with "test262/test/language/expressions/multiplication/S11.5.1_A4_T2.js"
+
+Branch[388]:T : var x = x >= [ delete + + x / - ! ~ x , ] ;
+Branch[388]:F : var x = x >= [ ~ x / - ! ~ x , ] ;
+Branch[388] : Test262 covered true branch with "test262/test/language/types/number/S8.5_A11_T1.js"
+
+Branch[522]:T : class x { } while ( x ) do ; while ( x , x = 1n , x %= x / - x ) ;
+Branch[522]:F : class x { } while ( x ) do ; while ( x , x = 1n , x %= x / x ) ;
+Branch[522] : Test262 covered false branch with "test262/test/language/expressions/division/bigint-wrapped-values.js"
+
+Branch[534]:T : class x { } while ( x ) do ; while ( x , x = 0n , x ^= x % ~ x ) ;
+Branch[534]:F : class x { } while ( x ) do ; while ( x , x = 1n , x %= x ) ;
+Branch[534] : Test262 covered false branch with "test262/test/language/expressions/modulus/bigint-wrapped-values.js"
+
+Branch[538]:T : class x { } while ( x ) do { } while ( x , x = 1n , x %= - x ) ;
+Branch[538]:F : class x { } while ( x ) do ; while ( x , x = 1n , x %= x ) ;
+Branch[538] : Test262 covered false branch with "test262/test/language/expressions/modulus/bigint-wrapped-values.js"
+
+Branch[677]:T : var x = ++ x ?. x . x ;
+Branch[677]:F : x = 1 ;
+Branch[677] : Test262 covered false branch with "test262/test/language/types/reference/8.7.2-3-1-s.js"
+
+Branch[1277]:T : String.fromCharCode.call(0, 0n );
+Branch[1277]:F : new Uint16Array([ , ] );
+Branch[1277] : Test262 covered false branch with "test262/test/language/literals/string/S7.8.4_A5.1_T1.js"
+
+Branch[2390]:T : Map.groupBy.call(0);
+Branch[2390]:F : Map.groupBy.call(0, 0);
+Branch[2390] : Test262 covered false branch with "test262/test/built-ins/Map/groupBy/map-instance.js"
+
+Branch[2521]:T : class x { static { for await ( x of x ) ; } }
+Branch[2521]:F : class x { static { for await ( x of ~ x + x ) ; } }
+Branch[2521] : Test262 covered false branch with "test262/test/built-ins/AsyncFromSyncIteratorPrototype/next/return-promise.js"
+
+Branch[3671]:T : x : await : ;
+Branch[3671]:F : x : ;
+Branch[3671] : Test262 covered false branch with "test262/test/language/block-scope/leave/nested-block-let-declaration-only-shadows-outer-parameter-value-1.js"
+
+Branch[3695]:T : x : await : ;
+Branch[3695]:F : x : ;
+Branch[3695] : Test262 covered false branch with "test262/test/language/block-scope/leave/nested-block-let-declaration-only-shadows-outer-parameter-value-1.js"
+
+Branch[4660]:T : var { x : [ ] , } = `` ;
+Branch[4660]:F : var { x , } = `` ;
+Branch[4660] : Test262 covered false branch with "test262/test/language/statements/try/dstr/obj-ptrn-id-trailing-comma.js"
+
+Branch[4668]:T : var { ... x } = { get 1 ( ) { throw 0 ; } } ;
+Branch[4668]:F : var { ... x } = `` ;
+Branch[4668] : Test262 covered false branch with "test262/test/language/expressions/object/dstr/object-rest-proxy-ownkeys-returned-keys-order.js"
+
+Branch[4673]:T : var { x : [ ] , ... x } = `` ;
+Branch[4673]:F : var { x , ... x } = `` ;
+Branch[4673] : Test262 covered false branch with "test262/test/language/expressions/object/dstr/object-rest-proxy-gopd-not-called-on-excluded-keys.js"
+
+Branch[4679]:T : var { x , ... x } = { get with ( ) { throw 0 ; } } ;
+Branch[4679]:F : var { x , ... x } = `` ;
+Branch[4679] : Test262 covered false branch with "test262/test/language/expressions/object/dstr/object-rest-proxy-gopd-not-called-on-excluded-keys.js"
+
+Branch[4724]:T : var [ , ... [ [ ] ] ] = `` ;
+Branch[4724]:F : var [ , ... x ] = `` ;
+Branch[4724] : Test262 covered false branch with "test262/test/language/statements/variable/dstr/ary-ptrn-rest-id-exhausted.js"
+
+Branch[4771]:T : var [ [ ] , x ] = `` ;
+Branch[4771]:F : var [ x , x ] = `` ;
+Branch[4771] : Test262 covered false branch with "test262/test/language/statements/for-of/head-var-bound-names-dup.js"
+
+Branch[4776]:T : var [ x , [ ] ] = `` ;
+Branch[4776]:F : var [ x , x ] = `` ;
+Branch[4776] : Test262 covered false branch with "test262/test/language/statements/for-of/head-var-bound-names-dup.js"
+
+Branch[4860]:T : var [ x = class extends x { } ] = `` ;
+Branch[4860]:F : var [ x = x => x ] = `` ;
+Branch[4860] : Test262 covered false branch with "test262/test/language/statements/try/dstr/ary-ptrn-elem-id-init-fn-name-arrow.js"
+
+Branch[4888]:T : var [ [ ] ] = `` ;
+Branch[4888]:F : var [ , [ ] ] = `` ;
+Branch[4888] : Test262 covered true branch with "test262/test/language/expressions/arrow-function/syntax/arrowparameters-cover-initialize-2.js"
+
+Branch[4916]:T : var [ [ ] = x ] = `` ;
+Branch[4916]:F : var [ , { } = x ] = `` ;
+Branch[4916] : Test262 covered true branch with "test262/test/language/expressions/async-generator/dstr/dflt-obj-init-null.js"
+
+Branch[4919]:T : var [ [ ] = { [ Symbol . species ] : async function * ( x ) { } } ] = { [ Symbol . iterator ] : async function ( x ) { } } ;
+Branch[4919]:F : var [ [ ] = x ] = `` ;
+Branch[4919] : Test262 covered false branch with "test262/test/language/expressions/async-generator/dstr/dflt-obj-init-null.js"
+
+Branch[4928]:T : var [ [ ] = + x ] = `` ;
+Branch[4928]:F : var [ [ ] = x ] = `` ;
+Branch[4928] : Test262 covered false branch with "test262/test/language/expressions/async-generator/dstr/dflt-obj-init-null.js"
+
+Branch[4934]:T : var [ [ ] = x ] = `` ;
+Branch[4934]:F : var [ [ ] = 0 ] = `` ;
+Branch[4934] : Test262 covered false branch with "test262/test/language/expressions/async-generator/dstr/dflt-obj-init-null.js"
+
+Branch[4981]:T : var [ ... [ ] ] = `` ;
+Branch[4981]:F : var [ , ... [ ] ] = `` ;
+Branch[4981] : Test262 covered true branch with "test262/test/language/statements/try/dstr/ary-ptrn-rest-obj-id.js"
+
+Branch[4991]:T : var [ ... [ { } ] ] = `` ;
+Branch[4991]:F : var [ ... [ ] ] = `` ;
+Branch[4991] : Test262 covered false branch with "test262/test/language/statements/try/dstr/ary-ptrn-rest-obj-id.js"
+
+Branch[5002]:T : new function ( [ ] , ... x ) { } ;
+Branch[5002]:F : ( ( x , ... [ ] ) => x ) `` ;
+Branch[5002] : Test262 covered false branch with "test262/test/language/expressions/arrow-function/syntax/arrowparameters-cover-includes-rest-concisebody-functionbody.js"
+
+Branch[5017]:T : new function ( x , [ ] ) { } ;
+Branch[5017]:F : new function ( x , [ ] = `` ) { } ;
+Branch[5017] : Test262 covered false branch with "test262/test/language/arguments-object/10.6-6-4-s.js"
+
+Branch[5731]:T : new WeakSet([ x => x ] );
+Branch[5731]:F : new WeakSet([ , ] );
+Branch[5731] : Test262 covered true branch with "test262/test/built-ins/WeakSet/prototype/delete/returns-false-when-delete-is-noop.js"
+
+Branch[6285]:T : class x { static x = class extends '' { } ; }
+Branch[6285]:F : class x { static x = x => x ; }
+Branch[6285] : Test262 covered false branch with "test262/test/language/statements/class/elements/super-access-from-arrow-func-on-field.js"
+
+Branch[6472]:T : ( x => { function x ( ) { } } ) `` ;
+Branch[6472]:F : ( x => { function x ( ) { } function x ( ) { } } ) `` ;
+Branch[6472] : Test262 covered true branch with "test262/test/language/statements/let/function-local-closure-set-before-initialization.js"
+
+Branch[6548]:T : new function ( x = `` ) { var x ; } ;
+Branch[6548]:F : new function ( x = `` ) { var x , x ; } ;
+Branch[6548] : Test262 covered true branch with "test262/test/language/expressions/arrow-function/scope-paramsbody-var-close.js"
+
+Branch[6552]:T : new function ( x = `` ) { var await ; } ;
+Branch[6552]:F : new function ( x = `` ) { var x ; } ;
+Branch[6552] : Test262 covered true branch with "test262/test/language/expressions/arrow-function/scope-paramsbody-var-close.js"
+
+Branch[8339]:T : [ , + x ] ;
+Branch[8339]:F : [ , x ] ;
+Branch[8339] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/reduce/15.4.4.21-8-b-iii-1-10.js"
+
+Branch[8345]:T : [ , x ] ;
+Branch[8345]:F : [ , '' ] ;
+Branch[8345] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/reduce/15.4.4.21-8-b-iii-1-10.js"
+
+Branch[8383]:T : [ x , x ] ;
+Branch[8383]:F : [ `` , x ] ;
+Branch[8383] : Test262 covered false branch with "test262/test/language/statements/const/syntax/const-invalid-assignment-statement-body-for-in.js"
+
+Branch[8396]:T : let x ; [ x , x `` ] ;
+Branch[8396]:F : [ `` , x ] ;
+Branch[8396] : Test262 covered false branch with "test262/test/language/statements/const/syntax/const-invalid-assignment-statement-body-for-in.js"
+
+Branch[8402]:T : [ `` , x ] ;
+Branch[8402]:F : let x ; [ x , x ] ;
+Branch[8402] : Test262 covered false branch with "test262/test/language/statements/const/syntax/const-invalid-assignment-statement-body-for-in.js"
+
+Branch[8416]:T : [ x , , x ] ;
+Branch[8416]:F : - [ `` , , x ] ;
+Branch[8416] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-9-b-1.js"
+
+Branch[8429]:T : - [ `` , , ! x ] ;
+Branch[8429]:F : - [ `` , , x ] ;
+Branch[8429] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-9-b-1.js"
+
+Branch[8435]:T : - [ `` , , x ] ;
+Branch[8435]:F : - [ `` , , '' ] ;
+Branch[8435] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-9-b-1.js"
+
+Branch[8449]:T : [ x , ... x ] ;
+Branch[8449]:F : [ 1 , ... x ] ;
+Branch[8449] : Test262 covered false branch with "test262/test/built-ins/String/prototype/replaceAll/replaceValue-call-matching-empty.js"
+
+Branch[8485]:T : [ , ... - x ] ;
+Branch[8485]:F : [ ... x ] ;
+Branch[8485] : Test262 covered false branch with "test262/test/language/statements/generators/yield-spread-arr-single.js"
+
+Branch[8556]:T : [ x , ] ;
+Branch[8556]:F : [ `` , ] ;
+Branch[8556] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/reduce/15.4.4.21-9-c-i-16.js"
+
+Branch[8574]:T : [ x , , ] ;
+Branch[8574]:F : [ `` , , ] ;
+Branch[8574] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/reduceRight/15.4.4.22-8-b-iii-1-16.js"
+
+Branch[8623]:T : - { x , } ;
+Branch[8623]:F : var x = { x , } ;
+Branch[8623] : Test262 covered false branch with "test262/test/language/expressions/object/properties-names-eval-arguments.js"
+
+Branch[8663]:T : - { x , x } ;
+Branch[8663]:F : var x = { x , x } ;
+Branch[8663] : Test262 covered false branch with "test262/test/language/expressions/object/prop-dup-get-get.js"
+
+Branch[8675]:T : - { ... - x } ;
+Branch[8675]:F : - { ... x } ;
+Branch[8675] : Test262 covered false branch with "test262/test/language/expressions/new/spread-obj-skip-non-enumerable.js"
+
+Branch[8712]:T : - { [ x ] : 0 } ;
+Branch[8712]:F : - { x : x } ;
+Branch[8712] : Test262 covered false branch with "test262/test/language/types/reference/8.7.2-3-1-s.js"
+
+Branch[8730]:T : - { x : class extends x { } } ;
+Branch[8730]:F : - { x : x => x } ;
+Branch[8730] : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-58-s.js"
+
+Branch[8736]:T : - { x : - x } ;
+Branch[8736]:F : - { x : x } ;
+Branch[8736] : Test262 covered false branch with "test262/test/language/types/reference/8.7.2-3-1-s.js"
+
+Branch[8742]:T : - { x : x } ;
+Branch[8742]:F : - { 1 : 0 } ;
+Branch[8742] : Test262 covered false branch with "test262/test/language/types/reference/8.7.2-3-1-s.js"
+
+Branch[8854]:T : '' `${ 0 }${ x }` ;
+Branch[8854]:F : '' `${ 0 }${ '' }` ;
+Branch[8854] : Test262 covered false branch with "test262/test/language/expressions/template-literal/evaluation-order.js"
+
+Branch[8859]:T : '' `${ 0 }${ - x }` ;
+Branch[8859]:F : '' `${ 0 }${ x }` ;
+Branch[8859] : Test262 covered false branch with "test262/test/language/expressions/template-literal/evaluation-order.js"
+
+Branch[8865]:T : '' `${ 0 }${ x }` ;
+Branch[8865]:F : '' `${ 0 }${ '' }` ;
+Branch[8865] : Test262 covered false branch with "test262/test/language/expressions/template-literal/evaluation-order.js"
+
+Branch[8875]:T : '' `${ 0 }${ x }${ x }` ;
+Branch[8875]:F : '' `${ 0 }${ `` }${ x }` ;
+Branch[8875] : Test262 covered false branch with "test262/test/language/expressions/template-literal/evaluation-order.js"
+
+Branch[8881]:T : '' `${ 0 }${ `` }${ - x }` ;
+Branch[8881]:F : '' `${ 0 }${ `` }${ x }` ;
+Branch[8881] : Test262 covered false branch with "test262/test/language/expressions/template-literal/evaluation-order.js"
+
+Branch[8887]:T : '' `${ 0 }${ `` }${ x }` ;
+Branch[8887]:F : '' `${ 0 }${ `` }${ '' }` ;
+Branch[8887] : Test262 covered false branch with "test262/test/language/expressions/template-literal/evaluation-order.js"
+
+Branch[8911]:T : `${ x }` ;
+Branch[8911]:F : `${ 0 }` ;
+Branch[8911] : Test262 covered false branch with "test262/test/language/expressions/template-literal/middle-list-one-expr-template.js"
+
+Branch[8958]:T : `${ 0 }${ x }` ;
+Branch[8958]:F : `${ 0 }${ '' }` ;
+Branch[8958] : Test262 covered false branch with "test262/test/language/expressions/template-literal/middle-list-one-expr-template.js"
+
+Branch[8974]:T : `${ 0 }${ x }${ x }` ;
+Branch[8974]:F : `${ '' }${ `` }${ x }` ;
+Branch[8974] : Test262 covered false branch with "test262/test/language/expressions/template-literal/evaluation-order.js"
+
+Branch[8988]:T : `${ '' }${ `` }${ x }` ;
+Branch[8988]:F : ; `${ 0 }${ `` }${ '' }` ;
+Branch[8988] : Test262 covered false branch with "test262/test/language/expressions/template-literal/evaluation-order.js"
+
+Branch[9015]:T : x `` [ x ] ;
+Branch[9015]:F : x [ x ] ;
+Branch[9015] : Test262 covered false branch with "test262/test/built-ins/Object/fromEntries/string-entry-object-succeeds.js"
+
+Branch[9072]:T : x ( ) [ x ] ;
+Branch[9072]:F : var x = import ( x ) [ x ] ;
+Branch[9072] : Test262 covered false branch with "test262/test/language/arguments-object/S10.6_A7.js"
+
+Branch[9078]:T : [ , ] = import ( NaN ) . x . x [ x ] = x = x ;
+Branch[9078]:F : var x = import ( x ) [ x ] ;
+Branch[9078] : Test262 covered false branch with "test262/test/language/arguments-object/S10.6_A7.js"
+
+Branch[9086]:T : var x = import ( x ) [ await ] ;
+Branch[9086]:F : var x = import ( x ) [ x ] ;
+Branch[9086] : Test262 covered false branch with "test262/test/language/arguments-object/S10.6_A7.js"
+
+Branch[9135]:T : `` [ x ] ;
+Branch[9135]:F : `` [ `` ] ;
+Branch[9135] : Test262 covered false branch with "test262/test/built-ins/Object/fromEntries/string-entry-object-succeeds.js"
+
+Branch[9235]:T : x ( ) ( ) ;
+Branch[9235]:F : function x ( ) { } x ( ) ( ) ;
+Branch[9235] : Test262 covered false branch with "test262/test/built-ins/Object/bigint.js"
+
+Branch[9241]:T : function x ( ) { } var { x = x ( ) [ NaN , x ] ( x ) } = x ;
+Branch[9241]:F : function x ( ) { } x ( ) ( ) ;
+Branch[9241] : Test262 covered false branch with "test262/test/built-ins/Object/bigint.js"
+
+Branch[9399]:T : `` ?. x ( ... + x ) ;
+Branch[9399]:F : `` ?. x ( ... x ) ;
+Branch[9399] : Test262 covered false branch with "test262/test/language/expressions/call/trailing-comma.js"
+
+Branch[9442]:T : new Map(0, x );
+Branch[9442]:F : new Map(0, 0);
+Branch[9442] : Test262 covered false branch with "test262/test/language/expressions/unary-plus/11.4.6-2-1.js"
+
+Branch[9453]:T : `` ?. ( x , ... x ) ;
+Branch[9453]:F : `` ?. ( '' , ... x ) ;
+Branch[9453] : Test262 covered false branch with "test262/test/language/expressions/call/eval-spread-empty-trailing.js"
+
+Branch[9459]:T : var x = `` ?. x ( x , ... x `` , ) ;
+Branch[9459]:F : `` ?. ( '' , ... x ) ;
+Branch[9459] : Test262 covered false branch with "test262/test/language/expressions/call/eval-spread-empty-trailing.js"
+
+Branch[9499]:T : '' `${ x }` ;
+Branch[9499]:F : '' `${ 0 }` ;
+Branch[9499] : Test262 covered false branch with "test262/test/built-ins/String/raw/special-characters.js"
+
+Branch[9510]:T : '' `${ ~ x }` ;
+Branch[9510]:F : '' `${ x }` ;
+Branch[9510] : Test262 covered false branch with "test262/test/built-ins/String/raw/special-characters.js"
+
+Branch[9516]:T : '' `${ x }` ;
+Branch[9516]:F : '' `${ 0 }` ;
+Branch[9516] : Test262 covered false branch with "test262/test/built-ins/String/raw/special-characters.js"
+
+Branch[9522]:T : '' `${ 0 }${ x }` ;
+Branch[9522]:F : '' `${ 0 }` ;
+Branch[9522] : Test262 covered false branch with "test262/test/built-ins/String/raw/special-characters.js"
+
+Branch[9533]:T : x `` ?. x ;
+Branch[9533]:F : x ?. x ;
+Branch[9533] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/iteration-statement-while.js"
+
+Branch[9539]:T : x ?. x ;
+Branch[9539]:F : `` ?. x ;
+Branch[9539] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/iteration-statement-while.js"
+
+Branch[9548]:T : `` ?. ( ) ;
+Branch[9548]:F : `` ?. x ;
+Branch[9548] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/iteration-statement-while.js"
+
+Branch[9553]:T : x ( ) ?. x ;
+Branch[9553]:F : var x = import ( x ) ?. x ;
+Branch[9553] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-expression.js"
+
+Branch[9559]:T : ( ( x ) => function ( ) { } ( ) . x ?. x ) `` ;
+Branch[9559]:F : var x = import ( x ) ?. x ;
+Branch[9559] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-expression.js"
+
+Branch[9568]:T : var x = x + import ( x ) ?. ( ) ;
+Branch[9568]:F : var x = import ( x ) ?. x ;
+Branch[9568] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-expression.js"
+
+Branch[9573]:T : x ?. x ?. x ;
+Branch[9573]:F : `` ?. x ?. x ;
+Branch[9573] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-expression.js"
+
+Branch[9579]:T : `` ?. x . x ?. x ;
+Branch[9579]:F : `` ?. x ?. x ;
+Branch[9579] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-expression.js"
+
+Branch[9596]:T : `` ?. ( ) ;
+Branch[9596]:F : ( x => function * ( ) { } ?. ( ) ) `` ;
+Branch[9596] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-chain-prod-arguments.js"
+
+Branch[9603]:T : `` ?. [ x ] ;
+Branch[9603]:F : `` ?. [ `` ] ;
+Branch[9603] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-chain-expression-optional-expression.js"
+
+Branch[9623]:T : `` ?. ( ) ( ) ;
+Branch[9623]:F : `` ?. x ( ) ;
+Branch[9623] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-call-preserves-this.js"
+
+Branch[9629]:T : `` ?. x . x ( ) ;
+Branch[9629]:F : `` ?. x ( ) ;
+Branch[9629] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-call-preserves-this.js"
+
+Branch[9643]:T : `` ?. ( ) [ x ] ;
+Branch[9643]:F : `` ?. x [ x ] ;
+Branch[9643] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-chain.js"
+
+Branch[9649]:T : `` ?. x . x [ x ] ;
+Branch[9649]:F : `` ?. x [ x ] ;
+Branch[9649] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-chain.js"
+
+Branch[9657]:T : `` ?. x [ x ] ;
+Branch[9657]:F : `` ?. x [ '' ] ?. x ;
+Branch[9657] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-chain.js"
+
+Branch[9663]:T : `` ?. ( ) . x ;
+Branch[9663]:F : `` ?. x . x ;
+Branch[9663] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-call-preserves-this.js"
+
+Branch[9669]:T : `` ?. x . x . x ;
+Branch[9669]:F : `` ?. x . x ;
+Branch[9669] : Test262 covered false branch with "test262/test/language/expressions/optional-chaining/optional-call-preserves-this.js"
+
+Branch[9716]:T : import ( ! x ) ;
+Branch[9716]:F : import ( x ) ;
+Branch[9716] : Test262 covered false branch with "test262/test/language/expressions/dynamic-import/syntax/valid/top-level-empty-str-is-valid-assign-expr.js"
+
+Branch[9880]:T : x `` `` ;
+Branch[9880]:F : x `` ;
+Branch[9880] : Test262 covered false branch with "test262/test/built-ins/String/raw/zero-literal-segments.js"
+
+Branch[9886]:T : x `` ;
+Branch[9886]:F : '' `` ;
+Branch[9886] : Test262 covered false branch with "test262/test/built-ins/String/raw/zero-literal-segments.js"
+
+Branch[9894]:T : '' `` ;
+Branch[9894]:F : ( x => x ) `` ;
+Branch[9894] : Test262 covered false branch with "test262/test/built-ins/String/raw/zero-literal-segments.js"
+
+Branch[9899]:T : x ( ) `` ;
+Branch[9899]:F : var x = import ( x ) `` ;
+Branch[9899] : Test262 covered false branch with "test262/test/language/expressions/dynamic-import/syntax/valid/callexpression-templateliteral.js"
+
+Branch[9905]:T : function x ( ) { } var { x } = { x = x ( ) [ x ] `` } = x ;
+Branch[9905]:F : var x = import ( x ) `` ;
+Branch[9905] : Test262 covered false branch with "test262/test/language/expressions/dynamic-import/syntax/valid/callexpression-templateliteral.js"
+
+Branch[10002]:T : `` . x -- ;
+Branch[10002]:F : [ ] . x -- ;
+Branch[10002] : Test262 covered false branch with "test262/test/language/expressions/postfix-decrement/11.3.2-2-3-s.js"
+
+Branch[10034]:T : var x = ++ x ?. x . x ;
+Branch[10034]:F : var x = ++ x ;
+Branch[10034] : Test262 covered false branch with "test262/test/language/statements/let/syntax/let-closure-inside-condition.js"
+
+Branch[10066]:T : -- `` . x ;
+Branch[10066]:F : -- [ ] . x ;
+Branch[10066] : Test262 covered false branch with "test262/test/language/expressions/prefix-decrement/11.4.5-2-3-s.js"
+
+Branch[10131]:T : void + x ;
+Branch[10131]:F : void x ;
+Branch[10131] : Test262 covered false branch with "test262/test/language/expressions/object/prop-dup-get-get.js"
+
+Branch[10188]:T : + + x ;
+Branch[10188]:F : + x ;
+Branch[10188] : Test262 covered false branch with "test262/test/language/expressions/unary-plus/11.4.6-2-1.js"
+
+Branch[10204]:T : - - x ;
+Branch[10204]:F : - x ;
+Branch[10204] : Test262 covered false branch with "test262/test/language/expressions/unary-minus/11.4.7-4-1.js"
+
+Branch[10233]:T : ~ ~ x ;
+Branch[10233]:F : ~ x ;
+Branch[10233] : Test262 covered false branch with "test262/test/language/expressions/bitwise-not/S9.5_A3.2_T2.js"
+
+Branch[10262]:T : ! + x ;
+Branch[10262]:F : ! x ;
+Branch[10262] : Test262 covered false branch with "test262/test/built-ins/BigInt/parseInt/nonexistent.js"
+
+Branch[10328]:T : `` < ~ x ;
+Branch[10328]:F : `` < x ;
+Branch[10328] : Test262 covered false branch with "test262/test/language/statements/const/syntax/const-invalid-assignment-next-expression-for.js"
+
+Branch[10365]:T : 1 > ! x ;
+Branch[10365]:F : 1 > x ;
+Branch[10365] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/some/15.4.4.17-4-12.js"
+
+Branch[10402]:T : `` <= + x ;
+Branch[10402]:F : `` <= x ;
+Branch[10402] : Test262 covered false branch with "test262/test/language/statements/continue/12.7-1.js"
+
+Branch[10437]:T : '' >= { x } ;
+Branch[10437]:F : '' >= x ;
+Branch[10437] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/forEach/15.4.4.18-7-7.js"
+
+Branch[10472]:T : `` instanceof - x ;
+Branch[10472]:F : '' instanceof x ;
+Branch[10472] : Test262 covered false branch with "test262/test/built-ins/Object/bigint.js"
+
+Branch[10501]:T : x = `` in [ x ] ;
+Branch[10501]:F : '' in x ;
+Branch[10501] : Test262 covered false branch with "test262/test/language/statements/function/S13.2_A8_T1.js"
+
+Branch[10517]:T : var x = { [ Symbol . toPrimitive ] : ( ) => { throw 0 ; } } in this ;
+Branch[10517]:F : x = `` in { } ;
+Branch[10517] : Test262 covered false branch with "test262/test/language/statements/function/S13.2_A8_T1.js"
+
+Branch[10597]:T : '' == ! x ;
+Branch[10597]:F : '' == x ;
+Branch[10597] : Test262 covered false branch with "test262/test/built-ins/Number/prototype/S15.7.3.1_A3.js"
+
+Branch[10626]:T : '' != + x ;
+Branch[10626]:F : '' != x ;
+Branch[10626] : Test262 covered false branch with "test262/test/language/expressions/does-not-equals/S11.9.2_A4.2.js"
+
+Branch[10661]:T : `` === - x ;
+Branch[10661]:F : `` === x ;
+Branch[10661] : Test262 covered false branch with "test262/test/language/statements/for/head-init-var-check-empty-inc-empty-syntax.js"
+
+Branch[10690]:T : var x = x !== x in x ;
+Branch[10690]:F : '' !== x ;
+Branch[10690] : Test262 covered false branch with "test262/test/built-ins/NaN/S15.1.1.1_A1.js"
+
+Branch[10742]:T : 42 && { x } ;
+Branch[10742]:F : 1 && x ;
+Branch[10742] : Test262 covered false branch with "test262/test/language/expressions/logical-and/symbol-logical-and-evaluation.js"
+
+Branch[10771]:T : var x = x || new x ;
+Branch[10771]:F : `` || x ;
+Branch[10771] : Test262 covered false branch with "test262/test/language/expressions/logical-or/symbol-logical-or-evaluation.js"
+
+Branch[10788]:T : x ?? x ;
+Branch[10788]:F : `` ?? x ;
+Branch[10788] : Test262 covered false branch with "test262/test/language/expressions/object/cpn-obj-lit-computed-property-name-from-expression-coalesce.js"
+
+Branch[10801]:T : null ?? x ;
+Branch[10801]:F : null ?? `` ;
+Branch[10801] : Test262 covered false branch with "test262/test/language/expressions/object/cpn-obj-lit-computed-property-name-from-expression-coalesce.js"
+
+Branch[10810]:T : x | x ? x : x ;
+Branch[10810]:F : x ? x : x ;
+Branch[10810] : Test262 covered false branch with "test262/test/language/expressions/conditional/symbol-conditional-evaluation.js"
+
+Branch[10824]:T : x = 1 ? x = x : x ;
+Branch[10824]:F : [ ] ? x : x ;
+Branch[10824] : Test262 covered false branch with "test262/test/language/expressions/conditional/symbol-conditional-evaluation.js"
+
+Branch[10835]:T : x = `` ? x : x = x ;
+Branch[10835]:F : '' ? x : x ;
+Branch[10835] : Test262 covered false branch with "test262/test/language/expressions/conditional/symbol-conditional-evaluation.js"
+
+Branch[10861]:T : x = class extends x { } ;
+Branch[10861]:F : x = x => x ;
+Branch[10861] : Test262 covered false branch with "test262/test/language/statements/try/scope-catch-param-lex-close.js"
+
+Branch[10867]:T : `` . x = class extends x { } ;
+Branch[10867]:F : ( x ) = x => x ;
+Branch[10867] : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-64-s.js"
+
+Branch[10901]:T : [ ] = ! x ;
+Branch[10901]:F : [ ] = x ;
+Branch[10901] : Test262 covered false branch with "test262/test/built-ins/Iterator/prototype/map/iterator-already-exhausted.js"
+
+Branch[10907]:T : [ ] = x ;
+Branch[10907]:F : [ ] = 0 ;
+Branch[10907] : Test262 covered false branch with "test262/test/built-ins/Iterator/prototype/map/iterator-already-exhausted.js"
+
+Branch[10934]:T : var x = x %= x `` ;
+Branch[10934]:F : `` . x &= x ;
+Branch[10934] : Test262 covered false branch with "test262/test/language/statements/for-in/head-const-fresh-binding-per-iteration.js"
+
+Branch[10970]:T : var x = x ^= 0n ;
+Branch[10970]:F : var x = x %= x ;
+Branch[10970] : Test262 covered false branch with "test262/test/language/statements/for-in/head-const-fresh-binding-per-iteration.js"
+
+Branch[11006]:T : class x { } x &&= x => x ;
+Branch[11006]:F : class x { } ( x ) &&= x => x ;
+Branch[11006] : Test262 covered true branch with "test262/test/language/expressions/logical-assignment/lgcl-and-assignment-operator-namedevaluation-arrow-function.js"
+
+Branch[11029]:T : class x { } x &&= x `` ;
+Branch[11029]:F : class x { } x &&= x ;
+Branch[11029] : Test262 covered false branch with "test262/test/language/expressions/logical-assignment/lgcl-and-assignment-operator-unresolved-rhs-put.js"
+
+Branch[11071]:T : var x = x ||= x => x ;
+Branch[11071]:F : '' . x ||= x => x ;
+Branch[11071] : Test262 covered true branch with "test262/test/language/expressions/logical-assignment/lgcl-or-assignment-operator-namedevaluation-arrow-function.js"
+
+Branch[11076]:T : var x = x ||= class extends x { ; } ;
+Branch[11076]:F : var x = x ||= x => x ;
+Branch[11076] : Test262 covered false branch with "test262/test/language/expressions/logical-assignment/lgcl-or-assignment-operator-namedevaluation-arrow-function.js"
+
+Branch[11094]:T : '' . x ||= x = x ;
+Branch[11094]:F : '' . x ||= x ;
+Branch[11094] : Test262 covered false branch with "test262/test/language/expressions/logical-assignment/lgcl-or-assignment-operator-unresolved-rhs-put.js"
+
+Branch[11135]:T : var x = x ??= x => x ;
+Branch[11135]:F : `` . x ??= x => x ;
+Branch[11135] : Test262 covered true branch with "test262/test/language/expressions/logical-assignment/lgcl-nullish-assignment-operator-namedevaluation-arrow-function.js"
+
+Branch[11158]:T : `` . x ??= { x } ;
+Branch[11158]:F : `` . x ??= x ;
+Branch[11158] : Test262 covered false branch with "test262/test/language/expressions/logical-assignment/lgcl-nullish-assignment-operator-unresolved-rhs-put.js"
+
+Branch[11261]:T : class x { } while ( x ) do ; while ( x , x = 0n , x &= x ) ;
+Branch[11261]:F : class x { } while ( x ) do ; while ( x , x = 0n , x ^= x ) ;
+Branch[11261] : Test262 covered false branch with "test262/test/built-ins/Number/bigint-conversion.js"
+
+Branch[11263]:T : class x { } while ( x ) do ; while ( x , x = 0n , x ^= x ) ;
+Branch[11263]:F : class x { } while ( x ) do ; while ( x , x = 0n , x *= x ) ;
+Branch[11263] : Test262 covered false branch with "test262/test/built-ins/Number/bigint-conversion.js"
+
+Branch[11265]:T : class x { } while ( x ) do ; while ( x , x = 0n , x |= x ) ;
+Branch[11265]:F : class x { } while ( x ) do ; while ( x , x = 0n , x ^= x ) ;
+Branch[11265] : Test262 covered false branch with "test262/test/built-ins/Number/bigint-conversion.js"
+
+Branch[11357]:T : [ { x , } ] = '' ;
+Branch[11357]:F : let x = { x , } = 0 ;
+Branch[11357] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-id-identifier-resolution-lone.js"
+
+Branch[11362]:T : let x = { x , } = 0 ;
+Branch[11362]:F : [ { x , } = `` ] = '' ; var x ;
+Branch[11362] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-id-identifier-resolution-lone.js"
+
+Branch[11380]:T : [ { x , ... x } , ... x ] = [ , ] ;
+Branch[11380]:F : let x = { x , ... x } = 0 ;
+Branch[11380] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-rest-same-name.js"
+
+Branch[11385]:T : let x = { x , ... x } = 0 ;
+Branch[11385]:F : [ { x , ... x } = `` ] = '' ; var x ;
+Branch[11385] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-rest-same-name.js"
+
+Branch[11391]:T : [ { x , ... NaN } = `` ] = '' ; var x ;
+Branch[11391]:F : [ { x , ... x } = `` ] = '' ; var x ;
+Branch[11391] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-rest-same-name.js"
+
+Branch[11455]:T : [ , ... x ] = 0 ;
+Branch[11455]:F : [ , ... x ] = '' ;
+Branch[11455] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-rest-after-elision.js"
+
+Branch[11545]:T : [ x , ... x ] = 1 ;
+Branch[11545]:F : [ x , ... x ] = '' ;
+Branch[11545] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-rest-after-element.js"
+
+Branch[11552]:T : [ x , ... x ] = '' ;
+Branch[11552]:F : let x ; [ x , ... x ] = '' ;
+Branch[11552] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-rest-after-element.js"
+
+Branch[11588]:T : [ x , , ] = 0 ;
+Branch[11588]:F : [ x , , ] = '' ;
+Branch[11588] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-elem-trlg-iter-elision-iter-nrml-close-skip.js"
+
+Branch[11595]:T : [ x , , ] = '' ;
+Branch[11595]:F : [ [ ] . x , , ] = '' ;
+Branch[11595] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-elem-trlg-iter-elision-iter-nrml-close-skip.js"
+
+Branch[11631]:T : [ x , , ... x ] = 42 ;
+Branch[11631]:F : [ x , , ... x ] = '' ;
+Branch[11631] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-rest-elision.js"
+
+Branch[11638]:T : [ x , , ... x ] = '' ;
+Branch[11638]:F : [ { } . x , , ... x ] = '' ;
+Branch[11638] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-rest-elision.js"
+
+Branch[11669]:T : [ { } . x , , ... x ] = '' ;
+Branch[11669]:F : [ this . x , , ... x ] = '' ;
+Branch[11669] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-rest-elision.js"
+
+Branch[11674]:T : let x = { x , x } = 0 ;
+Branch[11674]:F : [ { x , x } = `` ] = '' ; var x ;
+Branch[11674] : Test262 covered false branch with "test262/test/built-ins/Iterator/prototype/map/iterator-already-exhausted.js"
+
+Branch[11680]:T : [ { x , await } = `` ] = '' ; var x ;
+Branch[11680]:F : [ { x , x } = `` ] = '' ; var x ;
+Branch[11680] : Test262 covered false branch with "test262/test/built-ins/Iterator/prototype/map/iterator-already-exhausted.js"
+
+Branch[11753]:T : let x = { x = class extends x { } } = 0 ;
+Branch[11753]:F : let x = { x = x => x } = 0 ;
+Branch[11753] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-id-init-fn-name-arrow.js"
+
+Branch[11759]:T : let x = { x = - x } = 0 ;
+Branch[11759]:F : let x = { x = x } = 0 ;
+Branch[11759] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-id-init-let.js"
+
+Branch[11771]:T : let x = { x = '' } = 0 ;
+Branch[11771]:F : [ { x = x } = `` ] = '' ; var x ;
+Branch[11771] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-id-init-in.js"
+
+Branch[11797]:T : let x = { ... { x } } = 0 ;
+Branch[11797]:F : let x = { ... x } = 0 ;
+Branch[11797] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-rest-put-const.js"
+
+Branch[11820]:T : [ x , x ] = '' ;
+Branch[11820]:F : let x ; [ x , x ] = '' ;
+Branch[11820] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-elem-init-order.js"
+
+Branch[11825]:T : let x ; [ x , NaN ] = '' ;
+Branch[11825]:F : let x ; [ x , x ] = '' ;
+Branch[11825] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-elem-init-order.js"
+
+Branch[11840]:T : [ , x ] = '' ;
+Branch[11840]:F : let x ; [ , x ] = '' ;
+Branch[11840] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-rest-elision.js"
+
+Branch[11843]:T : [ , ] = '' ;
+Branch[11843]:F : var [ x , , ] = `` ;
+Branch[11843] : Test262 covered true branch with "test262/test/language/expressions/assignment/dstr/array-elision-val-array.js"
+
+Branch[11853]:T : var [ , , ] = { [ Symbol . iterator ] : async x => x } ;
+Branch[11853]:F : [ , , ] = '' ;
+Branch[11853] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-iteration.js"
+
+Branch[11856]:T : [ , , ] = [ , ] ;
+Branch[11856]:F : [ , , ] = '' ;
+Branch[11856] : Test262 covered true branch with "test262/test/language/expressions/assignment/dstr/array-iteration.js"
+
+Branch[11872]:T : [ x ] = '' ;
+Branch[11872]:F : [ , x ] = '' ;
+Branch[11872] : Test262 covered true branch with "test262/test/language/statements/for-of/body-dstr-assign.js"
+
+Branch[11936]:T : [ x . x = x ] = '' ;
+Branch[11936]:F : [ x = x ] = '' ;
+Branch[11936] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-elem-init-let.js"
+
+Branch[11956]:T : [ x = x => x ] = '' ;
+Branch[11956]:F : [ [ ] = x => x ] = '' ;
+Branch[11956] : Test262 covered true branch with "test262/test/language/expressions/assignment/dstr/array-elem-init-fn-name-arrow.js"
+
+Branch[11961]:T : [ x = class extends x ?. x { ; } ] = '' ;
+Branch[11961]:F : [ x = x => x ] = '' ;
+Branch[11961] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-elem-init-fn-name-arrow.js"
+
+Branch[11990]:T : [ [ ] = '' ] = '' ;
+Branch[11990]:F : [ x = `` ] = '' ;
+Branch[11990] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-elem-init-in.js"
+
+Branch[11999]:T : [ x = `` ] = '' ;
+Branch[11999]:F : let x ; [ x = x ] = '' ;
+Branch[11999] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/array-elem-init-in.js"
+
+Branch[12100]:T : let x = { x : x = x } = 0 ;
+Branch[12100]:F : let x = { x : { } = x } = 0 ;
+Branch[12100] : Test262 covered true branch with "test262/test/language/expressions/assignment/dstr/obj-prop-elem-init-let.js"
+
+Branch[12103]:T : let x = { x : x . x = x } = 0 ;
+Branch[12103]:F : let x = { x : x = x } = 0 ;
+Branch[12103] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-prop-elem-init-let.js"
+
+Branch[12119]:T : let x = { x : x = x => x } = 0 ;
+Branch[12119]:F : let x = { x : [ ] = x => x } = 0 ;
+Branch[12119] : Test262 covered true branch with "test262/test/language/expressions/assignment/dstr/obj-prop-elem-init-fn-name-arrow.js"
+
+Branch[12142]:T : let x = { x : x = ~ x } = 0 ;
+Branch[12142]:F : let x = { x : x = x } = 0 ;
+Branch[12142] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-prop-elem-init-let.js"
+
+Branch[12153]:T : let x = { x : { } = '' } = 0 ;
+Branch[12153]:F : let x = { x : x = '' } = 0 ;
+Branch[12153] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-prop-elem-init-in.js"
+
+Branch[12162]:T : let x = { x : x = '' } = 0 ;
+Branch[12162]:F : [ { x : x = x } = `` ] = '' ; var x ;
+Branch[12162] : Test262 covered false branch with "test262/test/language/expressions/assignment/dstr/obj-prop-elem-init-in.js"
+
+Branch[12167]:T : x , x , x ;
+Branch[12167]:F : x , x ;
+Branch[12167] : Test262 covered false branch with "test262/test/language/eval-code/indirect/this-value-global.js"
+
+Branch[12270]:T : let [ ] = x , x ;
+Branch[12270]:F : let x , await ;
+Branch[12270] : Test262 covered false branch with "test262/test/language/statements/let/syntax/let-closure-inside-initialization.js"
+
+Branch[12275]:T : let x , [ ] = x ;
+Branch[12275]:F : let x , await ;
+Branch[12275] : Test262 covered false branch with "test262/test/language/statements/let/syntax/let-closure-inside-initialization.js"
+
+Branch[12293]:T : let x = class extends x { ; } ;
+Branch[12293]:F : let x = x => x ;
+Branch[12293] : Test262 covered false branch with "test262/test/language/statements/let/syntax/let-closure-inside-initialization.js"
+
+Branch[12305]:T : let x = x ;
+Branch[12305]:F : let x = 0 ;
+Branch[12305] : Test262 covered false branch with "test262/test/language/block-scope/return-from/block-let.js"
+
+Branch[12315]:T : let { } = x = x ;
+Branch[12315]:F : let [ ] = x ;
+Branch[12315] : Test262 covered false branch with "test262/test/built-ins/Object/setPrototypeOf/bigint.js"
+
+Branch[12321]:T : let [ ] = x ;
+Branch[12321]:F : let { } = `` ;
+Branch[12321] : Test262 covered false branch with "test262/test/built-ins/Object/setPrototypeOf/bigint.js"
+
+Branch[12339]:T : var [ ] = x , x ;
+Branch[12339]:F : var x , x ;
+Branch[12339] : Test262 covered false branch with "test262/test/language/asi/S7.9_A7_T6.js"
+
+Branch[12344]:T : var x , [ ] = x ;
+Branch[12344]:F : var x , x ;
+Branch[12344] : Test262 covered false branch with "test262/test/language/asi/S7.9_A7_T6.js"
+
+Branch[12386]:T : var { } = x = x ;
+Branch[12386]:F : var [ ] = x ;
+Branch[12386] : Test262 covered false branch with "test262/test/language/statements/variable/dstr/obj-init-null.js"
+
+Branch[12392]:T : var [ ] = x ;
+Branch[12392]:F : var [ x ] = x ;
+Branch[12392] : Test262 covered false branch with "test262/test/language/statements/variable/dstr/obj-init-null.js"
+
+Branch[12457]:T : var { ... x } = { get 1 ( ) { throw 0 ; } } ;
+Branch[12457]:F : var { ... x } = `` ;
+Branch[12457] : Test262 covered false branch with "test262/test/language/expressions/object/dstr/object-rest-proxy-ownkeys-returned-keys-order.js"
+
+Branch[12492]:T : var { x : [ ] } = `` ;
+Branch[12492]:F : for ( var { x , [ - 0 ] : [ ] , x : { ... x } = x } in this ) ;
+Branch[12492] : Test262 covered false branch with "test262/test/language/statements/try/dstr/obj-ptrn-prop-ary-trailing-comma.js"
+
+Branch[12504]:T : var { x : [ ] = ~ x } = `` ;
+Branch[12504]:F : var { x : [ ] = x } = `` ;
+Branch[12504] : Test262 covered false branch with "test262/test/language/statements/try/dstr/obj-ptrn-prop-obj-value-undef.js"
+
+Branch[12510]:T : var { x : [ ] = x } = `` ;
+Branch[12510]:F : var { x : [ ] = 0 } = `` ;
+Branch[12510] : Test262 covered false branch with "test262/test/language/statements/try/dstr/obj-ptrn-prop-obj-value-undef.js"
+
+Branch[12584]:T : var { x = class extends x { } } = `` ;
+Branch[12584]:F : var { x = x => x } = `` ;
+Branch[12584] : Test262 covered false branch with "test262/test/language/statements/try/dstr/obj-ptrn-id-init-fn-name-arrow.js"
+
+Branch[12632]:T : if ( x ) ; else ;
+Branch[12632]:F : if ( `` ) ; else ;
+Branch[12632] : Test262 covered false branch with "test262/test/language/statements/for/head-init-var-check-empty-inc-empty-syntax.js"
+
+Branch[12657]:T : if ( x ) ;
+Branch[12657]:F : if ( 0 ) ;
+Branch[12657] : Test262 covered false branch with "test262/test/language/statements/if/empty-statement.js"
+
+Branch[12718]:T : do ; while ( + x ) ;
+Branch[12718]:F : do ; while ( x ) ;
+Branch[12718] : Test262 covered false branch with "test262/test/language/asi/S7.9_A9_T9.js"
+
+Branch[12744]:T : while ( x ) ;
+Branch[12744]:F : while ( `` ) ;
+Branch[12744] : Test262 covered false branch with "test262/test/language/statements/continue/labeled-continue.js"
+
+Branch[12832]:T : for ( ; x ; ) ;
+Branch[12832]:F : for ( ; '' ; ) ;
+Branch[12832] : Test262 covered false branch with "test262/test/language/statements/for/cptn-expr-expr-no-iter.js"
+
+Branch[12867]:T : for ( x ; ; ) ;
+Branch[12867]:F : for ( x ; ; ) var x , [ ] = x ;
+Branch[12867] : Test262 covered false branch with "test262/test/language/statements/for/head-init-expr-check-empty-inc-empty-syntax.js"
+
+Branch[12890]:T : for ( x ; ; x ) ;
+Branch[12890]:F : for ( '' ; ; x ) ;
+Branch[12890] : Test262 covered false branch with "test262/test/language/asi/S7.9_A6.1_T10.js"
+
+Branch[12907]:T : for ( ~ x ; x ; ) ;
+Branch[12907]:F : for ( x ; x ; ) ;
+Branch[12907] : Test262 covered false branch with "test262/test/language/asi/S7.9_A6.1_T7.js"
+
+Branch[12913]:T : for ( x ; x ; ) ;
+Branch[12913]:F : for ( '' ; x ; ) ;
+Branch[12913] : Test262 covered false branch with "test262/test/language/asi/S7.9_A6.1_T7.js"
+
+Branch[12936]:T : for ( x ; x ; x ) ;
+Branch[12936]:F : for ( `` ; x ; x ) ;
+Branch[12936] : Test262 covered false branch with "test262/test/language/asi/S7.9_A6.1_T6.js"
+
+Branch[12952]:T : for ( var [ ] = x ; ; ) ;
+Branch[12952]:F : for ( var x ; ; ) break ;
+Branch[12952] : Test262 covered false branch with "test262/test/language/statements/for/head-init-var-check-empty-inc-empty-syntax.js"
+
+Branch[13000]:T : for ( var [ ] = x ; x ; x ) ;
+Branch[13000]:F : for ( var x ; x ; x ) ;
+Branch[13000] : Test262 covered false branch with "test262/test/language/block-scope/leave/verify-context-in-for-loop-block.js"
+
+Branch[13111]:T : for ( let x = x ; x ; ) ;
+Branch[13111]:F : for ( let x ; x ; ) ;
+Branch[13111] : Test262 covered false branch with "test262/test/language/statements/continue/no-label-continue.js"
+
+Branch[13150]:T : for ( let x = x ; x ; x ) ;
+Branch[13150]:F : for ( let x ; x ; x ) ;
+Branch[13150] : Test262 covered false branch with "test262/test/language/statements/const/syntax/const-invalid-assignment-next-expression-for.js"
+
+Branch[13186]:T : for ( ; x ; ) ;
+Branch[13186]:F : for ( ; '' ; ) ;
+Branch[13186] : Test262 covered false branch with "test262/test/language/statements/const/syntax/const-invalid-assignment-next-expression-for.js"
+
+Branch[13222]:T : for ( ; ; x ) ;
+Branch[13222]:F : for ( let x = this ; x ; x %= NaN , x ) ;
+Branch[13222] : Test262 covered false branch with "test262/test/language/statements/let/syntax/let-closure-inside-condition.js"
+
+Branch[13348]:T : class x { static { for await ( x of x ) ; } }
+Branch[13348]:F : class x { static { for await ( x of x + x ) ; } }
+Branch[13348] : Test262 covered false branch with "test262/test/language/statements/for-await-of/head-lhs-async.js"
+
+Branch[13359]:T : class x { static { for await ( var x of x ) ; } }
+Branch[13359]:F : class x { static { for await ( var x of typeof x ) ; } }
+Branch[13359] : Test262 covered false branch with "test262/test/language/statements/for-await-of/async-from-sync-iterator-continuation-abrupt-completion-get-constructor.js"
+
+Branch[13401]:T : for ( x of x ) ;
+Branch[13401]:F : for ( x of '' ) ;
+Branch[13401] : Test262 covered false branch with "test262/test/language/statements/const/syntax/const-invalid-assignment-statement-body-for-in.js"
+
+Branch[13486]:T : for ( x . x of [ , ] ) ;
+Branch[13486]:F : for ( x of [ , ] ) ;
+Branch[13486] : Test262 covered false branch with "test262/test/built-ins/undefined/S15.1.1.3_A4.js"
+
+Branch[13714]:T : switch ( 0 ) { case x : }
+Branch[13714]:F : switch ( `` ) { case 0 : }
+Branch[13714] : Test262 covered false branch with "test262/test/language/statements/let/syntax/without-initialisers-in-statement-positions-case-expression-statement-list.js"
+
+Branch[13872]:T : switch ( 0 ) { default : case x : }
+Branch[13872]:F : switch ( '' ) { default : case 0 : }
+Branch[13872] : Test262 covered false branch with "test262/test/language/statements/switch/scope-lex-close-dflt.js"
+
+Branch[13899]:T : switch ( '' ) { default : x ; case 42 : }
+Branch[13899]:F : switch ( '' ) { default : case 0 : }
+Branch[13899] : Test262 covered false branch with "test262/test/language/statements/switch/scope-lex-close-dflt.js"
+
+Branch[13937]:T : switch ( 0 ) { case x : default : }
+Branch[13937]:F : switch ( `` ) { case 0 : default : }
+Branch[13937] : Test262 covered false branch with "test262/test/language/statements/switch/syntax/redeclaration/var-name-redeclaration-attempt-with-var.js"
+
+Branch[14032]:T : switch ( 0 ) { case x : default : case x : }
+Branch[14032]:F : switch ( `` ) { case 0 : default : case x : }
+Branch[14032] : Test262 covered false branch with "test262/test/language/statements/switch/S12.11_A1_T1.js"
+
+Branch[14040]:T : switch ( `` ) { case `` : x ; default : case x : }
+Branch[14040]:F : switch ( `` ) { case `` : default : case x : }
+Branch[14040] : Test262 covered true branch with "test262/test/language/statements/switch/S12.11_A1_T1.js"
+
+Branch[14062]:T : switch ( `` ) { case 0 : default : case x : }
+Branch[14062]:F : switch ( `` ) { case 0 : default : case '' : }
+Branch[14062] : Test262 covered false branch with "test262/test/language/statements/switch/S12.11_A1_T1.js"
+
+Branch[14070]:T : switch ( `` ) { case 0 : default : case '' : x ; }
+Branch[14070]:F : switch ( `` ) { case 0 : default : case '' : }
+Branch[14070] : Test262 covered true branch with "test262/test/language/statements/switch/S12.11_A1_T1.js"
+
+Branch[14087]:T : switch ( `` ) { case `` : default : x ; case x : }
+Branch[14087]:F : switch ( `` ) { case `` : default : case x : }
+Branch[14087] : Test262 covered true branch with "test262/test/language/statements/switch/S12.11_A1_T1.js"
+
+Branch[14089]:T : switch ( `` ) { case `` : default : x ; case x : }
+Branch[14089]:F : switch ( `` ) { case `` : default : case x : }
+Branch[14089] : Test262 covered true branch with "test262/test/language/statements/switch/S12.11_A1_T1.js"
+
+Branch[14118]:T : switch ( 0 ) { case - x : }
+Branch[14118]:F : switch ( 0 ) { case x : }
+Branch[14118] : Test262 covered false branch with "test262/test/language/statements/let/syntax/without-initialisers-in-statement-positions-case-expression-statement-list.js"
+
+Branch[14124]:T : switch ( 0 ) { case x : }
+Branch[14124]:F : switch ( `` ) { case 0 : }
+Branch[14124] : Test262 covered false branch with "test262/test/language/statements/let/syntax/without-initialisers-in-statement-positions-case-expression-statement-list.js"
+
+Branch[14135]:T : switch ( - x ) { }
+Branch[14135]:F : switch ( x ) { }
+Branch[14135] : Test262 covered false branch with "test262/test/language/statements/let/syntax/without-initialisers-in-statement-positions-default-statement-list.js"
+
+Branch[14141]:T : switch ( x ) { }
+Branch[14141]:F : switch ( 0 ) { }
+Branch[14141] : Test262 covered false branch with "test262/test/language/statements/let/syntax/without-initialisers-in-statement-positions-default-statement-list.js"
+
+Branch[14237]:T : x : var [ ] = x ;
+Branch[14237]:F : x : var x ;
+Branch[14237] : Test262 covered false branch with "test262/test/language/statements/break/S12.8_A3.js"
+
+Branch[14247]:T : x : x ;
+Branch[14247]:F : x : '' ;
+Branch[14247] : Test262 covered false branch with "test262/test/language/asi/S7.9_A10_T10.js"
+
+Branch[14292]:T : throw + x ;
+Branch[14292]:F : throw x ;
+Branch[14292] : Test262 covered false branch with "test262/test/language/block-scope/leave/verify-context-in-try-block.js"
+
+Branch[14440]:T : ( ( x = x , ... [ ] ) => x ) `` ;
+Branch[14440]:F : ( ( x , ... [ ] ) => x ) `` ;
+Branch[14440] : Test262 covered false branch with "test262/test/language/expressions/arrow-function/syntax/arrowparameters-cover-includes-rest-concisebody-functionbody.js"
+
+Branch[14585]:T : ( ( ... { x = x , } ) => x ) `` ;
+Branch[14585]:F : ( x => x ) `` ;
+Branch[14585] : Test262 covered false branch with "test262/test/language/expressions/arrow-function/expression-body-implicit-return.js"
+
+Branch[14613]:T : ( ( ) => x ) `` ;
+Branch[14613]:F : ( x => x ) `` ;
+Branch[14613] : Test262 covered false branch with "test262/test/language/expressions/arrow-function/expression-body-implicit-return.js"
+
+Branch[14754]:T : - { async * [ x ] ( ) { } } ;
+Branch[14754]:F : - { async * x ( ) { } } ;
+Branch[14754] : Test262 covered false branch with "test262/test/language/statements/class/elements/syntax/valid/grammar-static-private-async-gen-meth-prototype.js"
+
+Branch[14773]:T : - { async [ x ] ( ) { } } ;
+Branch[14773]:F : - { async x ( ) { } } ;
+Branch[14773] : Test262 covered false branch with "test262/test/language/expressions/object/method-definition/object-method-returns-promise.js"
+
+Branch[14863]:T : [ , ... function * ( ) { yield ! x ; } `` ] ;
+Branch[14863]:F : [ , ... function * ( ) { yield x ; } `` ] ;
+Branch[14863] : Test262 covered false branch with "test262/test/language/expressions/await/await-in-generator.js"
+
+Branch[15586]:T : ! class { ; } `` ;
+Branch[15586]:F : new class { ; } ;
+Branch[15586] : Test262 covered false branch with "test262/test/language/computed-property-names/class/accessor/getter.js"
+
+Branch[15787]:T : class x extends null { } new x ( ) ;
+Branch[15787]:F : class x extends class { } { } new x ( ) ;
+Branch[15787] : Test262 covered false branch with "test262/test/language/statements/class/strict-mode/arguments-callee.js"
+
+Branch[15841]:T : class x extends x `` { }
+Branch[15841]:F : class x extends x { }
+Branch[15841] : Test262 covered false branch with "test262/test/language/statements/class/name-binding/in-extends-expression.js"
+
+Branch[15968]:T : class x extends null { ; } x ( ) ;
+Branch[15968]:F : class x extends null { ; } new x ( ) ;
+Branch[15968] : Test262 covered false branch with "test262/test/language/statements/class/definition/side-effects-in-property-define.js"
+
+Branch[15978]:T : class x extends null { ; } new x ( ) ;
+Branch[15978]:F : class x extends class { } { ; } new x ( ) ;
+Branch[15978] : Test262 covered false branch with "test262/test/language/statements/class/definition/side-effects-in-property-define.js"
+
+Branch[16032]:T : class x extends x `` { ; }
+Branch[16032]:F : class x extends x { ; }
+Branch[16032] : Test262 covered false branch with "test262/test/language/statements/class/definition/side-effects-in-property-define.js"
+
+Branch[16037]:T : class x extends x { ; }
+Branch[16037]:F : class x extends '' { ; }
+Branch[16037] : Test262 covered false branch with "test262/test/language/statements/class/definition/side-effects-in-property-define.js"
+
+Branch[16044]:T : class x extends '' { ; }
+Branch[16044]:F : class x extends class { } { ; }
+Branch[16044] : Test262 covered false branch with "test262/test/language/statements/class/definition/side-effects-in-property-define.js"
+
+Branch[16095]:T : class x extends null { [ x ] ; }
+Branch[16095]:F : class x extends null { x ; }
+Branch[16095] : Test262 covered false branch with "test262/test/language/statements/class/definition/side-effects-in-property-define.js"
+
+Branch[16104]:T : class x extends null { #x ( ) { } }
+Branch[16104]:F : class x extends null { static #x ( ) { } }
+Branch[16104] : Test262 covered true branch with "test262/test/language/statements/class/elements/private-method-double-initialisation.js"
+
+Branch[16119]:T : class x extends null { x ; }
+Branch[16119]:F : class x extends null { static x ; }
+Branch[16119] : Test262 covered true branch with "test262/test/language/statements/class/elements/public-class-field-initialization-is-visible-to-proxy.js"
+
+Branch[16130]:T : class x extends null { static #x ( ) { } }
+Branch[16130]:F : class x extends null { ; }
+Branch[16130] : Test262 covered false branch with "test262/test/language/statements/class/definition/side-effects-in-property-define.js"
+
+Branch[16139]:T : class x extends null { static x ; }
+Branch[16139]:F : class x extends null { static { } }
+Branch[16139] : Test262 covered false branch with "test262/test/language/statements/class/static-init-super-property.js"
+
+Branch[16147]:T : class x extends null { ; static x = x = x ; }
+Branch[16147]:F : class x extends null { static { } }
+Branch[16147] : Test262 covered false branch with "test262/test/language/statements/class/static-init-super-property.js"
+
+Branch[16289]:T : ( async x => await x . x . x ) `` ;
+Branch[16289]:F : ( async x => await x ) `` ;
+Branch[16289] : Test262 covered false branch with "test262/test/language/statements/async-function/evaluation-body-that-returns-after-await.js"
+
+Branch[16315]:T : async x => x ;
+Branch[16315]:F : x = async x => x ;
+Branch[16315] : Test262 covered true branch with "test262/test/language/statements/for/head-init-async-of.js"
+
+Branch[16607]:T : ( x => x ?. ( ) ) `` ;
+Branch[16607]:F : ( x => x ( ) ?. ( ) ) `` ;
+Branch[16607] : Test262 covered true branch with "test262/test/language/expressions/optional-chaining/eval-optional-call.js"
+
+Branch[16613]:T : ( x => x `` ) `` ;
+Branch[16613]:F : ( x => x `` `` ) `` ;
+Branch[16613] : Test262 covered true branch with "test262/test/language/expressions/tagged-template/cache-identical-source-new-function.js"
+
+Branch[18106]:T : decodeURI.call(0, 0);
+Branch[18106]:F : decodeURI.call(0);
+Branch[18106] : Test262 covered true branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
+
+Branch[18111]:T : decodeURI.call(0, Symbol ( ) );
+Branch[18111]:F : decodeURI.call(0);
+Branch[18111] : Test262 covered false branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
+
+Branch[18121]:T : decodeURIComponent.call(0, 0);
+Branch[18121]:F : decodeURIComponent.call(0);
+Branch[18121] : Test262 covered true branch with "test262/test/built-ins/decodeURIComponent/S15.1.3.2_A1.1_T1.js"
+
+Branch[18126]:T : decodeURIComponent.call(0, Symbol ( ) );
+Branch[18126]:F : decodeURIComponent.call(0);
+Branch[18126] : Test262 covered false branch with "test262/test/built-ins/decodeURIComponent/S15.1.3.2_A1.1_T1.js"
+
+Branch[18186]:T : decodeURI.call(0);
+Branch[18186]:F : decodeURI.call(0);
+Branch[18186] : Test262 covered true branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
+
+Branch[18260]:T : Object.assign.call(0, 0);
+Branch[18260]:F : Object.assign.call();
+Branch[18260] : Test262 covered true branch with "test262/test/built-ins/Object/assign/Target-Null.js"
+
+Branch[18314]:T : Object.create.call(0, 0);
+Branch[18314]:F : Object.create.call();
+Branch[18314] : Test262 covered true branch with "test262/test/built-ins/Object/create/15.2.3.5-1-2.js"
+
+Branch[18337]:T : Object.defineProperties.call(0, 0);
+Branch[18337]:F : Object.defineProperties.call();
+Branch[18337] : Test262 covered true branch with "test262/test/built-ins/Object/defineProperties/15.2.3.7-1-2.js"
+
+Branch[18340]:T : Object.defineProperties.call(0, 0, 0);
+Branch[18340]:F : Object.defineProperties.call();
+Branch[18340] : Test262 covered true branch with "test262/test/built-ins/Object/defineProperties/15.2.3.7-1-2.js"
+
+Branch[18400]:T : Object.defineProperty.call(0, 0);
+Branch[18400]:F : Object.defineProperty.call();
+Branch[18400] : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
+
+Branch[18403]:T : Object.defineProperty.call(0, 0, 0);
+Branch[18403]:F : Object.defineProperty.call();
+Branch[18403] : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
+
+Branch[18406]:T : Object.defineProperty.call(0, 0, 0, 0);
+Branch[18406]:F : Object.defineProperty.call();
+Branch[18406] : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
+
+Branch[18435]:T : Object.entries.call(0, 0);
+Branch[18435]:F : Object.entries.call();
+Branch[18435] : Test262 covered true branch with "test262/test/built-ins/Object/entries/exception-not-object-coercible.js"
+
+Branch[18456]:T : Object.freeze.call(0, 0);
+Branch[18456]:F : Object.freeze.call();
+Branch[18456] : Test262 covered true branch with "test262/test/built-ins/Object/freeze/15.2.3.9-1-2.js"
+
+Branch[18514]:T : Object.getOwnPropertyDescriptor.call(0, 0);
+Branch[18514]:F : Object.getOwnPropertyDescriptor.call();
+Branch[18514] : Test262 covered true branch with "test262/test/language/statements/function/S13.2_A6_T1.js"
+
+Branch[18544]:T : Object.getOwnPropertyDescriptors.call(0, 0);
+Branch[18544]:F : Object.getOwnPropertyDescriptors.call();
+Branch[18544] : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertyDescriptors/normal-object.js"
+
+Branch[18580]:T : Object.getOwnPropertyNames.call(0, 0);
+Branch[18580]:F : Object.getOwnPropertyNames.call();
+Branch[18580] : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertyNames/15.2.3.4-1-4.js"
+
+Branch[18594]:T : Object.getOwnPropertySymbols.call(0, 0);
+Branch[18594]:F : Object.getOwnPropertySymbols.call();
+Branch[18594] : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertySymbols/object-contains-symbol-property-without-description.js"
+
+Branch[18644]:T : Object.groupBy.call(0, 0);
+Branch[18644]:F : Object.groupBy.call(0);
+Branch[18644] : Test262 covered true branch with "test262/test/built-ins/Object/groupBy/null-prototype.js"
+
+Branch[18647]:T : Object.groupBy.call(0, 0, 0);
+Branch[18647]:F : Object.groupBy.call(0);
+Branch[18647] : Test262 covered true branch with "test262/test/built-ins/Object/groupBy/null-prototype.js"
+
+Branch[18671]:T : Object.hasOwn.call(0, 0);
+Branch[18671]:F : Object.hasOwn.call();
+Branch[18671] : Test262 covered true branch with "test262/test/built-ins/Object/hasOwn/hasown_nonexistent.js"
+
+Branch[18674]:T : Object.hasOwn.call(0, 0, 0);
+Branch[18674]:F : Object.hasOwn.call();
+Branch[18674] : Test262 covered true branch with "test262/test/built-ins/Object/hasOwn/hasown_nonexistent.js"
+
+Branch[18707]:T : Object.isExtensible.call(0, 0);
+Branch[18707]:F : Object.isExtensible.call(0);
+Branch[18707] : Test262 covered true branch with "test262/test/built-ins/Object/isExtensible/15.2.3.13-1-2.js"
+
+Branch[18719]:T : Object.isFrozen.call(0, 0);
+Branch[18719]:F : Object.isFrozen.call(0);
+Branch[18719] : Test262 covered true branch with "test262/test/built-ins/Object/isFrozen/15.2.3.12-3-1.js"
+
+Branch[18731]:T : Object.isSealed.call(0, 0);
+Branch[18731]:F : Object.isSealed.call(0);
+Branch[18731] : Test262 covered true branch with "test262/test/built-ins/Object/isSealed/15.2.3.11-4-1.js"
+
+Branch[18743]:T : Object.keys.call(0, 0);
+Branch[18743]:F : Object.keys.call();
+Branch[18743] : Test262 covered true branch with "test262/test/built-ins/Object/keys/15.2.3.14-1-1.js"
+
+Branch[18764]:T : Object.preventExtensions.call(0, 0);
+Branch[18764]:F : Object.preventExtensions.call();
+Branch[18764] : Test262 covered true branch with "test262/test/built-ins/Object/preventExtensions/15.2.3.10-1-2.js"
+
+Branch[18787]:T : Object.seal.call(0, 0);
+Branch[18787]:F : Object.seal.call();
+Branch[18787] : Test262 covered true branch with "test262/test/built-ins/Object/seal/object-seal-o-is-an-array-object.js"
+
+Branch[18810]:T : Object.setPrototypeOf.call(0, 0);
+Branch[18810]:F : Object.setPrototypeOf.call();
+Branch[18810] : Test262 covered true branch with "test262/test/built-ins/Proxy/setPrototypeOf/null-handler.js"
+
+Branch[18846]:T : Object.values.call(0, 0);
+Branch[18846]:F : Object.values.call();
+Branch[18846] : Test262 covered true branch with "test262/test/built-ins/Object/values/exception-not-object-coercible.js"
+
+Branch[18867]:T : Object.prototype.hasOwnProperty.call(0, 0);
+Branch[18867]:F : Object.prototype.hasOwnProperty.call();
+Branch[18867] : Test262 covered true branch with "test262/test/built-ins/BigInt/parseInt/nonexistent.js"
+
+Branch[18888]:T : Object.prototype.isPrototypeOf.call(0, 0);
+Branch[18888]:F : Object.prototype.isPrototypeOf.call();
+Branch[18888] : Test262 covered true branch with "test262/test/built-ins/Number/15.7.3-1.js"
+
+Branch[18915]:T : Object.prototype.propertyIsEnumerable.call(0, 0);
+Branch[18915]:F : Object.prototype.propertyIsEnumerable.call();
+Branch[18915] : Test262 covered true branch with "test262/test/built-ins/Object/prototype/propertyIsEnumerable/S15.2.4.7_A13.js"
+
+Branch[18945]:T : Object.prototype.toLocaleString.call(0, 0);
+Branch[18945]:F : Object.prototype.toLocaleString.call();
+Branch[18945] : Test262 covered false branch with "test262/test/built-ins/Object/prototype/toLocaleString/S15.2.4.3_A13.js"
+
+Branch[18948]:T : Object.prototype.toLocaleString.call(0, 0, 0);
+Branch[18948]:F : Object.prototype.toLocaleString.call();
+Branch[18948] : Test262 covered false branch with "test262/test/built-ins/Object/prototype/toLocaleString/S15.2.4.3_A13.js"
+
+Branch[19032]:T : var x = {};Object.setPrototypeOf(x, x => x );x.__proto__ = 0;
+Branch[19032]:F : var x = {};Object.setPrototypeOf(x, x => x );x . __proto__ = x ;
+Branch[19032] : Test262 covered false branch with "test262/test/language/types/object/S8.6.2_A8.js"
+
+Branch[19035]:T : var x = {};Object.setPrototypeOf(x, x => x );`` . __proto__ = x ;
+Branch[19035]:F : var x = {};Object.setPrototypeOf(x, x => x );x . __proto__ = x ;
+Branch[19035] : Test262 covered false branch with "test262/test/language/types/object/S8.6.2_A8.js"
+
+Branch[19051]:T : Object.prototype.__defineGetter__.call(0, 0);
+Branch[19051]:F : Object.prototype.__defineGetter__.call(0);
+Branch[19051] : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineGetter__/key-invalid.js"
+
+Branch[19054]:T : Object.prototype.__defineGetter__.call(0, 0, 0);
+Branch[19054]:F : Object.prototype.__defineGetter__.call(0);
+Branch[19054] : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineGetter__/key-invalid.js"
+
+Branch[19083]:T : Object.prototype.__defineSetter__.call(0, 0);
+Branch[19083]:F : Object.prototype.__defineSetter__.call();
+Branch[19083] : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineSetter__/key-invalid.js"
+
+Branch[19086]:T : Object.prototype.__defineSetter__.call(0, 0, 0);
+Branch[19086]:F : Object.prototype.__defineSetter__.call();
+Branch[19086] : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineSetter__/key-invalid.js"
+
+Branch[19115]:T : Object.prototype.__lookupGetter__.call(0, 0);
+Branch[19115]:F : Object.prototype.__lookupGetter__.call();
+Branch[19115] : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__lookupGetter__/key-invalid.js"
+
+Branch[19157]:T : Object.prototype.__lookupSetter__.call(0, 0);
+Branch[19157]:F : Object.prototype.__lookupSetter__.call();
+Branch[19157] : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__lookupSetter__/key-invalid.js"
+
+Branch[19306]:T : Function.prototype.apply.call(class { } );
+Branch[19306]:F : Function.prototype.apply.call(x => x );
+Branch[19306] : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-66-s.js"
+
+Branch[19472]:T : Symbol.for.call(0 , Symbol ( ) );
+Branch[19472]:F : Symbol.for.call(0);
+Branch[19472] : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
+
+Branch[19477]:T : Symbol.for.call(0, Symbol ( ) );
+Branch[19477]:F : Symbol.for.call(0);
+Branch[19477] : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
+
+Branch[19486]:T : Symbol.keyFor.call(0, 0);
+Branch[19486]:F : Symbol.keyFor.call(0);
+Branch[19486] : Test262 covered true branch with "test262/test/built-ins/Symbol/keyFor/arg-non-symbol.js"
+
+Branch[19489]:T : Symbol.keyFor.call(0);
+Branch[19489]:F : Symbol.keyFor.call(0, Symbol ( ) );
+Branch[19489] : Test262 covered true branch with "test262/test/built-ins/Symbol/keyFor/arg-non-symbol.js"
+
+Branch[19512]:T : Symbol.prototype.toString.call();
+Branch[19512]:F : Object.prototype.toLocaleString.call(Symbol ( ) );
+Branch[19512] : Test262 covered false branch with "test262/test/built-ins/Object/assign/Target-Symbol.js"
+
+Branch[19574]:T : new Error(Symbol ( ) );
+Branch[19574]:F : new Error(0);
+Branch[19574] : Test262 covered false branch with "test262/test/built-ins/String/prototype/trim/15.5.4.20-2-50.js"
+
+Branch[19595]:T : Error.prototype.toString.call({ get name ( ) { x ; } } );
+Branch[19595]:F : Error.prototype.toString.call([ ] );
+Branch[19595] : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+Branch[19609]:T : Error.prototype.toString.call({ get message ( ) { throw 0 ; } } );
+Branch[19609]:F : Error.prototype.toString.call([ ] );
+Branch[19609] : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+Branch[19617]:T : Error.prototype.toString.call({ message : Symbol ( ) } );
+Branch[19617]:F : Error.prototype.toString.call({ message : 0 } );
+Branch[19617] : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+Branch[19655]:T : new URIError(Symbol ( ) );
+Branch[19655]:F : new URIError(0);
+Branch[19655] : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+Branch[19688]:T : new RangeError(Symbol ( ) );
+Branch[19688]:F : new RangeError(0);
+Branch[19688] : Test262 covered false branch with "test262/test/built-ins/Object/values/exception-during-enumeration.js"
+
+Branch[19721]:T : new ReferenceError(Symbol ( ) );
+Branch[19721]:F : new ReferenceError(0);
+Branch[19721] : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+Branch[19754]:T : new EvalError(Symbol ( ) );
+Branch[19754]:F : new EvalError(0);
+Branch[19754] : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+Branch[19787]:T : new TypeError(Symbol ( ) );
+Branch[19787]:F : new TypeError(0);
+Branch[19787] : Test262 covered false branch with "test262/test/built-ins/Map/iterator-close-failure-after-set-failure.js"
+
+Branch[19808]:T : SyntaxError.call(0);
+Branch[19808]:F : new SyntaxError;
+Branch[19808] : Test262 covered false branch with "test262/test/built-ins/Object/freeze/15.2.3.9-2-d-8.js"
+
+Branch[19820]:T : new SyntaxError(Symbol ( ) );
+Branch[19820]:F : new SyntaxError(0);
+Branch[19820] : Test262 covered false branch with "test262/test/built-ins/NativeErrors/message_property_native_error.js"
+
+Branch[19892]:T : new SyntaxError(0, { cause : false } );
+Branch[19892]:F : new Error(0, { } );
+Branch[19892] : Test262 covered true branch with "test262/test/built-ins/Error/constructor.js"
+
+Branch[19976]:T : Number.prototype.toExponential.call(0, - 1 );
+Branch[19976]:F : Number.prototype.toExponential.call();
+Branch[19976] : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toExponential/return-abrupt-tointeger-fractiondigits-symbol.js"
+
+Branch[19991]:T : Number.prototype.toExponential.call(NaN );
+Branch[19991]:F : Number.prototype.toExponential.call(0, - 1 );
+Branch[19991] : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toExponential/nan.js"
+
+Branch[20029]:T : Number.prototype.toFixed.call();
+Branch[20029]:F : Number.prototype.toFixed.call(NaN );let x = x ;
+Branch[20029] : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.3_T02.js"
+
+Branch[20035]:T : Number.prototype.toFixed.call(0, 0n );
+Branch[20035]:F : Number.prototype.toFixed.call(NaN );let x = x ;
+Branch[20035] : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.3_T02.js"
+
+Branch[20054]:T : Number.prototype.toFixed.call(- 1 );
+Branch[20054]:F : Number.prototype.toFixed.call(0);
+Branch[20054] : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.4_T01.js"
+
+Branch[20098]:T : Number.prototype.toPrecision.call(0, 0);
+Branch[20098]:F : Number.prototype.toPrecision.call(0, 1 );
+Branch[20098] : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toPrecision/precision-cannot-be-coerced-to-a-number-in-range.js"
+
+Branch[20182]:T : new BigInt(0);
+Branch[20182]:F : new BigInt;
+Branch[20182] : Test262 covered true branch with "test262/test/built-ins/BigInt/call-value-of-when-to-string-present.js"
+
+Branch[20282]:T : BigInt.prototype.toString.call(0n , 0n );
+Branch[20282]:F : BigInt.prototype.toString.call(0n , 0);
+Branch[20282] : Test262 covered false branch with "test262/test/built-ins/BigInt/prototype/toString/radix-err.js"
+
+Branch[20316]:T : Math.abs.call(0, 0);
+Branch[20316]:F : Math.abs.call();
+Branch[20316] : Test262 covered true branch with "test262/test/built-ins/Math/abs/S15.8.2.1_A1.js"
+
+Branch[20321]:T : Math.abs.call(0, 0n );
+Branch[20321]:F : Math.abs.call();
+Branch[20321] : Test262 covered false branch with "test262/test/built-ins/Math/abs/S15.8.2.1_A1.js"
+
+Branch[20345]:T : Math.acos.call(0, 0);
+Branch[20345]:F : Math.acos.call();
+Branch[20345] : Test262 covered true branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A1.js"
+
+Branch[20350]:T : Math.acos.call(0, 1n );
+Branch[20350]:F : Math.acos.call();
+Branch[20350] : Test262 covered false branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A1.js"
+
+Branch[20357]:T : Math.acos.call(0, 1 );
+Branch[20357]:F : Math.acos.call(0, 0);
+Branch[20357] : Test262 covered true branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A4.js"
+
+Branch[20366]:T : Math.acosh.call(0, 0);
+Branch[20366]:F : Math.acosh.call(0);
+Branch[20366] : Test262 covered true branch with "test262/test/built-ins/Math/acosh/arg-is-one.js"
+
+Branch[20371]:T : Math.acosh.call(0, 0n );
+Branch[20371]:F : Math.acosh.call(0);
+Branch[20371] : Test262 covered false branch with "test262/test/built-ins/Math/acosh/arg-is-one.js"
+
+Branch[20383]:T : Math.acosh.call(0, 0);
+Branch[20383]:F : Math.acosh.call(0, 42 );
+Branch[20383] : Test262 covered true branch with "test262/test/built-ins/Math/acosh/nan-returns.js"
+
+Branch[20392]:T : Math.asin.call(0, 0);
+Branch[20392]:F : Math.asin.call(0);
+Branch[20392] : Test262 covered true branch with "test262/test/built-ins/Math/asin/S15.8.2.3_A4.js"
+
+Branch[20415]:T : Math.asinh.call(0, 0);
+Branch[20415]:F : Math.asinh.call();
+Branch[20415] : Test262 covered true branch with "test262/test/built-ins/Math/asinh/asinh-specialVals.js"
+
+Branch[20435]:T : Math.atan.call(0, 0);
+Branch[20435]:F : Math.atan.call();
+Branch[20435] : Test262 covered true branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
+
+Branch[20440]:T : Math.atan.call(0, 0n );
+Branch[20440]:F : Math.atan.call();
+Branch[20440] : Test262 covered false branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
+
+Branch[20444]:T : Math.atan.call();
+Branch[20444]:F : Math.atan.call(0, 1 );
+Branch[20444] : Test262 covered true branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
+
+Branch[20467]:T : Math.atanh.call(0, 0);
+Branch[20467]:F : Math.atanh.call();
+Branch[20467] : Test262 covered true branch with "test262/test/built-ins/Math/atanh/atanh-specialVals.js"
+
+Branch[20496]:T : Math.atan2.call(0, 0);
+Branch[20496]:F : Math.atan2.call();
+Branch[20496] : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
+
+Branch[20499]:T : Math.atan2.call(0, 0, 0);
+Branch[20499]:F : Math.atan2.call();
+Branch[20499] : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
+
+Branch[20504]:T : Math.atan2.call(0, 0n );
+Branch[20504]:F : Math.atan2.call();
+Branch[20504] : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
+
+Branch[20510]:T : Math.atan2.call(0, 0, 1n );
+Branch[20510]:F : Math.atan2.call();
+Branch[20510] : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
+
+Branch[20535]:T : Math.atan2.call(0, - Infinity , 0);
+Branch[20535]:F : Math.atan2.call(0, 0, 0);
+Branch[20535] : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
+
+Branch[20554]:T : Math.atan2.call(0, 0, 0);
+Branch[20554]:F : Math.atan2.call(0, 0, - 0 );
+Branch[20554] : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
+
+Branch[20563]:T : Math.atan2.call(0, - 0 , 0);
+Branch[20563]:F : Math.atan2.call(0, - 0 , - 0 );
+Branch[20563] : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A9.js"
+
+Branch[20588]:T : Math.atan2.call(0, - 1 , 0);
+Branch[20588]:F : Math.atan2.call(0, 1 , 1 );
+Branch[20588] : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A16.js"
+
+Branch[20617]:T : Math.cbrt.call(0, 0);
+Branch[20617]:F : Math.cbrt.call();
+Branch[20617] : Test262 covered true branch with "test262/test/built-ins/Math/cbrt/cbrt-specialValues.js"
+
+Branch[20622]:T : Math.cbrt.call(0, 1n );
+Branch[20622]:F : Math.cbrt.call();
+Branch[20622] : Test262 covered false branch with "test262/test/built-ins/Math/cbrt/cbrt-specialValues.js"
+
+Branch[20626]:T : Math.cbrt.call();
+Branch[20626]:F : Math.cbrt.call(0, 1 );
+Branch[20626] : Test262 covered true branch with "test262/test/built-ins/Math/cbrt/cbrt-specialValues.js"
+
+Branch[20637]:T : Math.ceil.call(0, 0);
+Branch[20637]:F : Math.ceil.call();
+Branch[20637] : Test262 covered true branch with "test262/test/built-ins/Math/ceil/S15.8.2.6_A1.js"
+
+Branch[20642]:T : Math.ceil.call(0, 1n );
+Branch[20642]:F : Math.ceil.call();
+Branch[20642] : Test262 covered false branch with "test262/test/built-ins/Math/ceil/S15.8.2.6_A1.js"
+
+Branch[20675]:T : Math.cos.call(0, 0);
+Branch[20675]:F : Math.cos.call();
+Branch[20675] : Test262 covered true branch with "test262/test/built-ins/Math/cos/S15.8.2.7_A1.js"
+
+Branch[20680]:T : Math.cos.call(0, 1n );
+Branch[20680]:F : Math.cos.call();
+Branch[20680] : Test262 covered false branch with "test262/test/built-ins/Math/cos/S15.8.2.7_A1.js"
+
+Branch[20687]:T : Math.cos.call(0, 0);
+Branch[20687]:F : Math.cos.call(0, 1 );
+Branch[20687] : Test262 covered true branch with "test262/test/built-ins/Math/cos/S15.8.2.7_A2.js"
+
+Branch[20696]:T : Math.cosh.call(0, 0);
+Branch[20696]:F : Math.cosh.call();
+Branch[20696] : Test262 covered true branch with "test262/test/built-ins/Math/cosh/cosh-specialVals.js"
+
+Branch[20701]:T : Math.cosh.call(0, 1n );
+Branch[20701]:F : Math.cosh.call();
+Branch[20701] : Test262 covered false branch with "test262/test/built-ins/Math/cosh/cosh-specialVals.js"
+
+Branch[20711]:T : Math.cosh.call(0, 0);
+Branch[20711]:F : Math.cosh.call(0, 1 );
+Branch[20711] : Test262 covered true branch with "test262/test/built-ins/Math/cosh/cosh-specialVals.js"
+
+Branch[20720]:T : Math.exp.call(0, 0);
+Branch[20720]:F : Math.exp.call();
+Branch[20720] : Test262 covered true branch with "test262/test/built-ins/Math/exp/S15.8.2.8_A1.js"
+
+Branch[20725]:T : Math.exp.call(0, 1n );
+Branch[20725]:F : Math.exp.call();
+Branch[20725] : Test262 covered false branch with "test262/test/built-ins/Math/exp/S15.8.2.8_A1.js"
+
+Branch[20737]:T : Math.exp.call(0, - Infinity );
+Branch[20737]:F : Math.exp.call(0, 1 );
+Branch[20737] : Test262 covered true branch with "test262/test/built-ins/Math/exp/S15.8.2.8_A5.js"
+
+Branch[20746]:T : Math.expm1.call(0, 0);
+Branch[20746]:F : Math.expm1.call();
+Branch[20746] : Test262 covered true branch with "test262/test/built-ins/Math/expm1/expm1-specialVals.js"
+
+Branch[20769]:T : Math.floor.call(0, 0);
+Branch[20769]:F : Math.floor.call(0);
+Branch[20769] : Test262 covered true branch with "test262/test/built-ins/Math/floor/S15.8.2.9_A1.js"
+
+Branch[20793]:T : Math.fround.call(0, 0);
+Branch[20793]:F : Math.fround.call();
+Branch[20793] : Test262 covered true branch with "test262/test/built-ins/Math/fround/Math.fround_NaN.js"
+
+Branch[20798]:T : Math.fround.call(0, 1n );
+Branch[20798]:F : Math.fround.call();
+Branch[20798] : Test262 covered false branch with "test262/test/built-ins/Math/fround/Math.fround_NaN.js"
+
+Branch[20805]:T : Math.fround.call(0, 0);
+Branch[20805]:F : Math.fround.call(0, 1 );
+Branch[20805] : Test262 covered true branch with "test262/test/built-ins/Math/fround/Math.fround_Infinity.js"
+
+Branch[20852]:T : Math.hypot.call(0, 1 );
+Branch[20852]:F : Math.hypot.call(0, 0);
+Branch[20852] : Test262 covered false branch with "test262/test/built-ins/Math/hypot/Math.hypot_Zero_2.js"
+
+Branch[20855]:T : Math.hypot.call();
+Branch[20855]:F : Math.hypot.call(0, 1 );
+Branch[20855] : Test262 covered true branch with "test262/test/built-ins/Math/hypot/Math.hypot_NoArgs.js"
+
+Branch[20860]:T : Math.imul.call(0, 0);
+Branch[20860]:F : Math.imul.call();
+Branch[20860] : Test262 covered true branch with "test262/test/built-ins/Math/imul/results.js"
+
+Branch[20863]:T : Math.imul.call(0, 0, 0);
+Branch[20863]:F : Math.imul.call();
+Branch[20863] : Test262 covered true branch with "test262/test/built-ins/Math/imul/results.js"
+
+Branch[20868]:T : Math.imul.call(0, 1n );
+Branch[20868]:F : Math.imul.call();
+Branch[20868] : Test262 covered false branch with "test262/test/built-ins/Math/imul/results.js"
+
+Branch[20874]:T : Math.imul.call(0, 0, 1n );
+Branch[20874]:F : Math.imul.call();
+Branch[20874] : Test262 covered false branch with "test262/test/built-ins/Math/imul/results.js"
+
+Branch[20890]:T : Math.log.call(0, 0);
+Branch[20890]:F : Math.log.call();
+Branch[20890] : Test262 covered true branch with "test262/test/built-ins/Math/log/S15.8.2.10_A4.js"
+
+Branch[20895]:T : Math.log.call(0, 1n );
+Branch[20895]:F : Math.log.call();
+Branch[20895] : Test262 covered false branch with "test262/test/built-ins/Math/log/S15.8.2.10_A4.js"
+
+Branch[20910]:T : Math.log.call(0, - Infinity );
+Branch[20910]:F : Math.log.call(0, 42 );
+Branch[20910] : Test262 covered true branch with "test262/test/built-ins/Math/log/S15.8.2.10_A2.js"
+
+Branch[20919]:T : Math.log1p.call(0, 0);
+Branch[20919]:F : Math.log1p.call();
+Branch[20919] : Test262 covered true branch with "test262/test/built-ins/Math/log1p/specific-results.js"
+
+Branch[20945]:T : Math.log10.call(0, 0);
+Branch[20945]:F : Math.log10.call();
+Branch[20945] : Test262 covered true branch with "test262/test/built-ins/Math/log10/Log10-specialVals.js"
+
+Branch[20950]:T : Math.log10.call(0, 0n );
+Branch[20950]:F : Math.log10.call();
+Branch[20950] : Test262 covered false branch with "test262/test/built-ins/Math/log10/Log10-specialVals.js"
+
+Branch[20974]:T : Math.log2.call(0, 0);
+Branch[20974]:F : Math.log2.call();
+Branch[20974] : Test262 covered true branch with "test262/test/built-ins/Math/log2/log2-basicTests.js"
+
+Branch[20979]:T : Math.log2.call(0, 1n );
+Branch[20979]:F : Math.log2.call();
+Branch[20979] : Test262 covered false branch with "test262/test/built-ins/Math/log2/log2-basicTests.js"
+
+Branch[21007]:T : Math.max.call(0, 1n );
+Branch[21007]:F : Math.max.call(0, 0);
+Branch[21007] : Test262 covered false branch with "test262/test/built-ins/Math/max/15.8.2.11-1.js"
+
+Branch[21031]:T : Math.min.call(0, 1n );
+Branch[21031]:F : Math.min.call(0, 0);
+Branch[21031] : Test262 covered false branch with "test262/test/built-ins/Math/min/15.8.2.12-1.js"
+
+Branch[21051]:T : Math.pow.call(0, 0);
+Branch[21051]:F : Math.pow.call();
+Branch[21051] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-5-12.js"
+
+Branch[21054]:T : Math.pow.call(0, 0, 0);
+Branch[21054]:F : Math.pow.call();
+Branch[21054] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-5-12.js"
+
+Branch[21059]:T : Math.pow.call(0, 1n );
+Branch[21059]:F : Math.pow.call();
+Branch[21059] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-5-12.js"
+
+Branch[21075]:T : Math.round.call(0, 0);
+Branch[21075]:F : Math.round.call();
+Branch[21075] : Test262 covered true branch with "test262/test/built-ins/Math/round/S15.8.2.15_A2.js"
+
+Branch[21080]:T : Math.round.call(0, 1n );
+Branch[21080]:F : Math.round.call();
+Branch[21080] : Test262 covered false branch with "test262/test/built-ins/Math/round/S15.8.2.15_A2.js"
+
+Branch[21097]:T : Math.sign.call(0, 0);
+Branch[21097]:F : Math.sign.call(0);
+Branch[21097] : Test262 covered true branch with "test262/test/built-ins/Math/sign/sign-specialVals.js"
+
+Branch[21117]:T : Math.sin.call(0, 0);
+Branch[21117]:F : Math.sin.call();
+Branch[21117] : Test262 covered true branch with "test262/test/built-ins/Math/sin/zero.js"
+
+Branch[21122]:T : Math.sin.call(0, 1n );
+Branch[21122]:F : Math.sin.call();
+Branch[21122] : Test262 covered false branch with "test262/test/built-ins/Math/sin/zero.js"
+
+Branch[21140]:T : Math.sinh.call(0, 0);
+Branch[21140]:F : Math.sinh.call();
+Branch[21140] : Test262 covered true branch with "test262/test/built-ins/Math/sinh/sinh-specialVals.js"
+
+Branch[21145]:T : Math.sinh.call(0, 1n );
+Branch[21145]:F : Math.sinh.call();
+Branch[21145] : Test262 covered false branch with "test262/test/built-ins/Math/sinh/sinh-specialVals.js"
+
+Branch[21149]:T : Math.sinh.call();
+Branch[21149]:F : Math.sinh.call(0, 1 );
+Branch[21149] : Test262 covered true branch with "test262/test/built-ins/Math/sinh/sinh-specialVals.js"
+
+Branch[21160]:T : Math.sqrt.call(0, 0);
+Branch[21160]:F : Math.sqrt.call(0);
+Branch[21160] : Test262 covered true branch with "test262/test/built-ins/Math/sqrt/S15.8.2.17_A1.js"
+
+Branch[21165]:T : Math.sqrt.call(0, 1n );
+Branch[21165]:F : Math.sqrt.call(0);
+Branch[21165] : Test262 covered false branch with "test262/test/built-ins/Math/sqrt/S15.8.2.17_A1.js"
+
+Branch[21174]:T : Math.sqrt.call(0, - Infinity );
+Branch[21174]:F : Math.sqrt.call(0, 1 );
+Branch[21174] : Test262 covered true branch with "test262/test/built-ins/Math/sqrt/S15.8.2.17_A2.js"
+
+Branch[21183]:T : Math.tan.call(0, 0);
+Branch[21183]:F : Math.tan.call();
+Branch[21183] : Test262 covered true branch with "test262/test/built-ins/Math/tan/S15.8.2.18_A2.js"
+
+Branch[21188]:T : Math.tan.call(0, 0n );
+Branch[21188]:F : Math.tan.call();
+Branch[21188] : Test262 covered false branch with "test262/test/built-ins/Math/tan/S15.8.2.18_A2.js"
+
+Branch[21197]:T : Math.tan.call(0, - Infinity );
+Branch[21197]:F : Math.tan.call(0, 1 );
+Branch[21197] : Test262 covered true branch with "test262/test/built-ins/Math/tan/S15.8.2.18_A4.js"
+
+Branch[21206]:T : Math.tanh.call(0, 0);
+Branch[21206]:F : Math.tanh.call();
+Branch[21206] : Test262 covered true branch with "test262/test/built-ins/Math/tanh/tanh-specialVals.js"
+
+Branch[21211]:T : Math.tanh.call(0, 0n );
+Branch[21211]:F : Math.tanh.call();
+Branch[21211] : Test262 covered false branch with "test262/test/built-ins/Math/tanh/tanh-specialVals.js"
+
+Branch[21223]:T : Math.tanh.call(0, - Infinity );
+Branch[21223]:F : Math.tanh.call(0, 1 );
+Branch[21223] : Test262 covered true branch with "test262/test/built-ins/Math/tanh/tanh-specialVals.js"
+
+Branch[21232]:T : Math.trunc.call(0, 0);
+Branch[21232]:F : Math.trunc.call(0);
+Branch[21232] : Test262 covered true branch with "test262/test/built-ins/Math/trunc/Math.trunc_NaN.js"
+
+Branch[22867]:T : String.fromCharCode.call(0, 0n );
+Branch[22867]:F : String.fromCharCode.call(0, 0);
+Branch[22867] : Test262 covered false branch with "test262/test/language/literals/string/S7.8.4_A5.1_T1.js"
+
+Branch[22876]:T : String.fromCodePoint.call(0, ( ) => { } );
+Branch[22876]:F : String.fromCodePoint.call();
+Branch[22876] : Test262 covered false branch with "test262/test/built-ins/String/fromCodePoint/arguments-is-empty.js"
+
+Branch[22900]:T : String.raw.call(0, 0);
+Branch[22900]:F : String.raw.call();
+Branch[22900] : Test262 covered true branch with "test262/test/built-ins/String/raw/zero-literal-segments.js"
+
+Branch[22972]:T : String.prototype.at.call(Symbol ( ) );
+Branch[22972]:F : String.prototype.at.call(0);
+Branch[22972] : Test262 covered false branch with "test262/test/built-ins/String/prototype/at/index-non-numeric-argument-tointeger-invalid.js"
+
+Branch[23054]:T : String.prototype.codePointAt.call(`` , 0);
+Branch[23054]:F : String.prototype.codePointAt.call();
+Branch[23054] : Test262 covered true branch with "test262/test/built-ins/String/prototype/codePointAt/this-is-null-throws.js"
+
+Branch[23075]:T : String.prototype.codePointAt.call('' );
+Branch[23075]:F : String.prototype.codePointAt.call(0);
+Branch[23075] : Test262 covered true branch with "test262/test/built-ins/String/prototype/codePointAt/returns-undefined-on-position-less-than-zero.js"
+
+Branch[23110]:T : String.prototype.endsWith.call(0, 0);
+Branch[23110]:F : String.prototype.endsWith.call();
+Branch[23110] : Test262 covered true branch with "test262/test/built-ins/String/prototype/endsWith/String.prototype.endsWith_Fail.js"
+
+Branch[23168]:T : String.prototype.includes.call(0, 0);
+Branch[23168]:F : String.prototype.includes.call();
+Branch[23168] : Test262 covered true branch with "test262/test/built-ins/String/prototype/includes/String.prototype.includes_FailMissingLetter.js"
+
+Branch[23232]:T : String.prototype.indexOf.call(Symbol ( ) );
+Branch[23232]:F : String.prototype.indexOf.call(0);
+Branch[23232] : Test262 covered false branch with "test262/test/built-ins/String/prototype/indexOf/S15.5.4.7_A2_T1.js"
+
+Branch[23269]:T : String.prototype.isWellFormed.call(Symbol ( ) );
+Branch[23269]:F : String.prototype.isWellFormed.call('' );
+Branch[23269] : Test262 covered true branch with "test262/test/built-ins/String/prototype/isWellFormed/to-string.js"
+
+Branch[23293]:T : String.prototype.lastIndexOf.call(Symbol ( ) );
+Branch[23293]:F : String.prototype.lastIndexOf.call(0);
+Branch[23293] : Test262 covered false branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T4.js"
+
+Branch[23321]:T : String.prototype.lastIndexOf.call({ } );
+Branch[23321]:F : String.prototype.lastIndexOf.call(0, 0);
+Branch[23321] : Test262 covered false branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
+
+Branch[23358]:T : String.prototype.match.call(1 , { [ Symbol . match ] : 0 } );
+Branch[23358]:F : String.prototype.match.call();
+Branch[23358] : Test262 covered true branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-get-err.js"
+
+Branch[23363]:T : String.prototype.match.call();
+Branch[23363]:F : String.prototype.match.call(async function * x ( ) { } );
+Branch[23363] : Test262 covered false branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-get-err.js"
+
+Branch[23367]:T : String.prototype.match.call(1 , { [ Symbol . match ] : 0 } );
+Branch[23367]:F : String.prototype.match.call(1n );;
+Branch[23367] : Test262 covered true branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-get-err.js"
+
+Branch[23374]:T : String.prototype.match.call(0, { [ Symbol . match ] : x => x } );
+Branch[23374]:F : String.prototype.match.call(1 , 0);
+Branch[23374] : Test262 covered true branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-invocation.js"
+
+Branch[23377]:T : String.prototype.match.call(0, { [ Symbol . match ] : x => await } );
+Branch[23377]:F : String.prototype.match.call(0, { [ Symbol . match ] : x => x } );
+Branch[23377] : Test262 covered false branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-invocation.js"
+
+Branch[23407]:T : String.prototype.matchAll.call(0 , { [ NaN ] : `` } );
+Branch[23407]:F : String.prototype.matchAll.call(1 );
+Branch[23407] : Test262 covered true branch with "test262/test/built-ins/String/prototype/matchAll/regexp-matchAll-invocation.js"
+
+Branch[23437]:T : String.prototype.matchAll.call(0 , { [ Symbol . matchAll ] : 0 } );
+Branch[23437]:F : String.prototype.matchAll.call(0 , { [ NaN ] : `` } );
+Branch[23437] : Test262 covered false branch with "test262/test/built-ins/String/prototype/matchAll/regexp-matchAll-invocation.js"
+
+Branch[23441]:T : String.prototype.matchAll.call(0 , { [ Symbol . matchAll ] : x => x } );
+Branch[23441]:F : String.prototype.matchAll.call(0 , { [ NaN ] : `` } );
+Branch[23441] : Test262 covered true branch with "test262/test/built-ins/String/prototype/matchAll/regexp-matchAll-invocation.js"
+
+Branch[23444]:T : String.prototype.matchAll.call(1 , { [ Symbol . matchAll ] : ( ) => x } );
+Branch[23444]:F : String.prototype.matchAll.call(0 , { [ Symbol . matchAll ] : x => x } );
+Branch[23444] : Test262 covered false branch with "test262/test/built-ins/String/prototype/matchAll/regexp-matchAll-invocation.js"
+
+Branch[23480]:T : String.prototype.normalize.call(0);
+Branch[23480]:F : String.prototype.normalize.call(0, 0);
+Branch[23480] : Test262 covered false branch with "test262/test/built-ins/String/prototype/normalize/return-abrupt-from-form-as-symbol.js"
+
+Branch[23488]:T : String.prototype.normalize.call(0, 0);
+Branch[23488]:F : String.prototype.normalize.call(0);
+Branch[23488] : Test262 covered true branch with "test262/test/built-ins/String/prototype/normalize/form-is-not-valid-throws.js"
+
+Branch[23541]:T : String.prototype.padStart.call(0, 1n , 0);
+Branch[23541]:F : String.prototype.padEnd.call(0);
+Branch[23541] : Test262 covered false branch with "test262/test/built-ins/String/prototype/padEnd/fill-string-empty.js"
+
+Branch[23601]:T : String.prototype.repeat.call(0);
+Branch[23601]:F : String.prototype.repeat.call(0, 1 );
+Branch[23601] : Test262 covered true branch with "test262/test/built-ins/String/prototype/repeat/count-is-zero-returns-empty-string.js"
+
+Branch[23606]:T : String.prototype.replace.call(0, 1 );
+Branch[23606]:F : String.prototype.replace.call();
+Branch[23606] : Test262 covered true branch with "test262/test/language/function-code/10.4.3-1-100gs.js"
+
+Branch[23633]:T : String.prototype.replace.call(Symbol ( ) );
+Branch[23633]:F : String.prototype.replace.call(0);
+Branch[23633] : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-100gs.js"
+
+Branch[23661]:T : String.prototype.replace.call(1 , 1 , x => x );
+Branch[23661]:F : String.prototype.replace.call(0, 0);
+Branch[23661] : Test262 covered true branch with "test262/test/language/function-code/10.4.3-1-100gs.js"
+
+Branch[23664]:T : String.prototype.replace.call(1 , 1 , ( ) => x );
+Branch[23664]:F : String.prototype.replace.call(1 , 1 , x => x );
+Branch[23664] : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-100gs.js"
+
+Branch[23669]:T : String.prototype.replace.call(1 , 1 , x => Symbol ( ) );
+Branch[23669]:F : String.prototype.replace.call(1 , 1 , x => x );
+Branch[23669] : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-100gs.js"
+
+Branch[23746]:T : String.prototype.replaceAll.call(1 , 0);
+Branch[23746]:F : String.prototype.replaceAll.call(0);
+Branch[23746] : Test262 covered true branch with "test262/test/built-ins/String/prototype/replaceAll/replaceValue-call-abrupt.js"
+
+Branch[23783]:T : String.prototype.replaceAll.call(1 , { [ Symbol . replace ] : class { } } );
+Branch[23783]:F : String.prototype.replaceAll.call(1 , { [ Symbol . replace ] : x => x } );
+Branch[23783] : Test262 covered true branch with "test262/test/built-ins/String/prototype/replaceAll/searchValue-replacer-call-abrupt.js"
+
+Branch[23803]:T : String.prototype.replaceAll.call(0, 1 , Symbol ( ) );
+Branch[23803]:F : String.prototype.replaceAll.call(0);
+Branch[23803] : Test262 covered true branch with "test262/test/built-ins/String/prototype/replaceAll/replaceValue-tostring-abrupt.js"
+
+Branch[23817]:T : String.prototype.replaceAll.call(1 , 1 , x => x );
+Branch[23817]:F : String.prototype.replaceAll.call(0, 0);
+Branch[23817] : Test262 covered true branch with "test262/test/built-ins/String/prototype/replaceAll/replaceValue-call-abrupt.js"
+
+Branch[23840]:T : String.prototype.search.call(null , 0);
+Branch[23840]:F : String.prototype.search.call();
+Branch[23840] : Test262 covered true branch with "test262/test/built-ins/String/prototype/search/cstm-search-get-err.js"
+
+Branch[23845]:T : String.prototype.search.call();
+Branch[23845]:F : String.prototype.search.call({ 1 : 0 } , { [ Symbol . search ] : 0 } );
+Branch[23845] : Test262 covered false branch with "test262/test/built-ins/String/prototype/search/cstm-search-get-err.js"
+
+Branch[23849]:T : String.prototype.search.call({ 1 : 0 } , { [ Symbol . search ] : 0 } );
+Branch[23849]:F : String.prototype.search.call(( x ) => x );
+Branch[23849] : Test262 covered true branch with "test262/test/built-ins/String/prototype/search/cstm-search-get-err.js"
+
+Branch[23856]:T : String.prototype.search.call(1 , { [ Symbol . search ] : x => x } );
+Branch[23856]:F : String.prototype.search.call(1 , x => { } );
+Branch[23856] : Test262 covered true branch with "test262/test/built-ins/String/prototype/search/cstm-search-invocation.js"
+
+Branch[23859]:T : String.prototype.search.call(1 , { [ Symbol . search ] : x => await } );
+Branch[23859]:F : String.prototype.search.call(1 , { [ Symbol . search ] : x => x } );
+Branch[23859] : Test262 covered false branch with "test262/test/built-ins/String/prototype/search/cstm-search-invocation.js"
+
+Branch[23894]:T : String.prototype.slice.call(Symbol ( ) );
+Branch[23894]:F : String.prototype.slice.call(0);
+Branch[23894] : Test262 covered false branch with "test262/test/built-ins/String/prototype/slice/S15.5.4.13_A1_T14.js"
+
+Branch[23953]:T : String.prototype.split.call(0, { [ Symbol . split ] : class { } } );
+Branch[23953]:F : String.prototype.split.call(0, { [ Symbol . split ] : x => x } );
+Branch[23953] : Test262 covered false branch with "test262/test/built-ins/String/prototype/split/cstm-split-invocation.js"
+
+Branch[23989]:T : String.prototype.split.call(0, `` );
+Branch[23989]:F : String.prototype.split.call(0, 0);
+Branch[23989] : Test262 covered false branch with "test262/test/language/statements/while/S12.6.2_A8.js"
+
+Branch[24025]:T : String.prototype.startsWith.call(0, 0);
+Branch[24025]:F : String.prototype.startsWith.call(0);
+Branch[24025] : Test262 covered true branch with "test262/test/built-ins/String/prototype/startsWith/this-is-null-throws.js"
+
+Branch[24045]:T : String.prototype.startsWith.call(0, { get [ Symbol . match ] ( ) { x ; } } , 0);
+Branch[24045]:F : String.prototype.startsWith.call(0);
+Branch[24045] : Test262 covered false branch with "test262/test/built-ins/String/prototype/startsWith/return-abrupt-from-searchstring-as-symbol.js"
+
+Branch[24049]:T : String.prototype.startsWith.call(0, { [ Symbol . match ] : function * ( x ) { } } , 0);
+Branch[24049]:F : String.prototype.startsWith.call(0);
+Branch[24049] : Test262 covered false branch with "test262/test/built-ins/String/prototype/startsWith/return-abrupt-from-searchstring-as-symbol.js"
+
+Branch[24097]:T : String.prototype.substring.call(Symbol ( ) );
+Branch[24097]:F : String.prototype.substring.call(0);
+Branch[24097] : Test262 covered false branch with "test262/test/built-ins/String/prototype/substring/S15.5.4.15_A1_T14.js"
+
+Branch[24132]:T : String.prototype.toLowerCase.call(Symbol ( ) );
+Branch[24132]:F : String.prototype.toLowerCase.call(0);
+Branch[24132] : Test262 covered true branch with "test262/test/built-ins/String/prototype/toLowerCase/S15.5.4.16_A1_T11.js"
+
+Branch[24159]:T : String.prototype.toWellFormed.call(Symbol ( ) );
+Branch[24159]:F : String.prototype.toWellFormed.call(`` );
+Branch[24159] : Test262 covered true branch with "test262/test/built-ins/String/prototype/toWellFormed/to-string.js"
+
+Branch[24235]:T : [ , ... typeof x ] ;
+Branch[24235]:F : [ , ] = '' ;
+Branch[24235] : Test262 covered false branch with "test262/test/built-ins/Promise/all/iter-arg-is-string-resolve.js"
+
+Branch[26093]:T : Array.from.call(0, 0);
+Branch[26093]:F : Array.from.call();
+Branch[26093] : Test262 covered true branch with "test262/test/built-ins/Array/from/source-object-without.js"
+
+Branch[26195]:T : Array.from.call(class { } , 0);
+Branch[26195]:F : Array.from.call(0, 0);
+Branch[26195] : Test262 covered true branch with "test262/test/built-ins/Array/from/source-object-without.js"
+
+Branch[26198]:T : Array.from.call(function ( [ ] ) { } , 0);
+Branch[26198]:F : Array.from.call(class { } , 0);
+Branch[26198] : Test262 covered false branch with "test262/test/built-ins/Array/from/source-object-without.js"
+
+Branch[26242]:T : Array.isArray.call(0, 0);
+Branch[26242]:F : Array.isArray.call(0);
+Branch[26242] : Test262 covered true branch with "test262/test/built-ins/Array/isArray/15.4.3.2-1-3.js"
+
+Branch[26302]:T : Array.prototype.at.call({ get length ( ) { x ; } } );
+Branch[26302]:F : Array.prototype.at.call(0);
+Branch[26302] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/at/index-non-numeric-argument-tointeger-invalid.js"
+
+Branch[26627]:T : Array.prototype.fill.call(0, 0, 0, - Infinity );
+Branch[26627]:F : Array.prototype.fill.call(0);
+Branch[26627] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/fill/return-this.js"
+
+Branch[26742]:T : Array.prototype.findIndex.call(0, 0);
+Branch[26742]:F : Array.prototype.findIndex.call();
+Branch[26742] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/findIndex/call-with-boolean.js"
+
+Branch[26745]:T : Array.prototype.findIndex.call(0, 0, 0);
+Branch[26745]:F : Array.prototype.findIndex.call();
+Branch[26745] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/findIndex/call-with-boolean.js"
+
+Branch[26800]:T : Array.prototype.findLastIndex.call(0, 0);
+Branch[26800]:F : Array.prototype.findLastIndex.call();
+Branch[26800] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/findLastIndex/call-with-boolean.js"
+
+Branch[26829]:T : Array.prototype.find.call(0);
+Branch[26829]:F : Array.prototype.find.call(0, x => x );
+Branch[26829] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/find/call-with-boolean.js"
+
+Branch[26885]:T : Array.prototype.flat.call({ get length ( ) { x ; } } );
+Branch[26885]:F : Array.prototype.flat.call(0);
+Branch[26885] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/flat/symbol-object-create-null-depth-throws.js"
+
+Branch[26933]:T : Array.prototype.flatMap.call(`${ - 0 }` , x => await );
+Branch[26933]:F : Array.prototype.flatMap.call(`${ - 0 }` , x => x );
+Branch[26933] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/flatMap/bound-function-argument.js"
+
+Branch[27619]:T : Array.prototype.reverse.call({ get length ( ) { x ; } } );
+Branch[27619]:F : Array.prototype.reverse.call(0);
+Branch[27619] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/reverse/array-has-one-entry.js"
+
+Branch[27755]:T : Array.prototype.shift.call(`${ 1 }` );
+Branch[27755]:F : Array.prototype.shift.call([ , ] );
+Branch[27755] : Test262 covered false branch with "test262/test/built-ins/Set/prototype/add/preserves-insertion-order.js"
+
+Branch[27788]:T : Array.prototype.slice.call(0, 0n );
+Branch[27788]:F : Array.prototype.slice.call(0);
+Branch[27788] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/slice/S15.4.4.10_A3_T1.js"
+
+Branch[27801]:T : Array.prototype.slice.call(0, 0, 1n );
+Branch[27801]:F : Array.prototype.slice.call(0, 0, 0);
+Branch[27801] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/slice/S15.4.4.10_A3_T1.js"
+
+Branch[27910]:T : Array.prototype.sort.call(0, 0);
+Branch[27910]:F : Array.prototype.sort.call();
+Branch[27910] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
+
+Branch[27914]:T : Array.prototype.sort.call(0, 0);
+Branch[27914]:F : Array.prototype.sort.call();
+Branch[27914] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
+
+Branch[27917]:T : Array.prototype.sort.call(0, 0);
+Branch[27917]:F : Array.prototype.sort.call(0, x => x );
+Branch[27917] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
+
+Branch[27923]:T : Array.prototype.sort.call();
+Branch[27923]:F : Array.prototype.sort.call(( x ) => x );
+Branch[27923] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
+
+Branch[28061]:T : Array.prototype.splice.call(0, 0n );
+Branch[28061]:F : Array.prototype.splice.call(0);
+Branch[28061] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/splice/S15.4.4.12_A6.1_T2.js"
+
+Branch[28077]:T : Array.prototype.splice.call(0, 0, 0n , 0);
+Branch[28077]:F : Array.prototype.splice.call(0, 0, 0);
+Branch[28077] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/splice/S15.4.4.12_A6.1_T2.js"
+
+Branch[28212]:T : Array.prototype.toLocaleString.call(0, 0);
+Branch[28212]:F : Array.prototype.toLocaleString.call();
+Branch[28212] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
+
+Branch[28215]:T : Array.prototype.toLocaleString.call(0, 0, 0);
+Branch[28215]:F : Array.prototype.toLocaleString.call();
+Branch[28215] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
+
+Branch[28220]:T : Array.prototype.toLocaleString.call();
+Branch[28220]:F : Array.prototype.toLocaleString.call(0);
+Branch[28220] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
+
+Branch[28300]:T : Array.prototype.toSorted.call(0, 0);
+Branch[28300]:F : Array.prototype.toSorted.call();
+Branch[28300] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/toSorted/this-value-nullish.js"
+
+Branch[28304]:T : Array.prototype.toSorted.call(0, 0);
+Branch[28304]:F : Array.prototype.toSorted.call();
+Branch[28304] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/toSorted/this-value-nullish.js"
+
+Branch[28360]:T : Array.prototype.toSpliced.call({ get length ( ) { x ; } } );
+Branch[28360]:F : Array.prototype.toSpliced.call(0);
+Branch[28360] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/toSpliced/ignores-species.js"
+
+Branch[28366]:T : Array.prototype.toSpliced.call(0, 0n );
+Branch[28366]:F : Array.prototype.toSpliced.call(0);
+Branch[28366] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/toSpliced/ignores-species.js"
+
+Branch[28382]:T : Array.prototype.toSpliced.call(0, 0, 0n );
+Branch[28382]:F : Array.prototype.toSpliced.call(0, 0, 0);
+Branch[28382] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/toSpliced/ignores-species.js"
+
+Branch[28511]:T : Array.prototype.unshift.call({ get 0 ( ) { throw 0 ; } } , 0);
+Branch[28511]:F : Array.prototype.unshift.call(0, 0);
+Branch[28511] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/unshift/set-length-array-is-frozen.js"
+
+Branch[28538]:T : Array.prototype.with.call(0, 0);
+Branch[28538]:F : Array.prototype.with.call();
+Branch[28538] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/with/index-throw-completion.js"
+
+Branch[28541]:T : Array.prototype.with.call(0, 0, 0);
+Branch[28541]:F : Array.prototype.with.call();
+Branch[28541] : Test262 covered true branch with "test262/test/built-ins/Array/prototype/with/index-throw-completion.js"
+
+Branch[28552]:T : Array.prototype.with.call({ get length ( ) { throw 0 ; } } );
+Branch[28552]:F : Array.prototype.with.call(0);
+Branch[28552] : Test262 covered false branch with "test262/test/built-ins/Array/prototype/with/index-throw-completion.js"
+
+Branch[30665]:T : new BigUint64Array({ [ Symbol . iterator ] : function ( x ) { } } );
+Branch[30665]:F : new BigUint64Array([ ] );
+Branch[30665] : Test262 covered false branch with "test262/test/built-ins/TypedArray/prototype/reduce/BigInt/callbackfn-return-does-not-change-instance.js"
+
+Branch[30749]:T : new Float16Array({ [ Symbol . iterator ] : x => x } );
+Branch[30749]:F : new Float16Array([ ] );
+Branch[30749] : Test262 covered false branch with "test262/test/built-ins/TypedArrayConstructors/ctors/object-arg/iterating-throws.js"
+
+Branch[30833]:T : new Int8Array({ [ Symbol . iterator ] : x => x } );
+Branch[30833]:F : new Int8Array([ ] );
+Branch[30833] : Test262 covered false branch with "test262/test/language/statements/for-of/int8array.js"
+
+Branch[30917]:T : new Float32Array({ [ Symbol . iterator ] : function ( x ) { } } );
+Branch[30917]:F : new Float32Array([ ] );
+Branch[30917] : Test262 covered false branch with "test262/test/built-ins/TypedArrayConstructors/ctors/object-arg/iterating-throws.js"
+
+Branch[31169]:T : new Uint8ClampedArray({ [ Symbol . iterator ] : ( ) => { throw 0 ; } } );
+Branch[31169]:F : new Uint8ClampedArray([ ] );
+Branch[31169] : Test262 covered false branch with "test262/test/built-ins/TypedArrayConstructors/ctors/object-arg/iterating-throws.js"
+
+Branch[31644]:T : Map.groupBy.call(0, 0);
+Branch[31644]:F : Map.groupBy.call(0);
+Branch[31644] : Test262 covered true branch with "test262/test/built-ins/Map/groupBy/map-instance.js"
+
+Branch[31647]:T : Map.groupBy.call(0, 0, 0);
+Branch[31647]:F : Map.groupBy.call(0);
+Branch[31647] : Test262 covered true branch with "test262/test/built-ins/Map/groupBy/map-instance.js"
+
+Branch[31688]:T : Map.prototype.delete.call(0, 0);
+Branch[31688]:F : Map.prototype.delete.call();
+Branch[31688] : Test262 covered true branch with "test262/test/language/statements/for-of/map-contract.js"
+
+Branch[31720]:T : Map.prototype.forEach.call(0, 0);
+Branch[31720]:F : Map.prototype.forEach.call();
+Branch[31720] : Test262 covered true branch with "test262/test/built-ins/Map/prototype/forEach/return-undefined.js"
+
+Branch[31750]:T : Map.prototype.get.call(0, 0);
+Branch[31750]:F : Map.prototype.get.call();
+Branch[31750] : Test262 covered true branch with "test262/test/built-ins/Map/prototype/get/does-not-have-mapdata-internal-slot-set.js"
+
+Branch[31778]:T : Map.prototype.has.call(0, 0);
+Branch[31778]:F : Map.prototype.has.call();
+Branch[31778] : Test262 covered true branch with "test262/test/built-ins/Map/prototype/has/does-not-have-mapdata-internal-slot-set.js"
+
+Branch[31809]:T : new Map([ x => x ] );
+Branch[31809]:F : Map.prototype.set.call();
+Branch[31809] : Test262 covered true branch with "test262/test/language/statements/for-of/map-contract.js"
+
+Branch[31812]:T : new Map([ x => x ] );
+Branch[31812]:F : Map.prototype.set.call();
+Branch[31812] : Test262 covered true branch with "test262/test/language/statements/for-of/map-contract.js"
+
+Branch[32007]:T : new Set(0);
+Branch[32007]:F : new Set(`` );
+Branch[32007] : Test262 covered false branch with "test262/test/built-ins/Set/prototype/forEach/returns-undefined.js"
+
+Branch[32039]:T : new Set([ , ] );
+Branch[32039]:F : Set.prototype.add.call();
+Branch[32039] : Test262 covered true branch with "test262/test/built-ins/Set/prototype/add/returns-this.js"
+
+Branch[32078]:T : Set.prototype.delete.call(0, 0);
+Branch[32078]:F : Set.prototype.delete.call();
+Branch[32078] : Test262 covered true branch with "test262/test/built-ins/Set/prototype/delete/returns-false-when-delete-is-noop.js"
+
+Branch[32166]:T : Set.prototype.forEach.call(0, 0);
+Branch[32166]:F : Set.prototype.forEach.call();
+Branch[32166] : Test262 covered true branch with "test262/test/built-ins/Set/prototype/forEach/returns-undefined.js"
+
+Branch[32196]:T : Set.prototype.has.call(0, 0);
+Branch[32196]:F : Set.prototype.has.call();
+Branch[32196] : Test262 covered true branch with "test262/test/built-ins/Set/prototype/has/returns-false-when-value-not-present-number.js"
+
+Branch[32608]:T : WeakMap.prototype.delete.call(0, 0);
+Branch[32608]:F : WeakMap.prototype.delete.call();
+Branch[32608] : Test262 covered true branch with "test262/test/built-ins/WeakMap/prototype/delete/returns-false-when-object-key-not-present.js"
+
+Branch[32637]:T : WeakMap.prototype.get.call(0, 0);
+Branch[32637]:F : WeakMap.prototype.get.call();
+Branch[32637] : Test262 covered true branch with "test262/test/built-ins/WeakMap/prototype/get/does-not-have-weakmapdata-internal-slot-set.js"
+
+Branch[32668]:T : WeakMap.prototype.has.call(0, 0);
+Branch[32668]:F : WeakMap.prototype.has.call();
+Branch[32668] : Test262 covered true branch with "test262/test/built-ins/WeakMap/prototype/has/this-not-object-throw-number.js"
+
+Branch[32696]:T : WeakMap.prototype.set.call(0, 0);
+Branch[32696]:F : WeakMap.prototype.set.call();
+Branch[32696] : Test262 covered true branch with "test262/test/built-ins/WeakMap/prototype/set/returns-this.js"
+
+Branch[32699]:T : WeakMap.prototype.set.call(0, 0, 0);
+Branch[32699]:F : WeakMap.prototype.set.call();
+Branch[32699] : Test262 covered true branch with "test262/test/built-ins/WeakMap/prototype/set/returns-this.js"
+
+Branch[32792]:T : new WeakSet([ , ] );
+Branch[32792]:F : WeakSet.prototype.add.call(0);
+Branch[32792] : Test262 covered true branch with "test262/test/built-ins/WeakSet/prototype/add/returns-this.js"
+
+Branch[32802]:T : new WeakSet([ , ] );
+Branch[32802]:F : new WeakSet([ x => x ] );
+Branch[32802] : Test262 covered false branch with "test262/test/built-ins/WeakSet/prototype/add/returns-this.js"
+
+Branch[32824]:T : WeakSet.prototype.delete.call(0, 0);
+Branch[32824]:F : WeakSet.prototype.delete.call();
+Branch[32824] : Test262 covered true branch with "test262/test/built-ins/WeakSet/prototype/delete/returns-false-when-delete-is-noop.js"
+
+Branch[32851]:T : WeakSet.prototype.has.call(0, 0);
+Branch[32851]:F : WeakSet.prototype.has.call();
+Branch[32851] : Test262 covered true branch with "test262/test/built-ins/WeakSet/prototype/add/adds-object-element.js"
+
+Branch[33095]:T : new Float16Array([ , ] );
+Branch[33095]:F : new Int8Array([ , ] );
+Branch[33095] : Test262 covered false branch with "test262/test/language/statements/for-of/int8array.js"
+
+Branch[33097]:T : new Float32Array([ , ] );
+Branch[33097]:F : new Int8Array([ , ] );
+Branch[33097] : Test262 covered false branch with "test262/test/language/statements/for-of/int8array.js"
+
+Branch[33099]:T : new Float64Array([ , ] );
+Branch[33099]:F : new Int8Array([ , ] );
+Branch[33099] : Test262 covered false branch with "test262/test/language/statements/for-of/int8array.js"
+
+Branch[35467]:T : Iterator.from.call(0, 0);
+Branch[35467]:F : Iterator.from.call();
+Branch[35467] : Test262 covered true branch with "test262/test/built-ins/Iterator/from/callable.js"
+
+Branch[37467]:T : Promise.prototype.finally.call({ constructor : 0 } );
+Branch[37467]:F : Promise.prototype.finally.call({ } );
+Branch[37467] : Test262 covered false branch with "test262/test/built-ins/Promise/prototype/finally/this-value-thenable.js"
+
+Branch[38030]:T : var [ , , ] = { [ Symbol . iterator ] : async function * ( ) { yield ; } } ;
+Branch[38030]:F : var [ , , ] = { [ Symbol . iterator ] : async function * ( ) { return 0 ; } } ;
+Branch[38030] : Test262 covered false branch with "test262/test/built-ins/AsyncGeneratorPrototype/return/request-queue-order-state-executing.js"
+
+Branch[38135]:T : Reflect.apply.call(0, 0);
+Branch[38135]:F : Reflect.apply.call();
+Branch[38135] : Test262 covered true branch with "test262/test/language/expressions/new.target/value-via-reflect-apply.js"
+
+Branch[38138]:T : Reflect.apply.call(0, 0, 0);
+Branch[38138]:F : Reflect.apply.call();
+Branch[38138] : Test262 covered true branch with "test262/test/language/expressions/new.target/value-via-reflect-apply.js"
+
+Branch[38162]:T : Reflect.construct.call(0, 0);
+Branch[38162]:F : Reflect.construct.call();
+Branch[38162] : Test262 covered true branch with "test262/test/built-ins/Reflect/construct/return-without-newtarget-argument.js"
+
+Branch[38165]:T : Reflect.construct.call(0, 0, 0);
+Branch[38165]:F : Reflect.construct.call();
+Branch[38165] : Test262 covered true branch with "test262/test/built-ins/Reflect/construct/return-without-newtarget-argument.js"
+
+Branch[38172]:T : Reflect.construct.call();
+Branch[38172]:F : Reflect.construct.call(0, class { } );
+Branch[38172] : Test262 covered false branch with "test262/test/built-ins/Reflect/construct/return-without-newtarget-argument.js"
+
+Branch[38179]:T : Reflect.construct.call(0, class { } , 0, 0);
+Branch[38179]:F : Reflect.construct.call(0, class { } , 0, class { } );
+Branch[38179] : Test262 covered false branch with "test262/test/language/expressions/new.target/value-via-reflect-construct.js"
+
+Branch[38195]:T : Reflect.defineProperty.call(0, 0);
+Branch[38195]:F : Reflect.defineProperty.call(0);
+Branch[38195] : Test262 covered true branch with "test262/test/built-ins/Reflect/defineProperty/target-is-symbol-throws.js"
+
+Branch[38198]:T : Reflect.defineProperty.call(0, 0, 0);
+Branch[38198]:F : Reflect.defineProperty.call(0);
+Branch[38198] : Test262 covered true branch with "test262/test/built-ins/Reflect/defineProperty/target-is-symbol-throws.js"
+
+Branch[38226]:T : Reflect.deleteProperty.call(0, 0);
+Branch[38226]:F : Reflect.deleteProperty.call();
+Branch[38226] : Test262 covered true branch with "test262/test/built-ins/Proxy/deleteProperty/boolean-trap-result-boolean-true.js"
+
+Branch[38229]:T : Reflect.deleteProperty.call(0, 0, 0);
+Branch[38229]:F : Reflect.deleteProperty.call();
+Branch[38229] : Test262 covered true branch with "test262/test/built-ins/Proxy/deleteProperty/boolean-trap-result-boolean-true.js"
+
+Branch[38248]:T : Reflect.get.call(0, 0);
+Branch[38248]:F : Reflect.get.call();
+Branch[38248] : Test262 covered true branch with "test262/test/built-ins/Reflect/get/target-is-symbol-throws.js"
+
+Branch[38251]:T : Reflect.get.call(0, 0, 0);
+Branch[38251]:F : Reflect.get.call();
+Branch[38251] : Test262 covered true branch with "test262/test/built-ins/Reflect/get/target-is-symbol-throws.js"
+
+Branch[38275]:T : Reflect.getOwnPropertyDescriptor.call(0, 0);
+Branch[38275]:F : Reflect.getOwnPropertyDescriptor.call();
+Branch[38275] : Test262 covered true branch with "test262/test/built-ins/Reflect/getOwnPropertyDescriptor/target-is-symbol-throws.js"
+
+Branch[38278]:T : Reflect.getOwnPropertyDescriptor.call(0, 0, 0);
+Branch[38278]:F : Reflect.getOwnPropertyDescriptor.call();
+Branch[38278] : Test262 covered true branch with "test262/test/built-ins/Reflect/getOwnPropertyDescriptor/target-is-symbol-throws.js"
+
+Branch[38303]:T : Reflect.getPrototypeOf.call(0, 0);
+Branch[38303]:F : Reflect.getPrototypeOf.call();
+Branch[38303] : Test262 covered true branch with "test262/test/built-ins/Reflect/getPrototypeOf/null-prototype.js"
+
+Branch[38316]:T : Reflect.has.call(0, 0);
+Branch[38316]:F : Reflect.has.call();
+Branch[38316] : Test262 covered true branch with "test262/test/built-ins/Reflect/has/target-is-symbol-throws.js"
+
+Branch[38319]:T : Reflect.has.call(0, 0, 0);
+Branch[38319]:F : Reflect.has.call();
+Branch[38319] : Test262 covered true branch with "test262/test/built-ins/Reflect/has/target-is-symbol-throws.js"
+
+Branch[38338]:T : Reflect.isExtensible.call(0, 0);
+Branch[38338]:F : Reflect.isExtensible.call();
+Branch[38338] : Test262 covered true branch with "test262/test/built-ins/Reflect/isExtensible/target-is-symbol-throws.js"
+
+Branch[38351]:T : Reflect.ownKeys.call(0, 0);
+Branch[38351]:F : Reflect.ownKeys.call();
+Branch[38351] : Test262 covered true branch with "test262/test/built-ins/Reflect/ownKeys/target-is-symbol-throws.js"
+
+Branch[38370]:T : Reflect.preventExtensions.call(0, 0);
+Branch[38370]:F : Reflect.preventExtensions.call(0);
+Branch[38370] : Test262 covered true branch with "test262/test/built-ins/Proxy/preventExtensions/trap-is-undefined.js"
+
+Branch[38383]:T : Reflect.set.call(0, 0);
+Branch[38383]:F : Reflect.set.call();
+Branch[38383] : Test262 covered true branch with "test262/test/built-ins/Reflect/set/target-is-symbol-throws.js"
+
+Branch[38386]:T : Reflect.set.call(0, 0, 0);
+Branch[38386]:F : Reflect.set.call();
+Branch[38386] : Test262 covered true branch with "test262/test/built-ins/Reflect/set/target-is-symbol-throws.js"
+
+Branch[38413]:T : Reflect.setPrototypeOf.call(0, 0);
+Branch[38413]:F : Reflect.setPrototypeOf.call();
+Branch[38413] : Test262 covered true branch with "test262/test/built-ins/Reflect/setPrototypeOf/target-is-symbol-throws.js"
+
+Branch[38416]:T : Reflect.setPrototypeOf.call(0, 0, 0);
+Branch[38416]:F : Reflect.setPrototypeOf.call();
+Branch[38416] : Test262 covered true branch with "test262/test/built-ins/Reflect/setPrototypeOf/target-is-symbol-throws.js"
+
+Branch[38433]:T : new Proxy(0);
+Branch[38433]:F : new Proxy;
+Branch[38433] : Test262 covered true branch with "test262/test/built-ins/Proxy/getPrototypeOf/trap-is-not-callable.js"
+
+Branch[38436]:T : new Proxy(0, 0);
+Branch[38436]:F : new Proxy;
+Branch[38436] : Test262 covered true branch with "test262/test/built-ins/Proxy/getPrototypeOf/trap-is-not-callable.js"
+
+Branch[38456]:T : Proxy.revocable.call(0, 0);
+Branch[38456]:F : Proxy.revocable.call();
+Branch[38456] : Test262 covered true branch with "test262/test/built-ins/Proxy/has/null-handler.js"
+
+Branch[38459]:T : Proxy.revocable.call(0, 0, 0);
+Branch[38459]:F : Proxy.revocable.call();
+Branch[38459] : Test262 covered true branch with "test262/test/built-ins/Proxy/has/null-handler.js"
+
+Branch[38464]:T : Proxy.revocable.call();
+Branch[38464]:F : Proxy.revocable.call(0, { } , { 0 : 0 } );
+Branch[38464] : Test262 covered false branch with "test262/test/built-ins/Proxy/has/null-handler.js"
