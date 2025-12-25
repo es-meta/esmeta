@@ -2,9 +2,18 @@ Branch[286]:T : String.prototype.lastIndexOf.call(0, 0);
 Branch[286]:F : String.prototype.lastIndexOf.call({ } );
 Branch[286] : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
 
+> [!NOTE]
+> [StringLastIndexOf step 4](https://tc39.es/ecma262/2025/#sec-stringlastindexof)에서 i < 0 로 not-found를 반환하는 경우가 커버되지 않음. 아래 note를 고치고 나서 다시 확인해야 문제가 명확해질 듯.
+
+> [!NOTE]
+> 정확히 매치되진 않으나, [tc39/ecma262/pull/3660](https://github.com/tc39/ecma262/pull/3660)를 같이 보는 것이 맞다고 판단. 이와 관련하여, Visualizer는 ES2025를 기준으로 하나, Double Debugger는 ES2025 + patch를 기준으로 돌아가는 것으로 보임. issue#3660에 대한 test262 추가와 함께, visualizer + double debugger의 점검이 필요. StringLastIndexOf의 step 4에서 false가 뜨는 경우를 visualizer가 `"".lastIndexOf()` 에서 지난다고 주장하나, resume 해보면 엉뚱한 곳에서 resume하는데 이와 관련되어 있는 것으로 추정.
+
 Branch[288]:T : String.prototype.lastIndexOf.call(0, 0);
 Branch[288]:F : String.prototype.lastIndexOf.call({ } );
 Branch[288] : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
+
+> [!NOTE]
+> 위와 정확히 동일한 케이스.
 
 Branch[307]:T : class x { } while ( x ) do ; while ( x , x = - Infinity , x ^= x ** x ) ;
 Branch[307]:F : var x = 0 ** ! x ;
@@ -42,9 +51,18 @@ Branch[1277]:T : String.fromCharCode.call(0, 0n );
 Branch[1277]:F : new Uint16Array([ , ] );
 Branch[1277] : Test262 covered false branch with "test262/test/language/literals/string/S7.8.4_A5.1_T1.js"
 
+> [!NOTE]
+> [ToUint16 step 1](https://tc39.es/ecma262/2025/#sec-touint16)에서 ToNumber 호출 후 반환값이 abrupt completion인 경우가 커버되지 않음. fromCharCode나 UInt16Array constructor로 ToUint16을 지나가는 test들은 있으나, ToUint16을 타겟팅하는 test들은 없는 것으로 추정.
+
+> [!NOTE]
+> Visualizer에 TypedArray 관련 지원 추가한 부분에 대한 데이터셋 업데이트가 되어있지 않음.
+
 Branch[2390]:T : Map.groupBy.call(0);
 Branch[2390]:F : Map.groupBy.call(0, 0);
 Branch[2390] : Test262 covered false branch with "test262/test/built-ins/Map/groupBy/map-instance.js"
+
+> [!NOTE]
+> [GroupBy step 1](https://tc39.es/ecma262/2025/#sec-groupby)에서 RequireObjectCoercible 호출 후 반환값이 abrupt completion인 경우가 커버되지 않음. fuzzing에서 찾은 값은 items에 undefined가 전달되어 터지는 건데, Object.groupBy, Map.groupBy, GroupBy를 타겟팅하는 테스트들을 통틀어 undefined나 null을 전달시키는 테스트는 없음을 확인.
 
 Branch[2521]:T : class x { static { for await ( x of x ) ; } }
 Branch[2521]:F : class x { static { for await ( x of ~ x + x ) ; } }
@@ -1037,6 +1055,8 @@ Branch[16607] : Test262 covered true branch with "test262/test/language/expressi
 Branch[16613]:T : ( x => x `` ) `` ;
 Branch[16613]:F : ( x => x `` `` ) `` ;
 Branch[16613] : Test262 covered true branch with "test262/test/language/expressions/tagged-template/cache-identical-source-new-function.js"
+
+--> Skimmed up to here - current status
 
 Branch[18106]:T : decodeURI.call(0, 0);
 Branch[18106]:F : decodeURI.call(0);
