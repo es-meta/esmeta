@@ -1,10 +1,10 @@
 Branch[286]:T : String.prototype.lastIndexOf.call(0, 0);
 Branch[286]:F : String.prototype.lastIndexOf.call({ } );
-Branch[286]   : Test262 covered true branch with "test262/test/builtin-init/1931.js"
+Branch[286]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
 
 Branch[288]:T : String.prototype.lastIndexOf.call(0, 0);
 Branch[288]:F : String.prototype.lastIndexOf.call({ } );
-Branch[288]   : Test262 covered true branch with "test262/test/builtin-init/1931.js"
+Branch[288]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
 
 Branch[307]:T : class x { } while ( x ) do ; while ( x , x = - Infinity , x ^= x ** x ) ;
 Branch[307]:F : var x = 0 ** ! x ;
@@ -36,11 +36,11 @@ Branch[538]   : Test262 covered false branch with "test262/test/language/express
 
 Branch[677]:T : var x = ++ x ?. x . x ;
 Branch[677]:F : x = 1 ;
-Branch[677]   : Test262 covered false branch with "test262/test/builtin-init/3428.js"
+Branch[677]   : Test262 covered false branch with "test262/test/language/types/reference/8.7.2-3-1-s.js"
 
 Branch[1277]:T : String.fromCharCode.call(0, 0n );
 Branch[1277]:F : new Uint16Array([ , ] );
-Branch[1277]   : Test262 covered false branch with "test262/test/builtin-init/1799.js"
+Branch[1277]   : Test262 covered false branch with "test262/test/language/literals/string/S7.8.4_A5.1_T1.js"
 
 Branch[2521]:T : class x { static { for await ( x of x ) ; } }
 Branch[2521]:F : class x { static { for await ( x of ~ x + x ) ; } }
@@ -272,7 +272,7 @@ Branch[9086]   : Test262 covered false branch with "test262/test/language/argume
 
 Branch[9135]:T : `` [ x ] ;
 Branch[9135]:F : `` [ `` ] ;
-Branch[9135]   : Test262 covered false branch with "test262/test/builtin-init/3338.js"
+Branch[9135]   : Test262 covered false branch with "test262/test/built-ins/Object/fromEntries/string-entry-object-succeeds.js"
 
 Branch[9235]:T : x ( ) ( ) ;
 Branch[9235]:F : function x ( ) { } x ( ) ( ) ;
@@ -288,7 +288,7 @@ Branch[9399]   : Test262 covered false branch with "test262/test/language/expres
 
 Branch[9442]:T : new Map(0, x );
 Branch[9442]:F : new Map(0, 0);
-Branch[9442]   : Test262 covered false branch with "test262/test/builtin-init/3317.js"
+Branch[9442]   : Test262 covered false branch with "test262/test/language/expressions/unary-plus/11.4.6-2-1.js"
 
 Branch[9453]:T : `` ?. ( x , ... x ) ;
 Branch[9453]:F : `` ?. ( '' , ... x ) ;
@@ -1032,11 +1032,11 @@ Branch[16613]   : Test262 covered true branch with "test262/test/language/expres
 
 Branch[18111]:T : decodeURI.call(0, Symbol ( ) );
 Branch[18111]:F : decodeURI.call(0);
-Branch[18111]   : Test262 covered false branch with "test262/test/builtin-init/77.js"
+Branch[18111]   : Test262 covered false branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
 
 Branch[18126]:T : decodeURIComponent.call(0, Symbol ( ) );
 Branch[18126]:F : decodeURIComponent.call(0);
-Branch[18126]   : Test262 covered false branch with "test262/test/builtin-init/88.js"
+Branch[18126]   : Test262 covered false branch with "test262/test/built-ins/decodeURIComponent/S15.1.3.2_A1.1_T1.js"
 
 Branch[19032]:T : var x = {};Object.setPrototypeOf(x, x => x );x.__proto__ = 0;
 Branch[19032]:F : var x = {};Object.setPrototypeOf(x, x => x );x . __proto__ = x ;
@@ -1060,11 +1060,11 @@ Branch[19477]   : Test262 covered true branch with "test262/test/built-ins/Symbo
 
 Branch[19489]:T : Symbol.keyFor.call(0);
 Branch[19489]:F : Symbol.keyFor.call(0, Symbol ( ) );
-Branch[19489]   : Test262 covered true branch with "test262/test/builtin-init/619.js"
+Branch[19489]   : Test262 covered true branch with "test262/test/built-ins/Symbol/keyFor/arg-non-symbol.js"
 
 Branch[19574]:T : new Error(Symbol ( ) );
 Branch[19574]:F : new Error(0);
-Branch[19574]   : Test262 covered false branch with "test262/test/builtin-init/666.js"
+Branch[19574]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/trim/15.5.4.20-2-50.js"
 
 Branch[19595]:T : Error.prototype.toString.call({ get name ( ) { x ; } } );
 Branch[19595]:F : Error.prototype.toString.call([ ] );
@@ -1080,27 +1080,27 @@ Branch[19617]   : Test262 covered false branch with "test262/test/built-ins/Erro
 
 Branch[19655]:T : new URIError(Symbol ( ) );
 Branch[19655]:F : new URIError(0);
-Branch[19655]   : Test262 covered false branch with "test262/test/builtin-init/688.js"
+Branch[19655]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
 
 Branch[19688]:T : new RangeError(Symbol ( ) );
 Branch[19688]:F : new RangeError(0);
-Branch[19688]   : Test262 covered false branch with "test262/test/builtin-init/699.js"
+Branch[19688]   : Test262 covered false branch with "test262/test/built-ins/Object/values/exception-during-enumeration.js"
 
 Branch[19721]:T : new ReferenceError(Symbol ( ) );
 Branch[19721]:F : new ReferenceError(0);
-Branch[19721]   : Test262 covered false branch with "test262/test/builtin-init/710.js"
+Branch[19721]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
 
 Branch[19754]:T : new EvalError(Symbol ( ) );
 Branch[19754]:F : new EvalError(0);
-Branch[19754]   : Test262 covered false branch with "test262/test/builtin-init/721.js"
+Branch[19754]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
 
 Branch[19787]:T : new TypeError(Symbol ( ) );
 Branch[19787]:F : new TypeError(0);
-Branch[19787]   : Test262 covered false branch with "test262/test/builtin-init/732.js"
+Branch[19787]   : Test262 covered false branch with "test262/test/built-ins/Map/iterator-close-failure-after-set-failure.js"
 
 Branch[19820]:T : new SyntaxError(Symbol ( ) );
 Branch[19820]:F : new SyntaxError(0);
-Branch[19820]   : Test262 covered false branch with "test262/test/builtin-init/743.js"
+Branch[19820]   : Test262 covered false branch with "test262/test/built-ins/NativeErrors/message_property_native_error.js"
 
 Branch[19892]:T : new SyntaxError(0, { cause : false } );
 Branch[19892]:F : new Error(0, { } );
@@ -1128,7 +1128,7 @@ Branch[20054]   : Test262 covered false branch with "test262/test/built-ins/Numb
 
 Branch[20098]:T : Number.prototype.toPrecision.call(0, 0);
 Branch[20098]:F : Number.prototype.toPrecision.call(0, 1 );
-Branch[20098]   : Test262 covered true branch with "test262/test/builtin-init/842.js"
+Branch[20098]   : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toPrecision/precision-cannot-be-coerced-to-a-number-in-range.js"
 
 Branch[20282]:T : BigInt.prototype.toString.call(0n , 0n );
 Branch[20282]:F : BigInt.prototype.toString.call(0n , 0);
@@ -1136,43 +1136,43 @@ Branch[20282]   : Test262 covered false branch with "test262/test/built-ins/BigI
 
 Branch[20321]:T : Math.abs.call(0, 0n );
 Branch[20321]:F : Math.abs.call();
-Branch[20321]   : Test262 covered false branch with "test262/test/builtin-init/929.js"
+Branch[20321]   : Test262 covered false branch with "test262/test/built-ins/Math/abs/S15.8.2.1_A1.js"
 
 Branch[20350]:T : Math.acos.call(0, 1n );
 Branch[20350]:F : Math.acos.call();
-Branch[20350]   : Test262 covered false branch with "test262/test/builtin-init/940.js"
+Branch[20350]   : Test262 covered false branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A1.js"
 
 Branch[20371]:T : Math.acosh.call(0, 0n );
 Branch[20371]:F : Math.acosh.call(0);
-Branch[20371]   : Test262 covered false branch with "test262/test/builtin-init/951.js"
+Branch[20371]   : Test262 covered false branch with "test262/test/built-ins/Math/acosh/arg-is-one.js"
 
 Branch[20383]:T : Math.acosh.call(0, 0);
 Branch[20383]:F : Math.acosh.call(0, 42 );
-Branch[20383]   : Test262 covered true branch with "test262/test/builtin-init/952.js"
+Branch[20383]   : Test262 covered true branch with "test262/test/built-ins/Math/acosh/nan-returns.js"
 
 Branch[20440]:T : Math.atan.call(0, 0n );
 Branch[20440]:F : Math.atan.call();
-Branch[20440]   : Test262 covered false branch with "test262/test/builtin-init/984.js"
+Branch[20440]   : Test262 covered false branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
 
 Branch[20444]:T : Math.atan.call();
 Branch[20444]:F : Math.atan.call(0, 1 );
-Branch[20444]   : Test262 covered true branch with "test262/test/builtin-init/984.js"
+Branch[20444]   : Test262 covered true branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
 
 Branch[20504]:T : Math.atan2.call(0, 0n );
 Branch[20504]:F : Math.atan2.call();
-Branch[20504]   : Test262 covered false branch with "test262/test/builtin-init/1006.js"
+Branch[20504]   : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
 
 Branch[20510]:T : Math.atan2.call(0, 0, 1n );
 Branch[20510]:F : Math.atan2.call();
-Branch[20510]   : Test262 covered false branch with "test262/test/builtin-init/1006.js"
+Branch[20510]   : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
 
 Branch[20535]:T : Math.atan2.call(0, - Infinity , 0);
 Branch[20535]:F : Math.atan2.call(0, 0, 0);
-Branch[20535]   : Test262 covered false branch with "test262/test/builtin-init/1008.js"
+Branch[20535]   : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
 
 Branch[20554]:T : Math.atan2.call(0, 0, 0);
 Branch[20554]:F : Math.atan2.call(0, 0, - 0 );
-Branch[20554]   : Test262 covered true branch with "test262/test/builtin-init/1008.js"
+Branch[20554]   : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
 
 Branch[20563]:T : Math.atan2.call(0, - 0 , 0);
 Branch[20563]:F : Math.atan2.call(0, - 0 , - 0 );
@@ -1184,35 +1184,35 @@ Branch[20588]   : Test262 covered true branch with "test262/test/built-ins/Math/
 
 Branch[20622]:T : Math.cbrt.call(0, 1n );
 Branch[20622]:F : Math.cbrt.call();
-Branch[20622]   : Test262 covered false branch with "test262/test/builtin-init/1017.js"
+Branch[20622]   : Test262 covered false branch with "test262/test/built-ins/Math/cbrt/cbrt-specialValues.js"
 
 Branch[20626]:T : Math.cbrt.call();
 Branch[20626]:F : Math.cbrt.call(0, 1 );
-Branch[20626]   : Test262 covered true branch with "test262/test/builtin-init/1017.js"
+Branch[20626]   : Test262 covered true branch with "test262/test/built-ins/Math/cbrt/cbrt-specialValues.js"
 
 Branch[20642]:T : Math.ceil.call(0, 1n );
 Branch[20642]:F : Math.ceil.call();
-Branch[20642]   : Test262 covered false branch with "test262/test/builtin-init/1028.js"
+Branch[20642]   : Test262 covered false branch with "test262/test/built-ins/Math/ceil/S15.8.2.6_A1.js"
 
 Branch[20680]:T : Math.cos.call(0, 1n );
 Branch[20680]:F : Math.cos.call();
-Branch[20680]   : Test262 covered false branch with "test262/test/builtin-init/1050.js"
+Branch[20680]   : Test262 covered false branch with "test262/test/built-ins/Math/cos/S15.8.2.7_A1.js"
 
 Branch[20687]:T : Math.cos.call(0, 0);
 Branch[20687]:F : Math.cos.call(0, 1 );
-Branch[20687]   : Test262 covered true branch with "test262/test/builtin-init/1051.js"
+Branch[20687]   : Test262 covered true branch with "test262/test/built-ins/Math/cos/S15.8.2.7_A2.js"
 
 Branch[20701]:T : Math.cosh.call(0, 1n );
 Branch[20701]:F : Math.cosh.call();
-Branch[20701]   : Test262 covered false branch with "test262/test/builtin-init/1061.js"
+Branch[20701]   : Test262 covered false branch with "test262/test/built-ins/Math/cosh/cosh-specialVals.js"
 
 Branch[20711]:T : Math.cosh.call(0, 0);
 Branch[20711]:F : Math.cosh.call(0, 1 );
-Branch[20711]   : Test262 covered true branch with "test262/test/builtin-init/1062.js"
+Branch[20711]   : Test262 covered true branch with "test262/test/built-ins/Math/cosh/cosh-specialVals.js"
 
 Branch[20725]:T : Math.exp.call(0, 1n );
 Branch[20725]:F : Math.exp.call();
-Branch[20725]   : Test262 covered false branch with "test262/test/builtin-init/1072.js"
+Branch[20725]   : Test262 covered false branch with "test262/test/built-ins/Math/exp/S15.8.2.8_A1.js"
 
 Branch[20737]:T : Math.exp.call(0, - Infinity );
 Branch[20737]:F : Math.exp.call(0, 1 );
@@ -1220,39 +1220,39 @@ Branch[20737]   : Test262 covered true branch with "test262/test/built-ins/Math/
 
 Branch[20798]:T : Math.fround.call(0, 1n );
 Branch[20798]:F : Math.fround.call();
-Branch[20798]   : Test262 covered false branch with "test262/test/builtin-init/1105.js"
+Branch[20798]   : Test262 covered false branch with "test262/test/built-ins/Math/fround/Math.fround_NaN.js"
 
 Branch[20805]:T : Math.fround.call(0, 0);
 Branch[20805]:F : Math.fround.call(0, 1 );
-Branch[20805]   : Test262 covered true branch with "test262/test/builtin-init/1106.js"
+Branch[20805]   : Test262 covered true branch with "test262/test/built-ins/Math/fround/Math.fround_Infinity.js"
 
 Branch[20817]:T : Math.f16round.call(0, 1n );
 Branch[20817]:F : Math.f16round.call();
-Branch[20817]   : Test262 covered false branch with "test262/test/builtin-init/1116.js"
+Branch[20817]   : Initially covered false branch with `Math.f16round.call(0);`, not with test262
 
 Branch[20824]:T : Math.f16round.call(0, 0);
 Branch[20824]:F : Math.f16round.call(0, 1 );
-Branch[20824]   : Test262 covered true branch with "test262/test/builtin-init/1117.js"
+Branch[20824]   : Initially covered true branch with `Math.f16round.call(0, 0);`, not with test262
 
 Branch[20852]:T : Math.hypot.call(0, 1 );
 Branch[20852]:F : Math.hypot.call(0, 0);
-Branch[20852]   : Test262 covered false branch with "test262/test/builtin-init/1128.js"
+Branch[20852]   : Test262 covered false branch with "test262/test/built-ins/Math/hypot/Math.hypot_Zero_2.js"
 
 Branch[20855]:T : Math.hypot.call();
 Branch[20855]:F : Math.hypot.call(0, 1 );
-Branch[20855]   : Test262 covered true branch with "test262/test/builtin-init/1127.js"
+Branch[20855]   : Test262 covered true branch with "test262/test/built-ins/Math/hypot/Math.hypot_NoArgs.js"
 
 Branch[20868]:T : Math.imul.call(0, 1n );
 Branch[20868]:F : Math.imul.call();
-Branch[20868]   : Test262 covered false branch with "test262/test/builtin-init/1138.js"
+Branch[20868]   : Test262 covered false branch with "test262/test/built-ins/Math/imul/results.js"
 
 Branch[20874]:T : Math.imul.call(0, 0, 1n );
 Branch[20874]:F : Math.imul.call();
-Branch[20874]   : Test262 covered false branch with "test262/test/builtin-init/1138.js"
+Branch[20874]   : Test262 covered false branch with "test262/test/built-ins/Math/imul/results.js"
 
 Branch[20895]:T : Math.log.call(0, 1n );
 Branch[20895]:F : Math.log.call();
-Branch[20895]   : Test262 covered false branch with "test262/test/builtin-init/1149.js"
+Branch[20895]   : Test262 covered false branch with "test262/test/built-ins/Math/log/S15.8.2.10_A4.js"
 
 Branch[20910]:T : Math.log.call(0, - Infinity );
 Branch[20910]:F : Math.log.call(0, 42 );
@@ -1260,43 +1260,43 @@ Branch[20910]   : Test262 covered true branch with "test262/test/built-ins/Math/
 
 Branch[20950]:T : Math.log10.call(0, 0n );
 Branch[20950]:F : Math.log10.call();
-Branch[20950]   : Test262 covered false branch with "test262/test/builtin-init/1171.js"
+Branch[20950]   : Test262 covered false branch with "test262/test/built-ins/Math/log10/Log10-specialVals.js"
 
 Branch[20979]:T : Math.log2.call(0, 1n );
 Branch[20979]:F : Math.log2.call();
-Branch[20979]   : Test262 covered false branch with "test262/test/builtin-init/1182.js"
+Branch[20979]   : Test262 covered false branch with "test262/test/built-ins/Math/log2/log2-basicTests.js"
 
 Branch[21007]:T : Math.max.call(0, 1n );
 Branch[21007]:F : Math.max.call(0, 0);
-Branch[21007]   : Test262 covered false branch with "test262/test/builtin-init/1194.js"
+Branch[21007]   : Test262 covered false branch with "test262/test/built-ins/Math/max/15.8.2.11-1.js"
 
 Branch[21031]:T : Math.min.call(0, 1n );
 Branch[21031]:F : Math.min.call(0, 0);
-Branch[21031]   : Test262 covered false branch with "test262/test/builtin-init/1205.js"
+Branch[21031]   : Test262 covered false branch with "test262/test/built-ins/Math/min/15.8.2.12-1.js"
 
 Branch[21059]:T : Math.pow.call(0, 1n );
 Branch[21059]:F : Math.pow.call();
-Branch[21059]   : Test262 covered false branch with "test262/test/builtin-init/1215.js"
+Branch[21059]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/indexOf/15.4.4.14-5-12.js
 
 Branch[21080]:T : Math.round.call(0, 1n );
 Branch[21080]:F : Math.round.call();
-Branch[21080]   : Test262 covered false branch with "test262/test/builtin-init/1226.js"
+Branch[21080]   : Test262 covered false branch with "test262/test/built-ins/Math/round/S15.8.2.15_A2.js"
 
 Branch[21122]:T : Math.sin.call(0, 1n );
 Branch[21122]:F : Math.sin.call();
-Branch[21122]   : Test262 covered false branch with "test262/test/builtin-init/1248.js"
+Branch[21122]   : Test262 covered false branch with "test262/test/built-ins/Math/sin/zero.js"
 
 Branch[21145]:T : Math.sinh.call(0, 1n );
 Branch[21145]:F : Math.sinh.call();
-Branch[21145]   : Test262 covered false branch with "test262/test/builtin-init/1259.js"
+Branch[21145]   : Test262 covered false branch with "test262/test/built-ins/Math/sinh/sinh-specialVals.js"
 
 Branch[21149]:T : Math.sinh.call();
 Branch[21149]:F : Math.sinh.call(0, 1 );
-Branch[21149]   : Test262 covered true branch with "test262/test/builtin-init/1259.js"
+Branch[21149]   : Test262 covered true branch with "test262/test/built-ins/Math/sinh/sinh-specialVals.js"
 
 Branch[21165]:T : Math.sqrt.call(0, 1n );
 Branch[21165]:F : Math.sqrt.call(0);
-Branch[21165]   : Test262 covered false branch with "test262/test/builtin-init/1270.js"
+Branch[21165]   : Test262 covered false branch with "test262/test/built-ins/Math/sqrt/S15.8.2.17_A1.js"
 
 Branch[21174]:T : Math.sqrt.call(0, - Infinity );
 Branch[21174]:F : Math.sqrt.call(0, 1 );
@@ -1304,7 +1304,7 @@ Branch[21174]   : Test262 covered true branch with "test262/test/built-ins/Math/
 
 Branch[21188]:T : Math.tan.call(0, 0n );
 Branch[21188]:F : Math.tan.call();
-Branch[21188]   : Test262 covered false branch with "test262/test/builtin-init/1281.js"
+Branch[21188]   : Test262 covered false branch with "test262/test/built-ins/Math/tan/S15.8.2.18_A2.js"
 
 Branch[21197]:T : Math.tan.call(0, - Infinity );
 Branch[21197]:F : Math.tan.call(0, 1 );
@@ -1312,7 +1312,7 @@ Branch[21197]   : Test262 covered true branch with "test262/test/built-ins/Math/
 
 Branch[21211]:T : Math.tanh.call(0, 0n );
 Branch[21211]:F : Math.tanh.call();
-Branch[21211]   : Test262 covered false branch with "test262/test/builtin-init/1292.js"
+Branch[21211]   : Test262 covered false branch with "test262/test/built-ins/Math/tanh/tanh-specialVals.js"
 
 Branch[21223]:T : Math.tanh.call(0, - Infinity );
 Branch[21223]:F : Math.tanh.call(0, 1 );
@@ -1320,15 +1320,15 @@ Branch[21223]   : Test262 covered true branch with "test262/test/built-ins/Math/
 
 Branch[22867]:T : String.fromCharCode.call(0, 0n );
 Branch[22867]:F : String.fromCharCode.call(0, 0);
-Branch[22867]   : Test262 covered false branch with "test262/test/builtin-init/1799.js"
+Branch[22867]   : Test262 covered false branch with "test262/test/language/literals/string/S7.8.4_A5.1_T1.js"
 
 Branch[22876]:T : String.fromCodePoint.call(0, ( ) => { } );
 Branch[22876]:F : String.fromCodePoint.call();
-Branch[22876]   : Test262 covered false branch with "test262/test/builtin-init/1809.js"
+Branch[22876]   : Test262 covered false branch with "test262/test/built-ins/String/fromCodePoint/arguments-is-empty.js"
 
 Branch[22972]:T : String.prototype.at.call(Symbol ( ) );
 Branch[22972]:F : String.prototype.at.call(0);
-Branch[22972]   : Test262 covered false branch with "test262/test/builtin-init/1831.js"
+Branch[22972]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/at/index-non-numeric-argument-tointeger-invalid.js"
 
 Branch[23054]:T : String.prototype.codePointAt.call(`` , 0);
 Branch[23054]:F : String.prototype.codePointAt.call();
@@ -1340,7 +1340,7 @@ Branch[23075]   : Test262 covered true branch with "test262/test/built-ins/Strin
 
 Branch[23232]:T : String.prototype.indexOf.call(Symbol ( ) );
 Branch[23232]:F : String.prototype.indexOf.call(0);
-Branch[23232]   : Test262 covered false branch with "test262/test/builtin-init/1908.js"
+Branch[23232]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/indexOf/S15.5.4.7_A2_T1.js"
 
 Branch[23269]:T : String.prototype.isWellFormed.call(Symbol ( ) );
 Branch[23269]:F : String.prototype.isWellFormed.call('' );
@@ -1348,11 +1348,11 @@ Branch[23269]   : Test262 covered true branch with "test262/test/built-ins/Strin
 
 Branch[23293]:T : String.prototype.lastIndexOf.call(Symbol ( ) );
 Branch[23293]:F : String.prototype.lastIndexOf.call(0);
-Branch[23293]   : Test262 covered false branch with "test262/test/builtin-init/1930.js"
+Branch[23293]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T4.js"
 
 Branch[23321]:T : String.prototype.lastIndexOf.call({ } );
 Branch[23321]:F : String.prototype.lastIndexOf.call(0, 0);
-Branch[23321]   : Test262 covered false branch with "test262/test/builtin-init/1931.js"
+Branch[23321]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
 
 Branch[23358]:T : String.prototype.match.call(1 , { [ Symbol . match ] : 0 } );
 Branch[23358]:F : String.prototype.match.call();
@@ -1392,23 +1392,23 @@ Branch[23444]   : Test262 covered false branch with "test262/test/built-ins/Stri
 
 Branch[23480]:T : String.prototype.normalize.call(0);
 Branch[23480]:F : String.prototype.normalize.call(0, 0);
-Branch[23480]   : Test262 covered false branch with "test262/test/builtin-init/1975.js"
+Branch[23480]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/normalize/return-abrupt-from-form-as-symbol.js"
 
 Branch[23488]:T : String.prototype.normalize.call(0, 0);
 Branch[23488]:F : String.prototype.normalize.call(0);
-Branch[23488]   : Test262 covered true branch with "test262/test/builtin-init/1975.js"
+Branch[23488]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/normalize/form-is-not-valid-throws.js"
 
 Branch[23541]:T : String.prototype.padStart.call(0, 1n , 0);
 Branch[23541]:F : String.prototype.padEnd.call(0);
-Branch[23541]   : Test262 covered false branch with "test262/test/builtin-init/1985.js"
+Branch[23541]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/padEnd/fill-string-empty.js"
 
 Branch[23601]:T : String.prototype.repeat.call(0);
 Branch[23601]:F : String.prototype.repeat.call(0, 1 );
-Branch[23601]   : Test262 covered true branch with "test262/test/builtin-init/2007.js"
+Branch[23601]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/repeat/count-is-zero-returns-empty-string.js"
 
 Branch[23633]:T : String.prototype.replace.call(Symbol ( ) );
 Branch[23633]:F : String.prototype.replace.call(0);
-Branch[23633]   : Test262 covered false branch with "test262/test/builtin-init/2018.js"
+Branch[23633]   : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-100gs.js"
 
 Branch[23661]:T : String.prototype.replace.call(1 , 1 , x => x );
 Branch[23661]:F : String.prototype.replace.call(0, 0);
@@ -1452,7 +1452,7 @@ Branch[23859]   : Test262 covered false branch with "test262/test/built-ins/Stri
 
 Branch[23894]:T : String.prototype.slice.call(Symbol ( ) );
 Branch[23894]:F : String.prototype.slice.call(0);
-Branch[23894]   : Test262 covered false branch with "test262/test/builtin-init/2051.js"
+Branch[23894]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/slice/S15.5.4.13_A1_T14.js"
 
 Branch[23953]:T : String.prototype.split.call(0, { [ Symbol . split ] : class { } } );
 Branch[23953]:F : String.prototype.split.call(0, { [ Symbol . split ] : x => x } );
@@ -1460,19 +1460,19 @@ Branch[23953]   : Test262 covered false branch with "test262/test/built-ins/Stri
 
 Branch[23989]:T : String.prototype.split.call(0, `` );
 Branch[23989]:F : String.prototype.split.call(0, 0);
-Branch[23989]   : Test262 covered false branch with "test262/test/builtin-init/2063.js"
+Branch[23989]   : Test262 covered false branch with "test262/test/language/statements/while/S12.6.2_A8.js"
 
 Branch[24045]:T : String.prototype.startsWith.call(0, { get [ Symbol . match ] ( ) { x ; } } , 0);
 Branch[24045]:F : String.prototype.startsWith.call(0);
-Branch[24045]   : Test262 covered false branch with "test262/test/builtin-init/2073.js"
+Branch[24045]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/startsWith/return-abrupt-from-searchstring-as-symbol.js"
 
 Branch[24049]:T : String.prototype.startsWith.call(0, { [ Symbol . match ] : function * ( x ) { } } , 0);
 Branch[24049]:F : String.prototype.startsWith.call(0);
-Branch[24049]   : Test262 covered false branch with "test262/test/builtin-init/2073.js"
+Branch[24049]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/startsWith/return-abrupt-from-searchstring-as-symbol.js"
 
 Branch[24097]:T : String.prototype.substring.call(Symbol ( ) );
 Branch[24097]:F : String.prototype.substring.call(0);
-Branch[24097]   : Test262 covered false branch with "test262/test/builtin-init/2084.js"
+Branch[24097]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/substring/S15.5.4.15_A1_T14.js"
 
 Branch[24132]:T : String.prototype.toLowerCase.call(Symbol ( ) );
 Branch[24132]:F : String.prototype.toLowerCase.call(0);
@@ -1492,15 +1492,15 @@ Branch[26198]   : Test262 covered false branch with "test262/test/built-ins/Arra
 
 Branch[26302]:T : Array.prototype.at.call({ get length ( ) { x ; } } );
 Branch[26302]:F : Array.prototype.at.call(0);
-Branch[26302]   : Test262 covered false branch with "test262/test/builtin-init/2381.js"
+Branch[26302]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/at/index-non-numeric-argument-tointeger-invalid.js"
 
 Branch[26627]:T : Array.prototype.fill.call(0, 0, 0, - Infinity );
 Branch[26627]:F : Array.prototype.fill.call(0);
-Branch[26627]   : Test262 covered false branch with "test262/test/builtin-init/2436.js"
+Branch[26627]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/fill/return-this.js"
 
 Branch[26885]:T : Array.prototype.flat.call({ get length ( ) { x ; } } );
 Branch[26885]:F : Array.prototype.flat.call(0);
-Branch[26885]   : Test262 covered false branch with "test262/test/builtin-init/2502.js"
+Branch[26885]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/flat/symbol-object-create-null-depth-throws.js"
 
 Branch[26933]:T : Array.prototype.flatMap.call(`${ - 0 }` , x => await );
 Branch[26933]:F : Array.prototype.flatMap.call(`${ - 0 }` , x => x );
@@ -1508,7 +1508,7 @@ Branch[26933]   : Test262 covered false branch with "test262/test/built-ins/Arra
 
 Branch[27619]:T : Array.prototype.reverse.call({ get length ( ) { x ; } } );
 Branch[27619]:F : Array.prototype.reverse.call(0);
-Branch[27619]   : Test262 covered false branch with "test262/test/builtin-init/2645.js"
+Branch[27619]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/reverse/array-has-one-entry.js"
 
 Branch[27755]:T : Array.prototype.shift.call(`${ 1 }` );
 Branch[27755]:F : Array.prototype.shift.call([ , ] );
@@ -1516,19 +1516,19 @@ Branch[27755]   : Test262 covered false branch with "test262/test/built-ins/Set/
 
 Branch[27788]:T : Array.prototype.slice.call(0, 0n );
 Branch[27788]:F : Array.prototype.slice.call(0);
-Branch[27788]   : Test262 covered false branch with "test262/test/builtin-init/2667.js"
+Branch[27788]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/slice/S15.4.4.10_A3_T1.js"
 
 Branch[27801]:T : Array.prototype.slice.call(0, 0, 1n );
 Branch[27801]:F : Array.prototype.slice.call(0, 0, 0);
-Branch[27801]   : Test262 covered false branch with "test262/test/builtin-init/2669.js"
+Branch[27801]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/slice/S15.4.4.10_A3_T1.js"
 
 Branch[27910]:T : Array.prototype.sort.call(0, 0);
 Branch[27910]:F : Array.prototype.sort.call();
-Branch[27910]   : Test262 covered true branch with "test262/test/builtin-init/2690.js"
+Branch[27910]   : Test262 covered true branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
 
 Branch[27914]:T : Array.prototype.sort.call(0, 0);
 Branch[27914]:F : Array.prototype.sort.call();
-Branch[27914]   : Test262 covered true branch with "test262/test/builtin-init/2690.js"
+Branch[27914]   : Test262 covered true branch with "test262/test/built-ins/Array/prototype/methods-called-as-functions.js"
 
 Branch[27923]:T : Array.prototype.sort.call();
 Branch[27923]:F : Array.prototype.sort.call(( x ) => x );
@@ -1536,11 +1536,11 @@ Branch[27923]   : Test262 covered true branch with "test262/test/built-ins/Array
 
 Branch[28061]:T : Array.prototype.splice.call(0, 0n );
 Branch[28061]:F : Array.prototype.splice.call(0);
-Branch[28061]   : Test262 covered false branch with "test262/test/builtin-init/2700.js"
+Branch[28061]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/splice/S15.4.4.12_A6.1_T2.js"
 
 Branch[28077]:T : Array.prototype.splice.call(0, 0, 0n , 0);
 Branch[28077]:F : Array.prototype.splice.call(0, 0, 0);
-Branch[28077]   : Test262 covered false branch with "test262/test/builtin-init/2702.js"
+Branch[28077]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/splice/S15.4.4.12_A6.1_T2.js"
 
 Branch[28212]:T : Array.prototype.toLocaleString.call(0, 0);
 Branch[28212]:F : Array.prototype.toLocaleString.call();
@@ -1556,27 +1556,27 @@ Branch[28220]   : Test262 covered true branch with "test262/test/built-ins/Array
 
 Branch[28307]:T : Array.prototype.toSorted.call(0, 0);
 Branch[28307]:F : Array.prototype.toSorted.call(0, x => x );
-Branch[28307]   : Test262 covered true branch with "test262/test/builtin-init/2734.js"
+Branch[28307]   : Initially covered true branch with `Array.prototype.toSorted.call(0, 0);`, not with test262
 
 Branch[28360]:T : Array.prototype.toSpliced.call({ get length ( ) { x ; } } );
 Branch[28360]:F : Array.prototype.toSpliced.call(0);
-Branch[28360]   : Test262 covered false branch with "test262/test/builtin-init/2744.js"
+Branch[28360]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/toSpliced/ignores-species.js"
 
 Branch[28366]:T : Array.prototype.toSpliced.call(0, 0n );
 Branch[28366]:F : Array.prototype.toSpliced.call(0);
-Branch[28366]   : Test262 covered false branch with "test262/test/builtin-init/2744.js"
+Branch[28366]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/toSpliced/ignores-species.js"
 
 Branch[28382]:T : Array.prototype.toSpliced.call(0, 0, 0n );
 Branch[28382]:F : Array.prototype.toSpliced.call(0, 0, 0);
-Branch[28382]   : Test262 covered false branch with "test262/test/builtin-init/2746.js"
+Branch[28382]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/toSpliced/ignores-species.js"
 
 Branch[28511]:T : Array.prototype.unshift.call({ get 0 ( ) { throw 0 ; } } , 0);
 Branch[28511]:F : Array.prototype.unshift.call(0, 0);
-Branch[28511]   : Test262 covered false branch with "test262/test/builtin-init/2767.js"
+Branch[28511]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/unshift/set-length-array-is-frozen.js"
 
 Branch[28552]:T : Array.prototype.with.call({ get length ( ) { throw 0 ; } } );
 Branch[28552]:F : Array.prototype.with.call(0);
-Branch[28552]   : Test262 covered false branch with "test262/test/builtin-init/2788.js"
+Branch[28552]   : Test262 covered false branch with "test262/test/built-ins/Array/prototype/with/index-throw-completion.js"
 
 Branch[30665]:T : new BigUint64Array({ [ Symbol . iterator ] : function ( x ) { } } );
 Branch[30665]:F : new BigUint64Array([ ] );
@@ -1620,7 +1620,7 @@ Branch[33099]   : Test262 covered false branch with "test262/test/language/state
 
 Branch[37336]:T : Promise.try.call();
 Branch[37336]:F : Promise.try.call({ } );
-Branch[37336]   : Test262 covered true branch with "test262/test/builtin-init/4648.js"
+Branch[37336]   : Initially covered true branch with `Promise.try.call(0);`, not with test262
 
 Branch[37467]:T : Promise.prototype.finally.call({ constructor : 0 } );
 Branch[37467]:F : Promise.prototype.finally.call({ } );
