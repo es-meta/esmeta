@@ -38,6 +38,368 @@ Branch[2390]   : Test262 covered false branch with "test262/test/built-ins/Map/g
 > [GroupBy step 1](https://tc39.es/ecma262/2025/#sec-groupby)에서 RequireObjectCoercible 호출 후 반환값이 abrupt completion인 경우가 커버되지 않음.
 > fuzzing에서 찾은 값은 items에 undefined가 전달되어 터지는 건데, Object.groupBy, Map.groupBy, GroupBy를 타겟팅하는 테스트들을 통틀어 undefined나 null을 전달시키는 테스트는 없음을 확인.
 
+Branch[18106]:T : decodeURI.call(0, 0);
+Branch[18106]:F : decodeURI.call(0);
+Branch[18106]   : Test262 covered true branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
+
+> [!NOTE]
+> decodeURI의 parameter setting 과정에서 ArgumentsList가 비어있을 경우가 커버되지 않음.
+> test262에서 이를 커버하는 프로그램이 있어야 하는 지는 의문이나 valid한 것을 확인.
+
+Branch[18111]:T : decodeURI.call(0, Symbol ( ) );
+Branch[18111]:F : decodeURI.call(0);
+Branch[18111]   : Test262 covered false branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
+
+> [!NOTE]
+> [decodeURI step 1](https://tc39.es/ecma262/2025/#sec-decodeuri-encodeduri)의 ToString 호출 후 반환값이 abrupt completion인 경우가 커버되지 않음.
+> 첫번째 인자로 접근 가능한 encodedURI가 symbol이거나, throwing하는 toString 메소드가 존재하는 객체면 됨.
+> 다만, 이를 커버하는, 즉 symbol이나 특이한 객체가 propagation 되는 테스트가 없음을 확인.
+
+Branch[18121]:T : decodeURIComponent.call(0, 0);
+Branch[18121]:F : decodeURIComponent.call(0);
+Branch[18121]   : Test262 covered true branch with "test262/test/built-ins/decodeURIComponent/S15.1.3.2_A1.1_T1.js"
+
+> [!NOTE]
+> decodeURIComponent의 parameter setting 케이스.
+
+Branch[18126]:T : decodeURIComponent.call(0, Symbol ( ) );
+Branch[18126]:F : decodeURIComponent.call(0);
+Branch[18126]   : Test262 covered false branch with "test262/test/built-ins/decodeURIComponent/S15.1.3.2_A1.1_T1.js"
+
+> [!NOTE]
+> [decodeURIComponent step 1](https://tc39.es/ecma262/2025/#sec-decodeuricomponent-encodeduricomponent) 버전의 ToString 호출 abrupt 반환 케이스.
+
+Branch[18186]:T : decodeURI.call(0);
+Branch[18186]:F : decodeURI.call(0);
+Branch[18186]   : Test262 covered true branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
+
+> [!NOTE]
+> [Decode step 4](https://tc39.es/ecma262/2025/#sec-decode)에서 repeat을 탈출하는 경우가 커버되지 않음.
+> decode의 string 인자에 %가 없는 문자열이 오면 되서 그냥 decodeURI나 decodeURIComponent로 전달하면 됨.
+> 다만, 이를 커버하는 테스트가 없음을 확인.
+
+Branch[18260]:T : Object.assign.call(0, 0);
+Branch[18260]:F : Object.assign.call();
+Branch[18260]   : Test262 covered true branch with "test262/test/built-ins/Object/assign/Target-Null.js"
+
+> [!NOTE]
+> Object.assign의 parameter setting 케이스.
+
+Branch[18314]:T : Object.create.call(0, 0);
+Branch[18314]:F : Object.create.call();
+Branch[18314]   : Test262 covered true branch with "test262/test/built-ins/Object/create/15.2.3.5-1-2.js"
+
+> [!NOTE]
+> Object.create의 parameter setting 케이스.
+
+Branch[18337]:T : Object.defineProperties.call(0, 0);
+Branch[18337]:F : Object.defineProperties.call();
+Branch[18337]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperties/15.2.3.7-1-2.js"
+
+> [!NOTE]
+> Object.defineProperties의 parameter setting 케이스.
+
+Branch[18340]:T : Object.defineProperties.call(0, 0, 0);
+Branch[18340]:F : Object.defineProperties.call();
+Branch[18340]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperties/15.2.3.7-1-2.js"
+
+> [!NOTE]
+> 위와 동일하나 2번째 parameter setting 케이스.
+
+Branch[18400]:T : Object.defineProperty.call(0, 0);
+Branch[18400]:F : Object.defineProperty.call();
+Branch[18400]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
+
+> [!NOTE]
+> Object.defineProperty의 parameter setting 케이스.
+
+Branch[18403]:T : Object.defineProperty.call(0, 0, 0);
+Branch[18403]:F : Object.defineProperty.call();
+Branch[18403]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
+
+> [!NOTE]
+> 위와 동일하나 2번째 parameter setting 케이스.
+
+Branch[18406]:T : Object.defineProperty.call(0, 0, 0, 0);
+Branch[18406]:F : Object.defineProperty.call();
+Branch[18406]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
+
+> [!NOTE]
+> 위와 동일하나 3번째 parameter setting 케이스.
+
+Branch[18435]:T : Object.entries.call(0, 0);
+Branch[18435]:F : Object.entries.call();
+Branch[18435]   : Test262 covered true branch with "test262/test/built-ins/Object/entries/exception-not-object-coercible.js"
+
+> [!NOTE]
+> Object.entries의 parameter setting 케이스.
+
+Branch[18456]:T : Object.freeze.call(0, 0);
+Branch[18456]:F : Object.freeze.call();
+Branch[18456]   : Test262 covered true branch with "test262/test/built-ins/Object/freeze/15.2.3.9-1-2.js"
+
+> [!NOTE]
+> Object.freeze의 paramter setting 케이스.
+
+Branch[18514]:T : Object.getOwnPropertyDescriptor.call(0, 0);
+Branch[18514]:F : Object.getOwnPropertyDescriptor.call();
+Branch[18514]   : Test262 covered true branch with "test262/test/language/statements/function/S13.2_A6_T1.js"
+
+> [!NOTE]
+> Object.getOwnPropertyDescriptor의 parameter setting 케이스.
+
+Branch[18544]:T : Object.getOwnPropertyDescriptors.call(0, 0);
+Branch[18544]:F : Object.getOwnPropertyDescriptors.call();
+Branch[18544]   : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertyDescriptors/normal-object.js"
+
+> [!NOTE]
+> Object.getOwnPropertyDescriptors의 parameter setting 케이스.
+
+Branch[18580]:T : Object.getOwnPropertyNames.call(0, 0);
+Branch[18580]:F : Object.getOwnPropertyNames.call();
+Branch[18580]   : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertyNames/15.2.3.4-1-4.js"
+
+> [!NOTE]
+> Object.getOwnPropertyNames의 parameter setting 케이스.
+
+Branch[18594]:T : Object.getOwnPropertySymbols.call(0, 0);
+Branch[18594]:F : Object.getOwnPropertySymbols.call();
+Branch[18594]   : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertySymbols/object-contains-symbol-property-without-description.js"
+
+> [!NOTE]
+> Object.getOwnPropertySymbols의 parameter setting 케이스.
+
+Branch[18644]:T : Object.groupBy.call(0, 0);
+Branch[18644]:F : Object.groupBy.call(0);
+Branch[18644]   : Test262 covered true branch with "test262/test/built-ins/Object/groupBy/null-prototype.js"
+
+> [!NOTE]
+> Object.groupBy의 parameter setting 케이스.
+
+Branch[18647]:T : Object.groupBy.call(0, 0, 0);
+Branch[18647]:F : Object.groupBy.call(0);
+Branch[18647]   : Test262 covered true branch with "test262/test/built-ins/Object/groupBy/null-prototype.js"
+
+> [!NOTE]
+> 위와 동일하나 2번째 parameter setting 케이스.
+
+Branch[18671]:T : Object.hasOwn.call(0, 0);
+Branch[18671]:F : Object.hasOwn.call();
+Branch[18671]   : Test262 covered true branch with "test262/test/built-ins/Object/hasOwn/hasown_nonexistent.js"
+
+> [!NOTE]
+> Object.hasOwn의 parameter setting 케이스.
+
+Branch[18674]:T : Object.hasOwn.call(0, 0, 0);
+Branch[18674]:F : Object.hasOwn.call();
+Branch[18674]   : Test262 covered true branch with "test262/test/built-ins/Object/hasOwn/hasown_nonexistent.js"
+
+> [!NOTE]
+> 위와 동일하나 2번째 parameter setting 케이스.
+
+Branch[18707]:T : Object.isExtensible.call(0, 0);
+Branch[18707]:F : Object.isExtensible.call(0);
+Branch[18707]   : Test262 covered true branch with "test262/test/built-ins/Object/isExtensible/15.2.3.13-1-2.js"
+
+> [!NOTE]
+> Object.isExtensible의 parameter setting 케이스.
+
+Branch[18719]:T : Object.isFrozen.call(0, 0);
+Branch[18719]:F : Object.isFrozen.call(0);
+Branch[18719]   : Test262 covered true branch with "test262/test/built-ins/Object/isFrozen/15.2.3.12-3-1.js"
+
+> [!NOTE]
+> Object.isFrozen의 parameter setting 케이스.
+
+Branch[18731]:T : Object.isSealed.call(0, 0);
+Branch[18731]:F : Object.isSealed.call(0);
+Branch[18731]   : Test262 covered true branch with "test262/test/built-ins/Object/isSealed/15.2.3.11-4-1.js"
+
+> [!NOTE]
+> Object.isSealed의 parameter setting 케이스.
+
+Branch[18743]:T : Object.keys.call(0, 0);
+Branch[18743]:F : Object.keys.call();
+Branch[18743]   : Test262 covered true branch with "test262/test/built-ins/Object/keys/15.2.3.14-1-1.js"
+
+> [!NOTE]
+> Object.keys의 parameter setting 케이스.
+
+Branch[18764]:T : Object.preventExtensions.call(0, 0);
+Branch[18764]:F : Object.preventExtensions.call();
+Branch[18764]   : Test262 covered true branch with "test262/test/built-ins/Object/preventExtensions/15.2.3.10-1-2.js"
+
+> [!NOTE]
+> Object.preventExtensions의 parameter setting 케이스.
+
+Branch[18787]:T : Object.seal.call(0, 0);
+Branch[18787]:F : Object.seal.call();
+Branch[18787]   : Test262 covered true branch with "test262/test/built-ins/Object/seal/object-seal-o-is-an-array-object.js"
+
+> [!NOTE]
+> Object.seal의 parameter setting 케이스.
+
+Branch[18810]:T : Object.setPrototypeOf.call(0, 0);
+Branch[18810]:F : Object.setPrototypeOf.call();
+Branch[18810]   : Test262 covered true branch with "test262/test/built-ins/Proxy/setPrototypeOf/null-handler.js"
+
+> [!NOTE]
+> Object.setPrototypeOf의 parameter setting 케이스.
+
+Branch[18846]:T : Object.values.call(0, 0);
+Branch[18846]:F : Object.values.call();
+Branch[18846]   : Test262 covered true branch with "test262/test/built-ins/Object/values/exception-not-object-coercible.js"
+
+> [!NOTE]
+> Object.values의 parameter setting 케이스.
+
+Branch[18867]:T : Object.prototype.hasOwnProperty.call(0, 0);
+Branch[18867]:F : Object.prototype.hasOwnProperty.call();
+Branch[18867]   : Test262 covered true branch with "test262/test/built-ins/BigInt/parseInt/nonexistent.js"
+
+> [!NOTE]
+> Object.prototype.hasOwnProperty의 parameter setting 케이스.
+
+Branch[18888]:T : Object.prototype.isPrototypeOf.call(0, 0);
+Branch[18888]:F : Object.prototype.isPrototypeOf.call();
+Branch[18888]   : Test262 covered true branch with "test262/test/built-ins/Number/15.7.3-1.js"
+
+> [!NOTE]
+> Object.prototype.isPrototypeOf의 parameter setting 케이스.
+
+Branch[18915]:T : Object.prototype.propertyIsEnumerable.call(0, 0);
+Branch[18915]:F : Object.prototype.propertyIsEnumerable.call();
+Branch[18915]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/propertyIsEnumerable/S15.2.4.7_A13.js"
+
+> [!NOTE]
+> Object.prototype.propertyIsEnumerable의 parameter setting 케이스.
+
+Branch[18945]:T : Object.prototype.toLocaleString.call(0, 0);
+Branch[18945]:F : Object.prototype.toLocaleString.call();
+Branch[18945]   : Test262 covered false branch with "test262/test/built-ins/Object/prototype/toLocaleString/S15.2.4.3_A13.js"
+
+> [!NOTE]
+> Object.prototype.toLocaleString의 parameter setting 케이스.
+
+Branch[18948]:T : Object.prototype.toLocaleString.call(0, 0, 0);
+Branch[18948]:F : Object.prototype.toLocaleString.call();
+Branch[18948]   : Test262 covered false branch with "test262/test/built-ins/Object/prototype/toLocaleString/S15.2.4.3_A13.js"
+
+> [!NOTE]
+> 위와 동일하나 2번째 parameter setting 케이스.
+
+Branch[19051]:T : Object.prototype.__defineGetter__.call(0, 0);
+Branch[19051]:F : Object.prototype.__defineGetter__.call(0);
+Branch[19051]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineGetter__/key-invalid.js"
+
+> [!NOTE]
+> Object.prototype.__defineGetter__의 parameter setting 케이스.
+
+Branch[19054]:T : Object.prototype.__defineGetter__.call(0, 0, 0);
+Branch[19054]:F : Object.prototype.__defineGetter__.call(0);
+Branch[19054]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineGetter__/key-invalid.js"
+
+> [!NOTE]
+> 위와 동일하나 2번째 parameter setting 케이스.
+
+Branch[19083]:T : Object.prototype.__defineSetter__.call(0, 0);
+Branch[19083]:F : Object.prototype.__defineSetter__.call();
+Branch[19083]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineSetter__/key-invalid.js"
+
+> [!NOTE]
+> Object.prototype.__defineSetter__의 parameter setting 케이스.
+
+Branch[19086]:T : Object.prototype.__defineSetter__.call(0, 0, 0);
+Branch[19086]:F : Object.prototype.__defineSetter__.call();
+Branch[19086]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineSetter__/key-invalid.js"
+
+> [!NOTE]
+> 위와 동일하나 2번째 parameter setting 케이스.
+
+Branch[19115]:T : Object.prototype.__lookupGetter__.call(0, 0);
+Branch[19115]:F : Object.prototype.__lookupGetter__.call();
+Branch[19115]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__lookupGetter__/key-invalid.js"
+
+> [!NOTE]
+> Object.prototype.__lookupGetter__의 parameter setting 케이스.
+
+Branch[19157]:T : Object.prototype.__lookupSetter__.call(0, 0);
+Branch[19157]:F : Object.prototype.__lookupSetter__.call();
+Branch[19157]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__lookupSetter__/key-invalid.js"
+
+> [!NOTE]
+> Object.prototype.__lookupSetter__의 parameter setting 케이스.
+
+Branch[19472]:T : Symbol.for.call(0 , Symbol ( ) );
+Branch[19472]:F : Symbol.for.call(0);
+Branch[19472]   : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
+
+> [!NOTE]
+> Symbol.for의 parameter setting 케이스.
+
+Branch[19486]:T : Symbol.keyFor.call(0, 0);
+Branch[19486]:F : Symbol.keyFor.call(0);
+Branch[19486]   : Test262 covered true branch with "test262/test/built-ins/Symbol/keyFor/arg-non-symbol.js"
+
+> [!NOTE]
+> Symbol.keyFor의 parameter setting 케이스.
+
+Branch[19976]:T : Number.prototype.toExponential.call(0, - 1 );
+Branch[19976]:F : Number.prototype.toExponential.call();
+Branch[19976]   : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toExponential/return-abrupt-tointeger-fractiondigits-symbol.js"
+
+> [!NOTE]
+> Number.prototype.toExponential의 parameter setting 케이스.
+
+Branch[20182]:T : new BigInt(0);
+Branch[20182]:F : new BigInt;
+Branch[20182]   : Test262 covered true branch with "test262/test/built-ins/BigInt/call-value-of-when-to-string-present.js"
+
+> [!NOTE]
+> BigInt constructor의 parameter setting 케이스.
+
+Branch[20316]:T : Math.abs.call(0, 0);
+Branch[20316]:F : Math.abs.call();
+Branch[20316]   : Test262 covered true branch with "test262/test/built-ins/Math/abs/S15.8.2.1_A1.js"
+
+> [!NOTE]
+> Math.abs의 parameter setting 케이스.
+
+Branch[20345]:T : Math.acos.call(0, 0);
+Branch[20345]:F : Math.acos.call();
+Branch[20345]   : Test262 covered true branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A1.js"
+
+> [!NOTE]
+> Math.acos의 parameter setting 케이스.
+
+Branch[20366]:T : Math.acosh.call(0, 0);
+Branch[20366]:F : Math.acosh.call(0);
+Branch[20366]   : Test262 covered true branch with "test262/test/built-ins/Math/acosh/arg-is-one.js"
+
+> [!NOTE]
+> Math.acosh의 parameter setting 케이스.
+
+Branch[20392]:T : Math.asin.call(0, 0);
+Branch[20392]:F : Math.asin.call(0);
+Branch[20392]   : Test262 covered true branch with "test262/test/built-ins/Math/asin/S15.8.2.3_A4.js"
+
+> [!NOTE]
+> Math.asin의 parameter setting 케이스.
+
+Branch[20415]:T : Math.asinh.call(0, 0);
+Branch[20415]:F : Math.asinh.call();
+Branch[20415]   : Test262 covered true branch with "test262/test/built-ins/Math/asinh/asinh-specialVals.js"
+
+> [!NOTE]
+> Math.asinh의 parameter setting 케이스.
+
+Branch[20435]:T : Math.atan.call(0, 0);
+Branch[20435]:F : Math.atan.call();
+Branch[20435]   : Test262 covered true branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
+
+> [!NOTE]
+> Math.atan의 parameter setting 케이스.
+
 ---
 
 Branch[307]:T : class x { } while ( x ) do ; while ( x , x = - Infinity , x ^= x ** x ) ;
@@ -1064,332 +1426,196 @@ Branch[16613]:T : ( x => x `` ) `` ;
 Branch[16613]:F : ( x => x `` `` ) `` ;
 Branch[16613]   : Test262 covered true branch with "test262/test/language/expressions/tagged-template/cache-identical-source-new-function.js"
 
-> [!TIP]
-> Skimmed up to here - current status
-
-Branch[18106]:T : decodeURI.call(0, 0);
-Branch[18106]:F : decodeURI.call(0);
-Branch[18106]   : Test262 covered true branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
-
-Branch[18111]:T : decodeURI.call(0, Symbol ( ) );
-Branch[18111]:F : decodeURI.call(0);
-Branch[18111]   : Test262 covered false branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
-
-Branch[18121]:T : decodeURIComponent.call(0, 0);
-Branch[18121]:F : decodeURIComponent.call(0);
-Branch[18121]   : Test262 covered true branch with "test262/test/built-ins/decodeURIComponent/S15.1.3.2_A1.1_T1.js"
-
-Branch[18126]:T : decodeURIComponent.call(0, Symbol ( ) );
-Branch[18126]:F : decodeURIComponent.call(0);
-Branch[18126]   : Test262 covered false branch with "test262/test/built-ins/decodeURIComponent/S15.1.3.2_A1.1_T1.js"
-
-Branch[18186]:T : decodeURI.call(0);
-Branch[18186]:F : decodeURI.call(0);
-Branch[18186]   : Test262 covered true branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
-
-Branch[18260]:T : Object.assign.call(0, 0);
-Branch[18260]:F : Object.assign.call();
-Branch[18260]   : Test262 covered true branch with "test262/test/built-ins/Object/assign/Target-Null.js"
-
-Branch[18314]:T : Object.create.call(0, 0);
-Branch[18314]:F : Object.create.call();
-Branch[18314]   : Test262 covered true branch with "test262/test/built-ins/Object/create/15.2.3.5-1-2.js"
-
-Branch[18337]:T : Object.defineProperties.call(0, 0);
-Branch[18337]:F : Object.defineProperties.call();
-Branch[18337]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperties/15.2.3.7-1-2.js"
-
-Branch[18340]:T : Object.defineProperties.call(0, 0, 0);
-Branch[18340]:F : Object.defineProperties.call();
-Branch[18340]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperties/15.2.3.7-1-2.js"
-
-Branch[18400]:T : Object.defineProperty.call(0, 0);
-Branch[18400]:F : Object.defineProperty.call();
-Branch[18400]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
-
-Branch[18403]:T : Object.defineProperty.call(0, 0, 0);
-Branch[18403]:F : Object.defineProperty.call();
-Branch[18403]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
-
-Branch[18406]:T : Object.defineProperty.call(0, 0, 0, 0);
-Branch[18406]:F : Object.defineProperty.call();
-Branch[18406]   : Test262 covered true branch with "test262/test/built-ins/Object/defineProperty/15.2.3.6-1-2.js"
-
-Branch[18435]:T : Object.entries.call(0, 0);
-Branch[18435]:F : Object.entries.call();
-Branch[18435]   : Test262 covered true branch with "test262/test/built-ins/Object/entries/exception-not-object-coercible.js"
-
-Branch[18456]:T : Object.freeze.call(0, 0);
-Branch[18456]:F : Object.freeze.call();
-Branch[18456]   : Test262 covered true branch with "test262/test/built-ins/Object/freeze/15.2.3.9-1-2.js"
-
-Branch[18514]:T : Object.getOwnPropertyDescriptor.call(0, 0);
-Branch[18514]:F : Object.getOwnPropertyDescriptor.call();
-Branch[18514]   : Test262 covered true branch with "test262/test/language/statements/function/S13.2_A6_T1.js"
-
-Branch[18544]:T : Object.getOwnPropertyDescriptors.call(0, 0);
-Branch[18544]:F : Object.getOwnPropertyDescriptors.call();
-Branch[18544]   : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertyDescriptors/normal-object.js"
-
-Branch[18580]:T : Object.getOwnPropertyNames.call(0, 0);
-Branch[18580]:F : Object.getOwnPropertyNames.call();
-Branch[18580]   : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertyNames/15.2.3.4-1-4.js"
-
-Branch[18594]:T : Object.getOwnPropertySymbols.call(0, 0);
-Branch[18594]:F : Object.getOwnPropertySymbols.call();
-Branch[18594]   : Test262 covered true branch with "test262/test/built-ins/Object/getOwnPropertySymbols/object-contains-symbol-property-without-description.js"
-
-Branch[18644]:T : Object.groupBy.call(0, 0);
-Branch[18644]:F : Object.groupBy.call(0);
-Branch[18644]   : Test262 covered true branch with "test262/test/built-ins/Object/groupBy/null-prototype.js"
-
-Branch[18647]:T : Object.groupBy.call(0, 0, 0);
-Branch[18647]:F : Object.groupBy.call(0);
-Branch[18647]   : Test262 covered true branch with "test262/test/built-ins/Object/groupBy/null-prototype.js"
-
-Branch[18671]:T : Object.hasOwn.call(0, 0);
-Branch[18671]:F : Object.hasOwn.call();
-Branch[18671]   : Test262 covered true branch with "test262/test/built-ins/Object/hasOwn/hasown_nonexistent.js"
-
-Branch[18674]:T : Object.hasOwn.call(0, 0, 0);
-Branch[18674]:F : Object.hasOwn.call();
-Branch[18674]   : Test262 covered true branch with "test262/test/built-ins/Object/hasOwn/hasown_nonexistent.js"
-
-Branch[18707]:T : Object.isExtensible.call(0, 0);
-Branch[18707]:F : Object.isExtensible.call(0);
-Branch[18707]   : Test262 covered true branch with "test262/test/built-ins/Object/isExtensible/15.2.3.13-1-2.js"
-
-Branch[18719]:T : Object.isFrozen.call(0, 0);
-Branch[18719]:F : Object.isFrozen.call(0);
-Branch[18719]   : Test262 covered true branch with "test262/test/built-ins/Object/isFrozen/15.2.3.12-3-1.js"
-
-Branch[18731]:T : Object.isSealed.call(0, 0);
-Branch[18731]:F : Object.isSealed.call(0);
-Branch[18731]   : Test262 covered true branch with "test262/test/built-ins/Object/isSealed/15.2.3.11-4-1.js"
-
-Branch[18743]:T : Object.keys.call(0, 0);
-Branch[18743]:F : Object.keys.call();
-Branch[18743]   : Test262 covered true branch with "test262/test/built-ins/Object/keys/15.2.3.14-1-1.js"
-
-Branch[18764]:T : Object.preventExtensions.call(0, 0);
-Branch[18764]:F : Object.preventExtensions.call();
-Branch[18764]   : Test262 covered true branch with "test262/test/built-ins/Object/preventExtensions/15.2.3.10-1-2.js"
-
-Branch[18787]:T : Object.seal.call(0, 0);
-Branch[18787]:F : Object.seal.call();
-Branch[18787]   : Test262 covered true branch with "test262/test/built-ins/Object/seal/object-seal-o-is-an-array-object.js"
-
-Branch[18810]:T : Object.setPrototypeOf.call(0, 0);
-Branch[18810]:F : Object.setPrototypeOf.call();
-Branch[18810]   : Test262 covered true branch with "test262/test/built-ins/Proxy/setPrototypeOf/null-handler.js"
-
-Branch[18846]:T : Object.values.call(0, 0);
-Branch[18846]:F : Object.values.call();
-Branch[18846]   : Test262 covered true branch with "test262/test/built-ins/Object/values/exception-not-object-coercible.js"
-
-Branch[18867]:T : Object.prototype.hasOwnProperty.call(0, 0);
-Branch[18867]:F : Object.prototype.hasOwnProperty.call();
-Branch[18867]   : Test262 covered true branch with "test262/test/built-ins/BigInt/parseInt/nonexistent.js"
-
-Branch[18888]:T : Object.prototype.isPrototypeOf.call(0, 0);
-Branch[18888]:F : Object.prototype.isPrototypeOf.call();
-Branch[18888]   : Test262 covered true branch with "test262/test/built-ins/Number/15.7.3-1.js"
-
-Branch[18915]:T : Object.prototype.propertyIsEnumerable.call(0, 0);
-Branch[18915]:F : Object.prototype.propertyIsEnumerable.call();
-Branch[18915]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/propertyIsEnumerable/S15.2.4.7_A13.js"
-
-Branch[18945]:T : Object.prototype.toLocaleString.call(0, 0);
-Branch[18945]:F : Object.prototype.toLocaleString.call();
-Branch[18945]   : Test262 covered false branch with "test262/test/built-ins/Object/prototype/toLocaleString/S15.2.4.3_A13.js"
-
-Branch[18948]:T : Object.prototype.toLocaleString.call(0, 0, 0);
-Branch[18948]:F : Object.prototype.toLocaleString.call();
-Branch[18948]   : Test262 covered false branch with "test262/test/built-ins/Object/prototype/toLocaleString/S15.2.4.3_A13.js"
-
 Branch[19032]:T : var x = {};Object.setPrototypeOf(x, x => x );x.__proto__ = 0;
 Branch[19032]:F : var x = {};Object.setPrototypeOf(x, x => x );x . __proto__ = x ;
 Branch[19032]   : Test262 covered false branch with "test262/test/language/types/object/S8.6.2_A8.js"
+
+> [!TODO]
 
 Branch[19035]:T : var x = {};Object.setPrototypeOf(x, x => x );`` . __proto__ = x ;
 Branch[19035]:F : var x = {};Object.setPrototypeOf(x, x => x );x . __proto__ = x ;
 Branch[19035]   : Test262 covered false branch with "test262/test/language/types/object/S8.6.2_A8.js"
 
-Branch[19051]:T : Object.prototype.__defineGetter__.call(0, 0);
-Branch[19051]:F : Object.prototype.__defineGetter__.call(0);
-Branch[19051]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineGetter__/key-invalid.js"
-
-Branch[19054]:T : Object.prototype.__defineGetter__.call(0, 0, 0);
-Branch[19054]:F : Object.prototype.__defineGetter__.call(0);
-Branch[19054]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineGetter__/key-invalid.js"
-
-Branch[19083]:T : Object.prototype.__defineSetter__.call(0, 0);
-Branch[19083]:F : Object.prototype.__defineSetter__.call();
-Branch[19083]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineSetter__/key-invalid.js"
-
-Branch[19086]:T : Object.prototype.__defineSetter__.call(0, 0, 0);
-Branch[19086]:F : Object.prototype.__defineSetter__.call();
-Branch[19086]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__defineSetter__/key-invalid.js"
-
-Branch[19115]:T : Object.prototype.__lookupGetter__.call(0, 0);
-Branch[19115]:F : Object.prototype.__lookupGetter__.call();
-Branch[19115]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__lookupGetter__/key-invalid.js"
-
-Branch[19157]:T : Object.prototype.__lookupSetter__.call(0, 0);
-Branch[19157]:F : Object.prototype.__lookupSetter__.call();
-Branch[19157]   : Test262 covered true branch with "test262/test/built-ins/Object/prototype/__lookupSetter__/key-invalid.js"
+> [!TODO]
 
 Branch[19306]:T : Function.prototype.apply.call(class { } );
 Branch[19306]:F : Function.prototype.apply.call(x => x );
 Branch[19306]   : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-66-s.js"
 
-Branch[19472]:T : Symbol.for.call(0 , Symbol ( ) );
-Branch[19472]:F : Symbol.for.call(0);
-Branch[19472]   : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
+> [!TODO]
 
 Branch[19477]:T : Symbol.for.call(0, Symbol ( ) );
 Branch[19477]:F : Symbol.for.call(0);
 Branch[19477]   : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
 
-Branch[19486]:T : Symbol.keyFor.call(0, 0);
-Branch[19486]:F : Symbol.keyFor.call(0);
-Branch[19486]   : Test262 covered true branch with "test262/test/built-ins/Symbol/keyFor/arg-non-symbol.js"
+> [!TODO]
 
 Branch[19489]:T : Symbol.keyFor.call(0);
 Branch[19489]:F : Symbol.keyFor.call(0, Symbol ( ) );
 Branch[19489]   : Test262 covered true branch with "test262/test/built-ins/Symbol/keyFor/arg-non-symbol.js"
 
+> [!TODO]
+
 Branch[19512]:T : Symbol.prototype.toString.call();
 Branch[19512]:F : Object.prototype.toLocaleString.call(Symbol ( ) );
 Branch[19512]   : Test262 covered false branch with "test262/test/built-ins/Object/assign/Target-Symbol.js"
+
+> [!TODO]
 
 Branch[19574]:T : new Error(Symbol ( ) );
 Branch[19574]:F : new Error(0);
 Branch[19574]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/trim/15.5.4.20-2-50.js"
 
+> [!TODO]
+
 Branch[19595]:T : Error.prototype.toString.call({ get name ( ) { x ; } } );
 Branch[19595]:F : Error.prototype.toString.call([ ] );
 Branch[19595]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+> [!TODO]
 
 Branch[19609]:T : Error.prototype.toString.call({ get message ( ) { throw 0 ; } } );
 Branch[19609]:F : Error.prototype.toString.call([ ] );
 Branch[19609]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
 
+> [!TODO]
+
 Branch[19617]:T : Error.prototype.toString.call({ message : Symbol ( ) } );
 Branch[19617]:F : Error.prototype.toString.call({ message : 0 } );
 Branch[19617]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+> [!TODO]
 
 Branch[19655]:T : new URIError(Symbol ( ) );
 Branch[19655]:F : new URIError(0);
 Branch[19655]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
 
+> [!TODO]
+> Errors ToString 패턴
+
 Branch[19688]:T : new RangeError(Symbol ( ) );
 Branch[19688]:F : new RangeError(0);
 Branch[19688]   : Test262 covered false branch with "test262/test/built-ins/Object/values/exception-during-enumeration.js"
+
+> [!TODO]
+> Errors ToString 패턴
 
 Branch[19721]:T : new ReferenceError(Symbol ( ) );
 Branch[19721]:F : new ReferenceError(0);
 Branch[19721]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
 
+> [!TODO]
+> Errors ToString 패턴
+
 Branch[19754]:T : new EvalError(Symbol ( ) );
 Branch[19754]:F : new EvalError(0);
 Branch[19754]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+> [!TODO]
+> Errors ToString 패턴
 
 Branch[19787]:T : new TypeError(Symbol ( ) );
 Branch[19787]:F : new TypeError(0);
 Branch[19787]   : Test262 covered false branch with "test262/test/built-ins/Map/iterator-close-failure-after-set-failure.js"
 
+> [!TODO]
+> Errors ToString 패턴
+
 Branch[19808]:T : SyntaxError.call(0);
 Branch[19808]:F : new SyntaxError;
 Branch[19808]   : Test262 covered false branch with "test262/test/built-ins/Object/freeze/15.2.3.9-2-d-8.js"
+
+> [!TODO]
 
 Branch[19820]:T : new SyntaxError(Symbol ( ) );
 Branch[19820]:F : new SyntaxError(0);
 Branch[19820]   : Test262 covered false branch with "test262/test/built-ins/NativeErrors/message_property_native_error.js"
 
+> [!TODO]
+> Errors ToString 패턴
+
 Branch[19892]:T : new SyntaxError(0, { cause : false } );
 Branch[19892]:F : new Error(0, { } );
 Branch[19892]   : Test262 covered true branch with "test262/test/built-ins/Error/constructor.js"
 
-Branch[19976]:T : Number.prototype.toExponential.call(0, - 1 );
-Branch[19976]:F : Number.prototype.toExponential.call();
-Branch[19976]   : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toExponential/return-abrupt-tointeger-fractiondigits-symbol.js"
+> [!TODO]
 
 Branch[19991]:T : Number.prototype.toExponential.call(NaN );
 Branch[19991]:F : Number.prototype.toExponential.call(0, - 1 );
 Branch[19991]   : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toExponential/nan.js"
 
+> [!TODO]
+
 Branch[20029]:T : Number.prototype.toFixed.call();
 Branch[20029]:F : Number.prototype.toFixed.call(NaN );let x = x ;
 Branch[20029]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.3_T02.js"
+
+> [!TODO]
 
 Branch[20035]:T : Number.prototype.toFixed.call(0, 0n );
 Branch[20035]:F : Number.prototype.toFixed.call(NaN );let x = x ;
 Branch[20035]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.3_T02.js"
 
+> [!TODO]
+
 Branch[20054]:T : Number.prototype.toFixed.call(- 1 );
 Branch[20054]:F : Number.prototype.toFixed.call(0);
 Branch[20054]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.4_T01.js"
+
+> [!TODO]
 
 Branch[20098]:T : Number.prototype.toPrecision.call(0, 0);
 Branch[20098]:F : Number.prototype.toPrecision.call(0, 1 );
 Branch[20098]   : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toPrecision/precision-cannot-be-coerced-to-a-number-in-range.js"
 
-Branch[20182]:T : new BigInt(0);
-Branch[20182]:F : new BigInt;
-Branch[20182]   : Test262 covered true branch with "test262/test/built-ins/BigInt/call-value-of-when-to-string-present.js"
+> [!TODO]
 
 Branch[20282]:T : BigInt.prototype.toString.call(0n , 0n );
 Branch[20282]:F : BigInt.prototype.toString.call(0n , 0);
 Branch[20282]   : Test262 covered false branch with "test262/test/built-ins/BigInt/prototype/toString/radix-err.js"
 
-Branch[20316]:T : Math.abs.call(0, 0);
-Branch[20316]:F : Math.abs.call();
-Branch[20316]   : Test262 covered true branch with "test262/test/built-ins/Math/abs/S15.8.2.1_A1.js"
+> [!TODO]
 
 Branch[20321]:T : Math.abs.call(0, 0n );
 Branch[20321]:F : Math.abs.call();
 Branch[20321]   : Test262 covered false branch with "test262/test/built-ins/Math/abs/S15.8.2.1_A1.js"
 
-Branch[20345]:T : Math.acos.call(0, 0);
-Branch[20345]:F : Math.acos.call();
-Branch[20345]   : Test262 covered true branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A1.js"
+> [!TODO]
 
 Branch[20350]:T : Math.acos.call(0, 1n );
 Branch[20350]:F : Math.acos.call();
 Branch[20350]   : Test262 covered false branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A1.js"
 
+> [!TODO]
+
 Branch[20357]:T : Math.acos.call(0, 1 );
 Branch[20357]:F : Math.acos.call(0, 0);
 Branch[20357]   : Test262 covered true branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A4.js"
 
-Branch[20366]:T : Math.acosh.call(0, 0);
-Branch[20366]:F : Math.acosh.call(0);
-Branch[20366]   : Test262 covered true branch with "test262/test/built-ins/Math/acosh/arg-is-one.js"
+> [!TODO]
 
 Branch[20371]:T : Math.acosh.call(0, 0n );
 Branch[20371]:F : Math.acosh.call(0);
 Branch[20371]   : Test262 covered false branch with "test262/test/built-ins/Math/acosh/arg-is-one.js"
 
+> [!TODO]
+
 Branch[20383]:T : Math.acosh.call(0, 0);
 Branch[20383]:F : Math.acosh.call(0, 42 );
 Branch[20383]   : Test262 covered true branch with "test262/test/built-ins/Math/acosh/nan-returns.js"
 
-Branch[20392]:T : Math.asin.call(0, 0);
-Branch[20392]:F : Math.asin.call(0);
-Branch[20392]   : Test262 covered true branch with "test262/test/built-ins/Math/asin/S15.8.2.3_A4.js"
-
-Branch[20415]:T : Math.asinh.call(0, 0);
-Branch[20415]:F : Math.asinh.call();
-Branch[20415]   : Test262 covered true branch with "test262/test/built-ins/Math/asinh/asinh-specialVals.js"
-
-Branch[20435]:T : Math.atan.call(0, 0);
-Branch[20435]:F : Math.atan.call();
-Branch[20435]   : Test262 covered true branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
+> [!TODO]
 
 Branch[20440]:T : Math.atan.call(0, 0n );
 Branch[20440]:F : Math.atan.call();
 Branch[20440]   : Test262 covered false branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
+
+> [!TODO]
+
+---
+[!WARN]
+여기까지는 수동으로 봤는데, synthesized pool을 넣어서 parameter setting case들을 필터링해야 함.
+---
 
 Branch[20444]:T : Math.atan.call();
 Branch[20444]:F : Math.atan.call(0, 1 );
