@@ -28,11 +28,11 @@ Branch[1277]   : Test262 covered false branch with "test262/test/language/litera
 > [!NOTE]
 > loc: [ToUint16 step 1](https://tc39.es/ecma262/2025/#sec-touint16)
 > uncovered: ToNumber return abrupt completion case
-> isValid: 아래 (1)번 경로로는 없는 것을 확인; 2번 경로는 not supported 가능성 있어서 확신 x
-> memo:
-> - String.fromCharCode(...codeUnits)의 codeUnits로 접근 가능 (1)
-> - ToUint16Array constructor로도 접근 가능해 보이나 매우 복잡해보임 (NumericToRawBytes 참고) (2)
-> - (1)번 경로로 argument에 Symbol이나 BigInt 값을 넣어주면 됨
+> isValid: true
+> - String.fromCharCode(...codeUnits)의 codeUnits로 접근 가능
+> - argument에 Symbol이나 BigInt 값을 넣어주면 됨
+> - ToUint16Array constructor로도 접근 가능해 보이나 SetValueInBuffer에서 type이 Uint16라서 (BigInt가 아님) number로 강제되어 도달 불가 (NumericToRawBytes 참고)
+> - test262에 String.fromCharCode의 argument에 symbol이나 BigInt 넣어주는 케이스 없음
 
 Branch[5731]:T : new WeakSet([ x => x ] );
 Branch[5731]:F : new WeakSet([ , ] );
