@@ -128,53 +128,183 @@ Branch[19472]:T : Symbol.for.call(0 , Symbol ( ) );
 Branch[19472]:F : Symbol.for.call(0);
 Branch[19472]   : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
 
+> [!NOTE]
+> loc: [Symbol.for](https://tc39.es/ecma262/2025/#sec-symbol.for)
+> uncovered: parameter setting 과정에서 ArgumentsList가 비어있는 경우
+> isValid: true
+> memo:
+> - Symbol.for(key)로 접근 가능
+> - not-supported로 인해서 필터링 안됨
+> - test262에 Symbol.for에 인자를 넘겨주지 않거나 undefined를 넘겨주는 테스트가 없는 것 확인
+
 Branch[19477]:T : Symbol.for.call(0, Symbol ( ) );
 Branch[19477]:F : Symbol.for.call(0);
 Branch[19477]   : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
+
+> [!NOTE]
+> loc: [Symbol.for step 1](https://tc39.es/ecma262/2025/#sec-symbol.for)
+> uncovered: ToString return normal completion case
+> isValid: false
+> memo:
+> - not-supported에 있음 (사유: metalanguage)
+>   - yet: "For each element _e_ of the GlobalSymbolRegistry List, do\n  1. If _e_.[[Key]] is _stringKey_, return _e_.[[Symbol]]."
+>   - built-ins/Symbol/for/create-value.js
+>   - built-ins/Symbol/for/retrieve-value.js
+>   - built-ins/Symbol/for/description.js
 
 Branch[19489]:T : Symbol.keyFor.call(0);
 Branch[19489]:F : Symbol.keyFor.call(0, Symbol ( ) );
 Branch[19489]   : Test262 covered true branch with "test262/test/built-ins/Symbol/keyFor/arg-non-symbol.js"
 
+> [!NOTE]
+> loc: [Symbol.keyFor step 1](https://tc39.es/ecma262/2025/#sec-symbol.keyfor)
+> uncovered: symbol case
+> isValid: false
+> memo:
+> - Symbol.keyFor(sym)으로 접근 가능
+> - sym이 Symbol이면 됨
+> - not-supported에 있음 (사유: metalanguage, $262)
+>   - yet: "For each element _e_ of the GlobalSymbolRegistry List, do\n  1. If _e_.[[Key]] is _stringKey_, return _e_.[[Symbol]]."
+>   - yet: "For each element _e_ of the GlobalSymbolRegistry List, do\n  1. If SameValue(_e_.[[Symbol]], _sym_) is *true*, return _e_.[[Key]]."
+>   - built-ins/Symbol/keyFor/arg-symbol-registry-hit.js
+>   - built-ins/Symbol/keyFor/arg-symbol-registry-miss.js
+>   - built-ins/Symbol/keyFor/cross-realm.js
+
 Branch[19574]:T : new Error(Symbol ( ) );
 Branch[19574]:F : new Error(0);
 Branch[19574]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/trim/15.5.4.20-2-50.js"
+
+> [!NOTE]
+> loc: [Error step 3.a](https://tc39.es/ecma262/2025/#sec-error-message)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - Error(message[, options])로 접근 가능
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
 
 Branch[19595]:T : Error.prototype.toString.call({ get name ( ) { x ; } } );
 Branch[19595]:F : Error.prototype.toString.call([ ] );
 Branch[19595]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
 
+> [!NOTE]
+> loc: [Error.prototype.toString step 3](https://tc39.es/ecma262/2025/#sec-error.prototype.tostring)
+> uncovered: Get return abrupt completion case
+> isValid: true
+> memo:
+> - Error.prototype.toString.call로 접근 가능
+> - this 값에 "name" field getter로 throwing하는 함수가 들어오는 객체를 넣으면 됨
+> - test262에 없는 것 확인
+
 Branch[19609]:T : Error.prototype.toString.call({ get message ( ) { throw 0 ; } } );
 Branch[19609]:F : Error.prototype.toString.call([ ] );
 Branch[19609]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+> [!NOTE]
+> loc: [Error.prototype.toString step 5](https://tc39.es/ecma262/2025/#sec-error.prototype.tostring)
+> uncovered: Get return abrupt completion case
+> isValid: true
+> memo:
+> - Error.prototype.toString.call로 접근 가능
+> - this 값에 "message" field getter로 throwing하는 함수가 들어오는 객체를 넣으면 됨
+> - test262에 없는 것 확인
 
 Branch[19617]:T : Error.prototype.toString.call({ message : Symbol ( ) } );
 Branch[19617]:F : Error.prototype.toString.call({ message : 0 } );
 Branch[19617]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
 
+> [!NOTE]
+> loc: [Error.prototype.toString step 6](https://tc39.es/ecma262/2025/#sec-error.prototype.tostring)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - Error.prototype.toString.call로 접근 가능
+> - this 값에 "message" field에 들어가는 값이 Symbol이면 됨
+> - test262에 없는 것 확인
+
 Branch[19655]:T : new URIError(Symbol ( ) );
 Branch[19655]:F : new URIError(0);
 Branch[19655]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+> [!NOTE]
+> loc: [URIError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - URIError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
 
 Branch[19688]:T : new RangeError(Symbol ( ) );
 Branch[19688]:F : new RangeError(0);
 Branch[19688]   : Test262 covered false branch with "test262/test/built-ins/Object/values/exception-during-enumeration.js"
 
+> [!NOTE]
+> loc: [RangeError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - RangeError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
 Branch[19721]:T : new ReferenceError(Symbol ( ) );
 Branch[19721]:F : new ReferenceError(0);
 Branch[19721]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+> [!NOTE]
+> loc: [ReferenceError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - ReferenceError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
 
 Branch[19754]:T : new EvalError(Symbol ( ) );
 Branch[19754]:F : new EvalError(0);
 Branch[19754]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
 
+> [!NOTE]
+> loc: [EvalError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - EvalError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
 Branch[19787]:T : new TypeError(Symbol ( ) );
 Branch[19787]:F : new TypeError(0);
 Branch[19787]   : Test262 covered false branch with "test262/test/built-ins/Map/iterator-close-failure-after-set-failure.js"
 
+> [!NOTE]
+> loc: [TypeError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - TypeError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
 Branch[19820]:T : new SyntaxError(Symbol ( ) );
 Branch[19820]:F : new SyntaxError(0);
 Branch[19820]   : Test262 covered false branch with "test262/test/built-ins/NativeErrors/message_property_native_error.js"
+
+> [!NOTE]
+> loc: [SyntaxError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - SyntaxError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
 
 Branch[19892]:T : new SyntaxError(0, { cause : false } );
 Branch[19892]:F : new Error(0, { } );
