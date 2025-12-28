@@ -2,37 +2,127 @@ Branch[286]:T : String.prototype.lastIndexOf.call(0, 0);
 Branch[286]:F : String.prototype.lastIndexOf.call({ } );
 Branch[286]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
 
+> [!NOTE]
+> loc: [StringLastIndexOf step 4](https://tc39.es/ecma262/2025/#sec-stringlastindexof)
+> uncovered: i < 0 case
+> isValid: true
+> memo:
+> - String.prototype.lastIndexOf(searchString [, position])의 this, searchString을 이용해 접근 가능
+> - this에 ToString을 취한 값이 searchValue보다 길고, searchValue가 해당 값에 포함되어 있지 않으면 됨
+
 Branch[288]:T : String.prototype.lastIndexOf.call(0, 0);
 Branch[288]:F : String.prototype.lastIndexOf.call({ } );
 Branch[288]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
+
+> [!NOTE]
+> loc: [StringLastIndexOf step 4.b](https://tc39.es/ecma262/2025/#sec-stringlastindexof)
+> uncovered: candidate == searchValue case
+> isValid: true
+> memo:
+> - 바로 위 케이스를 만족하기 위해 선제적으로 커버해야 하는 지점; 동일한 조건
 
 Branch[1277]:T : String.fromCharCode.call(0, 0n );
 Branch[1277]:F : new Uint16Array([ , ] );
 Branch[1277]   : Test262 covered false branch with "test262/test/language/literals/string/S7.8.4_A5.1_T1.js"
 
+> [!NOTE]
+> loc: [ToUint16 step 1](https://tc39.es/ecma262/2025/#sec-touint16)
+> uncovered: ToNumber return abrupt completion case
+> isValid: 아래 (1)번 경로로는 없는 것을 확인; 2번 경로는 not supported 가능성 있어서 확신 x
+> memo:
+> - String.fromCharCode(...codeUnits)의 codeUnits로 접근 가능 (1)
+> - ToUint16Array constructor로도 접근 가능해 보이나 매우 복잡해보임 (NumericToRawBytes 참고) (2)
+> - (1)번 경로로 argument에 Symbol이나 BigInt 값을 넣어주면 됨
+
 Branch[5731]:T : new WeakSet([ x => x ] );
 Branch[5731]:F : new WeakSet([ , ] );
 Branch[5731]   : Test262 covered true branch with "test262/test/built-ins/WeakSet/prototype/delete/returns-false-when-delete-is-noop.js"
+
+> [!NOTE]
+> loc: [CanBeHeldWeakly step 1](https://tc39.es/ecma262/2025/#sec-canbeheldweakly)
+> uncovered: non Object case
+> isValid: ???
+> memo:
+> - WeakMap, WeakSet, WeakRef, FinalizationRegistry의 다양한 builtin method로 접근 가능
+> - 각 경로가 복잡해서 not supported를 지나는 지 확인 x
 
 Branch[18111]:T : decodeURI.call(0, Symbol ( ) );
 Branch[18111]:F : decodeURI.call(0);
 Branch[18111]   : Test262 covered false branch with "test262/test/built-ins/decodeURI/S15.1.3.1_A1.1_T1.js"
 
+> [!NOTE]
+> loc: [decodeURI step 1](https://tc39.es/ecma262/2025/#sec-decodeuri-encodeduri)
+> uncovered: ToString return abrupt completion case
+> isValid: false
+> memo:
+> - decodeURI(encodedURI)로 접근 가능
+> - encodeURI에 symbol이나 throwing하는 toString method가 존재하는 객체를 넣어주면 됨
+> - not-supported에 있음 (사유: metalanguage)
+>   - yet: "Let _n_ be the number of leading 1 bits in _B_."
+>   - built-ins/decodeURI/S15.1.3.1_A6_T1.js
+
 Branch[18126]:T : decodeURIComponent.call(0, Symbol ( ) );
 Branch[18126]:F : decodeURIComponent.call(0);
 Branch[18126]   : Test262 covered false branch with "test262/test/built-ins/decodeURIComponent/S15.1.3.2_A1.1_T1.js"
 
-Branch[19032]:T : var x = {};Object.setPrototypeOf(x, x => x );x.__proto__ = 0;
-Branch[19032]:F : var x = {};Object.setPrototypeOf(x, x => x );x . __proto__ = x ;
+> [!NOTE]
+> loc: [decodeURIComponent step 1](https://tc39.es/ecma262/2025/#sec-decodeuricomponent-encodeduricomponent)
+> uncovered: ToString return abrupt completion case
+> isValid: false
+> memo:
+> - decodeURIComponent(encodedURIComponent)로 접근 가능
+> - encodedURIComponent에 symbol이나 throwing하는 toString method가 존재하는 객체를 넣어주면 됨
+> - not-supported에 있음 (사유: metalanguage)
+>   - yet: "Let _n_ be the number of leading 1 bits in _B_."
+>   - built-ins/decodeURIComponent/S15.1.3.2_A6_T1.js
+
+Branch[19032]:T : var x = {}; Object.setPrototypeOf(x, x => x ); x.__proto__ = 0;
+Branch[19032]:F : var x = {}; Object.setPrototypeOf(x, x => x ); x.__proto__ = x;
 Branch[19032]   : Test262 covered false branch with "test262/test/language/types/object/S8.6.2_A8.js"
 
-Branch[19035]:T : var x = {};Object.setPrototypeOf(x, x => x );`` . __proto__ = x ;
-Branch[19035]:F : var x = {};Object.setPrototypeOf(x, x => x );x . __proto__ = x ;
+> [!NOTE]
+> loc: [set Object.prototype.__proto__ step 2](https://tc39.es/ecma262/2025/#sec-set-object.prototype.__proto__)
+> uncovered: non Object and non null case
+> isValid: true
+> memo:
+> - Normative Optional, Legacy
+> - __proto__ accessor prop에 값을 셋팅하는 패턴으로 접근 가능
+> - 객체나 null이 아닌 값으로 셋팅하면 됨 (e.g. 0)
+> - staging/sm/extensions/__proto__.js 에서 obj.__proto__ = 5; 가 있긴 한데 이 경우는 delete Object.prototype.__proto__ 로 accessor property를 지워버렸으니 그냥 문자열 "__proto__"에 셋팅하는 거라 해당 안됨 (즉, test262에 없음)
+
+Branch[19035]:T : var x = {}; Object.setPrototypeOf(x, x => x ); ``.__proto__ = x;
+Branch[19035]:F : var x = {}; Object.setPrototypeOf(x, x => x ); x.__proto__ = x;
 Branch[19035]   : Test262 covered false branch with "test262/test/language/types/object/S8.6.2_A8.js"
+
+> [!NOTE]
+> loc: [set Object.prototype.__proto__ step 3](https://tc39.es/ecma262/2025/#sec-set-object.prototype.__proto__)
+> uncovered: non Object case
+> isValid: true
+> memo:
+> - Normative Optional, Legacy
+> - __proto__ accessor prop에 값을 셋팅하는 패턴으로 접근 가능
+> - this에 RequireObjectCoercible를 취한 값이 객체가 아니면 됨
+> - undefined, null, 객체가 아닌 값에서 __proto__ accessor prop을 셋팅하면 됨
+> - test262에서 저 패턴으로 셋팅하는 경우 모두 객체에서 __proto__를 접근하고 있음
 
 Branch[19306]:T : Function.prototype.apply.call(class { } );
 Branch[19306]:F : Function.prototype.apply.call(x => x );
 Branch[19306]   : Test262 covered false branch with "test262/test/language/function-code/10.4.3-1-66-s.js"
+
+> [!NOTE]
+> loc: [Function.prototype.apply step 3.b](https://tc39.es/ecma262/2025/#sec-function.prototype.apply)
+> uncovered: Call return abrupt completion case
+> isValid: false
+> memo:
+> - Function.prototype.apply(thisArg, argArray)로 접근 가능
+> - argArray가 undefined거나 null이어야 해당 branch에 도달 가능
+> - this 자리에 Callable하지만, 막상 apply하면 throwing하는 함수를 넣으면 됨
+> - not-supported에 있음 (사유: non-strict)
+>   - built-ins/Function/15.3.5.4_2-60gs.js
+>   - built-ins/Function/15.3.5.4_2-61gs.js
+>   - built-ins/Function/15.3.5.4_2-62gs.js
+>   - built-ins/Function/15.3.5.4_2-63gs.js
+>   - built-ins/Function/15.3.5.4_2-64gs.js
 
 Branch[19472]:T : Symbol.for.call(0 , Symbol ( ) );
 Branch[19472]:F : Symbol.for.call(0);
