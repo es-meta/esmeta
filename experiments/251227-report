@@ -310,33 +310,117 @@ Branch[19892]:T : new SyntaxError(0, { cause : false } );
 Branch[19892]:F : new Error(0, { } );
 Branch[19892]   : Test262 covered true branch with "test262/test/built-ins/Error/constructor.js"
 
+> [!NOTE]
+> loc: [InstallErrorCause step 1](https://tc39.es/ecma262/2025/#sec-installerrorcause)
+> uncovered: HasProperty(options, "cause") == false case
+> isValid: true
+> memo:
+> - Error(message[, options]) 또는 NativeError(message[, options])로 접근 가능
+> - options 자리에 "cause" field가 존재하지 않는 객체가 들어오면 됨
+> - test262에 없는 것 확인
+
 Branch[19976]:T : Number.prototype.toExponential.call(0, - 1 );
 Branch[19976]:F : Number.prototype.toExponential.call();
 Branch[19976]   : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toExponential/return-abrupt-tointeger-fractiondigits-symbol.js"
+
+> [!NOTE]
+> loc: [Number.prototype.toExponential](https://tc39.es/ecma262/2025/#sec-number.prototype.toexponential)
+> uncovered: parameter setting 과정에서 ArgumentsList가 비어있는 경우
+> isValid: false
+> memo:
+> - Number.prototype.toExponential(fractionDigits)로 접근 가능
+> - test262 fail로 인해서 필터링 안됨
+> - not-supported에 있음 (사유: metalanguage)
+>   - yet: "Let _e_, _n_, and _ff_ be integers such that _ff_ ≥ 0, 10<sup>_ff_</sup> ≤ _n_ < 10<sup>_ff_ + 1</sup>, 𝔽(_n_ × 10<sup>_e_ - _ff_</sup>) is 𝔽(_x_), and _ff_ is as small as possible. Note that the decimal representation of _n_ has _ff_ + 1 digits, _n_ is not divisible by 10, and the least significant digit of _n_ is not necessarily uniquely determined by these criteria."
+>   - built-ins/Number/prototype/toExponential/undefined-fractiondigits.js
 
 Branch[19991]:T : Number.prototype.toExponential.call(NaN );
 Branch[19991]:F : Number.prototype.toExponential.call(0, - 1 );
 Branch[19991]   : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toExponential/nan.js"
 
+> [!NOTE]
+> loc: [Number.prototype.toExponential step 4](https://tc39.es/ecma262/2025/#sec-number.prototype.toexponential)
+> uncovered: finite case (x != Nan, x != Infinity)
+> isValid: false
+> memo:
+> - Number.prototype.toExponential(fractionDigits)로 접근 가능
+> - this 값에 ThisNumberValue를 취한 값이 finite (this 값이 finite한 숫자거나, NumberData internal slot이 finite한 수인 경우)
+> - not-supported에 있음 (사유: metalanguage)
+>   - yet: "Let _e_, _n_, and _ff_ be integers such that _ff_ ≥ 0, 10<sup>_ff_</sup> ≤ _n_ < 10<sup>_ff_ + 1</sup>, 𝔽(_n_ × 10<sup>_e_ - _ff_</sup>) is 𝔽(_x_), and _ff_ is as small as possible. Note that the decimal representation of _n_ has _ff_ + 1 digits, _n_ is not divisible by 10, and the least significant digit of _n_ is not necessarily uniquely determined by these criteria."
+>   - built-ins/Number/prototype/toExponential/undefined-fractiondigits.js
+
 Branch[20029]:T : Number.prototype.toFixed.call();
-Branch[20029]:F : Number.prototype.toFixed.call(NaN );let x = x ;
+Branch[20029]:F : Number.prototype.toFixed.call(NaN ); let x = x ;
 Branch[20029]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.3_T02.js"
 
+> [!NOTE]
+> loc: [Number.prototype.toFixed step 1](https://tc39.es/ecma262/2025/#sec-number.prototype.tofixed)
+> uncovered: ThisNumberValue return abrupt completion case
+> isValid: true
+> memo:
+> - Number.prototype.toFixed(fractionDigits)로 접근 가능
+> - this 값이 number나 NumberData internal slot을 가진 객체가 아니면 됨
+> - test262에 없는 것 확인
+
 Branch[20035]:T : Number.prototype.toFixed.call(0, 0n );
-Branch[20035]:F : Number.prototype.toFixed.call(NaN );let x = x ;
+Branch[20035]:F : Number.prototype.toFixed.call(NaN ); let x = x ;
 Branch[20035]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.3_T02.js"
+
+> [!NOTE]
+> loc: [Number.prototype.toFixed step 2](https://tc39.es/ecma262/2025/#sec-number.prototype.tofixed)
+> uncovered: ToIntegerOrInfinity return abrupt completion case
+> isValid: true
+> memo:
+> - Number.prototype.toFixed(fractionDigits)로 접근 가능
+> - fractionDigits 값에 ToIntegerOrInfinity를 취했을 때 터지는건데, ToNumber 취했을 때 터지는거랑 똑같은 조건이라 Symbol이나 BigInt 들어오면 됨
+> - test262에 없는 것 확인
 
 Branch[20054]:T : Number.prototype.toFixed.call(- 1 );
 Branch[20054]:F : Number.prototype.toFixed.call(0);
 Branch[20054]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.4_T01.js"
 
+> [!NOTE]
+> loc: [Number.prototype.toFixed step 9](https://tc39.es/ecma262/2025/#sec-number.prototype.tofixed)
+> uncovered: x < 0 case
+> isValid: true
+> memo:
+> - Number.prototype.toFixed(fractionDigits)로 접근 가능
+> - this가 0보다 작으면 됨
+> - test262에 없는 것 확인
+
 Branch[20098]:T : Number.prototype.toPrecision.call(0, 0);
 Branch[20098]:F : Number.prototype.toPrecision.call(0, 1 );
 Branch[20098]   : Test262 covered true branch with "test262/test/built-ins/Number/prototype/toPrecision/precision-cannot-be-coerced-to-a-number-in-range.js"
 
+> [!NOTE]
+> loc: [Number.prototype.toPrecision step 5](https://tc39.es/ecma262/2025/#sec-number.prototype.toprecision)
+> uncovered: 1 <= p <= 100 case
+> isValid: false
+> memo:
+> - Number.prototype.toPrecision(precision)으로 접근 가능
+> - precision에 ToIntegerOrInfinity를 취한 값이 1과 100 사이
+> - not-supported에 있음 (사유: metalanguage)
+>   - yet: "Let _e_ and _n_ be integers such that 10<sup>_p_ - 1</sup> ≤ _n_ < 10<sup>_p_</sup> and for which _n_ × 10<sup>_e_ - _p_ + 1</sup> - _x_ is as close to zero as possible. If there are two such sets of _e_ and _n_, pick the _e_ and _n_ for which _n_ × 10<sup>_e_ - _p_ + 1</sup> is larger."
+>   - yet: "Let _m_ be the String value consisting of _p_ occurrences of the code unit 0x0030 (DIGIT ZERO)."
+>   - built-ins/Number/prototype/toPrecision/range.js
+>   - built-ins/Number/prototype/toPrecision/exponential.js
+>   - built-ins/Number/prototype/toPrecision/tointeger-precision.js
+>   - built-ins/Number/prototype/toPrecision/return-values.js
+>   - built-ins/Number/prototype/toPrecision/this-is-0-precision-is-1.js
+>   - built-ins/Number/prototype/toPrecision/this-is-0-precision-is-gter-than-1.js
+
 Branch[20282]:T : BigInt.prototype.toString.call(0n , 0n );
 Branch[20282]:F : BigInt.prototype.toString.call(0n , 0);
 Branch[20282]   : Test262 covered false branch with "test262/test/built-ins/BigInt/prototype/toString/radix-err.js"
+
+> [!NOTE]
+> loc: [BigInt.prototype.toString step 3](https://tc39.es/ecma262/2025/#sec-bigint.prototype.tostring)
+> uncovered: ToIntegerOrInfinity return abrupt completion case
+> isValid: true
+> memo:
+> - BigInt.prototype.toString([radix])으로 접근 가능
+> - radix 값에 ToIntegerOrInfinity를 취했을 때 터지는건데, ToNumber 취했을 때 터지는거랑 똑같은 조건이라 Symbol이나 BigInt 들어오면 됨
+> - test262에 없는 것 확인
 
 Branch[20321]:T : Math.abs.call(0, 0n );
 Branch[20321]:F : Math.abs.call();
