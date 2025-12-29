@@ -31,7 +31,7 @@ case object Mutate extends Phase[CFG, String] {
 
     val analyzer = ParamFlowAnalyzer(cfg)
     analyzer.analyze
-    val cov = Coverage(cfg, analyzer = Some(analyzer))
+    val cov = Coverage(cfg, timeLimit = Some(1), analyzer = Some(analyzer))
 
     val target = config.target match
       case Some(str) =>
@@ -89,16 +89,20 @@ case object Mutate extends Phase[CFG, String] {
         covered
       case None => false
 
+    def guard(str: String): Unit =
+      if (iter >= trial) raise(s"Failed to cover $str after $iter iters")
+      if (timeout) raise(s"Failed to cover $str after $iter iters")
+
     // repeat until the mutated program is valid and covers target
     config.target match
       case Some(str) =>
         while (!(ValidityChecker(mutated) && coversFlipped(mutatedCode))) {
           while (blocked.contains(mutated))
+            guard(str)
             mutatedCode = mutator(code, target).code
           iter += 1
           blocked += mutated
-          if (iter >= trial) raise(s"Failed to cover $str after $iter iters")
-          if (timeout) raise(s"Failed to cover $str after $iter iters")
+          guard(str)
         }
       case None => ()
 
