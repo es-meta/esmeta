@@ -8,7 +8,6 @@ case class Polyfill(
   name: String,
   params: List[Param],
   body: Polyfill.Stmt,
-  belongsTo: String,
 ) {
   override def toString: String = headToString + " " + body.toString
 
@@ -18,7 +17,7 @@ case class Polyfill(
       .filter(_.kind != Optional)
       .map(param => (if (param.kind == Variadic) "..." else "") + param.name)
       .mkString(", ")
-    s"function $name($paramStr)"
+    s"($paramStr)"
   }
 }
 

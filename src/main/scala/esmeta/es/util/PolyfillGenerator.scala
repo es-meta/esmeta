@@ -11,10 +11,15 @@ object PolyfillGenerator {
   def apply(spec: Spec): List[Polyfill] = new PolyfillGenerator(spec).result
 
   val defaultTargets = List(
-    "INTRINSICS.Array.prototype.",
+    "INTRINSICS.Array.",
+    "INTRINSICS.String.",
+    "INTRINSICS.Map.",
+    "INTRINSICS.Set.",
+    // "INTRINSICS.TypedArray.",
   )
 
   val ignoreTargets = List(
+    // ES3
     "INTRINSICS.Array.prototype.concat",
     "INTRINSICS.Array.prototype.join",
     "INTRINSICS.Array.prototype.pop",
@@ -27,6 +32,36 @@ object PolyfillGenerator {
     "INTRINSICS.Array.prototype.toLocaleString",
     "INTRINSICS.Array.prototype.toString",
     "INTRINSICS.Array.prototype.unshift",
+    // YET
+    "INTRINSICS.Array.prototype.entries",
+    "INTRINSICS.Array.prototype.keys",
+    "INTRINSICS.Array.prototype.toSorted",
+    "INTRINSICS.Array.prototype.values",
+
+    // ES3
+    "INTRINSICS.String.prototype.charAt",
+    "INTRINSICS.String.prototype.charCodeAt",
+    "INTRINSICS.String.prototype.concat",
+    "INTRINSICS.String.prototype.indexOf",
+    "INTRINSICS.String.prototype.lastIndexOf",
+    "INTRINSICS.String.prototype.localeCompare",
+    "INTRINSICS.String.prototype.match",
+    "INTRINSICS.String.prototype.replace",
+    "INTRINSICS.String.prototype.search",
+    "INTRINSICS.String.prototype.slice",
+    "INTRINSICS.String.prototype.split",
+    "INTRINSICS.String.prototype.substring",
+    "INTRINSICS.String.prototype.toLocaleLowerCase",
+    "INTRINSICS.String.prototype.toLocaleUpperCase",
+    "INTRINSICS.String.prototype.toLowerCase",
+    "INTRINSICS.String.prototype.toString",
+    "INTRINSICS.String.prototype.toUpperCase",
+    "INTRINSICS.String.prototype.valueOf",
+
+    // YET
+    "INTRINSICS.String.prototype.matchAll",
+    "INTRINSICS.String.prototype.normalize",
+    "INTRINSICS.String.prototype.repeat",
   )
 }
 
@@ -54,8 +89,7 @@ class PolyfillGenerator(spec: Spec) {
     println("-" * 80)
     val pb = PolyfillBuilder(spec, algo)
 
-    val name = algo.name.split('.').last
-    val belongsTo = algo.name.split('.').init.mkString(".")
+    val name = algo.name
     val params = algo.head.originalParams
 
     val prelude = pb.newScope({
@@ -89,7 +123,7 @@ class PolyfillGenerator(spec: Spec) {
 
     val body = compileWithScope(pb, algo.body)
 
-    Polyfill(name, params, prelude ++ body, belongsTo)
+    Polyfill(name, params, prelude ++ body)
 
   def hasIsPresentCond(step: Step): Boolean = {
     var found = false
@@ -132,12 +166,12 @@ class PolyfillGenerator(spec: Spec) {
       pb.addStmt(NormalStmt(s"$x(${compile(pb, a)});"))
     case AppendStep(expr, ref) =>
       pb.addStmt(
-        NormalStmt(s"Append(${compile(pb, ref)}, ${compile(pb, expr)})"),
+        NormalStmt(s"OP__Append(${compile(pb, ref)}, ${compile(pb, expr)})"),
       )
     case InsertStep(expr, ref) => ???
     case PrependStep(expr, ref) =>
       pb.addStmt(
-        NormalStmt(s"Prepend(${compile(pb, ref)}, ${compile(pb, expr)})"),
+        NormalStmt(s"OP__Prepend(${compile(pb, ref)}, ${compile(pb, expr)})"),
       )
     case AddStep(expr, ref)         => ???
     case RemoveStep(t, p, l)        => ???
@@ -200,16 +234,16 @@ class PolyfillGenerator(spec: Spec) {
     case IntrinsicField(base, intr) => ???
     case IndexLookup(base, index) =>
       s"${compile(pb, base)}[\"${compile(pb, index)}\"]"
-    case BindingLookup(base, binding)     => ???
-    case NonterminalLookup(base, nt)      => ???
-    case PositionalElement(base, true)    => ???
-    case PositionalElement(base, isFirst) => ???
-    case IntrinsicObject(base, expr)      => ???
-    case RunningExecutionContext()        => ???
-    case SecondExecutionContext()         => ???
-    case CurrentRealmRecord()             => ???
-    case ActiveFunctionObject()           => ???
-    case AgentRecord()                    => ???
+    case BindingLookup(base, binding)   => ???
+    case NonterminalLookup(base, nt)    => ???
+    case PositionalElement(base, true)  => s"${compile(pb, base)}[0]"
+    case PositionalElement(base, false) => ???
+    case IntrinsicObject(base, expr)    => ???
+    case RunningExecutionContext()      => ???
+    case SecondExecutionContext()       => ???
+    case CurrentRealmRecord()           => ???
+    case ActiveFunctionObject()         => ???
+    case AgentRecord()                  => ???
   }
 
   /** compile expressions */
@@ -231,7 +265,7 @@ class PolyfillGenerator(spec: Spec) {
     case LengthExpression(expr) => ???
     case StringExpression(str)  => s"'$str'"
     case SubstringExpression(expr, from, to) =>
-      s"SubString(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
+      s"OP__SubString(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
     case TrimExpression(expr, leading, trailing) => ???
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
       s"${compile(pb, ref)}.length"
@@ -278,12 +312,12 @@ class PolyfillGenerator(spec: Spec) {
     case MathFuncExpression(op, args) => s"${compile(op)}(${compile(pb, args)})"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
-      s"pow(${compile(pb, base)}, ${compile(pb, power)})"
+      s"OP__pow(${compile(pb, base)}, ${compile(pb, power)})"
     case BinaryExpression(left, op, right) =>
       s"${compile(pb, left)} ${compile(op)} ${compile(pb, right)}"
     case UnaryExpression(op, expr) => s"${compile(op)}${compile(pb, expr)}"
     case ClampExpression(target, lower, upper) =>
-      s"clamp(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
+      s"OP__clamp(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
     case expr: MathOpExpression             => ???
     case BitwiseExpression(left, op, right) => ???
     case AbstractClosureExpression(params, captured, body) =>
@@ -328,11 +362,11 @@ class PolyfillGenerator(spec: Spec) {
   def compile(op: MathFuncExpressionOperator): String =
     import MathFuncExpressionOperator.*
     op match {
-      case Max      => "max"
-      case Min      => "min"
-      case Abs      => "abs"
-      case Floor    => "floor"
-      case Truncate => "truncate"
+      case Max      => "OP__max"
+      case Min      => "OP__min"
+      case Abs      => "OP__abs"
+      case Floor    => "OP__floor"
+      case Truncate => "OP__truncate"
     }
 
   /** compile branch conditions */
@@ -402,7 +436,7 @@ class PolyfillGenerator(spec: Spec) {
       val e = s"($l >= ${compile(pb, from)} && $l <= ${compile(pb, to)})"
       (if (neg) s"!" else "") + e
     case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
-      val c = s"Contains(${compile(pb, list)}, ${compile(pb, target)})"
+      val c = s"OP__Contains(${compile(pb, list)}, ${compile(pb, target)})"
       (if (neg) s"!" else "") + c
     case ContainsCondition(list, neg, _) => ???
     case CompoundCondition(left, op, right) =>
