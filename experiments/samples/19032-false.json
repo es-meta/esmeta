@@ -1,0 +1,13 @@
+{
+  "tag": "Builtin",
+  "code": {
+    "func": "Object.setPrototypeOf",
+    "thisArg": null,
+    "args": [
+      "x",
+      "x => x"
+    ],
+    "preStmts": "var x = {};",
+    "postStmts": "x.__proto__ = x;"
+  }
+}

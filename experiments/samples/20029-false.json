@@ -1,0 +1,10 @@
+{
+  "tag": "Builtin",
+  "code": {
+    "func": "Number.prototype.toFixed.call",
+    "thisArg": "NaN",
+    "args": [],
+    "preStmts": null,
+    "postStmts": "let x = x;"
+  }
+}

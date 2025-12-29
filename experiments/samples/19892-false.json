@@ -1,0 +1,13 @@
+{
+  "tag": "Builtin",
+  "code": {
+    "func": "new SyntaxError",
+    "thisArg": null,
+    "args": [
+      "0",
+      "{ cause : false }"
+    ],
+    "preStmts": null,
+    "postStmts": null
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "tag": "Builtin",
+  "code": {
+    "func": "new Error",
+    "thisArg": null,
+    "args": [
+      "0"
+    ],
+    "preStmts": null,
+    "postStmts": null
+  }
+}

@@ -63,19 +63,6 @@ Branch[19035]   : Test262 covered false branch with "test262/test/language/types
 > - undefined, null, 객체가 아닌 값에서 __proto__ accessor prop을 셋팅하면 됨
 > - test262에서 저 패턴으로 셋팅하는 경우 모두 객체에서 __proto__를 접근하고 있음
 
-Branch[19472]:T : Symbol.for.call(0 , Symbol ( ) );
-Branch[19472]:F : Symbol.for.call(0);
-Branch[19472]   : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
-
-> [!NOTE]
-> loc: [Symbol.for](https://tc39.es/ecma262/2025/#sec-symbol.for)
-> uncovered: parameter setting 과정에서 ArgumentsList가 비어있는 경우
-> isValid: true
-> memo:
-> - Symbol.for(key)로 접근 가능
-> - not-supported로 인해서 필터링 안됨
-> - test262에 Symbol.for에 인자를 넘겨주지 않거나 undefined를 넘겨주는 테스트가 없는 것 확인
-
 Branch[19574]:T : new Error(Symbol ( ) );
 Branch[19574]:F : new Error(0);
 Branch[19574]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/trim/15.5.4.20-2-50.js"

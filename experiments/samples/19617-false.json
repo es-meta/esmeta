@@ -1,0 +1,10 @@
+{
+  "tag": "Builtin",
+  "code": {
+    "func": "Error.prototype.toString.call",
+    "thisArg": "{ message : 0 }",
+    "args": [],
+    "preStmts": null,
+    "postStmts": null
+  }
+}
