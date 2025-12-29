@@ -20,8 +20,10 @@ enum Code {
     case Builtin(func, thisArg, args, preStmts, postStmts) =>
       val pre = preStmts.getOrElse("")
       val post = postStmts.getOrElse("")
-      val argsStr = (
-        thisArg.getOrElse("undefined") :: args
+      val argsStr = (thisArg match
+        case Some(arg)                      => arg :: args
+        case None if func.endsWith(".call") => "undefined" :: args
+        case None                           => args
       ).mkString("(", ", ", ")")
       val builtinCall = s"$func$argsStr;"
       s"$pre$builtinCall$post"

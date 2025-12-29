@@ -92,7 +92,7 @@ case object Fuzz extends Phase[CFG, Coverage] {
     (
       "duration",
       NumOption((c, k) => c.duration = Some(k)),
-      "set the maximum duration for fuzzing (default: INF)",
+      "set the maximum duration for fuzzing (default: INF).",
     ),
     (
       "seed",

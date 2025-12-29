@@ -60,13 +60,17 @@ case object Mutate extends Phase[CFG, String] {
               println("Localized:")
               localized.foreach(target => println(s"- $target"))
             Some((cv, cov))
-          case None => None
+          case None => println("Given program doesn't cover target"); None
       case None => None
 
     val mutator = config.builder(using cfg)
     var blocked = Set[String]()
     var iter = 0
-    val trial = config.trial.getOrElse(10000)
+    val trial = config.trial.getOrElse(Int.MaxValue)
+
+    val startTime = System.currentTimeMillis
+    def elapsed = System.currentTimeMillis - startTime
+    def timeout = config.duration.fold(false)(_ * 1000 < elapsed)
 
     // get a mutated code
     var mutatedCode = mutator(code, target).code
@@ -94,6 +98,7 @@ case object Mutate extends Phase[CFG, String] {
           iter += 1
           blocked += mutated
           if (iter >= trial) raise(s"Failed to cover $str after $iter iters")
+          if (timeout) raise(s"Failed to cover $str after $iter iters")
         }
       case None => ()
 
@@ -135,7 +140,12 @@ case object Mutate extends Phase[CFG, String] {
     (
       "trial",
       NumOption((c, n) => c.trial = Some(n)),
-      "set the number of trials (default: 10000).",
+      "set the number of trials (default: INF).",
+    ),
+    (
+      "duration",
+      NumOption((c, k) => c.duration = Some(k)),
+      "set the maximum duration for mutation (default: INF).",
     ),
     (
       "debug",
@@ -148,6 +158,7 @@ case object Mutate extends Phase[CFG, String] {
     var builder: CFG ?=> Mutator = RandomMutator(),
     var target: Option[String] = None,
     var trial: Option[Int] = None,
+    var duration: Option[Int] = None,
     var debug: Boolean = false,
   )
 }

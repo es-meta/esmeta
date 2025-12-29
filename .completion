@@ -25,7 +25,7 @@ _esmeta_completions() {
   test262testOpt="-test262-test:target -test262-test:features -test262-test:tycheck -test262-test:progress -test262-test:coverage -test262-test:k-fs -test262-test:cp -test262-test:all-tests -test262-test:timeout -test262-test:with-yet -test262-test:log -test262-test:detail-log -test262-test:concurrent"
   fuzzOpt="-fuzz:tycheck -fuzz:log -fuzz:log-interval -fuzz:out -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:cached -fuzz:init -fuzz:k-fs -fuzz:cp"
   injectOpt="-inject:defs -inject:out -inject:log"
-  mutateOpt="-mutate:out -mutate:mutator -mutate:target -mutate:trial -mutate:debug"
+  mutateOpt="-mutate:out -mutate:mutator -mutate:target -mutate:trial -mutate:duration -mutate:debug"
   dumpdebuggerOpt=""
   dumpvisualizerOpt=""
   # completion for commands
