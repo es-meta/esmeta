@@ -1,0 +1,278 @@
+Branch[286]:T : String.prototype.lastIndexOf.call(0, 0);
+Branch[286]:F : String.prototype.lastIndexOf.call({ } );
+Branch[286]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
+
+> [!NOTE]
+> loc: [StringLastIndexOf step 4](https://tc39.es/ecma262/2025/#sec-stringlastindexof)
+> uncovered: i < 0 case
+> isValid: true
+> memo:
+> - String.prototype.lastIndexOf(searchString [, position])의 this, searchString을 이용해 접근 가능
+> - this에 ToString을 취한 값이 searchValue보다 길고, searchValue가 해당 값에 포함되어 있지 않으면 됨
+
+Branch[288]:T : String.prototype.lastIndexOf.call(0, 0);
+Branch[288]:F : String.prototype.lastIndexOf.call({ } );
+Branch[288]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
+
+> [!NOTE]
+> loc: [StringLastIndexOf step 4.b](https://tc39.es/ecma262/2025/#sec-stringlastindexof)
+> uncovered: candidate == searchValue case
+> isValid: true
+> memo:
+> - 바로 위 케이스를 만족하기 위해 선제적으로 커버해야 하는 지점; 동일한 조건
+
+Branch[1277]:T : String.fromCharCode.call(0, 0n );
+Branch[1277]:F : new Uint16Array([ , ] );
+Branch[1277]   : Test262 covered false branch with "test262/test/language/literals/string/S7.8.4_A5.1_T1.js"
+
+> [!NOTE]
+> loc: [ToUint16 step 1](https://tc39.es/ecma262/2025/#sec-touint16)
+> uncovered: ToNumber return abrupt completion case
+> isValid: true
+> - String.fromCharCode(...codeUnits)의 codeUnits로 접근 가능
+> - argument에 Symbol이나 BigInt 값을 넣어주면 됨
+> - ToUint16Array constructor로도 접근 가능해 보이나 SetValueInBuffer에서 type이 Uint16라서 (BigInt가 아님) number로 강제되어 도달 불가 (NumericToRawBytes 참고)
+> - test262에 String.fromCharCode의 argument에 symbol이나 BigInt 넣어주는 케이스 없음
+
+Branch[19032]:T : var x = {}; Object.setPrototypeOf(x, x => x ); x.__proto__ = 0;
+Branch[19032]:F : var x = {}; Object.setPrototypeOf(x, x => x ); x.__proto__ = x;
+Branch[19032]   : Test262 covered false branch with "test262/test/language/types/object/S8.6.2_A8.js"
+
+> [!NOTE]
+> loc: [set Object.prototype.__proto__ step 2](https://tc39.es/ecma262/2025/#sec-set-object.prototype.__proto__)
+> uncovered: non Object and non null case
+> isValid: true
+> memo:
+> - Normative Optional, Legacy
+> - __proto__ accessor prop에 값을 셋팅하는 패턴으로 접근 가능
+> - 객체나 null이 아닌 값으로 셋팅하면 됨 (e.g. 0)
+> - staging/sm/extensions/__proto__.js 에서 obj.__proto__ = 5; 가 있긴 한데 이 경우는 delete Object.prototype.__proto__ 로 accessor property를 지워버렸으니 그냥 문자열 "__proto__"에 셋팅하는 거라 해당 안됨 (즉, test262에 없음)
+
+Branch[19035]:T : var x = {}; Object.setPrototypeOf(x, x => x ); ``.__proto__ = x;
+Branch[19035]:F : var x = {}; Object.setPrototypeOf(x, x => x ); x.__proto__ = x;
+Branch[19035]   : Test262 covered false branch with "test262/test/language/types/object/S8.6.2_A8.js"
+
+> [!NOTE]
+> loc: [set Object.prototype.__proto__ step 3](https://tc39.es/ecma262/2025/#sec-set-object.prototype.__proto__)
+> uncovered: non Object case
+> isValid: true
+> memo:
+> - Normative Optional, Legacy
+> - __proto__ accessor prop에 값을 셋팅하는 패턴으로 접근 가능
+> - this에 RequireObjectCoercible를 취한 값이 객체가 아니면 됨
+> - undefined, null, 객체가 아닌 값에서 __proto__ accessor prop을 셋팅하면 됨
+> - test262에서 저 패턴으로 셋팅하는 경우 모두 객체에서 __proto__를 접근하고 있음
+
+Branch[19472]:T : Symbol.for.call(0 , Symbol ( ) );
+Branch[19472]:F : Symbol.for.call(0);
+Branch[19472]   : Test262 covered true branch with "test262/test/built-ins/Symbol/for/to-string-err.js"
+
+> [!NOTE]
+> loc: [Symbol.for](https://tc39.es/ecma262/2025/#sec-symbol.for)
+> uncovered: parameter setting 과정에서 ArgumentsList가 비어있는 경우
+> isValid: true
+> memo:
+> - Symbol.for(key)로 접근 가능
+> - not-supported로 인해서 필터링 안됨
+> - test262에 Symbol.for에 인자를 넘겨주지 않거나 undefined를 넘겨주는 테스트가 없는 것 확인
+
+Branch[19574]:T : new Error(Symbol ( ) );
+Branch[19574]:F : new Error(0);
+Branch[19574]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/trim/15.5.4.20-2-50.js"
+
+> [!NOTE]
+> loc: [Error step 3.a](https://tc39.es/ecma262/2025/#sec-error-message)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - Error(message[, options])로 접근 가능
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
+Branch[19595]:T : Error.prototype.toString.call({ get name ( ) { x ; } } );
+Branch[19595]:F : Error.prototype.toString.call([ ] );
+Branch[19595]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+> [!NOTE]
+> loc: [Error.prototype.toString step 3](https://tc39.es/ecma262/2025/#sec-error.prototype.tostring)
+> uncovered: Get return abrupt completion case
+> isValid: true
+> memo:
+> - Error.prototype.toString.call로 접근 가능
+> - this 값에 "name" field getter로 throwing하는 함수가 들어오는 객체를 넣으면 됨
+> - test262에 없는 것 확인
+
+Branch[19609]:T : Error.prototype.toString.call({ get message ( ) { throw 0 ; } } );
+Branch[19609]:F : Error.prototype.toString.call([ ] );
+Branch[19609]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+> [!NOTE]
+> loc: [Error.prototype.toString step 5](https://tc39.es/ecma262/2025/#sec-error.prototype.tostring)
+> uncovered: Get return abrupt completion case
+> isValid: true
+> memo:
+> - Error.prototype.toString.call로 접근 가능
+> - this 값에 "message" field getter로 throwing하는 함수가 들어오는 객체를 넣으면 됨
+> - test262에 없는 것 확인
+
+Branch[19617]:T : Error.prototype.toString.call({ message : Symbol ( ) } );
+Branch[19617]:F : Error.prototype.toString.call({ message : 0 } );
+Branch[19617]   : Test262 covered false branch with "test262/test/built-ins/Error/prototype/toString/15.11.4.4-6-1.js"
+
+> [!NOTE]
+> loc: [Error.prototype.toString step 6](https://tc39.es/ecma262/2025/#sec-error.prototype.tostring)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - Error.prototype.toString.call로 접근 가능
+> - this 값에 "message" field에 들어가는 값이 Symbol이면 됨
+> - test262에 없는 것 확인
+
+Branch[19655]:T : new URIError(Symbol ( ) );
+Branch[19655]:F : new URIError(0);
+Branch[19655]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+> [!NOTE]
+> loc: [URIError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - URIError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
+Branch[19688]:T : new RangeError(Symbol ( ) );
+Branch[19688]:F : new RangeError(0);
+Branch[19688]   : Test262 covered false branch with "test262/test/built-ins/Object/values/exception-during-enumeration.js"
+
+> [!NOTE]
+> loc: [RangeError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - RangeError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
+Branch[19721]:T : new ReferenceError(Symbol ( ) );
+Branch[19721]:F : new ReferenceError(0);
+Branch[19721]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+> [!NOTE]
+> loc: [ReferenceError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - ReferenceError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
+Branch[19754]:T : new EvalError(Symbol ( ) );
+Branch[19754]:F : new EvalError(0);
+Branch[19754]   : Test262 covered false branch with "test262/test/language/statements/try/S12.14_A19_T1.js"
+
+> [!NOTE]
+> loc: [EvalError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - EvalError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
+Branch[19787]:T : new TypeError(Symbol ( ) );
+Branch[19787]:F : new TypeError(0);
+Branch[19787]   : Test262 covered false branch with "test262/test/built-ins/Map/iterator-close-failure-after-set-failure.js"
+
+> [!NOTE]
+> loc: [TypeError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - TypeError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
+Branch[19820]:T : new SyntaxError(Symbol ( ) );
+Branch[19820]:F : new SyntaxError(0);
+Branch[19820]   : Test262 covered false branch with "test262/test/built-ins/NativeErrors/message_property_native_error.js"
+
+> [!NOTE]
+> loc: [SyntaxError step 3.a](https://tc39.es/ecma262/2025/#sec-nativeerror)
+> uncovered: ToString return abrupt completion case
+> isValid: true
+> memo:
+> - SyntaxError(message[, options])로 접근 가능
+> - Error 객체가 종류만 다르고 step을 공유해서 앞선 케이스와 다를 건 없음
+> - message가 Symbol이면 됨
+> - test262에 없는 것 확인
+
+Branch[19892]:T : new SyntaxError(0, { cause : false } );
+Branch[19892]:F : new Error(0, { } );
+Branch[19892]   : Test262 covered true branch with "test262/test/built-ins/Error/constructor.js"
+
+> [!NOTE]
+> loc: [InstallErrorCause step 1](https://tc39.es/ecma262/2025/#sec-installerrorcause)
+> uncovered: HasProperty(options, "cause") == false case
+> isValid: true
+> memo:
+> - Error(message[, options]) 또는 NativeError(message[, options])로 접근 가능
+> - options 자리에 "cause" field가 존재하지 않는 객체가 들어오면 됨
+> - test262에 없는 것 확인
+
+Branch[20029]:T : Number.prototype.toFixed.call();
+Branch[20029]:F : Number.prototype.toFixed.call(NaN ); let x = x ;
+Branch[20029]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.3_T02.js"
+
+> [!NOTE]
+> loc: [Number.prototype.toFixed step 1](https://tc39.es/ecma262/2025/#sec-number.prototype.tofixed)
+> uncovered: ThisNumberValue return abrupt completion case
+> isValid: true
+> memo:
+> - Number.prototype.toFixed(fractionDigits)로 접근 가능
+> - this 값이 number나 NumberData internal slot을 가진 객체가 아니면 됨
+> - test262에 없는 것 확인
+
+Branch[20035]:T : Number.prototype.toFixed.call(0, 0n );
+Branch[20035]:F : Number.prototype.toFixed.call(NaN ); let x = x ;
+Branch[20035]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.3_T02.js"
+
+> [!NOTE]
+> loc: [Number.prototype.toFixed step 2](https://tc39.es/ecma262/2025/#sec-number.prototype.tofixed)
+> uncovered: ToIntegerOrInfinity return abrupt completion case
+> isValid: true
+> memo:
+> - Number.prototype.toFixed(fractionDigits)로 접근 가능
+> - fractionDigits 값에 ToIntegerOrInfinity를 취했을 때 터지는건데, ToNumber 취했을 때 터지는거랑 똑같은 조건이라 Symbol이나 BigInt 들어오면 됨
+> - test262에 없는 것 확인
+
+Branch[20054]:T : Number.prototype.toFixed.call(- 1 );
+Branch[20054]:F : Number.prototype.toFixed.call(0);
+Branch[20054]   : Test262 covered false branch with "test262/test/built-ins/Number/prototype/toFixed/S15.7.4.5_A1.4_T01.js"
+
+> [!NOTE]
+> loc: [Number.prototype.toFixed step 9](https://tc39.es/ecma262/2025/#sec-number.prototype.tofixed)
+> uncovered: x < 0 case
+> isValid: true
+> memo:
+> - Number.prototype.toFixed(fractionDigits)로 접근 가능
+> - this가 0보다 작으면 됨
+> - test262에 없는 것 확인
+
+Branch[20282]:T : BigInt.prototype.toString.call(0n , 0n );
+Branch[20282]:F : BigInt.prototype.toString.call(0n , 0);
+Branch[20282]   : Test262 covered false branch with "test262/test/built-ins/BigInt/prototype/toString/radix-err.js"
+
+> [!NOTE]
+> loc: [BigInt.prototype.toString step 3](https://tc39.es/ecma262/2025/#sec-bigint.prototype.tostring)
+> uncovered: ToIntegerOrInfinity return abrupt completion case
+> isValid: true
+> memo:
+> - BigInt.prototype.toString([radix])으로 접근 가능
+> - radix 값에 ToIntegerOrInfinity를 취했을 때 터지는건데, ToNumber 취했을 때 터지는거랑 똑같은 조건이라 Symbol이나 BigInt 들어오면 됨
+> - test262에 없는 것 확인
