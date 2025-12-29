@@ -139,12 +139,18 @@ def annotate_summary_only_gaps(
 
         if t_scripts:
             refined_path = t_scripts[0].replace("\\", "/").removeprefix(local_prefix)
-            lines.append(f'Branch[{b}]   : Test262 covered true branch with "{refined_path}"')
+            lines.append(
+                f'Branch[{b}]   : Test262 covered true branch with "{refined_path}"'
+            )
         elif f_scripts:
             refined_path = f_scripts[0].replace("\\", "/").removeprefix(local_prefix)
-            lines.append(f'Branch[{b}]   : Test262 covered false branch with "{refined_path}"')
+            lines.append(
+                f'Branch[{b}]   : Test262 covered false branch with "{refined_path}"'
+            )
         else:
-            lines.append(f"Branch[{b}]   : Test262 covered neither true nor false branch")
+            lines.append(
+                f"Branch[{b}]   : Test262 covered neither true nor false branch"
+            )
 
         lines.append("")
 

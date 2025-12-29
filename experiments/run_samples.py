@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import csv
 import os
 import re
 import shlex
@@ -10,9 +9,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, List, Tuple
 
-FILENAME_RE = re.compile(r"^(?P<branch>\d+)-(?P<truth>true|false)\.json$", re.IGNORECASE)
+FILENAME_RE = re.compile(
+    r"^(?P<branch>\d+)-(?P<truth>true|false)\.json$", re.IGNORECASE
+)
 COVERED_RE = re.compile(r"Covered\s+.+?\s+with\s+(?P<iters>\d+)\s+iters", re.IGNORECASE)
 FAILED_RE = re.compile(r"\[ESMeta v[^\]]+\]\s+Failed to cover", re.IGNORECASE)
+ESMETA_HOME = (
+    Path(os.getenv("ESMETA_HOME") or Path(__file__).resolve().parent.parent)
+    .expanduser()
+    .resolve()
+)
+
 
 @dataclass
 class RunResult:
@@ -21,11 +28,12 @@ class RunResult:
     truth: str
     target: str
     run_idx: int
-    status: str
+    status: str  # "Covered" | "Timeout" | "Unknown"
     iters: Optional[int]
     returncode: int
     elapsed_sec: float
     last_line: str
+
 
 def last_nonempty_line(text: str) -> str:
     lines = [ln.rstrip("\n") for ln in text.splitlines()]
@@ -34,16 +42,25 @@ def last_nonempty_line(text: str) -> str:
             return ln.strip()
     return ""
 
-def run_once(esmeta: str, duration: int, json_path: Path, target: str,
-            branch: int, truth: str, run_idx: int) -> RunResult:
-    esmeta_argv = shlex.split(esmeta)  # "bash .../esmeta" 허용
+
+def run_once(
+    esmeta: str,
+    duration: int,
+    json_path: Path,
+    target: str,
+    branch: int,
+    truth: str,
+    run_idx: int,
+    verbose: bool,
+) -> RunResult:
+    esmeta_argv = shlex.split(esmeta)
     argv = esmeta_argv + [
         "mutate",
         "-mutate:mutator=TargetMutator",
         f"-mutate:target={target}",
         f"-mutate:duration={duration}",
         str(json_path),
-        "-silent"
+        "-silent",
     ]
 
     t0 = time.time()
@@ -60,14 +77,15 @@ def run_once(esmeta: str, duration: int, json_path: Path, target: str,
     try:
         proc = _run(argv)
     except OSError:
-        # shebang 없는 스크립트 등: bash로 fallback
         shell = os.environ.get("SHELL", "/bin/bash")
         cmd_str = " ".join(shlex.quote(x) for x in argv)
         proc = _run([shell, "-lc", cmd_str])
 
     elapsed = time.time() - t0
     out = proc.stdout or ""
-    print(out)
+    if verbose and out:
+        print(out, end="" if out.endswith("\n") else "\n")
+
     ll = last_nonempty_line(out)
 
     status = "Unknown"
@@ -93,24 +111,51 @@ def run_once(esmeta: str, duration: int, json_path: Path, target: str,
         last_line=ll,
     )
 
-def run_file(esmeta: str, duration: int, runs: int, p: Path, branch: int, truth: str) -> List[RunResult]:
-    """한 파일을 runs번(Timeout 나오면 즉시 중단) 돌리고 결과 리스트 반환"""
+
+def run_file(
+    esmeta: str,
+    duration: int,
+    runs: int,
+    p: Path,
+    branch: int,
+    truth: str,
+    verbose: bool,
+) -> List[RunResult]:
     target = f"Branch[{branch}]:{truth}"
     results: List[RunResult] = []
     for i in range(1, runs + 1):
-        rr = run_once(esmeta, duration, p, target, branch=branch, truth=truth, run_idx=i)
+        rr = run_once(
+            esmeta,
+            duration,
+            p,
+            target,
+            branch=branch,
+            truth=truth,
+            run_idx=i,
+            verbose=verbose,
+        )
         results.append(rr)
         if rr.status == "Timeout":
             break
     return results
 
-def main():
+
+def format_iters_list(iters: List[int]) -> str:
+    return "[ " + ", ".join(str(x) for x in iters) + " ]"
+
+
+def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dir", default="./experiments/samples")
+    ap.add_argument("--dir", default="./samples")
     ap.add_argument("--runs", type=int, default=10)
     ap.add_argument("--duration", type=int, default=300)
-    ap.add_argument("--esmeta", default="/home/d01c2/esmeta/bin/esmeta")
-    ap.add_argument("--out", default="dump.csv")
+    ap.add_argument(
+        "--esmeta", default=str(ESMETA_HOME / "bin" / "esmeta")
+    )
+    ap.add_argument("--out", default="sample-results")
+    ap.add_argument(
+        "--verbose", action="store_true", help="print esmeta output to stdout"
+    )
     args = ap.parse_args()
 
     d = Path(args.dir)
@@ -129,40 +174,56 @@ def main():
         files.append((p, branch, truth))
 
     if not files:
-        raise SystemExit(f"No matching files like '286-true.json' in: {d}")
+        raise SystemExit(f"No matching file in {d}")
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow([
-            "file", "branch", "truth", "target",
-            "run_idx", "status", "iters",
-            "returncode", "elapsed_sec", "last_line"
-        ])
-
-        total = 0
-        # 파일 단위 순차 실행
+    total_runs = 0
+    with out_path.open("w", encoding="utf-8") as f:
         for p, branch, truth in files:
-            results = run_file(args.esmeta, args.duration, args.runs, p, branch, truth)
+            results = run_file(
+                args.esmeta,
+                args.duration,
+                args.runs,
+                p,
+                branch,
+                truth,
+                verbose=args.verbose,
+            )
 
-            for rr in results:
-                w.writerow([
-                    rr.file, rr.branch, rr.truth, rr.target,
-                    rr.run_idx, rr.status, ("" if rr.iters is None else rr.iters),
-                    rr.returncode, f"{rr.elapsed_sec:.3f}", rr.last_line
-                ])
+            saw_timeout = any(r.status == "Timeout" for r in results)
+            if saw_timeout:
+                f.write(f'{p.name}: "TIMEOUT"\n')
+                f.flush()
+            else:
+                iters_list = [
+                    r.iters
+                    for r in results
+                    if r.status == "Covered" and r.iters is not None
+                ]
+                if iters_list:
+                    f.write(
+                        f"{p.name}: {format_iters_list([int(x) for x in iters_list])}\n"
+                    )
+                else:
+                    f.write(f'{p.name}: "UNKNOWN"\n')
                 f.flush()
 
-                total += 1
-                print(f"[{total}] {rr.file} run {rr.run_idx} -> {rr.status}"
-                      + (f" (iters={rr.iters})" if rr.iters is not None else ""))
-
-            if results and results[-1].status == "Timeout":
-                print(f"  -> Timeout detected; stopped further runs for {results[-1].file}")
+            total_runs += len(results)
+            last = results[-1]
+            msg = f"[{total_runs}] {p.name}: "
+            if saw_timeout:
+                msg += "TIMEOUT"
+            else:
+                msg += f"{len([r for r in results if r.status == 'Covered'])} covered"
+            msg += (
+                f" (last={last.status}, rc={last.returncode}, {last.elapsed_sec:.3f}s)"
+            )
+            print(msg)
 
     print(f"\nDone. Wrote: {out_path.resolve()}")
 
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
