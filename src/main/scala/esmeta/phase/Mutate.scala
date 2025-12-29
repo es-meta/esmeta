@@ -66,7 +66,6 @@ case object Mutate extends Phase[CFG, String] {
     val mutator = config.builder(using cfg)
     var blocked = Set[String]()
     var iter = 0
-    val trial = config.trial.getOrElse(Int.MaxValue)
 
     val startTime = System.currentTimeMillis
     def elapsed = System.currentTimeMillis - startTime
@@ -89,20 +88,15 @@ case object Mutate extends Phase[CFG, String] {
         covered
       case None => false
 
-    def guard(str: String): Unit =
-      if (iter >= trial) raise(s"Failed to cover $str after $iter iters")
-      if (timeout) raise(s"Failed to cover $str after $iter iters")
-
     // repeat until the mutated program is valid and covers target
     config.target match
       case Some(str) =>
         while (!(ValidityChecker(mutated) && coversFlipped(mutatedCode))) {
           while (blocked.contains(mutated))
-            guard(str)
             mutatedCode = mutator(code, target).code
           iter += 1
           blocked += mutated
-          guard(str)
+          if (timeout) raise(s"Failed to cover $str after $iter iters")
         }
       case None => ()
 
@@ -142,11 +136,6 @@ case object Mutate extends Phase[CFG, String] {
       "repeat until the mutated program covers the targeted branch.",
     ),
     (
-      "trial",
-      NumOption((c, n) => c.trial = Some(n)),
-      "set the number of trials (default: INF).",
-    ),
-    (
       "duration",
       NumOption((c, k) => c.duration = Some(k)),
       "set the maximum duration for mutation (default: INF).",
@@ -161,7 +150,6 @@ case object Mutate extends Phase[CFG, String] {
     var out: Option[String] = None,
     var builder: CFG ?=> Mutator = RandomMutator(),
     var target: Option[String] = None,
-    var trial: Option[Int] = None,
     var duration: Option[Int] = None,
     var debug: Boolean = false,
   )
