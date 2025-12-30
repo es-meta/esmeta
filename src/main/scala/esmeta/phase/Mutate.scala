@@ -73,11 +73,10 @@ case object Mutate extends Phase[CFG, String] {
 
     // get a mutated code
     var mutatedCode = mutator(code, target).code
+    iter += 1
 
     // get string of mutated code
     def mutated = mutatedCode.toString
-
-    iter += 1
 
     def coversFlipped(code: Code): Boolean = target match
       case Some((cv, _)) =>
@@ -94,7 +93,7 @@ case object Mutate extends Phase[CFG, String] {
         while (!(ValidityChecker(mutated) && coversFlipped(mutatedCode))) {
           while (blocked.contains(mutated))
             mutatedCode = mutator(code, target).code
-          iter += 1
+            iter += 1
           blocked += mutated
           if (timeout) raise(s"Failed to cover $str after $iter iters")
         }
