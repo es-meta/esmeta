@@ -30,8 +30,6 @@ class RunResult:
     run_idx: int
     status: str  # "Covered" | "Timeout" | "Unknown"
     iters: Optional[int]
-    returncode: int
-    elapsed_sec: float
     last_line: str
 
 
@@ -63,8 +61,6 @@ def run_once(
         "-silent",
     ]
 
-    t0 = time.time()
-
     def _run(argv_list: list[str]) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             argv_list,
@@ -81,22 +77,19 @@ def run_once(
         cmd_str = " ".join(shlex.quote(x) for x in argv)
         proc = _run([shell, "-lc", cmd_str])
 
-    elapsed = time.time() - t0
     out = proc.stdout or ""
     if verbose and out:
         print(out, end="" if out.endswith("\n") else "\n")
 
     ll = last_nonempty_line(out)
 
-    status = "Unknown"
-    iters = None
+    status, iters = "Unknown", None
     if FAILED_RE.search(ll):
-        status = "Timeout"
+        status, iters = "Timeout", None
     else:
         m = COVERED_RE.search(ll)
         if m:
-            status = "Covered"
-            iters = int(m.group("iters"))
+            status, iters = "Covered", int(m.group("iters"))
 
     return RunResult(
         file=json_path.name,
@@ -106,8 +99,6 @@ def run_once(
         run_idx=run_idx,
         status=status,
         iters=iters,
-        returncode=proc.returncode,
-        elapsed_sec=elapsed,
         last_line=ll,
     )
 
@@ -141,7 +132,7 @@ def run_file(
 
 
 def format_iters_list(iters: List[int]) -> str:
-    return "[ " + ", ".join(str(x) for x in iters) + " ]"
+    return "[ " + ", ".join(str(x) for x in sorted(iters)) + " ]"
 
 
 def main() -> None:
@@ -149,13 +140,9 @@ def main() -> None:
     ap.add_argument("--dir", default="./samples")
     ap.add_argument("--runs", type=int, default=10)
     ap.add_argument("--duration", type=int, default=300)
-    ap.add_argument(
-        "--esmeta", default=str(ESMETA_HOME / "bin" / "esmeta")
-    )
+    ap.add_argument("--esmeta", default=str(ESMETA_HOME / "bin" / "esmeta"))
     ap.add_argument("--out", default="sample-results")
-    ap.add_argument(
-        "--verbose", action="store_true", help="print esmeta output to stdout"
-    )
+    ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
     d = Path(args.dir)
@@ -179,9 +166,11 @@ def main() -> None:
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    total_runs = 0
     with out_path.open("w", encoding="utf-8") as f:
-        for p, branch, truth in files:
+        for i, (p, branch, truth) in enumerate(files):
+            id, condStr = p.stem.split("-", 1)
+            label = f"Branch[{id}]:{'T' if condStr.lower() == 'true' else 'F'}"
+
             results = run_file(
                 args.esmeta,
                 args.duration,
@@ -194,7 +183,7 @@ def main() -> None:
 
             saw_timeout = any(r.status == "Timeout" for r in results)
             if saw_timeout:
-                f.write(f'{p.name}: "TIMEOUT"\n')
+                f.write(f'{label}: "TIMEOUT"\n')
                 f.flush()
             else:
                 iters_list = [
@@ -203,23 +192,17 @@ def main() -> None:
                     if r.status == "Covered" and r.iters is not None
                 ]
                 if iters_list:
-                    f.write(
-                        f"{p.name}: {format_iters_list([int(x) for x in iters_list])}\n"
-                    )
+                    sorted_iters_list = format_iters_list([int(x) for x in iters_list])
+                    f.write(f"{label}: {sorted_iters_list}\n")
                 else:
-                    f.write(f'{p.name}: "UNKNOWN"\n')
+                    f.write(f'{label}: "UNKNOWN"\n')
                 f.flush()
 
-            total_runs += len(results)
-            last = results[-1]
-            msg = f"[{total_runs}] {p.name}: "
+            msg = f"[{i}] {label}: "
             if saw_timeout:
                 msg += "TIMEOUT"
             else:
                 msg += f"{len([r for r in results if r.status == 'Covered'])} covered"
-            msg += (
-                f" (last={last.status}, rc={last.returncode}, {last.elapsed_sec:.3f}s)"
-            )
             print(msg)
 
     print(f"\nDone. Wrote: {out_path.resolve()}")
