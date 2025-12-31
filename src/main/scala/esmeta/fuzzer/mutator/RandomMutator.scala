@@ -60,7 +60,9 @@ class RandomMutator(using cfg: CFG)(
       if (isTarget(ast))
         val manuals =
           if (ast.name == "AssignmentExpression")
-            List("-0", "-0n", "-Infinity", "NaN", "Symbol()")
+            val negNums = List("-0.1", "-0", "-1", "-0n", "-1n", "-Infinity")
+            val specials = List("NaN", "Symbol()")
+            (negNums ++ specials)
               .map(esParser("AssignmentExpression", ast.args).from)
               .map(_.asInstanceOf[Syntactic])
           else Nil
@@ -71,9 +73,8 @@ class RandomMutator(using cfg: CFG)(
         List("true", "false").map(b => Lexical(lex.name, b))
       case "NumericLiteral" =>
         List("0.1", "0", "1", "0n", "1n").map(n => Lexical(lex.name, n))
-      case "StringNumericLiteral" =>
-        List("Infinity").map(sn => Lexical(lex.name, sn))
-      case _ => List(lex)
+      case "StringNumericLiteral" => List(Lexical(lex.name, "Infininty"))
+      case _                      => List(lex)
     }
   }
 }
