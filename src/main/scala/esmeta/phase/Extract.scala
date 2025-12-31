@@ -32,22 +32,6 @@ case object Extract extends Phase[Unit, Spec] {
       println(f"- # of using cached result: $getCacheCount%,d")
     if (config.log) log(spec)
     if (config.strict) checkStrict(spec, config)
-    if (config.warnAction) {
-      println("Waiting to get diff information for `warn-action` in Stdin...")
-      val concat: String = Iterator
-        .continually(readLine)
-        .takeWhile(_ != null)
-        .mkString("\n")
-      val diffFile = decode[List[Int]](concat).toOption
-        .map(_.toSet)
-        .getOrElse({
-          warn(
-            s"failed to get diff information for `warn-action`; showing warning for all yet-steps.",
-          )
-          Set.empty
-        })
-      NewPhraseAlert.warnYets(spec, diffFile)
-    }
     spec
   } else {
     runREPL
@@ -61,59 +45,49 @@ case object Extract extends Phase[Unit, Spec] {
     val child = Paths.get(p).toAbsolutePath.normalize
 
     if (child startsWith parent)
-      warn(
-        "`allowed-yets` is set to a path under the log directory; `-extract:log` option may overwrite the given `-extract:allowed-yets` file.",
-      )
+      warn("`allowed-yets` is set to a path under the `logs` directory.")
+      warn("`-extract:log` option may overwrite the given allowlist file.")
   }
 
   private def checkStrict(spec: Spec, config: Config): Unit = {
     // TODO warn unused elements in ignore file
     val ignoreMap = config.allowedYets match
       case None =>
-        warn(
-          s"no ignore file for allowed `yets` found; using default allowlist. (default: none)",
-        )
+        warn(s"no allowlist file found; using an empty allowlist.")
         Map.empty
       case Some(value) => readJson[Map[String, List[String]]](value)
 
-    // check shape of json
-    val isWellShaped =
-      ignoreMap.keySet.subsetOf(Set("yet-steps", "yet-conds", "yet-types"))
-    if (!isWellShaped) {
-      warn(
-        s"invalid ignore file for allowed `yets`: expected keys are `yet-steps`, `yet-conds`, and `yet-types`, but given ${ignoreMap.keySet}.",
-      )
-    }
+    def getDisallowed(name: String, yets: List[String]): List[String] =
+      val ignored = ignoreMap.get(name).getOrElse(Nil).toSet
+      yets.filterNot(ignored.contains)
 
-    val disallowedYetTypes = {
-      val ignoredTypes = ignoreMap.get("yet-types").getOrElse(List.empty)
-      spec.yetTypes
-        .map(_.toString)
-        .filterNot(ignoredTypes.contains)
-    }
+    val disallowedYetTypes = getDisallowed(
+      "yet-types",
+      spec.yetTypes.map(_.toString),
+    )
 
-    val disAllowedYetConds = {
-      val ignoredConds = ignoreMap.get("yet-conds").getOrElse(List.empty)
-      spec.yetConds
-        .map(_.toString(detail = false, location = false))
-        .filterNot(ignoredConds.contains)
-    }
+    val disAllowedYetConds = getDisallowed(
+      "yet-conds",
+      spec.yetConds.map(_.toString(detail = false, location = false)),
+    )
 
-    val disallowedYetSteps = {
-      val ignoredSteps = ignoreMap.get("yet-steps").getOrElse(List.empty)
-      (ManualInfo.compileRule("inst").keySet ++
-      spec.yetSteps.map(
-        _.toString(detail = false, location = false),
-      ))
-        .filterNot(ignoredSteps.contains)
-    }
+    val disallowedYetSteps = getDisallowed(
+      "yet-steps",
+      spec.yetSteps.map(_.toString(detail = false, location = false)),
+    )
 
     val disallowed =
-      disallowedYetTypes.nonEmpty || disallowedYetSteps.nonEmpty || disAllowedYetConds.nonEmpty
+      disallowedYetTypes.nonEmpty ||
+      disallowedYetSteps.nonEmpty ||
+      disAllowedYetConds.nonEmpty
 
     if (disallowed) {
       raise(
-        s"extracting failed in strict extract mode: found ${spec.yetTypes.length} yet-types, ${spec.yetSteps.length} yet-steps and ${spec.yetConds.length} yet-conds. see result of -extract:log for details.",
+        s"extracting failed in strict extract mode: found " +
+        s"${disallowedYetTypes.length} yet-types, " +
+        s"${disallowedYetSteps.length} yet-steps, and " +
+        s"${disAllowedYetConds.length} yet-conds not in the allowlist. " +
+        "see result of -extract:log for details.",
       )
     }
   }
@@ -123,8 +97,7 @@ case object Extract extends Phase[Unit, Spec] {
     mkdir(EXTRACT_LOG_DIR)
 
     dumpJson(
-      name =
-        "not yet supported steps, not yet supported conditions, and not yet parsed types in one file",
+      name = "not yet supported steps, conditions, and types",
       data = Map(
         "yet-steps" -> spec.yetSteps
           .map(_.toString(detail = false, location = false))
@@ -216,17 +189,13 @@ case object Extract extends Phase[Unit, Spec] {
     (
       "strict",
       BoolOption(_.strict = _),
-      "turn on strict parsing mode, which makes extractor fail when any 'yet-step' or 'yet-type`. (default: false)",
+      "turn on strict parsing mode, which makes extractor fail " +
+      "when any 'yet-step' or 'yet-type`. (default: false)",
     ),
     (
       "allowed-yets",
       StrOption((c, s) => c.allowedYets = Some(s)),
       "set a file containing allowed `yet`s (default: none).",
-    ),
-    (
-      "warn-action",
-      BoolOption(_.warnAction = _),
-      "print workflow commands to warn novel yet-steps GitHub action",
     ),
   )
   case class Config(
@@ -236,6 +205,5 @@ case object Extract extends Phase[Unit, Spec] {
     var repl: Boolean = false,
     var strict: Boolean = false,
     var allowedYets: Option[String] = None,
-    var warnAction: Boolean = false,
   )
 }
