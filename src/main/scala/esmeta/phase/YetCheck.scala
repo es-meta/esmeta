@@ -104,6 +104,39 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
     )
   }
 
+  def getSummary(
+    yetSteps: List[Target[Step]],
+    yetTypes: List[Target[Type]],
+  ): String = {
+    val app = new Appender
+    app >> "### Newly Introduced Yet Steps"
+    app :> ""
+    app :> s"${yetSteps.size} newly introduced yet steps found."
+    app :> "Type check will not be performed after these lines."
+    app :> ""
+    app :> "| # | Line | Algorithm | Step |"
+    app :> "|:-:| ---: | :-------: | :--- |"
+    for ((Target(step, line, algo), i) <- yetSteps.zipWithIndex) {
+      app :> s"| ${i + 1} | $line | `${algo.name}` | `${step.toString(
+        detail = false,
+        location = false,
+      )}` |"
+    }
+    app :> ""
+    app :> "### Newly Introduced Yet Types"
+    app :> ""
+    app :> s"${yetTypes.size} newly introduced yet types found."
+    app :> "These types will be treated as bottom (⊥) type initially but "
+    app >> "will be joined with argument types when the algorithm is called."
+    app :> ""
+    app :> "| # | Line | Algorithm | Type |"
+    app :> "|:-:| ---: | :-------: | :--- |"
+    for ((Target(ty, line, algo), i) <- yetTypes.zipWithIndex) {
+      app :> s"| ${i + 1} | $line | `${algo.name}` | `${ty.toString}` |"
+    }
+    app.toString
+  }
+
   def getYetSteps(spec: Spec): List[Target[Step]] =
     getYets(spec, _.elem, _.incompleteSteps)
 
@@ -150,6 +183,11 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
         )
       }),
       filename = s"$YET_CHECK_LOG_DIR/yet-types.json",
+    )
+    dumpFile(
+      name = "summary for not yet supported steps and types",
+      data = getSummary(yetSteps, yetTypes),
+      filename = s"$YET_CHECK_LOG_DIR/summary.md",
     )
   }
 
