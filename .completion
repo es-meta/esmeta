@@ -11,10 +11,10 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject mutate dump-debugger dump-visualizer"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject mutate dump-debugger dump-visualizer yet-check"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
-  extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets -extract:warn-action"
+  extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets"
   compileOpt="-compile:log -compile:log-with-loc -compile:opt"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
   tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:detail-log -tycheck:type-sens -tycheck:infer-guard"
@@ -27,6 +27,7 @@ _esmeta_completions() {
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   dumpdebuggerOpt=""
   dumpvisualizerOpt=""
+  yetcheckOpt="-yet-check:log -yet-check:github-alert -yet-check:merge-threshold"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -93,6 +94,10 @@ _esmeta_completions() {
           ;;
         dump-visualizer)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${dumpvisualizerOpt}"))
+          return 0
+          ;;
+        yet-check)
+          COMPREPLY=($(compgen -W "${globalOpt} ${yetcheckOpt}"))
           return 0
           ;;
       esac
