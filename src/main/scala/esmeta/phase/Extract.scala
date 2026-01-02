@@ -2,7 +2,6 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.extractor.Extractor
-import esmeta.extractor.util.NewPhraseAlert
 import esmeta.lang.*
 import esmeta.lang.util.ParserForEval.{getParseCount, getCacheCount}
 import esmeta.spec.*
@@ -13,7 +12,6 @@ import esmeta.spec.util.JsonProtocol.given
 import java.nio.file.Paths
 import scala.io.StdIn.readLine
 import io.circe.syntax._
-import io.circe.parser.decode
 
 /** `extract` phase */
 case object Extract extends Phase[Unit, Spec] {
