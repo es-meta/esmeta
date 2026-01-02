@@ -94,7 +94,8 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
       line = Some(line),
       title = Some("Newly Introduced Unknown Type"),
       message = Some(
-        s"""The type `$ty` used in ${algo.name}
+        s"""
+        |The type "$ty" used in ${algo.name}
         |is unknown type which ESMeta cannot understand.
         |This type will be treated as bottom (⊥) type initially
         |but will be joined with argument types when the algorithm is called.
