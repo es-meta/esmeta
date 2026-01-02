@@ -44,7 +44,7 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
       val linesForSteps = stepDiffs.flatMap(_.added).toList.sorted
       val yetSteps = for {
         target <- getYetSteps(toSpec)
-        if linesForSteps.exists(target.range.contains)
+        if linesForSteps.contains(target.line)
       } yield target
 
       // filter target type diffs (excluding already `yet` types in `from`)
@@ -58,7 +58,7 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
       val linesForTypes = typeDiffs.flatMap(_.added).toList.sorted
       val yetTypes = for {
         target <- getYetTypes(toSpec)
-        if linesForTypes.exists(target.range.contains)
+        if linesForTypes.contains(target.line)
       } yield target
 
       if (config.log) log(yetSteps, yetTypes)
@@ -69,18 +69,17 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
     case _ => raise("`yet-check` phase needs exactly two targets: <from> <to>")
   }
 
-  case class Target[T <: Locational](target: T, range: Range, algo: Algorithm)
+  case class Target[T <: Locational](target: T, line: Int, algo: Algorithm)
 
   def alert(
     yetSteps: List[Target[Step]],
     yetTypes: List[Target[Type]],
   ): Unit = {
     // alert newly introduced yet steps
-    for { Target(step, range, algo) <- yetSteps } yield GitHubAction.println(
+    for { Target(step, line, algo) <- yetSteps } yield GitHubAction.println(
       tag = "warning",
       file = Some("spec.html"),
-      line = Some(range.start),
-      endLine = Some(range.end - 1),
+      line = Some(line),
       title = Some("Newly Introduced Unknown Step"),
       message = Some(s"""
         |This step in ${algo.name} cannot be understood by ESMeta.
@@ -89,11 +88,10 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
     )
 
     // alert newly introduced yet types
-    for { Target(ty, range, algo) <- yetTypes } yield GitHubAction.println(
+    for { Target(ty, line, algo) <- yetTypes } yield GitHubAction.println(
       tag = "warning",
       file = Some("spec.html"),
-      line = Some(range.start),
-      endLine = Some(range.end - 1),
+      line = Some(line),
       title = Some("Newly Introduced Unknown Type"),
       message = Some(
         s"""The type `$ty` used in ${algo.name}
@@ -112,7 +110,7 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
     getYets(spec, _.headElem, _.yetTypes)
 
   def getLines(targets: List[Target[_]]): List[Int] =
-    targets.flatMap(_.range).toSet.toList.sorted
+    targets.map(_.line).toSet.toList.sorted
 
   def filterDiffs(diffs: List[Git.Diff], excluded: List[Int]): List[Git.Diff] =
     diffs.filter(diff => !excluded.exists(diff.removed.contains))
@@ -126,8 +124,8 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
     startLine = getElem(algo).sourceRange.start.lineNumber
     target <- getTarget(algo)
     loc <- target.loc.toList
-    range = startLine + loc.start.line - 1 until startLine + loc.end.line
-  } yield Target(target, range, algo)
+    line = startLine + loc.start.line - 1
+  } yield Target(target, line, algo)
 
   def log(yetSteps: List[Target[Step]], yetTypes: List[Target[Type]]): Unit = {
     dumpJson(
@@ -136,7 +134,7 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
         Map(
           "step" -> target.target.toString(detail = false, location = false),
           "algorithm" -> target.algo.name,
-          "lines" -> target.range.toString,
+          "line" -> target.line.toString,
         )
       }),
       filename = s"$YET_CHECK_LOG_DIR/yet-steps.json",
@@ -147,7 +145,7 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
         Map(
           "type" -> target.target.toString,
           "algorithm" -> target.algo.name,
-          "lines" -> target.range.toString,
+          "line" -> target.line.toString,
         )
       }),
       filename = s"$YET_CHECK_LOG_DIR/yet-types.json",
