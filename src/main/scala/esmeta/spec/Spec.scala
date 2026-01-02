@@ -80,7 +80,7 @@ case class Spec(
   /** get all types */
   lazy val types: List[Type] = for {
     algo <- algorithms
-    ty <- algo.retTy :: algo.head.funcParams.map(_.ty)
+    ty <- algo.types
   } yield ty
 
   /** get known types */

@@ -60,8 +60,8 @@ case object CmdBase extends Command("", PhaseNil) {
 case object CmdHelp extends Command("help", CmdBase >> Help) {
   val help = "shows help messages."
   val examples = List(
-    "esmeta help                  // show help message.",
-    "esmeta help extract          // show help message of `extract` command.",
+    "esmeta help                  # show help message.",
+    "esmeta help extract          # show help message of `extract` command.",
   )
   override val targetName = "[<command>]"
   override val needTarget = false
@@ -74,9 +74,9 @@ case object CmdHelp extends Command("help", CmdBase >> Help) {
 case object CmdExtract extends Command("extract", CmdBase >> Extract) {
   val help = "extracts specification model from ECMA-262 (spec.html)."
   val examples = List(
-    "esmeta extract                           // extract current version.",
-    "esmeta extract -extract:target=es2022    // extract es2022 version.",
-    "esmeta extract -extract:target=868fe7a   // extract 868fe7a hash version.",
+    "esmeta extract                           # extract current version.",
+    "esmeta extract -extract:target=es2025    # extract es2025 version.",
+    "esmeta extract -extract:target=868fe7a   # extract 868fe7a hash version.",
   )
 }
 
@@ -85,7 +85,7 @@ case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
   val help = "compiles a specification to an IR program."
   val examples = List(
     "esmeta compile                        # compile spec to IR program.",
-    "esmeta compile -extract:target=es2022 # compile es2022 spec to IR program",
+    "esmeta compile -extract:target=es2025 # compile es2025 spec to IR program",
   )
 }
 
@@ -94,7 +94,7 @@ case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
   val help = "builds a control-flow graph (CFG) from an IR program."
   val examples = List(
     "esmeta build-cfg                          # build CFG for spec.",
-    "esmeta build-cfg -extract:target=es2022   # build CFG for es2022 spec.",
+    "esmeta build-cfg -extract:target=es2025   # build CFG for es2025 spec.",
   )
 }
 
@@ -107,7 +107,7 @@ case object CmdTyCheck extends Command("tycheck", CmdBuildCFG >> TyCheck) {
   val examples = List(
     "esmeta tycheck                              # type check for spec.",
     "esmeta tycheck -tycheck:target='.*ToString' # type check with targets",
-    "esmeta tycheck -extract:target=es2022       # type check for es2022 spec.",
+    "esmeta tycheck -extract:target=es2025       # type check for es2025 spec.",
   )
 }
 
@@ -119,7 +119,7 @@ case object CmdParse extends Command("parse", CmdExtract >> Parse) {
   val help = "parses an ECMAScript file."
   val examples = List(
     "esmeta parse a.js                         # parse a.js file.",
-    "esmeta parse a.js -extract:target=es2022  # parse with es2022 spec.",
+    "esmeta parse a.js -extract:target=es2025  # parse with es2025 spec.",
     "esmeta parse a.js -parse:debug            # parse in the debugging mode.",
   )
   override val targetName = "<js>+"
@@ -130,7 +130,7 @@ case object CmdEval extends Command("eval", CmdBuildCFG >> Eval) {
   val help = "evaluates an ECMAScript file."
   val examples = List(
     "esmeta eval a.js                         # eval a.js file.",
-    "esmeta eval a.js -extract:target=es2022  # eval with es2022 spec.",
+    "esmeta eval a.js -extract:target=es2025  # eval with es2025 spec.",
     "esmeta eval a.js -eval:log               # eval in the logging mode.",
   )
   override val targetName = "<js>+"
@@ -196,7 +196,7 @@ case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
 case object CmdDumpDebugger
   extends Command("dump-debugger", CmdBuildCFG >> DumpDebugger) {
   def help =
-    "dumps the resources required by the standalone debugger. (for internal use)"
+    "dumps resources required by the standalone debugger (for internal use)."
   val examples = List(
     "esmeta dump-debugger                         # dump data to data.json",
   )
@@ -208,6 +208,21 @@ case object CmdDumpVisualizer
   def help =
     "dumps the resources required by the visualizer. (for internal use)"
   val examples = List(
-    "esmeta dump-visualizer                      # dump resources for visualizer",
+    "esmeta dump-visualizer                      # dump resources",
   )
+}
+
+// -----------------------------------------------------------------------------
+// ECMA-262 GitHub Actions
+// -----------------------------------------------------------------------------
+/** `yet-check` command */
+case object CmdYetCheck extends Command("yet-check", CmdBase >> YetCheck) {
+  val help = "checks `yet-step` and `yet-type` in the specification."
+  val examples = List(
+    "esmeta yet-check es2024 es2025  # check yet-steps/types between versions.",
+  )
+  override def showResult(res: (Int, Int)): Unit = {
+    val (yetSteps, yetTypes) = res
+    println(s"Found $yetSteps yet-steps and $yetTypes yet-types.")
+  }
 }
