@@ -28,11 +28,11 @@ class BuiltinSynthesizer(algorithms: List[Algorithm]) extends Synthesizer {
           case Prototype(proto, prop) =>
             List(
               Builtin(
-                "Object.setPrototypeOf",
-                None,
-                List("x", proto),
-                Some("var x = {};"),
-                Some(s"x$prop;"),
+                func = "Object.setPrototypeOf",
+                thisArg = None, // ignore
+                args = List("x", proto),
+                preStmts = Some("var x = {};"),
+                postStmts = Some(s"x$prop;"),
               ),
             )
           case _ => Nil
@@ -42,11 +42,11 @@ class BuiltinSynthesizer(algorithms: List[Algorithm]) extends Synthesizer {
           case Prototype(proto, prop) =>
             List(
               Builtin(
-                "Object.setPrototypeOf",
-                None,
-                List("x", proto),
-                Some("var x = {};"),
-                Some(s"x$prop = 0;"),
+                func = "Object.setPrototypeOf",
+                thisArg = None, // ignore
+                args = List("x", proto),
+                preStmts = Some("var x = {};"),
+                postStmts = Some(s"x$prop = 0;"),
               ),
             )
           case _ => Nil
@@ -58,15 +58,40 @@ class BuiltinSynthesizer(algorithms: List[Algorithm]) extends Synthesizer {
         val calls = for {
           argsLen <- Range(0, MAX_ARGS).toList
           args = List.fill(argsLen)("0")
-        } yield Builtin(s"$pathStr.call", Some("0"), args, None, None)
-        // construct without arguments
-        val construct = Normal(s"new $pathStr;")
-        // constructs with arguments
-        val constructs = for {
+        } yield Builtin(
+          func = s"$pathStr.call",
+          thisArg = Some("0"),
+          args = args,
+          preStmts = None,
+          postStmts = None,
+        )
+        // constructs
+        val constructs = Normal(s"new $pathStr;") :: (for {
           argsLen <- Range(0, MAX_ARGS).toList
           args = List.fill(argsLen)("0")
-        } yield Builtin(s"new $pathStr", None, args, None, None)
-        calls ++ (construct :: constructs)
+        } yield Builtin(
+          func = s"new $pathStr",
+          thisArg = None,
+          args = args,
+          preStmts = None,
+          postStmts = None,
+        ))
+        // reflects via proxy targets
+        val reflects =
+          path match
+            case NormalAccess(base, _) if getString(base) == "Reflect" =>
+              for {
+                argsLen <- Range(0, MAX_ARGS).toList
+                args = List.fill(argsLen)("0")
+              } yield Builtin(
+                func = pathStr,
+                thisArg = None, // ignore
+                args = "p" :: args,
+                preStmts = Some("var p = new Proxy({}, {});"),
+                postStmts = None,
+              )
+            case _ => Nil
+        calls ++ constructs ++ reflects
   } yield code).toVector
 
   // get prototype paths and properties
