@@ -30,7 +30,7 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
       val toSpec = Extractor(to)
 
       // get diffs between `from` and `to`
-      val diffs = Spec.getDiffs(from, to)
+      val diffs = Spec.getDiffs(from, to, "spec.html")
       if (verbose) println(s"${diffs.size} total diffs found.")
 
       // filter target diffs (excluding already `yet` steps in `from`)
