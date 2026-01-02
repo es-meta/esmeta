@@ -30,7 +30,7 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
       val toSpec = Extractor(to)
 
       // get diffs between `from` and `to`
-      val diffs = Spec.getDiffs(from, to, "spec.html")
+      val diffs = Spec.getDiffs(from, to, "spec.html", config.mergeThreshold)
       if (verbose) println(s"${diffs.size} total diffs found.")
 
       // filter target diffs (excluding already `yet` steps in `from`)
@@ -203,9 +203,15 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
       BoolOption(_.gitHubAlert = _),
       "turn on GitHub alert mode.",
     ),
+    (
+      "merge-threshold",
+      NumOption(_.mergeThreshold = _),
+      "set the merge threshold for diff normalization.",
+    ),
   )
   case class Config(
     var log: Boolean = false,
     var gitHubAlert: Boolean = false,
+    var mergeThreshold: Int = Spec.DEFAULT_MERGE_THRESHOLD,
   )
 }

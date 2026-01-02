@@ -27,7 +27,7 @@ _esmeta_completions() {
   mutateOpt="-mutate:out -mutate:mutator -mutate:untilValid"
   dumpdebuggerOpt=""
   dumpvisualizerOpt=""
-  yetcheckOpt="-yet-check:log -yet-check:github-alert"
+  yetcheckOpt="-yet-check:log -yet-check:github-alert -yet-check:merge-threshold"
   # completion for commands
   case "${COMP_CWORD}" in
     1)

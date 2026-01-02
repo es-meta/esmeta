@@ -85,7 +85,7 @@ object SystemUtils {
     silent: Boolean = false,
   ): Unit =
     dumpFile(data, filename, append)
-    if (!silent) println(s"- Dumped $name into `$filename` .")
+    if (!silent) println(s"- Dumped $name into `$filename`.")
 
   /** dump given data in a JSON format */
   def dumpJson[T](data: T, filename: String)(using Encoder[T]): Unit =

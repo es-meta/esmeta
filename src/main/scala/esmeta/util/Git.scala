@@ -58,8 +58,16 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
   /** clean modified content */
   def clean: Unit = executeCmd(s"git checkout -- .", path)
 
+  /** default merge threshold */
+  val DEFAULT_MERGE_THRESHOLD: Int = 1
+
   /** get git diffs between two targets */
-  def getDiffs(from: String, to: String, target: String = "."): List[Diff] = {
+  def getDiffs(
+    from: String,
+    to: String,
+    target: String = ".",
+    mergeThreshold: Int = DEFAULT_MERGE_THRESHOLD,
+  ): List[Diff] = {
     val diffStr = executeCmd(s"git diff -U0 $from $to -- $target", path)
     val parseDiffLine = """^\s*@@ -(\d+)(,\d+)? \+(\d+)(,\d+)? @@.*$""".r
     def aux(start: String, len: String | Null): Range =
@@ -73,20 +81,22 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
         case _                         => None
       }
     } yield diff
-    normalize(diffs)
+    normalize(diffs, mergeThreshold)
   }
 
   /** normalize diffs by merging adjacent diffs if they are continuous */
-  def normalize(diffs: List[Diff]): List[Diff] = {
-    val DIFF_THRESHOLD = 1
+  def normalize(
+    diffs: List[Diff],
+    mergeThreshold: Int = DEFAULT_MERGE_THRESHOLD,
+  ): List[Diff] = {
     @annotation.tailrec
     def aux(
       diffs: List[Diff],
       revAcc: List[Diff],
     ): List[Diff] = diffs match
       case d1 :: d2 :: t
-          if d1.removed.end >= d2.removed.start - DIFF_THRESHOLD
-          && d1.added.end >= d2.added.start - DIFF_THRESHOLD =>
+          if d1.removed.end >= d2.removed.start - mergeThreshold
+          && d1.added.end >= d2.added.start - mergeThreshold =>
         val merged = Diff(
           d1.removed.start until d2.removed.end,
           d1.added.start until d2.added.end,
