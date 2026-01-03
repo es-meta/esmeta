@@ -31,17 +31,17 @@ trait SymTyDecl { self: TyChecker =>
       case SNormal(symty) => symty.isBottom
       case _              => false
 
-    def isSingle(using st: AbsState): Boolean = this.ty.getSingle match
+    def isSingle(using st: AbsState): Boolean = this.upper.getSingle match
       case One(_) => true
       case _      => false
 
     /* Evaluation of the Symbolic type */
-    def ty(using st: AbsState): ValueTy = this match
+    def upper(using st: AbsState): ValueTy = this match
       case STy(ty)             => ty
       case SVar(x)             => st.get(x).ty
       case SSym(sym)           => st.get(sym)
-      case SField(base, field) => st.get(base.ty, field.ty)
-      case SNormal(symty)      => NormalT(symty.ty)
+      case SField(base, field) => st.get(base.upper, field.upper)
+      case SNormal(symty)      => NormalT(symty.upper)
 
     def has(base: Base): Boolean = this match
       case STy(ty)        => false
@@ -57,12 +57,12 @@ trait SymTyDecl { self: TyChecker =>
       case SField(base, field) => base.bases ++ field.bases
       case SNormal(symty)      => symty.bases
 
-    def kill(bases: Set[Base], update: Boolean): Option[SymTy] = this match
-      case t: SymRef      => killRef(t, bases, update)
+    def weaken(bases: Set[Base], update: Boolean): Option[SymTy] = this match
+      case t: SymRef      => weakenRef(t, bases, update)
       case STy(ty)        => Some(STy(ty))
-      case SNormal(symty) => symty.kill(bases, update).map(SNormal(_))
+      case SNormal(symty) => symty.weaken(bases, update).map(SNormal(_))
 
-    def killRef(
+    def weakenRef(
       ref: SymRef,
       bases: Set[Base],
       update: Boolean,
@@ -71,8 +71,8 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(sym) => if (bases contains sym) None else Some(SSym(sym))
       case SField(b, f) =>
         for {
-          b <- killRef(b, bases, update)
-          f <- f.kill(bases, update)
+          b <- weakenRef(b, bases, update)
+          f <- f.weaken(bases, update)
         } yield SField(b, f)
 
     def isSymbolic: Boolean = this match
@@ -87,7 +87,7 @@ trait SymTyDecl { self: TyChecker =>
     def ⊑(that: SymTy)(lst: AbsState, rst: AbsState): Boolean =
       (this, that) match
         case (STy(lty), STy(rty))           => lty ⊑ rty
-        case (l, STy(rty))                  => l.ty(using lst) ⊑ rty
+        case (l, STy(rty))                  => l.upper(using lst) ⊑ rty
         case (l, r) if l.isBottom || l == r => true
         case _                              => false
 
@@ -103,7 +103,7 @@ trait SymTyDecl { self: TyChecker =>
       (this, that) match
         case (l, r) if l.isBottom || l == r => r
         case (l, r) if r.isBottom           => l
-        case (l, r) => STy(l.ty(using lst) || r.ty(using rst))
+        case (l, r) => STy(l.upper(using lst) || r.upper(using rst))
 
     /** meet operator in same state */
     def ⊓(that: SymTy)(using st: AbsState): SymTy =
@@ -114,7 +114,7 @@ trait SymTyDecl { self: TyChecker =>
       (this, that) match
         case (l, r) if l.isBottom || r.isBottom => SymTy.Bot
         case (l, r) if l == r                   => l
-        case (l, r) => STy(l.ty(using lst) && r.ty(using rst))
+        case (l, r) => STy(l.upper(using lst) && r.upper(using rst))
 
     /** prune operator in same state */
     def --(that: SymTy)(using st: AbsState): SymTy =
@@ -124,7 +124,11 @@ trait SymTyDecl { self: TyChecker =>
     def --(that: SymTy)(lst: AbsState, rst: AbsState): SymTy =
       (this, that) match
         case (l, r) if r.isBottom => l
-        case (l, r)               => STy(l.ty(using lst) -- r.ty(using rst))
+        case (l, r) => STy(l.upper(using lst) -- r.upper(using rst))
+
+    def refine(ty: ValueTy)(using st: AbsState): SymTy =
+      if (this ⊑ STy(ty)) this
+      else STy(this.upper ⊓ ty)
 
     def getString = s"${this}"
   }

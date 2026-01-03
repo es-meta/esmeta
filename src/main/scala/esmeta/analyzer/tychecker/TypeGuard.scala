@@ -12,38 +12,84 @@ import esmeta.util.SystemUtils.exists
 trait TypeGuardDecl { self: TyChecker =>
 
   /** type guard */
-  case class TypeGuard(map: Map[DemandType, TypeConstr] = Map()) {
+  case class TypeGuard(map: Map[DemandType, TypeProp] = Map()) {
     def isEmpty: Boolean = map.isEmpty
     def nonEmpty: Boolean = !isEmpty
     def dtys: Set[DemandType] = map.keySet
-    def get(dty: DemandType): Option[TypeConstr] = map.get(dty)
 
-    def apply(dty: DemandType): TypeConstr =
-      map.getOrElse(dty, TypeConstr())
+    private def get(dty: DemandType): Option[TypeProp] = map.get(dty)
+
+    def apply(ty: ValueTy): TypeProp = lookup(ty)
+
+    def lookup(ty: ValueTy): TypeProp =
+      val lst = for {
+        (dty, p) <- map
+        if ty <= dty.ty // maybe need cache?
+      } yield p
+      if lst.isEmpty then TypeProp()
+      else lst.reduce(_ && _)
+
+    def update(ty: ValueTy, prop: TypeProp): TypeGuard =
+      val r = for dty <- DemandType.set yield DemandType(dty) -> {
+        val p = map.getOrElse(DemandType(dty), TypeProp())
+        if ty <= dty then prop && p
+        else p
+      }
+      TypeGuard(r.toMap)
+
+    def refine(ty: ValueTy): TypeGuard =
+      TypeGuard(for {
+        (dty, p) <- map
+        if !(ty && dty.ty).isBottom
+      } yield dty -> this.lookup(dty.ty))
+
+    def fieldLookup(fld: String): TypeGuard =
+      val m = for
+        (dty, p) <- map
+        ity = dty.ty.record(fld).value
+        if DemandType.set.contains(ity)
+      yield DemandType(ity) -> p
+      m.foldLeft(TypeGuard.Empty) {
+        case (acc, curr) =>
+          val (dty, p) = curr
+          acc.update(dty.ty, p)
+      }
+
+    def fieldUpdate(fld: String, ty: ValueTy): TypeGuard =
+      val m = for {
+        (dty, p) <- map
+        newTy = dty.ty.record.update(fld, ty, refine = false)
+        newProp = p.fieldUpdate(fld, ty)
+      } yield dty -> newProp
+      m.foldLeft(TypeGuard.Empty) {
+        case (acc, curr) =>
+          val (dty, p) = curr
+          acc.update(dty.ty, p)
+      }
+
+    def apply(dty: DemandType): TypeProp =
+      map.getOrElse(dty, TypeProp())
 
     def bases: Set[Base] = map.values.flatMap(_.bases).toSet
 
-    def kill(bases: Set[Base])(using AbsState): TypeGuard = TypeGuard(for {
-      (dty, constr) <- map
-      newConstr = constr.kill(bases)
-      if newConstr.nonTop
-    } yield dty -> newConstr)
+    def weaken(bases: Set[Base])(using AbsState): TypeGuard = TypeGuard(for {
+      (dty, prop) <- map
+      newProp = prop.weaken(bases)
+      if newProp.nonTop
+    } yield dty -> newProp)
 
     def forReturn(symEnv: Map[Sym, ValueTy]): TypeGuard = TypeGuard(for {
-      (dty, constr) <- map
-      newConstr = constr.forReturn(symEnv)
-      if newConstr.nonTop
-    } yield dty -> newConstr)
-
-    def filter(ty: ValueTy): TypeGuard =
-      TypeGuard(map.filter { (dty, _) => !(dty.ty && ty).isBottom })
+      (dty, prop) <- map
+      newProp = prop.forReturn(symEnv)
+      if newProp.nonTop
+    } yield dty -> newProp)
 
     def lift(ty: ValueTy = ValueTy.Top)(using st: AbsState): TypeGuard =
       this && TypeGuard((for {
         kind <- DemandType.from(ty).toList
-        constr = TypeConstr().lift
-        if constr.nonTop
-      } yield kind -> constr).toMap)
+        prop = TypeProp().lift
+        if prop.nonTop
+      } yield kind -> prop).toMap)
 
     def has(x: Base): Boolean = map.values.exists(_.has(x))
 
@@ -61,42 +107,24 @@ trait TypeGuardDecl { self: TyChecker =>
       TypeGuard((for {
         dty <- dtys.toList
         ty = lty || rty
-        constr = (this.evaluate(ty, dty.ty), that.evaluate(ty, dty.ty)) match
+        prop = (this(dty.ty), that(dty.ty)) match
           case (l, r) if (lty && dty.ty).isBottom => r
           case (l, r) if (rty && dty.ty).isBottom => l
           case (l, r)                             => l || r
-        if !constr.isTop
-      } yield dty -> constr).toMap)
+        if !prop.isTop
+      } yield dty -> prop).toMap)
 
     def &&(that: TypeGuard): TypeGuard = TypeGuard((for {
       dty <- (this.dtys ++ that.dtys).toList
-      constr = this(dty) && that(dty)
-      if !constr.isTop
-    } yield dty -> constr).toMap)
+      prop = this(dty) && that(dty)
+      if !prop.isTop
+    } yield dty -> prop).toMap)
 
-    def evaluate(lty: ValueTy, rty: ValueTy): TypeConstr =
-      if (lty && rty).isBottom then TypeConstr()
-      else {
-        val constrs = for {
-          (dty, constr) <- map
-          if rty <= dty.ty
-        } yield constr
-        if constrs.isEmpty then TypeConstr()
-        else constrs.reduce(_ && _)
-      }
-
-    def simple: TypeGuard =
-      TypeGuard(map.filterNot { (dty, constr) =>
-        map.exists { (tdty, tconstr) =>
-          (dty.ty != tdty.ty && dty.ty <= tdty.ty && tconstr <= constr)
-        }
-      })
-
-    override def toString: String = (new Appender >> this).toString
+    override def toString: String = stringify(this)
   }
   object TypeGuard {
     val Empty: TypeGuard = TypeGuard()
-    def apply(ps: (DemandType, TypeConstr)*): TypeGuard = TypeGuard(
+    def apply(ps: (DemandType, TypeProp)*): TypeGuard = TypeGuard(
       ps.toMap,
     )
   }
@@ -144,88 +172,134 @@ trait TypeGuardDecl { self: TyChecker =>
         .map(DemandType(_))
   }
 
-  /** type constraints */
-  case class TypeConstr(
-    map: Map[Base, (ValueTy, Provenance)] = Map(),
+  case class TypeProp(
+    localEnv: Map[Local, (ValueTy, Provenance)] = Map(),
+    symEnv: Map[Sym, (ValueTy, Provenance)] = Map(),
     sexpr: Option[SymExpr] = None,
   ) {
-    def isTop: Boolean = map.isEmpty && sexpr.isEmpty
+    private type Binding[A] = Map[A, (ValueTy, Provenance)]
+
+    // Combined view for existing call sites that expect a single map
+    lazy val map: Map[Base, (ValueTy, Provenance)] =
+      localEnv.map { case (l, v) => (l: Base) -> v } ++
+      symEnv.map { case (s, v) => (s: Base) -> v }
+
+    def isTop: Boolean = localEnv.isEmpty && symEnv.isEmpty && sexpr.isEmpty
 
     def nonTop: Boolean = !isTop
 
-    def <=(that: TypeConstr): Boolean =
-      that.map.forall {
+    def <=(that: TypeProp): Boolean =
+      that.localEnv.forall {
         case (x, (rty, rprov)) =>
-          this.map.get(x).fold(false) {
+          this.localEnv.get(x).fold(false) {
+            case (lty, lprov) =>
+              if (lty == rty) lprov <= rprov
+              else lty <= rty
+          }
+      } && that.symEnv.forall {
+        case (sym, (rty, rprov)) =>
+          this.symEnv.get(sym).fold(false) {
             case (lty, lprov) =>
               if (lty == rty) lprov <= rprov
               else lty <= rty
           }
       } && (this.sexpr == that.sexpr)
 
-    def ||(that: TypeConstr): TypeConstr =
-      TypeConstr(
-        map = (for {
-          x <- (this.map.keySet intersect that.map.keySet).toList
-          (lty, lprov) = this.map(x)
-          (rty, rprov) = that.map(x)
-          pair = {
-            if (lty <= rty) (rty, rprov)
-            else if (rty <= lty) (lty, lprov)
-            else (lty || rty, lprov || rprov)
-          }
-        } yield x -> pair).toMap,
+    def ||(that: TypeProp): TypeProp =
+      TypeProp(
+        localEnv = orEnv(this.localEnv, that.localEnv),
+        symEnv = orEnv(this.symEnv, that.symEnv),
         sexpr = this.sexpr || that.sexpr,
       )
 
-    def &&(that: TypeConstr): TypeConstr =
-      TypeConstr(
-        map = (for {
-          x <- (this.map.keySet ++ that.map.keySet).toList
-          (lty, lprov) = this.map.getOrElse(x, (ValueTy.Top, Provenance.Top))
-          (rty, rprov) = that.map.getOrElse(x, (ValueTy.Top, Provenance.Top))
-          pair = {
-            if (lty <= rty) (lty, lprov)
-            else if (rty <= lty) (rty, rprov)
-            else (lty && rty, lprov && rprov)
-          }
-        } yield x -> pair).toMap,
+    def &&(that: TypeProp): TypeProp =
+      TypeProp(
+        localEnv = andEnv(this.localEnv, that.localEnv),
+        symEnv = andEnv(this.symEnv, that.symEnv),
         sexpr = this.sexpr && that.sexpr,
       )
+
+    private def orEnv[A](left: Binding[A], right: Binding[A]): Binding[A] =
+      (for {
+        x <- (left.keySet intersect right.keySet).toList
+        (lty, lprov) = left(x)
+        (rty, rprov) = right(x)
+        pair = {
+          if (lty <= rty) (rty, rprov)
+          else if (rty <= lty) (lty, lprov)
+          else (lty || rty, lprov || rprov)
+        }
+      } yield x -> pair).toMap
+
+    private def andEnv[A](left: Binding[A], right: Binding[A]): Binding[A] =
+      (for {
+        x <- (left.keySet ++ right.keySet).toList
+        (lty, lprov) = left.getOrElse(x, (ValueTy.Top, Provenance.Top))
+        (rty, rprov) = right.getOrElse(x, (ValueTy.Top, Provenance.Top))
+        pair = {
+          if (lty <= rty) (lty, lprov)
+          else if (rty <= lty) (rty, rprov)
+          else (lty && rty, lprov && rprov)
+        }
+      } yield x -> pair).toMap
 
     def has(x: Base): Boolean =
       map.contains(x) || sexpr.fold(false)(_.has(x))
 
     def bases: Set[Base] =
-      map.keySet.collect { case s: Sym => s } ++
+      symEnv.keySet ++
       sexpr.fold(Set[Base]())(_.bases)
 
-    def kill(bases: Set[Base])(using AbsState): TypeConstr =
+    def weaken(bases: Set[Base])(using AbsState): TypeProp =
       this.copy(
-        map.filter { case (x, _) => !bases.contains(x) },
-        sexpr.fold(None)(_.kill(bases)),
+        localEnv = localEnv.filter { case (x, _) => !bases.contains(x) },
+        symEnv = symEnv.filter { case (x, _) => !bases.contains(x) },
+        sexpr = sexpr.fold(None)(_.weaken(bases)),
       )
 
-    def forReturn(symEnv: Map[Sym, ValueTy]): TypeConstr = TypeConstr(
-      map = for {
-        case (x: Sym, (ty, prov)) <- map
+    def forReturn(symEnv: Map[Sym, ValueTy]): TypeProp = TypeProp(
+      symEnv = for {
+        (x, (ty, prov)) <- this.symEnv
         origTy = symEnv.getOrElse(x, BotT)
       } yield x -> (origTy && ty, prov),
       sexpr = None,
     )
 
-    def depth: Int = map.values.map(_._2).map(_.depth).max
+    def fieldUpdate(fld: String, ty: ValueTy): TypeProp =
+      val newLocal = for {
+        (x, (origTy, prov)) <- localEnv
+      } yield {
+        val newTy = origTy.record.update(fld, ty, refine = false)
+        x -> (ValueTy(record = newTy), prov)
+      }
+      val newSym = for {
+        (x, (origTy, prov)) <- symEnv
+      } yield {
+        val newTy = origTy.record.update(fld, ty, refine = false)
+        x -> (ValueTy(record = newTy), prov)
+      }
+      TypeProp(newLocal, newSym, None) // FIXME: None -> erased symexpr
 
-    def lift(using st: AbsState): TypeConstr =
-      this && st.constr
+    def depth: Int =
+      (localEnv.values.map(_._2.depth) ++ symEnv.values.map(
+        _._2.depth,
+      )).maxOption
+        .getOrElse(0)
+
+    def lift(using st: AbsState): TypeProp =
+      this && st.prop
 
     override def toString: String = (new Appender >> this).toString
   }
-  object TypeConstr {
-    def apply(sexpr: SymExpr): TypeConstr =
-      TypeConstr(sexpr = Some(sexpr))
-    def apply(pairs: (Base, (ValueTy, Provenance))*): TypeConstr =
-      TypeConstr(pairs.toMap, None)
+  object TypeProp {
+    def apply(sexpr: SymExpr): TypeProp =
+      TypeProp(sexpr = Some(sexpr))
+    def apply(pairs: (Base, (ValueTy, Provenance))*): TypeProp =
+      apply(pairs.toMap)
+    def apply(map: Map[Base, (ValueTy, Provenance)]): TypeProp =
+      val localEnv = map.collect { case (l: Local, v) => l -> v }
+      val symEnv = map.collect { case (s: Sym, v) => s -> v }
+      TypeProp(localEnv, symEnv, None)
   }
 
   /** symbolic expressions */
@@ -262,17 +336,17 @@ trait TypeGuardDecl { self: TyChecker =>
       case SETypeCheck(base, ty) => base.bases
       case SETypeOf(base)        => base.bases
       case SEEq(left, right)     => left.bases ++ right.bases
-    def kill(bases: Set[Base]): Option[SymExpr] = this match
+    def weaken(bases: Set[Base]): Option[SymExpr] = this match
       case SEBool(b) => Some(this)
       case SERef(ref) =>
-        ref.killRef(ref, bases, true).map(SERef(_)) // FIXME: check later
-      case SEExists(ref) => ref.killRef(ref, bases, true).map(SEExists(_))
-      case SETypeCheck(base, ty) => base.kill(bases).map(SETypeCheck(_, ty))
-      case SETypeOf(base)        => base.kill(bases).map(SETypeOf(_))
+        ref.weakenRef(ref, bases, true).map(SERef(_)) // FIXME: check later
+      case SEExists(ref) => ref.weakenRef(ref, bases, true).map(SEExists(_))
+      case SETypeCheck(base, ty) => base.weaken(bases).map(SETypeCheck(_, ty))
+      case SETypeOf(base)        => base.weaken(bases).map(SETypeOf(_))
       case SEEq(left, right) =>
         for {
-          l <- left.kill(bases)
-          r <- right.kill(bases)
+          l <- left.weaken(bases)
+          r <- right.weaken(bases)
         } yield SEEq(l, r)
     override def toString: String = (new Appender >> this).toString
   }
@@ -668,23 +742,29 @@ trait TypeGuardDecl { self: TyChecker =>
   given Rule[Provenance] = (app, prov) => ProvTextPrinter.print(app, prov)
 
   /** TypeConstr */
-  given Rule[TypeConstr] = (app, constr) =>
-    import TypeConstr.*
+  given Rule[TypeProp] = (app, prop) =>
+    import TypeProp.*
     given Rule[(ValueTy, Provenance)] =
       case (app, (ty, prov)) if useProvenance => app >> ty >> " ~~\n" >> prov
       case (app, (ty, prov))                  => app >> ty
     import SymTy.given
     given Rule[Map[Base, (ValueTy, Provenance)]] = sortedMapRule(sep = ": ")
-    if (constr.map.nonEmpty) app >> constr.map
-    constr.sexpr.fold(app) { app >> _ }
+    if (prop.map.nonEmpty) app >> prop.map
+    prop.sexpr.fold(app) { app >> _ }
 
   /** TypeGuard */
   given Rule[TypeGuard] = (app, guard) =>
     given Ordering[DemandType] = Ordering.by(_.toString)
     given Rule[DemandType] = (app, dty) => app >> dty.ty
-    given Rule[Map[DemandType, TypeConstr]] =
+    given Rule[Map[DemandType, TypeProp]] =
       sortedMapRule("{", "}", " => ")
-    app >> guard.simple.map
+    def simple(g: TypeGuard): TypeGuard =
+      TypeGuard(g.map.filterNot { (dty, prop) =>
+        g.map.exists { (tdty, tconstr) =>
+          (dty.ty != tdty.ty && dty.ty <= tdty.ty && tconstr <= prop)
+        }
+      })
+    app >> simple(guard).map
 
   /** RefinementTarget */
   given Rule[RefinementTarget] = (app, target) =>

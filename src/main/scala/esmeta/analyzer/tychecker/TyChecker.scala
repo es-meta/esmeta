@@ -18,7 +18,7 @@ class TyChecker(
   val inferTypeGuard: Boolean = true,
   val useBooleanGuard: Boolean = false,
   val useProvenance: Boolean = false,
-  val useSyntacticKill: Boolean = false,
+  val useSyntacticweaken: Boolean = false,
   val noRefine: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
@@ -107,7 +107,7 @@ class TyChecker(
             "typeSens" -> typeSens,
             "inferTypeGuard" -> inferTypeGuard,
             "useProvenance" -> useProvenance,
-            "useSyntacticKill" -> useSyntacticKill,
+            "useSyntacticweaken" -> useSyntacticweaken,
           ),
           "duration" -> f"${time}%,d ms",
           "error" -> errors.size,
@@ -307,7 +307,7 @@ class TyChecker(
             silent = silent,
           )
         }
-        if (useSyntacticKill) {
+        if (useSyntacticweaken) {
           dumpFile(
             name = "mutated locals",
             data = cfg.funcs
@@ -383,7 +383,7 @@ class TyChecker(
       if value.hasTypeGuard(entrySt)
       guard = TypeGuard(for {
         (dty, pred) <- value.guard.map
-        newPred = TypeConstr(for {
+        newPred = TypeProp(for {
           pair <- pred.map
           (x, (ty, prov)) = pair
           if !(entrySt.getTy(x) <= ty)
@@ -430,11 +430,12 @@ class TyChecker(
       val (newLocals, symEnv) = (for {
         ((x, value), sym) <- idxLocals
       } yield {
-        if (useSyntacticKill) (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
+        if (useSyntacticweaken)
+          (x -> AbsValue(STy(value.ty)), sym -> ValueTy.Bot)
         else (x -> AbsValue(SSym(sym)), sym -> value.ty)
       }).unzip
-      AbsState(true, newLocals.toMap, symEnv.toMap, TypeConstr())
-    } else AbsState(true, locals.toMap, Map(), TypeConstr())
+      AbsState(true, newLocals.toMap, symEnv.toMap, TypeProp())
+    } else AbsState(true, locals.toMap, Map(), TypeProp())
 
   /** get initial abstract states in each node point */
   private def getInitNpMap(
