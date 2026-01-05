@@ -3465,6 +3465,7 @@ pages = [{"l":"index.html#","e":false,"i":"","n":"esmeta","t":"esmeta","d":"","k
 {"l":"esmeta/phase/YetCheck$.html#help-0","e":false,"i":"","n":"help","t":"help: String","d":"esmeta.phase.YetCheck","k":"val","x":""},
 {"l":"esmeta/phase/YetCheck$.html#log-ffffff0c","e":false,"i":"","n":"log","t":"log(yetSteps: List[Target[Step]], yetTypes: List[Target[Type]]): Unit","d":"esmeta.phase.YetCheck","k":"def","x":""},
 {"l":"esmeta/phase/YetCheck$.html#name-0","e":false,"i":"","n":"name","t":"name: String","d":"esmeta.phase.YetCheck","k":"val","x":""},
+{"l":"esmeta/phase/YetCheck$.html#normalize-fffff2ca","e":false,"i":"","n":"normalize","t":"normalize(str: String): String","d":"esmeta.phase.YetCheck","k":"def","x":""},
 {"l":"esmeta/phase/YetCheck$.html#options-0","e":false,"i":"","n":"options","t":"options: List[PhaseOption[Config]]","d":"esmeta.phase.YetCheck","k":"val","x":""},
 {"l":"esmeta/phase/YetCheck$$Config.html#","e":false,"i":"","n":"Config","t":"Config(var log: Boolean, var gitHubAlert: Boolean, var mergeThreshold: Int)","d":"esmeta.phase.YetCheck","k":"class","x":""},
 {"l":"esmeta/phase/YetCheck$$Target.html#","e":false,"i":"","n":"Target","t":"Target[T <: Locational](target: T, line: Int, algo: Algorithm)","d":"esmeta.phase.YetCheck","k":"class","x":""},
