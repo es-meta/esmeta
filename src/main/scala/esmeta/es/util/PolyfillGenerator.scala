@@ -384,9 +384,9 @@ class PolyfillGenerator(spec: Spec) {
         .map(_.normalizedName.toLowerCase())
         .map(tyStr => s"typeof $compiledExpr === '$tyStr'")
         .reduce((l, r) => s"($l || $r)")
-    case HasFieldCondition(ref, neg, field, form)  => ???
-    case HasBindingCondition(ref, neg, binding)    => ???
-    case ProductionCondition(nt, lhsName, rhsName) => ???
+    case HasFieldCondition(ref, neg, field, form, opTy) => ???
+    case HasBindingCondition(ref, neg, binding)         => ???
+    case ProductionCondition(nt, lhsName, rhsName)      => ???
     case PredicateCondition(expr, neg, op) =>
       import PredicateConditionOperator.*
       op match {
