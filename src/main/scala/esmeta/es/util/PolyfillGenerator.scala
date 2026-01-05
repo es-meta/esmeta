@@ -15,7 +15,7 @@ object PolyfillGenerator {
     "INTRINSICS.String.",
     "INTRINSICS.Map.",
     "INTRINSICS.Set.",
-    // "INTRINSICS.TypedArray.",
+    "INTRINSICS.Iterator.",
   )
 
   val ignoreTargets = List(
@@ -62,6 +62,9 @@ object PolyfillGenerator {
     "INTRINSICS.String.prototype.matchAll",
     "INTRINSICS.String.prototype.normalize",
     "INTRINSICS.String.prototype.repeat",
+
+    // YET
+    "Iterator.prototype.flatMap",
   )
 }
 
@@ -271,7 +274,10 @@ class PolyfillGenerator(spec: Spec) {
       s"${compile(pb, ref)}.length"
     case NumberOfExpression(_, _, expr, _) => ???
     case IntrinsicExpression(intr) =>
-      s"${intr.base}.${intr.props.mkString(".")}"
+      if (intr.props.isEmpty)
+        s"${intr.base}"
+      else
+        s"${intr.base}.${intr.props.mkString(".")}"
     case SourceTextExpression(expr)      => ???
     case CoveredByExpression(code, rule) => ???
     case GetItemsExpression(nt, expr @ NonterminalLiteral(_, _, _, _)) =>
