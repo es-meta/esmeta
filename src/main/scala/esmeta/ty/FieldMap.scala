@@ -60,6 +60,10 @@ case class FieldMap(map: Map[String, Binding])
     val (field, binding) = pair
     FieldMap(map + (field -> binding))
 
+  /** field weaken */
+  def weaken(fields: Set[String]): FieldMap =
+    FieldMap(map.filterNot { case (f, _) => fields.contains(f) })
+
   /** fields */
   def fields: Set[String] = map.keySet
 

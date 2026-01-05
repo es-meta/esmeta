@@ -171,7 +171,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit = if (!canUseReturnTy(rp.func)) {
-      var AbsRet(value) = getResult(rp)
+      var AbsRet(value, effect) = getResult(rp)
       for {
         callerNps <- retEdges.get(rp)
         callerNp <- callerNps
@@ -180,7 +180,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         given callerSt: AbsState = callInfo(callerNp)
         val retTy = rp.func.retTy.ty.toValue
         val newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
-        val nextSt = callerSt.update(callerNp.node.lhs, newV)
+        val nextSt = callerSt.weaken(effect).update(callerNp.node.lhs, newV)
         analyzer += nextNp -> nextSt
       }
     }
@@ -400,7 +400,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     /** propagate callee analysis result */
     def propagate(rp: ReturnPoint, callerNp: NodePoint[Call]): Unit = {
       if (!canUseReturnTy(rp.func)) {
-        val AbsRet(value) = getResult(rp)
+        val AbsRet(value, effect) = getResult(rp)
         (for {
           nextNp <- getAfterCallNp(callerNp)
           callerSt = callInfo(callerNp)
@@ -409,6 +409,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
           if !newV.isBottom
         } yield analyzer += nextNp -> callerSt
+          .weaken(effect)
           .define(callerNp.node.lhs, newV))
           .getOrElse {
             if (!getResult(rp).isBottom) worklist += rp
@@ -447,15 +448,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           _ <- modify(_.update(x, v))
         } yield ()
       case IAssign(Field(x: Var, EStr(f)), expr) =>
-        for {
-          v <- transfer(expr)
-          given AbsState <- get
-          ty <- get(_.get(x).ty)
-          record = ty.record.update(f, v.ty, refine = false)
-          _ <- modify(
-            _.update(x, AbsValue(ty.copied(record = record))),
-          )
-        } yield ()
+        x match
+          case x: Local =>
+            for {
+              v <- transfer(expr)
+              given AbsState <- get
+              _ <- modify(_.update(x, f, v))
+            } yield ()
+          case _ => st => st /* do not support global variables */
       case IAssign(ref, expr)  => st => st /* TODO */
       case IExpand(base, expr) => st => st /* TODO */
       case IDelete(base, expr) => st => st /* TODO */
@@ -479,7 +479,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- transfer(expr)
           st <- get
-          _ <- doReturn(inst, st, v)
+          ef <- get(_.effect)
+          _ <- doReturn(inst, st, v, ef)
           _ <- put(AbsState.Bot)
         } yield ()
       case IAssert(expr: EYet) =>
@@ -522,6 +523,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       irReturn: Return,
       givenSt: AbsState,
       v: AbsValue,
+      effect: Effect,
     )(using np: NodePoint[Node]): Unit =
       val NodePoint(func, node, view) = np
       val irp = InternalReturnPoint(func, node, irReturn)
@@ -542,13 +544,13 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               addError(ReturnTypeMismatch(irp, givenTy))
             AbsValue(STy(givenTy && expectedTy), givenV.guard)
 
-      val newRet = AbsRet(newV)
+      val newRet = AbsRet(newV, effect)
       if (!newV.isBottom)
-        val oldRet @ AbsRet(oldV) = getResult(rp)
+        val oldRet @ AbsRet(oldV, oldEffect) = getResult(rp)
         if (!oldRet.isBottom && useRepl) Repl.merged = true
         if (newRet !⊑ oldRet) {
           val v = (oldV ⊔ newV)
-          rpMap += rp -> AbsRet(v)
+          rpMap += rp -> AbsRet(v, oldEffect ⊔ effect)
           worklist += rp
         }
 

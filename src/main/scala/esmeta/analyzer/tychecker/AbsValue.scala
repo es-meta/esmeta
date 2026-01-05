@@ -61,6 +61,11 @@ trait AbsValueDecl { self: TyChecker =>
       val guard = if (update) this.guard.weaken(bases) else this.guard
       AbsValue(ty, guard)
 
+    def weaken(effect: Effect)(using AbsState): AbsValue =
+      val sty = this.symty.weaken(effect)
+      val guard = this.guard.weaken(effect)
+      AbsValue(sty, guard)
+
     def refine(ty: ValueTy)(using st: AbsState): AbsValue =
       AbsValue(symty.refine(ty), guard.refine(ty))
 

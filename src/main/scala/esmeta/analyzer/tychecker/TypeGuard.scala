@@ -78,6 +78,12 @@ trait TypeGuardDecl { self: TyChecker =>
       if newProp.nonTop
     } yield dty -> newProp)
 
+    def weaken(effect: Effect): TypeGuard = TypeGuard(for {
+      (dty, prop) <- map
+      newProp = prop.weaken(effect)
+      if newProp.nonTop
+    } yield dty -> newProp)
+
     def forReturn(symEnv: Map[Sym, ValueTy]): TypeGuard = TypeGuard(for {
       (dty, prop) <- map
       newProp = prop.forReturn(symEnv)
@@ -255,6 +261,14 @@ trait TypeGuardDecl { self: TyChecker =>
         localEnv = localEnv.filter { case (x, _) => !bases.contains(x) },
         symEnv = symEnv.filter { case (x, _) => !bases.contains(x) },
         sexpr = sexpr.fold(None)(_.weaken(bases)),
+      )
+
+    def weaken(effect: Effect): TypeProp =
+      TypeProp(
+        localEnv = localEnv.map {
+          case (x, (ty, prov)) => x -> (effect(ty), prov)
+        },
+        symEnv = symEnv.map { case (x, (ty, prov)) => x -> (effect(ty), prov) },
       )
 
     def forReturn(symEnv: Map[Sym, ValueTy]): TypeProp = TypeProp(

@@ -62,6 +62,17 @@ trait SymTyDecl { self: TyChecker =>
       case STy(ty)        => Some(STy(ty))
       case SNormal(symty) => symty.weaken(bases, update).map(SNormal(_))
 
+    def weaken(effect: Effect)(using st: AbsState): SymTy =
+      this match
+        case STy(ty)   => STy(effect(ty))
+        case SVar(x)   => SVar(x) // killed by abstract environment
+        case SSym(sym) => SSym(sym) // killed by symbolic environment
+        case SField(b, f) => // maybe unsound
+          val weakenedb = b.weaken(effect)
+          val weakenedf = f.weaken(effect)
+          SField(weakenedb.asInstanceOf[SymRef], weakenedf)
+        case SNormal(symty) => SNormal(symty.weaken(effect)) // sound by spec
+
     def weakenRef(
       ref: SymRef,
       bases: Set[Base],
