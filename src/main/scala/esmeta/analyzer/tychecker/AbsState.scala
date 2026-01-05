@@ -118,7 +118,7 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** weaken effect */
     def weaken(ef: Effect): AbsState =
-      if (ef.isBottom) this
+      if (!useEffect || ef.isBottom) this
       else
         val newLocals = for { (x, v) <- locals } yield x -> v.weaken(ef)
         val newSymEnv = for { (sym, ty) <- symEnv } yield sym -> ef(ty)
@@ -273,8 +273,10 @@ trait AbsStateDecl { self: TyChecker =>
           x -> v ⊔ v.fieldUpdate(fld, value)
         else x -> v)
         .updated(lx, this.get(lx).fieldUpdate(fld, value)) // strong update
-      val newEffect = effect.fieldUpdate(fld, value)
-      this.copy(locals = newLocals.toMap, effect = newEffect)
+      if (!useEffect) this.copy(locals = newLocals.toMap)
+      else
+        val newEffect = effect.fieldUpdate(fld, value)
+        this.copy(locals = newLocals.toMap, effect = newEffect)
     }
 
     /** type check */

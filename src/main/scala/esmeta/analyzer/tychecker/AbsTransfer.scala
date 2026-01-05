@@ -180,7 +180,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         given callerSt: AbsState = callInfo(callerNp)
         val retTy = rp.func.retTy.ty.toValue
         val newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
-        val nextSt = callerSt.weaken(effect).update(callerNp.node.lhs, newV)
+        val weakenedSt = if (useEffect) callerSt.weaken(effect) else callerSt
+        val nextSt = weakenedSt.update(callerNp.node.lhs, newV)
         analyzer += nextNp -> nextSt
       }
     }
@@ -408,9 +409,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           retTy = rp.func.retTy.ty.toValue
           newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
           if !newV.isBottom
-        } yield analyzer += nextNp -> callerSt
-          .weaken(effect)
-          .define(callerNp.node.lhs, newV))
+        } yield
+          val weakenedSt = if (useEffect) callerSt.weaken(effect) else callerSt
+          analyzer += nextNp -> weakenedSt.define(callerNp.node.lhs, newV))
           .getOrElse {
             if (!getResult(rp).isBottom) worklist += rp
           }
@@ -480,7 +481,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           v <- transfer(expr)
           st <- get
           ef <- get(_.effect)
-          _ <- doReturn(inst, st, v, ef)
+          _ <- doReturn(inst, st, v, if (useEffect) ef else Effect.Bot)
           _ <- put(AbsState.Bot)
         } yield ()
       case IAssert(expr: EYet) =>

@@ -19,6 +19,7 @@ class TyChecker(
   val useBooleanGuard: Boolean = false,
   val useProvenance: Boolean = false,
   val useSyntacticweaken: Boolean = false,
+  val useEffect: Boolean = false,
   val noRefine: Boolean = false,
   val typeSens: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
