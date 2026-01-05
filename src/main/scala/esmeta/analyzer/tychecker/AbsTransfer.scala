@@ -411,7 +411,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           if !newV.isBottom
         } yield
           val weakenedSt = if (useEffect) callerSt.weaken(effect) else callerSt
-          analyzer += nextNp -> weakenedSt.define(callerNp.node.lhs, newV))
+          analyzer += nextNp -> weakenedSt.define(callerNp.node.lhs, newV)
+        )
           .getOrElse {
             if (!getResult(rp).isBottom) worklist += rp
           }

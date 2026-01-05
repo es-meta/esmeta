@@ -81,4 +81,3 @@ trait EffectDecl { self: TyChecker =>
     given rule: Rule[Effect] = (app, elem) => app >> elem.map
   }
 }
-
