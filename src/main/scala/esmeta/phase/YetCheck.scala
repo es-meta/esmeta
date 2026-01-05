@@ -42,10 +42,10 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
 
       // alert newly introduced yet steps in the `to` specification
       val linesForSteps = stepDiffs.flatMap(_.added).toList.sorted
-      val yetSteps = for {
+      val yetSteps = (for {
         target <- getYetSteps(toSpec)
         if linesForSteps.contains(target.line)
-      } yield target
+      } yield target).distinctBy(_.line)
 
       // filter target type diffs (excluding already `yet` types in `from`)
       val yetTypesInFrom = getYetTypes(fromSpec)
@@ -56,10 +56,10 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
 
       // alert newly introduced yet types in the `to` specification
       val linesForTypes = typeDiffs.flatMap(_.added).toList.sorted
-      val yetTypes = for {
+      val yetTypes = (for {
         target <- getYetTypes(toSpec)
         if linesForTypes.contains(target.line)
-      } yield target
+      } yield target).distinctBy(_.line)
 
       if (config.log) log(yetSteps, yetTypes)
       if (config.gitHubAlert) alert(yetSteps, yetTypes)
@@ -117,10 +117,8 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
     app :> "| # | Line | Algorithm | Step |"
     app :> "|:-:| ---: | :-------: | :--- |"
     for ((Target(step, line, algo), i) <- yetSteps.zipWithIndex) {
-      app :> s"| ${i + 1} | $line | `${algo.name}` | `${step.toString(
-        detail = false,
-        location = false,
-      )}` |"
+      val stepStr = normalize(step.toString(detail = false, location = false))
+      app :> s"| ${i + 1} | $line | `${algo.name}` | `$stepStr` |"
     }
     app :> ""
     app :> "### Newly Introduced Yet Types"
@@ -132,7 +130,8 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
     app :> "| # | Line | Algorithm | Type |"
     app :> "|:-:| ---: | :-------: | :--- |"
     for ((Target(ty, line, algo), i) <- yetTypes.zipWithIndex) {
-      app :> s"| ${i + 1} | $line | `${algo.name}` | `${ty.toString}` |"
+      val tyStr = normalize(ty.toString)
+      app :> s"| ${i + 1} | $line | `${algo.name}` | `$tyStr` |"
     }
     app.toString
   }
@@ -190,6 +189,10 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
       filename = s"$YET_CHECK_LOG_DIR/summary.md",
     )
   }
+
+  def normalize(str: String): String = str.trim
+    .replaceAll("\n.*", "")
+    .replaceAll("\\|", "\\\\|")
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
