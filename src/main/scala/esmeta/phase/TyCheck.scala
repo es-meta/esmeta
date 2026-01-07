@@ -24,6 +24,7 @@ case object TyCheck extends Phase[CFG, Unit] {
       targetPattern = config.target,
       inferTypeGuard = config.inferTypeGuard,
       typeSens = config.typeSens,
+      useEffect = config.effect,
       config = TyChecker.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
       log = config.log,
@@ -84,6 +85,11 @@ case object TyCheck extends Phase[CFG, Unit] {
       BoolOption(_.inferTypeGuard = _),
       "automatic inference of type guards (default: true).",
     ),
+    (
+      "effect",
+      BoolOption(_.effect = _),
+      "enable effect system (default: false).",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -95,5 +101,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var detail: Boolean = false,
     var typeSens: Boolean = false,
     var inferTypeGuard: Boolean = true,
+    var effect: Boolean = false,
   )
 }
