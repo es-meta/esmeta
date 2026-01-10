@@ -426,85 +426,263 @@ Branch[20321]:T : Math.abs.call(0, 0n );
 Branch[20321]:F : Math.abs.call();
 Branch[20321]   : Test262 covered false branch with "test262/test/built-ins/Math/abs/S15.8.2.1_A1.js"
 
+> [!NOTE]
+> loc : [Math.abs step 1](https://tc39.es/ecma262/2025/#sec-math.abs)
+> uncovered: ToNumber return abrupt completion case
+> isValid: ???
+> memo:
+> - Math.abs(x)로 접근 가능
+> - x에 ToNumber를 했을 때 터지는것, x에 Symbol이나 BigInt 들어오면 됨
+>
+
 Branch[20350]:T : Math.acos.call(0, 1n );
 Branch[20350]:F : Math.acos.call();
 Branch[20350]   : Test262 covered false branch with "test262/test/built-ins/Math/acos/S15.8.2.2_A1.js"
+
+> [!NOTE]
+> loc : [Math.acos step 1](https://tc39.es/ecma262/2025/#sec-math.acos)
+> uncovered: ToNumber return abrupt completion case
+> isValid: ???
+> memo:
+> - Math.acos(x)로 접근 가능
+> - x에 ToNumber를 했을 때 터지는것, x에 Symbol이나 BigInt 들어오면 됨
+>
 
 Branch[20371]:T : Math.acosh.call(0, 0n );
 Branch[20371]:F : Math.acosh.call(0);
 Branch[20371]   : Test262 covered false branch with "test262/test/built-ins/Math/acosh/arg-is-one.js"
 
+> [!NOTE]
+> loc : [Math.acosh step 1](https://tc39.es/ecma262/2025/#sec-math.acosh)
+> uncovered: ToNumber return abrupt completion case
+> isValid: ???
+> memo:
+> - Math.acosh(x)로 접근 가능
+> - x에 ToNumber를 했을 때 터지는것, x에 Symbol이나 BigInt 들어오면 됨
+>
+
 Branch[20383]:T : Math.acosh.call(0, 0);
 Branch[20383]:F : Math.acosh.call(0, 42 );
 Branch[20383]   : Test262 covered true branch with "test262/test/built-ins/Math/acosh/nan-returns.js"
+
+> [!NOTE]
+> loc : [Math.acosh step 4](https://tc39.es/ecma262/2025/#sec-math.acosh)
+> uncovered: n >= 1 case
+> isValid: ???
+> memo:
+> - Math.acosh(x)로 접근 가능
+> - x의 ToNumber값 n이 1보다 크면 됨
+>
 
 Branch[20440]:T : Math.atan.call(0, 0n );
 Branch[20440]:F : Math.atan.call();
 Branch[20440]   : Test262 covered false branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
 
+> [!NOTE]
+> loc : [Math.atan step 1](https://tc39.es/ecma262/2025/#sec-math.atan)
+> uncovered : ToNumber return abrupt completion case
+> isValid: ???
+> memo:
+> - Math.atan(x)로 접근 가능
+> - x에 ToNumber를 했을 때 터지는것, x에 Symbol이나 BigInt 들어오면 됨
+>
+
 Branch[20444]:T : Math.atan.call();
 Branch[20444]:F : Math.atan.call(0, 1 );
 Branch[20444]   : Test262 covered true branch with "test262/test/built-ins/Math/atan/S15.8.2.4_A2.js"
+
+> [!NOTE]
+> loc : [Math.atan step 2](https://tc39.es/ecma262/2025/#sec-math.atan)
+> uncovered : n is one of NaN, +0f, or -0f가 false
+> isValid: ???
+> memo:
+> - Math.atan(x)로 접근 가능
+> -x에 ToNumber를 한 값 n이 NaN, +0f, -0f가 아니면 됨 ex: 1
+>
 
 Branch[20504]:T : Math.atan2.call(0, 0n );
 Branch[20504]:F : Math.atan2.call();
 Branch[20504]   : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
 
+> [!NOTE]
+> loc : [Math.atan2 step 1](https://tc39.es/ecma262/2025/#sec-math.atan2)
+> uncovered : ToNumber return abrupt completion case
+> isValid: ???
+> memo:
+> - Math.atan2(y, x)로 접근 가능
+> y에 ToNumber를 했을 때 터지는것, y에 Symbol이나 BigInt 들어오면 됨
+>
+
 Branch[20510]:T : Math.atan2.call(0, 0, 1n );
 Branch[20510]:F : Math.atan2.call();
 Branch[20510]   : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
+
+> [!NOTE]
+> loc : [Math.atan2 step 2](https://tc39.es/ecma262/2025/#sec-math.atan2)
+> uncovered : ToNumber return abrupt completion case
+> isValid: ???
+> memo:
+> - Math.atan2(y, x)로 접근 가능
+> x에 ToNumber를 했을 때 터지는것, x에 Symbol이나 BigInt 들어오면 됨
+>
 
 Branch[20535]:T : Math.atan2.call(0, - Infinity , 0);
 Branch[20535]:F : Math.atan2.call(0, 0, 0);
 Branch[20535]   : Test262 covered false branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
 
+> [!NOTE]
+> loc : [Math.atan2 step 5](https://tc39.es/ecma262/2025/#sec-math.atan2)
+> uncovered : ny 가 neg_inf인 경우
+> isValid: ???
+> memo:
+> - Math.atan2(y, x)로 접근 가능
+> y에 ToNumber를 한 값 ny가 neg_inf이면 됨
+>
+
 Branch[20554]:T : Math.atan2.call(0, 0, 0);
 Branch[20554]:F : Math.atan2.call(0, 0, - 0 );
 Branch[20554]   : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A5.js"
+
+> [!NOTE]
+> loc : [Math.atan2 step 6.a](https://tc39.es/ecma262/2025/#sec-math.atan2)
+> uncovered : nx가 -0인 경우
+> isValid: ???
+> memo:
+> - Math.atan2(y, x)로 접근 가능
+> x에 ToNumber를 한 값 nx가 -0 이면 됨
 
 Branch[20563]:T : Math.atan2.call(0, - 0 , 0);
 Branch[20563]:F : Math.atan2.call(0, - 0 , - 0 );
 Branch[20563]   : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A9.js"
 
+> [!NOTE]
+> loc: [Math.atan2 step 7.a](https://tc39.es/ecma262/2025/#sec-math.atan2)
+> uncovered: nx가 -0인 경우
+> isValid: ???
+> memo: 
+> - Math.atan2(y, x)로 접근 가능
+> - x에 ToNumber한 값 nx가 -0이면 됨
+
 Branch[20588]:T : Math.atan2.call(0, - 1 , 0);
 Branch[20588]:F : Math.atan2.call(0, 1 , 1 );
 Branch[20588]   : Test262 covered true branch with "test262/test/built-ins/Math/atan2/S15.8.2.5_A16.js"
+
+> [!NOTE]
+> loc: [Math.atan2 step 10](https://tc39.es/ecma262/2025/#sec-math.atan2)
+> uncovered: ny >= -0 case (nx가 neg_inf, pos_inf, -0, +0 모두 아닐 때)
+> isValid: ???
+> memo:
+> - Math.atan2(y, x)로 접근 가능
+> -y에 ToNumber한 값 ny가 -0보다 크면 됨 (nx가 neg_inf, pos_inf, -0, +0 모두 아닐 때)
 
 Branch[20622]:T : Math.cbrt.call(0, 1n );
 Branch[20622]:F : Math.cbrt.call();
 Branch[20622]   : Test262 covered false branch with "test262/test/built-ins/Math/cbrt/cbrt-specialValues.js"
 
+> [!NOTE]
+> loc: [Math.cbrt step 1](https://tc39.es/ecma262/2025/#sec-math.cbrt)
+> uncovered: ToNumber return abrupt case
+> isValid: ???
+> memo:
+> - Math.cbrt(x)로 접근 가능
+> - x에 ToNumber 했을 때 터지는것, x에 Symbol이나 BigInt 들어가면 됨
+
 Branch[20626]:T : Math.cbrt.call();
 Branch[20626]:F : Math.cbrt.call(0, 1 );
 Branch[20626]   : Test262 covered true branch with "test262/test/built-ins/Math/cbrt/cbrt-specialValues.js"
+
+> [!NOTE]
+> loc: [Math.cbrt step 2](https://tc39.es/ecma262/2025/#sec-math.cbrt)
+> uncovered: n 이 finite이고 -0, +0이 아닌 경우
+> isValid:: ???
+> memo:
+> - Math.cbrt(x)로 접근 가능
+> - x에 ToNumber한 값 n이 finite하고 -0, +0이 아니면 됨
 
 Branch[20642]:T : Math.ceil.call(0, 1n );
 Branch[20642]:F : Math.ceil.call();
 Branch[20642]   : Test262 covered false branch with "test262/test/built-ins/Math/ceil/S15.8.2.6_A1.js"
 
+> [!NOTE]
+> loc: [Math.ceil step 1](https://tc39.es/ecma262/2025/#sec-math.ceil)
+> uncovered: ToNumber return abrupt case
+> isValid: ???
+> memo:
+> - Math.ceil(x)로 접근 가능
+> - x에 ToNumber 했을 때 터지는것, x에 Symbol이나 BigInt 들어가면 됨
+
+
 Branch[20680]:T : Math.cos.call(0, 1n );
 Branch[20680]:F : Math.cos.call();
 Branch[20680]   : Test262 covered false branch with "test262/test/built-ins/Math/cos/S15.8.2.7_A1.js"
+
+> [!NOTE]
+> loc: [Math.cos step 1](https://tc39.es/ecma262/2025/#sec-math.cos)
+> uncovered: ToNumber return abrupt case
+> isValid: ???
+> memo:
+> - Math.cos(x)로 접근 가능
+> - x에 ToNumber 했을 대 터지는것, x에 Symbol이나 BigInt 들어가면 됨
 
 Branch[20687]:T : Math.cos.call(0, 0);
 Branch[20687]:F : Math.cos.call(0, 1 );
 Branch[20687]   : Test262 covered true branch with "test262/test/built-ins/Math/cos/S15.8.2.7_A2.js"
 
+> [!NOTE]
+> loc: [Math.cos step 3](https://tc39.es/ecma262/2025/#sec-math.cos)
+> uncovered: n이 +0 or -0
+> isValid: ???
+> memo:
+> - Math.cos(x)로 접근 가능
+> - x에 ToNumber한 값 n이 -0 or +0이면 됨
+
 Branch[20701]:T : Math.cosh.call(0, 1n );
 Branch[20701]:F : Math.cosh.call();
 Branch[20701]   : Test262 covered false branch with "test262/test/built-ins/Math/cosh/cosh-specialVals.js"
+
+> [!NOTE]
+> loc: [Math.cosh step 1](https://tc39.es/ecma262/2025/#sec-math.cosh)
+> uncovered: ToNumber return abrupt case
+> isValid: ???
+> memo:
+> - Math.cosh(x)로 접근 가능
+> - x에 ToNumber 했을 때 터지는것, x에 Symbol이나 BigInt 들어가면 됨
 
 Branch[20711]:T : Math.cosh.call(0, 0);
 Branch[20711]:F : Math.cosh.call(0, 1 );
 Branch[20711]   : Test262 covered true branch with "test262/test/built-ins/Math/cosh/cosh-specialVals.js"
 
+> [!NOTE]
+> loc: [Math.cosh step 4](https://tc39.es/ecma262/2025/#sec-math.cosh)
+> uncovered: n이 +0, -0 모두 아닐 때
+> isValid: ???
+> memo:
+> - Math.cosh(x)로 접근 가능
+> - x에 ToNumber한 값 n이 +0, -0이 아니면 됨
+
 Branch[20725]:T : Math.exp.call(0, 1n );
 Branch[20725]:F : Math.exp.call();
 Branch[20725]   : Test262 covered false branch with "test262/test/built-ins/Math/exp/S15.8.2.8_A1.js"
 
+> [!NOTE]
+> loc: [Math.exp step 1](https://tc39.es/ecma262/2025/#sec-math.exp)
+> uncovered: ToNumber return abrupt case
+> isValid: ???
+> memo:
+> - Math.exp(x)로 접근 가능
+> - x에 ToNumber 했을 때 터지는것, x에 Symbol이나 BigInt 들어가면 됨
+
 Branch[20737]:T : Math.exp.call(0, - Infinity );
 Branch[20737]:F : Math.exp.call(0, 1 );
 Branch[20737]   : Test262 covered true branch with "test262/test/built-ins/Math/exp/S15.8.2.8_A5.js"
+
+> [!NOTE]
+> loc: [Math.exp step 4](https://tc39.es/ecma262/2025/#sec-math.exp)
+> uncovered: n이 neg_inf가 아님
+> isValid: ???
+> memo:
+> - Math.exp(x)로 접근 가능
+> - x에 ToNumber한 값 n이 neg_inf가 아니면 됨
 
 Branch[20798]:T : Math.fround.call(0, 1n );
 Branch[20798]:F : Math.fround.call();
@@ -610,61 +788,156 @@ Branch[22867]:T : String.fromCharCode.call(0, 0n );
 Branch[22867]:F : String.fromCharCode.call(0, 0);
 Branch[22867]   : Test262 covered false branch with "test262/test/language/literals/string/S7.8.4_A5.1_T1.js"
 
+> [!NOTE]
+> loc: [String.fromCharCode step 2.a](https://tc39.es/ecma262/2025/#sec-string.fromcharcode)
+> uncovered: ToUint16 returns abrupt case
+> isValid: ???
+> memo:
+> - String.fromCharCode(...codeUnits)로 접근 가능
+> - ToUnit16(next)에서 ToNumber(next)에서 터질 수 있음 그러므로 next에 Symbol이나 Bigint들어가면 됨
+
 Branch[22876]:T : String.fromCodePoint.call(0, ( ) => { } );
 Branch[22876]:F : String.fromCodePoint.call();
 Branch[22876]   : Test262 covered false branch with "test262/test/built-ins/String/fromCodePoint/arguments-is-empty.js"
+
+> [!NOTE]
+> loc: [String.fromCodePoint step 2](https://tc39.es/ecma262/2025/#sec-string.fromcodepoint)
+> uncovered: ???
+> isValid: 현재 test262 안에 true를 cover하는 test가 존재함 "test262/blob/main/test/built-ins/String/fromCodePoint/argument-is-Symbol.js"
 
 Branch[22972]:T : String.prototype.at.call(Symbol ( ) );
 Branch[22972]:F : String.prototype.at.call(0);
 Branch[22972]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/at/index-non-numeric-argument-tointeger-invalid.js"
 
+> [!NOTE]
+> loc: [String.prototype.at step 2](https://tc39.es/ecma262/2025/#sec-string.prototype.at)
+> uncovered: ToString return abrupt case
+> isValid: ???
+> memo:
+> - String.prototype.at(index)로 접근 가능
+> - ToString(O)에서 터질 수 있음, O가 Symbol이면 됨
+
 Branch[23054]:T : String.prototype.codePointAt.call(`` , 0);
 Branch[23054]:F : String.prototype.codePointAt.call();
 Branch[23054]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/codePointAt/this-is-null-throws.js"
+
+필터링 누락
 
 Branch[23075]:T : String.prototype.codePointAt.call('' );
 Branch[23075]:F : String.prototype.codePointAt.call(0);
 Branch[23075]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/codePointAt/returns-undefined-on-position-less-than-zero.js"
 
+> [!NOTE]
+> loc: [String.prototype.codePointAt step 5](https://tc39.es/ecma262/2025/#sec-string.prototype.codepointat)
+> uncovered: ???
+> isValid: test262 안에 false를 cover하는 test가 존재함 "test262/blob/main/test/built-ins/String/prototype/codePointAt/return-first-code-unit.js"
+
 Branch[23232]:T : String.prototype.indexOf.call(Symbol ( ) );
 Branch[23232]:F : String.prototype.indexOf.call(0);
 Branch[23232]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/indexOf/S15.5.4.7_A2_T1.js"
+
+> [!NOTE]
+> loc: [String.prototype.indexOf step 2](https://tc39.es/ecma262/2025/#sec-string.prototype.indexof)
+> uncovered: ToString return abrupt case
+> isValid: ???
+> memo:
+> - String.prototype.indexOf(searchString[,postition])에서 접근 가능
+> - ToString(O)에서 터질 수 있음, O가 Symbol이면 됨
 
 Branch[23269]:T : String.prototype.isWellFormed.call(Symbol ( ) );
 Branch[23269]:F : String.prototype.isWellFormed.call('' );
 Branch[23269]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/isWellFormed/to-string.js"
 
+> [!NOTE]
+> loc: [String.prototype.isWellFormed step 2](https://tc39.es/ecma262/2025/#sec-string.prototype.iswellformed)
+> uncovered: ???
+> isValid: test262 안에 false를 cover하는 test가 존재함 "test262/blob/main/test/built-ins/String/prototype/isWellFormed/returns-boolean.js"
+
 Branch[23293]:T : String.prototype.lastIndexOf.call(Symbol ( ) );
 Branch[23293]:F : String.prototype.lastIndexOf.call(0);
 Branch[23293]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T4.js"
+
+> [!NOTE]
+> loc: [String.prototype.lastIndexOf step 2](https://tc39.es/ecma262/2025/#sec-string.prototype.lastindexof)
+> uncovered: ToString returns abrupt case
+> isValid: ???
+> memo:
+> - String.prototype.lastIndexOf(searchString[,position])으로 접근 가능
+> - ToString(O)에서 터질 수 있음, O가 Symbol이면 됨
 
 Branch[23321]:T : String.prototype.lastIndexOf.call({ } );
 Branch[23321]:F : String.prototype.lastIndexOf.call(0, 0);
 Branch[23321]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/lastIndexOf/S15.5.4.8_A1_T1.js"
 
+> [!NOTE]
+> loc: [String.prototype.lastIndexOf step 11](https://tc39.es/ecma262/2025/#sec-string.prototype.lastindexof)
+> uncovered: result == NOT-FOUND인 경우
+> isValid: ???
+> memo:
+> - String.prototype.lastIndexOf(searchString[,position])으로 접근 가능
+> - result가 NOT-FOUND이면 됨 그러므로 searchStr이 S(this value에 ToString한 것)의 substring이 아니면 됨
+
 Branch[23358]:T : String.prototype.match.call(1 , { [ Symbol . match ] : 0 } );
 Branch[23358]:F : String.prototype.match.call();
 Branch[23358]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-get-err.js"
+
+필터링 누락
 
 Branch[23363]:T : String.prototype.match.call();
 Branch[23363]:F : String.prototype.match.call(async function * x ( ) { } );
 Branch[23363]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-get-err.js"
 
+> [!NOTE]
+> loc: [String.prototype.match step 1](https://tc39.es/ecma262/2025/#sec-string.prototype.match)
+> uncovered: RequireObjectCoercible return abrupt case
+> isValid: ???
+> memo:
+> - String.prototype.match(regexp)로 접근 가능
+> - RequireObjectCoercible(this value)에서 터질 수 있음, this value가 Undefined거나 Null이면 됨
+
 Branch[23367]:T : String.prototype.match.call(1 , { [ Symbol . match ] : 0 } );
 Branch[23367]:F : String.prototype.match.call(1n );;
 Branch[23367]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-get-err.js"
+
+> [!NOTE]
+> loc: [String.prototype.match step 2](https://tc39.es/ecma262/2025/#sec-string.prototype.match)
+> uncovered: regexp == undefined || regexp == null
+> isValid: ???
+> memo:
+> - String.prototype.match(regexp)로 접근 가능
+> - regexp에 Undefined 또는 Null이 들어가면 됨
 
 Branch[23374]:T : String.prototype.match.call(0, { [ Symbol . match ] : x => x } );
 Branch[23374]:F : String.prototype.match.call(1 , 0);
 Branch[23374]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-invocation.js"
 
+> [!NOTE]
+> loc: [String.prototype.match step 2.b](https://tc39.es/ecma262/2025/#sec-string.prototype.match)
+> uncovered: matcher == undefined
+> isValid: ???
+> memo:
+> - String.prototype.match(regexp)로 접근 가능
+> - regexp에 "Symbol.match" field가 존재하지 않으면 됨
+
 Branch[23377]:T : String.prototype.match.call(0, { [ Symbol . match ] : x => await } );
 Branch[23377]:F : String.prototype.match.call(0, { [ Symbol . match ] : x => x } );
 Branch[23377]   : Test262 covered false branch with "test262/test/built-ins/String/prototype/match/cstm-matcher-invocation.js"
 
+> [!NOTE]
+> loc: [String.prototype.match step 2.b.i](https://tc39.es/ecma262/2025/#sec-string.prototype.match)
+> uncovered: Call return abrupt case
+> isValid: ???
+> memo:
+> - String.prototype.match(regexp)로 접근 가능
+> - 
+
 Branch[23407]:T : String.prototype.matchAll.call(0 , { [ NaN ] : `` } );
 Branch[23407]:F : String.prototype.matchAll.call(1 );
 Branch[23407]   : Test262 covered true branch with "test262/test/built-ins/String/prototype/matchAll/regexp-matchAll-invocation.js"
+
+> [!NOTE]
+> loc: [String.prototype.matchAll step 2](https://tc39.es/ecma262/2025/#sec-string.prototype.matchall)
+> uncovered: regexp == undefined || regexp == 
 
 Branch[23437]:T : String.prototype.matchAll.call(0 , { [ Symbol . matchAll ] : 0 } );
 Branch[23437]:F : String.prototype.matchAll.call(0 , { [ NaN ] : `` } );
