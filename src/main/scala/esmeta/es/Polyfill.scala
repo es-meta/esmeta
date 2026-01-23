@@ -65,7 +65,7 @@ object Polyfill {
           (TAB * (depth + 1)) + s"var $name = ${code.toString}" +
           (TAB * depth) + "}" +
           LINE_SEP +
-          (TAB * depth) + s"catch(${name})" +
+          (TAB * depth) + s"catch(_${name}_abrupt)" +
           LINE_SEP +
           body.toString(depth)
         case NoOpStmt() => ""

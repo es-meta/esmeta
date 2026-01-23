@@ -44,36 +44,50 @@ case class PolyfillBuilder(
   }
 
   def wrapAbrupt(name: String, body: Stmt): Unit = {
-    scopes.head._2.computeIfAbsent(name, { n => throw RuntimeException(s"Unbound variable: $n") }).foreach {
-      case VariableReference(idx, ref) =>
-        scopes.head._1.update(idx, WrappedLetStmt(name, ref, body))
-      case Enum(_) =>
-    }
+    scopes.head._2
+      .computeIfAbsent(
+        name,
+        { n => throw RuntimeException(s"Unbound variable: $n") },
+      )
+      .foreach {
+        case VariableReference(idx, ref) =>
+          scopes.head._1.update(idx, WrappedLetStmt(name, ref, body))
+        case Enum(_) =>
+      }
   }
 
   def annotate(name: String, value: String): Unit = {
     addTag(name, Enum(value))
   }
 
-  def hasTag(name: String, value: String): Boolean = scopes.head._2
-    .get(name).foreach match {
-    case Enum(tagValue) => value.eq(tagValue)
-    case _ => false
-  }
+  def hasTag(name: String, value: String): Boolean =
+    scopes
+      .flatMap { it => Option(it._2.get(name)) }
+      .exists { list =>
+        list.exists {
+          case Enum(tagValue) => value == tagValue
+          case _              => false
+        }
+      }
 
-  def tagExists(name: String): Boolean = scopes.head._2.containsKey(name) && scopes.head._2.get(name).nonEmpty
+  def tagExists(name: String): Boolean =
+    scopes.head._2.containsKey(name) && scopes.head._2.get(name).nonEmpty
 
-
-  def deleteTag(name: String, tag: String): Unit = scopes.head._2.put(name, scopes.head._2.get(name).filterInPlace {
-    case Enum(value) => value.eq(tag)
-    case _ => true
-  })
+  def deleteTag(name: String, tag: String): Unit = scopes.head._2.put(
+    name,
+    scopes.head._2.get(name).filterInPlace {
+      case Enum(value) => value.eq(tag)
+      case _           => true
+    },
+  )
 
   def getTags(name: String): List[String] = scopes.head._2
-    .get(name).flatMap {
+    .get(name)
+    .flatMap {
       case Enum(tagValue) => Option(tagValue)
-      case _ => None
-    }.toList
+      case _              => None
+    }
+    .toList
 
   private def addTag(name: String, value: Tag): Unit = {
     val buffer = scopes.head._2.computeIfAbsent(name, _ => ListBuffer[Tag]())
@@ -95,5 +109,7 @@ case class PolyfillBuilder(
   private case class Enum(value: String) extends Tag
 
   /** scope stacks */
-  private var scopes: Stack[(ListBuffer[Stmt], ConcurrentHashMap[String, ListBuffer[Tag]])] = Stack()
+  private var scopes
+    : Stack[(ListBuffer[Stmt], ConcurrentHashMap[String, ListBuffer[Tag]])] =
+    Stack()
 }
