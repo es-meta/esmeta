@@ -45,6 +45,14 @@ object Polyfill {
           s"for (var $index = 0; $index < $end; $index++)" +
           LINE_SEP +
           s"${body.toString(depth)}"
+        case ForEachIntStmt(index, low, lowInc, high, highInc, true, body) =>
+          val init = s"var $index = $low" + (if (lowInc) "" else " + 1")
+          val cond = s"$index " + (if (highInc) "<=" else "=") + high
+          s"for ($init; $cond; $index++)" + LINE_SEP + s"${body.toString(depth)}"
+        case ForEachIntStmt(index, low, lowInc, high, highInc, false, body) =>
+          val init = s"var $index = $low" + (if (lowInc) "" else " - 1")
+          val cond = s"$index " + (if (highInc) ">=" else "=") + high
+          s"for ($init; $cond; $index--)" + LINE_SEP + s"${body.toString(depth)}"
         case BlockStmt(stmts) =>
           "{" + LINE_SEP + stmts
             .map(_.toString(depth + 1))
@@ -73,6 +81,17 @@ object Polyfill {
 
   // for (var index = 0; index < end; index++) { element = expr[index]; body }
   case class ForEachStmt(index: String, end: String, body: Stmt) extends Stmt
+
+  // for (var index = start; index < end; index++) { body }
+  case class ForEachIntStmt(
+    index: String,
+    low: String,
+    lowInc: Boolean,
+    high: String,
+    highInc: Boolean,
+    ascending: Boolean,
+    body: Stmt,
+  ) extends Stmt
 
   // { stmts }
   case class BlockStmt(stmts: List[Stmt]) extends Stmt
