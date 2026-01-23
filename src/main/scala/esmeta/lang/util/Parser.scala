@@ -387,7 +387,7 @@ trait Parsers extends IndentParsers {
 
   // list copy expressions
   lazy val listCopyExpr: PL[ListCopyExpression] =
-    "a List whose elements are the elements of" ~> expr ^^ {
+    ("a List whose elements are the elements of" | "a copy of") ~> expr ^^ {
       ListCopyExpression(_)
     }
 

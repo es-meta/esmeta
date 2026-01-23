@@ -1459,6 +1459,7 @@ INTRINSICS.RegExp.prototype[%Symbol.search%]
 INTRINSICS.RegExp.prototype[%Symbol.split%]
 INTRINSICS.Set
 INTRINSICS.Set.prototype.add
+INTRINSICS.Set.prototype.difference
 INTRINSICS.Set.prototype.entries
 INTRINSICS.Set.prototype.forEach
 INTRINSICS.Set.prototype.has
@@ -1466,6 +1467,8 @@ INTRINSICS.Set.prototype.intersection
 INTRINSICS.Set.prototype.isDisjointFrom
 INTRINSICS.Set.prototype.isSubsetOf
 INTRINSICS.Set.prototype.isSupersetOf
+INTRINSICS.Set.prototype.symmetricDifference
+INTRINSICS.Set.prototype.union
 INTRINSICS.Set.prototype.values
 INTRINSICS.SetIteratorPrototype.next
 INTRINSICS.SharedArrayBuffer
