@@ -57,6 +57,18 @@ object Polyfill {
           "{" + LINE_SEP + stmts
             .map(_.toString(depth + 1))
             .mkString + (TAB * depth) + "}"
+        case WrappedLetStmt(name, code, body) =>
+          "try" +
+          LINE_SEP +
+          (TAB * depth) + "{" +
+          LINE_SEP +
+          (TAB * (depth + 1)) + s"var $name = ${code.toString}" +
+          (TAB * depth) + "}" +
+          LINE_SEP +
+          (TAB * depth) + s"catch(${name})" +
+          LINE_SEP +
+          body.toString(depth)
+        case NoOpStmt() => ""
     } + LINE_SEP
 
     def toList: List[Stmt] = this match {
@@ -95,4 +107,10 @@ object Polyfill {
 
   // { stmts }
   case class BlockStmt(stmts: List[Stmt]) extends Stmt
+
+  // let x = expr
+  case class WrappedLetStmt(name: String, code: Stmt, body: Stmt) extends Stmt
+
+  // NoOp
+  case class NoOpStmt() extends Stmt
 }
