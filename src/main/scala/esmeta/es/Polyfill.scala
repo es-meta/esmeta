@@ -2,6 +2,7 @@ package esmeta.es
 
 import esmeta.LINE_SEP
 import esmeta.spec.*
+import esmeta.lang.Step
 
 /** polyfill code */
 case class Polyfill(
@@ -57,23 +58,48 @@ object Polyfill {
           "{" + LINE_SEP + stmts
             .map(_.toString(depth + 1))
             .mkString + (TAB * depth) + "}"
-        case WrappedLetStmt(name, code, body) =>
+        case WrappedLetStmt(name, code, tryBody, catchBody) =>
+          val tryBodyStr = tryBody.toString(depth + 1)
+          val catchBodyStr = catchBody.toString(depth + 1)
+          if (catchBodyStr.isBlank) {
+            (TAB * (depth + 1)) + s"var $name = ${code.toString}" +
+            tryBodyStr
+          } else {
+            "try" +
+            LINE_SEP +
+            (TAB * depth) + "{" +
+            LINE_SEP +
+            (TAB * (depth + 1)) + s"var $name = ${code.toString}" +
+            tryBodyStr +
+            (TAB * depth) + "}" +
+            LINE_SEP +
+            (TAB * depth) + s"catch(_${name}_abrupt)" +
+            LINE_SEP + (TAB * depth) + "{" +
+            LINE_SEP + catchBodyStr +
+            LINE_SEP + (TAB * depth) + "}"
+          }
+        case NoOpStmt() => ""
+        case CompoundStatement(stmts) =>
+          stmts
+            .filter(!_.isInstanceOf[NoOpStmt])
+            .flatMap {
+              case BlockStmt(innerStmts) => innerStmts.map(_.toString(depth))
+              case x                     => x.toString(depth)
+            }
+            .mkString
+            .trim
+        case TryCatchStmt(tryStmt, catchVar, catchStmt) =>
           "try" +
           LINE_SEP +
-          (TAB * depth) + "{" +
-          LINE_SEP +
-          (TAB * (depth + 1)) + s"var $name = ${code.toString}" +
-          (TAB * depth) + "}" +
-          LINE_SEP +
-          (TAB * depth) + s"catch(_${name}_abrupt)" +
-          LINE_SEP +
-          body.toString(depth)
-        case NoOpStmt() => ""
+          tryStmt.toString(depth) +
+          (TAB * depth) + s"catch($catchVar)" +
+          LINE_SEP + catchStmt.toString(depth)
     } + LINE_SEP
 
     def toList: List[Stmt] = this match {
-      case BlockStmt(stmts) => stmts
-      case stmt             => List(stmt)
+      case BlockStmt(stmts)         => stmts
+      case CompoundStatement(stmts) => stmts
+      case stmt                     => List(stmt)
     }
 
     def ++(other: Stmt): Stmt = {
@@ -108,9 +134,27 @@ object Polyfill {
   // { stmts }
   case class BlockStmt(stmts: List[Stmt]) extends Stmt
 
+  // { stmts }
+  case class TryCatchStmt(tryStmt: Stmt, catchVar: String, catchStmt: Stmt)
+    extends Stmt
+
   // let x = expr
-  case class WrappedLetStmt(name: String, code: Stmt, body: Stmt) extends Stmt
+  case class WrappedLetStmt(
+    name: String,
+    code: Stmt,
+    tryBody: Stmt,
+    catchBody: Stmt,
+  ) extends Stmt
 
   // NoOp
   case class NoOpStmt() extends Stmt
+
+  // Compound Statement (No scope, only used in internal)
+  case class CompoundStatement(stmts: List[Stmt]) extends Stmt
+
+  // Additional Steps Declaration for Polyfill Extract
+  sealed trait PolyfillStep()
+  // LangStep
+  case class LangStep(step: Step) extends PolyfillStep
+
 }

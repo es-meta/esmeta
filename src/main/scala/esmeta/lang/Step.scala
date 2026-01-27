@@ -198,3 +198,7 @@ case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
 
 // perform block steps
 case class PerformBlockStep(step: StepBlock, desc: String) extends Step
+
+// TODO Refactor this as virtual node
+case class WrappedTryCatchStep(tryBlock: Step, catchVar: Reference, catchBlock: Option[Step]) extends Step
+case class TaggedStep(step: Step, tag: Map[String, String]) extends Step

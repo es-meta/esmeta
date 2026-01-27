@@ -43,7 +43,11 @@ case class PolyfillBuilder(
     stmt
   }
 
-  def wrapAbrupt(name: String, body: Stmt): Unit = {
+  def wrapAbrupt(name: String, body: Stmt): Unit = wrapTryCatch(name, body, "abrupt")
+
+  def wrapNormal(name: String, body: Stmt): Unit = wrapTryCatch(name, body, "normal")
+
+  private def wrapTryCatch(name: String, body: Stmt, completionType: String): Unit = {
     scopes.head._2
       .computeIfAbsent(
         name,
@@ -51,7 +55,39 @@ case class PolyfillBuilder(
       )
       .foreach {
         case VariableReference(idx, ref) =>
-          scopes.head._1.update(idx, WrappedLetStmt(name, ref, body))
+          val stmt = scopes.head._1(idx) match {
+            case WrappedLetStmt(ownName, ownRef, tryBody, catchBody) =>
+              if (ownName != name || ownRef != ref) throw RuntimeException(s"Wrapper Binding is not equivalent: $ownName and $name");
+              else
+                completionType match {
+                  case "normal" =>
+                    WrappedLetStmt(
+                      name,
+                      ref,
+                      CompoundStatement(List(tryBody, body)),
+                      catchBody,
+                    );
+                  case "throw" | "abrupt" =>
+                    WrappedLetStmt(
+                      name,
+                      ref,
+                      tryBody,
+                      CompoundStatement(List(catchBody, body))
+                    );
+                }
+            case _ =>
+              completionType match {
+                case "normal" => WrappedLetStmt(name, ref, CompoundStatement(List(body)), NoOpStmt());
+                case "throw" | "abrupt" =>
+                  WrappedLetStmt(
+                    name,
+                    ref,
+                    NoOpStmt(),
+                    CompoundStatement(List(body)),
+                  );
+              }
+          }
+          scopes.head._1.update(idx, stmt)
         case Enum(_) =>
       }
   }
