@@ -35,152 +35,22 @@ object PolyfillInspector {
     handleCompletionCheck(stmts, Nil, Set())
   }
 
+  @tailrec
   private def optimizeCompletion(
     input: List[Step],
     history: List[Step],
     env: Map[String, CompletionType],
   ): List[Step] = input match {
-    /*case (x @ LetStep(Variable(varName, _), expr)) :: tail =>
-      expr match {
-        case InvokeAbstractOperationExpression(aoName, args, _) =>
-          if (aoName == "Completion")
-            optimizeCompletion(
-              tail,
-              x.copy(expr =
-                args.head,
-              ) :: history, // AO_Completion only has 1 arg
-              env + (varName -> UnknownCompletion),
-            )
-          else optimizeCompletion(tail, x :: history, env)
-        case ReferenceExpression(Variable(name, _)) =>
-          val newEnv = env.get(name) match {
-            case Some(x) => env + (varName -> x)
-            case None    => env
-          }
-          optimizeCompletion(tail, x :: history, newEnv)
-        case _ => optimizeCompletion(tail, x :: history, env)
-      }
-    case (x @ SetStep(Variable(varName, _), expr)) :: tail =>
-      expr match {
-        case InvokeAbstractOperationExpression(aoName, args, _) =>
-          if (aoName == "Completion")
-            optimizeCompletion(
-              tail,
-              x.copy(expr =
-                args.head,
-              ) :: history, // AO_Completion only has 1 arg
-              env + (varName -> UnknownCompletion),
-            )
-          else optimizeCompletion(tail, x :: history, env)
-        case ReferenceExpression(Variable(name, _)) =>
-          val newEnv = env.get(name) match {
-            case Some(x) => env + (varName -> x)
-            case None    => env
-          }
-          optimizeCompletion(tail, x :: history, newEnv)
-        case ReturnIfAbruptExpression(
-              ReferenceExpression(Variable(innerVarNm, _)),
-              false,
-            ) =>
-          if (varName == innerVarNm)
-            optimizeCompletion(
-              tail,
-              history,
-              env,
-            ) // Remove ! (unwrapping shorthand)
-          else optimizeCompletion(tail, x :: history, env)
-        case _ => optimizeCompletion(tail, x :: history, env)
-      }
-    case WrappedTryCatchStep(
-          BlockStep(StepBlock(tryBlock)),
-          catchVarRef @ Variable(catchVar, _),
-          Some(BlockStep(StepBlock(catchBlock))),
-        ) :: tail =>
-      val tryStmt = optimizeCompletion(tryBlock.map(_.step), Nil, env)
-      val catchStmt = optimizeCompletion(
-        catchBlock.map(_.step),
-        Nil,
-        env + (catchVar -> AbruptCompletion),
-      )
-      optimizeCompletion(
-        tail,
-        WrappedTryCatchStep(
-          tryStmt.toBlockStep,
-          catchVarRef,
-          Some(catchStmt.toBlockStep),
-        ) :: history,
-        env,
-      )
-    case (check @ CompletionCheckPattern(checks)) :: tail =>
-      val (checkType, targetVar) = checks
-      val ifStep = check.asInstanceOf[IfStep]
-      val bodyStmt = optimizeCompletion(
-        ifStep.thenStep :: Nil,
-        Nil,
-        env + (targetVar -> (if (checkType == "normal") NormalCompletion
-                             else AbruptCompletion)),
-      )
-      ifStep.elseStep match {
-        case Some(step) =>
-          val elseStmt = optimizeCompletion(
-            step :: Nil,
-            Nil,
-            env + (targetVar -> (if (checkType == "abrupt") NormalCompletion
-                                 else AbruptCompletion)),
-          )
-          optimizeCompletion(
-            tail,
-            ifStep.copy(
-              thenStep = bodyStmt.toBlockStep,
-              elseStep = Some(elseStmt.toBlockStep),
-            ) :: Nil,
-            env,
-          )
-        case None =>
-          optimizeCompletion(
-            tail,
-            ifStep.copy(thenStep = bodyStmt.toBlockStep) :: history,
-            env,
-          )
-      }
-    case BlockStep(StepBlock(stmts)) :: tail =>
-      val innerStmt = optimizeCompletion(stmts.map(_.step), Nil, env)
-      optimizeCompletion(tail, innerStmt.toBlockStep :: history, env)
-    case (x @ ReturnStep(ReturnIfAbruptExpression(expr, true))) :: tail =>
-      expr match {
-        case ReferenceExpression(Variable(name, _)) =>
-          env.get(name) match {
-            case Some(AbruptCompletion) =>
-              optimizeCompletion(
-                tail,
-                TaggedStep(
-                  ThrowStep(name),
-                  Map("reason" -> "abrupt"),
-                ) :: history,
-                env,
-              )
-            case _ => optimizeCompletion(tail, x :: history, env)
-          }
-        case _ => optimizeCompletion(tail, x :: history, env)
-      }
-    case (x @ IfStep(_, thenStep, elseStep, _)) :: tail =>
-      val thenStmt = optimizeCompletion(thenStep :: Nil, Nil, env)
-      val elseStmt = elseStep.map(it => optimizeCompletion(it :: Nil, Nil, env))
-      optimizeCompletion(
-        tail,
-        x.copy(
-          thenStep = thenStmt.toBlockStep,
-          elseStep = elseStmt.map(_.toBlockStep),
-        ) :: history,
-        env,
-      ) */
     case head :: tail =>
+
       val (newStep, newEnv) = transformStep(head, env)
       newStep match {
-        case Some(x) => optimizeCompletion(tail, x :: history, newEnv)
-        case None => optimizeCompletion(tail, history, newEnv)
+        case Some(x) =>
+          val unwrappedStep = StepMapper.mapExpressions(x) {expr => unwrapValueAccess(expr, env)}
+          optimizeCompletion(tail, unwrappedStep :: history, newEnv)
+        case None    => optimizeCompletion(tail, history, newEnv)
       }
-    case Nil          => history.reverse
+    case Nil => history.reverse
   }
 
   private def optimizeExpr(
@@ -221,11 +91,17 @@ object PolyfillInspector {
           (Some(SetStep(v, newExpr)), newEnv)
       }
 
-    case WrappedTryCatchStep(tryStep, catchVarRef @ Variable(catchVar, _), catchStep) =>
+    case WrappedTryCatchStep(
+          tryStep,
+          catchVarRef @ Variable(catchVar, _),
+          catchStep,
+        ) =>
       val newTry = optimizeCompletion(tryStep :: Nil, Nil, env).toBlockStep
 
       val catchEnv = env + (catchVar -> AbruptCompletion)
-      val newCatch = catchStep.map(c => optimizeCompletion(c :: Nil, Nil, catchEnv).toBlockStep)
+      val newCatch = catchStep.map(c =>
+        optimizeCompletion(c :: Nil, Nil, catchEnv).toBlockStep,
+      )
 
       (
         Some(WrappedTryCatchStep(newTry, catchVarRef, newCatch)),
@@ -239,19 +115,26 @@ object PolyfillInspector {
         ifStep.thenStep :: Nil,
         Nil,
         env + (targetVar -> (if (checkType == "normal") NormalCompletion
-        else AbruptCompletion)),
+                             else AbruptCompletion)),
       ).toBlockStep
-      val elseStmt = ifStep.elseStep.map(step => optimizeCompletion(
-        step :: Nil,
-        Nil,
-        env + (targetVar -> (if (checkType == "abrupt") NormalCompletion
-        else AbruptCompletion)),
-      ).toBlockStep)
+      val elseStmt = ifStep.elseStep.map(step =>
+        optimizeCompletion(
+          step :: Nil,
+          Nil,
+          env + (targetVar -> (if (checkType == "abrupt") NormalCompletion
+                               else AbruptCompletion)),
+        ).toBlockStep,
+      )
 
-      (Some(ifStep.copy(
-        thenStep = bodyStmt,
-        elseStep = elseStmt,
-      )), env)
+      (
+        Some(
+          ifStep.copy(
+            thenStep = bodyStmt,
+            elseStep = elseStmt,
+          ),
+        ),
+        env,
+      )
 
     case ret @ ReturnStep(
           ReturnIfAbruptExpression(ReferenceExpression(Variable(name, _)), true),
@@ -262,8 +145,25 @@ object PolyfillInspector {
         case _ => (Some(ret), env)
       }
 
+    case TaggedStep(taggedInnerStep, tag) => taggedInnerStep match {
+      case IfStep(c, t, e, _) =>
+        transformStep(taggedInnerStep, env + (tag.get("TYPE") match {
+          case Some("abrupt") => (tag.getOrElse("USE_FLAG", "") -> AbruptCompletion)
+          case Some("normal") => (tag.getOrElse("USE_FLAG", "") -> NormalCompletion)
+          case _ => ???
+        })) match {
+          case (None, env) => (None, env)
+          case (Some(it), env) => (Some(TaggedStep(it, tag)), env)
+        }
+
+      case _ => transformStep(taggedInnerStep, env)
+    }
+
     case BlockStep(stmts) =>
-      (Some(optimizeCompletion(stmts.steps.map(_.step), Nil, env).toBlockStep), env)
+      (
+        Some(optimizeCompletion(stmts.steps.map(_.step), Nil, env).toBlockStep),
+        env,
+      )
 
     case IfStep(cond, t, e, cfg) =>
       val newT = optimizeCompletion(t :: Nil, Nil, env).toBlockStep
@@ -271,6 +171,18 @@ object PolyfillInspector {
       (Some(IfStep(cond, newT, newE, cfg)), env)
 
     case _ => (Some(step), env)
+  }
+
+  private def unwrapValueAccess(
+    expr: Expression,
+    env: Map[String, CompletionType],
+  ): Expression = expr match {
+    case ReferenceExpression(Access(Variable(varName, _), "Value", _, _)) => // completion.[[Value]]
+      env.get(varName) match {
+        case Some(_) => ReferenceExpression(Variable(varName))
+        case None => expr
+      }
+    case _ => expr
   }
 
   @tailrec
@@ -285,7 +197,7 @@ object PolyfillInspector {
 
       if (handledVars.contains(targetVar)) {
         val flagName = s"${targetVar}_is_abrupt"
-        val taggedCheck = annotateStep(check, "USE_FLAG", flagName)
+        val taggedCheck = annotateStep(annotateStep(check, "USE_FLAG", flagName), "TYPE", checkType)
 
         println(s"$checks : $check (reassigned: $checkType)")
         handleCompletionCheck(tail, taggedCheck :: history, handledVars)
@@ -488,4 +400,221 @@ private object CompletionCheckPattern {
         s"Expected Reference Expression for extractVarName, but got '${err.toString}'",
       )
   }
+}
+
+object StepMapper {
+  def mapExpressions(step: Step)(f: Expression => Expression): Step =
+    step match {
+      case LetStep(v, expr) =>
+        LetStep(v, f(expr))
+      case SetStep(ref, expr) =>
+        SetStep(mapRef(ref)(f), f(expr))
+      case SetAsStep(ref, verb, id) =>
+        SetAsStep(mapRef(ref)(f), verb, id)
+      case SetEvaluationStateStep(context, func, args) =>
+        SetEvaluationStateStep(mapRef(context)(f), func, args.map(f))
+      case PerformStep(expr) =>
+        PerformStep(f(expr))
+      case InvokeShorthandStep(name, args) =>
+        InvokeShorthandStep(name, args.map(f))
+      case AppendStep(elem, ref) =>
+        AppendStep(f(elem), mapRef(ref)(f))
+      case PrependStep(elem, ref) =>
+        PrependStep(f(elem), mapRef(ref)(f))
+      case InsertStep(elem, ref) =>
+        InsertStep(f(elem), mapRef(ref)(f))
+      case AddStep(elem, ref) =>
+        AddStep(f(elem), mapRef(ref)(f))
+      case RemoveStep(target, prep, list) =>
+        RemoveStep(mapRemoveTarget(target)(f), prep, f(list))
+      case PushContextStep(ref) =>
+        PushContextStep(mapRef(ref)(f))
+      case SuspendStep(variable, remove) =>
+        SuspendStep(variable, remove)
+      case RemoveContextStep(context, restoreTarget) =>
+        RemoveContextStep(
+          mapRef(context)(f),
+          mapRestoreTarget(restoreTarget)(f),
+        )
+      case AssertStep(cond) =>
+        AssertStep(mapCond(cond)(f))
+      case IfStep(cond, thenStep, elseStep, config) =>
+        IfStep(
+          mapCond(cond)(f),
+          mapExpressions(thenStep)(f),
+          elseStep.map(mapExpressions(_)(f)),
+          config,
+        )
+      case RepeatStep(cond, body) =>
+        RepeatStep(mapLoopCond(cond)(f), mapExpressions(body)(f))
+      case ForEachStep(ty, variable, expr, forward, body) =>
+        ForEachStep(ty, variable, f(expr), forward, mapExpressions(body)(f))
+      case ForEachIntegerStep(
+            variable,
+            low,
+            lowInc,
+            high,
+            highInc,
+            ascending,
+            body,
+          ) =>
+        ForEachIntegerStep(
+          variable,
+          f(low),
+          lowInc,
+          f(high),
+          highInc,
+          ascending,
+          mapExpressions(body)(f),
+        )
+      case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
+        ForEachOwnPropertyKeyStep(
+          key,
+          obj,
+          mapCond(cond)(f),
+          ascending,
+          order,
+          mapExpressions(body)(f),
+        )
+      case ForEachParseNodeStep(variable, expr, body) =>
+        ForEachParseNodeStep(variable, f(expr), mapExpressions(body)(f))
+      case ReturnStep(expr) =>
+        ReturnStep(f(expr))
+      case ThrowStep(name) =>
+        ThrowStep(name)
+      case ResumeStep(
+            callerContext,
+            argument,
+            generatorContext,
+            param,
+            steps,
+          ) =>
+        ResumeStep(
+          mapRef(callerContext)(f),
+          f(argument),
+          mapRef(generatorContext)(f),
+          param,
+          steps.map(mapSubStep(_)(f)),
+        )
+      case ResumeEvaluationStep(context, argument, param, steps) =>
+        ResumeEvaluationStep(
+          mapRef(context)(f),
+          argument.map(f),
+          param,
+          steps.map(mapSubStep(_)(f)),
+        )
+      case ResumeTopContextStep() =>
+        ResumeTopContextStep()
+      case NoteStep(note) =>
+        NoteStep(note)
+      case BlockStep(StepBlock(steps)) =>
+        BlockStep(StepBlock(steps.map(mapSubStep(_)(f))))
+      case YetStep(expr) =>
+        YetStep(expr)
+      case SetFieldsWithIntrinsicsStep(ref, desc) =>
+        SetFieldsWithIntrinsicsStep(mapRef(ref)(f), desc)
+      case PerformBlockStep(StepBlock(steps), desc) =>
+        PerformBlockStep(StepBlock(steps.map(mapSubStep(_)(f))), desc)
+      case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
+        WrappedTryCatchStep(
+          mapExpressions(tryBlock)(f),
+          catchVar,
+          catchBlock.map(mapExpressions(_)(f)),
+        )
+      case TaggedStep(innerStep, tag) =>
+        TaggedStep(mapExpressions(innerStep)(f), tag)
+    }
+
+  private def mapSubStep(sub: SubStep)(f: Expression => Expression): SubStep =
+    sub.copy(step = mapExpressions(sub.step)(f))
+
+  private def mapRef(ref: Reference)(f: Expression => Expression): Reference =
+    ref match {
+      case v: Variable => v
+      case Access(base, name, kind, form) =>
+        Access(mapRef(base)(f), name, kind, form)
+      case ValueOf(base)              => ValueOf(mapRef(base)(f))
+      case IntrinsicField(base, intr) => IntrinsicField(mapRef(base)(f), intr)
+      case IndexLookup(base, index)   => IndexLookup(mapRef(base)(f), f(index))
+      case BindingLookup(base, binding) =>
+        BindingLookup(mapRef(base)(f), f(binding))
+      case NonterminalLookup(base, nt) => NonterminalLookup(mapRef(base)(f), nt)
+      case PositionalElement(base, isFirst) =>
+        PositionalElement(mapRef(base)(f), isFirst)
+      case IntrinsicObject(base, expr) =>
+        IntrinsicObject(mapRef(base)(f), f(expr))
+      case r: RunningExecutionContext => r
+      case r: SecondExecutionContext  => r
+      case r: CurrentRealmRecord      => r
+      case r: ActiveFunctionObject    => r
+      case r: AgentRecord             => r
+    }
+
+  private def mapCond(cond: Condition)(f: Expression => Expression): Condition =
+    cond match {
+      case ExpressionCondition(expr) => ExpressionCondition(f(expr))
+      case TypeCheckCondition(expr, neg, tys) =>
+        TypeCheckCondition(f(expr), neg, tys)
+      case HasFieldCondition(ref, neg, field, form) =>
+        HasFieldCondition(mapRef(ref)(f), neg, field, form)
+      case HasBindingCondition(ref, neg, binding) =>
+        HasBindingCondition(mapRef(ref)(f), neg, f(binding))
+      case ProductionCondition(nt, lhsName, rhsName) =>
+        ProductionCondition(nt, lhsName, rhsName)
+      case PredicateCondition(expr, neg, op) =>
+        PredicateCondition(f(expr), neg, op)
+      case IsAreCondition(left, neg, right) =>
+        IsAreCondition(left.map(f), neg, right.map(f))
+      case BinaryCondition(left, op, right) =>
+        BinaryCondition(f(left), op, f(right))
+      case InclusiveIntervalCondition(left, neg, from, to, desc) =>
+        InclusiveIntervalCondition(f(left), neg, f(from), f(to), desc)
+      case ContainsCondition(list, neg, target) =>
+        ContainsCondition(f(list), neg, mapContainsTarget(target)(f))
+      case CompoundCondition(left, op, right) =>
+        CompoundCondition(mapCond(left)(f), op, mapCond(right)(f))
+    }
+
+  private def mapContainsTarget(
+    target: ContainsConditionTarget,
+  )(f: Expression => Expression): ContainsConditionTarget =
+    target match {
+      case ContainsConditionTarget.Expr(expr) =>
+        ContainsConditionTarget.Expr(f(expr))
+      case other => other
+    }
+
+  private def mapRemoveTarget(
+    target: RemoveStep.Target,
+  )(f: Expression => Expression): RemoveStep.Target =
+    target match {
+      case RemoveStep.Target.First(count) =>
+        RemoveStep.Target.First(count.map(f))
+      case RemoveStep.Target.Last(count) => RemoveStep.Target.Last(count.map(f))
+      case RemoveStep.Target.Element(elem) => RemoveStep.Target.Element(f(elem))
+    }
+
+  private def mapRestoreTarget(
+    target: RemoveContextStep.RestoreTarget,
+  )(f: Expression => Expression): RemoveContextStep.RestoreTarget =
+    target match {
+      case RemoveContextStep.RestoreTarget.NoRestore =>
+        RemoveContextStep.RestoreTarget.NoRestore
+      case RemoveContextStep.RestoreTarget.StackTop =>
+        RemoveContextStep.RestoreTarget.StackTop
+      case RemoveContextStep.RestoreTarget.Context(ref) =>
+        RemoveContextStep.RestoreTarget.Context(mapRef(ref)(f))
+    }
+
+  private def mapLoopCond(
+    cond: RepeatStep.LoopCondition,
+  )(f: Expression => Expression): RepeatStep.LoopCondition =
+    cond match {
+      case RepeatStep.LoopCondition.NoCondition =>
+        RepeatStep.LoopCondition.NoCondition
+      case RepeatStep.LoopCondition.While(c) =>
+        RepeatStep.LoopCondition.While(mapCond(c)(f))
+      case RepeatStep.LoopCondition.Until(c) =>
+        RepeatStep.LoopCondition.Until(mapCond(c)(f))
+    }
 }
