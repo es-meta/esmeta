@@ -523,7 +523,8 @@ object PolyfillInspector {
           case None    => expr
         }
 
-      case completionAO @ InvokeAbstractOperationExpression(name, args, _) if name.contains("Completion") =>
+      case completionAO @ InvokeAbstractOperationExpression(name, args, _)
+          if name.contains("Completion") =>
         if (args.length > 1)
           throw RuntimeException(
             s"Completion AO Call should contain up to one argument:\n\t$completionAO",
