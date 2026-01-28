@@ -91,7 +91,10 @@ object PolyfillInspector {
             "TARGET_VAR",
             targetVar,
           )
-          transformStep(taggedCheck, env.withType(targetVar, checkType).withHandled(targetVar)) match {
+          transformStep(
+            taggedCheck,
+            env.withType(targetVar, checkType).withHandled(targetVar),
+          ) match {
             case (Some(optimizedCheck), newEnv) =>
               optimize(tail, optimizedCheck :: history, newEnv)
             case (None, newEnv) => optimize(tail, history, newEnv)
@@ -120,7 +123,7 @@ object PolyfillInspector {
               flagName,
               checkType,
               isAbruptTerminal,
-              env
+              env,
             )
             transformStep(
               merged,
@@ -244,7 +247,11 @@ object PolyfillInspector {
 
     case LetStep(v @ Variable(name, _), expr) =>
       val (newExpr, typeUpdate) = optimizeExpr(expr, env)
-      if(!env.getType(name).contains(NormalCompletion)) (Some(LetStep(v, newExpr)), typeUpdate.map(t => env.withType(name, t)).getOrElse(env))
+      if (!env.getType(name).contains(NormalCompletion))
+        (
+          Some(LetStep(v, newExpr)),
+          typeUpdate.map(t => env.withType(name, t)).getOrElse(env),
+        )
       else (Some(LetStep(v, newExpr)), env)
 
     case SetStep(v @ Variable(name, _), expr) =>
@@ -257,11 +264,15 @@ object PolyfillInspector {
           (None, env)
         case _ =>
           val (newExpr, typeUpdate) = optimizeExpr(expr, env)
-          if(!env.getType(name).contains(NormalCompletion)) (Some(SetStep(v, newExpr)), typeUpdate.map(t => env.withType(name, t)).getOrElse(env))
+          if (!env.getType(name).contains(NormalCompletion))
+            (
+              Some(SetStep(v, newExpr)),
+              typeUpdate.map(t => env.withType(name, t)).getOrElse(env),
+            )
           else (Some(SetStep(v, newExpr)), env)
       }
 
-      /*
+    /*
     case WrappedTryCatchStep(
           tryStep,
           catchVarRef @ Variable(catchVar, _),
@@ -272,7 +283,7 @@ object PolyfillInspector {
       val newCatch =
         catchStep.map(c => optimize(c :: Nil, Nil, catchEnv).toBlockStep)
       (Some(WrappedTryCatchStep(newTry, catchVarRef, newCatch)), env)
-      */
+     */
     case ret @ ReturnStep(
           ReturnIfAbruptExpression(ReferenceExpression(Variable(name, _)), true),
         ) =>
@@ -536,11 +547,15 @@ object PolyfillInspector {
     flagName: String,
     completion: String,
     isAbruptTerminal: Boolean,
-    env: CompletionEnv
+    env: CompletionEnv,
   ): WrappedTryCatchStep = {
     val IfStep(_, bodyStep, _, _) = ifStep: @unchecked
     if (completion == "normal") {
-      val tryStmts = optimize(producer :+ bodyStep, Nil, env.withHandled(varName).withType(varName, NormalCompletion))
+      val tryStmts = optimize(
+        producer :+ bodyStep,
+        Nil,
+        env.withHandled(varName).withType(varName, NormalCompletion),
+      )
       val catchStmts = List(
         SetStep(
           Variable(varName, None),
@@ -554,7 +569,11 @@ object PolyfillInspector {
         Some(catchStmts.toBlockStep),
       )
     } else {
-      val tryStmts = optimize(producer, Nil, env.withHandled(varName).withType(varName, NormalCompletion))
+      val tryStmts = optimize(
+        producer,
+        Nil,
+        env.withHandled(varName).withType(varName, NormalCompletion),
+      )
       val catchStmts =
         if (!isAbruptTerminal)
           List(
@@ -573,7 +592,11 @@ object PolyfillInspector {
             ),
             bodyStep,
           )
-      val optimizedCatchStmts = optimize(catchStmts, Nil, env.withHandled(varName).withType(varName, AbruptCompletion))
+      val optimizedCatchStmts = optimize(
+        catchStmts,
+        Nil,
+        env.withHandled(varName).withType(varName, AbruptCompletion),
+      )
       WrappedTryCatchStep(
         tryStmts.toBlockStep,
         Variable(catchVar),

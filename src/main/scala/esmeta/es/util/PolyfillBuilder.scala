@@ -43,11 +43,17 @@ case class PolyfillBuilder(
     stmt
   }
 
-  def wrapAbrupt(name: String, body: Stmt): Unit = wrapTryCatch(name, body, "abrupt")
+  def wrapAbrupt(name: String, body: Stmt): Unit =
+    wrapTryCatch(name, body, "abrupt")
 
-  def wrapNormal(name: String, body: Stmt): Unit = wrapTryCatch(name, body, "normal")
+  def wrapNormal(name: String, body: Stmt): Unit =
+    wrapTryCatch(name, body, "normal")
 
-  private def wrapTryCatch(name: String, body: Stmt, completionType: String): Unit = {
+  private def wrapTryCatch(
+    name: String,
+    body: Stmt,
+    completionType: String,
+  ): Unit = {
     scopes.head._2
       .computeIfAbsent(
         name,
@@ -57,7 +63,10 @@ case class PolyfillBuilder(
         case VariableReference(idx, ref) =>
           val stmt = scopes.head._1(idx) match {
             case WrappedLetStmt(ownName, ownRef, tryBody, catchBody) =>
-              if (ownName != name || ownRef != ref) throw RuntimeException(s"Wrapper Binding is not equivalent: $ownName and $name");
+              if (ownName != name || ownRef != ref)
+                throw RuntimeException(
+                  s"Wrapper Binding is not equivalent: $ownName and $name",
+                );
               else
                 completionType match {
                   case "normal" =>
@@ -72,12 +81,18 @@ case class PolyfillBuilder(
                       name,
                       ref,
                       tryBody,
-                      CompoundStatement(List(catchBody, body))
+                      CompoundStatement(List(catchBody, body)),
                     );
                 }
             case _ =>
               completionType match {
-                case "normal" => WrappedLetStmt(name, ref, CompoundStatement(List(body)), NoOpStmt());
+                case "normal" =>
+                  WrappedLetStmt(
+                    name,
+                    ref,
+                    CompoundStatement(List(body)),
+                    NoOpStmt(),
+                  );
                 case "throw" | "abrupt" =>
                   WrappedLetStmt(
                     name,
