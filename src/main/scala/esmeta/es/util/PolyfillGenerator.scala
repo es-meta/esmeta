@@ -1085,7 +1085,7 @@ class PolyfillGenerator(spec: Spec) {
       case _: NegativeInfinityMathValueLiteral => "-Infinity"
       case DecimalMathValueLiteral(n)          => s"$n"
       case MathConstantLiteral(pre, name)      => ???
-      case NumberLiteral(n)                    => s"$n"
+      case NumberLiteral(n)                    => if(n.toInt == n) s"${n.toInt}" else s"$n"
       case BigIntLiteral(n)                    => s"${n}n"
       case _: TrueLiteral                      => "true"
       case _: FalseLiteral                     => "false"

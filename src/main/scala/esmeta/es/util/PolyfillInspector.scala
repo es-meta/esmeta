@@ -10,6 +10,7 @@ private type Completion = "normal" | "abrupt"
 sealed trait CompletionType
 case object NormalCompletion extends CompletionType
 case object AbruptCompletion extends CompletionType
+case object ReturnCompletion extends CompletionType
 case object UnknownCompletion extends CompletionType
 
 // Combined environment for tracking completion types and handled variables
@@ -346,6 +347,14 @@ object PolyfillInspector {
   ): (Expression, Option[CompletionType]) = expr match {
     case InvokeAbstractOperationExpression("Completion", args, _) =>
       (args.head, Some(UnknownCompletion))
+    case InvokeAbstractOperationExpression("NormalCompletion", args, _) =>
+      (args.head, Some(NormalCompletion))
+    case InvokeAbstractOperationExpression("ThrowCompletion", args, _) =>
+      (args.head, Some(AbruptCompletion))
+    case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
+      (args.head, Some(AbruptCompletion))
+    case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
+      (args.head, Some(ReturnCompletion))
     case ReferenceExpression(Variable(name, _)) =>
       (expr, env.getType(name))
     case _ => (expr, None)
@@ -483,29 +492,173 @@ object PolyfillInspector {
   private def unwrapValueAccess(
     expr: Expression,
     env: CompletionEnv,
-  ): Expression = expr match {
-    case ReferenceExpression(Access(Variable(varName, _), "Value", _, _)) =>
-      env.getType(varName) match {
-        case Some(_) => ReferenceExpression(Variable(varName))
-        case None    => expr
-      }
-    case aoExpr @ InvokeAbstractOperationExpression(name, args, _)
-        if name == "Call" =>
-      val newArgs = args.flatMap {
-        case x @ ReferenceExpression(Variable(targetVar, _)) =>
-          env.getType(targetVar) match {
-            case Some(AbruptCompletion) => List(NumberLiteral(1), x)
-            case Some(NormalCompletion) => List(NumberLiteral(0), x)
-            case Some(UnknownCompletion) =>
+  ): Expression = {
+    def recurse(e: Expression): Expression = unwrapValueAccess(e, env)
+
+    def recurseRef(ref: Reference): Reference = ref match {
+      case v: Variable                 => v
+      case a @ Access(base, _, _, _)   => a.copy(base = recurseRef(base))
+      case v @ ValueOf(base)           => v.copy(base = recurseRef(base))
+      case i @ IntrinsicField(base, _) => i.copy(base = recurseRef(base))
+      case i @ IndexLookup(base, index) =>
+        i.copy(base = recurseRef(base), index = recurse(index))
+      case b @ BindingLookup(base, binding) =>
+        b.copy(base = recurseRef(base), binding = recurse(binding))
+      case n @ NonterminalLookup(base, _) => n.copy(base = recurseRef(base))
+      case p @ PositionalElement(base, _) => p.copy(base = recurseRef(base))
+      case i @ IntrinsicObject(base, e) =>
+        i.copy(base = recurseRef(base), expr = recurse(e))
+      case r: RunningExecutionContext => r
+      case r: SecondExecutionContext  => r
+      case r: CurrentRealmRecord      => r
+      case r: ActiveFunctionObject    => r
+      case r: AgentRecord             => r
+    }
+
+    expr match {
+      // Special case: unwrap .[[Value]] access on known completion types
+      case ReferenceExpression(Access(Variable(varName, _), "Value", _, _)) =>
+        env.getType(varName) match {
+          case Some(_) => ReferenceExpression(Variable(varName))
+          case None    => expr
+        }
+
+      case completionAO @ InvokeAbstractOperationExpression(name, args, _) if name.contains("Completion") =>
+        if (args.length > 1)
+          throw RuntimeException(
+            s"Completion AO Call should contain up to one argument:\n\t$completionAO",
+          )
+        args.head
+      // Special case: Call with completion argument unpacking
+      case aoExpr @ InvokeAbstractOperationExpression(name, args, _) =>
+        // if name == "Call" =>
+        val newArgs = args.flatMap {
+          case x @ ReferenceExpression(Variable(targetVar, _)) =>
+            env.getType(targetVar) match {
+              case Some(AbruptCompletion)  => List(NumberLiteral(1), x)
+              case Some(NormalCompletion)  => List(NumberLiteral(0), x)
+              case Some(ReturnCompletion)  => List(NumberLiteral(2), x)
+              case Some(UnknownCompletion) => Some(x)
+//                throw RuntimeException(
+//                  s"Cannot unpack the completion value safely:\n\t$aoExpr",
+//                )
+              case None => Some(x)
+            }
+          case c @ InvokeAbstractOperationExpression(
+                innerCallName,
+                innerArgs,
+                _,
+              ) if innerCallName.contains("Completion") =>
+            if (innerArgs.length > 1)
               throw RuntimeException(
-                s"Cannot unpack the completion value safely: $targetVar",
+                s"Completion AO Call should contain up to one argument:\n\t$c",
               )
-            case None => Some(x)
-          }
-        case x => Some(x)
-      }
-      aoExpr.copy(args = newArgs)
-    case _ => expr
+            innerCallName match {
+              case "NormalCompletion" => List(NumberLiteral(0), innerArgs.head)
+              case "ThrowCompletion" | "AbruptCompletion" =>
+                List(NumberLiteral(1), innerArgs.head)
+              case "ReturnCompletion" => List(NumberLiteral(2), innerArgs.head)
+              case "Completion" =>
+                throw RuntimeException(
+                  s"Cannot unpack the raw completion object: $c",
+                )
+              case _ => Some(c.copy(args = innerArgs.map(recurse)))
+            }
+          case x => Some(recurse(x))
+        }
+        aoExpr.copy(args = newArgs)
+
+      // Recursive cases for all expression types
+      case ReferenceExpression(ref) => ReferenceExpression(recurseRef(ref))
+      case StringConcatExpression(exprs) =>
+        StringConcatExpression(exprs.map(recurse))
+      case ListConcatExpression(exprs) =>
+        ListConcatExpression(exprs.map(recurse))
+      case ListCopyExpression(e) => ListCopyExpression(recurse(e))
+      case r @ RecordExpression(_, fields, _) =>
+        r.copy(fields = fields.map((f, e) => (f, recurse(e))))
+      case LengthExpression(e) => LengthExpression(recurse(e))
+      case s @ SubstringExpression(e, from, to) =>
+        s.copy(expr = recurse(e), from = recurse(from), to = to.map(recurse))
+      case t @ TrimExpression(e, _, _) => t.copy(expr = recurse(e))
+      case n @ NumberOfExpression(_, _, e, exclude) =>
+        n.copy(expr = recurse(e), exclude = exclude.map(recurse))
+      case i: IntrinsicExpression  => i
+      case SourceTextExpression(e) => SourceTextExpression(recurse(e))
+      case CoveredByExpression(code, rule) =>
+        CoveredByExpression(recurse(code), recurse(rule))
+      case GetItemsExpression(nt, e) =>
+        GetItemsExpression(recurse(nt), recurse(e))
+      case l @ ListExpression(form) =>
+        l.copy(form = form match {
+          case ListExpressionForm.LiteralSyntax(entries) =>
+            ListExpressionForm.LiteralSyntax(entries.map(recurse))
+          case ListExpressionForm.SoleElement(entry) =>
+            ListExpressionForm.SoleElement(recurse(entry))
+          case e: ListExpressionForm.EmptyList => e
+          case r @ ListExpressionForm.IntRange(from, _, to, _, _) =>
+            r.copy(
+              from = recurse(from).asInstanceOf[CalcExpression],
+              to = recurse(to).asInstanceOf[CalcExpression],
+            )
+        })
+      case x: XRefExpression           => x
+      case SoleElementExpression(list) => SoleElementExpression(recurse(list))
+      case CodeUnitAtExpression(base, index) =>
+        CodeUnitAtExpression(recurse(base), recurse(index))
+      case StringExpression(e) => StringExpression(recurse(e))
+      case y: YetExpression    => y
+      case i @ InvokeAbstractOperationExpression(_, args, _) =>
+        i.copy(args = args.map(recurse))
+      case i @ InvokeNumericMethodExpression(_, _, args) =>
+        i.copy(args = args.map(recurse))
+      case i @ InvokeAbstractClosureExpression(ref, args) =>
+        i.copy(
+          ref = recurseRef(ref).asInstanceOf[Variable],
+          args = args.map(recurse),
+        )
+      case i @ InvokeMethodExpression(access, args, _) =>
+        i.copy(
+          access = recurseRef(access).asInstanceOf[Access],
+          args = args.map(recurse),
+        )
+      case i @ InvokeSyntaxDirectedOperationExpression(base, _, args, _, _) =>
+        i.copy(base = recurse(base), args = args.map(recurse))
+      case r @ ReturnIfAbruptExpression(e, _) => r.copy(expr = recurse(e))
+      case MathFuncExpression(op, args) =>
+        MathFuncExpression(
+          op,
+          args.map(e => recurse(e).asInstanceOf[CalcExpression]),
+        )
+      case ExponentiationExpression(base, power) =>
+        ExponentiationExpression(
+          recurse(base).asInstanceOf[CalcExpression],
+          recurse(power).asInstanceOf[CalcExpression],
+        )
+      case BinaryExpression(left, op, right) =>
+        BinaryExpression(
+          recurse(left).asInstanceOf[CalcExpression],
+          op,
+          recurse(right).asInstanceOf[CalcExpression],
+        )
+      case UnaryExpression(op, e) =>
+        UnaryExpression(op, recurse(e).asInstanceOf[CalcExpression])
+      case c @ ConversionExpression(_, e, _) => c.copy(expr = recurse(e))
+      case ClampExpression(target, lower, upper) =>
+        ClampExpression(recurse(target), recurse(lower), recurse(upper))
+      case MathOpExpression(op, args) =>
+        MathOpExpression(
+          op,
+          args.map(e => recurse(e).asInstanceOf[CalcExpression]),
+        )
+      case BitwiseExpression(left, op, right) =>
+        BitwiseExpression(recurse(left), op, recurse(right))
+      case a @ AbstractClosureExpression(_, _, body) =>
+        a.copy(body =
+          StepMapper.mapExpressions(body)(recurse),
+        ) // Don't recurse into closure body
+      case lit: Literal => lit
+    }
   }
 
   private def modifies(stmt: Step, varName: String): Boolean = stmt match {
