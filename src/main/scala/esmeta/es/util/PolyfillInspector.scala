@@ -842,8 +842,8 @@ object StepMapper {
       case ExpressionCondition(expr) => ExpressionCondition(f(expr))
       case TypeCheckCondition(expr, neg, tys) =>
         TypeCheckCondition(f(expr), neg, tys)
-      case HasFieldCondition(ref, neg, field, form) =>
-        HasFieldCondition(mapRef(ref)(f), neg, field, form)
+      case HasFieldCondition(ref, neg, field, form, tyOpt) =>
+        HasFieldCondition(mapRef(ref)(f), neg, field, form, tyOpt)
       case HasBindingCondition(ref, neg, binding) =>
         HasBindingCondition(mapRef(ref)(f), neg, f(binding))
       case ProductionCondition(nt, lhsName, rhsName) =>

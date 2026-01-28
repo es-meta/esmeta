@@ -16,7 +16,7 @@ object PolyfillGenerator {
     "INTRINSICS.String.",
     "INTRINSICS.Map",
     "INTRINSICS.Set",
-    "INTRINSICS.Promise",
+    // "INTRINSICS.Promise",
     "INTRINSICS.Iterator.",
 
     // Builtin properties
@@ -24,7 +24,7 @@ object PolyfillGenerator {
     ":String",
     ":Map",
     ":Set",
-    ":Promise",
+    // ":Promise",
     ":Iterator",
 
     // Number/BigInt
@@ -174,7 +174,7 @@ class PolyfillGenerator(spec: Spec) {
       !ignoreTargets.exists(algo.name.contains) ||
       exactIncludeTargets.exists(algo.name.equals)
     )
-  } yield compile(algo)
+  } yield compile(PolyfillInspector.process(algo))
 
   private val IS_PRESENT = "IsPresent"
   private val AO_HEADER = "AO";
@@ -234,7 +234,7 @@ class PolyfillGenerator(spec: Spec) {
         })
     })
 
-    val body = compileWithScope(pb, algo.body)
+    val body = compileWithScope(pb, PolyfillInspector.process(algo.body))
 
     Polyfill(name, params, prelude ++ body)
 
@@ -350,6 +350,36 @@ class PolyfillGenerator(spec: Spec) {
     case YetStep(expr) => pb.addStmt(NormalStmt(compile(pb, expr)))
     case SetFieldsWithIntrinsicsStep(ref, desc) => ???
     case PerformBlockStep(b, d)                 => ???
+    case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
+      pb.addStmt(
+        TryCatchStmt(
+          compileWithScope(pb, tryBlock),
+          compile(pb, catchVar),
+          compileWithScope(pb, catchBlock.get),
+        ),
+      )
+    case TaggedStep(innerStep, tag) =>
+      innerStep match {
+        case IfStep(cond, thenStep, elseStep, config) =>
+          val flagVar = tag.get("USE_FLAG")
+          val compiledCond = compile(pb, cond);
+          if (compiledCond.isEmpty) { // If completion-checking is the only condition then `if` should be omitted
+            if (flagVar.isDefined)
+              pb.addStmt(
+                IfStmt(s"${flagVar.get}", compileWithScope(pb, thenStep), None),
+              )
+            else pb.addStmt(compileWithScope(pb, thenStep))
+          } else
+            pb.addStmt(
+              IfStmt(
+                compiledCond,
+                compileWithScope(pb, thenStep),
+                elseStep.map(compileWithScope(pb, _)),
+              ),
+            )
+        case ThrowStep(name) => pb.addStmt(NormalStmt(s"throw $name;"))
+        case _               => ???
+      }
   }
 
   /** compile local variable */
