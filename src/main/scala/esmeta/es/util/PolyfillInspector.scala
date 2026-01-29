@@ -62,7 +62,6 @@ object PolyfillInspector {
       case ao @ AbstractOperationHead(_, _, params, _) =>
         params.filter {
           case p @ Param(name, Type(ty), paramKind) => ty.isCompletion
-          case _                                    => false
         }
       case x => List()
     }
@@ -313,20 +312,39 @@ object PolyfillInspector {
       env.getType(name) match {
         case Some(AbruptCompletion) =>
           (Some(TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))), env)
-        case x @ (Some(ParameterCompletion) | Some(UnknownCompletion)) =>
+        case Some(ParameterCompletion) =>
           (
             Some(
               IfStep(
                 BinaryCondition(
                   ReferenceExpression(
                     Variable(
-                      if (x.contains(ParameterCompletion)) s"${name}_type"
-                      else name,
+                      s"${name}_type",
                       None,
                     ),
                   ),
                   Eq,
                   NumberLiteral(1),
+                ),
+                TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
+                Some(ret),
+              ),
+            ),
+            env.withType(name, ResolvedParameterCompletion),
+          )
+        case Some(UnknownCompletion) =>
+          (
+            Some(
+              IfStep(
+                BinaryCondition(
+                  ReferenceExpression(
+                    Variable(
+                      s"${name}_is_abrupt",
+                      None,
+                    ),
+                  ),
+                  Eq,
+                  TrueLiteral(),
                 ),
                 TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
                 Some(ret),
@@ -440,8 +458,6 @@ object PolyfillInspector {
       (args.head, Some(AbruptCompletion))
     case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
       (args.head, Some(AbruptCompletion))
-    case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
-      (args.head, Some(ReturnCompletion))
     case ReferenceExpression(Variable(name, _)) =>
       (expr, env.getType(name))
     case _ => (expr, None)
@@ -630,7 +646,7 @@ object PolyfillInspector {
 //                throw RuntimeException(
 //                  s"Cannot unpack the completion value safely:\n\t$aoExpr",
 //                )
-              case None => Some(x)
+              case _ => Some(x)
             }
           case c @ InvokeAbstractOperationExpression(
                 innerCallName,
