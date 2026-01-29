@@ -313,12 +313,18 @@ object PolyfillInspector {
       env.getType(name) match {
         case Some(AbruptCompletion) =>
           (Some(TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))), env)
-        case Some(ParameterCompletion) =>
+        case x @ (Some(ParameterCompletion) | Some(UnknownCompletion)) =>
           (
             Some(
               IfStep(
                 BinaryCondition(
-                  ReferenceExpression(Variable(s"${name}_type", None)),
+                  ReferenceExpression(
+                    Variable(
+                      if (x.contains(ParameterCompletion)) s"${name}_type"
+                      else name,
+                      None,
+                    ),
+                  ),
                   Eq,
                   NumberLiteral(1),
                 ),
