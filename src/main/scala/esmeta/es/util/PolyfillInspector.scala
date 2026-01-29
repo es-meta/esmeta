@@ -5,12 +5,16 @@ import esmeta.lang.PredicateConditionOperator.{Abrupt, Present}
 import esmeta.spec.*
 import esmeta.ty.{NumberIntTy, NumberTy, ValueTy}
 
+import scala.annotation.tailrec
+
 private type Completion = "normal" | "abrupt"
 
 sealed trait CompletionType
 case object NormalCompletion extends CompletionType
 case object AbruptCompletion extends CompletionType
 case object ReturnCompletion extends CompletionType
+case object ParameterCompletion extends CompletionType
+case object ResolvedParameterCompletion extends CompletionType
 case object UnknownCompletion extends CompletionType
 
 // Combined environment for tracking completion types and handled variables
@@ -53,8 +57,19 @@ object PolyfillInspector {
     algo.copy(head = newHead)
   }
 
-  def process(step: Step): Step = {
-    optimize(step :: Nil, Nil, CompletionEnv()).toBlockStep
+  def process(algo: Algorithm, step: Step): Step = {
+    val paramCompletion = algo.head match {
+      case ao @ AbstractOperationHead(_, _, params, _) =>
+        params.filter {
+          case p @ Param(name, Type(ty), paramKind) => ty.isCompletion
+          case _                                    => false
+        }
+      case x => List()
+    }
+    val env = paramCompletion.foldLeft(CompletionEnv())((it, item) =>
+      it.withType(item.name, ParameterCompletion),
+    )
+    optimize(step :: Nil, Nil, env).toBlockStep
   }
 
   private def optimize(
@@ -203,6 +218,7 @@ object PolyfillInspector {
               ),
             )
 
+          val isAbruptTerminal = isTerminal(ifStep.thenStep)
           val newThenStep = optimize(
             ifStep.thenStep :: Nil,
             Nil,
@@ -222,7 +238,12 @@ object PolyfillInspector {
             thenStep = newThenStep,
             elseStep = newElseStep,
           )
-          optimize(tail, newIfStep :: history, env)
+          // Propagate completion type (already handled)
+          val newEnv =
+            if (checkType == "abrupt" && isAbruptTerminal)
+              env.withType(targetVar, ResolvedParameterCompletion)
+            else env
+          optimize(tail, newIfStep :: history, newEnv)
         }
       }
 
@@ -241,6 +262,7 @@ object PolyfillInspector {
     case Nil => history.reverse
   }
 
+  @tailrec
   private def transformStep(
     step: Step,
     env: CompletionEnv,
@@ -291,6 +313,21 @@ object PolyfillInspector {
       env.getType(name) match {
         case Some(AbruptCompletion) =>
           (Some(TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))), env)
+        case Some(ParameterCompletion) =>
+          (
+            Some(
+              IfStep(
+                BinaryCondition(
+                  ReferenceExpression(Variable(s"${name}_type", None)),
+                  Eq,
+                  NumberLiteral(1),
+                ),
+                TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
+                Some(ret),
+              ),
+            ),
+            env.withType(name, ResolvedParameterCompletion),
+          )
         case _ => (Some(ret), env)
       }
 
@@ -318,14 +355,58 @@ object PolyfillInspector {
               val newElse =
                 elseStep.map(e => optimize(e :: Nil, Nil, elseEnv).toBlockStep)
 
-              (Some(TaggedStep(IfStep(cond, newThen, newElse, cfg), tag)), env)
+              val flagVar = tag.getOrElse("USE_FLAG", s"${targetVar}_is_abrupt")
+              rebaseCondition(
+                cond,
+                Map(
+                  targetVar -> BinaryCondition(
+                    ReferenceExpression(
+                      Variable(flagVar, None),
+                    ),
+                    Eq,
+                    if (checkType == "abrupt") TrueLiteral()
+                    else FalseLiteral(),
+                  ),
+                ),
+              ) match {
+                case Some(newCond) =>
+                  (
+                    Some(
+                      TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag),
+                    ),
+                    env,
+                  )
+                // TODO Can we ignore ElseStep? If not, how can we handle it?
+                case None =>
+                  (
+                    Some(newThen),
+                    env,
+                  ) // If cond is empty, IfStep can be omitted
+              }
 
             case _ =>
               // No completion check tags - just process normally
               val newThen = optimize(thenStep :: Nil, Nil, env).toBlockStep
               val newElse =
                 elseStep.map(e => optimize(e :: Nil, Nil, env).toBlockStep)
-              (Some(TaggedStep(IfStep(cond, newThen, newElse, cfg), tag)), env)
+              rebaseCondition(
+                cond,
+                Map(),
+              ) match {
+                case Some(newCond) =>
+                  (
+                    Some(
+                      TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag),
+                    ),
+                    env,
+                  )
+                // TODO Can we ignore ElseStep? If not, how can we handle it?
+                case None =>
+                  (
+                    Some(newThen),
+                    env,
+                  ) // If cond is empty, IfStep can be omitted
+              }
           }
         case _ => transformStep(taggedInnerStep, env)
       }
