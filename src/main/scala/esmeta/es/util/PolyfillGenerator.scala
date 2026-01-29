@@ -175,7 +175,7 @@ class PolyfillGenerator(spec: Spec) {
       !ignoreTargets.exists(algo.name.contains) ||
       exactIncludeTargets.exists(algo.name.equals)
     )
-  } yield compile(PolyfillInspector.process(algo))
+  } yield compile(algo)
 
   private val IS_PRESENT = "IsPresent"
   private val AO_HEADER = "AO";
@@ -183,10 +183,6 @@ class PolyfillGenerator(spec: Spec) {
   private val SHORTHAND_HEADER = "SH";
   private val RESERVED_WORDS = Set("return")
   private val YET_RULES = Map(
-    (
-      "Replace the element of _S_.[[SetData]] whose value is _e_ with an element whose value is ~empty~.",
-      "S[\"SetData\"][_x0] = \"empty\"",
-    ),
     (
       "set _fillString_ to the String value consisting solely of the code unit 0x0020 (SPACE).",
       "fillString = \" \"",
@@ -234,6 +230,34 @@ class PolyfillGenerator(spec: Spec) {
         })
     })
 
+    // Find variables that are SetData
+    def searchSetDataVariables(body: Step): mutable.Set[String] = {
+      val result = mutable.Set[String]()
+      new LangUnitWalker {
+        override def walk(step: Step): Unit = step match
+          case LetStep(
+                Variable(v, _),
+                ListCopyExpression(
+                  ReferenceExpression(Access(_, "SetData", _, _)),
+                ),
+              ) =>
+            result.add(v)
+          case LetStep(
+                Variable(v, _),
+                ReferenceExpression(Access(_, "SetData", _, _)),
+              ) =>
+            result.add(v)
+          case SetStep(
+                Access(_, "SetData", _, _),
+                ReferenceExpression(Variable(v, _)),
+              ) =>
+            result.add(v)
+          case _ => super.walk(step)
+      }.walk(body)
+      result
+    }
+    val setDataVariables = searchSetDataVariables(algo.body)
+
     def searchLoopVariable(
       body: Step,
       index: String,
@@ -261,17 +285,6 @@ class PolyfillGenerator(spec: Spec) {
         base.getOrElse(throw new Error),
         varName.getOrElse(throw new Error),
       )
-    }
-
-    def searchEarlyReturn(body: LangElem): Option[Expression] = {
-      var result: Option[Expression] = None
-      new LangUnitWalker {
-        override def walk(step: Step) = step match {
-          case ReturnStep(expr) => result = Some(expr)
-          case _                => super.walk(step)
-        }
-      }.walk(body)
-      result
     }
 
     def replaceLoopVariable(
@@ -448,45 +461,154 @@ class PolyfillGenerator(spec: Spec) {
       }.walk(body)
     }
 
-    def replaceSetDataInsert(body: Step): Step = {
-      val setDataVariables = searchSetDataVariables(body)
+    def replaceSetDataHas(body: Step): Step = {
+      new LangWalker {
+        override def walk(stepBlock: StepBlock): StepBlock =
+          def walkSubSteps(steps: List[SubStep]): List[SubStep] =
+            steps match
+              case SubStep(
+                    d,
+                    LetStep(
+                      index,
+                      InvokeAbstractOperationExpression(
+                        "SetDataIndex",
+                        List(
+                          ReferenceExpression(base),
+                          ReferenceExpression(elem),
+                        ),
+                        t,
+                      ),
+                    ),
+                  ) :: tail =>
+                tail.map {
+                  new LangWalker {
+                    override def walk(cond: Condition): Condition = cond match
+                      case IsAreCondition(
+                            List(ReferenceExpression(i)),
+                            neg,
+                            List(EnumLiteral("not-found")),
+                          ) if i == index =>
+                        IsAreCondition(
+                          List(
+                            InvokeAbstractOperationExpression(
+                              "IN__SetDataHas",
+                              List(
+                                ReferenceExpression(base),
+                                ReferenceExpression(elem),
+                              ),
+                              HtmlTag.None,
+                            ),
+                          ),
+                          neg,
+                          List(FalseLiteral()),
+                        )
+                      case _ => super.walk(cond)
+                  }.walk(_)
+                }
+              case head :: tail => super.walk(head) :: walkSubSteps(tail)
+              case Nil          => Nil
+          StepBlock(walkSubSteps(stepBlock.steps))
+      }.walk(body)
+    }
+
+    def replaceSetDataOperations(body: Step): Step = {
+      def isSetData(base: Reference): Boolean = base match
+        case Access(_, "SetData", _, _) => true
+        case Variable(v, _)             => setDataVariables.contains(v)
+        case _                          => false
+
       new LangWalker {
         override def walk(step: Step): Step = step match
-          case AppendStep(elem, Variable(base, _))
-              if setDataVariables.contains(base) =>
+          case SetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
+              if isSetData(ref) =>
+            SetStep(
+              ref,
+              InvokeAbstractOperationExpression(
+                "IN__SetDataCreate",
+                List(),
+                HtmlTag.None,
+              ),
+            )
+          case LetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
+              if isSetData(ref) =>
+            LetStep(
+              ref,
+              InvokeAbstractOperationExpression(
+                "IN__SetDataCreate",
+                List(),
+                HtmlTag.None,
+              ),
+            )
+          case AppendStep(elem, ref) if isSetData(ref) =>
             PerformStep(
               InvokeAbstractOperationExpression(
                 "IN__SetDataInsert",
                 List(
-                  ReferenceExpression(Variable(base, None)),
+                  ReferenceExpression(ref),
                   elem,
                 ),
                 HtmlTag.None,
               ),
             )
-          case _ => super.walk(step)
-      }.walk(body)
-    }
-
-    def searchSetDataVariables(body: Step): mutable.Set[String] = {
-      val result = mutable.Set[String]()
-      new LangUnitWalker {
-        override def walk(step: Step): Unit = step match
-          case LetStep(
-                Variable(v, _),
-                ListCopyExpression(
-                  ReferenceExpression(Access(_, "SetData", _, _)),
+          case LetStep(variable, ListCopyExpression(ReferenceExpression(ref)))
+              if isSetData(ref) =>
+            LetStep(
+              variable,
+              InvokeAbstractOperationExpression(
+                "IN__SetDataCopy",
+                List(ReferenceExpression(ref)),
+                HtmlTag.None,
+              ),
+            )
+          case YetStep(
+                YetExpression(
+                  "Replace the element of _S_.[[SetData]] whose value is _e_ with an element whose value is ~empty~.",
+                  _,
                 ),
               ) =>
-            result.add(v)
-          case SetStep(
-                Access(_, "SetData", _, _),
-                ReferenceExpression(Variable(v, nt)),
-              ) =>
-            result.add(v)
+            PerformStep(
+              InvokeAbstractOperationExpression(
+                "IN__SetDataRemove",
+                List(
+                  ReferenceExpression(
+                    Access(
+                      Variable("S"),
+                      "SetData",
+                      AccessKind.Field,
+                      AccessForm.Dot,
+                    ),
+                  ),
+                  ReferenceExpression(Variable("e")),
+                ),
+                HtmlTag.None,
+              ),
+            )
           case _ => super.walk(step)
+
+        override def walk(expr: Expression): Expression = expr match
+          case InvokeAbstractOperationExpression(
+                "SetDataHas",
+                List(ReferenceExpression(ref), elem),
+                tag,
+              ) if isSetData(ref) =>
+            InvokeAbstractOperationExpression(
+              "IN__SetDataHas",
+              List(ReferenceExpression(ref), elem),
+              tag,
+            )
+          case InvokeAbstractOperationExpression(
+                "SetDataSize",
+                List(ReferenceExpression(ref)),
+                tag,
+              ) if isSetData(ref) =>
+            InvokeAbstractOperationExpression(
+              "IN__SetDataSize",
+              List(ReferenceExpression(ref)),
+              tag,
+            )
+          case _ => super.walk(expr)
+
       }.walk(body)
-      result
     }
 
     def wrapWithEarlyReturn(
@@ -495,8 +617,30 @@ class PolyfillGenerator(spec: Spec) {
       iterBase: Reference,
       elementVar: String,
     ): Step = {
+
+      def searchEarlyReturn(body: LangElem): Option[Expression] = {
+        var result: Option[Expression] = None
+        new LangUnitWalker {
+          override def walk(step: Step) = step match {
+            case ReturnStep(expr) => result = Some(expr)
+            case _                => super.walk(step)
+          }
+        }.walk(body)
+        result
+      }
+
+      def replaceReturnStep(body: Step, resultExpr: Expression): Step = {
+        new LangWalker {
+          override def walk(step: Step): Step = step match
+            case ReturnStep(expr) if expr == resultExpr =>
+              ReturnStep(EnumLiteral("early-return"))
+            case _ => super.walk(step)
+        }.walk(body)
+      }
+
       searchEarlyReturn(body) match {
         case Some(expr) =>
+          val returnReplacedBody = replaceReturnStep(body, expr)
           val bodyWithEarlyReturnCheck =
             InvokeAbstractOperationExpression(
               aoName,
@@ -505,9 +649,9 @@ class PolyfillGenerator(spec: Spec) {
                 AbstractClosureExpression(
                   List(Variable(elementVar)),
                   List(),
-                  body,
+                  returnReplacedBody,
                 ),
-                expr,
+                TrueLiteral(),
               ),
               HtmlTag.None,
             )
@@ -515,7 +659,7 @@ class PolyfillGenerator(spec: Spec) {
             IsAreCondition(
               List(bodyWithEarlyReturnCheck),
               false,
-              List(expr),
+              List(EnumLiteral("early-return")),
             ),
             ReturnStep(expr),
             None,
@@ -540,6 +684,22 @@ class PolyfillGenerator(spec: Spec) {
     }
 
     val walker = new LangWalker {
+      override def walk(step: Step): Step = step match
+        case ForEachStep(
+              _,
+              Variable(elem, _),
+              ReferenceExpression(Access(base, "SetData", kind, form)),
+              true,
+              body,
+            ) =>
+          wrapWithEarlyReturn(
+            body,
+            "IN__SetDataIterateLoop",
+            Access(base, "SetData", kind, form),
+            elem,
+          )
+        case _ => super.walk(step)
+
       override def walk(stepBlock: StepBlock): StepBlock =
         def walkSubSteps(steps: List[SubStep]): List[SubStep] =
           steps match
@@ -550,7 +710,7 @@ class PolyfillGenerator(spec: Spec) {
                     NumberOfExpression(
                       "elements",
                       _,
-                      ReferenceExpression(Access(base, "SetData", _, _)),
+                      base,
                       _,
                     ),
                   ),
@@ -573,30 +733,44 @@ class PolyfillGenerator(spec: Spec) {
                   ),
                 ) :: tail
                 if lengthInit == lengthCond && indexInit == indexCond =>
-              // Step 1: Find the base of index and the name of stored variable
-              // search(... let e = resultSetData[index]; ..., "index")
-              // -> ("e", "resultSetData")
-              val (loopBase, loopVar) = searchLoopVariable(body, indexInit)
+              val isSetDataLoop = base match
+                case ReferenceExpression(Access(_, "SetData", _, _)) => true
+                case ReferenceExpression(Variable(v, _)) =>
+                  setDataVariables.contains(v)
+                  true
+                case _ => false
 
-              // Step 2: Remove every loop-related steps
-              val strippedBody = replaceSetDataRemove(
-                removeLoopRelatedSteps(body, lengthInit, indexInit),
-              )
+              if (!isSetDataLoop) steps
+              else
+                // Step 1: Find the base of index and the name of stored variable
+                // search(... let e = resultSetData[index]; ..., "index")
+                // -> ("e", "resultSetData")
+                val (loopBase, loopVar) = searchLoopVariable(body, indexInit)
 
-              // Step 3: Replace the remove/add statement to function call
-              // Set resultSetData[index] to ~empty~; -> remove(resultSetData, e);
-              // Append e to resultSetData;           -> insert(resultSetData, e);
-              val transformedBody =
-                replaceLoopVariable(strippedBody, loopBase, loopVar, indexInit)
+                // Step 2: Remove every loop-related steps
+                val strippedBody = replaceSetDataRemove(
+                  removeLoopRelatedSteps(body, lengthInit, indexInit),
+                )
 
-              val loopWithEarlyReturn = wrapWithEarlyReturn(
-                transformedBody,
-                "IN__SetDataIterateLoop",
-                loopBase,
-                loopVar,
-              )
+                // Step 3: Replace the remove/add statement to function call
+                // Set resultSetData[index] to ~empty~; -> remove(resultSetData, e);
+                // Append e to resultSetData;           -> insert(resultSetData, e);
+                val transformedBody =
+                  replaceLoopVariable(
+                    strippedBody,
+                    loopBase,
+                    loopVar,
+                    indexInit,
+                  )
 
-              SubStep(None, loopWithEarlyReturn) :: walkSubSteps(tail)
+                val loopWithEarlyReturn = wrapWithEarlyReturn(
+                  transformedBody,
+                  "IN__SetDataIterateLoop",
+                  loopBase,
+                  loopVar,
+                )
+
+                SubStep(None, loopWithEarlyReturn) :: walkSubSteps(tail)
             case SubStep(
                   _,
                   LetStep(
@@ -619,7 +793,7 @@ class PolyfillGenerator(spec: Spec) {
                 ) :: tail if nextInit == nextCond =>
               val iter = searchIteratorVariable(body)
 
-              val strippedBody = replaceSetDataRemove(body)
+              val strippedBody = replaceSetDataHas(replaceSetDataRemove(body))
 
               val transformedBody =
                 replaceIteratorVariable(strippedBody, nextInit)
@@ -641,7 +815,7 @@ class PolyfillGenerator(spec: Spec) {
         pb,
         PolyfillInspector.process(
           originalAlgo,
-          replaceSetDataInsert(walker.walk(algo.body)),
+          replaceSetDataOperations(walker.walk(algo.body)),
         ),
       )
     Polyfill(name, params, prelude ++ body)
@@ -768,23 +942,6 @@ class PolyfillGenerator(spec: Spec) {
       )
     case TaggedStep(innerStep, tag) =>
       innerStep match {
-        /*case IfStep(cond, thenStep, elseStep, config) =>
-          val flagVar = tag.get("USE_FLAG")
-          val compiledCond = compile(pb, cond);
-          if (compiledCond.isEmpty) { // If completion-checking is the only condition then `if` should be omitted
-            if (flagVar.isDefined)
-              pb.addStmt(
-                IfStmt(s"${flagVar.get}", compileWithScope(pb, thenStep), None),
-              )
-            else pb.addStmt(compileWithScope(pb, thenStep))
-          } else
-            pb.addStmt(
-              IfStmt(
-                compiledCond,
-                compileWithScope(pb, thenStep),
-                elseStep.map(compileWithScope(pb, _)),
-              ),
-            )*/
         case ThrowStep(name) => pb.addStmt(NormalStmt(s"throw $name;"))
         case x               => compile(pb, x)
       }
@@ -1092,19 +1249,19 @@ class PolyfillGenerator(spec: Spec) {
       case _: NegativeInfinityMathValueLiteral => "-Infinity"
       case DecimalMathValueLiteral(n)          => s"$n"
       case MathConstantLiteral(pre, name)      => ???
-      case NumberLiteral(n)                    => if(n.toInt == n) s"${n.toInt}" else s"$n"
-      case BigIntLiteral(n)                    => s"${n}n"
-      case _: TrueLiteral                      => "true"
-      case _: FalseLiteral                     => "false"
-      case _: UndefinedLiteral                 => "undefined"
-      case _: NullLiteral                      => "null"
-      case _: UndefinedTypeLiteral             => ???
-      case _: NullTypeLiteral                  => ???
-      case _: BooleanTypeLiteral               => ???
-      case _: StringTypeLiteral                => ???
-      case _: SymbolTypeLiteral                => ???
-      case _: NumberTypeLiteral                => ???
-      case _: BigIntTypeLiteral                => ???
-      case _: ObjectTypeLiteral                => ???
+      case NumberLiteral(n)        => if (n.toInt == n) s"${n.toInt}" else s"$n"
+      case BigIntLiteral(n)        => s"${n}n"
+      case _: TrueLiteral          => "true"
+      case _: FalseLiteral         => "false"
+      case _: UndefinedLiteral     => "undefined"
+      case _: NullLiteral          => "null"
+      case _: UndefinedTypeLiteral => ???
+      case _: NullTypeLiteral      => ???
+      case _: BooleanTypeLiteral   => ???
+      case _: StringTypeLiteral    => ???
+      case _: SymbolTypeLiteral    => ???
+      case _: NumberTypeLiteral    => ???
+      case _: BigIntTypeLiteral    => ???
+      case _: ObjectTypeLiteral    => ???
     }
 }
