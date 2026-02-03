@@ -6,6 +6,7 @@ import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
 import scala.collection.mutable
+import scala.annotation.tailrec
 
 /** polyfill generator */
 object PolyfillGenerator {
@@ -13,30 +14,17 @@ object PolyfillGenerator {
 
   val defaultTargets = List(
     // Builtin methods
-    "INTRINSICS.Array.",
-    "INTRINSICS.String.",
-    "INTRINSICS.Map",
-    "INTRINSICS.Set",
-    // "INTRINSICS.Promise",
-    "INTRINSICS.Iterator.",
-
-    // Builtin properties
-    ":Array",
-    ":String",
-    ":Map",
-    ":Set",
-    // ":Promise",
-    ":Iterator",
-
-    // Number/BigInt
-    "Number::",
-    "BigInt::",
+    """INTRINSICS\.(get:|set:)?Array\..*""",
+    """INTRINSICS\.(get:|set:)?String\..*""",
+    """INTRINSICS\.(get:|set:)?Map.*""",
+    """INTRINSICS\.(get:|set:)?Set.*""",
+    """INTRINSICS\.(get:|set:)?Promise\..*""",
+    """INTRINSICS\.(get:|set:)?Iterator\..*""",
+    """Number::.*""",
+    """BigInt::.*""",
   )
 
   val ignoreTargets = List(
-    "ArrayBuffer",
-    "TypedArray",
-
     // ES3
     "INTRINSICS.Array.prototype.concat",
     "INTRINSICS.Array.prototype.join",
@@ -79,85 +67,22 @@ object PolyfillGenerator {
     "INTRINSICS.String.prototype.matchAll",
     "INTRINSICS.String.prototype.normalize",
     "INTRINSICS.String.prototype.repeat",
-  )
 
-  val exactIncludeTargets = List(
-    "AddEntriesFromIterable",
-    "AddValueToKeyedGroup",
-    // "ArrayCreate",
-    // "ArraySpeciesCreate",
-    "Call",
-    "CanonicalizeKeyedCollectionKey",
-    "CodePointAt",
-    "Completion",
-    "CompletionValue",
-    "Construct",
-    "Contains",
-    "CreateArrayFromList",
-    "CreateAsyncFromSyncIterator",
-    "CreateDataProperty",
-    "CreateDataPropertyOrThrow",
-    "CreateIteratorResultObject",
-    "DeletePropertyOrThrow",
-    "FindViaPredicate",
-    "FlattenIntoArray",
-    "Get",
-    "GetIterator",
-    "GetIteratorDirect",
-    "GetIteratorFromMethod",
-    "GetMethod",
-    // "GetPrototypeFromConstructor",
-    "GetSetRecord",
-    "GetV",
-    "GroupBy",
-    "HasProperty",
-    "IfAbruptCloseIterator",
-    "IsArray",
-    "IsCallable",
-    "IsConstructor",
-    "IsObject",
-    "IsRegExp",
-    "IsStrictlyEqual",
-    "IsStringWellFormedUnicode",
-    "IteratorClose",
-    "IteratorComplete",
-    "IteratorNext",
-    "IteratorStep",
-    "IteratorStepValue",
-    "IteratorValue",
-    "LengthOfArrayLike",
-    "MakeBasicObject",
-    "NormalCompletion",
-    "OrdinaryCreateFromConstructor",
-    "OrdinaryObjectCreate",
-    "Prepend",
-    "RequireInternalSlot",
-    "RequireObjectCoercible",
-    "SameType",
-    "SameValue",
-    "SameValueNonNumber",
-    "SameValueZero",
-    "Set",
-    "SetDataHas",
-    "SetDataIndex",
-    "SetDataSize",
-    "StringIndexOf",
-    "StringLastIndexOf",
-    "StringPad",
-    "StringPaddingBuiltinsImpl",
-    "SubString",
-    "ThrowCompletion",
-    "ToBoolean",
-    "ToIntegerOrInfinity",
-    "ToLength",
-    "ToNumber",
-    "ToObject",
-    "ToPropertyKey",
-    "ToString",
-    "ToUInt32",
-    "TrimString",
-    "UTF16EncodeCodePoint",
-    "UTF16SurrogatePairToCodePoint",
+    // Yet AOs
+    "ArrayCreate",
+    "ArraySpeciesCreate",
+    "Await",
+    "CreateBuiltinFunction",
+    "CreateIteratorFromClosure",
+    "GeneratorResume",
+    "GeneratorStart",
+    "GeneratorYield",
+    "GetFunctionRealm",
+    "GetGeneratorKind",
+    "GetPrototypeFromConstructor",
+    "RegExpInitialize",
+    "StringToNumber",
+    "StringToBigInt",
   )
 }
 
@@ -168,14 +93,46 @@ class PolyfillGenerator(spec: Spec) {
 
   /** generated polyfills */
   lazy val result: List[Polyfill] = for {
-    algo <- spec.algorithms
-    if (
-      // algo.isBuiltin &&
-      defaultTargets.exists(algo.name.contains) &&
-      !ignoreTargets.exists(algo.name.contains) ||
-      exactIncludeTargets.exists(algo.name.equals)
-    )
+    algo <- targets
   } yield compile(algo)
+
+  lazy val targets: List[Algorithm] = {
+    val initialTargets = spec.algorithms
+      .filter(algo => defaultTargets.exists(algo.name.matches))
+      .toSet
+
+    val algoNameMap = spec.algorithms.map(algo => (algo.name -> algo)).toMap
+
+    val result = worklist(initialTargets, initialTargets) {
+      _.flatMap(getAOCallees).flatMap(algoNameMap.get)
+    }
+
+    result
+      .filter(algo => !ignoreTargets.contains(algo.name))
+      .toList
+      .sortWith(_.name < _.name)
+  }
+
+  @tailrec
+  private def worklist[T](acc: Set[T], curr: Set[T])(
+    f: Set[T] => Set[T],
+  ): Set[T] = {
+    if (curr.isEmpty) acc
+    else
+      val next = f(curr) -- acc
+      worklist(acc ++ next, next)(f)
+  }
+
+  def getAOCallees(algo: Algorithm): Set[String] = {
+    val result = mutable.Set[String]()
+    new LangUnitWalker {
+      override def walk(expr: Expression): Unit = expr match
+        case InvokeAbstractOperationExpression(name, _, _) =>
+          result.add(name)
+        case _ => super.walk(expr)
+    }.walk(algo.body)
+    result.toSet
+  }
 
   private val IS_PRESENT = "IsPresent"
   private val AO_HEADER = "AO";
@@ -475,9 +432,8 @@ class PolyfillGenerator(spec: Spec) {
     case UnaryExpression(op, expr) => s"${compile(op)}${compile(pb, expr)}"
     case ClampExpression(target, lower, upper) =>
       s"${INTERNAL_HEADER}__clamp(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
-    case expr: MathOpExpression =>
+    case MathOpExpression(op, args) =>
       import MathOpExpressionOperator.*
-      val MathOpExpression(op, args) = expr
       (op, args) match
         case (Neg, List(e))    => s"-${compile(pb, e)}"
         case (Add, List(l, r)) => s"${compile(pb, l)} + ${compile(pb, r)}"
@@ -486,7 +442,8 @@ class PolyfillGenerator(spec: Spec) {
         case (Pow, List(l, r)) =>
           s"${INTERNAL_HEADER}__pow(${compile(pb, l)}, ${compile(pb, r)})"
         case _ => ???
-    case BitwiseExpression(left, op, right) => ???
+    case BitwiseExpression(l, op, r) =>
+      s"${compile(pb, l)} ${compile(op)} ${compile(pb, r)}"
     case AbstractClosureExpression(params, captured, body) =>
       s"function(${params.map(compile).mkString(", ")}) ${compileWithScope(pb, body)}"
     case XRefExpression(op, id)      => ???
@@ -504,39 +461,6 @@ class PolyfillGenerator(spec: Spec) {
   ): String =
     iterable.map(compile(pb, _)).mkString(sep)
 
-  /** compile mathematical operators */
-  // def compile(expr: MathOpExpression): String =
-  //   import MathOpExpressionOperator.*
-  //   val MathOpExpression(op, args) = expr
-  //   (op, args) match
-  //     case (Neg, List(e))      => s"-${compile(l)}"
-  //     case (Add, List(l, r))   => s"${compile(l)} + ${compile(r)}"
-  //     case (Mul, List(l, r))   => l + " and " + r
-  //     case (Sub, List(l, r))   => l + " minus " + r
-  //     case (Pow, List(l, r))   => l + " to the " + r + " power"
-  //     case (Expm1, List(e))    => e
-  //     case (Log10, List(e))    => e
-  //     case (Log2, List(e))     => e
-  //     case (Cos, List(e))      => e
-  //     case (Cbrt, List(e))     => e
-  //     case (Exp, List(e))      => e
-  //     case (Cosh, List(e))     => e
-  //     case (Sinh, List(e))     => e
-  //     case (Tanh, List(e))     => e
-  //     case (Acos, List(e))     => e
-  //     case (Acosh, List(e))    => e
-  //     case (Asinh, List(e))    => e
-  //     case (Atanh, List(e))    => e
-  //     case (Asin, List(e))     => e
-  //     case (Atan2, List(x, y)) => x + " / " + y
-  //     case (Atan, List(e))     => e
-  //     case (Log1p, List(e))    => e
-  //     case (Log, List(e))      => e
-  //     case (Sin, List(e))      => e
-  //     case (Sqrt, List(e))     => e
-  //     case (Tan, List(e))      => e
-  // case _ => raise(s"invalid math operationr: $op with $args")
-
   /** compile binary operators */
   def compile(op: BinaryExpressionOperator): String =
     import BinaryExpressionOperator.*
@@ -553,7 +477,10 @@ class PolyfillGenerator(spec: Spec) {
     case UnaryExpressionOperator.Neg => "-"
 
   /** compile bitwise operations */
-  def compile(op: BitwiseExpressionOperator): String = ???
+  def compile(op: BitwiseExpressionOperator): String = op match
+    case BitwiseExpressionOperator.BAnd => "&"
+    case BitwiseExpressionOperator.BOr  => "|"
+    case BitwiseExpressionOperator.BXOr => "^"
 
   /** compile mathematical function operators */
   def compile(op: MathFuncExpressionOperator): String =

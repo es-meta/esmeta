@@ -8,6 +8,99 @@ import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
 import scala.collection.mutable
 
 object PolyfillTransformer {
+  val transform: Step => Step =
+    (MapDataTransformer(_)) andThen
+    (SetDataTransformer(_))
+
+  def apply(body: Step) = transform(body)
+}
+
+object MapDataTransformer {
+  def apply(body: Step): Step = {
+    val mapDataVars = searchMapDataVariables(body)
+    val isMapDataPredicate = (ref: Reference) => isMapData(ref, mapDataVars)
+
+    val loopTransformedBody =
+      transformMapDataLoop(body, isMapDataPredicate)
+    replaceMapDataOperations(loopTransformedBody, isMapDataPredicate)
+  }
+
+  // ================================================================================
+  // Analysis Helpers
+  // ================================================================================
+
+  def searchMapDataVariables(body: Step): Set[String] = {
+    val result = mutable.Set[String]()
+    new LangUnitWalker {
+      override def walk(step: Step): Unit = step match
+        case LetStep(
+              Variable(v, _),
+              ListCopyExpression(
+                ReferenceExpression(Access(_, "MapData", _, _)),
+              ),
+            ) =>
+          result.add(v)
+        case LetStep(
+              Variable(v, _),
+              ReferenceExpression(Access(_, "MapData", _, _)),
+            ) =>
+          result.add(v)
+        case SetStep(
+              Access(_, "MapData", _, _),
+              ReferenceExpression(Variable(v, _)),
+            ) =>
+          result.add(v)
+        case _ => super.walk(step)
+    }.walk(body)
+    result.toSet
+  }
+
+  def isMapData(ref: Reference, mapDataVars: Set[String]) = ref match
+    case Access(_, "MapData", _, _) => true
+    case Variable(v, _)             => mapDataVars.contains(v)
+    case _                          => false
+
+  // ================================================================================
+  // Transform SetData related Loops
+  // ================================================================================
+
+  def transformMapDataLoop(
+    body: Step,
+    isMapData: Reference => Boolean,
+  ): Step = {
+    new LangWalker {
+      override def walk(step: Step): Step = step match
+        case _ => super.walk(step)
+
+      override def walk(stepBlock: StepBlock): StepBlock =
+        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
+          steps match
+            case h :: t => walk(h) :: walkSubSteps(t)
+            case Nil    => Nil
+        StepBlock(walkSubSteps(stepBlock.steps))
+    }.walk(body)
+  }
+
+  // ================================================================================
+  // Replace SetData related Operations
+  // ================================================================================
+
+  def replaceMapDataOperations(
+    body: Step,
+    isMapData: Reference => Boolean,
+  ): Step = {
+    new LangWalker {
+      override def walk(step: Step): Step = step match
+        case _ => super.walk(step)
+
+      override def walk(expr: Expression): Expression = expr match
+        case _ => super.walk(expr)
+
+    }.walk(body)
+  }
+}
+
+object SetDataTransformer {
   def apply(body: Step): Step = {
     // 1. Scan the body to find variables that store SetData
     val setDataVars = searchSetDataVariables(body)
