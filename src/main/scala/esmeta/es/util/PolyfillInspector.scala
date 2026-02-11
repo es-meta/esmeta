@@ -34,13 +34,34 @@ case object UnknownCompletion extends CompletionType
 case class CompletionEnv(
   types: Map[String, CompletionType] = Map.empty,
   handled: Set[String] = Set.empty,
+  declaredFlag: Set[String] = Set.empty,
 ) {
+  def isFlagDeclared(name: String): Boolean = declaredFlag.contains(name)
+  def withFlag(name: String): CompletionEnv =
+    copy(declaredFlag = declaredFlag + name)
   def withType(name: String, ty: CompletionType): CompletionEnv =
     copy(types = types + (name -> ty))
+  def dropType(name: String): CompletionEnv =
+    copy(types = types.removed(name))
   def withHandled(name: String): CompletionEnv =
     copy(handled = handled + name)
+  def dropHandled(name: String): CompletionEnv = copy(handled = handled - name)
   def isHandled(name: String): Boolean = handled.contains(name)
   def getType(name: String): Option[CompletionType] = types.get(name)
+  def merge(other: CompletionEnv): CompletionEnv = {
+    val mergedTypes = (types.keySet ++ other.types.keySet).map { key =>
+      (types.get(key), other.types.get(key)) match {
+        case (Some(a), Some(b)) if a == b => key -> a
+        case (Some(_), Some(_))           => key -> UnknownCompletion
+        case (Some(a), None)              => key -> a
+        case (None, Some(b))              => key -> b
+        case _ => throw RuntimeException("unreachable")
+      }
+    }.toMap
+    val mergedHandled = handled.intersect(other.handled)
+    val mergedFlag = declaredFlag ++ other.declaredFlag
+    CompletionEnv(mergedTypes, mergedHandled, mergedFlag)
+  }
 }
 
 object PolyfillInspector {
@@ -76,14 +97,95 @@ object PolyfillInspector {
     val env = paramCompletion.foldLeft(CompletionEnv())((it, item) =>
       it.withType(item.name, ParameterCompletion),
     )
-    optimize(step :: Nil, Nil, env).toBlockStep
+    optimize(step :: Nil, Nil, env)._1.toBlockStep
   }
 
   private def optimize(
     input: List[Step],
     history: List[Step],
     env: CompletionEnv,
-  ): List[Step] = input match {
+  ): (List[Step], CompletionEnv) = input match {
+    case InvokeShorthandStep(name, args) :: tail if name.contains("IfAbrupt") =>
+      // TODO Expect completion record to be first place
+      val targetVar = args.head
+        .asInstanceOf[ReferenceExpression]
+        .ref
+        .asInstanceOf[Variable]
+        .name
+
+      val transformStep = (ty: CompletionType) =>
+        InvokeShorthandStep(
+          name,
+          List(
+            ty match {
+              case NormalCompletion => NumberLiteral(0)
+              case AbruptCompletion => NumberLiteral(1)
+              case ReturnCompletion => NumberLiteral(2)
+              case _ =>
+                throw RuntimeException(
+                  "Cannot convert completion type into literal",
+                )
+            },
+            ReferenceExpression(Variable(s"$targetVar")),
+          ) ++ args.drop(1),
+        )
+
+      val checkCondition = IfStep(
+        BinaryCondition(
+          ReferenceExpression(
+            Variable(
+              s"${targetVar}_is_abrupt",
+              None,
+            ),
+          ),
+          Eq,
+          TrueLiteral(),
+        ),
+        transformStep(AbruptCompletion),
+        Some(transformStep(NormalCompletion)),
+      )
+
+      if (!env.isHandled(targetVar)) {
+        val lastModifiedAt =
+          history.indexWhere(stmt => modifies(stmt, targetVar))
+        if (lastModifiedAt != -1) {
+          val (gap, rest) = history.splitAt(lastModifiedAt)
+          val (producer, newHistory) = rest.splitAt(1)
+          // There should be always gap between (possible) if conditions
+          val flagName = s"${targetVar}_is_abrupt"
+          val wrappedProducer = wrapProducerOnly(
+            producer,
+            targetVar,
+            s"_${targetVar}_err",
+            flagName,
+            env,
+          )
+          val newEnv = env
+            .withHandled(targetVar)
+            .withType(targetVar, UnknownCompletion)
+            .dropType(targetVar)
+            .withFlag(flagName)
+
+          optimize(
+            tail,
+            checkCondition :: wrappedProducer :: gap ::: newHistory,
+            newEnv,
+          )
+        } else {
+          // Parameter, simply split
+          val transformedStep = InvokeShorthandStep(
+            name,
+            List(
+              ReferenceExpression(Variable(s"${targetVar}_type")),
+              ReferenceExpression(Variable(s"$targetVar")),
+            ) ++ args.drop(1),
+          )
+          optimize(tail, transformedStep :: history, env.dropType(targetVar))
+        }
+      } else {
+        optimize(tail, checkCondition :: history, env.dropType(targetVar))
+      }
+
     case (check @ CompletionCheckPattern(checks)) :: tail =>
       val ifStep = check.asInstanceOf[IfStep]
       val (checkType, targetVar) = checks
@@ -113,13 +215,13 @@ object PolyfillInspector {
       val (newStepOpt, newEnv) = transformStep(head, env)
       newStepOpt match {
         case Some(newStep) =>
-          val unwrapped = ValueAccessUnwrapper(newEnv).walk(newStep)
+          val unwrapped = ValueAccessUnwrapper(env).walk(newStep)
           optimize(tail, unwrapped :: history, newEnv)
         case None =>
           optimize(tail, history, newEnv)
       }
 
-    case Nil => history.reverse
+    case Nil => (history.reverse, env)
   }
 
   /** Handle a completion check where the variable is already handled (wrapped
@@ -134,7 +236,7 @@ object PolyfillInspector {
     ifStep: IfStep,
     checkType: CompletionType,
     targetVar: String,
-  ): List[Step] = {
+  ): (List[Step], CompletionEnv) = {
     val canOmit = ifStep.elseStep.isEmpty &&
       env.getType(targetVar).contains(NormalCompletion)
 
@@ -181,7 +283,7 @@ object PolyfillInspector {
     ifStep: IfStep,
     checkType: CompletionType,
     targetVar: String,
-  ): List[Step] = {
+  ): (List[Step], CompletionEnv) = {
     val lastModifiedAt =
       history.indexWhere(stmt => modifies(stmt, targetVar))
 
@@ -227,9 +329,8 @@ object PolyfillInspector {
     checkType: CompletionType,
     targetVar: String,
     producer: List[Step],
-  ): List[Step] = {
+  ): (List[Step], CompletionEnv) = {
     val flagName = s"${targetVar}_is_abrupt"
-    val flagDecl = LetStep(Variable(flagName, None), FalseLiteral())
     val isAbruptTerminal =
       checkType == AbruptCompletion && isTerminal(ifStep.thenStep)
 
@@ -245,13 +346,16 @@ object PolyfillInspector {
     )
     transformStep(
       merged,
-      env.withHandled(targetVar).withType(targetVar, UnknownCompletion),
+      env
+        .withHandled(targetVar)
+        .withType(targetVar, UnknownCompletion)
+        .withFlag(flagName),
     ) match {
       case (Some(optimizedTryCatch), newEnv) =>
         optimize(
           tail,
           if (isAbruptTerminal) optimizedTryCatch :: newHistory
-          else optimizedTryCatch :: flagDecl :: newHistory,
+          else optimizedTryCatch :: newHistory,
           newEnv,
         )
       case (None, newEnv) => optimize(tail, newHistory, newEnv)
@@ -271,15 +375,15 @@ object PolyfillInspector {
     checkType: CompletionType,
     targetVar: String,
     producer: List[Step],
-  ): List[Step] = {
+  ): (List[Step], CompletionEnv) = {
     val flagName = s"${targetVar}_is_abrupt"
-    val flagDecl = LetStep(Variable(flagName, None), FalseLiteral())
 
     val wrappedProducer = wrapProducerOnly(
       producer,
       targetVar,
       s"_${targetVar}_err",
       flagName,
+      env,
     )
     val taggedCheck = annotateStep(
       annotateStep(
@@ -293,14 +397,17 @@ object PolyfillInspector {
     val newEnv = env
       .withHandled(targetVar)
       .withType(targetVar, UnknownCompletion)
+      .withFlag(flagName)
     transformStep(
       taggedCheck,
-      env.withType(targetVar, checkType),
+      env
+        .withType(targetVar, checkType)
+        .withFlag(flagName),
     ) match {
       case (Some(optimizedCheck), newEnv) =>
         optimize(
           tail,
-          flagDecl :: wrappedProducer :: gap ::: optimizedCheck :: newHistory,
+          optimizedCheck :: wrappedProducer :: gap ::: newHistory,
           newEnv,
         )
       case (None, newEnv) => ???
@@ -321,9 +428,14 @@ object PolyfillInspector {
     ifStep: IfStep,
     checkType: CompletionType,
     targetVar: String,
-  ): List[Step] = {
+  ): (List[Step], CompletionEnv) = {
     val checkTypeLiteral = NumberLiteral(
-      if (checkType == NormalCompletion) 0 else 1,
+      checkType match {
+        case NormalCompletion => 0
+        case AbruptCompletion => 1
+        case ReturnCompletion => 2
+        case _                => -1
+      },
     )
     val newCond = rebaseCondition(
       ifStep.cond,
@@ -346,14 +458,14 @@ object PolyfillInspector {
       ifStep.thenStep :: Nil,
       Nil,
       env.withType(targetVar, checkType),
-    ).toBlockStep
+    )._1.toBlockStep
 
     val newElseStep = ifStep.elseStep.map(it =>
       optimize(
         it :: Nil,
         Nil,
         env.withType(targetVar, checkType),
-      ).toBlockStep,
+      )._1.toBlockStep,
     )
 
     val newIfStep = ifStep.copy(
@@ -382,7 +494,6 @@ object PolyfillInspector {
           typeUpdate.map(t => env.withType(name, t)).getOrElse(env),
         )
       else (Some(LetStep(v, newExpr)), env)
-
     case SetStep(v @ Variable(name, _), expr) =>
       expr match {
         case ReturnIfAbruptExpression(
@@ -393,12 +504,23 @@ object PolyfillInspector {
           (None, env)
         case _ =>
           val (newExpr, typeUpdate) = optimizeExpr(expr, env)
-          if (!env.getType(name).contains(NormalCompletion))
-            (
-              Some(SetStep(v, newExpr)),
-              typeUpdate.map(t => env.withType(name, t)).getOrElse(env),
-            )
-          else (Some(SetStep(v, newExpr)), env)
+          env.getType(name) match {
+            case _ if typeUpdate.contains(UnknownCompletion) =>
+              (
+                Some(SetStep(v, newExpr)),
+                typeUpdate
+                  .map(t => env.withType(name, t))
+                  .getOrElse(env)
+                  .dropHandled(name),
+              )
+            case Some(NormalCompletion) => (Some(SetStep(v, newExpr)), env)
+            case Some(_) =>
+              (
+                Some(SetStep(v, newExpr)),
+                typeUpdate.map(t => env.withType(name, t)).getOrElse(env),
+              )
+            case None => (Some(SetStep(v, newExpr)), env)
+          }
       }
 
     /*
@@ -482,9 +604,12 @@ object PolyfillInspector {
               val thenEnv = env.withType(targetVar, thenType)
               val elseEnv = env.withType(targetVar, elseType)
 
-              val newThen = optimize(thenStep :: Nil, Nil, thenEnv).toBlockStep
+              val newThen =
+                optimize(thenStep :: Nil, Nil, thenEnv)._1.toBlockStep
               val newElse =
-                elseStep.map(e => optimize(e :: Nil, Nil, elseEnv).toBlockStep)
+                elseStep.map(e =>
+                  optimize(e :: Nil, Nil, elseEnv)._1.toBlockStep,
+                )
 
               val flagVar = tag.getOrElse("USE_FLAG", s"${targetVar}_is_abrupt")
               rebaseCondition(
@@ -517,9 +642,9 @@ object PolyfillInspector {
 
             case _ =>
               // No completion check tags - just process normally
-              val newThen = optimize(thenStep :: Nil, Nil, env).toBlockStep
+              val newThen = optimize(thenStep :: Nil, Nil, env)._1.toBlockStep
               val newElse =
-                elseStep.map(e => optimize(e :: Nil, Nil, env).toBlockStep)
+                elseStep.map(e => optimize(e :: Nil, Nil, env)._1.toBlockStep)
               rebaseCondition(
                 cond,
                 Map(),
@@ -543,15 +668,33 @@ object PolyfillInspector {
       }
 
     case BlockStep(stmts) =>
-      (Some(optimize(stmts.steps.map(_.step), Nil, env).toBlockStep), env)
+      val (newSteps, newEnv) = optimize(stmts.steps.map(_.step), Nil, env)
+      (Some(newSteps.toBlockStep), newEnv)
 
     case IfStep(cond, t, e, cfg) =>
-      val newT = optimize(t :: Nil, Nil, env).toBlockStep
-      val newE = e.map(b => optimize(b :: Nil, Nil, env).toBlockStep)
-      (Some(IfStep(cond, newT, newE, cfg)), env)
+      val (thenSteps, thenEnv) = optimize(t :: Nil, Nil, env)
+      val (elseResult, elseEnv) = e match {
+        case Some(b) =>
+          val (steps, eEnv) = optimize(b :: Nil, Nil, env)
+          (Some(steps.toBlockStep), eEnv)
+        case None => (None, env)
+      }
+      val mergedEnv = thenEnv.merge(elseEnv)
+      (Some(IfStep(cond, thenSteps.toBlockStep, elseResult, cfg)), mergedEnv)
     case RepeatStep(c, b) =>
-      (Some(RepeatStep(c, optimize(b :: Nil, Nil, env).toBlockStep)), env)
+      (Some(RepeatStep(c, optimize(b :: Nil, Nil, env)._1.toBlockStep)), env)
     case _ => (Some(step), env)
+  }
+
+  private def getHoistedFlagSetting(
+    flagName: String,
+    boolLiteral: Boolean,
+    env: CompletionEnv,
+  ): Step = {
+    val boolLiteralExpr = if (boolLiteral) TrueLiteral() else FalseLiteral()
+    if (!env.isFlagDeclared(flagName))
+      LetStep(Variable(flagName, None), boolLiteralExpr)
+    else SetStep(Variable(flagName, None), boolLiteralExpr)
   }
 
   private def optimizeExpr(
@@ -566,6 +709,12 @@ object PolyfillInspector {
       (args.head, Some(AbruptCompletion))
     case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
       (args.head, Some(AbruptCompletion))
+    case AbstractClosureExpression(params, captured, body) =>
+      val (optimizedBody, _) = optimize(body :: Nil, Nil, env)
+      (
+        AbstractClosureExpression(params, captured, optimizedBody.toBlockStep),
+        None,
+      )
     case ReferenceExpression(Variable(name, _)) =>
       (expr, env.getType(name))
     case _ => (expr, None)
@@ -614,17 +763,20 @@ object PolyfillInspector {
   ): WrappedTryCatchStep = {
     val IfStep(_, bodyStep, _, _) = ifStep: @unchecked
     if (completion == NormalCompletion) {
-      val tryStmts = optimize(
+      val (tryStmts, _) = optimize(
         producer :+ bodyStep,
         Nil,
-        env.withHandled(varName).withType(varName, NormalCompletion),
+        env
+          .withHandled(varName)
+          .withType(varName, NormalCompletion)
+          .withFlag(flagName),
       )
       val catchStmts = List(
         SetStep(
           Variable(varName, None),
           ReferenceExpression(Variable(catchVar, None)),
         ),
-        SetStep(Variable(flagName, None), TrueLiteral()),
+        getHoistedFlagSetting(flagName, true, env),
       )
       WrappedTryCatchStep(
         tryStmts.toBlockStep,
@@ -632,10 +784,13 @@ object PolyfillInspector {
         Some(catchStmts.toBlockStep),
       )
     } else {
-      val tryStmts = optimize(
+      val (tryStmts, _) = optimize(
         producer,
         Nil,
-        env.withHandled(varName).withType(varName, NormalCompletion),
+        env
+          .withHandled(varName)
+          .withType(varName, NormalCompletion)
+          .withFlag(flagName),
       )
       val catchStmts =
         if (!isAbruptTerminal)
@@ -644,7 +799,7 @@ object PolyfillInspector {
               Variable(varName, None),
               ReferenceExpression(Variable(catchVar, None)),
             ),
-            SetStep(Variable(flagName, None), TrueLiteral()),
+            getHoistedFlagSetting(flagName, true, env),
             bodyStep,
           )
         else
@@ -655,10 +810,13 @@ object PolyfillInspector {
             ),
             bodyStep,
           )
-      val optimizedCatchStmts = optimize(
+      val (optimizedCatchStmts, _) = optimize(
         catchStmts,
         Nil,
-        env.withHandled(varName).withType(varName, AbruptCompletion),
+        env
+          .withHandled(varName)
+          .withType(varName, AbruptCompletion)
+          .withFlag(flagName),
       )
       WrappedTryCatchStep(
         tryStmts.toBlockStep,
@@ -673,13 +831,14 @@ object PolyfillInspector {
     varName: String,
     catchVar: String,
     flagName: String,
+    env: CompletionEnv,
   ): Step = {
     val catchStmts = List(
       SetStep(
         Variable(varName, None),
         ReferenceExpression(Variable(catchVar, None)),
       ),
-      SetStep(Variable(flagName, None), TrueLiteral()),
+      getHoistedFlagSetting(flagName, true, env),
     )
     WrappedTryCatchStep(
       producer.toBlockStep,
@@ -697,9 +856,9 @@ object PolyfillInspector {
           _,
           op,
         ) =>
+      import PredicateConditionOperator.*
       op match {
-        case Abrupt | PredicateConditionOperator.Throw |
-            PredicateConditionOperator.Normal =>
+        case Abrupt | Throw | Normal | Return =>
           completionCondition.get(targetVar)
         case _ => Some(cond)
       }
@@ -741,6 +900,7 @@ private object CompletionCheckPattern {
         op match {
           case Abrupt | Throw => Some((AbruptCompletion, extractVarName(expr)))
           case Normal         => Some((NormalCompletion, extractVarName(expr)))
+          case Return         => Some((ReturnCompletion, extractVarName(expr)))
           case _              => None
         }
       case CompoundCondition(left, op, right) =>
@@ -790,11 +950,15 @@ private class ValueAccessUnwrapper(env: CompletionEnv) extends LangWalker {
     // AO calls with completion argument unpacking
     case aoExpr @ InvokeAbstractOperationExpression(name, args, _) =>
       val newArgs = args.flatMap {
-        case x @ ReferenceExpression(Variable(targetVar, _)) =>
+        case x @ ReferenceExpression(v @ Variable(targetVar, nt))
+            if nt.isEmpty =>
           env.getType(targetVar) match {
-            case Some(AbruptCompletion)  => List(NumberLiteral(1), x)
-            case Some(NormalCompletion)  => List(NumberLiteral(0), x)
-            case Some(ReturnCompletion)  => List(NumberLiteral(2), x)
+            case Some(AbruptCompletion) =>
+              List(NumberLiteral(1), x.copy(v.copy(nt = Some("comp_split"))))
+            case Some(NormalCompletion) =>
+              List(NumberLiteral(0), x.copy(v.copy(nt = Some("comp_split"))))
+            case Some(ReturnCompletion) =>
+              List(NumberLiteral(2), x.copy(v.copy(nt = Some("comp_split"))))
             case Some(UnknownCompletion) => Some(x)
             case _                       => Some(x)
           }

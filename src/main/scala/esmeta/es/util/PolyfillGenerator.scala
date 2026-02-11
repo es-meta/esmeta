@@ -2,9 +2,11 @@ package esmeta.es.util
 
 import esmeta.es.*
 import esmeta.lang.*
+import esmeta.lang.RemoveStep.Target.First
 import esmeta.spec.*
 import esmeta.util.BaseUtils.*
-import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
+import esmeta.lang.util.{UnitWalker as LangUnitWalker, Walker as LangWalker}
+
 import scala.collection.mutable
 import scala.annotation.tailrec
 
@@ -18,10 +20,11 @@ object PolyfillGenerator {
     """INTRINSICS\.(get:|set:)?String\..*""",
     """INTRINSICS\.(get:|set:)?Map.*""",
     """INTRINSICS\.(get:|set:)?Set.*""",
-    """INTRINSICS\.(get:|set:)?Promise\..*""",
-    """INTRINSICS\.(get:|set:)?Iterator\..*""",
+    """INTRINSICS\.(get:|set:)?Promise.*""",
+//    """INTRINSICS\.(get:|set:)?Iterator\..*""",
     """Number::.*""",
     """BigInt::.*""",
+    """INTRINSICS\.(get:|set:)?Promise.any""",
   )
 
   val ignoreTargets = List(
@@ -127,8 +130,9 @@ class PolyfillGenerator(spec: Spec) {
     val result = mutable.Set[String]()
     new LangUnitWalker {
       override def walk(expr: Expression): Unit = expr match
-        case InvokeAbstractOperationExpression(name, _, _) =>
+        case InvokeAbstractOperationExpression(name, args, _) =>
           result.add(name)
+          args.foreach(walk)
         case _ => super.walk(expr)
     }.walk(algo.body)
     result.toSet
@@ -235,7 +239,13 @@ class PolyfillGenerator(spec: Spec) {
     case PerformStep(expr) =>
       pb.addStmt(NormalStmt(s"${compile(pb, expr)};"))
     case InvokeShorthandStep(x, a) =>
-      pb.addStmt(NormalStmt(s"${SHORTHAND_HEADER}__$x(${compile(pb, a)});"))
+      // pb.addStmt(NormalStmt(s"${SHORTHAND_HEADER}__$x(${compile(pb, a)});"))
+      if (a.contains(NumberLiteral(1)) && x == "IfAbruptRejectPromise")
+        pb.addStmt(
+          NormalStmt(s"return ${SHORTHAND_HEADER}__$x(${compile(pb, a)});"),
+        )
+      else
+        pb.addStmt(NormalStmt(s"${SHORTHAND_HEADER}__$x(${compile(pb, a)});"))
     case AppendStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
@@ -249,8 +259,12 @@ class PolyfillGenerator(spec: Spec) {
           s"${INTERNAL_HEADER}__Prepend(${compile(pb, ref)}, ${compile(pb, expr)})",
         ),
       )
-    case AddStep(expr, ref)         => ???
-    case RemoveStep(t, p, l)        => ???
+    case AddStep(expr, ref) => ???
+    case RemoveStep(t, p, l) =>
+      t match {
+        case First(None) => pb.addStmt(NormalStmt(s"${compile(pb, l)}.shift()"))
+        case _           => ???
+      }
     case PushContextStep(ref)       => ???
     case SuspendStep(ref, rm)       => ???
     case RemoveContextStep(ctxt, t) => ???
@@ -335,7 +349,7 @@ class PolyfillGenerator(spec: Spec) {
   def compile(pb: PolyfillBuilder, ref: Reference): String = ref match {
     case x: Variable                => compile(x)
     case Access(base, name, _, _)   => s"${compile(pb, base)}[\"$name\"]"
-    case ValueOf(base)              => ???
+    case ValueOf(base)              => compile(pb, base)
     case IntrinsicField(base, intr) => ???
     case IndexLookup(base, index) =>
       s"${compile(pb, base)}[${compile(pb, index)}]"
@@ -344,11 +358,11 @@ class PolyfillGenerator(spec: Spec) {
     case PositionalElement(base, true)  => s"${compile(pb, base)}[0]"
     case PositionalElement(base, false) => ???
     case IntrinsicObject(base, expr)    => ???
-    case RunningExecutionContext()      => ???
-    case SecondExecutionContext()       => ???
-    case CurrentRealmRecord()           => ???
-    case ActiveFunctionObject()         => ???
-    case AgentRecord()                  => ???
+    case RunningExecutionContext() => "this" // TODO Single-Runtime Assumption
+    case SecondExecutionContext()  => ???
+    case CurrentRealmRecord()      => "globalThis"
+    case ActiveFunctionObject()    => "_self"
+    case AgentRecord()             => ???
   }
 
   /** compile expressions */
@@ -445,7 +459,7 @@ class PolyfillGenerator(spec: Spec) {
     case BitwiseExpression(l, op, r) =>
       s"${compile(pb, l)} ${compile(op)} ${compile(pb, r)}"
     case AbstractClosureExpression(params, captured, body) =>
-      s"function(${params.map(compile).mkString(", ")}) ${compileWithScope(pb, body)}"
+      s"function _self(${params.map(compile).mkString(", ")}) ${compileWithScope(pb, body)}"
     case XRefExpression(op, id)      => ???
     case SoleElementExpression(list) => ???
     case CodeUnitAtExpression(base, index) =>
@@ -501,8 +515,11 @@ class PolyfillGenerator(spec: Spec) {
       (if (neg) s"!" else "") + tys
         .map(_.normalizedName.toLowerCase())
         .map(tyStr => if (tyStr == "record[object]") "object" else tyStr)
-        .map(tyStr => s"typeof $compiledExpr === \"$tyStr\"")
-        .reduce((l, r) => s"($l || $r)")
+        .map(tyStr =>
+          if (tyStr == "object") s"AO__IsObject($compiledExpr)"
+          else s"typeof $compiledExpr === \"$tyStr\"",
+        )
+        .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
       (if (neg) s"!" else "") + s"(${compile(pb, field)} in ${compile(pb, ref)})"
     case HasBindingCondition(ref, neg, binding)    => ???
