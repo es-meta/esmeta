@@ -70,11 +70,157 @@ object MapDataTransformer {
   ): Step = {
     new LangWalker {
       override def walk(step: Step): Step = step match
+        // For each Record { [[Key]], [[Value]] } p of M.[[MapData]], do
+        // a. If p.[[Key]] is not empty and SameValue(p.[[Key]], key) is true,
+        case ForEachStep(
+              _,
+              Variable(elem, _),
+              ReferenceExpression(ref),
+              true,
+              BlockStep(
+                StepBlock(
+                  List(
+                    SubStep(
+                      _,
+                      IfStep(
+                        CompoundCondition(
+                          IsAreCondition(
+                            List(
+                              ReferenceExpression(
+                                Access(Variable(loopElemL, _), "Key", _, _),
+                              ),
+                            ),
+                            true,
+                            List(EnumLiteral("empty")),
+                          ),
+                          CompoundConditionOperator.And,
+                          IsAreCondition(
+                            List(
+                              InvokeAbstractOperationExpression(
+                                "SameValue",
+                                List(
+                                  ReferenceExpression(
+                                    Access(Variable(loopElemR, _), "Key", _, _),
+                                  ),
+                                  ReferenceExpression(Variable(key, _)),
+                                ),
+                                _,
+                              ),
+                            ),
+                            false,
+                            List(TrueLiteral()),
+                          ),
+                        ),
+                        thenStep,
+                        elseStep,
+                        elseConfig,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ) if elem == loopElemL && elem == loopElemR && isMapData(ref) =>
+          IfStep(
+            IsAreCondition(
+              List(
+                InvokeAbstractOperationExpression(
+                  "IN__MapDataHas",
+                  List(
+                    ReferenceExpression(ref),
+                    ReferenceExpression(Variable(key)),
+                  ),
+                  HtmlTag.None,
+                ),
+              ),
+              false,
+              List(TrueLiteral()),
+            ),
+            replaceLoopVariable(thenStep, ref, elem, key),
+            elseStep,
+            elseConfig,
+          )
+        case ForEachStep(
+              _,
+              Variable(elem, _),
+              ReferenceExpression(ref),
+              true,
+              body,
+            ) if isMapData(ref) =>
+          PerformStep(
+            InvokeAbstractOperationExpression(
+              "IN__MapDataIterateLoop",
+              List(
+                ReferenceExpression(ref),
+                AbstractClosureExpression(
+                  List(
+                    Variable(elem),
+                  ),
+                  List(),
+                  replaceLoopVariable(body, ref, elem),
+                ),
+              ),
+              HtmlTag.None,
+            ),
+          )
         case _ => super.walk(step)
 
       override def walk(stepBlock: StepBlock): StepBlock =
         def walkSubSteps(steps: List[SubStep]): List[SubStep] =
           steps match
+            case SubStep(
+                  _,
+                  LetStep(
+                    Variable(lengthInit, _),
+                    NumberOfExpression(
+                      "elements",
+                      _,
+                      ReferenceExpression(ref),
+                      _,
+                    ),
+                  ),
+                ) ::
+                SubStep(
+                  _,
+                  LetStep(Variable(indexInit, _), DecimalMathValueLiteral(0)),
+                ) ::
+                SubStep(
+                  _,
+                  RepeatStep(
+                    RepeatStep.LoopCondition.While(
+                      BinaryCondition(
+                        ReferenceExpression(Variable(indexCond, _)),
+                        BinaryConditionOperator.LessThan,
+                        ReferenceExpression(Variable(lengthCond, _)),
+                      ),
+                    ),
+                    body,
+                  ),
+                ) :: tail
+                if lengthInit == lengthCond && indexInit == indexCond && isMapData(
+                  ref,
+                ) =>
+              val (loopBase, loopVar) = searchLoopVariable(body, indexInit)
+
+              val strippedBody =
+                removeIterationRelatedSteps(body, lengthInit, indexInit)
+
+              SubStep(
+                None,
+                PerformStep(
+                  InvokeAbstractOperationExpression(
+                    "IN__MapDataIterateForEach",
+                    List(
+                      ReferenceExpression(loopBase),
+                      AbstractClosureExpression(
+                        List(Variable(loopVar)),
+                        List(),
+                        strippedBody,
+                      ),
+                    ),
+                    HtmlTag.None,
+                  ),
+                ),
+              ) :: walkSubSteps(tail)
             case h :: t => walk(h) :: walkSubSteps(t)
             case Nil    => Nil
         StepBlock(walkSubSteps(stepBlock.steps))
@@ -82,7 +228,7 @@ object MapDataTransformer {
   }
 
   // ================================================================================
-  // Replace SetData related Operations
+  // Replace MapData related Operations
   // ================================================================================
 
   def replaceMapDataOperations(
@@ -91,11 +237,231 @@ object MapDataTransformer {
   ): Step = {
     new LangWalker {
       override def walk(step: Step): Step = step match
+        case AppendStep(elem, ref) if isMapData(ref) =>
+          PerformStep(
+            InvokeAbstractOperationExpression(
+              "IN__MapDataInsert",
+              List(
+                ReferenceExpression(ref),
+                elem,
+              ),
+              HtmlTag.None,
+            ),
+          )
+        case SetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
+            if isMapData(ref) =>
+          SetStep(
+            ref,
+            InvokeAbstractOperationExpression(
+              "IN__MapDataCreate",
+              List(),
+              HtmlTag.None,
+            ),
+          )
         case _ => super.walk(step)
 
       override def walk(expr: Expression): Expression = expr match
         case _ => super.walk(expr)
 
+    }.walk(body)
+  }
+
+  // ================================================================================
+  // Transformation Helpers
+  // ================================================================================
+
+  def searchLoopVariable(
+    body: Step,
+    index: String,
+  ): (Reference, String) = {
+    var base: Option[Reference] = None
+    var varName: Option[String] = None
+    new LangUnitWalker {
+      override def walk(step: Step): Unit =
+        step match
+          case LetStep(
+                Variable(x, _),
+                ReferenceExpression(
+                  IndexLookup(
+                    b,
+                    ReferenceExpression(Variable(i, _)),
+                  ),
+                ),
+              ) =>
+            base = Some(b); varName = Some(x)
+          case _ => super.walk(step)
+    }.walk(body)
+
+    // Should find the loop variable
+    (
+      base.getOrElse(throw new Error),
+      varName.getOrElse(throw new Error),
+    )
+  }
+
+  def removeIterationRelatedSteps(
+    body: Step,
+    length: String,
+    index: String,
+  ): Step = {
+    new LangWalker {
+      override def walk(stepBlock: StepBlock): StepBlock =
+        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
+          steps match
+            case SubStep(
+                  _,
+                  LetStep(
+                    Variable(x, _),
+                    ReferenceExpression(
+                      IndexLookup(
+                        b,
+                        ReferenceExpression(Variable(i, _)),
+                      ),
+                    ),
+                  ),
+                ) :: tail if i == index =>
+              walkSubSteps(tail)
+            case SubStep(_, SetStep(Variable(lLhs, _), _)) :: tail
+                if lLhs == length =>
+              walkSubSteps(tail)
+            case SubStep(
+                  _,
+                  SetStep(
+                    Variable(iLhs, _),
+                    BinaryExpression(
+                      ReferenceExpression(Variable(iRhs, _)),
+                      BinaryExpressionOperator.Add,
+                      DecimalMathValueLiteral(1),
+                    ),
+                  ),
+                ) :: tail if iLhs == index && iRhs == index =>
+              walkSubSteps(tail)
+            case head :: tail => super.walk(head) :: walkSubSteps(tail)
+            case Nil          => Nil
+        StepBlock(walkSubSteps(stepBlock.steps))
+    }.walk(body)
+  }
+
+  def replaceLoopVariable(
+    body: Step,
+    base: Reference,
+    elem: String,
+    key: String,
+  ): Step = {
+    new LangWalker {
+
+      override def walk(step: Step): Step =
+        step match
+          case SetStep(
+                Access(Variable(elem1, _), "Value", _, _),
+                expr,
+              ) if elem == elem1 =>
+            PerformStep(
+              InvokeAbstractOperationExpression(
+                "IN__MapDataSet",
+                List(
+                  ReferenceExpression(base),
+                  ReferenceExpression(Variable(key)),
+                  expr,
+                ),
+                HtmlTag.None,
+              ),
+            )
+          case ReturnStep(
+                ReferenceExpression(Access(Variable(elem1, _), "Value", _, _)),
+              ) if elem == elem1 =>
+            ReturnStep(
+              InvokeAbstractOperationExpression(
+                "IN__MapDataGet",
+                List(
+                  ReferenceExpression(base),
+                  ReferenceExpression(Variable(key)),
+                ),
+                HtmlTag.None,
+              ),
+            )
+          case _ => super.walk(step)
+
+      override def walk(stepBlock: StepBlock): StepBlock =
+        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
+          steps match
+            case SubStep(
+                  _,
+                  SetStep(
+                    Access(Variable(elem1, _), "Key", _, _),
+                    EnumLiteral("empty"),
+                  ),
+                ) :: SubStep(
+                  _,
+                  SetStep(
+                    Access(Variable(elem2, _), "Value", _, _),
+                    EnumLiteral("empty"),
+                  ),
+                ) :: tail if elem == elem1 && elem == elem2 =>
+              SubStep(
+                None,
+                PerformStep(
+                  InvokeAbstractOperationExpression(
+                    "IN__MapDataRemove",
+                    List(
+                      ReferenceExpression(base),
+                      ReferenceExpression(Variable(key)),
+                    ),
+                    HtmlTag.None,
+                  ),
+                ),
+              ) :: walkSubSteps(tail)
+            case head :: tail => super.walk(head) :: walkSubSteps(tail)
+            case Nil          => Nil
+        StepBlock(walkSubSteps(stepBlock.steps))
+    }.walk(body)
+  }
+
+  def replaceLoopVariable(
+    body: Step,
+    base: Reference,
+    elem: String,
+  ): Step = {
+    new LangWalker {
+      override def walk(stepBlock: StepBlock): StepBlock =
+        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
+          steps match
+            case SubStep(
+                  _,
+                  SetStep(
+                    Access(Variable(elem1, _), "Key", _, _),
+                    EnumLiteral("empty"),
+                  ),
+                ) :: SubStep(
+                  _,
+                  SetStep(
+                    Access(Variable(elem2, _), "Value", _, _),
+                    EnumLiteral("empty"),
+                  ),
+                ) :: tail if elem == elem1 && elem == elem2 =>
+              SubStep(
+                None,
+                PerformStep(
+                  InvokeAbstractOperationExpression(
+                    "IN__MapDataRemove",
+                    List(
+                      ReferenceExpression(base),
+                      ReferenceExpression(
+                        Access(
+                          Variable(elem),
+                          "Key",
+                          AccessKind.Field,
+                          AccessForm.Dot,
+                        ),
+                      ),
+                    ),
+                    HtmlTag.None,
+                  ),
+                ),
+              ) :: walkSubSteps(tail)
+            case head :: tail => super.walk(head) :: walkSubSteps(tail)
+            case Nil          => Nil
+        StepBlock(walkSubSteps(stepBlock.steps))
     }.walk(body)
   }
 }
@@ -257,6 +623,29 @@ object SetDataTransformer {
             elseStep.map(replaceVariable(_, elem, value)),
             elseConfig,
           )
+        case ForEachStep(
+              _,
+              Variable(elem, _),
+              ReferenceExpression(ref),
+              true,
+              body,
+            ) if isSetData(ref) =>
+          PerformStep(
+            InvokeAbstractOperationExpression(
+              "IN__SetDataIterateForEach",
+              List(
+                ReferenceExpression(ref),
+                AbstractClosureExpression(
+                  List(
+                    Variable(elem),
+                  ),
+                  List(),
+                  body,
+                ),
+              ),
+              HtmlTag.None,
+            ),
+          )
         case _ => super.walk(step)
 
       override def walk(stepBlock: StepBlock): StepBlock =
@@ -301,7 +690,7 @@ object SetDataTransformer {
 
               // Step 2: Remove every loop-related steps
               val strippedBody = replaceSetDataRemove(
-                removeLoopRelatedSteps(body, lengthInit, indexInit),
+                removeIterationRelatedSteps(body, lengthInit, indexInit),
               )
 
               // Step 3: Replace the remove/add statement to function call
@@ -317,7 +706,7 @@ object SetDataTransformer {
 
               val loopWithEarlyReturn = wrapWithEarlyReturn(
                 transformedBody,
-                "IN__SetDataIterateLoop",
+                "IN__SetDataIterateForEach",
                 loopBase,
                 loopVar,
               )
@@ -515,7 +904,7 @@ object SetDataTransformer {
     }.walk(body)
   }
 
-  def removeLoopRelatedSteps(
+  def removeIterationRelatedSteps(
     body: Step,
     length: String,
     index: String,
