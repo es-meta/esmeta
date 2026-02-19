@@ -14,14 +14,13 @@ import scala.annotation.tailrec
 object PolyfillGenerator {
   def apply(spec: Spec): List[Polyfill] = new PolyfillGenerator(spec).result
 
-  val defaultTargets = List(
+  val targetPatterns = List(
     // Builtin methods
     """INTRINSICS\.(get:|set:)?Array\..*""",
     """INTRINSICS\.(get:|set:)?String\..*""",
     """INTRINSICS\.(get:|set:)?Map.*""",
     """INTRINSICS\.(get:|set:)?Set.*""",
     """INTRINSICS\.(get:|set:)?Promise.*""",
-//    """INTRINSICS\.(get:|set:)?Iterator\..*""",
     """Number::.*""",
     """BigInt::.*""",
     """INTRINSICS\.(get:|set:)?Promise.any""",
@@ -74,6 +73,7 @@ object PolyfillGenerator {
     // Yet AOs
     "ArrayCreate",
     "ArraySpeciesCreate",
+    "AsyncGeneratorYield",
     "Await",
     "CreateBuiltinFunction",
     "CreateIteratorFromClosure",
@@ -101,12 +101,12 @@ class PolyfillGenerator(spec: Spec) {
 
   lazy val targets: List[Algorithm] = {
     val initialTargets = spec.algorithms
-      .filter(algo => defaultTargets.exists(algo.name.matches))
+      .filter(algo => targetPatterns.exists(algo.name.matches))
       .toSet
 
     val algoNameMap = spec.algorithms.map(algo => (algo.name -> algo)).toMap
 
-    val result = worklist(initialTargets, initialTargets) {
+    val result = expand(initialTargets, initialTargets) {
       _.flatMap(getAOCallees).flatMap(algoNameMap.get)
     }
 
@@ -117,13 +117,13 @@ class PolyfillGenerator(spec: Spec) {
   }
 
   @tailrec
-  private def worklist[T](acc: Set[T], curr: Set[T])(
+  private def expand[T](acc: Set[T], curr: Set[T])(
     f: Set[T] => Set[T],
   ): Set[T] = {
     if (curr.isEmpty) acc
     else
       val next = f(curr) -- acc
-      worklist(acc ++ next, next)(f)
+      expand(acc ++ next, next)(f)
   }
 
   def getAOCallees(algo: Algorithm): Set[String] = {
@@ -405,7 +405,8 @@ class PolyfillGenerator(spec: Spec) {
       s"${AO_HEADER}__$name(${compile(pb, args)})"
     case InvokeNumericMethodExpression(ty, name, args) =>
       s"${ty}__$name(${compile(pb, args)})"
-    case InvokeAbstractClosureExpression(ref, args) => ???
+    case InvokeAbstractClosureExpression(ref, args) =>
+      s"${compile(pb, ref)}(${args.map(compile(pb, _)).mkString(", ")})"
     case InvokeMethodExpression(ref, args, tag) =>
       s"${compile(pb, ref)}(${compile(pb, args)})"
     case InvokeSyntaxDirectedOperationExpression(
@@ -529,13 +530,13 @@ class PolyfillGenerator(spec: Spec) {
       op match {
         case Finite =>
           (if (neg) s"!" else "") + s"isFinite(${compile(pb, expr)})"
-        case Abrupt      => s"COMP__isAbrupt(${compile(pb, expr)})"
-        case Throw       => s"COMP__isThrow(${compile(pb, expr)})"
+        case Abrupt      => ???
+        case Throw       => ???
         case Return      => ???
         case Break       => ???
         case Continue    => ???
         case NeverAbrupt => ???
-        case Normal      => s"COMP__isNormal(${compile(pb, expr)})"
+        case Normal      => ???
         case Duplicated  => ???
         case Present => (if (neg) s"!" else "") + compile(pb, expr) + IS_PRESENT
         case Empty   => ???

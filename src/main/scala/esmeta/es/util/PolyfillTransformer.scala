@@ -214,7 +214,7 @@ object MapDataTransformer {
                       AbstractClosureExpression(
                         List(Variable(loopVar)),
                         List(),
-                        strippedBody,
+                        replaceLoopVariable(strippedBody, loopBase, loopVar),
                       ),
                     ),
                     HtmlTag.None,
@@ -423,6 +423,22 @@ object MapDataTransformer {
     elem: String,
   ): Step = {
     new LangWalker {
+      override def walk(step: Step): Step = step match
+        case IfStep(
+              IsAreCondition(
+                List(
+                  ReferenceExpression(Access(Variable(elem1, _), "Key", _, _)),
+                ),
+                true,
+                List(EnumLiteral("empty")),
+              ),
+              thenStep,
+              None,
+              _,
+            ) if elem == elem1 =>
+          super.walk(thenStep)
+        case _ => super.walk(step)
+
       override def walk(stepBlock: StepBlock): StepBlock =
         def walkSubSteps(steps: List[SubStep]): List[SubStep] =
           steps match
@@ -872,6 +888,22 @@ object SetDataTransformer {
     index: String,
   ): Step = {
     new LangWalker {
+      override def walk(step: Step): Step = step match
+        case IfStep(
+              IsAreCondition(
+                List(
+                  ReferenceExpression(Variable(elem1, _)),
+                ),
+                true,
+                List(EnumLiteral("empty")),
+              ),
+              thenStep,
+              None,
+              _,
+            ) if varName == elem1 =>
+          super.walk(thenStep)
+        case _ => super.walk(step)
+
       override def walk(stepBlock: StepBlock): StepBlock =
         def walkSubSteps(steps: List[SubStep]): List[SubStep] =
           steps match
@@ -968,6 +1000,22 @@ object SetDataTransformer {
     varName: String,
   ): Step = {
     new LangWalker {
+      override def walk(step: Step): Step = step match
+        case IfStep(
+              IsAreCondition(
+                List(
+                  ReferenceExpression(Variable(elem1, _)),
+                ),
+                true,
+                List(EnumLiteral("done")),
+              ),
+              thenStep,
+              None,
+              _,
+            ) if varName == elem1 =>
+          super.walk(thenStep)
+        case _ => super.walk(step)
+
       override def walk(stepBlock: StepBlock): StepBlock =
         def walkSubSteps(steps: List[SubStep]): List[SubStep] =
           steps match
