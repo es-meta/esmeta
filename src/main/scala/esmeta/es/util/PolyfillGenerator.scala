@@ -104,10 +104,8 @@ class PolyfillGenerator(spec: Spec) {
       .filter(algo => targetPatterns.exists(algo.name.matches))
       .toSet
 
-    val algoNameMap = spec.algorithms.map(algo => (algo.name -> algo)).toMap
-
     val result = expand(initialTargets, initialTargets) {
-      _.flatMap(getAOCallees).flatMap(algoNameMap.get)
+      _.flatMap(getAOCallees).flatMap(spec.fnameMap.get)
     }
 
     result
@@ -141,7 +139,6 @@ class PolyfillGenerator(spec: Spec) {
   private val IS_PRESENT = "IsPresent"
   private val AO_HEADER = "AO";
   private val INTERNAL_HEADER = "IN";
-  private val SHORTHAND_HEADER = "SH";
   private val RESERVED_WORDS = Set("return")
   private val YET_RULES = Map(
     (
@@ -238,14 +235,7 @@ class PolyfillGenerator(spec: Spec) {
     case SetEvaluationStateStep(base, func, args) => ???
     case PerformStep(expr) =>
       pb.addStmt(NormalStmt(s"${compile(pb, expr)};"))
-    case InvokeShorthandStep(x, a) =>
-      // pb.addStmt(NormalStmt(s"${SHORTHAND_HEADER}__$x(${compile(pb, a)});"))
-      if (a.contains(NumberLiteral(1)) && x == "IfAbruptRejectPromise")
-        pb.addStmt(
-          NormalStmt(s"return ${SHORTHAND_HEADER}__$x(${compile(pb, a)});"),
-        )
-      else
-        pb.addStmt(NormalStmt(s"${SHORTHAND_HEADER}__$x(${compile(pb, a)});"))
+    case InvokeShorthandStep(x, a) => ??? // should not access
     case AppendStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
