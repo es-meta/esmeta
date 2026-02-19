@@ -609,7 +609,7 @@ class PolyfillGenerator(spec: Spec) {
       case FieldLiteral(name)                                   => s"\"$name\""
       case SymbolLiteral(sym)                  => s"Symbol.$sym"
       case ProductionLiteral(lhs, rhs)         => ???
-      case ErrorObjectLiteral(name)            => name
+      case ErrorObjectLiteral(name)            => s"new ${name}()"
       case _: PositiveInfinityMathValueLiteral => "Infinity"
       case _: NegativeInfinityMathValueLiteral => "-Infinity"
       case DecimalMathValueLiteral(n)          => s"$n"

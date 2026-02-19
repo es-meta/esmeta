@@ -210,6 +210,30 @@ object PolyfillInspector {
           checkType,
           targetVar,
         )
+    case (step @ LetStep(v @ Variable(name, _), expr)) :: tail =>
+      val (unwrappedLetStep, newEnv) = transformStep(step, env)
+      unwrappedLetStep match {
+        case Some(newLetStep) =>
+          if (newEnv.getType(name).contains(AbruptCompletion)) {
+            optimize(
+              tail,
+              getHoistedFlagSetting(
+                s"${name}_is_abrupt",
+                true,
+                newEnv,
+              ) :: ValueAccessUnwrapper(env).walk(newLetStep) :: history,
+              newEnv.withFlag(s"${name}_is_abrupt"),
+            )
+          } else
+            optimize(
+              tail,
+              ValueAccessUnwrapper(env).walk(newLetStep) :: history,
+              newEnv,
+            )
+        case None =>
+          ???
+          optimize(tail, history, newEnv)
+      }
 
     case head :: tail =>
       val (newStepOpt, newEnv) = transformStep(head, env)
@@ -354,8 +378,7 @@ object PolyfillInspector {
       case (Some(optimizedTryCatch), newEnv) =>
         optimize(
           tail,
-          if (isAbruptTerminal) optimizedTryCatch :: newHistory
-          else optimizedTryCatch :: newHistory,
+          optimizedTryCatch :: newHistory,
           newEnv,
         )
       case (None, newEnv) => optimize(tail, newHistory, newEnv)
@@ -581,6 +604,19 @@ object PolyfillInspector {
             ),
             env.withType(name, ResolvedParameterCompletion),
           )
+        case _ => (Some(ret), env)
+      }
+    case ret @ ReturnStep(expr) =>
+      expr match {
+        case InvokeAbstractOperationExpression(
+              name,
+              ReferenceExpression(Variable(varName, nt)) :: Nil,
+              _,
+            ) if (name == "ThrowCompletion") =>
+          (Some(TaggedStep(ThrowStep(varName), Map("reason" -> "abrupt"))), env)
+        case ReferenceExpression(Variable(name, _))
+            if env.getType(name).contains(AbruptCompletion) =>
+          (Some(TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))), env)
         case _ => (Some(ret), env)
       }
 
@@ -936,8 +972,9 @@ private class ValueAccessUnwrapper(env: CompletionEnv) extends LangWalker {
     // Unwrap .[[Value]] access on known completion types
     case ReferenceExpression(Access(Variable(varName, _), "Value", _, _)) =>
       env.getType(varName) match {
-        case Some(_) => ReferenceExpression(Variable(varName))
-        case None    => super.walk(expr)
+        case Some(_) =>
+          ReferenceExpression(Variable(varName, Some("value_unwrapped")))
+        case None => super.walk(expr)
       }
     // Unwrap Completion AO calls
     case completionAO @ InvokeAbstractOperationExpression(name, args, _)
