@@ -8,10 +8,7 @@ import scala.collection.mutable
 import scala.collection.mutable.{ListBuffer, Stack}
 
 /** TODO polyfill builder */
-case class PolyfillBuilder(
-  spec: Spec,
-  algo: Algorithm,
-) {
+case class PolyfillBuilder() {
   import Polyfill.*
 
   /** create a new scope with a given procedure */

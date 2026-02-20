@@ -2,50 +2,33 @@ package esmeta.es.util
 
 import esmeta.es.*
 import esmeta.lang.*
-import esmeta.lang.RemoveStep.Target.First
+import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
 import esmeta.spec.*
 import esmeta.util.BaseUtils.*
-import esmeta.lang.util.{UnitWalker as LangUnitWalker, Walker as LangWalker}
 
-import scala.collection.mutable
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 /** polyfill generator */
 object PolyfillGenerator {
   def apply(spec: Spec): List[Polyfill] = new PolyfillGenerator(spec).result
 
   val targetPatterns = List(
-    // Builtin methods
-    """INTRINSICS\.(get:|set:)?Array\..*""",
+    // https://tc39.es/ecma262/#sec-properties-of-the-string-prototype-object
     """INTRINSICS\.(get:|set:)?String\..*""",
+    // https://tc39.es/ecma262/#sec-properties-of-the-array-prototype-object
+    """INTRINSICS\.(get:|set:)?Array\..*""",
+    // https://tc39.es/ecma262/#sec-map-objects
     """INTRINSICS\.(get:|set:)?Map.*""",
+    // https://tc39.es/ecma262/#sec-set-objects
     """INTRINSICS\.(get:|set:)?Set.*""",
+    // https://tc39.es/ecma262/#sec-iterator-objects
+    // """INTRINSICS\.(get:|set:)?Iterator.*""",
+    // https://tc39.es/ecma262/#sec-promise-objects
     """INTRINSICS\.(get:|set:)?Promise.*""",
-    """Number::.*""",
-    """BigInt::.*""",
-    """INTRINSICS\.(get:|set:)?Promise.any""",
   )
 
   val ignoreTargets = List(
-    // ES3
-    "INTRINSICS.Array.prototype.concat",
-    "INTRINSICS.Array.prototype.join",
-    "INTRINSICS.Array.prototype.pop",
-    "INTRINSICS.Array.prototype.push",
-    "INTRINSICS.Array.prototype.reverse",
-    "INTRINSICS.Array.prototype.shift",
-    "INTRINSICS.Array.prototype.slice",
-    "INTRINSICS.Array.prototype.sort",
-    "INTRINSICS.Array.prototype.splice",
-    "INTRINSICS.Array.prototype.toLocaleString",
-    "INTRINSICS.Array.prototype.toString",
-    "INTRINSICS.Array.prototype.unshift",
-    // YET
-    "INTRINSICS.Array.prototype.entries",
-    "INTRINSICS.Array.prototype.keys",
-    "INTRINSICS.Array.prototype.toSorted",
-    "INTRINSICS.Array.prototype.values",
-
     // ES3
     "INTRINSICS.String.prototype.charAt",
     "INTRINSICS.String.prototype.charCodeAt",
@@ -69,6 +52,20 @@ object PolyfillGenerator {
     "INTRINSICS.String.prototype.matchAll",
     "INTRINSICS.String.prototype.normalize",
     "INTRINSICS.String.prototype.repeat",
+
+    // ES3
+    "INTRINSICS.Array.prototype.concat",
+    "INTRINSICS.Array.prototype.join",
+    "INTRINSICS.Array.prototype.pop",
+    "INTRINSICS.Array.prototype.push",
+    "INTRINSICS.Array.prototype.reverse",
+    "INTRINSICS.Array.prototype.shift",
+    "INTRINSICS.Array.prototype.slice",
+    "INTRINSICS.Array.prototype.sort",
+    "INTRINSICS.Array.prototype.splice",
+    "INTRINSICS.Array.prototype.toLocaleString",
+    "INTRINSICS.Array.prototype.toString",
+    "INTRINSICS.Array.prototype.unshift",
 
     // Yet AOs
     "ArrayCreate",
@@ -139,6 +136,7 @@ class PolyfillGenerator(spec: Spec) {
   private val IS_PRESENT = "IsPresent"
   private val AO_HEADER = "AO";
   private val INTERNAL_HEADER = "IN";
+  private val SHORTHAND_HEADER = "SH";
   private val RESERVED_WORDS = Set("return")
   private val YET_RULES = Map(
     (
@@ -149,35 +147,70 @@ class PolyfillGenerator(spec: Spec) {
   )
 
   /** compile an algorithm into a polyfill */
-  def compile(originalAlgo: Algorithm): Polyfill =
-    // TODO remove this after implementing all steps
-    println(originalAlgo)
-    println("-" * 80)
-    val algo = PolyfillInspector.process(originalAlgo)
-    val pb = PolyfillBuilder(spec, algo)
+  def compile(algo: Algorithm): Polyfill =
+    val pb = PolyfillBuilder()
 
     val name = algo.name
-    val params = algo.head.originalParams
+    val newHead = PolyfillInspector.transformHead(algo)
+    val params = newHead.originalParams
+    val prelude = compilePrelude(pb, newHead, algo.body)
 
-    val prelude = pb.newScope({
+    // TODO remove this catch after implementing all steps
+    val body =
+      try {
+        compileWithScope(
+          pb,
+          PolyfillInspector.transformBody(
+            algo.head,
+            PolyfillTransformer(algo.body),
+          ),
+        )
+      } catch {
+        case e: Throwable =>
+          println("-" * 80)
+          println(algo)
+          println("-" * 80)
+          println(pb.currentResult)
+          println("-" * 80)
+          throw e
+      }
+    Polyfill(name, params, prelude ++ body)
+
+  def compilePrelude(pb: PolyfillBuilder, head: Head, body: Step): Stmt =
+    pb.newScope({
       val shouldInsertIsStrict =
-        algo.head.originalParams.forall(_.kind != ParamKind.Variadic)
+        head.originalParams.forall(_.kind != ParamKind.Variadic)
       if (shouldInsertIsStrict) {
         pb.addStmt(NormalStmt("\"use strict\";"))
       }
 
-      val shouldInsertIsPresent = hasIsPresentCond(algo.body)
-      if (shouldInsertIsPresent) {
-        algo.head.originalParams.zipWithIndex.foreach((param, index) => {
+      val existenceCheckVariables = {
+        var result = mutable.Set[String]()
+        new LangUnitWalker {
+          override def walk(cond: Condition): Unit =
+            import PredicateConditionOperator.*
+            cond match
+              case PredicateCondition(
+                    ReferenceExpression(Variable(name, _)),
+                    _,
+                    Present,
+                  ) =>
+                result += name
+              case _ =>
+        }.walk(body)
+        result.toSet
+      }
+
+      head.originalParams.zipWithIndex.foreach((param, index) => {
+        if (existenceCheckVariables.contains(param.name))
           pb.addStmt(
             NormalStmt(
               s"var ${param.name}$IS_PRESENT = arguments.length > $index;",
             ),
           )
-        })
-      }
+      })
 
-      algo.head.originalParams.zipWithIndex
+      head.originalParams.zipWithIndex
         .foreach((param, index) => {
           if (param.kind == ParamKind.Optional)
             pb.addStmt(
@@ -188,39 +221,9 @@ class PolyfillGenerator(spec: Spec) {
         })
     })
 
-    val body =
-      compileWithScope(
-        pb,
-        PolyfillInspector.process(
-          originalAlgo,
-          PolyfillTransformer(algo.body),
-        ),
-      )
-    Polyfill(name, params, prelude ++ body)
-
-  def hasIsPresentCond(step: Step): Boolean = {
-    var found = false
-    val walker = new LangUnitWalker {
-      override def walk(cond: Condition): Unit =
-        import PredicateConditionOperator.*
-        cond match
-          case PredicateCondition(_, _, Present) => found = true
-          case _                                 =>
-    }
-    walker.walk(step)
-    found
-  }
-
   /** compile with a new scope and convert it into a statement */
-  def compileWithScope(pb: PolyfillBuilder, step: Step): Stmt = try {
+  def compileWithScope(pb: PolyfillBuilder, step: Step): Stmt =
     pb.newScope(compile(pb, step))
-  } catch {
-    // TODO remove this catch after implementing all steps
-    case e: Throwable =>
-      println(pb.currentResult)
-      println("-" * 80)
-      throw e
-  }
 
   /** compile algorithm steps */
   def compile(
@@ -235,7 +238,10 @@ class PolyfillGenerator(spec: Spec) {
     case SetEvaluationStateStep(base, func, args) => ???
     case PerformStep(expr) =>
       pb.addStmt(NormalStmt(s"${compile(pb, expr)};"))
-    case InvokeShorthandStep(x, a) => ??? // should not access
+    case InvokeShorthandStep(name, args) =>
+      pb.addStmt(
+        NormalStmt(s"${SHORTHAND_HEADER}__$name(${compile(pb, args)})"),
+      )
     case AppendStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
@@ -252,8 +258,9 @@ class PolyfillGenerator(spec: Spec) {
     case AddStep(expr, ref) => ???
     case RemoveStep(t, p, l) =>
       t match {
-        case First(None) => pb.addStmt(NormalStmt(s"${compile(pb, l)}.shift()"))
-        case _           => ???
+        case RemoveStep.Target.First(None) =>
+          pb.addStmt(NormalStmt(s"${compile(pb, l)}.shift()"))
+        case _ => ???
       }
     case PushContextStep(ref)       => ???
     case SuspendStep(ref, rm)       => ???

@@ -1,10 +1,11 @@
 package esmeta.es.util
-import scala.collection.mutable
 import esmeta.lang.*
 import esmeta.lang.BinaryConditionOperator.Eq
 import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
 import esmeta.spec.*
 import esmeta.ty.{NumberTy, ValueTy}
+
+import scala.collection.mutable
 
 // =============================================================================
 // Completion Types
@@ -215,8 +216,8 @@ object CompletionCheckAnalyzer {
 
 object PolyfillInspector {
 
-  def process(algo: Algorithm): Algorithm = {
-    val newHead = algo.head match {
+  def transformHead(algo: Algorithm): Head = {
+    algo.head match {
       case ao @ AbstractOperationHead(_, _, params, _) =>
         val unwrapParams = params.flatMap {
           case p @ Param(name, Type(ty), paramKind) if ty.isCompletion =>
@@ -232,11 +233,10 @@ object PolyfillInspector {
         ao.copy(params = unwrapParams)
       case x => x
     }
-    algo.copy(head = newHead)
   }
 
-  def process(algo: Algorithm, step: Step): Step = {
-    val paramCompletion = algo.head match {
+  def transformBody(head: Head, step: Step): Step = {
+    val paramCompletion = head match {
       case ao @ AbstractOperationHead(_, _, params, _) =>
         params.filter {
           case p @ Param(name, Type(ty), paramKind) => ty.isCompletion
@@ -247,7 +247,7 @@ object PolyfillInspector {
       it.withType(item.name, ParameterCompletion),
     )
     val checkedVars = CompletionCheckAnalyzer.analyze(step)
-    println(checkedVars)
+    // println(checkedVars)
     val optimizer = new Optimizer(
       optimizeRules = List(
         ProducerWrapRule,

@@ -1,8 +1,8 @@
 package esmeta.es
 
 import esmeta.LINE_SEP
-import esmeta.spec.*
 import esmeta.lang.Step
+import esmeta.spec.*
 
 /** polyfill code */
 case class Polyfill(
@@ -154,7 +154,7 @@ object Polyfill {
 
   // Additional Steps Declaration for Polyfill Extract
   sealed trait PolyfillStep()
+
   // LangStep
   case class LangStep(step: Step) extends PolyfillStep
-
 }

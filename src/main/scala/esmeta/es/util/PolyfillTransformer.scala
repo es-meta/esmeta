@@ -2,9 +2,10 @@ package esmeta.es.util
 
 import esmeta.es.*
 import esmeta.lang.*
+import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
 import esmeta.spec.*
 import esmeta.util.BaseUtils.*
-import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
+
 import scala.collection.mutable
 
 object PolyfillTransformer {
