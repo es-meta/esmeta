@@ -105,7 +105,7 @@ trait TransformRule {
 class Optimizer(
   val optimizeRules: List[OptimizeRule],
   val transformRules: List[TransformRule],
-  val algos: List[Algorithm] = Nil,
+  val algos: List[Algorithm],
 ) {
   import PolyfillInspector.*
 
@@ -249,8 +249,8 @@ class PolyfillInspector(algos: List[Algorithm]) {
     algos = algos,
   )
 
-  def transformHead(algo: Algorithm): Head = {
-    algo.head match {
+  def transformHead(head: Head): Head = {
+    head match {
       case ao @ AbstractOperationHead(_, _, params, _) =>
         val unwrapParams = params.flatMap {
           case p @ Param(name, Type(ty), paramKind) if ty.isCompletion =>
@@ -268,19 +268,19 @@ class PolyfillInspector(algos: List[Algorithm]) {
     }
   }
 
-  def transformBody(head: Head, step: Step): Step = {
-    val paramCompletion = head match {
-      case ao @ AbstractOperationHead(_, _, params, _) =>
+  def transformBody(head: Head, body: Step): Step = {
+    val completionParams = head match {
+      case AbstractOperationHead(_, _, params, _) =>
         params.filter {
-          case p @ Param(name, Type(ty), paramKind) => ty.isCompletion
+          case Param(name, Type(ty), paramKind) => ty.isCompletion
         }
       case x => List()
     }
-    val env = paramCompletion.foldLeft(CompletionEnv())((it, item) =>
+    val env = completionParams.foldLeft(CompletionEnv())((it, item) =>
       it.withType(item.name, ParameterCompletion),
     )
-    val checkedVars = CompletionCheckAnalyzer.analyze(step)
-    baseOptimizer.optimize(step :: Nil, Nil, env, checkedVars)._1.toBlockStep
+    val checkedVars = CompletionCheckAnalyzer.analyze(body)
+    baseOptimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
   }
 }
 

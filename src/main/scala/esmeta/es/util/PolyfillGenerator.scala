@@ -98,7 +98,36 @@ class PolyfillGenerator(spec: Spec) {
     algo <- targets
   } yield compile(algo)
 
+  /** list of polyfill targets composed recursively from targetPattern */
   lazy val targets: List[Algorithm] = {
+    @tailrec
+    def expand[T](acc: Set[T], curr: Set[T])(
+      f: Set[T] => Set[T],
+    ): Set[T] = {
+      if (curr.isEmpty) acc
+      else
+        val next = f(curr) -- acc
+        expand(acc ++ next, next)(f)
+    }
+
+    def getAOCallees(algo: Algorithm): Set[String] = {
+      val result = mutable.Set[String]()
+      new LangUnitWalker {
+        override def walk(expr: Expression): Unit = expr match
+          case InvokeAbstractOperationExpression(name, args, _) =>
+            result.add(name)
+            args.foreach(walk)
+          case _ => super.walk(expr)
+
+        override def walk(step: Step): Unit = step match
+          case InvokeShorthandStep(name, args) =>
+            result.add(name)
+            args.foreach(walk)
+          case _ => super.walk(step)
+      }.walk(algo.body)
+      result.toSet
+    }
+
     val initialTargets = spec.algorithms
       .filter(algo => targetPatterns.exists(algo.name.matches))
       .toSet
@@ -113,37 +142,9 @@ class PolyfillGenerator(spec: Spec) {
       .sortWith(_.name < _.name)
   }
 
-  @tailrec
-  private def expand[T](acc: Set[T], curr: Set[T])(
-    f: Set[T] => Set[T],
-  ): Set[T] = {
-    if (curr.isEmpty) acc
-    else
-      val next = f(curr) -- acc
-      expand(acc ++ next, next)(f)
-  }
-
-  def getAOCallees(algo: Algorithm): Set[String] = {
-    val result = mutable.Set[String]()
-    new LangUnitWalker {
-      override def walk(expr: Expression): Unit = expr match
-        case InvokeAbstractOperationExpression(name, args, _) =>
-          result.add(name)
-          args.foreach(walk)
-        case _ => super.walk(expr)
-      override def walk(step: Step): Unit = step match
-        case InvokeShorthandStep(name, args) =>
-          result.add(name)
-          args.foreach(walk)
-        case _ => super.walk(step)
-    }.walk(algo.body)
-    result.toSet
-  }
-
   private val IS_PRESENT = "IsPresent"
   private val AO_HEADER = "AO";
   private val INTERNAL_HEADER = "IN";
-  private val SHORTHAND_HEADER = "SH";
   private val RESERVED_WORDS = Set("return")
   private val YET_RULES = Map(
     (
@@ -158,20 +159,18 @@ class PolyfillGenerator(spec: Spec) {
     val pb = PolyfillBuilder()
 
     val name = algo.name
-    val newHead = inspector.transformHead(algo)
+    val newHead = inspector.transformHead(algo.head)
     val params = newHead.originalParams
     val prelude = compilePrelude(pb, newHead, algo.body)
+    val transformedBody = inspector.transformBody(
+      algo.head,
+      PolyfillTransformer(algo.body),
+    )
 
     // TODO remove this catch after implementing all steps
     val body =
       try {
-        compileWithScope(
-          pb,
-          inspector.transformBody(
-            algo.head,
-            PolyfillTransformer(algo.body),
-          ),
-        )
+        compileWithScope(pb, transformedBody)
       } catch {
         case e: Throwable =>
           println("-" * 80)
@@ -181,6 +180,7 @@ class PolyfillGenerator(spec: Spec) {
           println("-" * 80)
           throw e
       }
+
     Polyfill(name, params, prelude ++ body)
 
   def compilePrelude(pb: PolyfillBuilder, head: Head, body: Step): Stmt =
@@ -245,17 +245,7 @@ class PolyfillGenerator(spec: Spec) {
     case SetEvaluationStateStep(base, func, args) => ???
     case PerformStep(expr) =>
       pb.addStmt(NormalStmt(s"${compile(pb, expr)};"))
-    case InvokeShorthandStep(name, args) =>
-      if (args.contains(NumberLiteral(1)) && name == "IfAbruptRejectPromise")
-        pb.addStmt(
-          NormalStmt(
-            s"return ${SHORTHAND_HEADER}__$name(${compile(pb, args)});",
-          ),
-        )
-      else
-        pb.addStmt(
-          NormalStmt(s"${SHORTHAND_HEADER}__$name(${compile(pb, args)});"),
-        )
+    case InvokeShorthandStep(name, args) => ???
     case AppendStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
