@@ -239,9 +239,16 @@ class PolyfillGenerator(spec: Spec) {
     case PerformStep(expr) =>
       pb.addStmt(NormalStmt(s"${compile(pb, expr)};"))
     case InvokeShorthandStep(name, args) =>
-      pb.addStmt(
-        NormalStmt(s"${SHORTHAND_HEADER}__$name(${compile(pb, args)})"),
-      )
+      if (args.contains(NumberLiteral(1)) && name == "IfAbruptRejectPromise")
+        pb.addStmt(
+          NormalStmt(
+            s"return ${SHORTHAND_HEADER}__$name(${compile(pb, args)});",
+          ),
+        )
+      else
+        pb.addStmt(
+          NormalStmt(s"${SHORTHAND_HEADER}__$name(${compile(pb, args)});"),
+        )
     case AppendStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
