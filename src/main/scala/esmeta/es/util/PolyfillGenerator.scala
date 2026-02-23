@@ -91,6 +91,8 @@ class PolyfillGenerator(spec: Spec) {
 
   import Polyfill.*, PolyfillGenerator.*
 
+  lazy val inspector = new PolyfillInspector(targets)
+
   /** generated polyfills */
   lazy val result: List[Polyfill] = for {
     algo <- targets
@@ -129,6 +131,11 @@ class PolyfillGenerator(spec: Spec) {
           result.add(name)
           args.foreach(walk)
         case _ => super.walk(expr)
+      override def walk(step: Step): Unit = step match
+        case InvokeShorthandStep(name, args) =>
+          result.add(name)
+          args.foreach(walk)
+        case _ => super.walk(step)
     }.walk(algo.body)
     result.toSet
   }
@@ -151,7 +158,7 @@ class PolyfillGenerator(spec: Spec) {
     val pb = PolyfillBuilder()
 
     val name = algo.name
-    val newHead = PolyfillInspector.transformHead(algo)
+    val newHead = inspector.transformHead(algo)
     val params = newHead.originalParams
     val prelude = compilePrelude(pb, newHead, algo.body)
 
@@ -160,7 +167,7 @@ class PolyfillGenerator(spec: Spec) {
       try {
         compileWithScope(
           pb,
-          PolyfillInspector.transformBody(
+          inspector.transformBody(
             algo.head,
             PolyfillTransformer(algo.body),
           ),
