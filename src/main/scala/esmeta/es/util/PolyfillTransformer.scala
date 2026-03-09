@@ -7,33 +7,647 @@ import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 
 import scala.collection.mutable
+import scala.annotation.tailrec
 
-object PolyfillTransformer {
-  val transform: Step => Step =
+object DSLPath extends OptimizationPath {
+  val transform: List[Algorithm] => List[Algorithm] =
     (MapDataTransformer(_)) andThen
-    (SetDataTransformer(_))
+    (SetDataTransformer(_)) 
+    // andThen
+    // (InternalSlotTransformer(_))
 
-  def apply(body: Step) = transform(body)
+  def apply(body: List[Algorithm]) = transform(body)
+}
+
+case class Rule(
+  name: String,
+  stepPattern: PartialFunction[Step, RuleEngine => Step] =
+    PartialFunction.empty,
+  stepBlockPattern: PartialFunction[StepBlock, RuleEngine => StepBlock] =
+    PartialFunction.empty,
+  expressionPattern: PartialFunction[Expression, RuleEngine => Expression] =
+    PartialFunction.empty,
+  conditionPattern: PartialFunction[Condition, RuleEngine => Condition] =
+    PartialFunction.empty,
+  referencePattern: PartialFunction[Reference, RuleEngine => Reference] =
+    PartialFunction.empty,
+)
+
+class RuleEngine(title: String) {
+  private val counts = mutable.Map[String, Int]().withDefaultValue(0)
+
+  def recordMatch(ruleName: String): Unit = counts(ruleName) += 1
+
+  def printSummary(): Unit = {
+    println(s"\n=== $title Transformation Summary ===")
+    counts.toList.sortBy(_._1).foreach {
+      case (name, count) =>
+        println(f"$name%-45s : $count%3d changes")
+    }
+    println("-" * 65)
+
+    val total = counts.values.foldLeft(0)(_ + _)
+    println(f"${"Total"}%-45s : $total%3d changes\n")
+  }
+
+  def transformStep(step: Step, rules: List[Rule]): Step =
+    rules.foldLeft(step) { (currentStep, rule) =>
+      applyRuleToNode(currentStep, rule)
+    }
+
+  def transformStepBlock(stepBlock: StepBlock, rules: List[Rule]): StepBlock =
+    rules.foldLeft(stepBlock) { (currentBlock, rule) =>
+      applyRuleToNode(currentBlock, rule)
+    }
+
+  private def applyRuleToNode[T <: LangElem](node: T, rule: Rule): T = {
+    val walker = new LangWalker {
+      override def walk(s: Step): Step = {
+        if (rule.stepPattern.isDefinedAt(s)) {
+          recordMatch(rule.name)
+          rule.stepPattern(s)(RuleEngine.this)
+        } else super.walk(s)
+      }
+      override def walk(sb: StepBlock): StepBlock = {
+        if (rule.stepBlockPattern.isDefinedAt(sb)) {
+          recordMatch(rule.name)
+          rule.stepBlockPattern(sb)(RuleEngine.this)
+        } else super.walk(sb)
+      }
+      override def walk(e: Expression): Expression = {
+        if (rule.expressionPattern.isDefinedAt(e)) {
+          recordMatch(rule.name)
+          rule.expressionPattern(e)(RuleEngine.this)
+        } else super.walk(e)
+      }
+      override def walk(c: Condition): Condition = {
+        if (rule.conditionPattern.isDefinedAt(c)) {
+          recordMatch(rule.name)
+          rule.conditionPattern(c)(RuleEngine.this)
+        } else super.walk(c)
+      }
+      override def walk(r: Reference): Reference = {
+        if (rule.referencePattern.isDefinedAt(r)) {
+          recordMatch(rule.name)
+          rule.referencePattern(r)(RuleEngine.this)
+        } else super.walk(r)
+      }
+    }
+    walker.walk(node).asInstanceOf[T]
+  }
 }
 
 object MapDataTransformer {
-  def apply(body: Step): Step = {
-    val mapDataVars = searchMapDataVariables(body)
-    val isMapDataPredicate = (ref: Reference) => isMapData(ref, mapDataVars)
+  def apply(targets: List[Algorithm]): List[Algorithm] = {
+    val engine = new RuleEngine("MapData")
 
-    val loopTransformedBody =
-      transformMapDataLoop(body, isMapDataPredicate)
-    replaceMapDataOperations(loopTransformedBody, isMapDataPredicate)
+    val optimizedTargets = targets.map { algo =>
+      val mapDataVars = searchMapDataVariables(algo.body)
+      val isMapDataPredicate = (ref: Reference) => isMapData(ref, mapDataVars)
+
+      val rules = List(
+        mapDataHasRule(isMapDataPredicate),
+        mapDataForEachRule(isMapDataPredicate),
+        mapDataWhileRule(isMapDataPredicate),
+      ) ++ mapDataOperationsRule(isMapDataPredicate)
+
+      val newBody = engine.transformStep(algo.body, rules)
+
+      algo.copy(body = newBody)
+    }
+
+    engine.printSummary()
+    optimizedTargets
   }
+
+  // ================================================================================
+  // Rules
+  // ================================================================================
+
+  def mapDataOperationsRule(isMapData: Reference => Boolean): List[Rule] = List(
+    Rule(
+      name = "[OPER] MapData Insert",
+      stepPattern = {
+        case AppendStep(elem, ref) if isMapData(ref) =>
+          _ =>
+            PerformStep(
+              InvokeAbstractOperationExpression(
+                "IN__MapDataInsert",
+                List(ReferenceExpression(ref), elem),
+                HtmlTag.None,
+              ),
+            )
+      },
+    ),
+    Rule(
+      name = "[OPER] MapData Create",
+      stepPattern = {
+        case SetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
+            if isMapData(ref) =>
+          _ =>
+            SetStep(
+              ref,
+              InvokeAbstractOperationExpression(
+                "IN__MapDataCreate",
+                List(),
+                HtmlTag.None,
+              ),
+            )
+      },
+    ),
+  )
+  // 1. For each Record { [[Key]], [[Value]] } p of $base, do
+  //     1. If p.[[Key]] is not empty and SameValue(p.[[Key]], $key) is true, then
+  // => MapDataHas($base, $key), p = MapDataGet($base, $key)
+  def mapDataHasRule(isMapData: Reference => Boolean): Rule = Rule(
+    name = "MapData Has",
+    stepPattern = {
+      case ForEachStep(
+            _,
+            Variable(elem, _),
+            ReferenceExpression(base),
+            true,
+            BlockStep(
+              StepBlock(
+                List(
+                  SubStep(
+                    _,
+                    IfStep(
+                      CompoundCondition(
+                        IsAreCondition(
+                          List(
+                            ReferenceExpression(
+                              Access(Variable(loopElemL, _), "Key", _, _),
+                            ),
+                          ),
+                          true,
+                          List(EnumLiteral("empty")),
+                        ),
+                        CompoundConditionOperator.And,
+                        IsAreCondition(
+                          List(
+                            InvokeAbstractOperationExpression(
+                              "SameValue",
+                              List(
+                                ReferenceExpression(
+                                  Access(Variable(loopElemR, _), "Key", _, _),
+                                ),
+                                ReferenceExpression(Variable(key, _)),
+                              ),
+                              _,
+                            ),
+                          ),
+                          false,
+                          List(TrueLiteral()),
+                        ),
+                      ),
+                      thenStep,
+                      None,
+                      elseConfig,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ) if elem == loopElemL && elem == loopElemR && isMapData(base) =>
+        engine =>
+          val thenStepTransformed = engine.transformStep(
+            thenStep,
+            mapDataHasSubRules(base, elem, key),
+          )
+
+          IfStep(
+            IsAreCondition(
+              List(
+                InvokeAbstractOperationExpression(
+                  "IN__MapDataHas",
+                  List(
+                    ReferenceExpression(base),
+                    ReferenceExpression(Variable(key)),
+                  ),
+                  HtmlTag.None,
+                ),
+              ),
+              false,
+              List(TrueLiteral()),
+            ),
+            thenStepTransformed,
+            None,
+            elseConfig,
+          )
+    },
+  )
+
+  def mapDataForEachRule(isMapData: Reference => Boolean): Rule = Rule(
+    name = "MapData ForEach",
+    stepPattern = {
+      case ForEachStep(
+            _,
+            Variable(elem, _),
+            ReferenceExpression(ref),
+            true,
+            body,
+          ) if isMapData(ref) =>
+        engine =>
+          val bodyTransformed = engine.transformStep(
+            body,
+            subRulesForIterate(ref, elem, "ForEach"),
+          )
+          PerformStep(
+            InvokeAbstractOperationExpression(
+              "IN__MapDataIterateForEach",
+              List(
+                ReferenceExpression(ref),
+                AbstractClosureExpression(
+                  List(Variable(elem)),
+                  List(),
+                  bodyTransformed,
+                ),
+              ),
+              HtmlTag.None,
+            ),
+          )
+    },
+  )
+
+  def mapDataWhileRule(isMapData: Reference => Boolean): Rule = Rule(
+    name = "MapData While",
+    stepBlockPattern = {
+      case StepBlock(steps)
+          if containsWhileLoopSequence(steps, isMapData).isDefined =>
+        engine =>
+          def process(list: List[SubStep]): List[SubStep] = list match {
+            case SubStep(
+                  _,
+                  LetStep(
+                    Variable(lengthInit, _),
+                    NumberOfExpression(
+                      "elements",
+                      _,
+                      ReferenceExpression(ref),
+                      _,
+                    ),
+                  ),
+                ) ::
+                SubStep(
+                  _,
+                  LetStep(Variable(indexInit, _), DecimalMathValueLiteral(0)),
+                ) ::
+                SubStep(
+                  _,
+                  RepeatStep(
+                    RepeatStep.LoopCondition.While(
+                      BinaryCondition(
+                        ReferenceExpression(Variable(indexCond, _)),
+                        BinaryConditionOperator.LessThan,
+                        ReferenceExpression(Variable(lengthCond, _)),
+                      ),
+                    ),
+                    loopBody,
+                  ),
+                ) :: tail
+                if lengthInit == lengthCond && indexInit == indexCond && isMapData(
+                  ref,
+                ) =>
+              val (loopBase, loopVar) = searchLoopVariable(loopBody, indexInit)
+
+              val cleanBody = engine.transformStep(
+                loopBody,
+                mapDataIterateWhileSubRules(lengthInit, indexInit),
+              )
+              val finalBody = engine.transformStep(
+                cleanBody,
+                subRulesForIterate(loopBase, loopVar, "While"),
+              )
+              SubStep(
+                None,
+                PerformStep(
+                  InvokeAbstractOperationExpression(
+                    "IN__MapDataIterateWhile",
+                    List(
+                      ReferenceExpression(loopBase),
+                      AbstractClosureExpression(
+                        List(Variable(loopVar)),
+                        List(),
+                        finalBody,
+                      ),
+                    ),
+                    HtmlTag.None,
+                  ),
+                ),
+              ) :: process(tail)
+
+            case head :: tail =>
+              head.copy(step =
+                engine.transformStep(
+                  head.step,
+                  List(mapDataWhileRule(isMapData)),
+                ),
+              ) :: process(tail)
+            case Nil => Nil
+          }
+          StepBlock(process(steps))
+    },
+  )
+
+  // ================================================================================
+  // SubRules
+  // ================================================================================
+
+  def mapDataHasSubRules(
+    base: Reference,
+    elem: String,
+    key: String,
+  ): List[Rule] =
+    List(
+      Rule(
+        name = "MapData Has >> MapData Remove",
+        stepBlockPattern = {
+          case StepBlock(steps) if containsRemoveSequence(steps, elem) =>
+            engine =>
+              def process(list: List[SubStep]): List[SubStep] = list match {
+                case SubStep(
+                      _,
+                      SetStep(
+                        Access(Variable(elem1, _), "Key", _, _),
+                        EnumLiteral("empty"),
+                      ),
+                    ) ::
+                    SubStep(
+                      _,
+                      SetStep(
+                        Access(Variable(elem2, _), "Value", _, _),
+                        EnumLiteral("empty"),
+                      ),
+                    ) :: tail if elem == elem1 && elem == elem2 =>
+                  SubStep(
+                    None,
+                    PerformStep(
+                      InvokeAbstractOperationExpression(
+                        "IN__MapDataRemove",
+                        List(
+                          ReferenceExpression(base),
+                          ReferenceExpression(Variable(key)),
+                        ),
+                        HtmlTag.None,
+                      ),
+                    ),
+                  ) :: process(tail)
+                case head :: tail =>
+                  head.copy(step =
+                    engine.transformStep(
+                      head.step,
+                      mapDataHasSubRules(base, elem, key),
+                    ),
+                  ) :: process(tail)
+                case Nil => Nil
+              }
+              StepBlock(process(steps))
+        },
+      ),
+      Rule(
+        name = "MapData Has >> MapData Set",
+        stepPattern = {
+          case SetStep(Access(Variable(elem1, _), "Value", _, _), expr)
+              if elem == elem1 =>
+            _ =>
+              PerformStep(
+                InvokeAbstractOperationExpression(
+                  "IN__MapDataSet",
+                  List(
+                    ReferenceExpression(base),
+                    ReferenceExpression(Variable(key)),
+                    expr,
+                  ),
+                  HtmlTag.None,
+                ),
+              )
+        },
+      ),
+      Rule(
+        name = "MapData Has >> MapData Get",
+        stepPattern = {
+          case ReturnStep(
+                ReferenceExpression(Access(Variable(elem1, _), "Value", _, _)),
+              ) if elem == elem1 =>
+            _ =>
+              ReturnStep(
+                InvokeAbstractOperationExpression(
+                  "IN__MapDataGet",
+                  List(
+                    ReferenceExpression(base),
+                    ReferenceExpression(Variable(key)),
+                  ),
+                  HtmlTag.None,
+                ),
+              )
+        },
+      ),
+    )
+
+  def mapDataIterateWhileSubRules(length: String, index: String): List[Rule] =
+    List(
+      Rule(
+        name = "MapData While >> Remove Index Operations",
+        stepBlockPattern = {
+          case StepBlock(innerSteps) =>
+            innerEngine =>
+              def filterSteps(innerList: List[SubStep]): List[SubStep] =
+                innerList match {
+                  case SubStep(
+                        _,
+                        LetStep(
+                          Variable(_, _),
+                          ReferenceExpression(
+                            IndexLookup(
+                              _,
+                              ReferenceExpression(Variable(i, _)),
+                            ),
+                          ),
+                        ),
+                      ) :: innerTail if i == index =>
+                    filterSteps(innerTail)
+                  case SubStep(_, SetStep(Variable(lLhs, _), _)) :: innerTail
+                      if lLhs == length =>
+                    filterSteps(innerTail)
+                  case SubStep(
+                        _,
+                        SetStep(
+                          Variable(iLhs, _),
+                          BinaryExpression(
+                            ReferenceExpression(Variable(iRhs, _)),
+                            BinaryExpressionOperator.Add,
+                            DecimalMathValueLiteral(1),
+                          ),
+                        ),
+                      ) :: innerTail if iLhs == index && iRhs == index =>
+                    filterSteps(innerTail)
+                  case head :: innerTail =>
+                    head.copy(step =
+                      innerEngine.transformStep(
+                        head.step,
+                        mapDataIterateWhileSubRules(length, index),
+                      ),
+                    ) :: filterSteps(innerTail)
+                  case Nil => Nil
+                }
+              StepBlock(filterSteps(innerSteps))
+        },
+      ),
+    )
+
+  def subRulesForIterate(
+    base: Reference,
+    elem: String,
+    parentName: String,
+  ): List[Rule] = List(
+    Rule(
+      name = s"MapData $parentName >> Remove Existence Check",
+      stepPattern = {
+        case IfStep(
+              IsAreCondition(
+                List(
+                  ReferenceExpression(Access(Variable(elem1, _), "Key", _, _)),
+                ),
+                true,
+                List(EnumLiteral("empty")),
+              ),
+              thenStep,
+              None,
+              _,
+            ) if elem == elem1 =>
+          engine =>
+            engine.transformStep(
+              thenStep,
+              subRulesForIterate(base, elem, parentName),
+            )
+      },
+    ),
+    Rule(
+      name = s"MapData $parentName >> MapData Remove",
+      stepBlockPattern = {
+        case StepBlock(steps) if containsRemoveSequence(steps, elem) =>
+          engine =>
+            def process(list: List[SubStep]): List[SubStep] = list match {
+              case SubStep(
+                    _,
+                    SetStep(
+                      Access(Variable(elem1, _), "Key", _, _),
+                      EnumLiteral("empty"),
+                    ),
+                  ) ::
+                  SubStep(
+                    _,
+                    SetStep(
+                      Access(Variable(elem2, _), "Value", _, _),
+                      EnumLiteral("empty"),
+                    ),
+                  ) :: tail if elem == elem1 && elem == elem2 =>
+                SubStep(
+                  None,
+                  PerformStep(
+                    InvokeAbstractOperationExpression(
+                      "IN__MapDataRemove",
+                      List(
+                        ReferenceExpression(base),
+                        ReferenceExpression(
+                          Access(
+                            Variable(elem),
+                            "Key",
+                            AccessKind.Field,
+                            AccessForm.Dot,
+                          ),
+                        ),
+                      ),
+                      HtmlTag.None,
+                    ),
+                  ),
+                ) :: process(tail)
+              case head :: tail =>
+                head.copy(step =
+                  engine.transformStep(
+                    head.step,
+                    subRulesForIterate(base, elem, parentName),
+                  ),
+                ) :: process(tail)
+              case Nil => Nil
+            }
+            StepBlock(process(steps))
+      },
+    ),
+  )
+
+  // ================================================================================
+  // Sequence Finders
+  // ================================================================================
+
+  @tailrec
+  def containsWhileLoopSequence(
+    steps: List[SubStep],
+    isMapData: Reference => Boolean,
+  ): Option[(String, String, String, String, Reference)] = steps match {
+    case SubStep(
+          _,
+          LetStep(
+            Variable(lengthInit, _),
+            NumberOfExpression("elements", _, ReferenceExpression(ref), _),
+          ),
+        ) ::
+        SubStep(
+          _,
+          LetStep(Variable(indexInit, _), DecimalMathValueLiteral(0)),
+        ) ::
+        SubStep(
+          _,
+          RepeatStep(
+            RepeatStep.LoopCondition.While(
+              BinaryCondition(
+                ReferenceExpression(Variable(indexCond, _)),
+                BinaryConditionOperator.LessThan,
+                ReferenceExpression(Variable(lengthCond, _)),
+              ),
+            ),
+            _,
+          ),
+        ) :: _
+        if lengthInit == lengthCond && indexInit == indexCond && isMapData(
+          ref,
+        ) =>
+      Some((lengthInit, indexInit, lengthCond, indexCond, ref))
+    case _ :: tail => containsWhileLoopSequence(tail, isMapData)
+    case Nil       => None
+  }
+
+  @tailrec
+  def containsRemoveSequence(steps: List[SubStep], elem: String): Boolean =
+    steps match {
+      case SubStep(
+            _,
+            SetStep(
+              Access(Variable(elem1, _), "Key", _, _),
+              EnumLiteral("empty"),
+            ),
+          ) ::
+          SubStep(
+            _,
+            SetStep(
+              Access(Variable(elem2, _), "Value", _, _),
+              EnumLiteral("empty"),
+            ),
+          ) :: _ if elem == elem1 && elem == elem2 =>
+        true
+      case _ :: tail => containsRemoveSequence(tail, elem)
+      case Nil       => false
+    }
 
   // ================================================================================
   // Analysis Helpers
   // ================================================================================
 
-  def searchMapDataVariables(body: Step): Set[String] = {
+  def searchMapDataVariables(step: Step): Set[String] = {
     val result = mutable.Set[String]()
     new LangUnitWalker {
-      override def walk(step: Step): Unit = step match
+      override def walk(s: Step): Unit = s match
         case LetStep(
               Variable(v, _),
               ListCopyExpression(
@@ -51,8 +665,8 @@ object MapDataTransformer {
               ReferenceExpression(Variable(v, _)),
             ) =>
           result.add(v)
-        case _ => super.walk(step)
-    }.walk(body)
+        case _ => super.walk(s)
+    }.walk(step)
     result.toSet
   }
 
@@ -61,489 +675,64 @@ object MapDataTransformer {
     case Variable(v, _)             => mapDataVars.contains(v)
     case _                          => false
 
-  // ================================================================================
-  // Transform SetData related Loops
-  // ================================================================================
-
-  def transformMapDataLoop(
-    body: Step,
-    isMapData: Reference => Boolean,
-  ): Step = {
-    new LangWalker {
-      override def walk(step: Step): Step = step match
-        // For each Record { [[Key]], [[Value]] } p of M.[[MapData]], do
-        // a. If p.[[Key]] is not empty and SameValue(p.[[Key]], key) is true,
-        case ForEachStep(
-              _,
-              Variable(elem, _),
-              ReferenceExpression(ref),
-              true,
-              BlockStep(
-                StepBlock(
-                  List(
-                    SubStep(
-                      _,
-                      IfStep(
-                        CompoundCondition(
-                          IsAreCondition(
-                            List(
-                              ReferenceExpression(
-                                Access(Variable(loopElemL, _), "Key", _, _),
-                              ),
-                            ),
-                            true,
-                            List(EnumLiteral("empty")),
-                          ),
-                          CompoundConditionOperator.And,
-                          IsAreCondition(
-                            List(
-                              InvokeAbstractOperationExpression(
-                                "SameValue",
-                                List(
-                                  ReferenceExpression(
-                                    Access(Variable(loopElemR, _), "Key", _, _),
-                                  ),
-                                  ReferenceExpression(Variable(key, _)),
-                                ),
-                                _,
-                              ),
-                            ),
-                            false,
-                            List(TrueLiteral()),
-                          ),
-                        ),
-                        thenStep,
-                        elseStep,
-                        elseConfig,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ) if elem == loopElemL && elem == loopElemR && isMapData(ref) =>
-          IfStep(
-            IsAreCondition(
-              List(
-                InvokeAbstractOperationExpression(
-                  "IN__MapDataHas",
-                  List(
-                    ReferenceExpression(ref),
-                    ReferenceExpression(Variable(key)),
-                  ),
-                  HtmlTag.None,
-                ),
-              ),
-              false,
-              List(TrueLiteral()),
-            ),
-            replaceLoopVariable(thenStep, ref, elem, key),
-            elseStep,
-            elseConfig,
-          )
-        case ForEachStep(
-              _,
-              Variable(elem, _),
-              ReferenceExpression(ref),
-              true,
-              body,
-            ) if isMapData(ref) =>
-          PerformStep(
-            InvokeAbstractOperationExpression(
-              "IN__MapDataIterateLoop",
-              List(
-                ReferenceExpression(ref),
-                AbstractClosureExpression(
-                  List(
-                    Variable(elem),
-                  ),
-                  List(),
-                  replaceLoopVariable(body, ref, elem),
-                ),
-              ),
-              HtmlTag.None,
-            ),
-          )
-        case _ => super.walk(step)
-
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
-            case SubStep(
-                  _,
-                  LetStep(
-                    Variable(lengthInit, _),
-                    NumberOfExpression(
-                      "elements",
-                      _,
-                      ReferenceExpression(ref),
-                      _,
-                    ),
-                  ),
-                ) ::
-                SubStep(
-                  _,
-                  LetStep(Variable(indexInit, _), DecimalMathValueLiteral(0)),
-                ) ::
-                SubStep(
-                  _,
-                  RepeatStep(
-                    RepeatStep.LoopCondition.While(
-                      BinaryCondition(
-                        ReferenceExpression(Variable(indexCond, _)),
-                        BinaryConditionOperator.LessThan,
-                        ReferenceExpression(Variable(lengthCond, _)),
-                      ),
-                    ),
-                    body,
-                  ),
-                ) :: tail
-                if lengthInit == lengthCond && indexInit == indexCond && isMapData(
-                  ref,
-                ) =>
-              val (loopBase, loopVar) = searchLoopVariable(body, indexInit)
-
-              val strippedBody =
-                removeIterationRelatedSteps(body, lengthInit, indexInit)
-
-              SubStep(
-                None,
-                PerformStep(
-                  InvokeAbstractOperationExpression(
-                    "IN__MapDataIterateForEach",
-                    List(
-                      ReferenceExpression(loopBase),
-                      AbstractClosureExpression(
-                        List(Variable(loopVar)),
-                        List(),
-                        replaceLoopVariable(strippedBody, loopBase, loopVar),
-                      ),
-                    ),
-                    HtmlTag.None,
-                  ),
-                ),
-              ) :: walkSubSteps(tail)
-            case h :: t => walk(h) :: walkSubSteps(t)
-            case Nil    => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(body)
-  }
-
-  // ================================================================================
-  // Replace MapData related Operations
-  // ================================================================================
-
-  def replaceMapDataOperations(
-    body: Step,
-    isMapData: Reference => Boolean,
-  ): Step = {
-    new LangWalker {
-      override def walk(step: Step): Step = step match
-        case AppendStep(elem, ref) if isMapData(ref) =>
-          PerformStep(
-            InvokeAbstractOperationExpression(
-              "IN__MapDataInsert",
-              List(
-                ReferenceExpression(ref),
-                elem,
-              ),
-              HtmlTag.None,
-            ),
-          )
-        case SetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
-            if isMapData(ref) =>
-          SetStep(
-            ref,
-            InvokeAbstractOperationExpression(
-              "IN__MapDataCreate",
-              List(),
-              HtmlTag.None,
-            ),
-          )
-        case _ => super.walk(step)
-
-      override def walk(expr: Expression): Expression = expr match
-        case _ => super.walk(expr)
-
-    }.walk(body)
-  }
-
-  // ================================================================================
-  // Transformation Helpers
-  // ================================================================================
-
-  def searchLoopVariable(
-    body: Step,
-    index: String,
-  ): (Reference, String) = {
+  def searchLoopVariable(body: Step, index: String): (Reference, String) = {
     var base: Option[Reference] = None
     var varName: Option[String] = None
     new LangUnitWalker {
-      override def walk(step: Step): Unit =
-        step match
-          case LetStep(
-                Variable(x, _),
-                ReferenceExpression(
-                  IndexLookup(
-                    b,
-                    ReferenceExpression(Variable(i, _)),
-                  ),
-                ),
-              ) =>
-            base = Some(b); varName = Some(x)
-          case _ => super.walk(step)
-    }.walk(body)
-
-    // Should find the loop variable
-    (
-      base.getOrElse(throw new Error),
-      varName.getOrElse(throw new Error),
-    )
-  }
-
-  def removeIterationRelatedSteps(
-    body: Step,
-    length: String,
-    index: String,
-  ): Step = {
-    new LangWalker {
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
-            case SubStep(
-                  _,
-                  LetStep(
-                    Variable(x, _),
-                    ReferenceExpression(
-                      IndexLookup(
-                        b,
-                        ReferenceExpression(Variable(i, _)),
-                      ),
-                    ),
-                  ),
-                ) :: tail if i == index =>
-              walkSubSteps(tail)
-            case SubStep(_, SetStep(Variable(lLhs, _), _)) :: tail
-                if lLhs == length =>
-              walkSubSteps(tail)
-            case SubStep(
-                  _,
-                  SetStep(
-                    Variable(iLhs, _),
-                    BinaryExpression(
-                      ReferenceExpression(Variable(iRhs, _)),
-                      BinaryExpressionOperator.Add,
-                      DecimalMathValueLiteral(1),
-                    ),
-                  ),
-                ) :: tail if iLhs == index && iRhs == index =>
-              walkSubSteps(tail)
-            case head :: tail => super.walk(head) :: walkSubSteps(tail)
-            case Nil          => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(body)
-  }
-
-  def replaceLoopVariable(
-    body: Step,
-    base: Reference,
-    elem: String,
-    key: String,
-  ): Step = {
-    new LangWalker {
-
-      override def walk(step: Step): Step =
-        step match
-          case SetStep(
-                Access(Variable(elem1, _), "Value", _, _),
-                expr,
-              ) if elem == elem1 =>
-            PerformStep(
-              InvokeAbstractOperationExpression(
-                "IN__MapDataSet",
-                List(
-                  ReferenceExpression(base),
-                  ReferenceExpression(Variable(key)),
-                  expr,
-                ),
-                HtmlTag.None,
+      override def walk(step: Step): Unit = step match
+        case LetStep(
+              Variable(x, _),
+              ReferenceExpression(
+                IndexLookup(b, ReferenceExpression(Variable(i, _))),
               ),
-            )
-          case ReturnStep(
-                ReferenceExpression(Access(Variable(elem1, _), "Value", _, _)),
-              ) if elem == elem1 =>
-            ReturnStep(
-              InvokeAbstractOperationExpression(
-                "IN__MapDataGet",
-                List(
-                  ReferenceExpression(base),
-                  ReferenceExpression(Variable(key)),
-                ),
-                HtmlTag.None,
-              ),
-            )
-          case _ => super.walk(step)
-
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
-            case SubStep(
-                  _,
-                  SetStep(
-                    Access(Variable(elem1, _), "Key", _, _),
-                    EnumLiteral("empty"),
-                  ),
-                ) :: SubStep(
-                  _,
-                  SetStep(
-                    Access(Variable(elem2, _), "Value", _, _),
-                    EnumLiteral("empty"),
-                  ),
-                ) :: tail if elem == elem1 && elem == elem2 =>
-              SubStep(
-                None,
-                PerformStep(
-                  InvokeAbstractOperationExpression(
-                    "IN__MapDataRemove",
-                    List(
-                      ReferenceExpression(base),
-                      ReferenceExpression(Variable(key)),
-                    ),
-                    HtmlTag.None,
-                  ),
-                ),
-              ) :: walkSubSteps(tail)
-            case head :: tail => super.walk(head) :: walkSubSteps(tail)
-            case Nil          => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(body)
-  }
-
-  def replaceLoopVariable(
-    body: Step,
-    base: Reference,
-    elem: String,
-  ): Step = {
-    new LangWalker {
-      override def walk(step: Step): Step = step match
-        case IfStep(
-              IsAreCondition(
-                List(
-                  ReferenceExpression(Access(Variable(elem1, _), "Key", _, _)),
-                ),
-                true,
-                List(EnumLiteral("empty")),
-              ),
-              thenStep,
-              None,
-              _,
-            ) if elem == elem1 =>
-          super.walk(thenStep)
+            ) =>
+          base = Some(b); varName = Some(x)
         case _ => super.walk(step)
-
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
-            case SubStep(
-                  _,
-                  SetStep(
-                    Access(Variable(elem1, _), "Key", _, _),
-                    EnumLiteral("empty"),
-                  ),
-                ) :: SubStep(
-                  _,
-                  SetStep(
-                    Access(Variable(elem2, _), "Value", _, _),
-                    EnumLiteral("empty"),
-                  ),
-                ) :: tail if elem == elem1 && elem == elem2 =>
-              SubStep(
-                None,
-                PerformStep(
-                  InvokeAbstractOperationExpression(
-                    "IN__MapDataRemove",
-                    List(
-                      ReferenceExpression(base),
-                      ReferenceExpression(
-                        Access(
-                          Variable(elem),
-                          "Key",
-                          AccessKind.Field,
-                          AccessForm.Dot,
-                        ),
-                      ),
-                    ),
-                    HtmlTag.None,
-                  ),
-                ),
-              ) :: walkSubSteps(tail)
-            case head :: tail => super.walk(head) :: walkSubSteps(tail)
-            case Nil          => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
     }.walk(body)
+    (base.getOrElse(throw new Error), varName.getOrElse(throw new Error))
   }
 }
 
 object SetDataTransformer {
-  def apply(body: Step): Step = {
-    // 1. Scan the body to find variables that store SetData
-    val setDataVars = searchSetDataVariables(body)
-    val isSetDataPredicate = (ref: Reference) => isSetData(ref, setDataVars)
+  def apply(targets: List[Algorithm]): List[Algorithm] = {
+    val engine = new RuleEngine("SetData")
 
-    // 2. Transform concrete operations to abstracted function calls
-    val yetRemovedBody = replaceSetDataYets(body)
-    val loopTransformedBody =
-      transformSetDataLoop(yetRemovedBody, isSetDataPredicate)
-    replaceSetDataOperations(loopTransformedBody, isSetDataPredicate)
+    val transformedSteps = targets.map { algo =>
+      val setDataVars = searchSetDataVariables(algo.body)
+      val isSetDataPredicate = (ref: Reference) => isSetData(ref, setDataVars)
+
+      val rules = List(
+        setDataYetsRule,
+        setDataHasRule(isSetDataPredicate),
+        setDataForEachRule(isSetDataPredicate),
+        setDataIndexWhileRule(isSetDataPredicate),
+        setDataIteratorWhileRule(isSetDataPredicate),
+      ) ++ setDataOperationsRule(isSetDataPredicate)
+
+      val newBody = engine.transformStep(algo.body, rules)
+
+      algo.copy(body = newBody)
+    }
+
+    engine.printSummary()
+
+    transformedSteps
   }
 
   // ================================================================================
-  // Analysis Helpers
+  // Transformation Rules
   // ================================================================================
 
-  def searchSetDataVariables(body: Step): Set[String] = {
-    val result = mutable.Set[String]()
-    new LangUnitWalker {
-      override def walk(step: Step): Unit = step match
-        case LetStep(
-              Variable(v, _),
-              ListCopyExpression(
-                ReferenceExpression(Access(_, "SetData", _, _)),
-              ),
-            ) =>
-          result.add(v)
-        case LetStep(
-              Variable(v, _),
-              ReferenceExpression(Access(_, "SetData", _, _)),
-            ) =>
-          result.add(v)
-        case SetStep(
-              Access(_, "SetData", _, _),
-              ReferenceExpression(Variable(v, _)),
-            ) =>
-          result.add(v)
-        case _ => super.walk(step)
-    }.walk(body)
-    result.toSet
-  }
-
-  def isSetData(ref: Reference, setDataVars: Set[String]) = ref match
-    case Access(_, "SetData", _, _) => true
-    case Variable(v, _)             => setDataVars.contains(v)
-    case _                          => false
-
-  // ================================================================================
-  // Replace Yets in SetData
-  // ================================================================================
-
-  def replaceSetDataYets(body: Step): Step = {
-    new LangWalker {
-      override def walk(step: Step): Step = step match
-        case YetStep(
-              YetExpression(
-                "Replace the element of _S_.[[SetData]] whose value is _e_ with an element whose value is ~empty~.",
-                _,
-              ),
-            ) =>
+  def setDataYetsRule: Rule = Rule(
+    name = "SetData Yet",
+    stepPattern = {
+      case YetStep(
+            YetExpression(
+              "Replace the element of _S_.[[SetData]] whose value is _e_ with an element whose value is ~empty~.",
+              _,
+            ),
+          ) =>
+        _ =>
           PerformStep(
             InvokeAbstractOperationExpression(
               "IN__SetDataRemove",
@@ -561,66 +750,152 @@ object SetDataTransformer {
               HtmlTag.None,
             ),
           )
-        case _ => super.walk(step)
+    },
+  )
 
-    }.walk(body)
-  }
+  def setDataOperationsRule(isSetData: Reference => Boolean): List[Rule] =
+    List(
+      Rule(
+        name = "[OPER] SetData Create",
+        stepPattern = {
+          case SetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
+              if isSetData(ref) =>
+            _ =>
+              SetStep(
+                ref,
+                InvokeAbstractOperationExpression(
+                  "IN__SetDataCreate",
+                  List(),
+                  HtmlTag.None,
+                ),
+              )
+          case LetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
+              if isSetData(ref) =>
+            _ =>
+              LetStep(
+                ref,
+                InvokeAbstractOperationExpression(
+                  "IN__SetDataCreate",
+                  List(),
+                  HtmlTag.None,
+                ),
+              )
+        },
+      ),
+      Rule(
+        name = "[OPER] SetData Insert",
+        stepPattern = {
+          case AppendStep(elem, ref) if isSetData(ref) =>
+            _ =>
+              PerformStep(
+                InvokeAbstractOperationExpression(
+                  "IN__SetDataInsert",
+                  List(ReferenceExpression(ref), elem),
+                  HtmlTag.None,
+                ),
+              )
+        },
+      ),
+      Rule(
+        name = "[OPER] SetData Copy",
+        stepPattern = {
 
-  // ================================================================================
-  // Transform SetData related Loops
-  // ================================================================================
+          case LetStep(variable, ListCopyExpression(ReferenceExpression(ref)))
+              if isSetData(ref) =>
+            _ =>
+              LetStep(
+                variable,
+                InvokeAbstractOperationExpression(
+                  "IN__SetDataCopy",
+                  List(ReferenceExpression(ref)),
+                  HtmlTag.None,
+                ),
+              )
+        },
+      ),
+      Rule(
+        name = "[OPER] SetData Has",
+        expressionPattern = {
+          case InvokeAbstractOperationExpression(
+                "SetDataHas",
+                List(ReferenceExpression(ref), elem),
+                tag,
+              ) if isSetData(ref) =>
+            _ =>
+              InvokeAbstractOperationExpression(
+                "IN__SetDataHas",
+                List(ReferenceExpression(ref), elem),
+                tag,
+              )
+        },
+      ),
+      Rule(
+        name = "[OPER] SetData Size",
+        expressionPattern = {
+          case InvokeAbstractOperationExpression(
+                "SetDataSize",
+                List(ReferenceExpression(ref)),
+                tag,
+              ) if isSetData(ref) =>
+            _ =>
+              InvokeAbstractOperationExpression(
+                "IN__SetDataSize",
+                List(ReferenceExpression(ref)),
+                tag,
+              )
+        },
+      ),
+    )
 
-  def transformSetDataLoop(
-    step: Step,
-    isSetData: Reference => Boolean,
-  ): Step = {
-    new LangWalker {
-      override def walk(step: Step): Step = step match
-        // ```For each element e of S.[[SetData]], do
-        //   If e is not empty and SameValue(e, value) is true```
-        // Equivalent to SetDataHas
-        case ForEachStep(
-              _,
-              Variable(elem, _),
-              ReferenceExpression(ref),
-              true,
-              BlockStep(
-                StepBlock(
-                  List(
-                    SubStep(
-                      _,
-                      IfStep(
-                        CompoundCondition(
-                          IsAreCondition(
-                            List(ReferenceExpression(Variable(loopElemL, _))),
-                            true,
-                            List(EnumLiteral("empty")),
-                          ),
-                          CompoundConditionOperator.And,
-                          IsAreCondition(
-                            List(
-                              InvokeAbstractOperationExpression(
-                                "SameValue",
-                                List(
-                                  ReferenceExpression(Variable(loopElemR, _)),
-                                  ReferenceExpression(Variable(value, _)),
-                                ),
-                                _,
-                              ),
-                            ),
-                            false,
-                            List(TrueLiteral()),
-                          ),
+  def setDataHasRule(isSetData: Reference => Boolean): Rule = Rule(
+    name = "SetData Has",
+    stepPattern = {
+      case ForEachStep(
+            _,
+            Variable(elem, _),
+            ReferenceExpression(ref),
+            true,
+            BlockStep(
+              StepBlock(
+                List(
+                  SubStep(
+                    _,
+                    IfStep(
+                      CompoundCondition(
+                        IsAreCondition(
+                          List(ReferenceExpression(Variable(loopElemL, _))),
+                          true,
+                          List(EnumLiteral("empty")),
                         ),
-                        thenStep,
-                        elseStep,
-                        elseConfig,
+                        CompoundConditionOperator.And,
+                        IsAreCondition(
+                          List(
+                            InvokeAbstractOperationExpression(
+                              "SameValue",
+                              List(
+                                ReferenceExpression(Variable(loopElemR, _)),
+                                ReferenceExpression(Variable(value, _)),
+                              ),
+                              _,
+                            ),
+                          ),
+                          false,
+                          List(TrueLiteral()),
+                        ),
                       ),
+                      thenStep,
+                      None,
+                      elseConfig,
                     ),
                   ),
                 ),
               ),
-            ) if elem == loopElemL && elem == loopElemR && isSetData(ref) =>
+            ),
+          ) if elem == loopElemL && elem == loopElemR && isSetData(ref) =>
+        engine =>
+          val renameRule = replaceVariableRule(elem, value)
+          val transformedThen = engine.transformStep(thenStep, List(renameRule))
+
           IfStep(
             IsAreCondition(
               List(
@@ -636,38 +911,44 @@ object SetDataTransformer {
               false,
               List(TrueLiteral()),
             ),
-            replaceVariable(thenStep, elem, value),
-            elseStep.map(replaceVariable(_, elem, value)),
+            transformedThen,
+            None,
             elseConfig,
           )
-        case ForEachStep(
-              _,
-              Variable(elem, _),
-              ReferenceExpression(ref),
-              true,
-              body,
-            ) if isSetData(ref) =>
+    },
+  )
+
+  def setDataForEachRule(isSetData: Reference => Boolean): Rule = Rule(
+    name = "SetData ForEach",
+    stepPattern = {
+      case ForEachStep(
+            _,
+            Variable(elem, _),
+            ReferenceExpression(ref),
+            true,
+            body,
+          ) if isSetData(ref) =>
+        _ =>
           PerformStep(
             InvokeAbstractOperationExpression(
               "IN__SetDataIterateForEach",
               List(
                 ReferenceExpression(ref),
-                AbstractClosureExpression(
-                  List(
-                    Variable(elem),
-                  ),
-                  List(),
-                  body,
-                ),
+                AbstractClosureExpression(List(Variable(elem)), List(), body),
               ),
               HtmlTag.None,
             ),
           )
-        case _ => super.walk(step)
+    },
+  )
 
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
+  def setDataIndexWhileRule(isSetData: Reference => Boolean): Rule = Rule(
+    name = "SetData While+Index",
+    stepBlockPattern = {
+      case StepBlock(steps)
+          if containsIndexWhileSequence(steps, isSetData).isDefined =>
+        engine =>
+          def process(list: List[SubStep]): List[SubStep] = list match {
             case SubStep(
                   _,
                   LetStep(
@@ -694,47 +975,56 @@ object SetDataTransformer {
                         ReferenceExpression(Variable(lengthCond, _)),
                       ),
                     ),
-                    body,
+                    loopBody,
                   ),
                 ) :: tail
                 if lengthInit == lengthCond && indexInit == indexCond && isSetData(
                   ref,
                 ) =>
-              // Step 1: Find the base of index and the name of stored variable
-              // search(... let e = resultSetData[index]; ..., "index")
-              // -> ("e", "resultSetData")
-              val (loopBase, loopVar) = searchLoopVariable(body, indexInit)
+              val (loopBase, loopVar) = searchLoopVariable(loopBody, indexInit)
 
-              // Step 2: Remove every loop-related steps
-              val strippedBody = replaceSetDataRemove(
-                removeIterationRelatedSteps(body, lengthInit, indexInit),
+              val removeIterationRule =
+                indexWhileRemoveIndexOperationSubRule(lengthInit, indexInit)
+              val cleanIterationBody = engine.transformStep(
+                loopBody,
+                List(removeIterationRule, replaceSetDataRemoveSubRule("Index")),
+              )
+              val transformedBody = engine.transformStep(
+                cleanIterationBody,
+                replaceIndexWhileVariableSubRule(loopBase, loopVar, indexInit),
               )
 
-              // Step 3: Replace the remove/add statement to function call
-              // Set resultSetData[index] to ~empty~; -> remove(resultSetData, e);
-              // Append e to resultSetData;           -> insert(resultSetData, e);
-              val transformedBody =
-                replaceLoopVariable(
-                  strippedBody,
-                  loopBase,
-                  loopVar,
-                  indexInit,
-                )
-
               val loopWithEarlyReturn = wrapWithEarlyReturn(
+                engine,
                 transformedBody,
                 "IN__SetDataIterateForEach",
                 loopBase,
                 loopVar,
               )
 
-              SubStep(None, loopWithEarlyReturn) :: walkSubSteps(tail)
+              SubStep(None, loopWithEarlyReturn) :: process(tail)
+            case head :: tail =>
+              head.copy(step =
+                engine.transformStep(
+                  head.step,
+                  List(setDataIndexWhileRule(isSetData)),
+                ),
+              ) :: process(tail)
+            case Nil => Nil
+          }
+          StepBlock(process(steps))
+    },
+  )
+
+  def setDataIteratorWhileRule(isSetData: Reference => Boolean): Rule = Rule(
+    name = "SetData While+Iterator",
+    stepBlockPattern = {
+      case StepBlock(steps) if containsIteratorWhileSequence(steps).isDefined =>
+        engine =>
+          def process(list: List[SubStep]): List[SubStep] = list match {
             case SubStep(
                   _,
-                  LetStep(
-                    Variable(nextInit, _),
-                    EnumLiteral("not-started"),
-                  ),
+                  LetStep(Variable(nextInit, _), EnumLiteral("not-started")),
                 ) ::
                 SubStep(
                   _,
@@ -746,294 +1036,64 @@ object SetDataTransformer {
                         List(EnumLiteral("done")),
                       ),
                     ),
-                    body,
+                    loopBody,
                   ),
                 ) :: tail if nextInit == nextCond =>
-              val iter = searchIteratorVariable(body)
+              val iter = searchIteratorVariable(loopBody)
 
-              val strippedBody = replaceSetDataHas(replaceSetDataRemove(body))
-
-              val transformedBody =
-                replaceIteratorVariable(strippedBody, nextInit)
+              val rules =
+                List(
+                  replaceSetDataHasSubRule,
+                  replaceSetDataRemoveSubRule("Iterator"),
+                )
+              val cleanIterationBody = engine.transformStep(loopBody, rules)
+              val transformedBody = engine.transformStep(
+                cleanIterationBody,
+                List(
+                  replaceIteratorWhileVariableSubRule(nextInit),
+                ),
+              )
 
               val loopWithEarlyReturn = wrapWithEarlyReturn(
+                engine,
                 transformedBody,
                 "IN__SetDataIterateIterator",
                 iter,
                 nextInit,
               )
 
-              SubStep(None, loopWithEarlyReturn) :: walkSubSteps(tail)
-            case h :: t => walk(h) :: walkSubSteps(t)
-            case Nil    => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(step)
-  }
+              SubStep(None, loopWithEarlyReturn) :: process(tail)
+
+            case head :: tail =>
+              head.copy(step =
+                engine.transformStep(
+                  head.step,
+                  List(setDataIteratorWhileRule(isSetData)),
+                ),
+              ) :: process(tail)
+            case Nil => Nil
+          }
+          StepBlock(process(steps))
+    },
+  )
 
   // ================================================================================
-  // Replace SetData related Operations
+  // SubRules Definitions
   // ================================================================================
 
-  def replaceSetDataOperations(
-    body: Step,
-    isSetData: Reference => Boolean,
-  ): Step = {
-    new LangWalker {
-      override def walk(step: Step): Step = step match
-        case SetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
-            if isSetData(ref) =>
-          SetStep(
-            ref,
-            InvokeAbstractOperationExpression(
-              "IN__SetDataCreate",
-              List(),
-              HtmlTag.None,
-            ),
-          )
-        case LetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
-            if isSetData(ref) =>
-          LetStep(
-            ref,
-            InvokeAbstractOperationExpression(
-              "IN__SetDataCreate",
-              List(),
-              HtmlTag.None,
-            ),
-          )
-        case AppendStep(elem, ref) if isSetData(ref) =>
-          PerformStep(
-            InvokeAbstractOperationExpression(
-              "IN__SetDataInsert",
-              List(
-                ReferenceExpression(ref),
-                elem,
-              ),
-              HtmlTag.None,
-            ),
-          )
-        case LetStep(variable, ListCopyExpression(ReferenceExpression(ref)))
-            if isSetData(ref) =>
-          LetStep(
-            variable,
-            InvokeAbstractOperationExpression(
-              "IN__SetDataCopy",
-              List(ReferenceExpression(ref)),
-              HtmlTag.None,
-            ),
-          )
-        case _ => super.walk(step)
+  def replaceVariableRule(from: String, to: String): Rule = Rule(
+    name = "SetData Has >> Rename Variable",
+    referencePattern = {
+      case Variable(x, nt) if x == from => _ => Variable(to, nt)
+    },
+  )
 
-      override def walk(expr: Expression): Expression = expr match
-        case InvokeAbstractOperationExpression(
-              "SetDataHas",
-              List(ReferenceExpression(ref), elem),
-              tag,
-            ) if isSetData(ref) =>
-          InvokeAbstractOperationExpression(
-            "IN__SetDataHas",
-            List(ReferenceExpression(ref), elem),
-            tag,
-          )
-        case InvokeAbstractOperationExpression(
-              "SetDataSize",
-              List(ReferenceExpression(ref)),
-              tag,
-            ) if isSetData(ref) =>
-          InvokeAbstractOperationExpression(
-            "IN__SetDataSize",
-            List(ReferenceExpression(ref)),
-            tag,
-          )
-        case _ => super.walk(expr)
-
-    }.walk(body)
-  }
-
-  // ================================================================================
-  // Transformation Helpers
-  // ================================================================================
-
-  def searchLoopVariable(
-    body: Step,
-    index: String,
-  ): (Reference, String) = {
-    var base: Option[Reference] = None
-    var varName: Option[String] = None
-    new LangUnitWalker {
-      override def walk(step: Step): Unit =
-        step match
-          case LetStep(
-                Variable(x, _),
-                ReferenceExpression(
-                  IndexLookup(
-                    b,
-                    ReferenceExpression(Variable(i, _)),
-                  ),
-                ),
-              ) =>
-            base = Some(b); varName = Some(x)
-          case _ => super.walk(step)
-    }.walk(body)
-
-    // Should find the loop variable
-    (
-      base.getOrElse(throw new Error),
-      varName.getOrElse(throw new Error),
-    )
-  }
-
-  def replaceLoopVariable(
-    body: Step,
-    base: Reference,
-    varName: String,
-    index: String,
-  ): Step = {
-    new LangWalker {
-      override def walk(step: Step): Step = step match
-        case IfStep(
-              IsAreCondition(
-                List(
-                  ReferenceExpression(Variable(elem1, _)),
-                ),
-                true,
-                List(EnumLiteral("empty")),
-              ),
-              thenStep,
-              None,
-              _,
-            ) if varName == elem1 =>
-          super.walk(thenStep)
-        case _ => super.walk(step)
-
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
-            case SubStep(
-                  _,
-                  SetStep(
-                    IndexLookup(
-                      b,
-                      ReferenceExpression(Variable(i, _)),
-                    ),
-                    EnumLiteral("empty"),
-                  ),
-                ) :: tail if b == base && i == index =>
-              SubStep(
-                None,
-                PerformStep(
-                  InvokeAbstractOperationExpression(
-                    "IN__SetDataRemove",
-                    List(
-                      ReferenceExpression(base),
-                      ReferenceExpression(Variable(varName, None)),
-                    ),
-                    HtmlTag.None,
-                  ),
-                ),
-              ) :: walkSubSteps(tail)
-            case head :: tail => super.walk(head) :: walkSubSteps(tail)
-            case Nil          => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(body)
-  }
-
-  def removeIterationRelatedSteps(
-    body: Step,
-    length: String,
-    index: String,
-  ): Step = {
-    new LangWalker {
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
-            case SubStep(
-                  _,
-                  LetStep(
-                    Variable(x, _),
-                    ReferenceExpression(
-                      IndexLookup(
-                        b,
-                        ReferenceExpression(Variable(i, _)),
-                      ),
-                    ),
-                  ),
-                ) :: tail if i == index =>
-              walkSubSteps(tail)
-            case SubStep(_, SetStep(Variable(lLhs, _), _)) :: tail
-                if lLhs == length =>
-              walkSubSteps(tail)
-            case SubStep(
-                  _,
-                  SetStep(
-                    Variable(iLhs, _),
-                    BinaryExpression(
-                      ReferenceExpression(Variable(iRhs, _)),
-                      BinaryExpressionOperator.Add,
-                      DecimalMathValueLiteral(1),
-                    ),
-                  ),
-                ) :: tail if iLhs == index && iRhs == index =>
-              walkSubSteps(tail)
-            case head :: tail => super.walk(head) :: walkSubSteps(tail)
-            case Nil          => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(body)
-  }
-
-  def searchIteratorVariable(body: Step): Reference = {
-    var result: Option[Reference] = None
-    new LangUnitWalker {
-      override def walk(expr: Expression) = expr match {
-        case InvokeAbstractOperationExpression(
-              "IteratorStepValue",
-              List(ReferenceExpression(iter)),
-              _,
-            ) =>
-          result = Some(iter)
-        case _ => super.walk(expr)
-      }
-    }.walk(body)
-    result.getOrElse(throw new Error)
-  }
-
-  def replaceIteratorVariable(
-    body: Step,
-    varName: String,
-  ): Step = {
-    new LangWalker {
-      override def walk(step: Step): Step = step match
-        case IfStep(
-              IsAreCondition(
-                List(
-                  ReferenceExpression(Variable(elem1, _)),
-                ),
-                true,
-                List(EnumLiteral("done")),
-              ),
-              thenStep,
-              None,
-              _,
-            ) if varName == elem1 =>
-          super.walk(thenStep)
-        case _ => super.walk(step)
-
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
-            case SubStep(_, SetStep(Variable(iLhs, _), _)) :: tail
-                if iLhs == varName =>
-              walkSubSteps(tail)
-            case head :: tail => super.walk(head) :: walkSubSteps(tail)
-            case Nil          => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(body)
-  }
-
-  def replaceSetDataRemove(body: Step): Step = {
-    new LangWalker {
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
+  def replaceSetDataRemoveSubRule(parentName: String): Rule = Rule(
+    name = s"SetData While+$parentName >> SetData Remove [1]",
+    stepBlockPattern = {
+      case StepBlock(steps) if steps.exists(isSetDataIndexLet) =>
+        engine =>
+          def process(list: List[SubStep]): List[SubStep] = list match {
             case SubStep(
                   d,
                   LetStep(
@@ -1048,26 +1108,14 @@ object SetDataTransformer {
                     ),
                   ),
                 ) :: tail =>
-              SubStep(
-                d,
-                LetStep(
-                  index,
-                  InvokeAbstractOperationExpression(
-                    "SetDataIndex",
-                    List(
-                      ReferenceExpression(base),
-                      ReferenceExpression(elem),
-                    ),
-                    t,
-                  ),
-                ),
-              ) :: tail.map {
-                new LangWalker {
-                  override def walk(step: Step): Step = step match
-                    case SetStep(
-                          IndexLookup(b, ReferenceExpression(i)),
-                          EnumLiteral("empty"),
-                        ) if b == base && i == index =>
+              val removalStatementSubRule = Rule(
+                name = s"SetData While+$parentName >> SetData Remove [2]",
+                stepPattern = {
+                  case SetStep(
+                        IndexLookup(b, ReferenceExpression(i)),
+                        EnumLiteral("empty"),
+                      ) if b == base && i == index =>
+                    _ =>
                       PerformStep(
                         InvokeAbstractOperationExpression(
                           "IN__SetDataRemove",
@@ -1078,20 +1126,42 @@ object SetDataTransformer {
                           HtmlTag.None,
                         ),
                       )
-                    case _ => super.walk(step)
-                }.walk(_)
-              }
-            case head :: tail => super.walk(head) :: walkSubSteps(tail)
-            case Nil          => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(body)
-  }
+                },
+              )
+              SubStep(
+                d,
+                LetStep(
+                  index,
+                  InvokeAbstractOperationExpression(
+                    "SetDataIndex",
+                    List(ReferenceExpression(base), ReferenceExpression(elem)),
+                    t,
+                  ),
+                ),
+              ) :: tail.map(ss =>
+                ss.copy(step =
+                  engine.transformStep(ss.step, List(removalStatementSubRule)),
+                ),
+              )
+            case head :: tail =>
+              head.copy(step =
+                engine.transformStep(
+                  head.step,
+                  List(replaceSetDataRemoveSubRule(parentName)),
+                ),
+              ) :: process(tail)
+            case Nil => Nil
+          }
+          StepBlock(process(steps))
+    },
+  )
 
-  def replaceSetDataHas(body: Step): Step = {
-    new LangWalker {
-      override def walk(stepBlock: StepBlock): StepBlock =
-        def walkSubSteps(steps: List[SubStep]): List[SubStep] =
-          steps match
+  def replaceSetDataHasSubRule: Rule = Rule(
+    name = "SetData While+Index >> SetData Has [1]",
+    stepBlockPattern = {
+      case StepBlock(steps) if steps.exists(isSetDataIndexLet) =>
+        engine =>
+          def process(list: List[SubStep]): List[SubStep] = list match {
             case SubStep(
                   d,
                   LetStep(
@@ -1106,14 +1176,15 @@ object SetDataTransformer {
                     ),
                   ),
                 ) :: tail =>
-              tail.map {
-                new LangWalker {
-                  override def walk(cond: Condition): Condition = cond match
-                    case IsAreCondition(
-                          List(ReferenceExpression(i)),
-                          neg,
-                          List(EnumLiteral("not-found")),
-                        ) if i == index =>
+              val hasConditionSubRule = Rule(
+                name = "SetData While+Index >> SetData Has [2]",
+                conditionPattern = {
+                  case IsAreCondition(
+                        List(ReferenceExpression(i)),
+                        neg,
+                        List(EnumLiteral("not-found")),
+                      ) if i == index =>
+                    _ =>
                       IsAreCondition(
                         List(
                           InvokeAbstractOperationExpression(
@@ -1128,26 +1199,212 @@ object SetDataTransformer {
                         neg,
                         List(FalseLiteral()),
                       )
-                    case _ => super.walk(cond)
-                }.walk(_)
+                },
+              )
+              SubStep(
+                d,
+                LetStep(
+                  index,
+                  InvokeAbstractOperationExpression(
+                    "SetDataIndex",
+                    List(ReferenceExpression(base), ReferenceExpression(elem)),
+                    t,
+                  ),
+                ),
+              ) :: tail.map(ss =>
+                ss.copy(step =
+                  engine.transformStep(ss.step, List(hasConditionSubRule)),
+                ),
+              )
+            case head :: tail =>
+              head.copy(step =
+                engine.transformStep(head.step, List(replaceSetDataHasSubRule)),
+              ) :: process(tail)
+            case Nil => Nil
+          }
+          StepBlock(process(steps))
+    },
+  )
+
+  def indexWhileRemoveIndexOperationSubRule(
+    length: String,
+    index: String,
+  ): Rule = Rule(
+    name = "SetData While+Index >> Index Operations",
+    stepBlockPattern = {
+      case StepBlock(innerSteps)
+          if containsIterationSteps(innerSteps, length, index) =>
+        engine =>
+          def filterSteps(innerList: List[SubStep]): List[SubStep] =
+            innerList match {
+              case SubStep(
+                    _,
+                    LetStep(
+                      Variable(x, _),
+                      ReferenceExpression(
+                        IndexLookup(b, ReferenceExpression(Variable(i, _))),
+                      ),
+                    ),
+                  ) :: innerTail if i == index =>
+                filterSteps(innerTail)
+              case SubStep(_, SetStep(Variable(lLhs, _), _)) :: innerTail
+                  if lLhs == length =>
+                filterSteps(innerTail)
+              case SubStep(
+                    _,
+                    SetStep(
+                      Variable(iLhs, _),
+                      BinaryExpression(
+                        ReferenceExpression(Variable(iRhs, _)),
+                        BinaryExpressionOperator.Add,
+                        DecimalMathValueLiteral(1),
+                      ),
+                    ),
+                  ) :: innerTail if iLhs == index && iRhs == index =>
+                filterSteps(innerTail)
+              case head :: innerTail =>
+                head.copy(step =
+                  engine.transformStep(
+                    head.step,
+                    List(indexWhileRemoveIndexOperationSubRule(length, index)),
+                  ),
+                ) :: filterSteps(innerTail)
+              case Nil => Nil
+            }
+          StepBlock(filterSteps(innerSteps))
+    },
+  )
+
+  def replaceIndexWhileVariableSubRule(
+    base: Reference,
+    varName: String,
+    index: String,
+  ): List[Rule] =
+    List(
+      Rule(
+        name = "SetData While+Index >> Remove Existence Check",
+        stepPattern = {
+          case IfStep(
+                IsAreCondition(
+                  List(ReferenceExpression(Variable(elem1, _))),
+                  true,
+                  List(EnumLiteral("empty")),
+                ),
+                thenStep,
+                None,
+                _,
+              ) if varName == elem1 =>
+            engine =>
+              engine.transformStep(
+                thenStep,
+                replaceIndexWhileVariableSubRule(base, varName, index),
+              )
+        },
+      ),
+      Rule(
+        name = "SetData While+Index >> SetData Remove",
+        stepBlockPattern = {
+          case StepBlock(steps)
+              if containsLoopVarRemoveSequence(steps, base, index) =>
+            engine =>
+              def process(list: List[SubStep]): List[SubStep] = list match {
+                case SubStep(
+                      _,
+                      SetStep(
+                        IndexLookup(b, ReferenceExpression(Variable(i, _))),
+                        EnumLiteral("empty"),
+                      ),
+                    ) :: tail if b == base && i == index =>
+                  SubStep(
+                    None,
+                    PerformStep(
+                      InvokeAbstractOperationExpression(
+                        "IN__SetDataRemove",
+                        List(
+                          ReferenceExpression(base),
+                          ReferenceExpression(Variable(varName, None)),
+                        ),
+                        HtmlTag.None,
+                      ),
+                    ),
+                  ) :: process(tail)
+                case head :: tail =>
+                  head.copy(step =
+                    engine.transformStep(
+                      head.step,
+                      replaceIndexWhileVariableSubRule(base, varName, index),
+                    ),
+                  ) :: process(tail)
+                case Nil => Nil
               }
-            case head :: tail => super.walk(head) :: walkSubSteps(tail)
-            case Nil          => Nil
-        StepBlock(walkSubSteps(stepBlock.steps))
-    }.walk(body)
-  }
+              StepBlock(process(steps))
+        },
+      ),
+    )
+
+  def replaceIteratorWhileVariableSubRule(varName: String): Rule = Rule(
+    name = "SetData While+Iterator >> Replace Variable",
+    stepPattern = {
+      case IfStep(
+            IsAreCondition(
+              List(ReferenceExpression(Variable(elem1, _))),
+              true,
+              List(EnumLiteral("done")),
+            ),
+            thenStep,
+            None,
+            _,
+          ) if varName == elem1 =>
+        engine =>
+          engine.transformStep(
+            thenStep,
+            List(replaceIteratorWhileVariableSubRule(varName)),
+          )
+    },
+    stepBlockPattern = {
+      case StepBlock(steps)
+          if containsIteratorVarRemoveSequence(steps, varName) =>
+        engine =>
+          def process(list: List[SubStep]): List[SubStep] = list match {
+            case SubStep(_, SetStep(Variable(iLhs, _), _)) :: tail
+                if iLhs == varName =>
+              process(tail)
+            case head :: tail =>
+              head.copy(step =
+                engine.transformStep(
+                  head.step,
+                  List(replaceIteratorWhileVariableSubRule(varName)),
+                ),
+              ) :: process(tail)
+            case Nil => Nil
+          }
+          StepBlock(process(steps))
+    },
+  )
+
+  def earlyReturnSubRule(resultExpr: Expression): Rule = Rule(
+    name = "SetData Loop >> Early Return",
+    stepPattern = {
+      case ReturnStep(expr) if expr == resultExpr =>
+        _ => ReturnStep(EnumLiteral("early-return"))
+    },
+  )
+
+  // ================================================================================
+  // Transformation Logic Helpers
+  // ================================================================================
 
   def wrapWithEarlyReturn(
+    engine: RuleEngine,
     body: Step,
     aoName: String,
     iterBase: Reference,
     elementVar: String,
   ): Step = {
-
     def searchEarlyReturn(body: LangElem): Option[Expression] = {
       var result: Option[Expression] = None
       new LangUnitWalker {
-        override def walk(step: Step) = step match {
+        override def walk(step: Step): Unit = step match {
           case ReturnStep(expr) => result = Some(expr)
           case _                => super.walk(step)
         }
@@ -1155,32 +1412,24 @@ object SetDataTransformer {
       result
     }
 
-    def replaceReturnStep(body: Step, resultExpr: Expression): Step = {
-      new LangWalker {
-        override def walk(step: Step): Step = step match
-          case ReturnStep(expr) if expr == resultExpr =>
-            ReturnStep(EnumLiteral("early-return"))
-          case _ => super.walk(step)
-      }.walk(body)
-    }
-
     searchEarlyReturn(body) match {
       case Some(expr) =>
-        val returnReplacedBody = replaceReturnStep(body, expr)
-        val bodyWithEarlyReturnCheck =
-          InvokeAbstractOperationExpression(
-            aoName,
-            List(
-              ReferenceExpression(iterBase),
-              AbstractClosureExpression(
-                List(Variable(elementVar)),
-                List(),
-                returnReplacedBody,
-              ),
-              TrueLiteral(),
+        val returnReplacedBody =
+          engine.transformStep(body, List(earlyReturnSubRule(expr)))
+        val bodyWithEarlyReturnCheck = InvokeAbstractOperationExpression(
+          aoName,
+          List(
+            ReferenceExpression(iterBase),
+            AbstractClosureExpression(
+              List(Variable(elementVar)),
+              List(),
+              returnReplacedBody,
             ),
-            HtmlTag.None,
-          )
+            TrueLiteral(),
+          ),
+          HtmlTag.None,
+        )
+
         IfStep(
           IsAreCondition(
             List(bodyWithEarlyReturnCheck),
@@ -1189,7 +1438,7 @@ object SetDataTransformer {
           ),
           ReturnStep(expr),
           None,
-          IfStep.ElseConfig(false, "", false),
+          IfStep.ElseConfig(),
         )
       case None =>
         PerformStep(
@@ -1209,11 +1458,300 @@ object SetDataTransformer {
     }
   }
 
-  def replaceVariable(body: Step, from: String, to: String): Step = {
-    new LangWalker {
-      override def walk(ref: Reference): Reference = ref match
-        case Variable(x, nt) if x == from => Variable(to, nt)
-        case _                            => super.walk(ref)
-    }.walk(body)
+  // ================================================================================
+  // Sequence Analyzers for Subrules
+  // ================================================================================
+
+  @tailrec
+  def containsIndexWhileSequence(
+    steps: List[SubStep],
+    isSetData: Reference => Boolean,
+  ): Option[(String, String, String, String, Reference)] = steps match {
+    case SubStep(
+          _,
+          LetStep(
+            Variable(lengthInit, _),
+            NumberOfExpression("elements", _, ReferenceExpression(ref), _),
+          ),
+        ) ::
+        SubStep(
+          _,
+          LetStep(Variable(indexInit, _), DecimalMathValueLiteral(0)),
+        ) ::
+        SubStep(
+          _,
+          RepeatStep(
+            RepeatStep.LoopCondition.While(
+              BinaryCondition(
+                ReferenceExpression(Variable(indexCond, _)),
+                BinaryConditionOperator.LessThan,
+                ReferenceExpression(Variable(lengthCond, _)),
+              ),
+            ),
+            _,
+          ),
+        ) :: _
+        if lengthInit == lengthCond && indexInit == indexCond && isSetData(
+          ref,
+        ) =>
+      Some((lengthInit, indexInit, lengthCond, indexCond, ref))
+    case _ :: tail => containsIndexWhileSequence(tail, isSetData)
+    case Nil       => None
   }
+
+  @tailrec
+  def containsIteratorWhileSequence(
+    steps: List[SubStep],
+  ): Option[(String, String)] = steps match {
+    case SubStep(
+          _,
+          LetStep(Variable(nextInit, _), EnumLiteral("not-started")),
+        ) ::
+        SubStep(
+          _,
+          RepeatStep(
+            RepeatStep.LoopCondition.While(
+              IsAreCondition(
+                List(ReferenceExpression(Variable(nextCond, _))),
+                true,
+                List(EnumLiteral("done")),
+              ),
+            ),
+            _,
+          ),
+        ) :: _ if nextInit == nextCond =>
+      Some((nextInit, nextCond))
+    case _ :: tail => containsIteratorWhileSequence(tail)
+    case Nil       => None
+  }
+
+  def isSetDataIndexLet(step: SubStep): Boolean = step match {
+    case SubStep(
+          _,
+          LetStep(_, InvokeAbstractOperationExpression("SetDataIndex", _, _)),
+        ) =>
+      true
+    case _ => false
+  }
+
+  @tailrec
+  def containsIterationSteps(
+    steps: List[SubStep],
+    length: String,
+    index: String,
+  ): Boolean = steps match {
+    case SubStep(
+          _,
+          LetStep(
+            Variable(_, _),
+            ReferenceExpression(
+              IndexLookup(_, ReferenceExpression(Variable(i, _))),
+            ),
+          ),
+        ) :: _ if i == index =>
+      true
+    case SubStep(_, SetStep(Variable(lLhs, _), _)) :: _ if lLhs == length =>
+      true
+    case SubStep(
+          _,
+          SetStep(
+            Variable(iLhs, _),
+            BinaryExpression(
+              ReferenceExpression(Variable(iRhs, _)),
+              BinaryExpressionOperator.Add,
+              DecimalMathValueLiteral(1),
+            ),
+          ),
+        ) :: _ if iLhs == index && iRhs == index =>
+      true
+    case _ :: tail => containsIterationSteps(tail, length, index)
+    case Nil       => false
+  }
+
+  @tailrec
+  def containsLoopVarRemoveSequence(
+    steps: List[SubStep],
+    base: Reference,
+    index: String,
+  ): Boolean = steps match {
+    case SubStep(
+          _,
+          SetStep(
+            IndexLookup(b, ReferenceExpression(Variable(i, _))),
+            EnumLiteral("empty"),
+          ),
+        ) :: _ if b == base && i == index =>
+      true
+    case _ :: tail => containsLoopVarRemoveSequence(tail, base, index)
+    case Nil       => false
+  }
+
+  @tailrec
+  def containsIteratorVarRemoveSequence(
+    steps: List[SubStep],
+    varName: String,
+  ): Boolean = steps match {
+    case SubStep(_, SetStep(Variable(iLhs, _), _)) :: _ if iLhs == varName =>
+      true
+    case _ :: tail => containsIteratorVarRemoveSequence(tail, varName)
+    case Nil       => false
+  }
+
+  // ================================================================================
+  // Analysis Helpers
+  // ================================================================================
+
+  def searchSetDataVariables(step: Step): Set[String] = {
+    val result = mutable.Set[String]()
+    new LangUnitWalker {
+      override def walk(s: Step): Unit = s match
+        case LetStep(
+              Variable(v, _),
+              ListCopyExpression(
+                ReferenceExpression(Access(_, "SetData", _, _)),
+              ),
+            ) =>
+          result.add(v)
+        case LetStep(
+              Variable(v, _),
+              ReferenceExpression(Access(_, "SetData", _, _)),
+            ) =>
+          result.add(v)
+        case SetStep(
+              Access(_, "SetData", _, _),
+              ReferenceExpression(Variable(v, _)),
+            ) =>
+          result.add(v)
+        case _ => super.walk(s)
+    }.walk(step)
+    result.toSet
+  }
+
+  def isSetData(ref: Reference, setDataVars: Set[String]) = ref match
+    case Access(_, "SetData", _, _) => true
+    case Variable(v, _)             => setDataVars.contains(v)
+    case _                          => false
+
+  def searchLoopVariable(body: Step, index: String): (Reference, String) = {
+    var base: Option[Reference] = None
+    var varName: Option[String] = None
+    new LangUnitWalker {
+      override def walk(step: Step): Unit = step match
+        case LetStep(
+              Variable(x, _),
+              ReferenceExpression(
+                IndexLookup(b, ReferenceExpression(Variable(i, _))),
+              ),
+            ) =>
+          base = Some(b); varName = Some(x)
+        case _ => super.walk(step)
+    }.walk(body)
+    (base.getOrElse(throw new Error), varName.getOrElse(throw new Error))
+  }
+
+  def searchIteratorVariable(body: Step): Reference = {
+    var result: Option[Reference] = None
+    new LangUnitWalker {
+      override def walk(expr: Expression): Unit = expr match {
+        case InvokeAbstractOperationExpression(
+              "IteratorStepValue",
+              List(ReferenceExpression(iter)),
+              _,
+            ) =>
+          result = Some(iter)
+        case _ => super.walk(expr)
+      }
+    }.walk(body)
+    result.getOrElse(throw new Error)
+  }
+}
+
+object InternalSlotTransformer {
+  def apply(targets: List[Algorithm]): List[Algorithm] = {
+    val engine = new RuleEngine("InternalSlot")
+
+    val optimizedTargets = targets.map { algo =>
+      val rules = List(
+        replaceInternalSlotGet,
+        replaceInternalSlotSet,
+        replaceRecordCreate,
+      )
+
+      val newBody = engine.transformStep(algo.body, rules)
+
+      algo.copy(body = newBody)
+    }
+
+    engine.printSummary()
+    optimizedTargets
+  }
+
+  def replaceInternalSlotGet: Rule = Rule(
+    name = "InternalSlot Get",
+    stepPattern = {
+      case AppendStep(elem, Access(base, name, kind, form)) =>
+        _ =>
+          PerformStep(
+            InvokeAbstractOperationExpression(
+              "IN__Append",
+              List(
+                InvokeAbstractOperationExpression(
+                  "IN__InternalSlotGet",
+                  List(
+                    ReferenceExpression(base),
+                    StringLiteral(name, StringLiteralForm.SyntaxLiteral),
+                  ),
+                  HtmlTag.None,
+                ),
+                elem,
+              ),
+              HtmlTag.None,
+            ),
+          )
+    },
+    expressionPattern = {
+      case ReferenceExpression(Access(base, name, kind, form)) =>
+        _ =>
+          InvokeAbstractOperationExpression(
+            "IN__InternalSlotGet",
+            List(
+              ReferenceExpression(base),
+              StringLiteral(name, StringLiteralForm.SyntaxLiteral),
+            ),
+            HtmlTag.None,
+          )
+    },
+  )
+
+  def replaceInternalSlotSet: Rule = Rule(
+    name = "InternalSlot Set",
+    stepPattern = {
+      case SetStep(Access(base, name, kind, form), expr) =>
+        _ =>
+          PerformStep(
+            InvokeAbstractOperationExpression(
+              "IN__InternalSlotSet",
+              List(
+                ReferenceExpression(base),
+                StringLiteral(name, StringLiteralForm.SyntaxLiteral),
+                expr,
+              ),
+              HtmlTag.None,
+            ),
+          )
+    },
+  )
+
+  def replaceRecordCreate: Rule = Rule(
+    name = "InternalSlot Record Create",
+    expressionPattern = {
+      case expr: RecordExpression =>
+        _ =>
+          InvokeAbstractOperationExpression(
+            "IN__InternalSlotRecordCreate",
+            List(expr),
+            HtmlTag.None,
+          )
+    },
+  )
 }

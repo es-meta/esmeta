@@ -128,6 +128,9 @@ trait Walker extends BasicWalker {
       SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
     case PerformBlockStep(b, d) =>
       PerformBlockStep(walk(b), walk(d))
+    case WrappedTryCatchStep(t, c, cb) =>
+      WrappedTryCatchStep(walk(t), walk(c), walkOpt(cb, walk))
+    case TaggedStep(s, t) => TaggedStep(walk(s), t)
   }
 
   def walk(target: RemoveStep.Target): RemoveStep.Target =

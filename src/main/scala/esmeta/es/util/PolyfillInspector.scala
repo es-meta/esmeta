@@ -230,7 +230,6 @@ class PolyfillInspector(algos: List[Algorithm]) {
 
   private val baseOptimizer = new Optimizer(
     optimizeRules = List(
-      ShorthandInliningRule,
       ProducerWrapRule,
       IfAbruptRule,
       CompletionCheckRule,
@@ -1055,64 +1054,6 @@ object LetStepCompletionRule extends OptimizeRule {
           Some(OptimizeResult(ctx.tail, ctx.history, newEnv))
       }
     case _ => None
-  }
-}
-
-object ShorthandInliningRule extends OptimizeRule {
-  import PolyfillInspector.*
-
-  override def apply(ctx: OptimizeContext): Option[OptimizeResult] =
-    ctx.head match {
-      case InvokeShorthandStep(name, args) =>
-        val targetAlgo = ctx.optimizer.algos.find(_.name == name)
-        if (targetAlgo.isEmpty) None
-        else {
-          val targetStep = targetAlgo.get.body
-          // TODO: ignore parameter types for now
-          val targetParameters = targetAlgo.get.head.originalParams.map(_.name)
-          // Parameter matching
-          val inlinedStep = (targetParameters zip args).foldLeft(targetStep) {
-            (step, paramToArg) =>
-              ParameterInlineWalker(paramToArg._1, paramToArg._2).walk(step)
-          }
-          val (transformedStep, newEnv) =
-            ctx.optimizer.transformStep(inlinedStep, ctx.env, ctx.checkedVars)
-          Some(
-            OptimizeResult(
-              ctx.tail,
-              transformedStep.getOrElse(
-                throw RuntimeException(
-                  s"Cannot inline shorthand: ${name} : ${targetStep}",
-                ),
-              ) :: ctx.history,
-              newEnv,
-            ),
-          )
-        }
-      case _ => None
-    }
-
-  private class ParameterInlineWalker(
-    paramName: String,
-    replaceWith: Expression,
-  ) extends LangWalker {
-    override def walk(expr: Expression): Expression = expr match {
-      case ReferenceExpression(ref) =>
-        ref match {
-          case Variable(name, None) =>
-            if (name == paramName) replaceWith else expr
-          case x => ReferenceExpression(walk(x))
-        }
-      case _ => super.walk(expr)
-    }
-
-    override def walk(ref: Reference): Reference = ref match {
-      case Variable(name, _) =>
-        if (name == paramName) {
-          replaceWith.asInstanceOf[ReferenceExpression].ref
-        } else ref
-      case x => super.walk(x)
-    }
   }
 }
 

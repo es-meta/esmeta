@@ -86,17 +86,80 @@ object PolyfillGenerator {
   )
 }
 
+trait OptimizationPath {
+  def apply(targets: List[Algorithm]): List[Algorithm]
+}
+
+class ShorthandInlinePath(spec: Spec) extends OptimizationPath {
+  override def apply(targets: List[Algorithm]): List[Algorithm] = {
+    targets.map { algo =>
+      val inlinedBody = new LangWalker {
+        override def walk(step: Step): Step = step match
+          case InvokeShorthandStep(name, args) =>
+            val shorthandAlgo = spec.fnameMap(name)
+            val targetParameters = shorthandAlgo.head.originalParams.map(_.name)
+            (targetParameters zip args).foldLeft(shorthandAlgo.body) {
+              case (acc, (param, arg)) =>
+                ParameterInlineWalker(param, arg).walk(acc)
+            }
+          case _ => super.walk(step)
+      }.walk(algo.body)
+      algo.copy(body = inlinedBody)
+    }
+  }
+
+  private class ParameterInlineWalker(
+    paramName: String,
+    replaceWith: Expression,
+  ) extends LangWalker {
+    override def walk(expr: Expression): Expression = expr match {
+      case ReferenceExpression(ref) =>
+        ref match {
+          case Variable(name, None) =>
+            if (name == paramName) replaceWith else expr
+          case x => ReferenceExpression(walk(x))
+        }
+      case _ => super.walk(expr)
+    }
+
+    override def walk(ref: Reference): Reference = ref match {
+      case Variable(name, _) =>
+        if (name == paramName) {
+          replaceWith.asInstanceOf[ReferenceExpression].ref
+        } else ref
+      case x => super.walk(x)
+    }
+  }
+}
+
+class CompletionPath extends OptimizationPath {
+  override def apply(targets: List[Algorithm]): List[Algorithm] = {
+    val inspector = new PolyfillInspector(targets)
+
+    targets.map { algo =>
+      val newHead = inspector.transformHead(algo.head)
+      val transformedBody = inspector.transformBody(algo.head, algo.body)
+      algo.copy(head = newHead, body = transformedBody)
+    }
+  }
+}
+
 /** extensible helper of polyfill generator */
 class PolyfillGenerator(spec: Spec) {
 
   import Polyfill.*, PolyfillGenerator.*
 
-  lazy val inspector = new PolyfillInspector(targets)
-
   /** generated polyfills */
-  lazy val result: List[Polyfill] = for {
-    algo <- targets
-  } yield compile(algo)
+  lazy val result: List[Polyfill] =
+    val optimizedTargets = optPaths.foldLeft(targets) { (x, f) => f(x) }
+    for { algo <- optimizedTargets } yield compile(algo)
+
+  /** list of optimization paths */
+  val optPaths: List[OptimizationPath] = List(
+    ShorthandInlinePath(spec),
+    CompletionPath(),
+    DSLPath,
+  )
 
   /** list of polyfill targets composed recursively from targetPattern */
   lazy val targets: List[Algorithm] = {
@@ -115,27 +178,24 @@ class PolyfillGenerator(spec: Spec) {
       new LangUnitWalker {
         override def walk(expr: Expression): Unit = expr match
           case InvokeAbstractOperationExpression(name, args, _) =>
-            result.add(name)
-            args.foreach(walk)
+            result += name
+            walkList(args, walk)
           case _ => super.walk(expr)
-
-        override def walk(step: Step): Unit = step match
-          case InvokeShorthandStep(name, args) =>
-            result.add(name)
-            args.foreach(walk)
-          case _ => super.walk(step)
       }.walk(algo.body)
       result.toSet
     }
 
+    // Initial targets filtered by `targetPatterns`
     val initialTargets = spec.algorithms
       .filter(algo => targetPatterns.exists(algo.name.matches))
       .toSet
 
+    // Build maximum set based on worklist algorithm
     val result = expand(initialTargets, initialTargets) {
       _.flatMap(getAOCallees).flatMap(spec.fnameMap.get)
     }
 
+    // Filter out `ignoreTargets` & Sort the result
     result
       .filter(algo => !ignoreTargets.contains(algo.name))
       .toList
@@ -159,18 +219,12 @@ class PolyfillGenerator(spec: Spec) {
     val pb = PolyfillBuilder()
 
     val name = algo.name
-    val newHead = inspector.transformHead(algo.head)
-    val params = newHead.originalParams
-    val prelude = compilePrelude(pb, newHead, algo.body)
-    val transformedBody = inspector.transformBody(
-      algo.head,
-      PolyfillTransformer(algo.body),
-    )
-
-    // TODO remove this catch after implementing all steps
+    val params = algo.head.originalParams
+    val prelude = compilePrelude(pb, algo.head, algo.body)
     val body =
       try {
-        compileWithScope(pb, transformedBody)
+        // TODO remove this catch after implementing all steps
+        compileWithScope(pb, algo.body)
       } catch {
         case e: Throwable =>
           println("-" * 80)
@@ -180,7 +234,6 @@ class PolyfillGenerator(spec: Spec) {
           println("-" * 80)
           throw e
       }
-
     Polyfill(name, params, prelude ++ body)
 
   def compilePrelude(pb: PolyfillBuilder, head: Head, body: Step): Stmt =

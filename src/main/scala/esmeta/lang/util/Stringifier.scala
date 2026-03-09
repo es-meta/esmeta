@@ -224,6 +224,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the following substeps in an implementation-defined order"
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
+      // Should not reach here (polyfill)
+      case WrappedTryCatchStep(t, c, cb) => ???
+      case TaggedStep(s, t)              => ???
     }
     app >> step.endString
   }

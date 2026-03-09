@@ -512,6 +512,10 @@ class Compiler(
       fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
     case PerformBlockStep(block, desc) =>
       for (substep <- block.steps) compile(fb, substep.step)
+
+    // Should not reach here (polyfill)
+    case WrappedTryCatchStep(t, c, cb) => ???
+    case TaggedStep(s, t)              => ???
   })
 
   /** compile local variable */
