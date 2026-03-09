@@ -12,9 +12,9 @@ import scala.annotation.tailrec
 object DSLPath extends OptimizationPath {
   val transform: List[Algorithm] => List[Algorithm] =
     (MapDataTransformer(_)) andThen
-    (SetDataTransformer(_)) 
-    // andThen
-    // (InternalSlotTransformer(_))
+    (SetDataTransformer(_))
+  // andThen
+  // (InternalSlotTransformer(_))
 
   def apply(body: List[Algorithm]) = transform(body)
 }
