@@ -23,7 +23,7 @@ object PolyfillGenerator {
     // https://tc39.es/ecma262/#sec-set-objects
     """INTRINSICS\.(get:|set:)?Set.*""",
     // https://tc39.es/ecma262/#sec-iterator-objects
-    // """INTRINSICS\.(get:|set:)?Iterator.*""",
+    """INTRINSICS\.(get:|set:)?Iterator.*""",
     // https://tc39.es/ecma262/#sec-promise-objects
     """INTRINSICS\.(get:|set:)?Promise.*""",
   )
@@ -78,11 +78,20 @@ object PolyfillGenerator {
     "GeneratorStart",
     "GeneratorYield",
     "GetFunctionRealm",
-    "GetGeneratorKind",
+    // "GetGeneratorKind",
     "GetPrototypeFromConstructor",
     "RegExpInitialize",
     "StringToNumber",
     "StringToBigInt",
+
+    // Generator
+    "GeneratorYield",
+    "GeneratorStart",
+    "GeneratorValidate",
+    "GeneratorResume",
+    "GeneratorResumeAbrupt",
+    "CreateIteratorFromClosure",
+    "CreateArrayIterator",
   )
 }
 
@@ -320,7 +329,7 @@ class PolyfillGenerator(spec: Spec) {
         case _ => ???
       }
     case PushContextStep(ref)       => ???
-    case SuspendStep(ref, rm)       => ???
+    case SuspendStep(ref, rm)       => {}
     case RemoveContextStep(ctxt, t) => ???
     case AssertStep(cond)           => ()
     case IfStep(cond, thenStep, elseStep, config) =>
@@ -661,9 +670,13 @@ class PolyfillGenerator(spec: Spec) {
       case EnumLiteral(name)                                    => s"\"$name\""
       case StringLiteral(str, _)                                => s"\"$str\""
       case FieldLiteral(name)                                   => s"\"$name\""
-      case SymbolLiteral(sym)                  => s"Symbol.$sym"
-      case ProductionLiteral(lhs, rhs)         => ???
-      case ErrorObjectLiteral(name)            => s"new ${name}()"
+      case SymbolLiteral(sym)          => s"Symbol.$sym"
+      case ProductionLiteral(lhs, rhs) => ???
+      case ErrorObjectLiteral(name) =>
+        name match {
+          case "AggregateError" => s"new $name(errors)"
+          case _                => s"new $name()"
+        }
       case _: PositiveInfinityMathValueLiteral => "Infinity"
       case _: NegativeInfinityMathValueLiteral => "-Infinity"
       case DecimalMathValueLiteral(n)          => s"$n"

@@ -1,11 +1,23 @@
 package esmeta.es.util
 import esmeta.lang.*
 import esmeta.lang.BinaryConditionOperator.Eq
-import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
+import esmeta.lang.IfStep.ElseConfig
+import esmeta.lang.RepeatStep.LoopCondition.{NoCondition, Until, While}
+import esmeta.lang.util.{UnitWalker as LangUnitWalker, Walker as LangWalker}
 import esmeta.spec.*
 import esmeta.ty.{NumberTy, ValueTy}
 
 import scala.collection.mutable
+
+extension (l: List[Step])
+  def toBlockStep: Step = l match {
+    case (b: BlockStep) :: Nil => b
+    case _ =>
+      BlockStep(StepBlock(l.flatMap {
+        case BlockStep(StepBlock(steps)) => steps
+        case x                           => List(SubStep(None, x))
+      }))
+  }
 
 // =============================================================================
 // Completion Types
@@ -230,6 +242,7 @@ class PolyfillInspector(algos: List[Algorithm]) {
 
   private val baseOptimizer = new Optimizer(
     optimizeRules = List(
+      ShorthandInliningRule,
       ProducerWrapRule,
       IfAbruptRule,
       CompletionCheckRule,
@@ -247,6 +260,17 @@ class PolyfillInspector(algos: List[Algorithm]) {
     ),
     algos = algos,
   )
+  private val secondPassOptimizer = new Optimizer(
+    optimizeRules = List(
+      TryCatchOptimizationRule,
+    ),
+    transformRules = List(
+      RecurseTransformRule,
+    ),
+    algos = algos,
+  )
+
+  private val optimizerPass = List(baseOptimizer, secondPassOptimizer)
 
   def transformHead(head: Head): Head = {
     head match {
@@ -279,7 +303,12 @@ class PolyfillInspector(algos: List[Algorithm]) {
       it.withType(item.name, ParameterCompletion),
     )
     val checkedVars = CompletionCheckAnalyzer.analyze(body)
-    baseOptimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+    optimizerPass
+      .foldLeft((body :: Nil, env)) { (params, optimizer) =>
+        optimizer.optimize(params._1, Nil, params._2, checkedVars)
+      }
+      ._1
+      .toBlockStep
   }
 }
 
@@ -370,12 +399,6 @@ object PolyfillInspector {
       Some(catchStmts.toBlockStep),
     )
   }
-
-  extension (l: List[Step])
-    def toBlockStep: Step = l match {
-      case (b: BlockStep) :: Nil => b
-      case _ => BlockStep(StepBlock(l.map(SubStep(None, _))))
-    }
 }
 
 // =============================================================================
@@ -678,7 +701,8 @@ object BlockStepTransform extends TransformRule {
     case BlockStep(stmts) =>
       val (newSteps, newEnv) =
         optimizer.optimize(stmts.steps.map(_.step), Nil, env, checkedVars)
-      Some((Some(newSteps.toBlockStep), newEnv))
+      if (newSteps.isEmpty) Some((None, newEnv))
+      else Some((Some(newSteps.toBlockStep), newEnv))
     case _ => None
   }
 }
@@ -699,7 +723,8 @@ object IfStepTransform extends TransformRule {
         case Some(b) =>
           val (steps, eEnv) =
             optimizer.optimize(b :: Nil, Nil, env, checkedVars)
-          (Some(steps.toBlockStep), eEnv)
+          if (steps.isEmpty) (None, eEnv)
+          else (Some(steps.toBlockStep), eEnv)
         case None => (None, env)
       }
       val mergedEnv = thenEnv.merge(elseEnv)
@@ -731,6 +756,100 @@ object RepeatStepTransform extends TransformRule {
           env,
         ),
       )
+    case forEachStep @ ForEachStep(ty, variable, expr, forward, body) =>
+      val (newExpr, tyUpdate) = optimizer.optimizeExpr(expr, env)
+      val newEnv =
+        if (tyUpdate.isDefined) env.withType(variable.name, tyUpdate.get)
+        else env
+      Some(
+        Some(
+          forEachStep.copy(
+            expr = newExpr,
+            body = optimizer
+              .optimize(body :: Nil, Nil, newEnv, checkedVars)
+              ._1
+              .toBlockStep,
+          ),
+        ),
+        env,
+      )
+    case _ => None
+  }
+}
+
+// Recurse into all container step types and apply optimizer rules to their bodies.
+// Use this as a catch-all transform in passes that don't need per-step env tracking.
+object RecurseTransformRule extends TransformRule {
+  def apply(
+    step: Step,
+    env: CompletionEnv,
+    optimizer: Optimizer,
+    checkedVars: Set[String],
+  ): Option[(Option[Step], CompletionEnv)] = step match {
+    case BlockStep(StepBlock(stmts)) =>
+      val (newSteps, newEnv) =
+        optimizer.optimize(stmts.map(_.step), Nil, env, checkedVars)
+      if (newSteps.isEmpty) Some((None, newEnv))
+      else Some((Some(newSteps.toBlockStep), newEnv))
+
+    case IfStep(cond, t, e, cfg) =>
+      val (thenSteps, thenEnv) =
+        optimizer.optimize(t :: Nil, Nil, env, checkedVars)
+      val (elseResult, elseEnv) = e match {
+        case Some(b) =>
+          val (steps, eEnv) =
+            optimizer.optimize(b :: Nil, Nil, env, checkedVars)
+          if (steps.isEmpty) (None, eEnv) else (Some(steps.toBlockStep), eEnv)
+        case None => (None, env)
+      }
+      Some(
+        (
+          Some(IfStep(cond, thenSteps.toBlockStep, elseResult, cfg)),
+          thenEnv.merge(elseEnv),
+        ),
+      )
+
+    case RepeatStep(c, b) =>
+      val newBody =
+        optimizer.optimize(b :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(RepeatStep(c, newBody)), env))
+
+    case s @ ForEachStep(_, _, _, _, body) =>
+      val newBody =
+        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(s.copy(body = newBody)), env))
+
+    case s @ ForEachIntegerStep(_, _, _, _, _, _, body) =>
+      val newBody =
+        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(s.copy(body = newBody)), env))
+
+    case s @ ForEachOwnPropertyKeyStep(_, _, _, _, _, body) =>
+      val newBody =
+        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(s.copy(body = newBody)), env))
+
+    case s @ ForEachParseNodeStep(_, _, body) =>
+      val newBody =
+        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(s.copy(body = newBody)), env))
+
+    case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
+      val newTry =
+        optimizer
+          .optimize(tryBlock :: Nil, Nil, env, checkedVars)
+          ._1
+          .toBlockStep
+      val newCatch = catchBlock.map(b =>
+        optimizer.optimize(b :: Nil, Nil, env, checkedVars)._1.toBlockStep,
+      )
+      Some((Some(WrappedTryCatchStep(newTry, catchVar, newCatch)), env))
+
+    case TaggedStep(inner, tag) =>
+      val (newInnerOpt, newEnv) =
+        optimizer.transformStep(inner, env, checkedVars)
+      Some((newInnerOpt.map(TaggedStep(_, tag)), newEnv))
+
     case _ => None
   }
 }
@@ -756,7 +875,7 @@ object ProducerWrapRule extends OptimizeRule {
           val wrapped = wrapProducerOnly(
             List(LetStep(Variable(name, None), newExpr)),
             name,
-            s"_${name}_err",
+            s"_${name}_err", // Use hoisting
             flagName,
             ctx.env,
           )
@@ -778,14 +897,14 @@ object ProducerWrapRule extends OptimizeRule {
         && !ctx.env.getType(name).contains(ParameterCompletion) =>
       val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
       typeUpdate match {
-        case Some(AbruptCompletion) | Some(NormalCompletion) =>
+        case Some(AbruptCompletion) | Some(NormalCompletion) | None =>
           None // Known types — let existing rules handle
         case _ =>
           val flagName = s"${name}_is_abrupt"
           val wrapped = wrapProducerOnly(
             List(SetStep(Variable(name, None), newExpr)),
             name,
-            s"_${name}_err",
+            s"_${name}_err", // Use hoisting
             flagName,
             ctx.env,
           )
@@ -1054,6 +1173,245 @@ object LetStepCompletionRule extends OptimizeRule {
           Some(OptimizeResult(ctx.tail, ctx.history, newEnv))
       }
     case _ => None
+  }
+}
+
+object ShorthandInliningRule extends OptimizeRule {
+  import PolyfillInspector.*
+
+  override def apply(ctx: OptimizeContext): Option[OptimizeResult] =
+    ctx.head match {
+      case InvokeShorthandStep(name, args) =>
+        val targetAlgo = ctx.optimizer.algos.find(_.name == name)
+        if (targetAlgo.isEmpty) None
+        else {
+          val targetStep = targetAlgo.get.body
+          // TODO: ignore parameter types for now
+          val targetParameters = targetAlgo.get.head.originalParams.map(_.name)
+          // Parameter matching
+          val inlinedStep = (targetParameters zip args).foldLeft(targetStep) {
+            (step, paramToArg) =>
+              ParameterInlineWalker(paramToArg._1, paramToArg._2).walk(step)
+          }
+          val (transformedStep, newEnv) =
+            ctx.optimizer.transformStep(inlinedStep, ctx.env, ctx.checkedVars)
+          Some(
+            OptimizeResult(
+              ctx.tail,
+              transformedStep.getOrElse(
+                throw RuntimeException(
+                  s"Cannot inline shorthand: ${name} : ${targetStep}",
+                ),
+              ) :: ctx.history,
+              newEnv,
+            ),
+          )
+        }
+      case _ => None
+    }
+
+  private class ParameterInlineWalker(
+    paramName: String,
+    replaceWith: Expression,
+  ) extends LangWalker {
+    override def walk(expr: Expression): Expression = expr match {
+      case ReferenceExpression(ref) =>
+        ref match {
+          case Variable(name, None) =>
+            if (name == paramName) replaceWith else expr
+          case x => ReferenceExpression(walk(x))
+        }
+      case _ => super.walk(expr)
+    }
+
+    override def walk(ref: Reference): Reference = ref match {
+      case Variable(name, _) =>
+        if (name == paramName) {
+          replaceWith.asInstanceOf[ReferenceExpression].ref
+        } else ref
+      case x => super.walk(x)
+    }
+  }
+}
+
+object TryCatchOptimizationRule extends OptimizeRule {
+
+  override def apply(ctx: OptimizeContext): Option[OptimizeResult] =
+    (ctx.history.headOption, ctx.head) match {
+      case (
+            Some(
+              tryCatchStep @ WrappedTryCatchStep(
+                tryBlock,
+                Variable(catchVar, nt),
+                catchBlock,
+              ),
+            ),
+            ifStep @ TaggedStep(
+              IfStep(cond, thenStep, None, elseConfig),
+              tag,
+            ),
+          ) =>
+        val targetVar = tag.getOrElse(
+          "TARGET_VAR",
+          throw RuntimeException("No TARGET_VAR tag"),
+        )
+
+        // Check the separation is needed
+        // If the producer and the consumer are neighbor, we can combine them
+        if (catchVar != s"_${targetVar}_err") None
+        else {
+          val completionType = CompletionType.fromTag(
+            tag.getOrElse("TYPE", throw RuntimeException("No TYPE tag")),
+          )
+
+          if (!cond.isInstanceOf[BinaryCondition]) {
+            // For now, let's ignore composite condition
+            None
+          } else {
+            completionType match {
+              case NormalCompletion =>
+                val newWrappedTryCatch = tryCatchStep.copy(
+                  tryBlock = List(tryBlock, thenStep).toBlockStep,
+                )
+                Some(
+                  OptimizeResult(
+                    ctx.tail,
+                    newWrappedTryCatch :: ctx.history.drop(1),
+                    ctx.env,
+                  ),
+                )
+              case AbruptCompletion =>
+                val newWrappedTryCatch = tryCatchStep.copy(
+                  catchBlock =
+                    Some(List(catchBlock, Some(thenStep)).flatten.toBlockStep),
+                )
+                Some(
+                  OptimizeResult(
+                    ctx.tail,
+                    newWrappedTryCatch :: ctx.history.drop(1),
+                    ctx.env,
+                  ),
+                )
+              case ParameterCompletion => None
+              case _                   => None
+            }
+          }
+        }
+      case _ => None
+    }
+}
+
+object GeneratorModelingRule extends OptimizeRule {
+  val closureOptimizer = Optimizer(List(), List(), List())
+  override def apply(ctx: OptimizeContext): Option[OptimizeResult] =
+    ctx.head match {
+      case AbstractClosureExpression(_, _, body) => {
+        // if (!YieldWalker.checkYield(body)) return None
+        return ???
+        // closureOptimizer.optimize(body :: Nil, Nil, ctx.env, ctx.checkedVars)
+      }
+    }
+
+}
+
+object ClosureLoweringRule {
+  private type StateBlock = (Int, List[Step])
+  def flattenSteps(
+    originalSteps: List[Step],
+    currentLabel: Int,
+    nextLabel: Int,
+    exitLabel: Option[Int] = None,
+    jumpLabel: Option[Int] = None,
+  ): (List[StateBlock], Int) = {
+    def split(
+      unprocessed: List[Step],
+      label: Int,
+      current: List[Step],
+      history: List[StateBlock],
+      nextLabel: Int,
+    ): (List[StateBlock], Int) = unprocessed match {
+      case Nil =>
+        val finalBlock = (label, current.reverse)
+        (history :+ finalBlock, -1)
+      case LetStep(Variable(name, nt), expr) :: tail =>
+        ???
+      case RepeatStep(cond, body) :: tail =>
+        val condLabel = nextLabel
+        val bodyLabel = nextLabel + 1
+        val exitLabel = nextLabel + 2
+
+        val jumpToHead = setLabelAndContinue(condLabel)
+        val currentBlock = (label, (jumpToHead :: current).reverse)
+        val condStep = cond match {
+          case While(innerCond) =>
+            IfStep(
+              innerCond,
+              setLabelAndContinue(bodyLabel),
+              Some(setLabelAndContinue(exitLabel)),
+              ElseConfig(),
+            )
+          case Until(innerCond) =>
+            IfStep(
+              innerCond,
+              setLabelAndContinue(exitLabel),
+              Some(setLabelAndContinue(bodyLabel)),
+              ElseConfig(),
+            )
+          case NoCondition => setLabelAndContinue(bodyLabel)
+        }
+        val condBlock = (condLabel, List(condStep))
+        val (bodyBlocks, nextAvailableLabel) = flattenSteps(
+          body :: Nil,
+          bodyLabel,
+          exitLabel + 1,
+          exitLabel = Some(exitLabel),
+          jumpLabel = Some(condLabel),
+        )
+        split(
+          unprocessed = tail,
+          label = exitLabel,
+          current = Nil,
+          history = (history :+ currentBlock :+ condBlock) ::: bodyBlocks,
+          nextLabel = nextAvailableLabel,
+        )
+    }
+
+    split(originalSteps, currentLabel, Nil, Nil, nextLabel)
+  }
+
+  private def setLabelAndContinue(label: Int): Step =
+    TaggedStep(
+      YetStep(YetExpression(s"genContext.label = $label; continue;", None)),
+      Map(),
+    )
+
+  private object InvokeYieldCheckPattern {
+    def unapply(step: Step): Option[(Expression => Step, Expression)] =
+      step match {
+        case LetStep(Variable(name, nt), expr) => ???
+      }
+  }
+
+  private class YieldWalker(step: Step, targetExpression: Expression)
+    extends LangWalker {
+    private var _containsYield = false
+    override def walk(expr: Expression): Expression = expr match {
+      // TODO Hard-coded Yield AO
+      case InvokeAbstractOperationExpression(name, _, _)
+          if name contains "Yield" =>
+        _containsYield = true
+        targetExpression
+      case x => super.walk(x)
+    }
+
+  }
+
+  private object YieldWalker {
+    def checkYield(body: Step): Boolean = {
+      val walker = new YieldWalker(body, YetExpression("", None))
+      walker.walk(body)
+      walker._containsYield
+    }
   }
 }
 
