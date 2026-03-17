@@ -1030,9 +1030,9 @@ object SetDataTransformer {
                 "IN__SetDataIterateForEach",
                 loopBase,
                 loopVar,
+                "Index",
               )
-
-              SubStep(None, loopWithEarlyReturn) :: process(tail)
+              loopWithEarlyReturn ++ process(tail)
             case head :: tail =>
               head.copy(step =
                 engine.transformStep(
@@ -1092,9 +1092,9 @@ object SetDataTransformer {
                 "IN__SetDataIterateIterator",
                 iter,
                 nextInit,
+                "Iterator",
               )
-
-              SubStep(None, loopWithEarlyReturn) :: process(tail)
+              loopWithEarlyReturn ++ process(tail)
 
             case head :: tail =>
               head.copy(step =
@@ -1421,12 +1421,22 @@ object SetDataTransformer {
       },
     )
 
-  def earlyReturnSubRule(resultExpr: Expression): TransformationRule =
+  def earlyReturnSubRule(parentName: String): TransformationRule =
     TransformationRule(
-      name = "SetData Loop >> Early Return",
+      name = s"SetData While+$parentName >> Early Return",
       stepPattern = {
-        case ReturnStep(expr) if expr == resultExpr =>
-          _ => ReturnStep(EnumLiteral("early-return"))
+        case ReturnStep(expr) =>
+          _ =>
+            ReturnStep(
+              RecordExpression(
+                "",
+                List(
+                  (FieldLiteral("Type"), EnumLiteral("early-return")),
+                  (FieldLiteral("Value"), expr),
+                ),
+                RecordExpressionForm.SyntaxLiteral(None),
+              ),
+            )
       },
     )
 
@@ -1440,62 +1450,75 @@ object SetDataTransformer {
     aoName: String,
     iterBase: Reference,
     elementVar: String,
-  ): Step = {
-    def searchEarlyReturn(body: LangElem): Option[Expression] = {
-      var result: Option[Expression] = None
+    parentName: String,
+  ): List[SubStep] = {
+    def searchReturns(body: Step): Set[Expression] = {
+      var result = mutable.Set[Expression]()
       new LangUnitWalker {
         override def walk(step: Step): Unit = step match {
-          case ReturnStep(expr) => result = Some(expr)
+          case ReturnStep(expr) => result += expr
           case _                => super.walk(step)
         }
       }.walk(body)
-      result
+      result.toSet
     }
 
-    searchEarlyReturn(body) match {
-      case Some(expr) =>
-        val returnReplacedBody =
-          engine.transformStep(body, List(earlyReturnSubRule(expr)))
-        val bodyWithEarlyReturnCheck = InvokeAbstractOperationExpression(
-          aoName,
-          List(
-            ReferenceExpression(iterBase),
-            AbstractClosureExpression(
-              List(Variable(elementVar)),
-              List(),
-              returnReplacedBody,
-            ),
-            TrueLiteral(),
-          ),
-          HtmlTag.None,
-        )
+    val resultVariable = Variable("_result")
 
-        IfStep(
-          IsAreCondition(
-            List(bodyWithEarlyReturnCheck),
-            false,
-            List(EnumLiteral("early-return")),
+    val returnReplacedBody = LetStep(
+      resultVariable,
+      InvokeAbstractOperationExpression(
+        aoName,
+        List(
+          ReferenceExpression(iterBase),
+          AbstractClosureExpression(
+            List(Variable(elementVar)),
+            List(),
+            engine.transformStep(body, List(earlyReturnSubRule(parentName))),
           ),
-          ReturnStep(expr),
-          None,
-          IfStep.ElseConfig(),
-        )
-      case None =>
-        PerformStep(
-          InvokeAbstractOperationExpression(
-            aoName,
-            List(
-              ReferenceExpression(iterBase),
-              AbstractClosureExpression(
-                List(Variable(elementVar)),
-                List(),
-                body,
+        ),
+        HtmlTag.None,
+      ),
+    )
+
+    val earlyReturnChecks = searchReturns(body).map { expr =>
+      IfStep(
+        CompoundCondition(
+          BinaryCondition(
+            ReferenceExpression(resultVariable),
+            BinaryConditionOperator.NEq,
+            UndefinedLiteral(),
+          ),
+          CompoundConditionOperator.And,
+          BinaryCondition(
+            ReferenceExpression(
+              Access(
+                resultVariable,
+                "Type",
+                AccessKind.Field,
+                AccessForm.Dot,
               ),
             ),
-            HtmlTag.None,
+            BinaryConditionOperator.Eq,
+            EnumLiteral("early-return"),
           ),
-        )
-    }
+        ),
+        ReturnStep(
+          ReferenceExpression(
+            Access(
+              resultVariable,
+              "Value",
+              AccessKind.Field,
+              AccessForm.Dot,
+            ),
+          ),
+        ),
+        None,
+        IfStep.ElseConfig(),
+      )
+    }.toList
+
+    (returnReplacedBody +: earlyReturnChecks).map(SubStep(None, _))
   }
 
   // ================================================================================
