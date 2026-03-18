@@ -45,6 +45,8 @@ class CaseCollector extends UnitWalker {
         s"insert {{ expr }} as the first element of {{ ref }}."
       case AddStep(expr, ref) =>
         s"add {{ expr }} to {{ ref }}."
+      case ReplaceStep(oldE, newE, ref) =>
+        s"replace {{ expr }} in {{ ref }} with {{ expr }}."
       case RemoveStep(target, prep, list) =>
         import RemoveStep.Target.*
         target match

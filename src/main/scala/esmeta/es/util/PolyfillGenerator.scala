@@ -322,6 +322,12 @@ class PolyfillGenerator(spec: Spec) {
         ),
       )
     case AddStep(expr, ref) => ???
+    case ReplaceStep(oldElem, newElem, ref) =>
+      pb.addStmt(
+        NormalStmt(
+          s"${INTERNAL_HEADER}__Replace(${compile(pb, ref)}, ${compile(pb, oldElem)}, ${compile(pb, newElem)})",
+        ),
+      )
     case RemoveStep(t, p, l) =>
       t match {
         case RemoveStep.Target.First(None) =>

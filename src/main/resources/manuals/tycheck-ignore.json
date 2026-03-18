@@ -7,6 +7,9 @@
   "EvaluateImportCall",
   "FunctionBody[0,0].EvaluateFunctionBody",
   "GetViewByteLength",
+  "INTRINSICS.Set.prototype.clear",
+  "INTRINSICS.Set.prototype.delete",
+  "INTRINSICS.WeakSet.prototype.delete",
   "Record[SourceTextModuleRecord].ExecuteModule",
   "TypedArrayLength"
 ]

@@ -64,6 +64,7 @@ trait Parsers extends IndentParsers {
     prependStep |
     insertStep |
     addStep |
+    replaceStep |
     removeStep |
     pushCtxtStep |
     suspendStep |
@@ -141,6 +142,15 @@ trait Parsers extends IndentParsers {
   lazy val addStep: PL[AddStep] =
     ("add" ~> expr) ~ ("to" ~> ref) ~ end ^^ {
       case e ~ r ~ f => f(AddStep(e, r))
+    }
+
+  // replace steps
+  lazy val replaceStep: PL[ReplaceStep] =
+    ("replace" ~> expr) ~ ("in" ~> ref) ~ ("with" ~> expr) ~ end ^^ {
+      case oldE ~ r ~ newE ~ f => f(ReplaceStep(oldE, newE, r))
+    } |
+    ("replace the element of" ~> ref) ~ ("whose value is" ~> expr) ~ ("with an element whose value is" ~> expr) ~ end ^^ {
+      case r ~ oldE ~ newE ~ f => f(ReplaceStep(oldE, newE, r))
     }
 
   // remove step

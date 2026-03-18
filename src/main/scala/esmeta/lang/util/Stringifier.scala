@@ -100,6 +100,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("insert ") >> expr >> " as the first element of " >> ref
       case AddStep(expr, ref) =>
         app >> First("add ") >> expr >> " to " >> ref
+      case ReplaceStep(oldE, newE, ref) =>
+        app >> First("replace ") >> oldE >> " in " >> ref >> " with " >> newE
       case RemoveStep(target, prep, list) =>
         app >> First("remove ") >> target >> " " >> prep >> " " >> list
       case PushContextStep(ref) =>
