@@ -115,7 +115,7 @@ enum HtmlTag:
 case class InvokeAbstractOperationExpression(
   name: String,
   args: List[Expression],
-  tag: HtmlTag,
+  tag: HtmlTag = HtmlTag.None,
 ) extends InvokeExpression
 
 // numeric method invocation expression
@@ -309,7 +309,10 @@ case class NonterminalLiteral(
 case class EnumLiteral(name: String) extends Literal
 
 // string literals
-case class StringLiteral(s: String, form: StringLiteralForm) extends Literal
+case class StringLiteral(
+  s: String,
+  form: StringLiteralForm = StringLiteralForm.SyntaxLiteral,
+) extends Literal
 
 // Normal: "{{ string value }}"
 // EmptyString: "the empty String"

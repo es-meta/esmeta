@@ -26,6 +26,8 @@ object PolyfillGenerator {
     """INTRINSICS\.(get:|set:)?Iterator.*""",
     // https://tc39.es/ecma262/#sec-promise-objects
     """INTRINSICS\.(get:|set:)?Promise.*""",
+    """INTRINSICS\.(get:|set:)?WeakMap.*""",
+    """INTRINSICS\.(get:|set:)?WeakSet.*""",
   )
 
   val ignoreTargets = List(
@@ -78,7 +80,6 @@ object PolyfillGenerator {
     "GeneratorStart",
     "GeneratorYield",
     "GetFunctionRealm",
-    // "GetGeneratorKind",
     "GetPrototypeFromConstructor",
     "RegExpInitialize",
     "StringToNumber",
@@ -216,10 +217,6 @@ class PolyfillGenerator(spec: Spec) {
   private val INTERNAL_HEADER = "IN";
   private val RESERVED_WORDS = Set("return")
   private val YET_RULES = Map(
-    (
-      "set _fillString_ to the String value consisting solely of the code unit 0x0020 (SPACE).",
-      "fillString = \" \"",
-    ),
     ("Return the code point _cp_.", "return cp"),
   )
 
@@ -247,12 +244,6 @@ class PolyfillGenerator(spec: Spec) {
 
   def compilePrelude(pb: PolyfillBuilder, head: Head, body: Step): Stmt =
     pb.newScope({
-      val shouldInsertIsStrict =
-        head.originalParams.forall(_.kind != ParamKind.Variadic)
-      if (shouldInsertIsStrict) {
-        pb.addStmt(NormalStmt("\"use strict\";"))
-      }
-
       val existenceCheckVariables = {
         var result = mutable.Set[String]()
         new LangUnitWalker {
@@ -452,7 +443,7 @@ class PolyfillGenerator(spec: Spec) {
     case LengthExpression(ReferenceExpression(ref)) =>
       s"${compile(pb, ref)}.length"
     case LengthExpression(expr) => ???
-    case StringExpression(str)  => s"\"str\""
+    case StringExpression(expr) => compile(pb, expr)
     case SubstringExpression(expr, from, to) =>
       s"${INTERNAL_HEADER}__SubString(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
     case TrimExpression(expr, leading, trailing) =>
@@ -665,13 +656,12 @@ class PolyfillGenerator(spec: Spec) {
 
   def compile(lit: Literal): String =
     lit match {
-      case _: ThisLiteral          => "this"
-      case _: ThisParseNodeLiteral => ???
-      case _: NewTargetLiteral     => "new.target"
-      case HexLiteral(hex, hasCodeUnitDescription, isUnicodePrefix, name) =>
-        s"0x${hex.toHexString}"
-      case CodeLiteral(code)                                    => s"\"$code\""
-      case GrammarSymbolLiteral(name, flags)                    => ???
+      case _: ThisLiteral                    => "this"
+      case _: ThisParseNodeLiteral           => ???
+      case _: NewTargetLiteral               => "new.target"
+      case HexLiteral(hex, _, _, _)          => s"\"${hex.toChar.toString}\""
+      case CodeLiteral(code)                 => s"\"$code\""
+      case GrammarSymbolLiteral(name, flags) => ???
       case NonterminalLiteral(ordinal, name, flags, hasArticle) => ???
       case EnumLiteral(name)                                    => s"\"$name\""
       case StringLiteral(str, _)                                => s"\"$str\""

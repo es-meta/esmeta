@@ -13,8 +13,6 @@ object DSLPath extends OptimizationPath {
   val transform: List[Algorithm] => List[Algorithm] =
     (MapDataTransformer(_)) andThen
     (SetDataTransformer(_))
-  // andThen
-  // (InternalSlotTransformer(_))
 
   def apply(body: List[Algorithm]) = transform(body)
 }
@@ -150,7 +148,6 @@ object MapDataTransformer {
               InvokeAbstractOperationExpression(
                 "IN__MapDataInsert",
                 List(ReferenceExpression(ref), elem),
-                HtmlTag.None,
               ),
             )
       },
@@ -166,7 +163,6 @@ object MapDataTransformer {
               InvokeAbstractOperationExpression(
                 "IN__MapDataCreate",
                 List(),
-                HtmlTag.None,
               ),
             )
       },
@@ -242,7 +238,6 @@ object MapDataTransformer {
                       ReferenceExpression(base),
                       ReferenceExpression(Variable(key)),
                     ),
-                    HtmlTag.None,
                   ),
                 ),
                 false,
@@ -282,7 +277,6 @@ object MapDataTransformer {
                     bodyTransformed,
                   ),
                 ),
-                HtmlTag.None,
               ),
             )
       },
@@ -352,7 +346,6 @@ object MapDataTransformer {
                           finalBody,
                         ),
                       ),
-                      HtmlTag.None,
                     ),
                   ),
                 ) :: process(tail)
@@ -409,7 +402,6 @@ object MapDataTransformer {
                           ReferenceExpression(base),
                           ReferenceExpression(Variable(key)),
                         ),
-                        HtmlTag.None,
                       ),
                     ),
                   ) :: process(tail)
@@ -439,7 +431,6 @@ object MapDataTransformer {
                     ReferenceExpression(Variable(key)),
                     expr,
                   ),
-                  HtmlTag.None,
                 ),
               )
         },
@@ -458,7 +449,6 @@ object MapDataTransformer {
                     ReferenceExpression(base),
                     ReferenceExpression(Variable(key)),
                   ),
-                  HtmlTag.None,
                 ),
               )
         },
@@ -582,7 +572,6 @@ object MapDataTransformer {
                           ),
                         ),
                       ),
-                      HtmlTag.None,
                     ),
                   ),
                 ) :: process(tail)
@@ -725,7 +714,7 @@ object SetDataTransformer {
       val isSetDataPredicate = (ref: Reference) => isSetData(ref, setDataVars)
 
       val rules = List(
-        setDataYetsRule,
+        setDataYetsRule(isSetDataPredicate),
         setDataHasRule(isSetDataPredicate),
         setDataForEachRule(isSetDataPredicate),
         setDataIndexWhileRule(isSetDataPredicate),
@@ -746,35 +735,21 @@ object SetDataTransformer {
   // Transformation Rules
   // ================================================================================
 
-  def setDataYetsRule: TransformationRule = TransformationRule(
-    name = "SetData Yet",
-    stepPattern = {
-      case YetStep(
-            YetExpression(
-              "Replace the element of _S_.[[SetData]] whose value is _e_ with an element whose value is ~empty~.",
-              _,
-            ),
-          ) =>
-        _ =>
-          PerformStep(
-            InvokeAbstractOperationExpression(
-              "IN__SetDataRemove",
-              List(
-                ReferenceExpression(
-                  Access(
-                    Variable("S"),
-                    "SetData",
-                    AccessKind.Field,
-                    AccessForm.Dot,
-                  ),
-                ),
-                ReferenceExpression(Variable("e")),
+  def setDataYetsRule(isSetData: Reference => Boolean): TransformationRule =
+    TransformationRule(
+      name = "SetData Yet",
+      stepPattern = {
+        case ReplaceStep(oldElem, EnumLiteral("empty"), ref)
+            if isSetData(ref) =>
+          _ =>
+            PerformStep(
+              InvokeAbstractOperationExpression(
+                "IN__SetDataRemove",
+                List(ReferenceExpression(ref), oldElem),
               ),
-              HtmlTag.None,
-            ),
-          )
-    },
-  )
+            )
+      },
+    )
 
   def setDataOperationsRule(
     isSetData: Reference => Boolean,
@@ -791,7 +766,6 @@ object SetDataTransformer {
                 InvokeAbstractOperationExpression(
                   "IN__SetDataCreate",
                   List(),
-                  HtmlTag.None,
                 ),
               )
           case LetStep(ref, ListExpression(ListExpressionForm.EmptyList(_, _)))
@@ -802,7 +776,6 @@ object SetDataTransformer {
                 InvokeAbstractOperationExpression(
                   "IN__SetDataCreate",
                   List(),
-                  HtmlTag.None,
                 ),
               )
         },
@@ -816,7 +789,6 @@ object SetDataTransformer {
                 InvokeAbstractOperationExpression(
                   "IN__SetDataInsert",
                   List(ReferenceExpression(ref), elem),
-                  HtmlTag.None,
                 ),
               )
         },
@@ -833,7 +805,6 @@ object SetDataTransformer {
                 InvokeAbstractOperationExpression(
                   "IN__SetDataCopy",
                   List(ReferenceExpression(ref)),
-                  HtmlTag.None,
                 ),
               )
         },
@@ -932,7 +903,6 @@ object SetDataTransformer {
                       ReferenceExpression(ref),
                       ReferenceExpression(Variable(value)),
                     ),
-                    HtmlTag.None,
                   ),
                 ),
                 false,
@@ -964,7 +934,6 @@ object SetDataTransformer {
                   ReferenceExpression(ref),
                   AbstractClosureExpression(List(Variable(elem)), List(), body),
                 ),
-                HtmlTag.None,
               ),
             )
       },
@@ -1157,7 +1126,6 @@ object SetDataTransformer {
                               ReferenceExpression(base),
                               ReferenceExpression(elem),
                             ),
-                            HtmlTag.None,
                           ),
                         )
                   },
@@ -1231,7 +1199,6 @@ object SetDataTransformer {
                               ReferenceExpression(base),
                               ReferenceExpression(elem),
                             ),
-                            HtmlTag.None,
                           ),
                         ),
                         neg,
@@ -1362,7 +1329,6 @@ object SetDataTransformer {
                           ReferenceExpression(base),
                           ReferenceExpression(Variable(varName, None)),
                         ),
-                        HtmlTag.None,
                       ),
                     ),
                   ) :: process(tail)
@@ -1477,7 +1443,6 @@ object SetDataTransformer {
             engine.transformStep(body, List(earlyReturnSubRule(parentName))),
           ),
         ),
-        HtmlTag.None,
       ),
     )
 
@@ -1762,26 +1727,23 @@ object InternalSlotTransformer {
                   "IN__InternalSlotGet",
                   List(
                     ReferenceExpression(base),
-                    StringLiteral(name, StringLiteralForm.SyntaxLiteral),
+                    StringLiteral(name),
                   ),
-                  HtmlTag.None,
                 ),
                 elem,
               ),
-              HtmlTag.None,
             ),
           )
     },
     expressionPattern = {
-      case ReferenceExpression(Access(base, name, kind, form)) =>
+      case ReferenceExpression(Access(base, name, _, _)) =>
         _ =>
           InvokeAbstractOperationExpression(
             "IN__InternalSlotGet",
             List(
               ReferenceExpression(base),
-              StringLiteral(name, StringLiteralForm.SyntaxLiteral),
+              StringLiteral(name),
             ),
-            HtmlTag.None,
           )
     },
   )
@@ -1796,10 +1758,9 @@ object InternalSlotTransformer {
               "IN__InternalSlotSet",
               List(
                 ReferenceExpression(base),
-                StringLiteral(name, StringLiteralForm.SyntaxLiteral),
+                StringLiteral(name),
                 expr,
               ),
-              HtmlTag.None,
             ),
           )
     },
@@ -1813,7 +1774,6 @@ object InternalSlotTransformer {
           InvokeAbstractOperationExpression(
             "IN__InternalSlotRecordCreate",
             List(expr),
-            HtmlTag.None,
           )
     },
   )

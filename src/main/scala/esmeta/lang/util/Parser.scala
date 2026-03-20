@@ -668,7 +668,7 @@ trait Parsers extends IndentParsers {
   lazy val strLiteral: PL[StringLiteral] = opt("the String") ~> {
     """\*"[^"]*"\*""".r ^^ {
       _.drop(2).dropRight(2).replace("\\*", "*").replace("\\\\", "\\")
-    } ^^ { StringLiteral(_, StringLiteralForm.SyntaxLiteral) } |
+    } ^^ { StringLiteral(_) } |
     "<code>" ~> """"[^"]*"""".r <~ "</code>" ^^ {
       _.drop(1).dropRight(1)
     } ^^ { StringLiteral(_, StringLiteralForm.Code) }
@@ -913,14 +913,11 @@ trait Parsers extends IndentParsers {
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
-    import StringLiteralForm.*
     // ClassStaticBlockDefinitionEvaluation
     "the empty sequence of Unicode code points" ^^! StringLiteral(
       "",
-      EmptyUnicode,
+      StringLiteralForm.EmptyUnicode,
     ) |
-    // Array.prototype.join
-    "the single-element String" ~> strLiteral |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
     "an instance of" ~> prodLiteral |
     // NumberBitwiseOp
@@ -928,7 +925,7 @@ trait Parsers extends IndentParsers {
     // _TypedArray_
     "the String value of the Constructor Name value specified in" ~
     "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref>" ~
-    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_, SyntaxLiteral) }
+    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_) }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
