@@ -2453,6 +2453,7 @@ StringNumericLiteral[1,0].StringNumericValue
 StringNumericLiteral[1,1].StringNumericValue
 StringNumericLiteral[1,2].StringNumericValue
 StringNumericLiteral[1,3].StringNumericValue
+StringPaddingBuiltinsImpl
 StringToBigInt
 StringToCodePoints
 StringToNumber

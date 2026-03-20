@@ -643,7 +643,8 @@ trait Parsers extends IndentParsers {
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
-    exists("the code unit") ~ ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
+    opt("consisting solely of") ~> exists("the code unit") ~
+    ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
     opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
       case c ~ p ~ n ~ x => HexLiteral(Integer.parseInt(n, 16), c, p, x)
     }

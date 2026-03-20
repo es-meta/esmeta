@@ -11,5 +11,6 @@
   "INTRINSICS.Set.prototype.delete",
   "INTRINSICS.WeakSet.prototype.delete",
   "Record[SourceTextModuleRecord].ExecuteModule",
+  "StringPaddingBuiltinsImpl",
   "TypedArrayLength"
 ]
