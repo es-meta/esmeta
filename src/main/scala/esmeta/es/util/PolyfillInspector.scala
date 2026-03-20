@@ -182,7 +182,8 @@ class Optimizer(
       )
     case ReferenceExpression(Variable(name, _)) =>
       (expr, env.getType(name))
-    case _ => (expr, None)
+    case ReturnIfAbruptExpression(expr, _) => (expr, None)
+    case _                                 => (expr, None)
   }
 }
 
@@ -240,6 +241,27 @@ object CompletionCheckAnalyzer {
 class PolyfillInspector(algos: List[Algorithm]) {
   import PolyfillInspector.*
 
+  // Concept optimizer: wrap all completions, always emit kind check on return.
+  // - ShorthandInliningRule handles `? x` (ReturnIfAbrupt) by inlining
+  // - CompletionCheckRule rewrites explicit "if x is abrupt" spec checks
+  // - No ReturnIfAbruptTransform: subsumed by ShorthandInliningRule
+  private val simpleOptimizer = new Optimizer(
+    optimizeRules = List(
+      ShorthandInliningRule,
+      ProducerWrapRule,
+      CompletionCheckRule,
+      LetStepCompletionRule,
+    ),
+    transformRules = List(
+      LetStepTransform,
+      SetStepTransform,
+      ReturnThrowTransform,
+      TaggedStepTransform,
+      RecurseTransformRule,
+    ),
+    algos = algos,
+  )
+
   private val baseOptimizer = new Optimizer(
     optimizeRules = List(
       ShorthandInliningRule,
@@ -270,7 +292,7 @@ class PolyfillInspector(algos: List[Algorithm]) {
     algos = algos,
   )
 
-  private val optimizerPass = List(baseOptimizer, secondPassOptimizer)
+  private val optimizerPass = List(simpleOptimizer) // , secondPassOptimizer)
 
   def transformHead(head: Head): Head = {
     head match {
@@ -279,8 +301,8 @@ class PolyfillInspector(algos: List[Algorithm]) {
           case p @ Param(name, Type(ty), paramKind) if ty.isCompletion =>
             List(
               p.copy(
-                name = s"${name}_type",
-                ty = Type(ValueTy(number = NumberTy.Int)),
+                name = s"${name}_kind",
+                ty = Type(ValueTy.Top),
               ),
               p.copy(ty = Type(ValueTy.Top)),
             )
@@ -341,13 +363,13 @@ object PolyfillInspector {
 
   def getHoistedFlagSetting(
     flagName: String,
-    boolLiteral: Boolean,
+    kindValue: String, // "abrupt" or "normal"
     env: CompletionEnv,
   ): Step = {
-    val boolLiteralExpr = if (boolLiteral) TrueLiteral() else FalseLiteral()
-    if (!env.isFlagDeclared(flagName))
-      LetStep(Variable(flagName, None), boolLiteralExpr)
-    else SetStep(Variable(flagName, None), boolLiteralExpr)
+    val kindLiteralExpr = EnumLiteral(kindValue)
+    // if (!env.isFlagDeclared(flagName))
+    LetStep(Variable(flagName, None), kindLiteralExpr)
+    // else SetStep(Variable(flagName, None), kindLiteralExpr)
   }
 
   def rebaseCondition(
@@ -386,12 +408,13 @@ object PolyfillInspector {
     flagName: String,
     env: CompletionEnv,
   ): Step = {
+    // env is expected to already have flagName declared (withFlag), so SetStep is used here
     val catchStmts = List(
       SetStep(
         Variable(varName, None),
         ReferenceExpression(Variable(catchVar, None)),
       ),
-      getHoistedFlagSetting(flagName, true, env),
+      getHoistedFlagSetting(flagName, "abrupt", env),
     )
     WrappedTryCatchStep(
       producer.toBlockStep,
@@ -441,8 +464,8 @@ object SetStepTransform extends TransformRule {
               ReferenceExpression(Variable(inner, _)),
               false,
             ) if name == inner =>
-          // Remove redundant Set x = ! x shorthand
-          Some((None, env))
+          // Remove Remove redundant Set x = ! x shorthand
+          Some((Some(step), env.dropType(name)))
         case _ =>
           val (newExpr, typeUpdate) = optimizer.optimizeExpr(expr, env)
           env.getType(name) match {
@@ -493,9 +516,9 @@ object ReturnIfAbruptTransform extends TransformRule {
               Some(
                 IfStep(
                   BinaryCondition(
-                    ReferenceExpression(Variable(s"${name}_type", None)),
+                    ReferenceExpression(Variable(s"${name}_kind", None)),
                     Eq,
-                    NumberLiteral(1),
+                    EnumLiteral("abrupt"),
                   ),
                   TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
                   Some(ret),
@@ -510,9 +533,9 @@ object ReturnIfAbruptTransform extends TransformRule {
               Some(
                 IfStep(
                   BinaryCondition(
-                    ReferenceExpression(Variable(s"${name}_is_abrupt", None)),
+                    ReferenceExpression(Variable(s"${name}_kind", None)),
                     Eq,
-                    TrueLiteral(),
+                    EnumLiteral("abrupt"),
                   ),
                   TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
                   Some(ret),
@@ -548,6 +571,45 @@ object ReturnThrowTransform extends TransformRule {
         if env.getType(name).contains(AbruptCompletion) =>
       Some(
         (Some(TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))), env),
+      )
+    // return ? x — ShorthandInliningRule only covers `? x` as a standalone step;
+    // `return ? x` is ReturnStep(ReturnIfAbruptExpression(...)) and needs explicit handling.
+    case ReturnStep(
+          ReturnIfAbruptExpression(ReferenceExpression(Variable(name, _)), true),
+        ) =>
+      Some(
+        (
+          Some(
+            IfStep(
+              BinaryCondition(
+                ReferenceExpression(Variable(s"${name}_kind", None)),
+                Eq,
+                EnumLiteral("abrupt"),
+              ),
+              TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
+              Some(ReturnStep(ReferenceExpression(Variable(name, None)))),
+            ),
+          ),
+          env,
+        ),
+      )
+    case ret @ ReturnStep(ReferenceExpression(Variable(name, _)))
+        if env.getType(name).isDefined =>
+      Some(
+        (
+          Some(
+            IfStep(
+              BinaryCondition(
+                ReferenceExpression(Variable(s"${name}_kind", None)),
+                Eq,
+                EnumLiteral("abrupt"),
+              ),
+              TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
+              Some(ret),
+            ),
+          ),
+          env,
+        ),
       )
     case _ => None
   }
@@ -637,15 +699,15 @@ object TaggedStepTransform extends TransformRule {
         optimizer.optimize(e :: Nil, Nil, elseEnv, checkedVars)._1.toBlockStep,
       )
 
-    val flagVar = tag.getOrElse("USE_FLAG", s"${targetVar}_is_abrupt")
+    val flagVar = tag.getOrElse("USE_FLAG", s"${targetVar}_kind")
     rebaseCondition(
       cond,
       Map(
         targetVar -> BinaryCondition(
           ReferenceExpression(Variable(flagVar, None)),
           Eq,
-          if (checkType == AbruptCompletion) TrueLiteral()
-          else UndefinedLiteral(),
+          if (checkType == AbruptCompletion) EnumLiteral("abrupt")
+          else EnumLiteral("normal"),
         ),
       ),
     ) match {
@@ -867,22 +929,25 @@ object ProducerWrapRule extends OptimizeRule {
         && !ctx.env.isHandled(name)
         && !ctx.env.getType(name).contains(ParameterCompletion) =>
       val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
+      // Always wrap — no optimization for known types.
       typeUpdate match {
-        case Some(AbruptCompletion) | Some(NormalCompletion) =>
-          None // Known types — let LetStepCompletionRule handle
-        case _ =>
-          val flagName = s"${name}_is_abrupt"
+        case Some(NormalCompletion) | Some(AbruptCompletion) => None
+        case _                                               =>
+          // kindDecl goes inside the try block to avoid polluting the outer x_kind
+          // when this wrap is nested inside a prior completion check on the same var.
+          val flagName = s"${name}_kind"
+          val envWithFlag = ctx.env.withFlag(flagName)
+          val kindDecl = getHoistedFlagSetting(flagName, "normal", ctx.env)
           val wrapped = wrapProducerOnly(
-            List(LetStep(Variable(name, None), newExpr)),
+            List(LetStep(Variable(name, None), newExpr), kindDecl),
             name,
-            s"_${name}_err", // Use hoisting
+            s"_${name}_err",
             flagName,
-            ctx.env,
+            envWithFlag, // already declared → SetStep in catch
           )
-          val newEnv = ctx.env
+          val newEnv = envWithFlag
             .withHandled(name)
             .withType(name, UnknownCompletion)
-            .withFlag(flagName)
           Some(
             OptimizeResult(
               ctx.tail,
@@ -891,35 +956,33 @@ object ProducerWrapRule extends OptimizeRule {
             ),
           )
       }
+    case SetStep(Variable(name, _), ReturnIfAbruptExpression(expr, false)) =>
+      None
     case SetStep(Variable(name, _), expr)
         if ctx.checkedVars.contains(name)
-        // && !ctx.env.isHandled(name)
         && !ctx.env.getType(name).contains(ParameterCompletion) =>
       val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
-      typeUpdate match {
-        case Some(AbruptCompletion) | Some(NormalCompletion) | None =>
-          None // Known types — let existing rules handle
-        case _ =>
-          val flagName = s"${name}_is_abrupt"
-          val wrapped = wrapProducerOnly(
-            List(SetStep(Variable(name, None), newExpr)),
-            name,
-            s"_${name}_err", // Use hoisting
-            flagName,
-            ctx.env,
-          )
-          val newEnv = ctx.env
-            .withHandled(name)
-            .withType(name, UnknownCompletion)
-            .withFlag(flagName)
-          Some(
-            OptimizeResult(
-              ctx.tail,
-              ValueAccessUnwrapper(ctx.env).walk(wrapped) :: ctx.history,
-              newEnv,
-            ),
-          )
-      }
+      // Always wrap — kindDecl inside try to avoid outer x_kind pollution
+      val flagName = s"${name}_kind"
+      val envWithFlag = ctx.env.withFlag(flagName)
+      val kindDecl = getHoistedFlagSetting(flagName, "normal", ctx.env)
+      val wrapped = wrapProducerOnly(
+        List(SetStep(Variable(name, None), newExpr), kindDecl),
+        name,
+        s"_${name}_err",
+        flagName,
+        envWithFlag, // already declared → SetStep in catch
+      )
+      val newEnv = envWithFlag
+        .withHandled(name)
+        .withType(name, UnknownCompletion)
+      Some(
+        OptimizeResult(
+          ctx.tail,
+          ValueAccessUnwrapper(ctx.env).walk(wrapped) :: ctx.history,
+          newEnv,
+        ),
+      )
     case _ => None
   }
 }
@@ -933,68 +996,22 @@ object IfAbruptRule extends OptimizeRule {
         .asInstanceOf[Variable]
         .name
 
-      val transformStep = (ty: CompletionType) =>
-        InvokeShorthandStep(
-          name,
-          List(
-            ty match {
-              case NormalCompletion => NumberLiteral(0)
-              case AbruptCompletion => NumberLiteral(1)
-              case ReturnCompletion => NumberLiteral(2)
-              case _ =>
-                throw RuntimeException(
-                  "Cannot convert completion type into literal",
-                )
-            },
-            ReferenceExpression(Variable(s"$targetVar")),
-          ) ++ args.drop(1),
-        )
+      // Always plug in x_kind directly — no numeric conversion
+      val kindRef = ReferenceExpression(Variable(s"${targetVar}_kind", None))
 
-      val checkCondition = IfStep(
-        BinaryCondition(
-          ReferenceExpression(Variable(s"${targetVar}_is_abrupt", None)),
-          Eq,
-          TrueLiteral(),
-        ),
-        transformStep(AbruptCompletion),
-        Some(transformStep(NormalCompletion)),
+      val transformedStep = InvokeShorthandStep(
+        name,
+        List(kindRef, ReferenceExpression(Variable(s"$targetVar"))) ++ args
+          .drop(1),
       )
 
-      if (ctx.env.isHandled(targetVar)) {
-        // Already handled — emit flag-based check
-        Some(
-          OptimizeResult(
-            ctx.tail,
-            checkCondition :: ctx.history,
-            ctx.env.dropType(targetVar),
-          ),
-        )
-      } else if (ctx.env.getType(targetVar).contains(ParameterCompletion)) {
-        // Parameter — use _type variable
-        val transformedStep = InvokeShorthandStep(
-          name,
-          List(
-            ReferenceExpression(Variable(s"${targetVar}_type")),
-            ReferenceExpression(Variable(s"$targetVar")),
-          ) ++ args.drop(1),
-        )
-        Some(
-          OptimizeResult(
-            ctx.tail,
-            transformedStep :: ctx.history,
-            ctx.env.dropType(targetVar),
-          ),
-        )
-      } else {
-        // Flag already set by LetStepCompletionRule — use flag-based check
-        Some(
-          OptimizeResult(
-            ctx.tail,
-            checkCondition :: ctx.history,
-            ctx.env.dropType(targetVar),
-          ),
-        )
-      }
+      Some(
+        OptimizeResult(
+          ctx.tail,
+          transformedStep :: ctx.history,
+          ctx.env.dropType(targetVar),
+        ),
+      )
     case _ => None
   }
 }
@@ -1039,7 +1056,7 @@ object CompletionCheckRule extends OptimizeRule {
         case (None, newEnv) => OptimizeResult(ctx.tail, ctx.history, newEnv)
       }
     } else {
-      val flagName = s"${targetVar}_is_abrupt"
+      val flagName = s"${targetVar}_kind"
       val taggedCheck = annotateStep(
         annotateStep(
           annotateStep(check, "USE_FLAG", flagName),
@@ -1078,21 +1095,14 @@ object CompletionCheckRule extends OptimizeRule {
     checkType: CompletionType,
     targetVar: String,
   ): OptimizeResult = {
-    val checkTypeLiteral = NumberLiteral(
-      checkType match {
-        case NormalCompletion => 0
-        case AbruptCompletion => 1
-        case ReturnCompletion => 2
-        case _                => -1
-      },
-    )
+    val checkKindLiteral = EnumLiteral(checkType.toTag)
     val newCond = rebaseCondition(
       ifStep.cond,
       Map(
         targetVar -> BinaryCondition(
-          ReferenceExpression(Variable(s"${targetVar}_type", None)),
+          ReferenceExpression(Variable(s"${targetVar}_kind", None)),
           Eq,
-          checkTypeLiteral,
+          checkKindLiteral,
         ),
       ),
     )
@@ -1152,12 +1162,12 @@ object LetStepCompletionRule extends OptimizeRule {
               OptimizeResult(
                 ctx.tail,
                 getHoistedFlagSetting(
-                  s"${name}_is_abrupt",
-                  true,
+                  s"${name}_kind",
+                  "abrupt",
                   newEnv,
                 ) :: ValueAccessUnwrapper(ctx.env)
                   .walk(newLetStep) :: ctx.history,
-                newEnv.withFlag(s"${name}_is_abrupt"),
+                newEnv.withFlag(s"${name}_kind"),
               ),
             )
           } else
@@ -1491,14 +1501,14 @@ private class ValueAccessUnwrapper(env: CompletionEnv) extends LangWalker {
         case x @ ReferenceExpression(v @ Variable(targetVar, nt))
             if nt.isEmpty =>
           env.getType(targetVar) match {
-            case Some(AbruptCompletion) =>
-              List(NumberLiteral(1), x.copy(v.copy(nt = Some("comp_split"))))
-            case Some(NormalCompletion) =>
-              List(NumberLiteral(0), x.copy(v.copy(nt = Some("comp_split"))))
-            case Some(ReturnCompletion) =>
-              List(NumberLiteral(2), x.copy(v.copy(nt = Some("comp_split"))))
-            case Some(UnknownCompletion) => Some(x)
-            case _                       => Some(x)
+            case Some(AbruptCompletion) | Some(NormalCompletion) |
+                Some(ReturnCompletion) | Some(UnknownCompletion) =>
+              // Plug in x_kind directly — no numeric conversion
+              List(
+                ReferenceExpression(Variable(s"${targetVar}_kind", None)),
+                x.copy(v.copy(nt = Some("comp_split"))),
+              )
+            case _ => Some(x)
           }
         case c @ InvokeAbstractOperationExpression(
               innerCallName,
@@ -1510,10 +1520,12 @@ private class ValueAccessUnwrapper(env: CompletionEnv) extends LangWalker {
               s"Completion AO Call should contain up to one argument:\n\t$c",
             )
           innerCallName match {
-            case "NormalCompletion" => List(NumberLiteral(0), innerArgs.head)
+            case "NormalCompletion" =>
+              List(EnumLiteral("normal"), innerArgs.head)
             case "ThrowCompletion" | "AbruptCompletion" =>
-              List(NumberLiteral(1), innerArgs.head)
-            case "ReturnCompletion" => List(NumberLiteral(2), innerArgs.head)
+              List(EnumLiteral("abrupt"), innerArgs.head)
+            case "ReturnCompletion" =>
+              List(EnumLiteral("return"), innerArgs.head)
             case "Completion" =>
               throw RuntimeException(
                 s"Cannot unpack the raw completion object: $c",

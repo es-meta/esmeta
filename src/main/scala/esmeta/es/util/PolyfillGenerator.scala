@@ -24,7 +24,7 @@ object PolyfillGenerator {
     // https://tc39.es/ecma262/#sec-set-objects
     """INTRINSICS\.(get:|set:)?Set.*""",
     // https://tc39.es/ecma262/#sec-iterator-objects
-    """INTRINSICS\.(get:|set:)?Iterator.*""",
+    // """INTRINSICS\.(get:|set:)?Iterator.*""",
     // https://tc39.es/ecma262/#sec-promise-objects
     """INTRINSICS\.(get:|set:)?Promise.*""",
     """INTRINSICS\.(get:|set:)?WeakMap.*""",
