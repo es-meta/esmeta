@@ -21,7 +21,13 @@ object AstExtensions {
 
 type CaptureEnv = Map[String, LangElem]
 
-case class DSLContext(variableTypes: Map[String, String])
+case class DSLContext(
+  variableTypes: Map[String, String],
+  /** Maps variable name → reference it was copied from (valid only if no
+    * mutation of the source occurred between copy and use).
+    */
+  copyOf: Map[String, Reference] = Map.empty,
+)
 type LangElemPredicate = (LangElem, DSLContext) => Boolean
 
 // ---------------------------------------------------------------------------
@@ -29,13 +35,17 @@ type LangElemPredicate = (LangElem, DSLContext) => Boolean
 // ---------------------------------------------------------------------------
 sealed trait Rule { def name: String }
 
-/** Step-level rule. replace = None means delete. */
+/** Step-level rule. replace = None means delete. dynamicSubrules: generates
+  * additional sub-rules from captured bindings (e.g., variable renaming
+  * parameterized by matched values).
+  */
 case class StepRule(
   name: String,
   pattern: Step,
   replace: Option[Step],
   predicates: Map[String, LangElemPredicate] = Map.empty,
   subrules: List[Rule] = List.empty,
+  dynamicSubrules: CaptureEnv => List[Rule] = _ => List.empty,
 ) extends Rule
 
 /** Expression-level rule. */
@@ -62,11 +72,29 @@ case class ReferenceRule(
   predicates: Map[String, LangElemPredicate] = Map.empty,
 ) extends Rule
 
-/** StepBlock-level rule for multi-step sequence matching. */
+/** StepBlock-level rule for multi-step sequence matching. dynamicReplace: when
+  * set, used instead of static replace+subrules. Receives captured bindings,
+  * DSLContext, and stats for procedural transforms (e.g., early-return
+  * wrapping).
+  */
 case class StepBlockRule(
   name: String,
   patternSteps: List[Step],
-  replace: List[Step],
+  replace: List[Step] = List.empty,
   predicates: Map[String, LangElemPredicate] = Map.empty,
   subrules: List[Rule] = List.empty,
+  dynamicReplace: Option[
+    (CaptureEnv, DSLContext, Option[TransformStats]) => List[Step],
+  ] = None,
+) extends Rule
+
+/** Where-propagation rule. Scans a StepBlock for a context step matching
+  * `wherePattern`, captures bindings, keeps the step, then applies dynamically
+  * generated rules to subsequent siblings.
+  */
+case class WhereRule(
+  name: String,
+  wherePattern: Step,
+  mainRules: CaptureEnv => List[Rule],
+  predicates: Map[String, LangElemPredicate] = Map.empty,
 ) extends Rule

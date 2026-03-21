@@ -42,6 +42,7 @@ object Transformer {
       case cr: ConditionRule  => applyConditionRule(cr, step, ctx, stats)
       case rr: ReferenceRule  => applyReferenceRule(rr, step, ctx, stats)
       case br: StepBlockRule  => applyStepBlockRule(br, step, ctx, stats)
+      case wr: WhereRule      => applyWhereRule(wr, step, ctx, stats)
     }
 
   private def onMatch[T](
@@ -58,58 +59,27 @@ object Transformer {
   }
 
   // ---------------------------------------------------------------------------
-  // StepRule
+  // StepRule: uses LangWalker for full AST recursion
   // ---------------------------------------------------------------------------
   private def applyStepRule(
     rule: StepRule,
     step: Step,
     ctx: DSLContext,
     stats: Option[TransformStats],
-  ): Step = step match {
-    case BlockStep(stepBlock) =>
-      val processedChildren = stepBlock.rawSteps.flatMap { childStep =>
-        val transformedChild = applyStepRule(rule, childStep, ctx, stats)
-        tryStepRule(rule, transformedChild, ctx, stats) match {
-          case Some(Some(newStep)) => Some(newStep)
-          case Some(None)          => None
-          case None                => Some(transformedChild)
+  ): Step = {
+    new LangWalker {
+      override def walk(sb: StepBlock): StepBlock = {
+        val processedChildren = sb.rawSteps.flatMap { childStep =>
+          val walked = walk(childStep)
+          tryStepRule(rule, walked, ctx, stats) match {
+            case Some(Some(newStep)) => Some(newStep)
+            case Some(None)          => None
+            case None                => Some(walked)
+          }
         }
+        StepBlock(processedChildren.subSteps)
       }
-      BlockStep(processedChildren.stepBlock)
-
-    case IfStep(cond, thenStep, elseStep, elseConfig) =>
-      IfStep(
-        cond,
-        applyStepRule(rule, thenStep, ctx, stats),
-        elseStep.map(applyStepRule(rule, _, ctx, stats)),
-        elseConfig,
-      )
-    case RepeatStep(cond, body) =>
-      RepeatStep(cond, applyStepRule(rule, body, ctx, stats))
-    case ForEachStep(ty, v, expr, forward, body) =>
-      ForEachStep(
-        ty,
-        v,
-        expr,
-        forward,
-        applyStepRule(rule, body, ctx, stats),
-      )
-    case ForEachIntegerStep(v, l, li, h, hi, a, body) =>
-      ForEachIntegerStep(
-        v,
-        l,
-        li,
-        h,
-        hi,
-        a,
-        applyStepRule(rule, body, ctx, stats),
-      )
-    case other =>
-      tryStepRule(rule, other, ctx, stats) match {
-        case Some(Some(s)) => s
-        case Some(None)    => BlockStep(StepBlock(Nil))
-        case None          => other
-      }
+    }.walk(step)
   }
 
   private def tryStepRule(
@@ -122,8 +92,9 @@ object Transformer {
       rule.replace.map { template =>
         val result = Substituter.subst(template, bindings)
         onMatch(rule.name, step, result, stats)
-        // apply subrules
-        rule.subrules.foldLeft(result) { (s, sr) =>
+        // apply static + dynamic subrules
+        val allSubrules = rule.subrules ++ rule.dynamicSubrules(bindings)
+        allSubrules.foldLeft(result) { (s, sr) =>
           transformStep(sr, s, ctx, stats)
         }
       }
@@ -206,39 +177,14 @@ object Transformer {
     step: Step,
     ctx: DSLContext,
     stats: Option[TransformStats],
-  ): Step = step match {
-    case BlockStep(stepBlock) =>
-      val newSteps =
-        matchSequence(rule, stepBlock.rawSteps, ctx, stats)
-      BlockStep(newSteps.stepBlock)
-    case IfStep(cond, thenStep, elseStep, elseConfig) =>
-      IfStep(
-        cond,
-        applyStepBlockRule(rule, thenStep, ctx, stats),
-        elseStep.map(applyStepBlockRule(rule, _, ctx, stats)),
-        elseConfig,
-      )
-    case RepeatStep(cond, body) =>
-      RepeatStep(cond, applyStepBlockRule(rule, body, ctx, stats))
-    case ForEachStep(ty, v, expr, forward, body) =>
-      ForEachStep(
-        ty,
-        v,
-        expr,
-        forward,
-        applyStepBlockRule(rule, body, ctx, stats),
-      )
-    case ForEachIntegerStep(v, l, li, h, hi, a, body) =>
-      ForEachIntegerStep(
-        v,
-        l,
-        li,
-        h,
-        hi,
-        a,
-        applyStepBlockRule(rule, body, ctx, stats),
-      )
-    case other => other
+  ): Step = {
+    new LangWalker {
+      override def walk(sb: StepBlock): StepBlock = {
+        val walked = sb.rawSteps.map(walk)
+        val matched = matchSequence(rule, walked, ctx, stats)
+        StepBlock(matched.subSteps)
+      }
+    }.walk(step)
   }
 
   private def matchSequence(
@@ -248,8 +194,7 @@ object Transformer {
     stats: Option[TransformStats],
   ): List[Step] = {
     val window = rule.patternSteps.length
-    if (steps.length < window)
-      return steps.map(applyStepBlockRule(rule, _, ctx, stats))
+    if (steps.length < window) return steps
 
     val patternBlock =
       BlockStep(StepBlock(rule.patternSteps.subSteps))
@@ -258,18 +203,61 @@ object Transformer {
 
     Unifier.unify(patternBlock, concreteBlock, ctx, rule.predicates) match {
       case Some(bindings) =>
-        val replaced = rule.replace.map { template =>
-          val result = Substituter.subst(template, bindings)
-          onMatch(rule.name, steps.take(window), result, stats)
-          // apply subrules
-          rule.subrules.foldLeft(result) { (s, sr) =>
-            transformStep(sr, s, ctx, stats)
-          }
+        onMatch(rule.name, steps.take(window), bindings, stats)
+        val replaced = rule.dynamicReplace match {
+          case Some(fn) => fn(bindings, ctx, stats)
+          case None =>
+            rule.replace.map { template =>
+              val result = Substituter.subst(template, bindings)
+              // apply subrules
+              rule.subrules.foldLeft(result) { (s, sr) =>
+                transformStep(sr, s, ctx, stats)
+              }
+            }
         }
         replaced ++ matchSequence(rule, steps.drop(window), ctx, stats)
       case None =>
-        applyStepBlockRule(rule, steps.head, ctx, stats) ::
-        matchSequence(rule, steps.tail, ctx, stats)
+        steps.head :: matchSequence(rule, steps.tail, ctx, stats)
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // WhereRule: scan StepBlock for context step, apply rules to siblings
+  // ---------------------------------------------------------------------------
+  private def applyWhereRule(
+    rule: WhereRule,
+    step: Step,
+    ctx: DSLContext,
+    stats: Option[TransformStats],
+  ): Step = {
+    new LangWalker {
+      override def walk(sb: StepBlock): StepBlock = {
+        val walked = sb.rawSteps.map(walk)
+        val processed = whereProcess(rule, walked, ctx, stats)
+        StepBlock(processed.subSteps)
+      }
+    }.walk(step)
+  }
+
+  private def whereProcess(
+    rule: WhereRule,
+    steps: List[Step],
+    ctx: DSLContext,
+    stats: Option[TransformStats],
+  ): List[Step] = steps match {
+    case Nil => Nil
+    case head :: tail =>
+      Unifier.unify(rule.wherePattern, head, ctx, rule.predicates) match {
+        case Some(bindings) =>
+          onMatch(rule.name, head, head, stats)
+          val generatedRules = rule.mainRules(bindings)
+          val transformedTail = generatedRules.foldLeft(tail) {
+            (steps, genRule) =>
+              steps.map(s => transformStep(genRule, s, ctx, stats))
+          }
+          head :: whereProcess(rule, transformedTail, ctx, stats)
+        case None =>
+          head :: whereProcess(rule, tail, ctx, stats)
+      }
   }
 }
