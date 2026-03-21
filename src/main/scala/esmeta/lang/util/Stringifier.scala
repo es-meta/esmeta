@@ -229,6 +229,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       // Should not reach here (polyfill)
       case WrappedTryCatchStep(t, c, cb) => ???
       case TaggedStep(s, t)              => ???
+      case MetaStep(name, true)          => app >> "$" >> name >> "*"
+      case MetaStep(name, false)         => app >> "$" >> name
     }
     app >> step.endString
   }
@@ -386,6 +388,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> str
         block.fold(app)(app >> _)
       case multi: MultilineExpression => app >> multi
+      case MetaExpression(name)       => app >> name >> ":expr"
     }
   }
 
@@ -780,6 +783,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
         given Rule[List[Condition]] = listNamedSepRule(namedSep = sep)
         app >> conds
+      case MetaCondition(name) => app >> name >> ":cond"
     }
   }
 
@@ -889,6 +893,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case Component(post) => app >> name >> (if (post) " component" else "")
     }
     ref match {
+      case Variable(name, None) if name.startsWith("$") =>
+        app >> name
       case Variable(name, nt) =>
         nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
       case Access(base, name, kind, AccessForm.Dot) =>
@@ -923,6 +929,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the active function object"
       case AgentRecord() =>
         app >> "the Agent Record of the surrounding agent"
+      case MetaReference(name) => app >> name >> ":ref"
     }
   }
 

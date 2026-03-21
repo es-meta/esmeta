@@ -16,7 +16,7 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
     cmdConfig: CommandConfig,
     config: Config,
   ): List[Polyfill] = {
-    val polyfills = PolyfillGenerator(spec)
+    val polyfills = PolyfillGenerator(spec, config.dslDir)
 
     // logging mode
     if (config.log)
@@ -47,10 +47,16 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
       BoolOption((c, b) => { c.opt ||= b; c.opt = b }),
       "turn on ir optimization",
     ),
+    (
+      "dsl-dir",
+      StrOption((c, s) => c.dslDir = Some(s)),
+      "set a directory of custom transformation before polyfill extraction (default: none).",
+    ),
   )
   case class Config(
     var log: Boolean = false,
     var loc: Boolean = false,
     var opt: Boolean = false,
+    var dslDir: Option[String] = None,
   )
 }

@@ -203,10 +203,16 @@ case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
 // perform block steps
 case class PerformBlockStep(step: StepBlock, desc: String) extends Step
 
-// TODO Refactor this as virtual node
+// -----------------------------------------------------------------------------
+// steps for polyfill
+// -----------------------------------------------------------------------------
 case class WrappedTryCatchStep(
   tryBlock: Step,
   catchVar: Reference,
   catchBlock: Option[Step],
 ) extends Step
+
 case class TaggedStep(step: Step, tag: Map[String, String]) extends Step
+
+// Polyfill DSL
+case class MetaStep(name: String, multiline: Boolean = false) extends Step

@@ -84,6 +84,9 @@ case class ActiveFunctionObject() extends Reference
 // references to agent record
 case class AgentRecord() extends Reference
 
+// polyfill DSL
+case class MetaReference(name: String) extends Reference
+
 // -----------------------------------------------------------------------------
 // intrinsics
 // -----------------------------------------------------------------------------

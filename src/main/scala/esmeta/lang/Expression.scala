@@ -365,3 +365,8 @@ case class SymbolTypeLiteral() extends ESTypeLiteral
 case class NumberTypeLiteral() extends ESTypeLiteral
 case class BigIntTypeLiteral() extends ESTypeLiteral
 case class ObjectTypeLiteral() extends ESTypeLiteral
+
+// -----------------------------------------------------------------------------
+// polyfill DSL
+// -----------------------------------------------------------------------------
+case class MetaExpression(name: String) extends Expression

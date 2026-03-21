@@ -11,7 +11,8 @@ import scala.collection.mutable
 
 /** polyfill generator */
 object PolyfillGenerator {
-  def apply(spec: Spec): List[Polyfill] = new PolyfillGenerator(spec).result
+  def apply(spec: Spec, dslDir: Option[String]): List[Polyfill] =
+    new PolyfillGenerator(spec, dslDir).result
 
   val targetPatterns = List(
     // https://tc39.es/ecma262/#sec-properties-of-the-string-prototype-object
@@ -155,21 +156,20 @@ class CompletionPath extends OptimizationPath {
 }
 
 /** extensible helper of polyfill generator */
-class PolyfillGenerator(spec: Spec) {
+class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   import Polyfill.*, PolyfillGenerator.*
 
   /** generated polyfills */
   lazy val result: List[Polyfill] =
-    val optimizedTargets = optPaths.foldLeft(targets) { (x, f) => f(x) }
+    val optimizedTargets = optPaths.foldLeft(targets) { (x, optim) => optim(x) }
     for { algo <- optimizedTargets } yield compile(algo)
 
   /** list of optimization paths */
   val optPaths: List[OptimizationPath] = List(
     ShorthandInlinePath(spec),
     CompletionPath(),
-    DSLPath,
-  )
+  ) ++ (dslDir.map(DSLPath(_)))
 
   /** list of polyfill targets composed recursively from targetPattern */
   lazy val targets: List[Algorithm] = {
@@ -396,6 +396,7 @@ class PolyfillGenerator(spec: Spec) {
         case ThrowStep(name) => pb.addStmt(NormalStmt(s"throw $name;"))
         case x               => compile(pb, x)
       }
+    case MetaStep(name, multiline) => ???
   }
 
   /** compile local variable */
@@ -423,6 +424,7 @@ class PolyfillGenerator(spec: Spec) {
     case CurrentRealmRecord()      => "globalThis"
     case ActiveFunctionObject()    => "_self"
     case AgentRecord()             => ???
+    case MetaReference(name)       => ???
   }
 
   /** compile expressions */
@@ -525,7 +527,8 @@ class PolyfillGenerator(spec: Spec) {
     case SoleElementExpression(list) => ???
     case CodeUnitAtExpression(base, index) =>
       s"${compile(pb, base)}[\"${compile(pb, index)}\"]"
-    case lit: Literal => compile(lit)
+    case lit: Literal         => compile(lit)
+    case MetaExpression(name) => ???
   }
 
   /** compile iterable of expressions */
@@ -652,6 +655,7 @@ class PolyfillGenerator(spec: Spec) {
         case And   => s"$l && $r"
         case Or    => s"$l || $r"
         case Imply => ???
+    case MetaCondition(name) => ???
   }
 
   def compile(lit: Literal): String =

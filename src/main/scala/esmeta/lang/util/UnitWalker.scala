@@ -101,6 +101,7 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     case WrappedTryCatchStep(t, c, cb) => walk(t); walk(c); walkOpt(cb, walk)
     case TaggedStep(s, t)              => walk(s)
+    case MetaStep(_, _)                =>
   }
 
   def walk(target: RemoveStep.Target): Unit =
@@ -189,6 +190,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(multi)
     case yet: YetExpression =>
       walk(yet)
+    case MetaExpression(_) =>
   }
 
   def walk(multi: MultilineExpression): Unit = multi match {
@@ -280,6 +282,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(list); walk(neg); walk(target)
     case CompoundCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
+    case MetaCondition(_) =>
   }
 
   def walk(form: HasFieldConditionForm): Unit = {}
@@ -314,6 +317,7 @@ trait UnitWalker extends BasicUnitWalker {
     case CurrentRealmRecord()             =>
     case ActiveFunctionObject()           =>
     case AgentRecord()                    =>
+    case MetaReference(_)                 =>
   }
 
   def walk(x: Variable): Unit = {}
