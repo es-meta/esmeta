@@ -1,21 +1,22 @@
-package esmeta.es.util
+package esmeta.es.util.dsl
 
+import esmeta.es.util.OptimizationPath
 import esmeta.lang.*
 import esmeta.spec.Algorithm
 
 import scala.annotation.tailrec
 
-import dsl.AstExtensions.*
+import AstExtensions.*
 
 class DSLPath(dslDir: String) extends OptimizationPath {
 
   def apply(targets: List[Algorithm]) = {
-    val rules = dsl.DSLRuleParser.parseDir(dslDir)
+    val rules = DSLRuleParser.parseDir(dslDir)
     println(s"Using ${rules.length} internal rules")
     rules.foreach(r => println(s"  - ${r.name} (${r.getClass.getSimpleName})"))
     println()
 
-    val stats = new dsl.TransformStats()
+    val stats = new TransformStats()
 
     val result = targets.map { algo =>
       // println(s"[*] Processing ${algo.head.fname}")
@@ -31,20 +32,20 @@ class DSLPath(dslDir: String) extends OptimizationPath {
 
   def pass(
     body: Step,
-    rules: List[dsl.Rule],
-    stats: dsl.TransformStats,
+    rules: List[Rule],
+    stats: TransformStats,
   ): Step = {
     rules.foldLeft(body) { (curr, rule) =>
-      val ctx = dsl.Analyzer.buildContext(curr)
-      dsl.Transformer.transformStep(rule, curr, ctx, Some(stats))
+      val ctx = Analyzer.buildContext(curr)
+      Transformer.transformStep(rule, curr, ctx, Some(stats))
     }
   }
 
   @tailrec
   private def fixpoint(
     body: Step,
-    rules: List[dsl.Rule],
-    stats: dsl.TransformStats,
+    rules: List[Rule],
+    stats: TransformStats,
   ): Step = {
     val nextBody = pass(body, rules, stats)
     if (nextBody == body) body
@@ -55,10 +56,10 @@ class DSLPath(dslDir: String) extends OptimizationPath {
   // Predicates (from PredicateRegistry for reverse-lookup support)
   // ===========================================================================
 
-  val isSetDataPredicate: dsl.LangElemPredicate =
-    dsl.PredicateRegistry("isSetData")
-  val isMapDataPredicate: dsl.LangElemPredicate =
-    dsl.PredicateRegistry("isMapData")
-  val isSameOrCopyOf: dsl.LangElemPredicate =
-    dsl.PredicateRegistry("isSameOrCopyOf")
+  val isSetDataPredicate: LangElemPredicate =
+    PredicateRegistry("isSetData")
+  val isMapDataPredicate: LangElemPredicate =
+    PredicateRegistry("isMapData")
+  val isSameOrCopyOf: LangElemPredicate =
+    PredicateRegistry("isSameOrCopyOf")
 }

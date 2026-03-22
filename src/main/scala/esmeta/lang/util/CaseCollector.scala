@@ -158,6 +158,7 @@ class CaseCollector extends UnitWalker {
       // Should not reach here (polyfill)
       case WrappedTryCatchStep(t, c, cb) => ???
       case TaggedStep(s, t)              => ???
+      case MetaStep(name, multiline)     => ???
     })
     super.walk(step)
   }
@@ -392,6 +393,7 @@ class CaseCollector extends UnitWalker {
           if (params.isEmpty) "no parameters"
           else "parameters ({{ var }}*)"
         s"a new Abstract Closure with $p that captures {{ var }}* and performs the following steps when called: {{ step }}"
+      case MetaExpression(name) => ???
     })
     super.walk(expr)
   }
@@ -438,6 +440,7 @@ class CaseCollector extends UnitWalker {
         s"if {{ expr }}, then {{ expr }}"
       case CompoundCondition(left, op, right) =>
         s"{{ expr }} $op {{ expr }}"
+      case MetaCondition(name) => ???
     })
     super.walk(cond)
   }
@@ -488,6 +491,7 @@ class CaseCollector extends UnitWalker {
         "the active function object"
       case AgentRecord() =>
         "the Agent Record of the surrounding agent"
+      case MetaReference(name) => ???
     })
     super.walk(ref)
   }

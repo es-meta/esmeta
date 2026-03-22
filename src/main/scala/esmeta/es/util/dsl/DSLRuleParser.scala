@@ -3,7 +3,7 @@ package esmeta.es.util.dsl
 import esmeta.lang.*
 import esmeta.util.SystemUtils.*
 import io.circe.*
-import io.circe.yaml.scalayaml.parser as yamlParser
+import io.circe.yaml.scalayaml.{parser => yamlParser}
 
 import java.io.File
 

@@ -169,7 +169,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
   val optPaths: List[OptimizationPath] = List(
     ShorthandInlinePath(spec),
     CompletionPath(),
-  ) ++ (dslDir.map(DSLPath(_)))
+  ) ++ (dslDir.map(dsl.DSLPath(_)))
 
   /** list of polyfill targets composed recursively from targetPattern */
   lazy val targets: List[Algorithm] = {
