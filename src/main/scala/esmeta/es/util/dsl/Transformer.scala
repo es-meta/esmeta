@@ -58,6 +58,20 @@ object Transformer {
     println()
   }
 
+  /** Apply sub-rules to a step, pre-substituting parent bindings. */
+  private def applySubrules(
+    subrules: List[Rule],
+    bindings: CaptureEnv,
+    step: Step,
+    ctx: DSLContext,
+    stats: Option[TransformStats],
+  ): Step = {
+    val concreteRules = subrules.map(Substituter.substRule(_, bindings))
+    concreteRules.foldLeft(step) { (s, sr) =>
+      transformStep(sr, s, ctx, stats)
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // StepRule: uses LangWalker for full AST recursion
   // ---------------------------------------------------------------------------
@@ -92,11 +106,7 @@ object Transformer {
       rule.replace.map { template =>
         val result = Substituter.subst(template, bindings)
         onMatch(rule.name, step, result, stats)
-        // apply static + dynamic subrules
-        val allSubrules = rule.subrules ++ rule.dynamicSubrules(bindings)
-        allSubrules.foldLeft(result) { (s, sr) =>
-          transformStep(sr, s, ctx, stats)
-        }
+        applySubrules(rule.subrules, bindings, result, ctx, stats)
       }
     }
 
@@ -170,7 +180,7 @@ object Transformer {
   }
 
   // ---------------------------------------------------------------------------
-  // StepBlockRule
+  // StepBlockRule: sequence matching + optional ClosureConfig
   // ---------------------------------------------------------------------------
   private def applyStepBlockRule(
     rule: StepBlockRule,
@@ -201,21 +211,93 @@ object Transformer {
     val concreteBlock =
       BlockStep(StepBlock(steps.take(window).subSteps))
 
-    Unifier.unify(patternBlock, concreteBlock, ctx, rule.predicates) match {
+    Unifier.unify(
+      patternBlock,
+      concreteBlock,
+      ctx,
+      rule.predicates,
+    ) match {
       case Some(bindings) =>
         onMatch(rule.name, steps.take(window), bindings, stats)
-        val replaced = rule.dynamicReplace match {
-          case Some(fn) => fn(bindings, ctx, stats)
-          case None =>
-            rule.replace.map { template =>
-              val result = Substituter.subst(template, bindings)
-              // apply subrules
-              rule.subrules.foldLeft(result) { (s, sr) =>
-                transformStep(sr, s, ctx, stats)
-              }
-            }
+
+        // Copy check: verify $loopRef is same-length as $lengthRef
+        val passedCopyCheck = rule.copyCheck match {
+          case Some((loopRefHole, lengthRefHole)) =>
+            val loopRef = bindings(loopRefHole)
+            val lengthRef = bindings(lengthRefHole)
+            loopRef == lengthRef || (loopRef match {
+              case Variable(v, _) =>
+                ctx.copyOf.get(v).contains(lengthRef)
+              case _ => false
+            })
+          case None => true
         }
-        replaced ++ matchSequence(rule, steps.drop(window), ctx, stats)
+
+        if (!passedCopyCheck) {
+          println(
+            s"  [WARN] ${rule.name}: copy check failed, skipping",
+          )
+          steps.head ::
+          matchSequence(rule, steps.tail, ctx, stats)
+        } else {
+          val replaced = rule.closureConfig match {
+            case Some(cc) =>
+              val body = bindings(cc.bodyHole).asInstanceOf[Step]
+              val iterBase =
+                bindings(cc.iterBase).asInstanceOf[Reference]
+              val elemVar =
+                bindings(cc.elementVar).asInstanceOf[Variable]
+              val processed =
+                applySubrules(
+                  rule.subrules,
+                  bindings,
+                  body,
+                  ctx,
+                  stats,
+                )
+              if (cc.earlyReturn) {
+                EarlyReturn.wrap(
+                  processed,
+                  cc.aoName,
+                  iterBase,
+                  elemVar.name,
+                  List(),
+                  ctx,
+                  stats,
+                )
+              } else {
+                List(
+                  PerformStep(
+                    InvokeAbstractOperationExpression(
+                      cc.aoName,
+                      List(
+                        ReferenceExpression(iterBase),
+                        AbstractClosureExpression(
+                          List(elemVar),
+                          List(),
+                          processed,
+                        ),
+                      ),
+                      HtmlTag.None,
+                    ),
+                  ),
+                )
+              }
+            case None =>
+              rule.replace.map { template =>
+                val result = Substituter.subst(template, bindings)
+                applySubrules(
+                  rule.subrules,
+                  bindings,
+                  result,
+                  ctx,
+                  stats,
+                )
+              }
+          }
+          replaced ++
+          matchSequence(rule, steps.drop(window), ctx, stats)
+        }
       case None =>
         steps.head :: matchSequence(rule, steps.tail, ctx, stats)
     }
@@ -247,11 +329,14 @@ object Transformer {
   ): List[Step] = steps match {
     case Nil => Nil
     case head :: tail =>
-      Unifier.unify(rule.wherePattern, head, ctx, rule.predicates) match {
+      Unifier
+        .unify(rule.wherePattern, head, ctx, rule.predicates) match {
         case Some(bindings) =>
           onMatch(rule.name, head, head, stats)
-          val generatedRules = rule.mainRules(bindings)
-          val transformedTail = generatedRules.foldLeft(tail) {
+          // Pre-substitute where bindings into mainRules
+          val concreteRules =
+            rule.mainRules.map(Substituter.substRule(_, bindings))
+          val transformedTail = concreteRules.foldLeft(tail) {
             (steps, genRule) =>
               steps.map(s => transformStep(genRule, s, ctx, stats))
           }

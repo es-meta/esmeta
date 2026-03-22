@@ -23,7 +23,7 @@ type CaptureEnv = Map[String, LangElem]
 
 case class DSLContext(
   variableTypes: Map[String, String],
-  /** Maps variable name → reference it was copied from (valid only if no
+  /** Maps variable name -> reference it was copied from (valid only if no
     * mutation of the source occurred between copy and use).
     */
   copyOf: Map[String, Reference] = Map.empty,
@@ -32,20 +32,17 @@ type LangElemPredicate = (LangElem, DSLContext) => Boolean
 
 // ---------------------------------------------------------------------------
 // Rules — one variant per syntactic category for type safety
+// All rules are fully declarative (no lambdas).
 // ---------------------------------------------------------------------------
 sealed trait Rule { def name: String }
 
-/** Step-level rule. replace = None means delete. dynamicSubrules: generates
-  * additional sub-rules from captured bindings (e.g., variable renaming
-  * parameterized by matched values).
-  */
+/** Step-level rule. replace = None means delete. */
 case class StepRule(
   name: String,
   pattern: Step,
-  replace: Option[Step],
+  replace: Option[Step] = None,
   predicates: Map[String, LangElemPredicate] = Map.empty,
   subrules: List[Rule] = List.empty,
-  dynamicSubrules: CaptureEnv => List[Rule] = _ => List.empty,
 ) extends Rule
 
 /** Expression-level rule. */
@@ -72,10 +69,18 @@ case class ReferenceRule(
   predicates: Map[String, LangElemPredicate] = Map.empty,
 ) extends Rule
 
-/** StepBlock-level rule for multi-step sequence matching. dynamicReplace: when
-  * set, used instead of static replace+subrules. Receives captured bindings,
-  * DSLContext, and stats for procedural transforms (e.g., early-return
-  * wrapping).
+/** Configuration for closure wrapping with optional early-return. */
+case class ClosureConfig(
+  aoName: String,
+  iterBase: String,
+  elementVar: String,
+  bodyHole: String = "$body",
+  earlyReturn: Boolean = false,
+)
+
+/** StepBlock-level rule for multi-step sequence matching. When closureConfig is
+  * set, the engine wraps the matched body in a closure call (applying subrules
+  * first, then EarlyReturn if configured).
   */
 case class StepBlockRule(
   name: String,
@@ -83,18 +88,17 @@ case class StepBlockRule(
   replace: List[Step] = List.empty,
   predicates: Map[String, LangElemPredicate] = Map.empty,
   subrules: List[Rule] = List.empty,
-  dynamicReplace: Option[
-    (CaptureEnv, DSLContext, Option[TransformStats]) => List[Step],
-  ] = None,
+  closureConfig: Option[ClosureConfig] = None,
+  copyCheck: Option[(String, String)] = None,
 ) extends Rule
 
 /** Where-propagation rule. Scans a StepBlock for a context step matching
-  * `wherePattern`, captures bindings, keeps the step, then applies dynamically
-  * generated rules to subsequent siblings.
+  * `wherePattern`, captures bindings, keeps the step, then applies mainRules
+  * (pre-substituted with where bindings) to subsequent siblings.
   */
 case class WhereRule(
   name: String,
   wherePattern: Step,
-  mainRules: CaptureEnv => List[Rule],
+  mainRules: List[Rule],
   predicates: Map[String, LangElemPredicate] = Map.empty,
 ) extends Rule

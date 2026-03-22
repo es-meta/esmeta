@@ -1,10 +1,7 @@
 package esmeta.es.util.dsl
 
 import esmeta.lang.*
-import esmeta.lang.util.{
-  Walker => LangWalker,
-  UnitWalker => LangUnitWalker,
-}
+import esmeta.lang.util.{Walker => LangWalker, UnitWalker => LangUnitWalker}
 
 import scala.collection.mutable
 
@@ -12,8 +9,9 @@ import scala.collection.mutable
   *
   * When a loop body is converted into a closure (e.g., ForEach → closure call),
   * `return` statements inside the body need special handling:
-  * 1. Wrap each `ReturnStep(expr)` as `ReturnStep(Record{Type: "early-return", Value: expr})`
-  * 2. After the closure call, check if the result is an early-return and propagate it.
+  *   1. Wrap each `ReturnStep(expr)` as `ReturnStep(Record{Type:
+  *      "early-return", Value: expr})` 2. After the closure call, check if the
+  *      result is an early-return and propagate it.
   */
 object EarlyReturn {
 
@@ -40,8 +38,9 @@ object EarlyReturn {
   }
 
   /** Generate the full early-return wrapped output:
-    * 1. `Let _result = aoName(iterBase, closure(elementVar, patchedBody))`
-    * 2. `If _result !== undefined and _result.Type === "early-return", Return _result.Value`
+    *   1. `Let _result = aoName(iterBase, closure(elementVar, patchedBody))` 2.
+    *      `If _result !== undefined and _result.Type === "early-return", Return
+    *      _result.Value`
     */
   def wrap(
     body: Step,
