@@ -1,0 +1,4 @@
+name: "[OPER] SetData Has"
+pattern: SetDataHas($ref:var, $elem:expr)
+replace: IN__SetDataHas($ref:var, $elem:expr)
+predicate: $ref -> isSetData

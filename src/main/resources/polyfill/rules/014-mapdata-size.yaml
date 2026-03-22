@@ -1,0 +1,9 @@
+name: "MapData Size"
+pattern: |
+    1. Let $count:var be 0.
+    1. For each element $elem:var of $ref:var, do
+      1. If $elem:var.[[Key]] is not ~empty~, then
+        1. Set $count:var to $count:var + 1.
+replace: |
+    1. Let $count:var be IN__MapDataSize($ref:var).
+predicate: $ref -> isMapData

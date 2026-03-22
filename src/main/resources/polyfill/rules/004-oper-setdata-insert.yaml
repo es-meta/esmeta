@@ -1,0 +1,4 @@
+name: "[OPER] SetData Insert"
+pattern: 1. Append $elem:expr to $ref:var.
+replace: 1. Perform IN__SetDataInsert($ref:var, $elem:expr).
+predicate: $ref -> isSetData

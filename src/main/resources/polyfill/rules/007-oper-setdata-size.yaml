@@ -1,0 +1,4 @@
+name: "[OPER] SetData Size"
+pattern: "SetDataSize($ref:var)"
+replace: "IN__SetDataSize($ref:var)"
+predicate: $ref -> isSetData

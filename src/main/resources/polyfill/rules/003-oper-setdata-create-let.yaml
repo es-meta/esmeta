@@ -1,0 +1,4 @@
+name: "[OPER] SetData Create (Let)"
+pattern: 1. Let $ref:var be a new empty List.
+replace: 1. Let $ref:var be IN__SetDataCreate().
+predicate: $ref -> isSetData

@@ -52,10 +52,10 @@ object Transformer {
     stats: Option[TransformStats],
   ): Unit = {
     stats.foreach(_.record(ruleName))
-    println(s"[+] $ruleName")
-    println(s"    before: $before")
-    println(s"    after:  $after")
-    println()
+    // println(s"[+] $ruleName")
+    // println(s"    before: $before")
+    // println(s"    after:  $after")
+    // println()
   }
 
   /** Apply sub-rules to a step, pre-substituting parent bindings. */

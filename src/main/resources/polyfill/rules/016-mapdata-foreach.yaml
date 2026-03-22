@@ -1,0 +1,10 @@
+name: "MapData ForEach"
+pattern: "1. For each element $elem:var of $ref:var, $body:step"
+replace: "1. Perform IN__MapDataIterateForEach($ref:var, closure($elem:var){ $body:step })."
+predicate: $ref -> isMapData
+subrules:
+  - name: "MapData ForEach >> MapData Remove"
+    pattern: |
+        1. Set $elem:var.[[Key]] to ~empty~.
+        1. Set $elem:var.[[Value]] to ~empty~.
+    replace: "1. Perform IN__MapDataRemove($ref:var, $elem:var.[[Key]])."

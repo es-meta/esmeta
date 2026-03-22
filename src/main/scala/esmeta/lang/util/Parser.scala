@@ -14,6 +14,13 @@ trait Parsers extends IndentParsers {
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
 
+  // extension points for DSL parser (override in DSLParsers)
+  def extraStep: PL[Step] = failure("no extra step")
+  def extraExpr: PL[Expression] = failure("no extra expr")
+  def extraCond: PL[Condition] = failure("no extra cond")
+  def extraRef: PL[Reference] = failure("no extra ref")
+  def extraVariable: PL[Variable] = failure("no extra variable")
+
   // ---------------------------------------------------------------------------
   // metalanguage blocks
   // ---------------------------------------------------------------------------
@@ -54,6 +61,7 @@ trait Parsers extends IndentParsers {
   // metalanguage steps
   // ---------------------------------------------------------------------------
   given step: PL[Step] = {
+    extraStep |
     letStep |
     setStep |
     setAsStep |
@@ -355,6 +363,7 @@ trait Parsers extends IndentParsers {
   // metalanguage expressions
   // ---------------------------------------------------------------------------
   given expr: PL[Expression] = {
+    extraExpr |
     stringConcatExpr |
     listConcatExpr |
     listCopyExpr |
@@ -803,7 +812,7 @@ trait Parsers extends IndentParsers {
 
   // names for operations
   lazy val opName: Parser[String] =
-    "[a-zA-Z][a-zA-Z0-9/]*".r.filter(!mathFuncNames.contains(_))
+    "[a-zA-Z][a-zA-Z0-9/_]*".r.filter(!mathFuncNames.contains(_))
   lazy val mathFuncNames: Set[String] = Set(
     "max",
     "min",
@@ -966,6 +975,7 @@ trait Parsers extends IndentParsers {
 
   // base conditions
   lazy val baseCond: PL[Condition] =
+    extraCond |||
     specialCond |||
     containsCond |||
     inclusiveIntervalCond |||
@@ -1199,6 +1209,7 @@ trait Parsers extends IndentParsers {
   // metalanguage references
   // ---------------------------------------------------------------------------
   given ref: PL[Reference] = {
+    extraRef |
     ("the binding for" ~> expr <~ "in") ~ ref ^^ {
       case b ~ r => BindingLookup(r, b)
     } | ("the" ~> nt <~ "of") ~ ref ^^ {
@@ -1215,9 +1226,9 @@ trait Parsers extends IndentParsers {
   }.named("lang.Reference")
 
   // variables
-  lazy val variable: PL[Variable] = opt(nt) ~ "_[^_]+_".r ^^ {
+  lazy val variable: PL[Variable] = extraVariable | (opt(nt) ~ "_[^_]+_".r ^^ {
     case n ~ s => Variable(s.substring(1, s.length - 1), n)
-  }
+  })
 
   // base references
   lazy val baseRef: PL[Reference] = variable ~ rep(

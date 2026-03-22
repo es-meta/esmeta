@@ -1,0 +1,4 @@
+name: "[OPER] SetData Copy"
+pattern: 1. Let $var:var be a List whose elements are the elements of $ref:var.
+replace: 1. Let $var:var be IN__SetDataCopy($ref:var).
+predicate: $ref -> isSetData

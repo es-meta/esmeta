@@ -229,8 +229,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       // Should not reach here (polyfill)
       case WrappedTryCatchStep(t, c, cb) => ???
       case TaggedStep(s, t)              => ???
-      case MetaStep(name, true)          => app >> "$" >> name >> "*"
-      case MetaStep(name, false)         => app >> "$" >> name
+      case MetaStep(name, true)          => app >> name >> ":step*"
+      case MetaStep(name, false)         => app >> name >> ":step"
     }
     app >> step.endString
   }
@@ -894,7 +894,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
     ref match {
       case Variable(name, None) if name.startsWith("$") =>
-        app >> name
+        app >> name >> ":var"
       case Variable(name, nt) =>
         nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
       case Access(base, name, kind, AccessForm.Dot) =>
