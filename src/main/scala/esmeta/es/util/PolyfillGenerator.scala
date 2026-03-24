@@ -191,10 +191,11 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
             result ++= spec.fnameMap.get(name)
             walkList(args, walk)
           case XRefExpression(
-            XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
-            XRefExpressionOperator.InternalMethod,
-            id,
-          ) =>
+                XRefExpressionOperator.Algo |
+                XRefExpressionOperator.Definition |
+                XRefExpressionOperator.InternalMethod,
+                id,
+              ) =>
             println(id)
             result += spec.getAlgoById(id)
           case _ => super.walk(expr)
@@ -530,11 +531,17 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           id,
         ) =>
       println(spec.getAlgoById(id).head.fname)
-      val fname = spec.getAlgoById(id).head.fname.stripPrefix("INTRINSICS.yet:").replace("`", "").replace(".", "")
+      val fname = spec
+        .getAlgoById(id)
+        .head
+        .fname
+        .stripPrefix("INTRINSICS.yet:")
+        .replace("`", "")
+        .replace(".", "")
       s"${AO_HEADER}__${fname}"
     case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
       spec.getAlgoById(id).head.originalParams.length.toString
-    case XRefExpression(kind, id) => ???
+    case XRefExpression(kind, id)    => ???
     case SoleElementExpression(list) => ???
     case CodeUnitAtExpression(base, index) =>
       s"${compile(pb, base)}[\"${compile(pb, index)}\"]"
