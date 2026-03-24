@@ -24,7 +24,10 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
         name = "generated polyfills",
         iterable = ProgressBar("Dump polyfills", polyfills, detail = false),
         dirname = POLYFILL_LOG_DIR,
-        getName = poly => s"${poly.name}.poly",
+        getName = poly =>
+          if (poly.name.startsWith("INTRINSICS.yet:"))
+            s"${poly.name.stripPrefix("INTRINSICS.yet:").replace("`", "").replace(".", "")}.poly"
+          else s"${poly.name}.poly",
         getData = _.toString,
       )
 

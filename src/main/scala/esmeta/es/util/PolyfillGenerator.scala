@@ -183,13 +183,20 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         expand(acc ++ next, next)(f)
     }
 
-    def getAOCallees(algo: Algorithm): Set[String] = {
-      val result = mutable.Set[String]()
+    def getAOCallees(algo: Algorithm): Set[Algorithm] = {
+      val result = mutable.Set[Algorithm]()
       new LangUnitWalker {
         override def walk(expr: Expression): Unit = expr match
           case InvokeAbstractOperationExpression(name, args, _) =>
-            result += name
+            result ++= spec.fnameMap.get(name)
             walkList(args, walk)
+          case XRefExpression(
+            XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
+            XRefExpressionOperator.InternalMethod,
+            id,
+          ) =>
+            println(id)
+            result += spec.getAlgoById(id)
           case _ => super.walk(expr)
       }.walk(algo.body)
       result.toSet
@@ -202,7 +209,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
     // Build maximum set based on worklist algorithm
     val result = expand(initialTargets, initialTargets) {
-      _.flatMap(getAOCallees).flatMap(spec.fnameMap.get)
+      _.flatMap(getAOCallees)
     }
 
     // Filter out `ignoreTargets` & Sort the result
@@ -216,9 +223,6 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
   private val AO_HEADER = "AO";
   private val INTERNAL_HEADER = "IN";
   private val RESERVED_WORDS = Set("return")
-  private val YET_RULES = Map(
-    ("Return the code point _cp_.", "return cp"),
-  )
 
   /** compile an algorithm into a polyfill */
   def compile(algo: Algorithm): Polyfill =
@@ -495,10 +499,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
             ) =>
           s"${INTERNAL_HEADER}__IntRange(${compile(pb, from)}, $isFromInclusive, ${compile(pb, to)}, $isToInclusive, $isAscending)"
     case YetExpression(str, block) =>
-      YET_RULES.getOrElse(
-        str,
-        s"throw new Error(\"YET: ${str.replace("\"", "\\\"")}\")",
-      )
+      s"throw new Error(\"YET: ${str.replace("\"", "\\\"")}\")"
     case ReferenceExpression(ref)     => compile(pb, ref)
     case MathFuncExpression(op, args) => s"${compile(op)}(${compile(pb, args)})"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
@@ -523,7 +524,17 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       s"${compile(pb, l)} ${compile(op)} ${compile(pb, r)}"
     case AbstractClosureExpression(params, captured, body) =>
       s"function _self(${params.map(compile).mkString(", ")}) ${compileWithScope(pb, body)}"
-    case XRefExpression(op, id)      => ???
+    case XRefExpression(
+          XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
+          XRefExpressionOperator.InternalMethod,
+          id,
+        ) =>
+      println(spec.getAlgoById(id).head.fname)
+      val fname = spec.getAlgoById(id).head.fname.stripPrefix("INTRINSICS.yet:").replace("`", "").replace(".", "")
+      s"${AO_HEADER}__${fname}"
+    case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
+      spec.getAlgoById(id).head.originalParams.length.toString
+    case XRefExpression(kind, id) => ???
     case SoleElementExpression(list) => ???
     case CodeUnitAtExpression(base, index) =>
       s"${compile(pb, base)}[\"${compile(pb, index)}\"]"
