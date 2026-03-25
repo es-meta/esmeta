@@ -6,6 +6,7 @@ import esmeta.lang.RepeatStep.LoopCondition.{NoCondition, Until, While}
 import esmeta.lang.util.{UnitWalker as LangUnitWalker, Walker as LangWalker}
 import esmeta.spec.*
 import esmeta.ty.{NumberTy, ValueTy}
+import org.jsoup.nodes.Element
 
 import scala.collection.mutable
 
@@ -248,6 +249,7 @@ class PolyfillInspector(algos: List[Algorithm]) {
   private val simpleOptimizer = new Optimizer(
     optimizeRules = List(
       ShorthandInliningRule,
+      XRefInliningRule,
       ProducerWrapRule,
       CompletionCheckRule,
       LetStepCompletionRule,
@@ -257,6 +259,7 @@ class PolyfillInspector(algos: List[Algorithm]) {
       SetStepTransform,
       ReturnThrowTransform,
       TaggedStepTransform,
+      IfStepTransform,
       RecurseTransformRule,
     ),
     algos = algos,
@@ -689,15 +692,21 @@ object TaggedStepTransform extends TransformRule {
     val thenEnv = env.withType(targetVar, thenType)
     val elseEnv = env.withType(targetVar, elseType)
 
-    val newThen =
-      optimizer
-        .optimize(thenStep :: Nil, Nil, thenEnv, checkedVars)
-        ._1
-        .toBlockStep
-    val newElse =
-      elseStep.map(e =>
-        optimizer.optimize(e :: Nil, Nil, elseEnv, checkedVars)._1.toBlockStep,
-      )
+    val (thenSteps, thenOptEnv) =
+      optimizer.optimize(thenStep :: Nil, Nil, thenEnv, checkedVars)
+    val newThen = thenSteps.toBlockStep
+    val (newElse, elseOptEnv) = elseStep match {
+      case Some(e) =>
+        val (steps, eEnv) =
+          optimizer.optimize(e :: Nil, Nil, elseEnv, checkedVars)
+        (Some(steps.toBlockStep), eEnv)
+      case None => (None, elseEnv)
+    }
+    val mergedEnv = (isTerminal(thenStep), elseStep.map(isTerminal)) match {
+      case (true, Some(false)) => elseOptEnv
+      case (false, Some(true)) => thenOptEnv
+      case _                   => thenOptEnv.merge(elseOptEnv)
+    }
 
     val flagVar = tag.getOrElse("USE_FLAG", s"${targetVar}_kind")
     rebaseCondition(
@@ -714,11 +723,11 @@ object TaggedStepTransform extends TransformRule {
       case Some(newCond) =>
         (
           Some(TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag)),
-          env,
+          mergedEnv,
         )
       // TODO Can we ignore ElseStep? If not, how can we handle it?
       case None =>
-        (Some(newThen), env)
+        (Some(newThen), mergedEnv)
     }
   }
 
@@ -732,21 +741,29 @@ object TaggedStepTransform extends TransformRule {
     optimizer: Optimizer,
     checkedVars: Set[String],
   ): (Option[Step], CompletionEnv) = {
-    val newThen =
-      optimizer.optimize(thenStep :: Nil, Nil, env, checkedVars)._1.toBlockStep
-    val newElse =
-      elseStep.map(e =>
-        optimizer.optimize(e :: Nil, Nil, env, checkedVars)._1.toBlockStep,
-      )
+    val (thenSteps, thenOptEnv) =
+      optimizer.optimize(thenStep :: Nil, Nil, env, checkedVars)
+    val newThen = thenSteps.toBlockStep
+    val (newElse, elseOptEnv) = elseStep match {
+      case Some(e) =>
+        val (steps, eEnv) = optimizer.optimize(e :: Nil, Nil, env, checkedVars)
+        (Some(steps.toBlockStep), eEnv)
+      case None => (None, env)
+    }
+    val mergedEnv = (isTerminal(thenStep), elseStep.map(isTerminal)) match {
+      case (true, Some(false) | None) => elseOptEnv
+      case (false, Some(true))        => thenOptEnv
+      case _                          => thenOptEnv.merge(elseOptEnv)
+    }
     rebaseCondition(cond, Map()) match {
       case Some(newCond) =>
         (
           Some(TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag)),
-          env,
+          mergedEnv,
         )
       // TODO Can we ignore ElseStep? If not, how can we handle it?
       case None =>
-        (Some(newThen), env)
+        (Some(newThen), mergedEnv)
     }
   }
 }
@@ -1071,14 +1088,7 @@ object CompletionCheckRule extends OptimizeRule {
         ctx.env.withType(targetVar, checkType).withHandled(targetVar),
         ctx.checkedVars,
       ) match {
-        case (Some(optimizedCheck), _) =>
-          val continuationEnv =
-            if (isTerminal(ifStep.thenStep) && ifStep.elseStep.isEmpty) {
-              val oppositeType =
-                if (checkType == AbruptCompletion) NormalCompletion
-                else AbruptCompletion
-              ctx.env.withType(targetVar, oppositeType)
-            } else ctx.env
+        case (Some(optimizedCheck), continuationEnv) =>
           OptimizeResult(
             ctx.tail,
             optimizedCheck :: ctx.history,
@@ -1240,6 +1250,58 @@ object ShorthandInliningRule extends OptimizeRule {
           replaceWith.asInstanceOf[ReferenceExpression].ref
         } else ref
       case x => super.walk(x)
+    }
+  }
+}
+
+object XRefInliningRule extends OptimizeRule {
+
+  import PolyfillInspector.*
+
+  override def apply(ctx: OptimizeContext): Option[OptimizeResult] =
+    ctx.head match {
+      // XRefExpressionOperator.Algo = Let x be the algorithm steps defined in...
+      case step @ LetStep(
+            Variable(name, _),
+            XRefExpression(XRefExpressionOperator.Algo, id),
+          ) =>
+        val targetFunction = ctx.optimizer.algos.find(_.name.endsWith(id))
+        if (targetFunction.isEmpty) None
+        else {
+          val func = targetFunction.head
+          val extractedHead = func.head.asInstanceOf[BuiltinHead]
+          val extractedBody = func.body
+          val optimizedClosureBody = ctx.optimizer
+            .optimize(
+              extractedBody :: Nil,
+              Nil,
+              CompletionEnv(),
+              CompletionCheckAnalyzer.analyze(extractedBody),
+            )
+            ._1
+            .toBlockStep
+          val params = extractedHead.params
+          val closureExpression = AbstractClosureExpression(
+            params.map(it => Variable(it.name, Some("xref_inlined"))),
+            List(),
+            optimizedClosureBody,
+          )
+          Some(
+            OptimizeResult(
+              ctx.tail,
+              step.copy(expr = closureExpression) :: ctx.history,
+              ctx.env,
+            ),
+          )
+        }
+      case _ => None
+    }
+
+  extension (elem: Element) {
+    def getId: String = {
+      if (elem.id != "") elem.id
+      else if (elem.parent == null) ""
+      else elem.parent.getId
     }
   }
 }

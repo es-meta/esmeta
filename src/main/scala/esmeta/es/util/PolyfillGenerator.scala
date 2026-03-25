@@ -2,8 +2,9 @@ package esmeta.es.util
 
 import esmeta.es.*
 import esmeta.lang.*
-import esmeta.lang.util.{UnitWalker => LangUnitWalker, Walker => LangWalker}
+import esmeta.lang.util.{UnitWalker as LangUnitWalker, Walker as LangWalker}
 import esmeta.spec.*
+import esmeta.spec.BuiltinPath.YetPath
 import esmeta.util.BaseUtils.*
 
 import scala.annotation.tailrec
@@ -197,7 +198,13 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
                 id,
               ) =>
             println(id)
-            result += spec.getAlgoById(id)
+            val targetAlgo = spec.getAlgoById(id)
+            // Elem is reference; It is deinitialized at Inspector stage;;;;;;;
+            val capturedAlgo = targetAlgo.copy(head = targetAlgo.head match {
+              case a @ BuiltinHead(YetPath(_), _, _) => a.copy(YetPath(id))
+              case x                                 => x
+            })
+            result += capturedAlgo
           case _ => super.walk(expr)
       }.walk(algo.body)
       result.toSet
@@ -218,6 +225,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       .filter(algo => !ignoreTargets.contains(algo.name))
       .toList
       .sortWith(_.name < _.name)
+
+    // result.filter(algo => algo.name == "PerformPromiseAll").toList
   }
 
   private val IS_PRESENT = "IsPresent"
