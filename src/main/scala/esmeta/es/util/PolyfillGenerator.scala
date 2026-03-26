@@ -71,6 +71,10 @@ object PolyfillGenerator {
     "INTRINSICS.Array.prototype.toString",
     "INTRINSICS.Array.prototype.unshift",
 
+    // Unsupported
+    "INTRINSICS.MapIteratorPrototype.next",
+    "INTRINSICS.SetIteratorPrototype.next",
+
     // Yet AOs
     "ArrayCreate",
     "ArraySpeciesCreate",
@@ -533,7 +537,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case BitwiseExpression(l, op, r) =>
       s"${compile(pb, l)} ${compile(op)} ${compile(pb, r)}"
     case AbstractClosureExpression(params, captured, body) =>
-      s"function _self(${params.map(compile).mkString(", ")}) ${compileWithScope(pb, body)}"
+      val funcBody =
+        s"(${params.map(compile).mkString(", ")}) => ${compileWithScope(pb, body)}"
+      s"(() => {var _self = $funcBody; return _self;})()" // return IIFE
     case XRefExpression(
           XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
           XRefExpressionOperator.InternalMethod,

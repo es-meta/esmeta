@@ -948,8 +948,8 @@ object ProducerWrapRule extends OptimizeRule {
       val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
       // Always wrap — no optimization for known types.
       typeUpdate match {
-        case Some(NormalCompletion) | Some(AbruptCompletion) => None
-        case _                                               =>
+        case Some(NormalCompletion) | Some(AbruptCompletion) | None => None
+        case _                                                      =>
           // kindDecl goes inside the try block to avoid polluting the outer x_kind
           // when this wrap is nested inside a prior completion check on the same var.
           val flagName = s"${name}_kind"
@@ -980,26 +980,29 @@ object ProducerWrapRule extends OptimizeRule {
         && !ctx.env.getType(name).contains(ParameterCompletion) =>
       val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
       // Always wrap — kindDecl inside try to avoid outer x_kind pollution
-      val flagName = s"${name}_kind"
-      val envWithFlag = ctx.env.withFlag(flagName)
-      val kindDecl = getHoistedFlagSetting(flagName, "normal", ctx.env)
-      val wrapped = wrapProducerOnly(
-        List(SetStep(Variable(name, None), newExpr), kindDecl),
-        name,
-        s"_${name}_err",
-        flagName,
-        envWithFlag, // already declared → SetStep in catch
-      )
-      val newEnv = envWithFlag
-        .withHandled(name)
-        .withType(name, UnknownCompletion)
-      Some(
-        OptimizeResult(
-          ctx.tail,
-          ValueAccessUnwrapper(ctx.env).walk(wrapped) :: ctx.history,
-          newEnv,
-        ),
-      )
+      if (typeUpdate.isEmpty) { None }
+      else {
+        val flagName = s"${name}_kind"
+        val envWithFlag = ctx.env.withFlag(flagName)
+        val kindDecl = getHoistedFlagSetting(flagName, "normal", ctx.env)
+        val wrapped = wrapProducerOnly(
+          List(SetStep(Variable(name, None), newExpr), kindDecl),
+          name,
+          s"_${name}_err",
+          flagName,
+          envWithFlag, // already declared → SetStep in catch
+        )
+        val newEnv = envWithFlag
+          .withHandled(name)
+          .withType(name, UnknownCompletion)
+        Some(
+          OptimizeResult(
+            ctx.tail,
+            ValueAccessUnwrapper(ctx.env).walk(wrapped) :: ctx.history,
+            newEnv,
+          ),
+        )
+      }
     case _ => None
   }
 }
@@ -1371,120 +1374,6 @@ object TryCatchOptimizationRule extends OptimizeRule {
         }
       case _ => None
     }
-}
-
-object GeneratorModelingRule extends OptimizeRule {
-  val closureOptimizer = Optimizer(List(), List(), List())
-  override def apply(ctx: OptimizeContext): Option[OptimizeResult] =
-    ctx.head match {
-      case AbstractClosureExpression(_, _, body) => {
-        // if (!YieldWalker.checkYield(body)) return None
-        return ???
-        // closureOptimizer.optimize(body :: Nil, Nil, ctx.env, ctx.checkedVars)
-      }
-    }
-
-}
-
-object ClosureLoweringRule {
-  private type StateBlock = (Int, List[Step])
-  def flattenSteps(
-    originalSteps: List[Step],
-    currentLabel: Int,
-    nextLabel: Int,
-    exitLabel: Option[Int] = None,
-    jumpLabel: Option[Int] = None,
-  ): (List[StateBlock], Int) = {
-    def split(
-      unprocessed: List[Step],
-      label: Int,
-      current: List[Step],
-      history: List[StateBlock],
-      nextLabel: Int,
-    ): (List[StateBlock], Int) = unprocessed match {
-      case Nil =>
-        val finalBlock = (label, current.reverse)
-        (history :+ finalBlock, -1)
-      case LetStep(Variable(name, nt), expr) :: tail =>
-        ???
-      case RepeatStep(cond, body) :: tail =>
-        val condLabel = nextLabel
-        val bodyLabel = nextLabel + 1
-        val exitLabel = nextLabel + 2
-
-        val jumpToHead = setLabelAndContinue(condLabel)
-        val currentBlock = (label, (jumpToHead :: current).reverse)
-        val condStep = cond match {
-          case While(innerCond) =>
-            IfStep(
-              innerCond,
-              setLabelAndContinue(bodyLabel),
-              Some(setLabelAndContinue(exitLabel)),
-              ElseConfig(),
-            )
-          case Until(innerCond) =>
-            IfStep(
-              innerCond,
-              setLabelAndContinue(exitLabel),
-              Some(setLabelAndContinue(bodyLabel)),
-              ElseConfig(),
-            )
-          case NoCondition => setLabelAndContinue(bodyLabel)
-        }
-        val condBlock = (condLabel, List(condStep))
-        val (bodyBlocks, nextAvailableLabel) = flattenSteps(
-          body :: Nil,
-          bodyLabel,
-          exitLabel + 1,
-          exitLabel = Some(exitLabel),
-          jumpLabel = Some(condLabel),
-        )
-        split(
-          unprocessed = tail,
-          label = exitLabel,
-          current = Nil,
-          history = (history :+ currentBlock :+ condBlock) ::: bodyBlocks,
-          nextLabel = nextAvailableLabel,
-        )
-    }
-
-    split(originalSteps, currentLabel, Nil, Nil, nextLabel)
-  }
-
-  private def setLabelAndContinue(label: Int): Step =
-    TaggedStep(
-      YetStep(YetExpression(s"genContext.label = $label; continue;", None)),
-      Map(),
-    )
-
-  private object InvokeYieldCheckPattern {
-    def unapply(step: Step): Option[(Expression => Step, Expression)] =
-      step match {
-        case LetStep(Variable(name, nt), expr) => ???
-      }
-  }
-
-  private class YieldWalker(step: Step, targetExpression: Expression)
-    extends LangWalker {
-    private var _containsYield = false
-    override def walk(expr: Expression): Expression = expr match {
-      // TODO Hard-coded Yield AO
-      case InvokeAbstractOperationExpression(name, _, _)
-          if name contains "Yield" =>
-        _containsYield = true
-        targetExpression
-      case x => super.walk(x)
-    }
-
-  }
-
-  private object YieldWalker {
-    def checkYield(body: Step): Boolean = {
-      val walker = new YieldWalker(body, YetExpression("", None))
-      walker.walk(body)
-      walker._containsYield
-    }
-  }
 }
 
 // =============================================================================
