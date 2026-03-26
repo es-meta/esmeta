@@ -30,17 +30,17 @@ object Analyzer {
               ListCopyExpression(
                 ReferenceExpression(Access(_, s, _, _)),
               ),
-            ) if s == slot =>
+            ) if s.endsWith(slot) =>
           result.add(v)
         case LetStep(
               Variable(v, _),
               ReferenceExpression(Access(_, s, _, _)),
-            ) if s == slot =>
+            ) if s.endsWith(slot) =>
           result.add(v)
         case SetStep(
               Access(_, s, _, _),
               ReferenceExpression(Variable(v, _)),
-            ) if s == slot =>
+            ) if s.endsWith(slot) =>
           result.add(v)
         case _ => super.walk(step)
     }.walk(step)

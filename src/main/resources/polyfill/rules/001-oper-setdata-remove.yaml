@@ -1,4 +1,4 @@
-name: SetData Remove
+name: "[OPER] SetData Remove"
 pattern: 1. Replace $elem:expr in $ref:var with ~empty~.
 replace: 1. Perform IN__SetDataRemove($ref:var, $elem:expr).
 predicate: $ref -> isSetData

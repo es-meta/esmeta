@@ -171,10 +171,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     for { algo <- optimizedTargets } yield compile(algo)
 
   /** list of optimization paths */
-  val optPaths: List[OptimizationPath] = List(
-    ShorthandInlinePath(spec),
-    CompletionPath(),
-  ) ++ (dslDir.map(dsl.DSLPath(_)))
+  val optPaths: List[OptimizationPath] =
+    List(ShorthandInlinePath(spec)) ++ (dslDir.map(dsl.DSLPath(_))) ++ List(
+      CompletionPath(),
+    )
 
   /** list of polyfill targets composed recursively from targetPattern */
   lazy val targets: List[Algorithm] = {
@@ -229,8 +229,6 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       .filter(algo => !ignoreTargets.contains(algo.name))
       .toList
       .sortWith(_.name < _.name)
-
-    // result.filter(algo => algo.name == "PerformPromiseAll").toList
   }
 
   private val IS_PRESENT = "IsPresent"

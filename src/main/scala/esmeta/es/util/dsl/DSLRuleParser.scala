@@ -344,7 +344,7 @@ object PredicateRegistry {
   private val registry: Map[String, LangElemPredicate] = Map(
     "isSetData" -> ((elem, ctx) =>
       elem match {
-        case Access(_, "SetData", _, _) => true
+        case Access(_, slot, _, _) if slot.endsWith("SetData") => true
         case Variable(v, _) =>
           ctx.variableTypes.get(v).contains("SetData")
         case _ => false
@@ -352,7 +352,7 @@ object PredicateRegistry {
     ),
     "isMapData" -> ((elem, ctx) =>
       elem match {
-        case Access(_, "MapData", _, _) => true
+        case Access(_, slot, _, _) if slot.endsWith("MapData") => true
         case Variable(v, _) =>
           ctx.variableTypes.get(v).contains("MapData")
         case _ => false

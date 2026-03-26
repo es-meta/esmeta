@@ -82,13 +82,19 @@ object Transformer {
     stats: Option[TransformStats],
   ): Step = {
     new LangWalker {
+      override def walk(step: Step): Step = {
+        val walked = super.walk(step)
+        tryStepRule(rule, walked, ctx, stats) match {
+          case Some(Some(newStep)) => newStep
+          case _                   => walked
+        }
+      }
+
       override def walk(sb: StepBlock): StepBlock = {
         val processedChildren = sb.rawSteps.flatMap { childStep =>
-          val walked = walk(childStep)
-          tryStepRule(rule, walked, ctx, stats) match {
-            case Some(Some(newStep)) => Some(newStep)
-            case Some(None)          => None
-            case None                => Some(walked)
+          tryStepRule(rule, childStep, ctx, stats) match {
+            case Some(None) => None
+            case _          => Some(walk(childStep))
           }
         }
         StepBlock(processedChildren.subSteps)
