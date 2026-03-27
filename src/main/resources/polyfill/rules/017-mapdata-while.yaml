@@ -7,7 +7,7 @@ pattern: |
       1. $body:step*
 predicate: $ref -> isMapData
 closureConfig:
-  aoName: "IN__MapDataIterateWhile"
+  aoName: "IN__MapDataIterate"
   iterBase: "$ref"
   elementVar: "$elem"
 subrules:

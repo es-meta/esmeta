@@ -7,7 +7,7 @@ pattern: |
       1. $body:step*
 predicate: $lengthRef -> isSetData, $loopRef -> isSameOrCopyOf
 closureConfig:
-  aoName: "IN__SetDataIterateForEach"
+  aoName: "IN__SetDataIterate"
   iterBase: "$loopRef"
   elementVar: "$elem"
   earlyReturn: true

@@ -1,4 +1,4 @@
 name: "SetData ForEach"
 pattern: "1. For each element $elem:var of $ref:var, $body:step"
-replace: "1. Perform IN__SetDataIterateForEach($ref:var, closure($elem:var){ $body:step })."
+replace: "1. Perform IN__SetDataIterate($ref:var, closure($elem:var){ $body:step })."
 predicate: $ref -> isSetData
