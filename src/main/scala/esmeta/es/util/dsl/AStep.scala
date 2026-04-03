@@ -19,13 +19,13 @@ case class AStep(
           .map { case (k, v) => s"$k → ${v.mkString(".")}" }
           .mkString("{", ", ", "}")
     val stepStr = step match
-      case BlockStep(_) => "BlockStep"
-      case IfStep(_, _, _, _) => "IfStep"
+      case BlockStep(_)               => "BlockStep"
+      case IfStep(_, _, _, _)         => "IfStep"
       case ForEachStep(_, v, _, _, _) => s"ForEachStep(${v})"
-      case RepeatStep(_, _) => "RepeatStep"
-      case LetStep(v, _) => s"LetStep(${v})"
-      case SetStep(r, _) => s"SetStep(${r})"
-      case _ => step.getClass.getSimpleName
+      case RepeatStep(_, _)           => "RepeatStep"
+      case LetStep(v, _)              => s"LetStep(${v})"
+      case SetStep(r, _)              => s"SetStep(${r})"
+      case _                          => step.getClass.getSimpleName
     val self = s"${pad}${stepStr}  $stateStr\n"
     val childStr = children.map(_.prettyPrint(indent + 1)).mkString
     self + childStr

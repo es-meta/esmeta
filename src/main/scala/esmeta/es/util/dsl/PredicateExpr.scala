@@ -22,13 +22,13 @@ object PredicateExpr {
   // ---------------------------------------------------------------------------
 
   private sealed trait Token
-  private case object Wildcard extends Token           // _
+  private case object Wildcard extends Token // _
   private case class Field(name: String) extends Token // .[[X]]
-  private case object CopyStar extends Token           // .copy*
-  private case object CopyOnce extends Token           // .copy
-  private case object LParen extends Token             // (
-  private case object RParen extends Token             // )
-  private case object Alt extends Token                // |
+  private case object CopyStar extends Token // .copy*
+  private case object CopyOnce extends Token // .copy
+  private case object LParen extends Token // (
+  private case object RParen extends Token // )
+  private case object Alt extends Token // |
 
   private def tokenize(expr: String): List[Token] = {
     val tokens = scala.collection.mutable.ListBuffer[Token]()
@@ -48,9 +48,10 @@ object PredicateExpr {
           if (expr.startsWith(".[[", i)) {
             // .[[fieldName]]
             val end = expr.indexOf("]]", i + 3)
-            if (end < 0) throw new RuntimeException(
-              s"Unclosed [[ in predicate expression: $expr",
-            )
+            if (end < 0)
+              throw new RuntimeException(
+                s"Unclosed [[ in predicate expression: $expr",
+              )
             val name = expr.substring(i + 3, end)
             tokens += Field(name)
             i = end + 2
@@ -77,12 +78,12 @@ object PredicateExpr {
   // ---------------------------------------------------------------------------
 
   private def tokenToRegex(token: Token): String = token match {
-    case Wildcard  => ".*"
-    case Field(n)  => Regex.quote(s"[[$n]]")
-    case CopyStar  => s"(\\.${Regex.quote("copy")})*"
-    case CopyOnce  => s"\\.${Regex.quote("copy")}"
-    case LParen    => "("
-    case RParen    => ")"
-    case Alt       => "|"
+    case Wildcard => ".*"
+    case Field(n) => Regex.quote(s"[[$n]]")
+    case CopyStar => s"(\\.${Regex.quote("copy")})*"
+    case CopyOnce => s"\\.${Regex.quote("copy")}"
+    case LParen   => "("
+    case RParen   => ")"
+    case Alt      => "|"
   }
 }

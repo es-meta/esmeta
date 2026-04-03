@@ -27,7 +27,7 @@ sealed trait Rule[T <: LangElem] {
     val subStr = subrules.map(_.prettyPrint(indent + 1)).mkString
     header + patStr + repStr + subStr
 
-  def isMultiStepRule: Boolean = 
+  def isMultiStepRule: Boolean =
     pattern match {
       case _: BlockStep => true
       case _            => false

@@ -5,7 +5,6 @@ import esmeta.lang.util.UnitWalker as LangUnitWalker
 import esmeta.lang.util.Walker as LangWalker
 import esmeta.spec.*
 
-
 trait TransformPath {
   def apply(targets: List[Algorithm]): List[Algorithm]
 }
