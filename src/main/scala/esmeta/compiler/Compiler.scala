@@ -541,7 +541,7 @@ class Compiler(
     // Should not reach here (polyfill)
     case WrappedTryCatchStep(t, c, cb) => ???
     case TaggedStep(s, t)              => ???
-    case MetaStep(name, multiline)     => ???
+    case MetaStep(name, multiline, _)  => ???
   })
 
   /** compile local variable */
@@ -576,7 +576,7 @@ class Compiler(
       case CurrentRealmRecord()      => currentRealm
       case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
       case AgentRecord()             => GLOBAL_AGENT_RECORD
-      case MetaReference(name)       => ???
+      case MetaReference(name, _)    => ???
     })
 
   /** compile expressions */
@@ -799,8 +799,8 @@ class Compiler(
         toERef(fb, compile(fb, base), compile(fb, index))
       case StringExpression(expr) =>
         compile(fb, expr)
-      case lit: Literal         => compile(fb, lit)
-      case MetaExpression(name) => ???
+      case lit: Literal            => compile(fb, lit)
+      case MetaExpression(name, _) => ???
     })
 
   /** compile mathematical operators */
@@ -1052,7 +1052,7 @@ class Compiler(
           case CompoundConditionOperator.And   => and(l, r)
           case CompoundConditionOperator.Or    => or(l, r)
           case CompoundConditionOperator.Imply => or(not(l), r)
-      case MetaCondition(name) => ???
+      case MetaCondition(name, _) => ???
     })
 
   /** compile contains condition with additional constraints */

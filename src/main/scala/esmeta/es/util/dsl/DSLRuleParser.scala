@@ -1,242 +1,293 @@
 package esmeta.es.util.dsl
 
+import esmeta.es.util.dsl.AstExtensions.flatten
+import esmeta.es.util.dsl.AstExtensions.rawSteps
 import esmeta.lang.*
+import esmeta.lang.util.UnitWalker as LangUnitWalker
+import esmeta.lang.util.Walker as LangWalker
 import esmeta.util.SystemUtils.*
 import io.circe.*
-import io.circe.yaml.scalayaml.{parser => yamlParser}
+import io.circe.yaml.scalayaml.parser as yamlParser
 
 import java.io.File
+import scala.collection.mutable
+import scala.util.Try
 
-/** Parses DSL rule files (.yaml) into Rule objects. */
 object DSLRuleParser {
 
-  /** Parse all .yaml files in a directory. */
-  def parseDir(dir: String): List[Rule] = {
+  def parseDir(dir: String): List[Rule[LangElem]] = {
+    // println(s"[DSLRuleParser] parseDir: $dir")
     val files = new File(dir)
       .listFiles()
       .filter(_.getName.endsWith(".yaml"))
       .sortBy(_.getName)
-    files.flatMap(f => parseFile(f.getAbsolutePath)).toList
+    // println(s"[DSLRuleParser] found ${files.length} YAML files: ${files.map(_.getName).mkString(", ")}")
+    val rules = files.flatMap(f => parseFile(f.getAbsolutePath)).toList
+    // println(s"[DSLRuleParser] parsed ${rules.length} rules total")
+    rules
   }
 
-  /** Parse a single .yaml file into a list of Rules. */
-  def parseFile(path: String): List[Rule] = {
+  def parseFile(path: String): List[Rule[LangElem]] = {
+    // println(s"[DSLRuleParser] parseFile: $path")
     val content = readFile(path)
+
     val json = yamlParser.parse(content) match {
       case Right(j) => j
-      case Left(e) =>
-        throw new RuntimeException(s"YAML parse error in $path: $e")
+      case Left(e)  =>
+        // println(s"[DSLRuleParser]   YAML parse error: $e")
+        throw new RuntimeException(s"YAML syntax error in $path: $e")
     }
-    json.asArray match {
-      case Some(arr) => arr.toList.map(parseRule)
-      case None      =>
-        // Single rule object (individual file)
-        json.asObject match {
-          case Some(_) => List(parseRule(json))
-          case None =>
-            throw new RuntimeException(
-              s"Expected YAML array or object in $path",
-            )
+
+    json.asObject match {
+      case Some(_) =>
+        try {
+          val rule = parseRule(json)
+          // println(s"[DSLRuleParser]   OK: ${rule.name} (${rule.getClass.getSimpleName})")
+          List(rule)
+        } catch {
+          case e: Exception =>
+            // println(s"[DSLRuleParser]   FAILED: ${e.getMessage}")
+            throw e
         }
+      case None =>
+        throw new RuntimeException(
+          s"Expected YAML array or object in $path",
+        )
     }
   }
 
+  // No yet
+  // No blockstep with single step
+  def ensureComplete[T <: LangElem](body: T): T = {
+    var yetFound = false
+    var hasSingleStepBlock = false
+
+    new LangUnitWalker {
+      override def walk(step: Step): Unit = step match
+        case BlockStep(block) =>
+          hasSingleStepBlock ||= block.rawSteps.length == 1
+        case YetStep(expr) =>
+          println("YET: " + expr)
+          yetFound = true
+        case _ => super.walk(step)
+      override def walk(expr: Expression): Unit = expr match
+        case YetExpression(str, block) =>
+          println("YET: " + str)
+          yetFound = true
+        case _ => super.walk(expr)
+    }.walk(body)
+
+    if (yetFound) throw Exception("YET")
+    if (hasSingleStepBlock) throw Exception("Single Step Block")
+
+    body
+  }
+
+  def metaDefs(body: LangElem): Map[String, LangElem] = {
+    val result = mutable.Map[String, LangElem]()
+    new LangUnitWalker {
+      override def walk(step: Step): Unit = step match
+        case MetaStep(name, _, _) => result += (name -> step)
+        case _                    => super.walk(step)
+      override def walk(expr: Expression): Unit = expr match
+        case MetaExpression(name, _) => result += (name -> expr)
+        case _                       => super.walk(expr)
+      override def walk(cond: Condition): Unit = cond match
+        case MetaCondition(name, _) => result += (name -> cond)
+        case _                      => super.walk(cond)
+      override def walk(x: Variable): Unit = x match
+        case v @ Variable(name, _, true, _) =>
+          result += (name -> v)
+        case _ => super.walk(x)
+      override def walk(ref: Reference): Unit = ref match
+        case MetaReference(name, _) => result += (name -> ref)
+        case _                      => super.walk(ref)
+    }.walk(body)
+
+    result.toMap
+  }
+
+  def addIndent(str: String): String =
+    str.split("\n").mkString("\n  ", "\n  ", "")
+
   /** Parse a single rule JSON object. */
-  def parseRule(json: Json): Rule = {
+  def parseRule(
+    json: Json,
+    defs: Map[String, LangElem] = Map.empty,
+  ): Rule[LangElem] = {
     val obj = json.asObject.getOrElse(
       throw new RuntimeException(s"Expected object: $json"),
     )
+
     val name = getString(obj, "name")
-    val ruleType = getStringOpt(obj, "type")
-    val patternText = getStringOpt(obj, "pattern")
-    val replaceText = getStringOpt(obj, "replace")
-    val whereText = getStringOpt(obj, "where")
-    val predicateText = getStringOpt(obj, "predicate")
-    val isDelete = getBoolOpt(obj, "delete").getOrElse(false)
+    val patternText = getString(obj, "pattern").trim
+    val replaceText =
+      getStringOpt(obj, "replace").map(_.trim).filter(_.nonEmpty)
+    val predicates = parsePredicateConstraints(obj)
+
+    // println(s"[DSLRuleParser]   parseRule '$name'")
+    // println(s"[DSLRuleParser]     pattern: ${patternText.take(80)}")
+    // println(s"[DSLRuleParser]     replace: ${replaceText.map(_.take(80))}")
+    // println(s"[DSLRuleParser]     predicates: ${predicates.keys.mkString(", ")}")
+
+    // Auto-detect pattern type: try ref, cond, expr, step in order
+    val attempts = List[(String, String => LangElem)](
+      "ref" -> (text => ensureComplete(DSLParser(defs).parseRef(text))),
+      "expr" -> (text => ensureComplete(DSLParser(defs).parseExpr(text))),
+      "cond" -> (text => ensureComplete(DSLParser(defs).parseCond(text))),
+      "step" -> (text =>
+        ensureComplete(DSLParser(defs).parseStep(addIndent(text)).flatten),
+      ),
+    )
+    val results = attempts.map {
+      case (label, f) =>
+        val r = label -> Try(f(patternText))
+        r._2 match
+          case scala.util.Success(
+                _,
+              ) => // println(s"[DSLRuleParser]     try $label: OK")
+          case scala.util.Failure(
+                e,
+              ) => // println(s"[DSLRuleParser]     try $label: ${e.getMessage.take(60)}")
+        r
+    }
+    val patternElem: LangElem = results
+      .collectFirst {
+        case (_, scala.util.Success(elem)) =>
+          elem
+      }
+      .getOrElse {
+        val errors = results
+          .map { case (l, r) => s"  $l: ${r.failed.get.getMessage}" }
+          .mkString("\n")
+        throw new RuntimeException(
+          s"Rule '$name': failed to parse pattern:\n$errors\n--- pattern ---\n$patternText",
+        )
+      }
+
+    val patternDefs = metaDefs(patternElem) ++ defs
+
+    // Parse subrules with inherited meta-variable definitions
     val subrules = getArrayOpt(obj, "subrules")
-      .map(_.toList.map(parseRule))
+      .map(_.toList.map(subrule => parseRule(subrule, patternDefs)))
       .getOrElse(List.empty)
 
-    val predicates = predicateText
-      .map(parsePredicate)
-      .getOrElse(Map.empty)
-
-    // If delete: true, replace is None
-    val effectiveReplace =
-      if (isDelete) None else replaceText
-
-    // Parse closureConfig if present
-    val closureConfig = obj("closureConfig").flatMap(_.asObject).map { cc =>
-      ClosureConfig(
-        aoName = cc("aoName").flatMap(_.asString).getOrElse(""),
-        iterBase = cc("iterBase").flatMap(_.asString).getOrElse(""),
-        elementVar = cc("elementVar").flatMap(_.asString).getOrElse(""),
-        bodyHole = cc("bodyHole").flatMap(_.asString).getOrElse("$body"),
-        earlyReturn = cc("earlyReturn").flatMap(_.asBoolean).getOrElse(false),
-      )
-    }
-
-    // Parse copyCheck if present
-    val copyCheck = obj("copyCheck").flatMap(_.asArray).map { arr =>
-      val items = arr.flatMap(_.asString)
-      (items(0), items(1))
-    }
-
-    // Handle type: reference explicitly
-    if (ruleType.contains("reference")) {
-      val pt = patternText.getOrElse(
-        throw new RuntimeException(
-          s"Rule '$name': reference rule needs 'pattern'",
-        ),
-      )
-      val rt = replaceText.getOrElse(
-        throw new RuntimeException(
-          s"Rule '$name': reference rule needs 'replace'",
-        ),
-      )
-      return ReferenceRule(
-        name = name,
-        pattern = DSLParser.parseRef(pt.trim),
-        replace = DSLParser.parseRef(rt.trim),
-        predicates = predicates,
-      )
-    }
-
-    whereText match {
-      case Some(wt) =>
-        // WhereRule: where + optional pattern/replace as mainRules
-        val whereStep = parseStepText(wt.trim)
-        val mainRules = patternText match {
-          case Some(pt) =>
-            subrules ++ parsePatternReplace(
-              name,
-              pt,
-              effectiveReplace,
-              predicates,
-              List.empty,
-            )
-          case None =>
-            // where-only: subrules are the mainRules
-            subrules
-        }
-        WhereRule(
-          name = name,
-          wherePattern = whereStep,
-          mainRules = mainRules,
-          predicates = predicates,
+    // Construct the appropriate rule type based on parsed pattern
+    patternElem match {
+      case patRef: Reference =>
+        val repRef = replaceText.map(rt =>
+          ensureComplete(DSLParser(patternDefs).parseRef(rt)),
         )
-      case None =>
-        patternText match {
-          case Some(pt) =>
-            parsePatternReplace(
-              name,
-              pt,
-              effectiveReplace,
-              predicates,
-              subrules,
-              closureConfig,
-              copyCheck,
-            ) match {
-              case List(single) => single
-              case rules =>
-                throw new RuntimeException(
-                  s"Rule '$name' produced ${rules.length} rules, expected 1",
-                )
-            }
-          case None =>
-            throw new RuntimeException(
-              s"Rule '$name': needs 'pattern' or 'where' field",
+        ReferenceRule(name, patRef, repRef, predicates, subrules)
+      case patCond: Condition =>
+        val repCond =
+          replaceText.map(rt =>
+            ensureComplete(DSLParser(patternDefs).parseCond(rt)),
+          )
+        ConditionRule(name, patCond, repCond, predicates, subrules)
+      case patExpr: Expression =>
+        val repExpr =
+          replaceText.map(rt =>
+            ensureComplete(DSLParser(patternDefs).parseExpr(rt)),
+          )
+        ExpressionRule(name, patExpr, repExpr, predicates, subrules)
+      case patStep: Step =>
+        // println(s"[DSLRuleParser]     patternDefs: ${patternDefs.map { case (k, v) => s"$k:${v.getClass.getSimpleName}" }.mkString(", ")}")
+        val repStep =
+          replaceText.map { rt =>
+            ensureComplete(
+              DSLParser(patternDefs).parseStep(addIndent(rt)).flatten,
             )
-        }
+          }
+        StepRule(name, patStep, repStep, predicates, subrules)
+      case other =>
+        throw new RuntimeException(
+          s"Rule '$name': unexpected pattern type: ${other.getClass.getSimpleName}",
+        )
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Determine rule type from pattern text
+  // Predicate constraint parsing
   // ---------------------------------------------------------------------------
 
-  /** Parse pattern/replace into the appropriate Rule type. */
-  private def parsePatternReplace(
-    name: String,
-    patternText: String,
-    replaceText: Option[String],
-    predicates: Map[String, LangElemPredicate],
-    subrules: List[Rule],
-    closureConfig: Option[ClosureConfig] = None,
-    copyCheck: Option[(String, String)] = None,
-  ): List[Rule] = {
-    val pt = patternText.trim
+  private def parsePredicateConstraints(
+    obj: JsonObject,
+  ): Map[String, LangElemPredicate] = {
+    obj("where") match {
+      case None => Map.empty
+      case Some(whereJson) =>
+        val (applications, definitions) = whereJson.asArray match {
+          case Some(arr) =>
+            val apps = arr.flatMap(_.asString).toList
+            val defs = arr
+              .flatMap(_.asObject)
+              .flatMap(_.toList.collect {
+                case (name, value) if value.asString.isDefined =>
+                  name -> value.asString.get
+              })
+              .toMap
+            (apps, defs)
+          case None => (Nil, Map.empty)
+        }
 
-    // Try as step (starts with "1." or is a known step keyword)
-    if (pt.startsWith("1.")) {
-      val patternSteps = parseStepListText(pt)
-      val replaceSteps =
-        replaceText.map(rt => parseStepListText(rt.trim))
-
-      if (patternSteps.length == 1 && closureConfig.isEmpty) {
-        // Single step → StepRule
-        List(
-          StepRule(
-            name = name,
-            pattern = patternSteps.head,
-            replace = replaceSteps.map(_.head),
-            predicates = predicates,
-            subrules = subrules,
-          ),
-        )
-      } else {
-        // Multi-step → StepBlockRule
-        List(
-          StepBlockRule(
-            name = name,
-            patternSteps = patternSteps,
-            replace = replaceSteps.getOrElse(List.empty),
-            predicates = predicates,
-            subrules = subrules,
-            closureConfig = closureConfig,
-            copyCheck = copyCheck,
-          ),
-        )
-      }
-    } else {
-      // Try as expression first, then condition
-      tryParseExpr(pt) match {
-        case Some(patExpr) =>
-          val repExpr = replaceText
-            .map(rt => DSLParser.parseExpr(rt.trim))
-            .getOrElse(
-              throw new RuntimeException(
-                s"Rule '$name': expression rule needs replace",
-              ),
-            )
-          List(
-            ExpressionRule(
-              name = name,
-              pattern = patExpr,
-              replace = repExpr,
-              predicates = predicates,
-            ),
-          )
-        case None =>
-          // Try as condition
-          val patCond = DSLParser.parseCond(pt)
-          val repCond = replaceText
-            .map(rt => DSLParser.parseCond(rt.trim))
-            .getOrElse(
-              throw new RuntimeException(
-                s"Rule '$name': condition rule needs replace",
-              ),
-            )
-          List(
-            ConditionRule(
-              name = name,
-              pattern = patCond,
-              replace = repCond,
-              predicates = predicates,
-            ),
-          )
-      }
+        applications
+          .flatMap(_.split(",").map(_.trim).filter(_.nonEmpty))
+          .map { entry =>
+            val pattern =
+              "([a-zA-Z_][a-zA-Z0-9_]*)\\(([a-zA-Z_][a-zA-Z0-9_]*)\\)".r
+            entry match {
+              case pattern(predName, varName) =>
+                val predExpr = definitions.getOrElse(
+                  predName,
+                  throw new RuntimeException(
+                    s"Predicate '$predName' not defined in where list",
+                  ),
+                )
+                val regex = PredicateExpr.parse(predExpr)
+                val pred: LangElemPredicate = (elem, ctx) =>
+                  elem match {
+                    case ref: Reference =>
+                      val path = Analyzer.resolvePath(ref, ctx.symbolicPaths)
+                      val result =
+                        path.nonEmpty && PredicateExpr.matches(path, regex)
+                      // println(s"    [PRED-DETAIL] pred=$predName ref=$ref path=${path.mkString(".")} result=$result")
+                      result
+                    case other =>
+                      // println(s"    [PRED-DETAIL] unhandled type=${other.getClass.getSimpleName} node=$other")
+                      false
+                  }
+                varName -> pred
+              case _ =>
+                throw new RuntimeException(
+                  s"Invalid where constraint: '$entry'. Expected format: predName(varName)",
+                )
+            }
+          }
+          .toMap
     }
+  }
+
+  /** Parse the legacy predicates: YAML list into a map of name → expression
+    * string.
+    */
+  private def parsePredDefinitions(
+    obj: JsonObject,
+  ): Map[String, String] = {
+    getArrayOpt(obj, "predicates")
+      .map { arr =>
+        arr.flatMap { json =>
+          json.asObject
+            .map { inner =>
+              inner.toList.collect {
+                case (name, value) if value.asString.isDefined =>
+                  name -> value.asString.get
+              }
+            }
+            .getOrElse(List.empty)
+        }.toMap
+      }
+      .getOrElse(Map.empty)
   }
 
   // ---------------------------------------------------------------------------
@@ -251,7 +302,7 @@ object DSLRuleParser {
       if (steps.length == 1) steps.head
       else BlockStep(StepBlock(steps.map(SubStep(None, _))))
     } else {
-      DSLParser.parseStep(t)
+      DSLParser().parseStep(t)
     }
   }
 
@@ -263,7 +314,7 @@ object DSLRuleParser {
     // Wrap in a dummy step so the indent parser can handle the block
     val wrapped =
       s"for each _dummy_ of _dummy_, do\n${trimmed.linesIterator.map("  " + _).mkString("\n")}"
-    val parsed = DSLParser.parseStep(wrapped)
+    val parsed = DSLParser().parseStep(wrapped)
     parsed match {
       case ForEachStep(_, _, _, _, BlockStep(StepBlock(steps))) =>
         steps.map(_.step)
@@ -278,37 +329,8 @@ object DSLRuleParser {
 
   /** Try to parse text as an expression. */
   private def tryParseExpr(text: String): Option[Expression] = {
-    try { Some(DSLParser.parseExpr(text)) }
+    try { Some(DSLParser().parseExpr(text)) }
     catch { case _: Throwable => None }
-  }
-
-  /** Try to parse text as a condition. */
-  private def tryParseCond(text: String): Option[Condition] = {
-    try { Some(DSLParser.parseCond(text)) }
-    catch { case _: Throwable => None }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Predicate parsing
-  // ---------------------------------------------------------------------------
-
-  /** Parse "$ ref -> isSetData" into predicate map. */
-  private def parsePredicate(
-    text: String,
-  ): Map[String, LangElemPredicate] = {
-    text
-      .split(",")
-      .map(_.trim)
-      .filter(_.nonEmpty)
-      .map { entry =>
-        val parts = entry.split("->").map(_.trim)
-        if (parts.length != 2)
-          throw new RuntimeException(s"Invalid predicate: '$entry'")
-        val varName = parts(0)
-        val predName = parts(1)
-        varName -> PredicateRegistry(predName)
-      }
-      .toMap
   }
 
   // ---------------------------------------------------------------------------
@@ -319,12 +341,13 @@ object DSLRuleParser {
     obj(key)
       .flatMap(_.asString)
       .getOrElse(throw new RuntimeException(s"Missing string field '$key'"))
+      .strip()
 
   private def getStringOpt(
     obj: JsonObject,
     key: String,
   ): Option[String] =
-    obj(key).flatMap(_.asString)
+    obj(key).flatMap(_.asString).map(_.strip())
 
   private def getBoolOpt(
     obj: JsonObject,
@@ -337,47 +360,4 @@ object DSLRuleParser {
     key: String,
   ): Option[Vector[Json]] =
     obj(key).flatMap(_.asArray)
-}
-
-/** Registry of named predicates referenced from YAML files. */
-object PredicateRegistry {
-  private val registry: Map[String, LangElemPredicate] = Map(
-    "isSetData" -> ((elem, ctx) =>
-      elem match {
-        case Access(_, slot, _, _) if slot.endsWith("SetData") => true
-        case Variable(v, _) =>
-          ctx.variableTypes.get(v).contains("SetData")
-        case _ => false
-      },
-    ),
-    "isMapData" -> ((elem, ctx) =>
-      elem match {
-        case Access(_, slot, _, _) if slot.endsWith("MapData") => true
-        case Variable(v, _) =>
-          ctx.variableTypes.get(v).contains("MapData")
-        case _ => false
-      },
-    ),
-    "isSameOrCopyOf" -> ((elem, ctx) =>
-      elem match {
-        case Variable(v, _) =>
-          ctx.variableTypes.get(v).contains("SetData") ||
-          ctx.variableTypes.get(v).contains("MapData") ||
-          ctx.copyOf.contains(v)
-        case Access(_, "SetData", _, _) => true
-        case Access(_, "MapData", _, _) => true
-        case _                          => false
-      },
-    ),
-  )
-
-  def apply(name: String): LangElemPredicate =
-    registry.getOrElse(
-      name,
-      throw new RuntimeException(s"Unknown predicate: '$name'"),
-    )
-
-  /** Reverse-lookup: find the name for a predicate function. */
-  def reverseLookup(pred: LangElemPredicate): Option[String] =
-    registry.collectFirst { case (name, p) if p eq pred => name }
 }

@@ -229,8 +229,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       // Should not reach here (polyfill)
       case WrappedTryCatchStep(t, c, cb) => ???
       case TaggedStep(s, t)              => ???
-      case MetaStep(name, true)          => app >> name >> ":step*"
-      case MetaStep(name, false)         => app >> name >> ":step"
+      case MetaStep(name, true, _)       => app >> name >> ":step*"
+      case MetaStep(name, false, _)      => app >> name >> ":step"
     }
     app >> step.endString
   }
@@ -388,7 +388,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> str
         block.fold(app)(app >> _)
       case multi: MultilineExpression => app >> multi
-      case MetaExpression(name)       => app >> name >> ":expr"
+      case MetaExpression(name, _)    => app >> name >> ":expr"
     }
   }
 
@@ -783,7 +783,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         }
         given Rule[List[Condition]] = listNamedSepRule(namedSep = sep)
         app >> conds
-      case MetaCondition(name) => app >> name >> ":cond"
+      case MetaCondition(name, _) => app >> name >> ":cond"
     }
   }
 
@@ -893,9 +893,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case Component(post) => app >> name >> (if (post) " component" else "")
     }
     ref match {
-      case Variable(name, None) if name.startsWith("$") =>
+      case Variable(name, None, _, _) if name.startsWith("$") =>
         app >> name >> ":var"
-      case Variable(name, nt) =>
+      case Variable(name, nt, _, _) =>
         nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
       case Access(base, name, kind, AccessForm.Dot) =>
         app >> base >> "." >> (name, kind)
@@ -929,7 +929,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the active function object"
       case AgentRecord() =>
         app >> "the Agent Record of the surrounding agent"
-      case MetaReference(name) => app >> name >> ":ref"
+      case MetaReference(name, _) => app >> name >> ":ref"
     }
   }
 

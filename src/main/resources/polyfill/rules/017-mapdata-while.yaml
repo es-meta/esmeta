@@ -1,24 +1,24 @@
 name: "MapData While"
 pattern: |
-    1. Let $length:var be the number of elements in $ref:var.
-    1. Let $index:var be 0.
-    1. Repeat, while $index:var < $length:var,
-      1. Let $elem:var be $ref:var[$index:var].
-      1. $body:step*
-predicate: $ref -> isMapData
-closureConfig:
-  aoName: "IN__MapDataIterate"
-  iterBase: "$ref"
-  elementVar: "$elem"
+    1. Let {{ length : var }} be the number of elements in {{ base : ref }}.
+    1. Let {{ index : var }} be 0.
+    1. Repeat, while {{ index }} < {{ length }},
+      1. Let {{ elem : var }} be {{ base }}[ {{ index }} ].
+      1. {{ body : step* }}
+replace: |
+    1. Perform IN__MapDataIterate({{ base }}, closure({{ elem }}) { {{ body }} }).
+where:
+  - isMapData(base)
+  - { isMapData: "_ (.[[MapData]] | .[[WeakMapData]]) .copy*" }
 subrules:
-  - name: "MapData While >> Remove Set Length"
-    pattern: "1. Set $length:var to $_:expr."
-    delete: true
-  - name: "MapData While >> Remove Index Increment"
-    pattern: "1. Set $index:var to $index:var + 1."
-    delete: true
-  - name: "MapData While >> MapData Remove"
+  - name: Remove Set Length
+    pattern: "1. Set {{ length }} to the number of elements in {{ base }}."
+    replace: "1. Do nothing."
+  - name: Remove Index Increment
+    pattern: "1. Set {{ index }} to {{ index }} + 1."
+    replace: "1. Do nothing."
+  - name: MapData Remove
     pattern: |
-        1. Set $elem:var.[[Key]] to ~empty~.
-        1. Set $elem:var.[[Value]] to ~empty~.
-    replace: "1. Perform IN__MapDataRemove($ref:var, $elem:var.[[Key]])."
+      1. Set {{ elem }}.[[Key]] to ~empty~.
+      1. Set {{ elem }}.[[Value]] to ~empty~.
+    replace: "1. Perform IN__MapDataRemove({{ base }}, {{ elem }}.[[Key]])."

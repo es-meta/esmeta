@@ -1,11 +1,15 @@
 name: "SetData Has"
 pattern: |
-    1. For each element $elem:var of $base:ref, do
-      1. If $elem:var is not ~empty~ and SameValue($elem:var, $value:var) is *true*, $body:step
-replace: "1. If IN__SetDataHas($base:ref, $value:var) is *true*, $body:step"
-predicate: $ref -> isSetData
+    1. For each element {{ elem : var }} of {{ base : ref }}, do
+      1. If {{ elem }} is not ~empty~ and SameValue({{ elem }}, {{ value : var }}) is *true*, then
+        1. {{ body : step }}
+replace: |
+    1. If IN__SetDataHas({{ base }}, {{ value }}) is *true*, then
+      1. {{ body }}
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }
 subrules:
-  - name: "SetData Has >> Rename Variable"
-    type: reference
-    pattern: "$elem:var"
-    replace: "$value:var"
+  - name: Rename Variable
+    pattern: "{{ elem }}"
+    replace: "{{ value }}"

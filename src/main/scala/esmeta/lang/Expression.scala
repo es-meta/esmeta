@@ -369,4 +369,4 @@ case class ObjectTypeLiteral() extends ESTypeLiteral
 // -----------------------------------------------------------------------------
 // polyfill DSL
 // -----------------------------------------------------------------------------
-case class MetaExpression(name: String) extends Expression
+case class MetaExpression(name: String, variant: Int = 0) extends Expression

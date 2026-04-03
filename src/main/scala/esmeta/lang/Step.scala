@@ -215,4 +215,5 @@ case class WrappedTryCatchStep(
 case class TaggedStep(step: Step, tag: Map[String, String]) extends Step
 
 // Polyfill DSL
-case class MetaStep(name: String, multiline: Boolean = false) extends Step
+case class MetaStep(name: String, multiline: Boolean = false, variant: Int = 0)
+  extends Step

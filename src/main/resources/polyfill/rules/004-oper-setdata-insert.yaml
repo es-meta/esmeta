@@ -1,4 +1,8 @@
 name: "[OPER] SetData Insert"
-pattern: 1. Append $elem:expr to $ref:var.
-replace: 1. Perform IN__SetDataInsert($ref:var, $elem:expr).
-predicate: $ref -> isSetData
+pattern: |
+  1. Append {{ elem : expr }} to {{ base : ref }}.
+replace: |
+  1. Perform IN__SetDataInsert({{ base }}, {{ elem }}).
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }

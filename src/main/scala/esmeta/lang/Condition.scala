@@ -109,4 +109,4 @@ enum CompoundConditionOperator extends LangElem:
   case And, Or, Imply
 
 // polyfill DSL
-case class MetaCondition(name: String) extends Condition
+case class MetaCondition(name: String, variant: Int = 0) extends Condition

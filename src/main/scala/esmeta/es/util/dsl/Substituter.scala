@@ -1,7 +1,7 @@
 package esmeta.es.util.dsl
 
 import esmeta.lang.*
-import esmeta.lang.util.{Walker => LangWalker}
+import esmeta.lang.util.Walker as LangWalker
 
 import AstExtensions.*
 
@@ -9,52 +9,61 @@ object Substituter {
 
   private def mkWalker(bindings: CaptureEnv): LangWalker = new LangWalker {
     override def walk(step: Step): Step = step match {
-      case MetaStep(name, ml) =>
+      case MetaStep(name, ml, v) =>
         bindings
-          .get(name)
+          .get(CaptureKey(name, v))
           .map(_.asInstanceOf[Step])
-          .getOrElse(MetaStep(name, ml))
+          .getOrElse(MetaStep(name, ml, v))
       case _ => super.walk(step)
     }
 
     override def walk(expr: Expression): Expression = expr match {
-      case MetaExpression(name) =>
+      case MetaExpression(name, v) =>
         bindings
-          .get(name)
+          .get(CaptureKey(name, v))
           .map(_.asInstanceOf[Expression])
-          .getOrElse(MetaExpression(name))
+          .getOrElse(MetaExpression(name, v))
       case _ => super.walk(expr)
     }
 
     override def walk(cond: Condition): Condition = cond match {
-      case MetaCondition(name) =>
+      case MetaCondition(name, v) =>
         bindings
-          .get(name)
+          .get(CaptureKey(name, v))
           .map(_.asInstanceOf[Condition])
-          .getOrElse(MetaCondition(name))
+          .getOrElse(MetaCondition(name, v))
       case _ => super.walk(cond)
     }
 
     override def walk(ref: Reference): Reference = ref match {
-      case MetaReference(name) =>
+      case MetaReference(name, v) =>
         bindings
-          .get(name)
-          .map(_.asInstanceOf[Reference])
-          .getOrElse(MetaReference(name))
-      case Variable(name, nt) if name.startsWith("$") =>
+          .get(CaptureKey(name, v))
+          .map(asRef)
+          .getOrElse(MetaReference(name, v))
+      case Variable(name, nt, true, variant) =>
         bindings
-          .get(name)
-          .map(_.asInstanceOf[Reference])
-          .getOrElse(Variable(name, nt))
+          .get(CaptureKey(name, variant))
+          .map(asRef)
+          .getOrElse(Variable(name, nt, true, variant))
       case _ => super.walk(ref)
     }
 
+    private def asRef(elem: LangElem): Reference = elem match {
+      case ref: Reference           => ref
+      case ReferenceExpression(ref) => ref
+      case other =>
+        throw new RuntimeException(
+          s"Cannot coerce ${other.getClass.getSimpleName} to Reference",
+        )
+    }
+
     override def walk(x: Variable): Variable = x match {
-      case Variable(name, nt) if name.startsWith("$") =>
+      case Variable(name, nt, true, variant) =>
         bindings
-          .get(name)
+          .get(CaptureKey(name, variant))
           .map(_.asInstanceOf[Variable])
-          .getOrElse(Variable(name, nt))
+          .getOrElse(Variable(name, nt, true, variant))
       case _ => super.walk(x)
     }
   }
@@ -72,7 +81,10 @@ object Substituter {
     mkWalker(bindings).walk(ref)
 
   /** Substitute bindings into a Rule's patterns and templates. */
-  def substRule(rule: Rule, bindings: CaptureEnv): Rule = rule match {
+  def substRule(
+    rule: Rule[LangElem],
+    bindings: CaptureEnv,
+  ): Rule[LangElem] = rule match {
     case r: StepRule =>
       r.copy(
         pattern = subst(r.pattern, bindings),
@@ -82,28 +94,17 @@ object Substituter {
     case r: ExpressionRule =>
       r.copy(
         pattern = subst(r.pattern, bindings),
-        replace = subst(r.replace, bindings),
+        replace = r.replace.map(subst(_, bindings)),
       )
     case r: ConditionRule =>
       r.copy(
         pattern = subst(r.pattern, bindings),
-        replace = subst(r.replace, bindings),
+        replace = r.replace.map(subst(_, bindings)),
       )
     case r: ReferenceRule =>
       r.copy(
         pattern = subst(r.pattern, bindings),
-        replace = subst(r.replace, bindings),
-      )
-    case r: StepBlockRule =>
-      r.copy(
-        patternSteps = r.patternSteps.map(subst(_, bindings)),
         replace = r.replace.map(subst(_, bindings)),
-        subrules = r.subrules.map(substRule(_, bindings)),
-      )
-    case r: WhereRule =>
-      r.copy(
-        wherePattern = subst(r.wherePattern, bindings),
-        mainRules = r.mainRules.map(substRule(_, bindings)),
       )
   }
 }

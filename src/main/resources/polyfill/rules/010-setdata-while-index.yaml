@@ -1,33 +1,22 @@
-name: "SetData While+Index"
+name: "SetData While"
 pattern: |
-    1. Let $length:var be the number of elements in $lengthRef:var.
-    1. Let $index:var be 0.
-    1. Repeat, while $index:var < $length:var,
-      1. Let $elem:var be $loopRef:var[$index:var].
-      1. $body:step*
-predicate: $lengthRef -> isSetData, $loopRef -> isSameOrCopyOf
-closureConfig:
-  aoName: "IN__SetDataIterate"
-  iterBase: "$loopRef"
-  elementVar: "$elem"
-  earlyReturn: true
-copyCheck: [$loopRef, $lengthRef]
+    1. Let {{ length : var }} be the number of elements in {{ base'0 : ref }}.
+    1. Let {{ index : var }} be 0.
+    1. Repeat, while {{ index }} < {{ length }},
+      1. Let {{ elem : var }} be {{ base'1 }}[ {{ index }} ].
+      1. {{ body : step* }}
+replace: |
+    1. Perform IN__SetDataIterate({{ base'1 }}, closure({{ elem }}) { {{ body }} }).
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }
 subrules:
-  - name: "SetData While+Index >> Remove Set Length"
-    pattern: "1. Set $length:var to $_:expr."
-    delete: true
-  - name: "SetData While+Index >> Remove Index Increment"
-    pattern: "1. Set $index:var to $index:var + 1."
-    delete: true
-  - name: "SetData While+Index >> SetData Remove"
-    where: "1. Let $wIndex:var be SetDataIndex($wBase:var, $wElem:var)."
-    subrules:
-      - name: "SetData While+Index >> SetData Remove"
-        pattern: "1. Set $wBase:var[$wIndex:var] to ~empty~."
-        replace: "1. Perform IN__SetDataRemove($wBase:var, $wElem:var)."
-      - name: "SetData While+Index >> SetData Has"
-        pattern: "$wIndex:var is ~not-found~"
-        replace: "IN__SetDataHas($wBase:var, $wElem:var) is *false*"
-  - name: "SetData While+Index >> SetData Remove (index)"
-    pattern: "1. Set $loopRef:var[$index:var] to ~empty~."
-    replace: "1. Perform IN__SetDataRemove($loopRef:var, $elem:var)."
+  - name: Remove Set Length
+    pattern: "1. Set {{ length }} to the number of elements in {{ base'1 }}."
+    replace: "1. Do nothing."
+  - name: Remove Index Increment
+    pattern: "1. Set {{ index }} to {{ index }} + 1."
+    replace: "1. Do nothing."
+  - name: SetData Remove (index)
+    pattern: "1. Set {{ base'1 }}[ {{ index }} ] to ~empty~."
+    replace: "1. Perform IN__SetDataRemove({{ base'1 }}, {{ elem }})."

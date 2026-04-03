@@ -2,7 +2,7 @@ package esmeta.es.util
 
 import esmeta.es.*
 import esmeta.lang.*
-import esmeta.lang.util.{UnitWalker as LangUnitWalker, Walker as LangWalker}
+import esmeta.lang.util.{UnitWalker as LangUnitWalker}
 import esmeta.spec.*
 import esmeta.spec.BuiltinPath.YetPath
 import esmeta.util.BaseUtils.*
@@ -102,64 +102,6 @@ object PolyfillGenerator {
   )
 }
 
-trait OptimizationPath {
-  def apply(targets: List[Algorithm]): List[Algorithm]
-}
-
-class ShorthandInlinePath(spec: Spec) extends OptimizationPath {
-  override def apply(targets: List[Algorithm]): List[Algorithm] = {
-    targets.map { algo =>
-      val inlinedBody = new LangWalker {
-        override def walk(step: Step): Step = step match
-          case InvokeShorthandStep(name, args) =>
-            val shorthandAlgo = spec.fnameMap(name)
-            val targetParameters = shorthandAlgo.head.originalParams.map(_.name)
-            (targetParameters zip args).foldLeft(shorthandAlgo.body) {
-              case (acc, (param, arg)) =>
-                ParameterInlineWalker(param, arg).walk(acc)
-            }
-          case _ => super.walk(step)
-      }.walk(algo.body)
-      algo.copy(body = inlinedBody)
-    }
-  }
-
-  private class ParameterInlineWalker(
-    paramName: String,
-    replaceWith: Expression,
-  ) extends LangWalker {
-    override def walk(expr: Expression): Expression = expr match {
-      case ReferenceExpression(ref) =>
-        ref match {
-          case Variable(name, None) =>
-            if (name == paramName) replaceWith else expr
-          case x => ReferenceExpression(walk(x))
-        }
-      case _ => super.walk(expr)
-    }
-
-    override def walk(ref: Reference): Reference = ref match {
-      case Variable(name, _) =>
-        if (name == paramName) {
-          replaceWith.asInstanceOf[ReferenceExpression].ref
-        } else ref
-      case x => super.walk(x)
-    }
-  }
-}
-
-class CompletionPath extends OptimizationPath {
-  override def apply(targets: List[Algorithm]): List[Algorithm] = {
-    val inspector = new PolyfillInspector(targets)
-
-    targets.map { algo =>
-      val newHead = inspector.transformHead(algo.head)
-      val transformedBody = inspector.transformBody(algo.head, algo.body)
-      algo.copy(head = newHead, body = transformedBody)
-    }
-  }
-}
-
 /** extensible helper of polyfill generator */
 class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
@@ -171,7 +113,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     for { algo <- optimizedTargets } yield compile(algo)
 
   /** list of optimization paths */
-  val optPaths: List[OptimizationPath] =
+  val optPaths: List[TransformPath] =
     List(ShorthandInlinePath(spec)) ++ (dslDir.map(dsl.DSLPath(_))) ++ List(
       CompletionPath(),
     )
@@ -267,7 +209,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
             import PredicateConditionOperator.*
             cond match
               case PredicateCondition(
-                    ReferenceExpression(Variable(name, _)),
+                    ReferenceExpression(Variable(name, _, _, _)),
                     _,
                     Present,
                   ) =>
@@ -412,7 +354,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case ThrowStep(name) => pb.addStmt(NormalStmt(s"throw $name;"))
         case x               => compile(pb, x)
       }
-    case MetaStep(name, multiline) => ???
+    case MetaStep(name, multiline, _) => ???
   }
 
   /** compile local variable */
@@ -440,7 +382,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case CurrentRealmRecord()      => "globalThis"
     case ActiveFunctionObject()    => "_self"
     case AgentRecord()             => ???
-    case MetaReference(name)       => ???
+    case MetaReference(name, _)    => ???
   }
 
   /** compile expressions */
@@ -558,8 +500,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case SoleElementExpression(list) => ???
     case CodeUnitAtExpression(base, index) =>
       s"${compile(pb, base)}[\"${compile(pb, index)}\"]"
-    case lit: Literal         => compile(lit)
-    case MetaExpression(name) => ???
+    case lit: Literal            => compile(lit)
+    case MetaExpression(name, _) => ???
   }
 
   /** compile iterable of expressions */
@@ -686,7 +628,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case And   => s"$l && $r"
         case Or    => s"$l || $r"
         case Imply => ???
-    case MetaCondition(name) => ???
+    case MetaCondition(name, _) => ???
   }
 
   def compile(lit: Literal): String =

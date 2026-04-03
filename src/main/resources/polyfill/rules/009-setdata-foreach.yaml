@@ -1,4 +1,8 @@
-name: "SetData ForEach"
-pattern: "1. For each element $elem:var of $ref:var, $body:step"
-replace: "1. Perform IN__SetDataIterate($ref:var, closure($elem:var){ $body:step })."
-predicate: $ref -> isSetData
+name: SetData ForEach
+pattern: |
+  1. For each element {{ elem : var }} of {{ base : ref }}, do
+    1. {{ body : step }}
+replace: "1. Perform IN__SetDataIterate({{ base }}, closure({{ elem }}) { {{ body }} })."
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }

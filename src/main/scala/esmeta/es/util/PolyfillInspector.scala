@@ -181,7 +181,7 @@ class Optimizer(
         AbstractClosureExpression(params, captured, optimizedBody.toBlockStep),
         None,
       )
-    case ReferenceExpression(Variable(name, _)) =>
+    case ReferenceExpression(Variable(name, _, _, _)) =>
       (expr, env.getType(name))
     case ReturnIfAbruptExpression(expr, _) => (expr, None)
     case _                                 => (expr, None)
@@ -199,12 +199,12 @@ object CompletionCheckAnalyzer {
       override def walk(step: Step): Unit = step match {
         case InvokeShorthandStep(name, args) if name.contains("IfAbrupt") =>
           args.head match {
-            case ReferenceExpression(Variable(v, _)) => result.add(v)
-            case _                                   => ()
+            case ReferenceExpression(Variable(v, _, _, _)) => result.add(v)
+            case _                                         => ()
           }
         case ReturnStep(
               ReturnIfAbruptExpression(
-                ReferenceExpression(Variable(name, _)),
+                ReferenceExpression(Variable(name, _, _, _)),
                 true,
               ),
             ) =>
@@ -220,7 +220,7 @@ object CompletionCheckAnalyzer {
 
   private def extractCheckedVars(cond: Condition): List[String] = cond match {
     case PredicateCondition(
-          ReferenceExpression(Variable(name, _)),
+          ReferenceExpression(Variable(name, _, _, _)),
           _,
           op,
         ) =>
@@ -380,7 +380,7 @@ object PolyfillInspector {
     completionCondition: Map[String, Condition],
   ): Option[Condition] = cond match {
     case PredicateCondition(
-          ReferenceExpression(Variable(targetVar, _)),
+          ReferenceExpression(Variable(targetVar, _, _, _)),
           _,
           op,
         ) =>
@@ -438,7 +438,7 @@ object LetStepTransform extends TransformRule {
     optimizer: Optimizer,
     checkedVars: Set[String],
   ) = step match {
-    case LetStep(v @ Variable(name, _), expr) =>
+    case LetStep(v @ Variable(name, _, _, _), expr) =>
       val (newExpr, typeUpdate) = optimizer.optimizeExpr(expr, env)
       if (!env.getType(name).contains(NormalCompletion))
         Some(
@@ -461,10 +461,10 @@ object SetStepTransform extends TransformRule {
     optimizer: Optimizer,
     checkedVars: Set[String],
   ) = step match {
-    case SetStep(v @ Variable(name, _), expr) =>
+    case SetStep(v @ Variable(name, _, _, _), expr) =>
       expr match {
         case ReturnIfAbruptExpression(
-              ReferenceExpression(Variable(inner, _)),
+              ReferenceExpression(Variable(inner, _, _, _)),
               false,
             ) if name == inner =>
           // Remove Remove redundant Set x = ! x shorthand
@@ -506,7 +506,10 @@ object ReturnIfAbruptTransform extends TransformRule {
     checkedVars: Set[String],
   ) = step match {
     case ret @ ReturnStep(
-          ReturnIfAbruptExpression(ReferenceExpression(Variable(name, _)), true),
+          ReturnIfAbruptExpression(
+            ReferenceExpression(Variable(name, _, _, _)),
+            true,
+          ),
         ) =>
       env.getType(name) match {
         case Some(AbruptCompletion) =>
@@ -563,14 +566,14 @@ object ReturnThrowTransform extends TransformRule {
     case ReturnStep(
           InvokeAbstractOperationExpression(
             name,
-            ReferenceExpression(Variable(varName, _)) :: Nil,
+            ReferenceExpression(Variable(varName, _, _, _)) :: Nil,
             _,
           ),
         ) if name == "ThrowCompletion" =>
       Some(
         (Some(TaggedStep(ThrowStep(varName), Map("reason" -> "abrupt"))), env),
       )
-    case ReturnStep(ReferenceExpression(Variable(name, _)))
+    case ReturnStep(ReferenceExpression(Variable(name, _, _, _)))
         if env.getType(name).contains(AbruptCompletion) =>
       Some(
         (Some(TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))), env),
@@ -578,7 +581,10 @@ object ReturnThrowTransform extends TransformRule {
     // return ? x — ShorthandInliningRule only covers `? x` as a standalone step;
     // `return ? x` is ReturnStep(ReturnIfAbruptExpression(...)) and needs explicit handling.
     case ReturnStep(
-          ReturnIfAbruptExpression(ReferenceExpression(Variable(name, _)), true),
+          ReturnIfAbruptExpression(
+            ReferenceExpression(Variable(name, _, _, _)),
+            true,
+          ),
         ) =>
       Some(
         (
@@ -596,7 +602,7 @@ object ReturnThrowTransform extends TransformRule {
           env,
         ),
       )
-    case ret @ ReturnStep(ReferenceExpression(Variable(name, _)))
+    case ret @ ReturnStep(ReferenceExpression(Variable(name, _, _, _)))
         if env.getType(name).isDefined =>
       Some(
         (
@@ -941,7 +947,7 @@ object ProducerWrapRule extends OptimizeRule {
   import PolyfillInspector.*
 
   def apply(ctx: OptimizeContext) = ctx.head match {
-    case LetStep(Variable(name, _), expr)
+    case LetStep(Variable(name, _, _, _), expr)
         if ctx.checkedVars.contains(name)
         && !ctx.env.isHandled(name)
         && !ctx.env.getType(name).contains(ParameterCompletion) =>
@@ -973,9 +979,12 @@ object ProducerWrapRule extends OptimizeRule {
             ),
           )
       }
-    case SetStep(Variable(name, _), ReturnIfAbruptExpression(expr, false)) =>
+    case SetStep(
+          Variable(name, _, _, _),
+          ReturnIfAbruptExpression(expr, false),
+        ) =>
       None
-    case SetStep(Variable(name, _), expr)
+    case SetStep(Variable(name, _, _, _), expr)
         if ctx.checkedVars.contains(name)
         && !ctx.env.getType(name).contains(ParameterCompletion) =>
       val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
@@ -1165,7 +1174,7 @@ object LetStepCompletionRule extends OptimizeRule {
   import PolyfillInspector.*
 
   def apply(ctx: OptimizeContext) = ctx.head match {
-    case step @ LetStep(Variable(name, _), _) =>
+    case step @ LetStep(Variable(name, _, _, _), _) =>
       val (unwrappedLetStep, newEnv) =
         ctx.optimizer.transformStep(step, ctx.env, ctx.checkedVars)
       unwrappedLetStep match {
@@ -1240,7 +1249,7 @@ object ShorthandInliningRule extends OptimizeRule {
     override def walk(expr: Expression): Expression = expr match {
       case ReferenceExpression(ref) =>
         ref match {
-          case Variable(name, None) =>
+          case Variable(name, None, _, _) =>
             if (name == paramName) replaceWith else expr
           case x => ReferenceExpression(walk(x))
         }
@@ -1248,7 +1257,7 @@ object ShorthandInliningRule extends OptimizeRule {
     }
 
     override def walk(ref: Reference): Reference = ref match {
-      case Variable(name, _) =>
+      case Variable(name, _, _, _) =>
         if (name == paramName) {
           replaceWith.asInstanceOf[ReferenceExpression].ref
         } else ref
@@ -1265,7 +1274,7 @@ object XRefInliningRule extends OptimizeRule {
     ctx.head match {
       // XRefExpressionOperator.Algo = Let x be the algorithm steps defined in...
       case step @ LetStep(
-            Variable(name, _),
+            Variable(name, _, _, _),
             XRefExpression(XRefExpressionOperator.Algo, id),
           ) =>
         val targetFunction = ctx.optimizer.algos.find(_.name.endsWith(id))
@@ -1317,7 +1326,7 @@ object TryCatchOptimizationRule extends OptimizeRule {
             Some(
               tryCatchStep @ WrappedTryCatchStep(
                 tryBlock,
-                Variable(catchVar, nt),
+                Variable(catchVar, nt, _, _),
                 catchBlock,
               ),
             ),
@@ -1404,7 +1413,7 @@ private object CompletionCheckPattern {
     }
 
   private def extractVarName(expr: Expression) = expr match {
-    case ReferenceExpression(Variable(x, _)) => x
+    case ReferenceExpression(Variable(x, _, _, _)) => x
     case err =>
       throw RuntimeException(
         s"Expected Reference Expression for extractVarName, but got '${err.toString}'",
@@ -1432,7 +1441,9 @@ private class ValueAccessUnwrapper(env: CompletionEnv) extends LangWalker {
 
   override def walk(expr: Expression): Expression = expr match {
     // Unwrap .[[Value]] access on known completion types
-    case ReferenceExpression(Access(Variable(varName, _), "Value", _, _)) =>
+    case ReferenceExpression(
+          Access(Variable(varName, _, _, _), "Value", _, _),
+        ) =>
       env.getType(varName) match {
         case Some(_) =>
           ReferenceExpression(Variable(varName, Some("value_unwrapped")))
@@ -1449,7 +1460,7 @@ private class ValueAccessUnwrapper(env: CompletionEnv) extends LangWalker {
     // AO calls with completion argument unpacking
     case aoExpr @ InvokeAbstractOperationExpression(name, args, _) =>
       val newArgs = args.flatMap {
-        case x @ ReferenceExpression(v @ Variable(targetVar, nt))
+        case x @ ReferenceExpression(v @ Variable(targetVar, nt, _, _))
             if nt.isEmpty =>
           env.getType(targetVar) match {
             case Some(AbruptCompletion) | Some(NormalCompletion) |
