@@ -248,7 +248,11 @@ object DSLRuleParser {
                 val pred: LangElemPredicate = (elem, ctx) =>
                   elem match {
                     case ref: Reference =>
-                      val path = Analyzer.resolvePath(ref, ctx.symbolicPaths)
+                      val path = ctx.symbolicPaths
+                        .getOrElse(
+                          varName,
+                          Analyzer.resolvePath(ref, ctx.symbolicPaths),
+                        )
                       val result =
                         path.nonEmpty && PredicateExpr.matches(path, regex)
                       // println(s"    [PRED-DETAIL] pred=$predName ref=$ref path=${path.mkString(".")} result=$result")

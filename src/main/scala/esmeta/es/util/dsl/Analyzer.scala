@@ -1,6 +1,7 @@
 package esmeta.es.util.dsl
 
 import esmeta.lang.*
+import esmeta.lang.util.UnitWalker as LangUnitWalker
 
 import scala.annotation.tailrec
 
@@ -16,6 +17,15 @@ object Analyzer {
     */
   private val copyAOs: Set[String] =
     Set("IN__SetDataCopy", "IN__MapDataCopy")
+
+  /** Abstract Operations that create a data structure for an internal slot. */
+  private val createAOs: Map[String, String] = Map(
+    "IN__SetDataCreate" -> "[[SetData]]",
+    "IN__MapDataCreate" -> "[[MapData]]",
+  )
+
+  private val dataSlots: Set[String] =
+    Set("SetData", "WeakSetData", "MapData", "WeakMapData")
 
   // ---------------------------------------------------------------------------
   // Fresh symbol generation
@@ -71,8 +81,39 @@ object Analyzer {
   /** Analyze body, returning annotated AST with per-node states. */
   def analyze(body: Step): AStep =
     symCounter = 0
-    val (_, astep) = analyzeStep(body, Map.empty)
+    val (_, astep) = analyzeStep(body, collectSlotHints(body))
     astep
+
+  /** Variables that are eventually installed into collection data internal
+    * slots should be recognized as those data structures while matching earlier
+    * list operations in the same algorithm.
+    */
+  private def collectSlotHints(body: Step): AbsState = {
+    var hints = Map.empty[String, SymPath]
+
+    def addHint(name: String, slot: String): Unit = {
+      val path = List(freshSym(), s"[[$slot]]")
+      hints = hints.updatedWith(name) {
+        case Some(prev) => Some(prev ⊔ path)
+        case None       => Some(path)
+      }
+    }
+
+    new LangUnitWalker {
+      override def walk(step: Step): Unit = step match {
+        case SetStep(Access(_, slot, _, _), ReferenceExpression(ref))
+            if dataSlots(slot) =>
+          ref match {
+            case Variable(name, _, _, _) => addHint(name, slot)
+            case _                       =>
+          }
+          super.walk(step)
+        case _ => super.walk(step)
+      }
+    }.walk(body)
+
+    hints
+  }
 
   // ---------------------------------------------------------------------------
   // Step transfer function (returns exit state + annotated node)
@@ -185,6 +226,11 @@ object Analyzer {
           case other                    => evalExpr(other, state) :+ COPY
         }
         .getOrElse(List(freshSym()))
+
+    // interprocedural: data-structure constructors
+    case InvokeAbstractOperationExpression(name, _, _)
+        if createAOs.contains(name) =>
+      List(freshSym(), createAOs(name))
 
     // unknown expressions get fresh symbols (not Nil)
     case _ => List(freshSym())

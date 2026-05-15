@@ -204,6 +204,47 @@ object Transformer {
     go(steps, achildren)
   }
 
+  /** Sliding window matching for rules applied to plain steps, such as
+    * subrules. Unlike annotated matching, all windows use the caller-provided
+    * context.
+    */
+  private def matchSequenceRaw(
+    rule: StepRule,
+    steps: List[Step],
+    ctx: DSLContext,
+    stats: Option[TransformStats],
+  ): List[Step] = {
+    val patternSteps = rule.pattern match {
+      case BlockStep(sb) => sb.rawSteps
+      case _             => List(rule.pattern)
+    }
+    val window = patternSteps.length
+
+    def go(remaining: List[Step]): List[Step] = {
+      if (remaining.length < window) {
+        remaining
+      } else {
+        val current = remaining.take(window)
+        Unifier
+          .unifyList(patternSteps, current, ctx, rule.predicates, Unifier.unify)
+          .flatMap { bindings =>
+            rule.replace.map { template =>
+              val result = Substituter.subst(template, bindings)
+              onMatch(rule.name, rule.pattern, result, stats, ctx)
+              val transformed =
+                applySubrules(rule.subrules, bindings, result, ctx, stats)
+              transformed :: go(remaining.drop(window))
+            }
+          }
+          .getOrElse {
+            remaining.head :: go(remaining.tail)
+          }
+      }
+    }
+
+    go(steps)
+  }
+
   private def tryStepRule(
     rule: StepRule,
     step: Step,
@@ -231,7 +272,15 @@ object Transformer {
     new LangWalker {
       override def walk(step: Step): Step = {
         val walked = super.walk(step)
-        tryStepRule(rule, walked, ctx, stats).getOrElse(walked)
+        if (rule.isMultiStepRule) {
+          walked match {
+            case BlockStep(block) =>
+              matchSequenceRaw(rule, block.rawSteps, ctx, stats).blockStep
+            case _ => walked
+          }
+        } else {
+          tryStepRule(rule, walked, ctx, stats).getOrElse(walked)
+        }
       }
     }.walk(step)
   }
