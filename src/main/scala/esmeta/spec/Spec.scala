@@ -28,6 +28,7 @@ case class Spec(
   /** ECMAScript parser */
   lazy val esParser: ESParser = ESParser(grammar)
   lazy val scriptParser: AstFrom = esParser("Script")
+  lazy val moduleParser: AstFrom = esParser("Module")
 
   /** get incomplete algorithms */
   lazy val incompleteAlgorithms: List[Algorithm] =
