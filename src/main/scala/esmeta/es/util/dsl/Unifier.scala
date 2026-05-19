@@ -499,11 +499,16 @@ object Unifier {
     groups.forall {
       case (baseName, variants) =>
         preds.get(baseName).forall { pred =>
-          val joinedPath = variants.values.reduce(_ ⊔ _)
+          val joinedPath = variants.values.reduce(joinVariantPaths)
           val ctx = DSLContext(symbolicPaths = Map(baseName -> joinedPath))
           val anyNode = result.bindings(variants.keys.head)
           pred(anyNode, ctx)
         }
     }
   }
+
+  private def joinVariantPaths(a: SymPath, b: SymPath): SymPath =
+    if (b.startsWith(a)) b
+    else if (a.startsWith(b)) a
+    else a ⊔ b
 }

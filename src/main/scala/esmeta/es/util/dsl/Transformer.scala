@@ -55,6 +55,29 @@ object Transformer {
     }
   }
 
+  private def finalizeStepRuleMatch(
+    rule: StepRule,
+    before: Any,
+    template: Step,
+    bindings: CaptureEnv,
+    ctx: DSLContext,
+    stats: Option[TransformStats],
+  ): Option[Step] = {
+    val result = Substituter.subst(template, bindings)
+    val transformed =
+      applySubrules(rule.subrules, bindings, result, ctx, stats)
+    EarlyReturn.wrapIfNeeded(rule, bindings, transformed) match {
+      case Some(finalStep) =>
+        onMatch(rule.name, before, finalStep, stats, ctx)
+        Some(finalStep)
+      case None =>
+        println(
+          s"  [WARN] ${rule.name}: closure-lifted return has unsupported replacement shape; skipping match",
+        )
+        None
+    }
+  }
+
   /** Apply a rule to a plain Step (no annotated AST — uses given ctx). */
   private def transformStepRaw(
     rule: Rule[LangElem],
@@ -166,32 +189,30 @@ object Transformer {
           .flatMap(Unifier.validateVariants)
           .filter(Unifier.evaluateVariantPredicates(_, rule.predicates))
           .flatMap { unifyResult =>
-            rule.replace.map { template =>
+            rule.replace.flatMap { template =>
               val ctx =
                 if (aRemaining.nonEmpty)
                   DSLContext(symbolicPaths = aRemaining.head.state)
                 else
                   DSLContext()
-              val result = Substituter.subst(template, unifyResult.bindings)
               println(
                 s"  [SLIDING-MATCH] ${rule.name} at window offset, matched ${window} steps",
               )
               println(
                 s"    matched: ${aRemaining.take(window).map(_.step).mkString("; ")}",
               )
-              println(s"    result:  $result")
-              onMatch(rule.name, rule.pattern, result, stats, ctx)
-              val transformed =
-                applySubrules(
-                  rule.subrules,
-                  unifyResult.bindings,
-                  result,
-                  ctx,
-                  stats,
-                )
-              transformed :: go(
-                remaining.drop(window),
-                aRemaining.drop(window),
+              finalizeStepRuleMatch(
+                rule,
+                rule.pattern,
+                template,
+                unifyResult.bindings,
+                ctx,
+                stats,
+              ).map(
+                _ :: go(
+                  remaining.drop(window),
+                  aRemaining.drop(window),
+                ),
               )
             }
           }
@@ -228,12 +249,15 @@ object Transformer {
         Unifier
           .unifyList(patternSteps, current, ctx, rule.predicates, Unifier.unify)
           .flatMap { bindings =>
-            rule.replace.map { template =>
-              val result = Substituter.subst(template, bindings)
-              onMatch(rule.name, rule.pattern, result, stats, ctx)
-              val transformed =
-                applySubrules(rule.subrules, bindings, result, ctx, stats)
-              transformed :: go(remaining.drop(window))
+            rule.replace.flatMap { template =>
+              finalizeStepRuleMatch(
+                rule,
+                rule.pattern,
+                template,
+                bindings,
+                ctx,
+                stats,
+              ).map(_ :: go(remaining.drop(window)))
             }
           }
           .getOrElse {
@@ -253,10 +277,8 @@ object Transformer {
   ): Option[Step] =
     Unifier.unify(rule.pattern, step, ctx, rule.predicates).flatMap {
       bindings =>
-        rule.replace.map { template =>
-          val result = Substituter.subst(template, bindings)
-          onMatch(rule.name, step, result, stats, ctx)
-          applySubrules(rule.subrules, bindings, result, ctx, stats)
+        rule.replace.flatMap { template =>
+          finalizeStepRuleMatch(rule, step, template, bindings, ctx, stats)
         }
     }
 
