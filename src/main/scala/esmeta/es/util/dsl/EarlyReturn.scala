@@ -51,10 +51,12 @@ object EarlyReturn {
     bindings: CaptureEnv,
   ): Boolean =
     moved.exists(key =>
-      bindings.get(key).exists {
-        case step: Step => hasEscapingReturn(step)
-        case _          => false
-      },
+      bindings
+        .get(key)
+        .exists {
+          case step: Step => hasEscapingReturn(step)
+          case _          => false
+        },
     )
 
   private def movedIntoClosure(rule: StepRule): Set[CaptureKey] = {
@@ -186,7 +188,10 @@ object EarlyReturn {
           ) =>
         wrapPerform(name, args, tag, indices, freshResultVariable(step))
       case (
-            LetStep(variable, InvokeAbstractOperationExpression(name, args, tag)),
+            LetStep(
+              variable,
+              InvokeAbstractOperationExpression(name, args, tag),
+            ),
             LetSite(indices),
           ) =>
         wrapLet(variable, name, args, tag, indices)
@@ -273,11 +278,12 @@ object EarlyReturn {
     val used = variableNames(step)
     val name =
       if (!used.contains(resultName)) resultName
-      else LazyList
-        .from(1)
-        .map(i => s"${resultName}$i")
-        .find(name => !used.contains(name))
-        .get
+      else
+        LazyList
+          .from(1)
+          .map(i => s"${resultName}$i")
+          .find(name => !used.contains(name))
+          .get
     Variable(name)
   }
 

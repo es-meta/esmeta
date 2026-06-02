@@ -34,24 +34,24 @@ object PolyfillGenerator {
 
   val ignoreTargets = List(
     // ES3
-    "INTRINSICS.String.prototype.charAt",
-    "INTRINSICS.String.prototype.charCodeAt",
-    "INTRINSICS.String.prototype.concat",
-    "INTRINSICS.String.prototype.indexOf",
-    "INTRINSICS.String.prototype.lastIndexOf",
-    "INTRINSICS.String.prototype.localeCompare",
-    "INTRINSICS.String.prototype.match",
-    "INTRINSICS.String.prototype.replace",
-    "INTRINSICS.String.prototype.search",
-    "INTRINSICS.String.prototype.slice",
-    "INTRINSICS.String.prototype.split",
-    "INTRINSICS.String.prototype.substring",
-    "INTRINSICS.String.prototype.toLocaleLowerCase",
-    "INTRINSICS.String.prototype.toLocaleUpperCase",
-    "INTRINSICS.String.prototype.toLowerCase",
-    "INTRINSICS.String.prototype.toString",
-    "INTRINSICS.String.prototype.toUpperCase",
-    "INTRINSICS.String.prototype.valueOf",
+    // "INTRINSICS.String.prototype.charAt",
+    // "INTRINSICS.String.prototype.charCodeAt",
+    // "INTRINSICS.String.prototype.concat",
+    // "INTRINSICS.String.prototype.indexOf",
+    // "INTRINSICS.String.prototype.lastIndexOf",
+    // "INTRINSICS.String.prototype.localeCompare",
+    // "INTRINSICS.String.prototype.match",
+    // "INTRINSICS.String.prototype.replace",
+    // "INTRINSICS.String.prototype.search",
+    // "INTRINSICS.String.prototype.slice",
+    // "INTRINSICS.String.prototype.split",
+    // "INTRINSICS.String.prototype.substring",
+    // "INTRINSICS.String.prototype.toLocaleLowerCase",
+    // "INTRINSICS.String.prototype.toLocaleUpperCase",
+    // "INTRINSICS.String.prototype.toLowerCase",
+    // "INTRINSICS.String.prototype.toString",
+    // "INTRINSICS.String.prototype.toUpperCase",
+    // "INTRINSICS.String.prototype.valueOf",
     // YET
     "INTRINSICS.String.prototype.matchAll",
     "INTRINSICS.String.prototype.normalize",
@@ -401,7 +401,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case RecordExpression(rawName, fields, form) =>
       s"{${fields.map((fieldLit, fieldExpr) => s"\"${fieldLit.name}\": ${compile(pb, fieldExpr)}").mkString(", ")}}"
     case LengthExpression(ReferenceExpression(ref)) =>
-      s"${compile(pb, ref)}.length"
+      s"length(${compile(pb, ref)})"
     case LengthExpression(expr) => ???
     case StringExpression(expr) => compile(pb, expr)
     case SubstringExpression(expr, from, to) =>

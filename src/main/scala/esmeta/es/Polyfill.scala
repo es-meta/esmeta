@@ -9,17 +9,38 @@ case class Polyfill(
   name: String,
   params: List[Param],
   body: Polyfill.Stmt,
+  tsNoCheck: Boolean = false,
 ) {
-  override def toString: String = headToString + " " + body.toString
+  override def toString: String =
+    s"${banner}export function $preferedIdentifier ${headToString} ${body.toString}"
+
+  val banner: String =
+    val TS = if (tsNoCheck) "// @ts-nocheck" else ""
+    s"""|$TS
+       |// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
+       |import type { Unwrapped } from "@/model/type.js";
+       |
+       |""".stripMargin
 
   def headToString: String = {
-    import esmeta.spec.ParamKind.*
-    val paramStr = params
-      .filter(_.kind != Optional)
-      .map(param => (if (param.kind == Variadic) "..." else "") + param.name)
+    val paramStr = 
+      params.map { p =>
+        p.kind match
+          case ParamKind.Normal   => s"${p.name} : Unwrapped<unknown>"
+          case ParamKind.Optional => s"${p.name}? : Unwrapped<unknown>"
+          case ParamKind.Variadic => s"...${p.name} : Unwrapped<unknown>[]"
+      }
       .mkString(", ")
-    s"($paramStr)"
+    s"(__runtime__ : BootStrap, $paramStr)"
   }
+
+  def preferedIdentifier: String =
+    preferedFilename.stripSuffix(".ts").replace(".", "_")
+
+  def preferedFilename: String =
+    if (name.startsWith("INTRINSICS.yet:"))
+      s"${name.stripPrefix("INTRINSICS.yet:").replace("`", "").replace(".", "")}.ts"
+    else s"${name}.ts"
 }
 
 object Polyfill {
