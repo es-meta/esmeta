@@ -9,41 +9,57 @@ case class Polyfill(
   name: String,
   params: List[Param],
   body: Polyfill.Stmt,
+  hasThis: Boolean = false,
+  isAbstractOp: Boolean = false,
+  aoImports: List[String] = Nil,
   tsNoCheck: Boolean = false,
 ) {
   override def toString: String =
-    s"${banner}export function $preferedIdentifier ${headToString} ${body.toString}"
+    s"${banner}${importsToString}export function $preferedIdentifier ${headToString} ${body.toString}"
+
+  def importsToString: String =
+    if (aoImports.isEmpty) ""
+    else
+      aoImports
+        .map(n => s"""import { AO__$n } from "./AO__$n.js";""")
+        .mkString("", LINE_SEP, LINE_SEP + LINE_SEP)
 
   val banner: String =
     val TS = if (tsNoCheck) "// @ts-nocheck" else ""
     s"""|$TS
        |// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
-       |import type { Unwrapped } from "@/model/type.js";
+       |import type { Wrapped, BootStrap } from "@/model/type.js";
        |
        |""".stripMargin
 
   def headToString: String = {
-    val paramStr = 
+    val receiver = if (hasThis) List(s"${Polyfill.THIS_PARAM} : Wrapped<unknown>") else Nil
+    val paramStr =
       params.map { p =>
         p.kind match
-          case ParamKind.Normal   => s"${p.name} : Unwrapped<unknown>"
-          case ParamKind.Optional => s"${p.name}? : Unwrapped<unknown>"
-          case ParamKind.Variadic => s"...${p.name} : Unwrapped<unknown>[]"
+          case ParamKind.Normal   => s"${p.name} : Wrapped<unknown>"
+          case ParamKind.Optional => s"${p.name}? : Wrapped<unknown>"
+          case ParamKind.Variadic => s"...${p.name} : Wrapped<unknown>[]"
       }
-      .mkString(", ")
-    s"(__runtime__ : BootStrap, $paramStr)"
+    (s"${Polyfill.RUNTIME} : BootStrap" :: receiver ::: paramStr).mkString("(", ", ", ")")
   }
 
   def preferedIdentifier: String =
     preferedFilename.stripSuffix(".ts").replace(".", "_")
 
   def preferedFilename: String =
-    if (name.startsWith("INTRINSICS.yet:"))
+    if (isAbstractOp) s"AO__${name}.ts"
+    else if (name.startsWith("INTRINSICS.yet:"))
       s"${name.stripPrefix("INTRINSICS.yet:").replace("`", "").replace(".", "")}.ts"
     else s"${name}.ts"
 }
 
 object Polyfill {
+  /** injected runtime parameter, threaded into every polyfill (and prefix for runtime ops) */
+  val RUNTIME = "$"
+  /** injected receiver parameter for BuiltinHead methods (the spec "this value") */
+  val THIS_PARAM = "$this"
+
   sealed trait Stmt {
     override def toString: String = toString(0)
 

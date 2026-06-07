@@ -175,7 +175,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   private val IS_PRESENT = "IsPresent"
   private val AO_HEADER = "AO";
-  private val INTERNAL_HEADER = "IN";
+  private val INTERNAL_HEADER = s"${RUNTIME}.IN";
   private val RESERVED_WORDS = Set("return")
 
   /** compile an algorithm into a polyfill */
@@ -198,7 +198,29 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           println("-" * 80)
           throw e
       }
-    Polyfill(name, params, prelude ++ body)
+    val hasThis = algo.head match
+      case _: BuiltinHead => true
+      case _              => false
+    val isAbstractOp = algo.head.isInstanceOf[AbstractOperationHead]
+    // AOs referenced by this polyfill are imported as `AO__<name>` from their files.
+    val aoImports = {
+      val names = mutable.Set[String]()
+      new LangUnitWalker {
+        override def walk(expr: Expression): Unit = expr match
+          case InvokeAbstractOperationExpression(n, args, _) =>
+            names += n; walkList(args, walk)
+          case _ => super.walk(expr)
+      }.walk(algo.body)
+      names.filterNot(_ == name).toList.sorted
+    }
+    Polyfill(
+      name,
+      params,
+      prelude ++ body,
+      hasThis = hasThis,
+      isAbstractOp = isAbstractOp,
+      aoImports = aoImports,
+    )
 
   def compilePrelude(pb: PolyfillBuilder, head: Head, body: Step): Stmt =
     pb.newScope({
@@ -377,7 +399,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case PositionalElement(base, true)  => s"${compile(pb, base)}[0]"
     case PositionalElement(base, false) => ???
     case IntrinsicObject(base, expr)    => ???
-    case RunningExecutionContext() => "this" // TODO Single-Runtime Assumption
+    case RunningExecutionContext() => "this" // ??? TODO Single-Runtime Assumption
     case SecondExecutionContext()  => ???
     case CurrentRealmRecord()      => "globalThis"
     case ActiveFunctionObject()    => "_self"
@@ -394,18 +416,18 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           // todo: handle unicode escape sequences properly
           if (e.startsWith("0x")) s"String.fromCharCode($e)" else e,
         )
-        .mkString(" + ")
+        .reduceLeft((acc, p) => s"${RUNTIME}.concatenate($acc, $p)")
     case ListConcatExpression(es) =>
       s"[].concat(${es.map(compile(pb, _)).mkString(", ")})"
     case ListCopyExpression(expr) => s"${compile(pb, expr)}.slice()"
     case RecordExpression(rawName, fields, form) =>
       s"{${fields.map((fieldLit, fieldExpr) => s"\"${fieldLit.name}\": ${compile(pb, fieldExpr)}").mkString(", ")}}"
     case LengthExpression(ReferenceExpression(ref)) =>
-      s"length(${compile(pb, ref)})"
+      s"${RUNTIME}.length(${compile(pb, ref)})"
     case LengthExpression(expr) => ???
     case StringExpression(expr) => compile(pb, expr)
     case SubstringExpression(expr, from, to) =>
-      s"${INTERNAL_HEADER}__SubString(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
+      s"${RUNTIME}.substring(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
     case TrimExpression(expr, leading, trailing) =>
       s"${INTERNAL_HEADER}__Trim(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
@@ -422,7 +444,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       ???
     case expr: GetItemsExpression => ???
     case InvokeAbstractOperationExpression(name, args, tag) =>
-      s"${AO_HEADER}__$name(${compile(pb, args)})"
+      val argStr = (RUNTIME :: args.map(compile(pb, _))).mkString(", ")
+      s"${AO_HEADER}__$name($argStr)"
     case InvokeNumericMethodExpression(ty, name, args) =>
       s"${ty}__$name(${compile(pb, args)})"
     case InvokeAbstractClosureExpression(ref, args) =>
@@ -553,7 +576,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         .map(_.normalizedName.toLowerCase())
         .map(tyStr => if (tyStr == "record[object]") "object" else tyStr)
         .map(tyStr =>
-          if (tyStr == "object") s"AO__IsObject($compiledExpr)"
+          if (tyStr == "object") s"AO__IsObject($RUNTIME, $compiledExpr)"
           else s"typeof $compiledExpr === \"$tyStr\"",
         )
         .mkString("(", "||", ")")
@@ -633,7 +656,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   def compile(lit: Literal): String =
     lit match {
-      case _: ThisLiteral                    => "this"
+      case _: ThisLiteral                    => THIS_PARAM
       case _: ThisParseNodeLiteral           => ???
       case _: NewTargetLiteral               => "new.target"
       case HexLiteral(hex, _, _, _)          => s"\"${hex.toChar.toString}\""
