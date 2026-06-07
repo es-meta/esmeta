@@ -1,0 +1,9 @@
+{
+  "_templateRemainder_ starts with *\"$$\"*": "$.substring(templateRemainder, 0, 2) === \"$$\"",
+  "_templateRemainder_ starts with *\"$`\"*": "$.substring(templateRemainder, 0, 2) === \"$`\"",
+  "_templateRemainder_ starts with *\"$&\"*": "$.substring(templateRemainder, 0, 2) === \"$&\"",
+  "_templateRemainder_ starts with *\"$'\"* (0x0024 (DOLLAR SIGN) followed by 0x0027 (APOSTROPHE))": "$.substring(templateRemainder, 0, 2) === \"$'\"",
+  "_templateRemainder_ starts with *\"$\"* followed by 1 or more decimal digits": "$.substring(templateRemainder, 0, 1) === \"$\" && /[0-9]/.test($.substring(templateRemainder, 1, 2))",
+  "_templateRemainder_ starts with *\"$<\"*": "$.substring(templateRemainder, 0, 2) === \"$<\"",
+  "If _templateRemainder_ starts with *\"$\"* followed by 2 or more decimal digits, let _digitCount_ be 2. Otherwise, let _digitCount_ be 1.": "var digitCount = /[0-9]/.test($.substring(templateRemainder, 2, 3)) ? 2 : 1;"
+}

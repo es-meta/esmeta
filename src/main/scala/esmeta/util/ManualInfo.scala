@@ -28,6 +28,11 @@ object ManualInfo {
     readJson[CompileRule](s"$MANUALS_DIR/rule.json")
   type CompileRule = Map[String, Map[String, String]]
 
+  lazy val polyfillRule: Map[String, String] =
+    val file = File(s"$MANUALS_DIR/polyfill-rule.json")
+    if file.exists then readJson[Map[String, String]](file.getPath)
+    else Map.empty
+
   /** bugfix patch map */
   lazy val bugfixPatchMap: Map[String, String] = (for {
     file <- getFiles(patchFilter)

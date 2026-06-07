@@ -6,6 +6,7 @@ import esmeta.lang.util.{UnitWalker as LangUnitWalker}
 import esmeta.spec.*
 import esmeta.spec.BuiltinPath.YetPath
 import esmeta.util.BaseUtils.*
+import esmeta.util.ManualInfo
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -52,24 +53,6 @@ object PolyfillGenerator {
     // "INTRINSICS.String.prototype.toString",
     // "INTRINSICS.String.prototype.toUpperCase",
     // "INTRINSICS.String.prototype.valueOf",
-    // YET
-    "INTRINSICS.String.prototype.matchAll",
-    "INTRINSICS.String.prototype.normalize",
-    "INTRINSICS.String.prototype.repeat",
-
-    // ES3
-    "INTRINSICS.Array.prototype.concat",
-    "INTRINSICS.Array.prototype.join",
-    "INTRINSICS.Array.prototype.pop",
-    "INTRINSICS.Array.prototype.push",
-    "INTRINSICS.Array.prototype.reverse",
-    "INTRINSICS.Array.prototype.shift",
-    "INTRINSICS.Array.prototype.slice",
-    "INTRINSICS.Array.prototype.sort",
-    "INTRINSICS.Array.prototype.splice",
-    "INTRINSICS.Array.prototype.toLocaleString",
-    "INTRINSICS.Array.prototype.toString",
-    "INTRINSICS.Array.prototype.unshift",
 
     // Unsupported
     "INTRINSICS.MapIteratorPrototype.next",
@@ -476,7 +459,13 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
             ) =>
           s"${INTERNAL_HEADER}__IntRange(${compile(pb, from)}, $isFromInclusive, ${compile(pb, to)}, $isToInclusive, $isAscending)"
     case YetExpression(str, block) =>
-      s"throw new Error(\"YET: ${str.replace("\"", "\\\"")}\")"
+      // Manual 1:1 override (see manuals/polyfill-rule.json). Both expression-
+      // position YETs and statement-position ones (via YetStep) funnel here, so
+      // the looked-up snippet must be valid wherever this `str` appears.
+      ManualInfo.polyfillRule.getOrElse(
+        str,
+        s"throw new Error(\"YET: ${str.replace("\"", "\\\"")}\")",
+      )
     case ReferenceExpression(ref)     => compile(pb, ref)
     case MathFuncExpression(op, args) => s"${compile(op)}(${compile(pb, args)})"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
