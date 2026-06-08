@@ -34,23 +34,11 @@ case class Polyfill(
        |
        |""".stripMargin
 
-  // Map a spec parameter type to its TS type. Every value is Wrapped (so ops can
-  // track it for taint/concolic); the payload type narrows when known (String,
-  // Number, mathematical integer, Boolean, List). Anything else (unions, objects,
-  // unknown) falls back to `Wrapped<unknown>`.
-  private def tsParamType(tpe: Type): String = tpe.ty match
-    case vt: ValueTy if vt <= StrT    => "Wrapped<string>"
-    case vt: ValueTy if vt <= MathT   => "Wrapped<number>"
-    case vt: ValueTy if vt <= NumberT => "Wrapped<number>"
-    case vt: ValueTy if vt <= BoolT   => "Wrapped<boolean>"
-    case vt: ValueTy if vt <= ListT   => "Wrapped<unknown>[]"
-    case _                            => "Wrapped<unknown>"
-
   def headToString: String = {
     val receiver = if (hasThis) List(s"${Polyfill.THIS_PARAM} : Wrapped<unknown>") else Nil
     val paramStr =
       params.map { p =>
-        val ts = tsParamType(p.ty)
+        val ts = Polyfill.tsParamType(p.ty)
         p.kind match
           case ParamKind.Normal   => s"${p.name} : $ts"
           case ParamKind.Optional => s"${p.name}? : $ts"
@@ -74,6 +62,31 @@ object Polyfill {
   val RUNTIME = "$"
   /** injected receiver parameter for BuiltinHead methods (the spec "this value") */
   val THIS_PARAM = "$this"
+
+  // Map a spec parameter type to its TS type. Every value is Wrapped (so ops can
+  // track it for taint/concolic). A List recurses into its element type; the
+  // payload narrows when known (String/Number/integer/Boolean) and keeps a
+  // `| undefined` union so `$.is(x, base(undefined))` guards narrow downstream
+  // (e.g. GetSubstitution's `captures: Wrapped<string | undefined>[]`). Shared
+  // with PolyfillGenerator, which casts AO-call args to their callee param type.
+  def tsParamType(tpe: Type): String = tpe.ty match
+    case vt: ValueTy if vt <= ListT => s"Wrapped<${tsPayload(vt.list.elem)}>[]"
+    case vt: ValueTy                => s"Wrapped<${tsPayload(vt)}>"
+    case _                          => "Wrapped<unknown>"
+
+  // TS payload type inside Wrapped<...>; preserves a `| undefined` union.
+  private def tsPayload(vt: ValueTy): String =
+    val core = vt -- UndefT
+    val base =
+      if core.isBottom then ""
+      else if core <= StrT then "string"
+      else if core <= MathT || core <= NumberT then "number"
+      else if core <= BoolT then "boolean"
+      else "unknown"
+    if base == "unknown" then "unknown"
+    else if base.isEmpty then "undefined"
+    else if vt.undef then s"$base | undefined"
+    else base
 
   sealed trait Stmt {
     override def toString: String = toString(0)

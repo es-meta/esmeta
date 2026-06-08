@@ -432,8 +432,16 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       ???
     case expr: GetItemsExpression => ???
     case InvokeAbstractOperationExpression(name, args, tag) =>
-      val argStr = (RUNTIME :: args.map(compile(pb, _))).mkString(", ")
-      s"${AO_HEADER}__$name($argStr)"
+      // Cast each argument to the callee's declared parameter type. AO calls are
+      // spec-typed contracts, so this is a "trust the frontend" cast that closes
+      // TS control-flow-narrowing gaps (e.g. a value the spec proves is a String
+      // but TS still sees as Wrapped<unknown> across correlated conditions).
+      val params = spec.fnameMap.get(name).map(_.head.originalParams).getOrElse(Nil)
+      val argStrs = args.zipWithIndex.map { (arg, i) =>
+        val c = compile(pb, arg)
+        params.lift(i).fold(c)(p => s"($c as ${Polyfill.tsParamType(p.ty)})")
+      }
+      s"${AO_HEADER}__$name(${(RUNTIME :: argStrs).mkString(", ")})"
     case InvokeNumericMethodExpression(ty, name, args) =>
       s"${ty}__$name(${compile(pb, args)})"
     case InvokeAbstractClosureExpression(ref, args) =>
@@ -454,7 +462,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       form match
         case LiteralSyntax(entries)         => s"[${compile(pb, entries)}]"
         case SoleElement(entry)             => s"[${compile(pb, entry)}]"
-        case EmptyList(isNewUsed, typeDesc) => "[] as Wrapped<unknown>[]"
+        // `Wrapped<never>[]` (= never[]) is assignable to any list param, and
+        // `$.append` still pins its element type from the pushed value.
+        case EmptyList(isNewUsed, typeDesc) => "[] as Wrapped<never>[]"
         case IntRange(
               from,
               isFromInclusive,
