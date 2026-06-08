@@ -265,7 +265,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case AppendStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
-          s"${INTERNAL_HEADER}__Append(${compile(pb, ref)}, ${compile(pb, expr)})",
+          s"${RUNTIME}.append(${compile(pb, ref)}, ${compile(pb, expr)})",
         ),
       )
     case InsertStep(expr, ref) => ???
@@ -410,11 +410,16 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case LengthExpression(expr) => ???
     case StringExpression(expr) => compile(pb, expr)
     case SubstringExpression(expr, from, to) =>
-      s"${RUNTIME}.substring(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
+      // An omitted `to` means "to the end of the string"; emit its length so the
+      // 3-arg runtime `substring(s, from, to)` always gets a concrete end index.
+      val base = compile(pb, expr)
+      val end = to.fold(s"${RUNTIME}.length($base)")(compile(pb, _))
+      s"${RUNTIME}.substring($base, ${compile(pb, from)}, $end)"
     case TrimExpression(expr, leading, trailing) =>
       s"${INTERNAL_HEADER}__Trim(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
-      s"${compile(pb, ref)}.length"
+      // a List's length is a value too — wrap it so it flows through the ops.
+      s"${RUNTIME}.base<number>(${compile(pb, ref)}.length, [])"
     case NumberOfExpression(_, _, expr, _) => ???
     case IntrinsicExpression(intr) =>
       if (intr.props.isEmpty)
@@ -449,7 +454,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       form match
         case LiteralSyntax(entries)         => s"[${compile(pb, entries)}]"
         case SoleElement(entry)             => s"[${compile(pb, entry)}]"
-        case EmptyList(isNewUsed, typeDesc) => "[]"
+        case EmptyList(isNewUsed, typeDesc) => "[] as Wrapped<unknown>[]"
         case IntRange(
               from,
               isFromInclusive,
@@ -467,27 +472,27 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         s"throw new Error(\"YET: ${str.replace("\"", "\\\"")}\")",
       )
     case ReferenceExpression(ref)     => compile(pb, ref)
-    case MathFuncExpression(op, args) => s"${compile(op)}(${compile(pb, args)})"
+    case MathFuncExpression(op, args) => s"${RUNTIME}.${compile(op)}(${compile(pb, args)})"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
-      s"${INTERNAL_HEADER}__pow(${compile(pb, base)}, ${compile(pb, power)})"
+      s"${RUNTIME}.exponentiate(${compile(pb, base)}, ${compile(pb, power)})"
     case BinaryExpression(left, op, right) =>
-      s"${compile(pb, left)} ${compile(op)} ${compile(pb, right)}"
-    case UnaryExpression(op, expr) => s"${compile(op)}${compile(pb, expr)}"
+      s"${RUNTIME}.${compile(op)}(${compile(pb, left)}, ${compile(pb, right)})"
+    case UnaryExpression(op, expr) => s"${RUNTIME}.${compile(op)}(${compile(pb, expr)})"
     case ClampExpression(target, lower, upper) =>
-      s"${INTERNAL_HEADER}__clamp(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
+      s"${RUNTIME}.clamp(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
     case MathOpExpression(op, args) =>
       import MathOpExpressionOperator.*
       (op, args) match
-        case (Neg, List(e))    => s"-${compile(pb, e)}"
-        case (Add, List(l, r)) => s"${compile(pb, l)} + ${compile(pb, r)}"
-        case (Mul, List(l, r)) => s"${compile(pb, l)} * ${compile(pb, r)}"
-        case (Sub, List(l, r)) => s"${compile(pb, l)} - ${compile(pb, r)}"
+        case (Neg, List(e))    => s"${RUNTIME}.negate(${compile(pb, e)})"
+        case (Add, List(l, r)) => s"${RUNTIME}.add(${compile(pb, l)}, ${compile(pb, r)})"
+        case (Mul, List(l, r)) => s"${RUNTIME}.multiply(${compile(pb, l)}, ${compile(pb, r)})"
+        case (Sub, List(l, r)) => s"${RUNTIME}.subtract(${compile(pb, l)}, ${compile(pb, r)})"
         case (Pow, List(l, r)) =>
-          s"${INTERNAL_HEADER}__pow(${compile(pb, l)}, ${compile(pb, r)})"
+          s"${RUNTIME}.exponentiate(${compile(pb, l)}, ${compile(pb, r)})"
         case _ => ???
     case BitwiseExpression(l, op, r) =>
-      s"${compile(pb, l)} ${compile(op)} ${compile(pb, r)}"
+      s"${RUNTIME}.${compile(op)}(${compile(pb, l)}, ${compile(pb, r)})"
     case AbstractClosureExpression(params, captured, body) =>
       val funcBody =
         s"(${params.map(compile).mkString(", ")}) => ${compileWithScope(pb, body)}"
@@ -511,7 +516,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case XRefExpression(kind, id)    => ???
     case SoleElementExpression(list) => ???
     case CodeUnitAtExpression(base, index) =>
-      s"${compile(pb, base)}[\"${compile(pb, index)}\"]"
+      s"${RUNTIME}.codeUnitAt(${compile(pb, base)}, ${compile(pb, index)})"
     case lit: Literal            => compile(lit)
     case MetaExpression(name, _) => ???
   }
@@ -525,35 +530,36 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     iterable.map(compile(pb, _)).mkString(sep)
 
   /** compile binary operators */
+  // operators now resolve to BootStrap method names (called as `$.<name>(l, r)`)
   def compile(op: BinaryExpressionOperator): String =
     import BinaryExpressionOperator.*
     op match {
-      case Add => "+"
-      case Sub => "-"
-      case Mul => "*"
-      case Div => "/"
-      case Mod => "%"
+      case Add => "add"
+      case Sub => "subtract"
+      case Mul => "multiply"
+      case Div => "divide"
+      case Mod => "remainder"
     }
 
   /** compile unary operators */
   def compile(op: UnaryExpressionOperator): String = op match
-    case UnaryExpressionOperator.Neg => "-"
+    case UnaryExpressionOperator.Neg => "negate"
 
   /** compile bitwise operations */
   def compile(op: BitwiseExpressionOperator): String = op match
-    case BitwiseExpressionOperator.BAnd => "&"
-    case BitwiseExpressionOperator.BOr  => "|"
-    case BitwiseExpressionOperator.BXOr => "^"
+    case BitwiseExpressionOperator.BAnd => "bitwiseAND"
+    case BitwiseExpressionOperator.BOr  => "bitwiseOR"
+    case BitwiseExpressionOperator.BXOr => "bitwiseXOR"
 
   /** compile mathematical function operators */
   def compile(op: MathFuncExpressionOperator): String =
     import MathFuncExpressionOperator.*
     op match {
-      case Max      => s"${INTERNAL_HEADER}__max"
-      case Min      => s"${INTERNAL_HEADER}__min"
-      case Abs      => s"${INTERNAL_HEADER}__abs"
-      case Floor    => s"${INTERNAL_HEADER}__floor"
-      case Truncate => s"${INTERNAL_HEADER}__truncate"
+      case Max      => "max"
+      case Min      => "min"
+      case Abs      => "abs"
+      case Floor    => "floor"
+      case Truncate => "truncate"
     }
 
   /** compile branch conditions */
@@ -566,7 +572,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         .map(tyStr => if (tyStr == "record[object]") "object" else tyStr)
         .map(tyStr =>
           if (tyStr == "object") s"AO__IsObject($RUNTIME, $compiledExpr)"
-          else s"typeof $compiledExpr === \"$tyStr\"",
+          else s"${RUNTIME}.typeOf($compiledExpr) === \"$tyStr\"",
         )
         .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
@@ -577,7 +583,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       import PredicateConditionOperator.*
       op match {
         case Finite =>
-          (if (neg) s"!" else "") + s"isFinite(${compile(pb, expr)})"
+          (if (neg) s"!" else "") + s"${RUNTIME}.isFinite(${compile(pb, expr)})"
         case Abrupt      => ???
         case Throw       => ???
         case Return      => ???
@@ -603,8 +609,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         val e = right
           .map(rexpr =>
             rexpr match
-              case NumberLiteral(n) if n.isNaN => s"isNaN($l)"
-              case _ => s"($l === ${compile(pb, rexpr)})",
+              case NumberLiteral(n) if n.isNaN => s"${RUNTIME}.isNaN($l)"
+              case _ => s"${RUNTIME}.is($l, ${compile(pb, rexpr)})",
           )
           .reduce((l, r) => s"($l || $r)")
         (if (neg) s"!" else "") + e
@@ -615,21 +621,22 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       lazy val l = compile(pb, left)
       lazy val r = compile(pb, right)
       op match {
-        case Eq               => s"$l === $r"
-        case NEq              => s"$l !== $r"
-        case LessThan         => s"$l < $r"
-        case LessThanEqual    => s"$l <= $r"
-        case GreaterThan      => s"$l > $r"
-        case GreaterThanEqual => s"$l >= $r"
-        case SameCodeUnits    => ???
+        case Eq               => s"${RUNTIME}.is($l, $r)"
+        case NEq              => s"${RUNTIME}.isNot($l, $r)"
+        case LessThan         => s"${RUNTIME}.lessThan($l, $r)"
+        case LessThanEqual    => s"${RUNTIME}.lessThanEqual($l, $r)"
+        case GreaterThan      => s"${RUNTIME}.greaterThan($l, $r)"
+        case GreaterThanEqual => s"${RUNTIME}.greaterThanEqual($l, $r)"
+        case SameCodeUnits    => s"${RUNTIME}.is($l, $r)"
       }
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)
-      val e = s"($l >= ${compile(pb, from)} && $l <= ${compile(pb, to)})"
+      val e =
+        s"(${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)}) && ${RUNTIME}.lessThanEqual($l, ${compile(pb, to)}))"
       (if (neg) s"!" else "") + e
     case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
       val c =
-        s"${INTERNAL_HEADER}__Contains(${compile(pb, list)}, ${compile(pb, target)})"
+        s"${RUNTIME}.contains(${compile(pb, list)}, ${compile(pb, target)})"
       (if (neg) s"!" else "") + c
     case ContainsCondition(list, neg, _) => ???
     case CompoundCondition(left, op, right) =>
@@ -644,34 +651,42 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
   }
 
   def compile(lit: Literal): String =
+    // Literals denoting ECMAScript values are wrapped (`$.base(v, [])`) so they
+    // flow through the value ops like any other Wrapped value; this also keeps a
+    // variable's type consistent across branches (e.g. `var ref` assigned a
+    // string literal in one branch and a Wrapped<string> in another). Structural
+    // literals (this/new.target/field keys/error constructors) pass through raw.
+    // Widen the payload type (`base<string>` not `base<"$$">`) so a variable
+    // assigned different literals across branches keeps a single Wrapped<string>.
+    def w(s: String, ty: String): String = s"${RUNTIME}.base<$ty>($s, [])"
     lit match {
       case _: ThisLiteral                    => THIS_PARAM
       case _: ThisParseNodeLiteral           => ???
       case _: NewTargetLiteral               => "new.target"
-      case HexLiteral(hex, _, _, _)          => s"\"${hex.toChar.toString}\""
-      case CodeLiteral(code)                 => s"\"$code\""
+      case HexLiteral(hex, _, _, _)          => w(s"\"${hex.toChar.toString}\"", "string")
+      case CodeLiteral(code)                 => w(s"\"$code\"", "string")
       case GrammarSymbolLiteral(name, flags) => ???
       case NonterminalLiteral(ordinal, name, flags, hasArticle) => ???
-      case EnumLiteral(name)                                    => s"\"$name\""
-      case StringLiteral(str, _)                                => s"\"$str\""
+      case EnumLiteral(name)                                    => w(s"\"$name\"", "string")
+      case StringLiteral(str, _)                                => w(s"\"$str\"", "string")
       case FieldLiteral(name)                                   => s"\"$name\""
-      case SymbolLiteral(sym)          => s"Symbol.$sym"
+      case SymbolLiteral(sym)          => w(s"Symbol.$sym", "symbol")
       case ProductionLiteral(lhs, rhs) => ???
       case ErrorObjectLiteral(name) =>
         name match {
           case "AggregateError" => s"new $name(errors)"
           case _                => s"new $name()"
         }
-      case _: PositiveInfinityMathValueLiteral => "Infinity"
-      case _: NegativeInfinityMathValueLiteral => "-Infinity"
-      case DecimalMathValueLiteral(n)          => s"$n"
+      case _: PositiveInfinityMathValueLiteral => w("Infinity", "number")
+      case _: NegativeInfinityMathValueLiteral => w("-Infinity", "number")
+      case DecimalMathValueLiteral(n)          => w(s"$n", "number")
       case MathConstantLiteral(pre, name)      => ???
-      case NumberLiteral(n)        => if (n.toInt == n) s"${n.toInt}" else s"$n"
-      case BigIntLiteral(n)        => s"${n}n"
-      case _: TrueLiteral          => "true"
-      case _: FalseLiteral         => "false"
-      case _: UndefinedLiteral     => "undefined"
-      case _: NullLiteral          => "null"
+      case NumberLiteral(n)        => w(if (n.toInt == n) s"${n.toInt}" else s"$n", "number")
+      case BigIntLiteral(n)        => w(s"${n}n", "bigint")
+      case _: TrueLiteral          => w("true", "boolean")
+      case _: FalseLiteral         => w("false", "boolean")
+      case _: UndefinedLiteral     => w("undefined", "undefined")
+      case _: NullLiteral          => w("null", "null")
       case _: UndefinedTypeLiteral => ???
       case _: NullTypeLiteral      => ???
       case _: BooleanTypeLiteral   => ???

@@ -2,7 +2,9 @@ package esmeta.es
 
 import esmeta.LINE_SEP
 import esmeta.lang.Step
+import esmeta.lang.Type
 import esmeta.spec.*
+import esmeta.ty.*
 
 /** polyfill code */
 case class Polyfill(
@@ -32,14 +34,27 @@ case class Polyfill(
        |
        |""".stripMargin
 
+  // Map a spec parameter type to its TS type. Every value is Wrapped (so ops can
+  // track it for taint/concolic); the payload type narrows when known (String,
+  // Number, mathematical integer, Boolean, List). Anything else (unions, objects,
+  // unknown) falls back to `Wrapped<unknown>`.
+  private def tsParamType(tpe: Type): String = tpe.ty match
+    case vt: ValueTy if vt <= StrT    => "Wrapped<string>"
+    case vt: ValueTy if vt <= MathT   => "Wrapped<number>"
+    case vt: ValueTy if vt <= NumberT => "Wrapped<number>"
+    case vt: ValueTy if vt <= BoolT   => "Wrapped<boolean>"
+    case vt: ValueTy if vt <= ListT   => "Wrapped<unknown>[]"
+    case _                            => "Wrapped<unknown>"
+
   def headToString: String = {
     val receiver = if (hasThis) List(s"${Polyfill.THIS_PARAM} : Wrapped<unknown>") else Nil
     val paramStr =
       params.map { p =>
+        val ts = tsParamType(p.ty)
         p.kind match
-          case ParamKind.Normal   => s"${p.name} : Wrapped<unknown>"
-          case ParamKind.Optional => s"${p.name}? : Wrapped<unknown>"
-          case ParamKind.Variadic => s"...${p.name} : Wrapped<unknown>[]"
+          case ParamKind.Normal   => s"${p.name} : $ts"
+          case ParamKind.Optional => s"${p.name}? : $ts"
+          case ParamKind.Variadic => s"...${p.name} : $ts[]"
       }
     (s"${Polyfill.RUNTIME} : BootStrap" :: receiver ::: paramStr).mkString("(", ", ", ")")
   }

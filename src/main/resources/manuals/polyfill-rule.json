@@ -1,9 +1,10 @@
 {
-  "_templateRemainder_ starts with *\"$$\"*": "$.substring(templateRemainder, 0, 2) === \"$$\"",
-  "_templateRemainder_ starts with *\"$`\"*": "$.substring(templateRemainder, 0, 2) === \"$`\"",
-  "_templateRemainder_ starts with *\"$&\"*": "$.substring(templateRemainder, 0, 2) === \"$&\"",
-  "_templateRemainder_ starts with *\"$'\"* (0x0024 (DOLLAR SIGN) followed by 0x0027 (APOSTROPHE))": "$.substring(templateRemainder, 0, 2) === \"$'\"",
-  "_templateRemainder_ starts with *\"$\"* followed by 1 or more decimal digits": "$.substring(templateRemainder, 0, 1) === \"$\" && /[0-9]/.test($.substring(templateRemainder, 1, 2))",
-  "_templateRemainder_ starts with *\"$<\"*": "$.substring(templateRemainder, 0, 2) === \"$<\"",
-  "If _templateRemainder_ starts with *\"$\"* followed by 2 or more decimal digits, let _digitCount_ be 2. Otherwise, let _digitCount_ be 1.": "var digitCount = /[0-9]/.test($.substring(templateRemainder, 2, 3)) ? 2 : 1;"
+  "_templateRemainder_ starts with *\"$$\"*": "$.is($.substring(templateRemainder, $.base(0, []), $.base(2, [])), $.base(\"$$\", []))",
+  "_templateRemainder_ starts with *\"$`\"*": "$.is($.substring(templateRemainder, $.base(0, []), $.base(2, [])), $.base(\"$`\", []))",
+  "_templateRemainder_ starts with *\"$&\"*": "$.is($.substring(templateRemainder, $.base(0, []), $.base(2, [])), $.base(\"$&\", []))",
+  "_templateRemainder_ starts with *\"$'\"* (0x0024 (DOLLAR SIGN) followed by 0x0027 (APOSTROPHE))": "$.is($.substring(templateRemainder, $.base(0, []), $.base(2, [])), $.base(\"$'\", []))",
+  "_templateRemainder_ starts with *\"$\"* followed by 1 or more decimal digits": "$.is($.substring(templateRemainder, $.base(0, []), $.base(1, [])), $.base(\"$\", [])) && /[0-9]/.test($.peek($.substring(templateRemainder, $.base(1, []), $.base(2, []))))",
+  "_templateRemainder_ starts with *\"$<\"*": "$.is($.substring(templateRemainder, $.base(0, []), $.base(2, [])), $.base(\"$<\", []))",
+  "If _templateRemainder_ starts with *\"$\"* followed by 2 or more decimal digits, let _digitCount_ be 2. Otherwise, let _digitCount_ be 1.": "var digitCount = /[0-9]/.test($.peek($.substring(templateRemainder, $.base(2, []), $.base(3, [])))) ? $.base<number>(2, []) : $.base<number>(1, []);",
+  "Let _codeUnits_ be a List consisting of the sequence of code units that are the elements of _head_.": "var codeUnits = $.peek(head).split(\"\").map((c) => $.base<string>(c, [head]));"
 }
