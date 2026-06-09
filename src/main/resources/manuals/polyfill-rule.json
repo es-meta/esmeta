@@ -6,5 +6,6 @@
   "_templateRemainder_ starts with *\"$\"* followed by 1 or more decimal digits": "$.is($.substring(templateRemainder, $.base(0, []), $.base(1, [])), $.base(\"$\", [])) && /[0-9]/.test($.peek($.substring(templateRemainder, $.base(1, []), $.base(2, []))))",
   "_templateRemainder_ starts with *\"$<\"*": "$.is($.substring(templateRemainder, $.base(0, []), $.base(2, [])), $.base(\"$<\", []))",
   "If _templateRemainder_ starts with *\"$\"* followed by 2 or more decimal digits, let _digitCount_ be 2. Otherwise, let _digitCount_ be 1.": "var digitCount = /[0-9]/.test($.peek($.substring(templateRemainder, $.base(2, []), $.base(3, [])))) ? $.base<number>(2, []) : $.base<number>(1, []);",
-  "Let _codeUnits_ be a List consisting of the sequence of code units that are the elements of _head_.": "var codeUnits = $.peek(head).split(\"\").map((c) => $.base<string>(c, [head]));"
+  "Let _codeUnits_ be a List consisting of the sequence of code units that are the elements of _head_.": "var codeUnits = $.peek(head).split(\"\").map((c) => $.base<string>(c, [head]));",
+  "Return the String value that is made from _n_ copies of _S_ appended together.": "return $.base($.peek(S).repeat($.peek(n)), [S, n]);"
 }
