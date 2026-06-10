@@ -572,6 +572,12 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       case Truncate => "truncate"
     }
 
+  /** wrap an ordering-comparison expression (a Wrapped<boolean>) so it is
+    * recorded as a flippable path constraint and unwrapped to a raw boolean at
+    * its branch site. Mirrors the instrumenter's `D$.C(id, op, value)`. */
+  private def branch(pb: PolyfillBuilder, cmp: String): String =
+    s"${RUNTIME}.condition(${pb.newBranchId}, $cmp)"
+
   /** compile branch conditions */
   def compile(pb: PolyfillBuilder, cond: Condition): String = cond match {
     case ExpressionCondition(expr) => compile(pb, expr)
@@ -630,19 +636,28 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       import BinaryConditionOperator.*
       lazy val l = compile(pb, left)
       lazy val r = compile(pb, right)
+      // Ordering comparisons return a Wrapped<boolean> (carrying the comparison's
+      // Sym); funnel each through `$.condition(bid, ...)` at the branch site so it
+      // becomes a flippable path constraint AND unwraps to a raw boolean for
+      // native control flow. Eq/NEq/SameCodeUnits stay raw (`$.is`/`$.isNot` are
+      // also TS type-guards, used for not-found-style narrowing).
       op match {
         case Eq               => s"${RUNTIME}.is($l, $r)"
         case NEq              => s"${RUNTIME}.isNot($l, $r)"
-        case LessThan         => s"${RUNTIME}.lessThan($l, $r)"
-        case LessThanEqual    => s"${RUNTIME}.lessThanEqual($l, $r)"
-        case GreaterThan      => s"${RUNTIME}.greaterThan($l, $r)"
-        case GreaterThanEqual => s"${RUNTIME}.greaterThanEqual($l, $r)"
+        case LessThan         => branch(pb, s"${RUNTIME}.lessThan($l, $r)")
+        case LessThanEqual    => branch(pb, s"${RUNTIME}.lessThanEqual($l, $r)")
+        case GreaterThan      => branch(pb, s"${RUNTIME}.greaterThan($l, $r)")
+        case GreaterThanEqual => branch(pb, s"${RUNTIME}.greaterThanEqual($l, $r)")
         case SameCodeUnits    => s"${RUNTIME}.is($l, $r)"
       }
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)
-      val e =
-        s"(${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)}) && ${RUNTIME}.lessThanEqual($l, ${compile(pb, to)}))"
+      // Each bound is its own ordering comparison -> wrap each in `$.condition`
+      // (raw boolean) so the native `&&` short-circuits correctly and both
+      // bounds are independently flippable.
+      val lo = branch(pb, s"${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)})")
+      val hi = branch(pb, s"${RUNTIME}.lessThanEqual($l, ${compile(pb, to)})")
+      val e = s"($lo && $hi)"
       (if (neg) s"!" else "") + e
     case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
       val c =
