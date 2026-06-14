@@ -30,7 +30,7 @@ case class Polyfill(
     val TS = if (tsNoCheck) "// @ts-nocheck" else ""
     s"""|$TS
        |// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
-       |import type { Wrapped, BootStrap } from "@/model/type.js";
+       |import type { Wrapped, SpecRuntime } from "@/model/type.js";
        |
        |""".stripMargin
 
@@ -40,11 +40,11 @@ case class Polyfill(
       params.map { p =>
         val ts = Polyfill.tsParamType(p.ty)
         p.kind match
-          case ParamKind.Normal   => s"${p.name} : $ts"
-          case ParamKind.Optional => s"${p.name}? : $ts"
+          case ParamKind.Normal => s"${p.name} : $ts"
+          case ParamKind.Optional => s"${p.name} : $ts = ${Polyfill.RUNTIME}.undef"
           case ParamKind.Variadic => s"...${p.name} : $ts[]"
       }
-    (s"${Polyfill.RUNTIME} : BootStrap" :: receiver ::: paramStr).mkString("(", ", ", ")")
+    (s"${Polyfill.RUNTIME} : SpecRuntime" :: receiver ::: paramStr).mkString("(", ", ", ")")
   }
 
   def preferedIdentifier: String =

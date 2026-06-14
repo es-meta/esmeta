@@ -224,24 +224,26 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         result.toSet
       }
 
+      // Runtime argument offset: `$` (RUNTIME) is always argument 0, and a
+      // BuiltinHead also receives `$this` at argument 1, so the spec parameter
+      // at originalParams index `i` is the JS `arguments[i + argOffset]`.
+      val argOffset = 1 + (head match { case _: BuiltinHead => 1; case _ => 0 })
+
       head.originalParams.zipWithIndex.foreach((param, index) => {
         if (existenceCheckVariables.contains(param.name))
           pb.addStmt(
             NormalStmt(
-              s"var ${param.name}$IS_PRESENT = arguments.length > $index;",
+              s"var ${param.name}$IS_PRESENT = arguments.length > ${index + argOffset};",
             ),
           )
       })
 
-      head.originalParams.zipWithIndex
-        .foreach((param, index) => {
-          if (param.kind == ParamKind.Optional)
-            pb.addStmt(
-              NormalStmt(
-                s"var ${param.name} = arguments.length > $index ? arguments[$index] : undefined;",
-              ),
-            )
-        })
+      // Optional parameters are already rendered as `name?` in the signature
+      // (see Polyfill.headToString), so they default to `undefined` when the
+      // argument is absent — no initializer needed. The previous `var name =
+      // arguments[index]` redeclaration both shadowed the typed parameter with
+      // `any` (TS2403) and indexed `arguments` without the receiver/runtime
+      // offset (so it actually read `$`/`$this`), so it is dropped entirely.
     })
 
   /** compile with a new scope and convert it into a statement */
@@ -416,7 +418,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       val end = to.fold(s"${RUNTIME}.length($base)")(compile(pb, _))
       s"${RUNTIME}.substring($base, ${compile(pb, from)}, $end)"
     case TrimExpression(expr, leading, trailing) =>
-      s"${INTERNAL_HEADER}__Trim(${compile(pb, expr)}, $leading, $trailing)"
+      s"${RUNTIME}.trim(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
       // a List's length is a value too — wrap it so it flows through the ops.
       s"${RUNTIME}.base<number>(${compile(pb, ref)}.length, [])"
@@ -540,7 +542,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     iterable.map(compile(pb, _)).mkString(sep)
 
   /** compile binary operators */
-  // operators now resolve to BootStrap method names (called as `$.<name>(l, r)`)
+  // operators now resolve to SpecRuntime method names (called as `$.<name>(l, r)`)
   def compile(op: BinaryExpressionOperator): String =
     import BinaryExpressionOperator.*
     op match {
@@ -583,13 +585,13 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case ExpressionCondition(expr) => compile(pb, expr)
     case TypeCheckCondition(expr, neg, tys) =>
       val compiledExpr = compile(pb, expr)
+      // Every spec type-check routes through the runtime predicate `$.isType`,
+      // which owns each type's membership (e.g. "object" excludes null / includes
+      // callables — a bare `typeof` is wrong there).
       (if (neg) s"!" else "") + tys
         .map(_.normalizedName.toLowerCase())
         .map(tyStr => if (tyStr == "record[object]") "object" else tyStr)
-        .map(tyStr =>
-          if (tyStr == "object") s"AO__IsObject($RUNTIME, $compiledExpr)"
-          else s"${RUNTIME}.typeOf($compiledExpr) === \"$tyStr\"",
-        )
+        .map(tyStr => s"""${RUNTIME}.isType($compiledExpr, "$tyStr")""")
         .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
       (if (neg) s"!" else "") + s"(${compile(pb, field)} in ${compile(pb, ref)})"
@@ -625,7 +627,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         val e = right
           .map(rexpr =>
             rexpr match
-              case NumberLiteral(n) if n.isNaN => s"${RUNTIME}.isNaN($l)"
+              case NumberLiteral(n) if n.isNaN =>
+                s"${RUNTIME}.isNaN($l as Wrapped<number>)"
               case _ => s"${RUNTIME}.is($l, ${compile(pb, rexpr)})",
           )
           .reduce((l, r) => s"($l || $r)")

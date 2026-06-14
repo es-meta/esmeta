@@ -7,5 +7,8 @@
   "_templateRemainder_ starts with *\"$<\"*": "$.is($.substring(templateRemainder, $.base(0, []), $.base(2, [])), $.base(\"$<\", []))",
   "If _templateRemainder_ starts with *\"$\"* followed by 2 or more decimal digits, let _digitCount_ be 2. Otherwise, let _digitCount_ be 1.": "var digitCount = /[0-9]/.test($.peek($.substring(templateRemainder, $.base(2, []), $.base(3, [])))) ? $.base<number>(2, []) : $.base<number>(1, []);",
   "Let _codeUnits_ be a List consisting of the sequence of code units that are the elements of _head_.": "var codeUnits = $.peek(head).split(\"\").map((c) => $.base<string>(c, [head]));",
-  "Return the String value that is made from _n_ copies of _S_ appended together.": "return $.base($.peek(S).repeat($.peek(n)), [S, n]);"
+  "Return the String value that is made from _n_ copies of _S_ appended together.": "return $.base($.peek(S).repeat($.peek(n)), [S, n]);",
+  "Let _truncatedStringFiller_ be the String value consisting of repeated concatenations of _fillString_ truncated to length _fillLen_.": "var truncatedStringFiller = $.base(String($.peek(fillString)).repeat(Math.ceil($.peek(fillLen) / String($.peek(fillString)).length)).slice(0, $.peek(fillLen)), [fillString, fillLen]);",
+  "Let _ns_ be the String value that is the result of normalizing _S_ into the normalization form named by _f_ as specified in <a href=\"https://www.unicode.org/versions/latest/ch03.pdf\">the latest Unicode Standard, Normalization Forms</a>.": "var ns = $.base($.peek(S).normalize($.peek(f)), [S, f]);",
+  "Let _lowerText_ be toLowercase(_sText_), according to the Unicode Default Case Conversion algorithm.": "var lowerText = AO__StringToCodePoints($, $.base(sText.map(function (cp) { return String.fromCodePoint(Number($.peek(cp))); }).join(\"\").toLowerCase(), [S])) as unknown as Wrapped<unknown>;"
 }
