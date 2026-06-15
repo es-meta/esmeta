@@ -145,19 +145,12 @@ case class PolyfillBuilder() {
   /** get next temporal variable */
   def newTId: String = s"_x$nextTId"
 
-  /** get next branch id (stable per branch site within a polyfill), used as the
-    * fork id when an analysis records a model-internal comparison as a path
-    * constraint (see `$.condition` in the generated code). */
-  def newBranchId: Int = { val bid = branchCount; branchCount += 1; bid }
-
   // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
   // temporal variable index counter
   private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
   private var tidCount: Int = 0
-  // branch id counter
-  private var branchCount: Int = 0
 
   private sealed trait Tag
   private case class VariableReference(idx: Int, ref: Stmt) extends Tag

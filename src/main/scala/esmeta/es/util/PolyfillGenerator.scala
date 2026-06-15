@@ -576,9 +576,15 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   /** wrap an ordering-comparison expression (a Wrapped<boolean>) so it is
     * recorded as a flippable path constraint and unwrapped to a raw boolean at
-    * its branch site. Mirrors the instrumenter's `D$.C(id, op, value)`. */
+    * its branch site. Mirrors `D$.C(id, op, value)`. */
   private def branch(pb: PolyfillBuilder, cmp: String): String =
-    s"${RUNTIME}.condition(${pb.newBranchId}, $cmp)"
+    s"${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - ${newBranchId}, $cmp)"
+
+  /** get next branch id */
+  private def newBranchId: Int = { val bid = branchCount; branchCount += 1; bid }
+
+  // branch id counter
+  private var branchCount: Int = 0
 
   /** compile branch conditions */
   def compile(pb: PolyfillBuilder, cond: Condition): String = cond match {
