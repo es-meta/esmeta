@@ -330,6 +330,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           highInc,
           ascending,
           compiledBody,
+          newBranchId,
         ),
       )
     case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
@@ -414,9 +415,12 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case SubstringExpression(expr, from, to) =>
       // An omitted `to` means "to the end of the string"; emit its length so the
       // 3-arg runtime `substring(s, from, to)` always gets a concrete end index.
+      // from/to are spec-typed integers — cast (trust the frontend, as with AO
+      // args) so a value the spec proves numeric still types after equality lost
+      // its narrowing.
       val base = compile(pb, expr)
-      val end = to.fold(s"${RUNTIME}.length($base)")(compile(pb, _))
-      s"${RUNTIME}.substring($base, ${compile(pb, from)}, $end)"
+      val end = to.fold(s"${RUNTIME}.length($base)")(t => s"(${compile(pb, t)} as Wrapped<number>)")
+      s"${RUNTIME}.substring($base, (${compile(pb, from)} as Wrapped<number>), $end)"
     case TrimExpression(expr, leading, trailing) =>
       s"${RUNTIME}.trim(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
@@ -489,19 +493,24 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case ExponentiationExpression(base, power) =>
       s"${RUNTIME}.exponentiate(${compile(pb, base)}, ${compile(pb, power)})"
     case BinaryExpression(left, op, right) =>
-      s"${RUNTIME}.${compile(op)}(${compile(pb, left)}, ${compile(pb, right)})"
-    case UnaryExpression(op, expr) => s"${RUNTIME}.${compile(op)}(${compile(pb, expr)})"
+      // numeric operands — cast (as with AO args) past equality's lost narrowing.
+      s"${RUNTIME}.${compile(op)}((${compile(pb, left)} as Wrapped<number>), (${compile(pb, right)} as Wrapped<number>))"
+    case UnaryExpression(op, expr) =>
+      s"${RUNTIME}.${compile(op)}((${compile(pb, expr)} as Wrapped<number>))"
     case ClampExpression(target, lower, upper) =>
       s"${RUNTIME}.clamp(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
     case MathOpExpression(op, args) =>
       import MathOpExpressionOperator.*
+      // Operands are spec-typed numbers — cast (as with AO args / substring) so
+      // they still type after equality lost its narrowing.
+      def n(e: Expression): String = s"(${compile(pb, e)} as Wrapped<number>)"
       (op, args) match
-        case (Neg, List(e))    => s"${RUNTIME}.negate(${compile(pb, e)})"
-        case (Add, List(l, r)) => s"${RUNTIME}.add(${compile(pb, l)}, ${compile(pb, r)})"
-        case (Mul, List(l, r)) => s"${RUNTIME}.multiply(${compile(pb, l)}, ${compile(pb, r)})"
-        case (Sub, List(l, r)) => s"${RUNTIME}.subtract(${compile(pb, l)}, ${compile(pb, r)})"
+        case (Neg, List(e))    => s"${RUNTIME}.negate(${n(e)})"
+        case (Add, List(l, r)) => s"${RUNTIME}.add(${n(l)}, ${n(r)})"
+        case (Mul, List(l, r)) => s"${RUNTIME}.multiply(${n(l)}, ${n(r)})"
+        case (Sub, List(l, r)) => s"${RUNTIME}.subtract(${n(l)}, ${n(r)})"
         case (Pow, List(l, r)) =>
-          s"${RUNTIME}.exponentiate(${compile(pb, l)}, ${compile(pb, r)})"
+          s"${RUNTIME}.exponentiate(${n(l)}, ${n(r)})"
         case _ => ???
     case BitwiseExpression(l, op, r) =>
       s"${RUNTIME}.${compile(op)}(${compile(pb, l)}, ${compile(pb, r)})"
@@ -635,7 +644,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
             rexpr match
               case NumberLiteral(n) if n.isNaN =>
                 s"${RUNTIME}.isNaN($l as Wrapped<number>)"
-              case _ => s"${RUNTIME}.is($l, ${compile(pb, rexpr)})",
+              case _ => branch(pb, s"${RUNTIME}.is($l, ${compile(pb, rexpr)})"),
           )
           .reduce((l, r) => s"($l || $r)")
         (if (neg) s"!" else "") + e
@@ -645,19 +654,19 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       import BinaryConditionOperator.*
       lazy val l = compile(pb, left)
       lazy val r = compile(pb, right)
-      // Ordering comparisons return a Wrapped<boolean> (carrying the comparison's
-      // Sym); funnel each through `$.condition(bid, ...)` at the branch site so it
-      // becomes a flippable path constraint AND unwraps to a raw boolean for
-      // native control flow. Eq/NEq/SameCodeUnits stay raw (`$.is`/`$.isNot` are
-      // also TS type-guards, used for not-found-style narrowing).
+      // Every comparison returns a Wrapped<boolean> (carrying its Sym); funnel
+      // each through `$.condition(bid, ...)` at the branch site so it becomes a
+      // flippable path constraint AND unwraps to a raw boolean for native control
+      // flow. Equality included (`$.is`/`$.isNot` no longer narrow), so a string
+      // `candidate === search` inside a search loop is now a real constraint.
       op match {
-        case Eq               => s"${RUNTIME}.is($l, $r)"
-        case NEq              => s"${RUNTIME}.isNot($l, $r)"
+        case Eq               => branch(pb, s"${RUNTIME}.is($l, $r)")
+        case NEq              => branch(pb, s"${RUNTIME}.isNot($l, $r)")
         case LessThan         => branch(pb, s"${RUNTIME}.lessThan($l, $r)")
         case LessThanEqual    => branch(pb, s"${RUNTIME}.lessThanEqual($l, $r)")
         case GreaterThan      => branch(pb, s"${RUNTIME}.greaterThan($l, $r)")
         case GreaterThanEqual => branch(pb, s"${RUNTIME}.greaterThanEqual($l, $r)")
-        case SameCodeUnits    => s"${RUNTIME}.is($l, $r)"
+        case SameCodeUnits    => branch(pb, s"${RUNTIME}.is($l, $r)")
       }
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)

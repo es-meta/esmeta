@@ -111,13 +111,17 @@ object Polyfill {
           s"for (var $index = 0; $index < $end; $index++)" +
           LINE_SEP +
           s"${body.toString(depth)}"
-        case ForEachIntStmt(index, low, lowInc, high, highInc, true, body) =>
+        case ForEachIntStmt(index, low, lowInc, high, highInc, true, body, branchId) =>
           val init = s"var $index = $low" + (if (lowInc) "" else " + 1")
-          val cond = s"$index " + (if (highInc) "<=" else "=") + high
+          val op = if (highInc) "lessThanEqual" else "lessThan"
+          val cond =
+            s"${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - $branchId, ${RUNTIME}.$op($index, $high))"
           s"for ($init; $cond; $index++)" + LINE_SEP + s"${body.toString(depth)}"
-        case ForEachIntStmt(index, low, lowInc, high, highInc, false, body) =>
+        case ForEachIntStmt(index, low, lowInc, high, highInc, false, body, branchId) =>
           val init = s"var $index = $low" + (if (lowInc) "" else " - 1")
-          val cond = s"$index " + (if (highInc) ">=" else "=") + high
+          val op = if (highInc) "greaterThanEqual" else "greaterThan"
+          val cond =
+            s"${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - $branchId, ${RUNTIME}.$op($index, $high))"
           s"for ($init; $cond; $index--)" + LINE_SEP + s"${body.toString(depth)}"
         case BlockStmt(stmts) =>
           "{" + LINE_SEP + stmts
@@ -186,6 +190,8 @@ object Polyfill {
   case class ForEachStmt(index: String, end: String, body: Stmt) extends Stmt
 
   // for (var index = start; index < end; index++) { body }
+  // `branchId` keys the loop-bound comparison as a flippable path constraint
+  // (the bound is symbolic when `high` carries a Sym, e.g. a symbolic length).
   case class ForEachIntStmt(
     index: String,
     low: String,
@@ -194,6 +200,7 @@ object Polyfill {
     highInc: Boolean,
     ascending: Boolean,
     body: Stmt,
+    branchId: Int,
   ) extends Stmt
 
   // { stmts }
