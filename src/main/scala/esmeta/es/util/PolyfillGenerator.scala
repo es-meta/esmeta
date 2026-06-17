@@ -25,6 +25,7 @@ object PolyfillGenerator {
     """INTRINSICS\.(get:|set:)?Map.*""",
     // https://tc39.es/ecma262/#sec-set-objects
     """INTRINSICS\.(get:|set:)?Set.*""",
+    """INTRINSICS\.JSON\.stringify""",
     // https://tc39.es/ecma262/#sec-iterator-objects
     // """INTRINSICS\.(get:|set:)?Iterator.*""",
     // https://tc39.es/ecma262/#sec-promise-objects
@@ -288,6 +289,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       t match {
         case RemoveStep.Target.First(None) =>
           pb.addStmt(NormalStmt(s"${compile(pb, l)}.shift()"))
+        case RemoveStep.Target.Last(None) =>
+          pb.addStmt(NormalStmt(s"${compile(pb, l)}.pop()"))
         case _ => ???
       }
     case PushContextStep(ref)       => ???
@@ -385,12 +388,13 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case PositionalElement(base, true)  => s"${compile(pb, base)}[0]"
     case PositionalElement(base, false) => ???
     case IntrinsicObject(base, expr)    => ???
-    case RunningExecutionContext() => "this" // ??? TODO Single-Runtime Assumption
-    case SecondExecutionContext()  => ???
-    case CurrentRealmRecord()      => "globalThis"
-    case ActiveFunctionObject()    => "_self"
-    case AgentRecord()             => ???
-    case MetaReference(name, _)    => ???
+    case RunningExecutionContext() =>
+      "this" // ??? TODO Single-Runtime Assumption
+    case SecondExecutionContext() => ???
+    case CurrentRealmRecord()     => "globalThis"
+    case ActiveFunctionObject()   => "_self"
+    case AgentRecord()            => ???
+    case MetaReference(name, _)   => ???
   }
 
   /** compile expressions */
@@ -410,8 +414,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       s"{${fields.map((fieldLit, fieldExpr) => s"\"${fieldLit.name}\": ${compile(pb, fieldExpr)}").mkString(", ")}}"
     case LengthExpression(ReferenceExpression(ref)) =>
       s"${RUNTIME}.length(${compile(pb, ref)})"
-    case LengthExpression(expr) => ???
-    case StringExpression(expr) => compile(pb, expr)
+    case LengthExpression(expr)              => ???
+    case StringExpression(expr)              => compile(pb, expr)
     case SubstringExpression(expr, from, to) =>
       // An omitted `to` means "to the end of the string"; emit its length so the
       // 3-arg runtime `substring(s, from, to)` always gets a concrete end index.
@@ -419,7 +423,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // args) so a value the spec proves numeric still types after equality lost
       // its narrowing.
       val base = compile(pb, expr)
-      val end = to.fold(s"${RUNTIME}.length($base)")(t => s"(${compile(pb, t)} as Wrapped<number>)")
+      val end = to.fold(s"${RUNTIME}.length($base)")(t =>
+        s"(${compile(pb, t)} as Wrapped<number>)",
+      )
       s"${RUNTIME}.substring($base, (${compile(pb, from)} as Wrapped<number>), $end)"
     case TrimExpression(expr, leading, trailing) =>
       s"${RUNTIME}.trim(${compile(pb, expr)}, $leading, $trailing)"
@@ -436,13 +442,14 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case CoveredByExpression(code, rule) => ???
     case GetItemsExpression(nt, expr @ NonterminalLiteral(_, _, _, _)) =>
       ???
-    case expr: GetItemsExpression => ???
+    case expr: GetItemsExpression                           => ???
     case InvokeAbstractOperationExpression(name, args, tag) =>
       // Cast each argument to the callee's declared parameter type. AO calls are
       // spec-typed contracts, so this is a "trust the frontend" cast that closes
       // TS control-flow-narrowing gaps (e.g. a value the spec proves is a String
       // but TS still sees as Wrapped<unknown> across correlated conditions).
-      val params = spec.fnameMap.get(name).map(_.head.originalParams).getOrElse(Nil)
+      val params =
+        spec.fnameMap.get(name).map(_.head.originalParams).getOrElse(Nil)
       val argStrs = args.zipWithIndex.map { (arg, i) =>
         val c = compile(pb, arg)
         params.lift(i).fold(c)(p => s"($c as ${Polyfill.tsParamType(p.ty)})")
@@ -466,8 +473,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case ListExpression(form) =>
       import ListExpressionForm.*
       form match
-        case LiteralSyntax(entries)         => s"[${compile(pb, entries)}]"
-        case SoleElement(entry)             => s"[${compile(pb, entry)}]"
+        case LiteralSyntax(entries) => s"[${compile(pb, entries)}]"
+        case SoleElement(entry)     => s"[${compile(pb, entry)}]"
         // `Wrapped<never>[]` (= never[]) is assignable to any list param, and
         // `$.append` still pins its element type from the pushed value.
         case EmptyList(isNewUsed, typeDesc) => "[] as Wrapped<never>[]"
@@ -487,8 +494,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         str,
         s"throw new Error(\"YET: ${str.replace("\"", "\\\"")}\")",
       )
-    case ReferenceExpression(ref)     => compile(pb, ref)
-    case MathFuncExpression(op, args) => s"${RUNTIME}.${compile(op)}(${compile(pb, args)})"
+    case ReferenceExpression(ref) => compile(pb, ref)
+    case MathFuncExpression(op, args) =>
+      s"${RUNTIME}.${compile(op)}(${compile(pb, args)})"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
       s"${RUNTIME}.exponentiate(${compile(pb, base)}, ${compile(pb, power)})"
@@ -585,12 +593,15 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   /** wrap an ordering-comparison expression (a Wrapped<boolean>) so it is
     * recorded as a flippable path constraint and unwrapped to a raw boolean at
-    * its branch site. Mirrors `D$.C(id, op, value)`. */
+    * its branch site. Mirrors `D$.C(id, op, value)`.
+    */
   private def branch(pb: PolyfillBuilder, cmp: String): String =
     s"${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - ${newBranchId}, $cmp)"
 
   /** get next branch id */
-  private def newBranchId: Int = { val bid = branchCount; branchCount += 1; bid }
+  private def newBranchId: Int = {
+    val bid = branchCount; branchCount += 1; bid
+  }
 
   // branch id counter
   private var branchCount: Int = 0
@@ -626,7 +637,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case Normal      => ???
         case Duplicated  => ???
         case Present => (if (neg) s"!" else "") + compile(pb, expr) + IS_PRESENT
-        case Empty   => ???
+        // A List "is empty" iff it has no elements (Lists compile to JS arrays).
+        case Empty =>
+          (if (neg) s"!" else "") + s"(${compile(pb, expr)}.length === 0)"
         case StrictMode       => ???
         case ArrayIndex       => ???
         case FalseToken       => ???
@@ -660,20 +673,22 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // flow. Equality included (`$.is`/`$.isNot` no longer narrow), so a string
       // `candidate === search` inside a search loop is now a real constraint.
       op match {
-        case Eq               => branch(pb, s"${RUNTIME}.is($l, $r)")
-        case NEq              => branch(pb, s"${RUNTIME}.isNot($l, $r)")
-        case LessThan         => branch(pb, s"${RUNTIME}.lessThan($l, $r)")
-        case LessThanEqual    => branch(pb, s"${RUNTIME}.lessThanEqual($l, $r)")
-        case GreaterThan      => branch(pb, s"${RUNTIME}.greaterThan($l, $r)")
-        case GreaterThanEqual => branch(pb, s"${RUNTIME}.greaterThanEqual($l, $r)")
-        case SameCodeUnits    => branch(pb, s"${RUNTIME}.is($l, $r)")
+        case Eq            => branch(pb, s"${RUNTIME}.is($l, $r)")
+        case NEq           => branch(pb, s"${RUNTIME}.isNot($l, $r)")
+        case LessThan      => branch(pb, s"${RUNTIME}.lessThan($l, $r)")
+        case LessThanEqual => branch(pb, s"${RUNTIME}.lessThanEqual($l, $r)")
+        case GreaterThan   => branch(pb, s"${RUNTIME}.greaterThan($l, $r)")
+        case GreaterThanEqual =>
+          branch(pb, s"${RUNTIME}.greaterThanEqual($l, $r)")
+        case SameCodeUnits => branch(pb, s"${RUNTIME}.is($l, $r)")
       }
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)
       // Each bound is its own ordering comparison -> wrap each in `$.condition`
       // (raw boolean) so the native `&&` short-circuits correctly and both
       // bounds are independently flippable.
-      val lo = branch(pb, s"${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)})")
+      val lo =
+        branch(pb, s"${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)})")
       val hi = branch(pb, s"${RUNTIME}.lessThanEqual($l, ${compile(pb, to)})")
       val e = s"($lo && $hi)"
       (if (neg) s"!" else "") + e
@@ -693,6 +708,23 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case MetaCondition(name, _) => ???
   }
 
+  /** escape a raw string for embedding in a TS double-quoted literal — code-unit
+    * literals can be `"`, `\`, newline, etc. (e.g. 0x0022, 0x000A from JSON
+    * serialization), which would otherwise break the emitted string. */
+  private def tsStringLit(s: String): String =
+    val sb = new StringBuilder("\"")
+    s.foreach {
+      case '\\'         => sb ++= "\\\\"
+      case '"'          => sb ++= "\\\""
+      case '\n'         => sb ++= "\\n"
+      case '\r'         => sb ++= "\\r"
+      case '\t'         => sb ++= "\\t"
+      case c if c < ' ' => sb ++= f"\\u${c.toInt}%04x"
+      case c            => sb += c
+    }
+    sb += '"'
+    sb.toString
+
   def compile(lit: Literal): String =
     // Literals denoting ECMAScript values are wrapped (`$.base(v, [])`) so they
     // flow through the value ops like any other Wrapped value; this also keeps a
@@ -703,16 +735,18 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     // assigned different literals across branches keeps a single Wrapped<string>.
     def w(s: String, ty: String): String = s"${RUNTIME}.base<$ty>($s, [])"
     lit match {
-      case _: ThisLiteral                    => THIS_PARAM
-      case _: ThisParseNodeLiteral           => ???
-      case _: NewTargetLiteral               => "new.target"
-      case HexLiteral(hex, _, _, _)          => w(s"\"${hex.toChar.toString}\"", "string")
-      case CodeLiteral(code)                 => w(s"\"$code\"", "string")
+      case _: ThisLiteral          => THIS_PARAM
+      case _: ThisParseNodeLiteral => ???
+      case _: NewTargetLiteral     => "new.target"
+      case HexLiteral(hex, _, _, _) =>
+        w(tsStringLit(hex.toChar.toString), "string")
+      case CodeLiteral(code)                 => w(tsStringLit(code), "string")
       case GrammarSymbolLiteral(name, flags) => ???
       case NonterminalLiteral(ordinal, name, flags, hasArticle) => ???
-      case EnumLiteral(name)                                    => w(s"\"$name\"", "string")
-      case StringLiteral(str, _)                                => w(s"\"$str\"", "string")
-      case FieldLiteral(name)                                   => s"\"$name\""
+      case EnumLiteral(name)     => w(tsStringLit(name), "string")
+      case StringLiteral(str, _) => w(tsStringLit(str), "string")
+      case FieldLiteral(name) =>
+        s"\"$name\" /* TODO internal slots cannot be modeled */"
       case SymbolLiteral(sym)          => w(s"Symbol.$sym", "symbol")
       case ProductionLiteral(lhs, rhs) => ???
       case ErrorObjectLiteral(name) =>
@@ -724,7 +758,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       case _: NegativeInfinityMathValueLiteral => w("-Infinity", "number")
       case DecimalMathValueLiteral(n)          => w(s"$n", "number")
       case MathConstantLiteral(pre, name)      => ???
-      case NumberLiteral(n)        => w(if (n.toInt == n) s"${n.toInt}" else s"$n", "number")
+      case NumberLiteral(n) =>
+        w(if (n.toInt == n) s"${n.toInt}" else s"$n", "number")
       case BigIntLiteral(n)        => w(s"${n}n", "bigint")
       case _: TrueLiteral          => w("true", "boolean")
       case _: FalseLiteral         => w("false", "boolean")

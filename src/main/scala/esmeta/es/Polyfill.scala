@@ -14,7 +14,6 @@ case class Polyfill(
   hasThis: Boolean = false,
   isAbstractOp: Boolean = false,
   aoImports: List[String] = Nil,
-  tsNoCheck: Boolean = false,
 ) {
   override def toString: String =
     s"${banner}${importsToString}export function $preferedIdentifier ${headToString} ${body.toString}"
@@ -27,40 +26,51 @@ case class Polyfill(
         .mkString("", LINE_SEP, LINE_SEP + LINE_SEP)
 
   val banner: String =
-    val TS = if (tsNoCheck) "// @ts-nocheck" else ""
-    s"""|$TS
-       |// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
-       |import type { Wrapped, SpecRuntime } from "@/model/type.js";
-       |
-       |""".stripMargin
+    s"""|// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
+        |import type { Wrapped, SpecRuntime } from "@/model/type.js";
+        |
+        |""".stripMargin
 
   def headToString: String = {
-    val receiver = if (hasThis) List(s"${Polyfill.THIS_PARAM} : Wrapped<unknown>") else Nil
+    val receiver =
+      if (hasThis) List(s"${Polyfill.THIS_PARAM} : Wrapped<unknown>") else Nil
     val paramStr =
       params.map { p =>
         val ts = Polyfill.tsParamType(p.ty)
         p.kind match
           case ParamKind.Normal => s"${p.name} : $ts"
-          case ParamKind.Optional => s"${p.name} : $ts = ${Polyfill.RUNTIME}.undef"
+          case ParamKind.Optional =>
+            s"${p.name} : $ts = ${Polyfill.RUNTIME}.undef"
           case ParamKind.Variadic => s"...${p.name} : $ts[]"
       }
-    (s"${Polyfill.RUNTIME} : SpecRuntime" :: receiver ::: paramStr).mkString("(", ", ", ")")
+    (s"${Polyfill.RUNTIME} : SpecRuntime" :: receiver ::: paramStr)
+      .mkString("(", ", ", ")")
   }
 
   def preferedIdentifier: String =
     preferedFilename.stripSuffix(".ts").replace(".", "_")
 
   def preferedFilename: String =
-    if (isAbstractOp) s"AO__${name}.ts"
-    else if (name.startsWith("INTRINSICS.yet:"))
-      s"${name.stripPrefix("INTRINSICS.yet:").replace("`", "").replace(".", "")}.ts"
-    else s"${name}.ts"
+    val normalizedName = name
+      .replace("%", "Percent")
+      .replace("[", "LeftBracket")
+      .replace("]", "RightBracket")
+    if (isAbstractOp) s"AO__${normalizedName}.ts"
+    else if (normalizedName.startsWith("INTRINSICS.yet:"))
+      s"${normalizedName.stripPrefix("INTRINSICS.yet:").replace("`", "").replace(".", "")}.ts"
+    else s"${normalizedName}.ts"
 }
 
 object Polyfill {
-  /** injected runtime parameter, threaded into every polyfill (and prefix for runtime ops) */
+
+  /** injected runtime parameter, threaded into every polyfill (and prefix for
+    * runtime ops)
+    */
   val RUNTIME = "$"
-  /** injected receiver parameter for BuiltinHead methods (the spec "this value") */
+
+  /** injected receiver parameter for BuiltinHead methods (the spec "this
+    * value")
+    */
   val THIS_PARAM = "$this"
 
   // Map a spec parameter type to its TS type. Every value is Wrapped (so ops can
@@ -111,13 +121,31 @@ object Polyfill {
           s"for (var $index = 0; $index < $end; $index++)" +
           LINE_SEP +
           s"${body.toString(depth)}"
-        case ForEachIntStmt(index, low, lowInc, high, highInc, true, body, branchId) =>
+        case ForEachIntStmt(
+              index,
+              low,
+              lowInc,
+              high,
+              highInc,
+              true,
+              body,
+              branchId,
+            ) =>
           val init = s"var $index = $low" + (if (lowInc) "" else " + 1")
           val op = if (highInc) "lessThanEqual" else "lessThan"
           val cond =
             s"${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - $branchId, ${RUNTIME}.$op($index, $high))"
           s"for ($init; $cond; $index++)" + LINE_SEP + s"${body.toString(depth)}"
-        case ForEachIntStmt(index, low, lowInc, high, highInc, false, body, branchId) =>
+        case ForEachIntStmt(
+              index,
+              low,
+              lowInc,
+              high,
+              highInc,
+              false,
+              body,
+              branchId,
+            ) =>
           val init = s"var $index = $low" + (if (lowInc) "" else " - 1")
           val op = if (highInc) "greaterThanEqual" else "greaterThan"
           val cond =
