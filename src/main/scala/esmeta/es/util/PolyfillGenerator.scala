@@ -84,6 +84,17 @@ object PolyfillGenerator {
     "CreateIteratorFromClosure",
     "CreateArrayIterator",
   )
+
+  /** boxed-primitive internal slots → the constructor a raw boxed value is an
+    * `instanceof`. These slots aren't represented in the object model, so a spec
+    * "_x_ has a [[…Data]] internal slot" check is approximated on the raw value. */
+  val boxedSlotCtor = Map(
+    "StringData" -> "String",
+    "NumberData" -> "Number",
+    "BooleanData" -> "Boolean",
+    "BigIntData" -> "BigInt",
+    "SymbolData" -> "Symbol",
+  )
 }
 
 /** extensible helper of polyfill generator */
@@ -620,7 +631,18 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         .map(tyStr => s"""${RUNTIME}.isType($compiledExpr, "$tyStr")""")
         .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
-      (if (neg) s"!" else "") + s"(${compile(pb, field)} in ${compile(pb, ref)})"
+      // Boxed-primitive internal slots ([[StringData]]/[[NumberData]]/…) aren't
+      // in the object model, so `"Slot" in obj` is meaningless. Approximate on
+      // the raw value: a boxed primitive is `instanceof` its constructor.
+      val ctor = (form, field) match
+        case (HasFieldConditionForm.InternalSlot, List(FieldLiteral(slot))) =>
+          boxedSlotCtor.get(slot)
+        case _ => None
+      ctor match
+        case Some(c) =>
+          (if (neg) "!" else "") + s"(${RUNTIME}.peek(${compile(pb, ref)}) instanceof $c)"
+        case None =>
+          (if (neg) s"!" else "") + s"(${compile(pb, field)} in ${compile(pb, ref)})"
     case HasBindingCondition(ref, neg, binding)    => ???
     case ProductionCondition(nt, lhsName, rhsName) => ???
     case PredicateCondition(expr, neg, op) =>
