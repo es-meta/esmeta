@@ -389,7 +389,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
   /** compile references */
   def compile(pb: PolyfillBuilder, ref: Reference): String = ref match {
     case x: Variable                => compile(x)
-    case Access(base, name, _, _)   => s"${compile(pb, base)}[\"$name\"]"
+    case Access(base, name, kind, _)   => s"${compile(pb, base)}[\"$name\" ${
+      if kind == AccessKind.Field then "/* TODO INTERNAL : internal access */" else ""
+      }]"
     case ValueOf(base)              => compile(pb, base)
     case IntrinsicField(base, intr) => ???
     case IndexLookup(base, index) =>
@@ -768,7 +770,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       case EnumLiteral(name)     => w(tsStringLit(name), "string")
       case StringLiteral(str, _) => w(tsStringLit(str), "string")
       case FieldLiteral(name) =>
-        s"\"$name\" /* TODO internal slots cannot be modeled */"
+        s"\"$name\" /* TODO INTERNAL slots cannot be modeled */"
       case SymbolLiteral(sym)          => w(s"Symbol.$sym", "symbol")
       case ProductionLiteral(lhs, rhs) => ???
       case ErrorObjectLiteral(name) =>
