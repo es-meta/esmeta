@@ -286,7 +286,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case PrependStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
-          s"${INTERNAL_HEADER}__Prepend(${compile(pb, ref)}, ${compile(pb, expr)})",
+          s"${RUNTIME}.prepend(${compile(pb, ref)}, ${compile(pb, expr)})",
         ),
       )
     case AddStep(expr, ref) => ???
@@ -324,13 +324,14 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case Until(cond) => "!" + compile(pb, cond)
       pb.addStmt(WhileStmt(compiledCond, compileWithScope(pb, body)))
     case ForEachStep(ty, elem, expr, forward, body) =>
+      // `for...of` over the compiled iterable — arrays are iterable, and an
+      // `IntRange` source compiles to the lazy `$.range` iterable, so the same
+      // generic loop drives both (the element binding comes from `for...of`, no
+      // indexed access needed).
       val compiledExpr = compile(pb, expr)
-      val index = pb.newTId
       val element = compile(elem)
-      val end = s"${compiledExpr}.length"
-      val loopHead = NormalStmt(s"var $element = $compiledExpr[$index];")
       val compiledBody = compileWithScope(pb, body)
-      pb.addStmt(ForEachStmt(index, end, loopHead ++ compiledBody))
+      pb.addStmt(ForOfStmt(element, compiledExpr, compiledBody))
     case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
       val compiledLow = compile(pb, low)
       val compiledHigh = compile(pb, high)
@@ -498,7 +499,11 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
               isToInclusive,
               isAscending,
             ) =>
-          s"${INTERNAL_HEADER}__IntRange(${compile(pb, from)}, $isFromInclusive, ${compile(pb, to)}, $isToInclusive, $isAscending)"
+          // The "integers in the interval" notation is just an integer-loop index
+          // sequence, so it compiles to the same lazy `range` op a ForEachInteger
+          // step uses (then driven by a `for...of`). Gets its own branch id so its
+          // loop bound stays a flippable path constraint when `to` is symbolic.
+          s"${RUNTIME}.range(${compile(pb, from)}, $isFromInclusive, ${compile(pb, to)}, $isToInclusive, $isAscending, Number.MAX_SAFE_INTEGER - $newBranchId)"
     case YetExpression(str, block) =>
       // Manual 1:1 override (see manuals/polyfill-rule.json). Both expression-
       // position YETs and statement-position ones (via YetStep) funnel here, so

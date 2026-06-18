@@ -121,36 +121,32 @@ object Polyfill {
           s"for (var $index = 0; $index < $end; $index++)" +
           LINE_SEP +
           s"${body.toString(depth)}"
+        case ForOfStmt(elem, iterable, body) =>
+          s"for (var $elem of $iterable)" +
+          LINE_SEP +
+          s"${body.toString(depth)}"
         case ForEachIntStmt(
               index,
               low,
               lowInc,
               high,
               highInc,
-              true,
+              ascending,
               body,
               branchId,
             ) =>
-          val init = s"var $index = $low" + (if (lowInc) "" else " + 1")
-          val op = if (highInc) "lessThanEqual" else "lessThan"
-          val cond =
-            s"${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - $branchId, ${RUNTIME}.$op($index, $high))"
-          s"for ($init; $cond; $index++)" + LINE_SEP + s"${body.toString(depth)}"
-        case ForEachIntStmt(
-              index,
-              low,
-              lowInc,
-              high,
-              highInc,
-              false,
-              body,
-              branchId,
-            ) =>
-          val init = s"var $index = $low" + (if (lowInc) "" else " - 1")
-          val op = if (highInc) "greaterThanEqual" else "greaterThan"
-          val cond =
-            s"${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - $branchId, ${RUNTIME}.$op($index, $high))"
-          s"for ($init; $cond; $index--)" + LINE_SEP + s"${body.toString(depth)}"
+          // Emit the whole integer-loop index sequence as one `range` runtime op
+          // (see SpecRuntime.range) driven by `for...of`, instead of desugaring it
+          // here into add/subtract/condition. Routing the loop through a single op
+          // lets an analysis observe it as a unit; `range` itself re-registers the
+          // loop-bound comparison via `condition(branchId, ...)` on each step, so a
+          // symbolic `high` (e.g. a string length) stays a flippable path
+          // constraint. The index stays a Wrapped<number>, so a native `for`
+          // counter — which would coerce the proxy and break the value domain — is
+          // still avoided; `range` advances it through the runtime `add`/`subtract`.
+          val range =
+            s"${RUNTIME}.range(($low as Wrapped<number>), $lowInc, ($high as Wrapped<number>), $highInc, $ascending, Number.MAX_SAFE_INTEGER - $branchId)"
+          s"for (var $index of $range)" + LINE_SEP + s"${body.toString(depth)}"
         case BlockStmt(stmts) =>
           "{" + LINE_SEP + stmts
             .map(_.toString(depth + 1))
@@ -216,6 +212,10 @@ object Polyfill {
 
   // for (var index = 0; index < end; index++) { element = expr[index]; body }
   case class ForEachStmt(index: String, end: String, body: Stmt) extends Stmt
+
+  // for (var elem of iterable) { body }
+  // Generic for-each over any iterable (arrays, and the `range` index sequence).
+  case class ForOfStmt(elem: String, iterable: String, body: Stmt) extends Stmt
 
   // for (var index = start; index < end; index++) { body }
   // `branchId` keys the loop-bound comparison as a flippable path constraint
