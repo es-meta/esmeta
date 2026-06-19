@@ -32,6 +32,7 @@ object PolyfillGenerator {
     """INTRINSICS\.(get:|set:)?Promise.*""",
     """INTRINSICS\.(get:|set:)?WeakMap.*""",
     """INTRINSICS\.(get:|set:)?WeakSet.*""",
+    // no RegExp targets - we model them in manual way
   )
 
   val ignoreTargets = List(
