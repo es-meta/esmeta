@@ -32,6 +32,7 @@ object PolyfillGenerator {
     """INTRINSICS\.(get:|set:)?Promise.*""",
     """INTRINSICS\.(get:|set:)?WeakMap.*""",
     """INTRINSICS\.(get:|set:)?WeakSet.*""",
+    """CanonicalNumericIndexString""",
     // no RegExp targets - we model them in manual way
   )
 
@@ -391,6 +392,12 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
   /** compile references */
   def compile(pb: PolyfillBuilder, ref: Reference): String = ref match {
     case x: Variable                => compile(x)
+    case Access(base, name, kind, _) if kind == AccessKind.Field && boxedSlotCtor.contains(name) =>
+      // boxed-primitive data slot ([[BooleanData]]/[[BigIntData]]/…): not in the
+      // object model, so read the underlying primitive off the raw boxed value
+      // (the guarding HasField check is the matching `instanceof`).
+      val b = compile(pb, base)
+      s"${RUNTIME}.base(${RUNTIME}.peek($b).valueOf(), [$b])"
     case Access(base, name, kind, _)   => s"${compile(pb, base)}[\"$name\" ${
       if kind == AccessKind.Field then "/* TODO INTERNAL : internal access */" else ""
       }]"
