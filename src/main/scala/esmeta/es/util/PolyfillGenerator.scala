@@ -634,7 +634,15 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   /** compile branch conditions */
   def compile(pb: PolyfillBuilder, cond: Condition): String = cond match {
-    case ExpressionCondition(expr) => compile(pb, expr)
+    case ExpressionCondition(expr) =>
+      // A bare expression in condition position evaluates to a Wrapped<boolean>
+      // (e.g. a manual `polyfill-rule.json` override like `$.is(...)`, or a
+      // boolean reference). Native `if`/`&&` would see the Wrapped object as
+      // always-truthy, so funnel it through `$.condition(bid, ...)` to recover a
+      // raw boolean (and record a flippable path constraint) — exactly like the
+      // structured comparisons below. `$.condition` unwraps raw booleans too, so
+      // overrides that already reduce to a native boolean stay correct.
+      branch(pb, compile(pb, expr))
     case TypeCheckCondition(expr, neg, tys) =>
       val compiledExpr = compile(pb, expr)
       // Every spec type-check routes through the runtime predicate `$.isType`,
