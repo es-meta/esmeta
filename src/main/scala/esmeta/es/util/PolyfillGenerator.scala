@@ -33,6 +33,7 @@ object PolyfillGenerator {
     """INTRINSICS\.(get:|set:)?WeakMap.*""",
     """INTRINSICS\.(get:|set:)?WeakSet.*""",
     """CanonicalNumericIndexString""",
+    """INTRINSICS\.Math\.(floor|round|ceil)""",
     // no RegExp targets - we model them in manual way
   )
 
@@ -651,7 +652,15 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       (if (neg) s"!" else "") + tys
         .map(_.normalizedName.toLowerCase())
         .map(tyStr => if (tyStr == "record[object]") "object" else tyStr)
-        .map(tyStr => s"""${RUNTIME}.isType($compiledExpr, "$tyStr")""")
+        .map {
+          // "an integral Number" (NumberInt) is not a `typeof`-checkable runtime
+          // kind — it is truncate(ℝ(x)) == ℝ(x). The runtime owns it via the
+          // `$.isInteger` predicate, which (unlike `$.isType`) returns a
+          // Wrapped<boolean>, so funnel it through `$.condition` (like the ordering
+          // comparisons) to record a flippable integrality constraint.
+          case "numberint" => branch(pb, s"${RUNTIME}.isInteger($compiledExpr)")
+          case tyStr       => s"""${RUNTIME}.isType($compiledExpr, "$tyStr")"""
+        }
         .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
       // Boxed-primitive internal slots ([[StringData]]/[[NumberData]]/…) aren't
