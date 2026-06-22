@@ -156,7 +156,7 @@ class Extractor(
     if (IGNORE_ALGO_PARENT_IDS contains parent.id) return Nil
 
     // checks whether it is a valid algorithm head
-    if (parent.tagName != "emu-clause") return Nil
+    if (parent.tagName != "emu-clause" && parent.tagName != "emu-annex") return Nil
 
     // consider algorithm head types using `type` attributes
     val heads = parent.attr("type") match {
