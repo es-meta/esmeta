@@ -655,11 +655,11 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         .map {
           // "an integral Number" (NumberInt) is not a `typeof`-checkable runtime
           // kind — it is truncate(ℝ(x)) == ℝ(x). The runtime owns it via the
-          // `$.isInteger` predicate, which (unlike `$.isType`) returns a
-          // Wrapped<boolean>, so funnel it through `$.condition` (like the ordering
-          // comparisons) to record a flippable integrality constraint.
+          // `$.isInteger` predicate. Every predicate now returns a Wrapped<boolean>,
+          // so funnel each through `$.condition` (like the ordering comparisons) to
+          // record a flippable constraint and unwrap to a raw boolean at the branch.
           case "numberint" => branch(pb, s"${RUNTIME}.isInteger($compiledExpr)")
-          case tyStr       => s"""${RUNTIME}.isType($compiledExpr, "$tyStr")"""
+          case tyStr       => branch(pb, s"""${RUNTIME}.isType($compiledExpr, "$tyStr")""")
         }
         .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
@@ -681,7 +681,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       import PredicateConditionOperator.*
       op match {
         case Finite =>
-          (if (neg) s"!" else "") + s"${RUNTIME}.isFinite(${compile(pb, expr)})"
+          (if (neg) s"!" else "") + branch(pb, s"${RUNTIME}.isFinite(${compile(pb, expr)})")
         case Abrupt      => ???
         case Throw       => ???
         case Return      => ???
@@ -710,7 +710,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           .map(rexpr =>
             rexpr match
               case NumberLiteral(n) if n.isNaN =>
-                s"${RUNTIME}.isNaN($l as Wrapped<number>)"
+                branch(pb, s"${RUNTIME}.isNaN($l as Wrapped<number>)")
               case _ => branch(pb, s"${RUNTIME}.is($l, ${compile(pb, rexpr)})"),
           )
           .reduce((l, r) => s"($l || $r)")
