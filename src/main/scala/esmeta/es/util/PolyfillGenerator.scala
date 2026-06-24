@@ -787,7 +787,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     // literals (this/new.target/field keys/error constructors) pass through raw.
     // Widen the payload type (`base<string>` not `base<"$$">`) so a variable
     // assigned different literals across branches keeps a single Wrapped<string>.
-    def w(s: String, ty: String): String = s"${RUNTIME}.base<$ty>($s, [])"
+    def w(s: String, ty: String): String = s"${RUNTIME}.lit<$ty>($s)"
     lit match {
       case _: ThisLiteral          => THIS_PARAM
       case _: ThisParseNodeLiteral => ???
