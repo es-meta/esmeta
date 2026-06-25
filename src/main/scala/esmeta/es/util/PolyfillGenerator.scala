@@ -447,9 +447,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // its narrowing.
       val base = compile(pb, expr)
       val end = to.fold(s"${RUNTIME}.length($base)")(t =>
-        s"(${compile(pb, t)} as Wrapped<number>)",
+        s"(${compile(pb, t)} as Lifted<number>)",
       )
-      s"${RUNTIME}.substring($base, (${compile(pb, from)} as Wrapped<number>), $end)"
+      s"${RUNTIME}.substring($base, (${compile(pb, from)} as Lifted<number>), $end)"
     case TrimExpression(expr, leading, trailing) =>
       s"${RUNTIME}.trim(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
@@ -470,7 +470,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // Cast each argument to the callee's declared parameter type. AO calls are
       // spec-typed contracts, so this is a "trust the frontend" cast that closes
       // TS control-flow-narrowing gaps (e.g. a value the spec proves is a String
-      // but TS still sees as Wrapped<unknown> across correlated conditions).
+      // but TS still sees as Lifted<unknown> across correlated conditions).
       val params =
         spec.fnameMap.get(name).map(_.head.originalParams).getOrElse(Nil)
       val argStrs = args.zipWithIndex.map { (arg, i) =>
@@ -498,9 +498,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       form match
         case LiteralSyntax(entries) => s"[${compile(pb, entries)}]"
         case SoleElement(entry)     => s"[${compile(pb, entry)}]"
-        // `Wrapped<never>[]` (= never[]) is assignable to any list param, and
+        // `Lifted<never>[]` (= never[]) is assignable to any list param, and
         // `$.append` still pins its element type from the pushed value.
-        case EmptyList(isNewUsed, typeDesc) => "[] as Wrapped<never>[]"
+        case EmptyList(isNewUsed, typeDesc) => "[] as Lifted<never>[]"
         case IntRange(
               from,
               isFromInclusive,
@@ -529,16 +529,16 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       s"${RUNTIME}.exponentiate(${compile(pb, base)}, ${compile(pb, power)})"
     case BinaryExpression(left, op, right) =>
       // numeric operands — cast (as with AO args) past equality's lost narrowing.
-      s"${RUNTIME}.${compile(op)}((${compile(pb, left)} as Wrapped<number>), (${compile(pb, right)} as Wrapped<number>))"
+      s"${RUNTIME}.${compile(op)}((${compile(pb, left)} as Lifted<number>), (${compile(pb, right)} as Lifted<number>))"
     case UnaryExpression(op, expr) =>
-      s"${RUNTIME}.${compile(op)}((${compile(pb, expr)} as Wrapped<number>))"
+      s"${RUNTIME}.${compile(op)}((${compile(pb, expr)} as Lifted<number>))"
     case ClampExpression(target, lower, upper) =>
       s"${RUNTIME}.clamp(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
     case MathOpExpression(op, args) =>
       import MathOpExpressionOperator.*
       // Operands are spec-typed numbers — cast (as with AO args / substring) so
       // they still type after equality lost its narrowing.
-      def n(e: Expression): String = s"(${compile(pb, e)} as Wrapped<number>)"
+      def n(e: Expression): String = s"(${compile(pb, e)} as Lifted<number>)"
       (op, args) match
         case (Neg, List(e))    => s"${RUNTIME}.negate(${n(e)})"
         case (Add, List(l, r)) => s"${RUNTIME}.add(${n(l)}, ${n(r)})"
@@ -618,8 +618,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       case Truncate => "truncate"
     }
 
-  /** wrap an ordering-comparison expression (a Wrapped<boolean>) so it is
-    * recorded as a flippable path constraint and unwrapped to a raw boolean at
+  /** wrap an ordering-comparison expression (a Lifted<boolean>) so it is
+    * recorded as a flippable path constraint and unlifted to a raw boolean at
     * its branch site. Mirrors `D$.C(id, op, value)`.
     */
   private def branch(pb: PolyfillBuilder, cmp: String): String =
@@ -636,9 +636,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
   /** compile branch conditions */
   def compile(pb: PolyfillBuilder, cond: Condition): String = cond match {
     case ExpressionCondition(expr) =>
-      // A bare expression in condition position evaluates to a Wrapped<boolean>
+      // A bare expression in condition position evaluates to a Lifted<boolean>
       // (e.g. a manual `polyfill-rule.json` override like `$.is(...)`, or a
-      // boolean reference). Native `if`/`&&` would see the Wrapped object as
+      // boolean reference). Native `if`/`&&` would see the Lifted object as
       // always-truthy, so funnel it through `$.condition(bid, ...)` to recover a
       // raw boolean (and record a flippable path constraint) — exactly like the
       // structured comparisons below. `$.condition` unwraps raw booleans too, so
@@ -655,7 +655,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         .map {
           // "an integral Number" (NumberInt) is not a `typeof`-checkable runtime
           // kind — it is truncate(ℝ(x)) == ℝ(x). The runtime owns it via the
-          // `$.isInteger` predicate. Every predicate now returns a Wrapped<boolean>,
+          // `$.isInteger` predicate. Every predicate now returns a Lifted<boolean>,
           // so funnel each through `$.condition` (like the ordering comparisons) to
           // record a flippable constraint and unwrap to a raw boolean at the branch.
           case "numberint" => branch(pb, s"${RUNTIME}.isInteger($compiledExpr)")
@@ -710,7 +710,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           .map(rexpr =>
             rexpr match
               case NumberLiteral(n) if n.isNaN =>
-                branch(pb, s"${RUNTIME}.isNaN($l as Wrapped<number>)")
+                branch(pb, s"${RUNTIME}.isNaN($l as Lifted<number>)")
               case _ => branch(pb, s"${RUNTIME}.is($l, ${compile(pb, rexpr)})"),
           )
           .reduce((l, r) => s"($l || $r)")
@@ -721,7 +721,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       import BinaryConditionOperator.*
       lazy val l = compile(pb, left)
       lazy val r = compile(pb, right)
-      // Every comparison returns a Wrapped<boolean> (carrying its Sym); funnel
+      // Every comparison returns a Lifted<boolean> (carrying its Sym); funnel
       // each through `$.condition(bid, ...)` at the branch site so it becomes a
       // flippable path constraint AND unwraps to a raw boolean for native control
       // flow. Equality included (`$.is`/`$.isNot` no longer narrow), so a string
@@ -780,13 +780,13 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     sb.toString
 
   def compile(lit: Literal): String =
-    // Literals denoting ECMAScript values are wrapped (`$.base(v, [])`) so they
-    // flow through the value ops like any other Wrapped value; this also keeps a
+    // Literals denoting ECMAScript values are Lifted (`$.base(v, [])`) so they
+    // flow through the value ops like any other Lifted value; this also keeps a
     // variable's type consistent across branches (e.g. `var ref` assigned a
-    // string literal in one branch and a Wrapped<string> in another). Structural
+    // string literal in one branch and a Lifted<string> in another). Structural
     // literals (this/new.target/field keys/error constructors) pass through raw.
     // Widen the payload type (`base<string>` not `base<"$$">`) so a variable
-    // assigned different literals across branches keeps a single Wrapped<string>.
+    // assigned different literals across branches keeps a single Lifted<string>.
     def w(s: String, ty: String): String = s"${RUNTIME}.lit<$ty>($s)"
     lit match {
       case _: ThisLiteral          => THIS_PARAM
