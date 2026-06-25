@@ -398,7 +398,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // object model, so read the underlying primitive off the raw boxed value
       // (the guarding HasField check is the matching `instanceof`).
       val b = compile(pb, base)
-      s"${RUNTIME}.base(${RUNTIME}.peek($b).valueOf(), [$b])"
+      s"${RUNTIME}.default(${RUNTIME}.value($b).valueOf(), [$b])"
     case Access(base, name, kind, _)   => s"${compile(pb, base)}[\"$name\" ${
       if kind == AccessKind.Field then "/* TODO INTERNAL : internal access */" else ""
       }]"
@@ -454,7 +454,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       s"${RUNTIME}.trim(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
       // a List's length is a value too — wrap it so it flows through the ops.
-      s"${RUNTIME}.base<number>(${compile(pb, ref)}.length, [])"
+      s"${RUNTIME}.default<number>(${compile(pb, ref)}.length, [])"
     case NumberOfExpression(_, _, expr, _) => ???
     case IntrinsicExpression(intr) =>
       if (intr.props.isEmpty)
@@ -622,8 +622,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     * recorded as a flippable path constraint and unlifted to a raw boolean at
     * its branch site. Mirrors `D$.C(id, op, value)`.
     */
-  private def branch(pb: PolyfillBuilder, cmp: String): String =
-    s"${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - ${newBranchId}, $cmp)"
+  private def branchWithUnlift(pb: PolyfillBuilder, cmp: String): String =
+    s"${RUNTIME}.value(${RUNTIME}.condition(Number.MAX_SAFE_INTEGER - ${newBranchId}, $cmp))"
 
   /** get next branch id */
   private def newBranchId: Int = {
@@ -643,7 +643,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // raw boolean (and record a flippable path constraint) — exactly like the
       // structured comparisons below. `$.condition` unwraps raw booleans too, so
       // overrides that already reduce to a native boolean stay correct.
-      branch(pb, compile(pb, expr))
+      branchWithUnlift(pb, compile(pb, expr))
     case TypeCheckCondition(expr, neg, tys) =>
       val compiledExpr = compile(pb, expr)
       // Every spec type-check routes through the runtime predicate `$.isType`,
@@ -658,8 +658,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           // `$.isInteger` predicate. Every predicate now returns a Lifted<boolean>,
           // so funnel each through `$.condition` (like the ordering comparisons) to
           // record a flippable constraint and unwrap to a raw boolean at the branch.
-          case "numberint" => branch(pb, s"${RUNTIME}.isInteger($compiledExpr)")
-          case tyStr       => branch(pb, s"""${RUNTIME}.isType($compiledExpr, "$tyStr")""")
+          case "numberint" => branchWithUnlift(pb, s"${RUNTIME}.isInteger($compiledExpr)")
+          case tyStr       => branchWithUnlift(pb, s"""${RUNTIME}.isType($compiledExpr, "$tyStr")""")
         }
         .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
@@ -672,7 +672,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case _ => None
       ctor match
         case Some(c) =>
-          (if (neg) "!" else "") + s"(${RUNTIME}.peek(${compile(pb, ref)}) instanceof $c)"
+          (if (neg) "!" else "") + s"(${RUNTIME}.value(${compile(pb, ref)}) instanceof $c)"
         case None =>
           (if (neg) s"!" else "") + s"(${compile(pb, field)} in ${compile(pb, ref)})"
     case HasBindingCondition(ref, neg, binding)    => ???
@@ -681,7 +681,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       import PredicateConditionOperator.*
       op match {
         case Finite =>
-          (if (neg) s"!" else "") + branch(pb, s"${RUNTIME}.isFinite(${compile(pb, expr)})")
+          (if (neg) s"!" else "") + branchWithUnlift(pb, s"${RUNTIME}.isFinite(${compile(pb, expr)})")
         case Abrupt      => ???
         case Throw       => ???
         case Return      => ???
@@ -710,8 +710,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           .map(rexpr =>
             rexpr match
               case NumberLiteral(n) if n.isNaN =>
-                branch(pb, s"${RUNTIME}.isNaN($l as Lifted<number>)")
-              case _ => branch(pb, s"${RUNTIME}.is($l, ${compile(pb, rexpr)})"),
+                branchWithUnlift(pb, s"${RUNTIME}.isNaN($l as Lifted<number>)")
+              case _ => branchWithUnlift(pb, s"${RUNTIME}.is($l, ${compile(pb, rexpr)})"),
           )
           .reduce((l, r) => s"($l || $r)")
         (if (neg) s"!" else "") + e
@@ -727,14 +727,14 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // flow. Equality included (`$.is`/`$.isNot` no longer narrow), so a string
       // `candidate === search` inside a search loop is now a real constraint.
       op match {
-        case Eq            => branch(pb, s"${RUNTIME}.is($l, $r)")
-        case NEq           => branch(pb, s"${RUNTIME}.isNot($l, $r)")
-        case LessThan      => branch(pb, s"${RUNTIME}.lessThan($l, $r)")
-        case LessThanEqual => branch(pb, s"${RUNTIME}.lessThanEqual($l, $r)")
-        case GreaterThan   => branch(pb, s"${RUNTIME}.greaterThan($l, $r)")
+        case Eq            => branchWithUnlift(pb, s"${RUNTIME}.is($l, $r)")
+        case NEq           => branchWithUnlift(pb, s"${RUNTIME}.isNot($l, $r)")
+        case LessThan      => branchWithUnlift(pb, s"${RUNTIME}.lessThan($l, $r)")
+        case LessThanEqual => branchWithUnlift(pb, s"${RUNTIME}.lessThanEqual($l, $r)")
+        case GreaterThan   => branchWithUnlift(pb, s"${RUNTIME}.greaterThan($l, $r)")
         case GreaterThanEqual =>
-          branch(pb, s"${RUNTIME}.greaterThanEqual($l, $r)")
-        case SameCodeUnits => branch(pb, s"${RUNTIME}.is($l, $r)")
+          branchWithUnlift(pb, s"${RUNTIME}.greaterThanEqual($l, $r)")
+        case SameCodeUnits => branchWithUnlift(pb, s"${RUNTIME}.is($l, $r)")
       }
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)
@@ -742,8 +742,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // (raw boolean) so the native `&&` short-circuits correctly and both
       // bounds are independently flippable.
       val lo =
-        branch(pb, s"${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)})")
-      val hi = branch(pb, s"${RUNTIME}.lessThanEqual($l, ${compile(pb, to)})")
+        branchWithUnlift(pb, s"${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)})")
+      val hi = branchWithUnlift(pb, s"${RUNTIME}.lessThanEqual($l, ${compile(pb, to)})")
       val e = s"($lo && $hi)"
       (if (neg) s"!" else "") + e
     case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
@@ -780,14 +780,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     sb.toString
 
   def compile(lit: Literal): String =
-    // Literals denoting ECMAScript values are Lifted (`$.base(v, [])`) so they
-    // flow through the value ops like any other Lifted value; this also keeps a
-    // variable's type consistent across branches (e.g. `var ref` assigned a
-    // string literal in one branch and a Lifted<string> in another). Structural
-    // literals (this/new.target/field keys/error constructors) pass through raw.
-    // Widen the payload type (`base<string>` not `base<"$$">`) so a variable
-    // assigned different literals across branches keeps a single Lifted<string>.
-    def w(s: String, ty: String): String = s"${RUNTIME}.lit<$ty>($s)"
+    type ES_TYPE = "string" | "number" | "bigint" | "boolean" | "undefined" | "null" | "symbol"
+    def w(s: String, ty: ES_TYPE): String = s"${RUNTIME}.default<$ty>($s, [])"
     lit match {
       case _: ThisLiteral          => THIS_PARAM
       case _: ThisParseNodeLiteral => ???
