@@ -33,7 +33,7 @@ object PolyfillGenerator {
     """INTRINSICS\.(get:|set:)?WeakMap.*""",
     """INTRINSICS\.(get:|set:)?WeakSet.*""",
     """CanonicalNumericIndexString""",
-    """INTRINSICS\.Math\.(floor|round|ceil)""",
+    """INTRINSICS\.Math\.(floor|round|ceil|abs|trunc|max|min|sign)""",
     // no RegExp targets - we model them in manual way
   )
 

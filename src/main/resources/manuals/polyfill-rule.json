@@ -21,5 +21,6 @@
   "Set _p1_ to the string-concatenation of:": "p1 = $.concatenate($.concatenate($.concatenate($.concatenate($.concatenate($.concatenate(p1, $.base<string>(\" \", [])), attribute), $.base<string>(\"=\", [])), $.base<string>(String.fromCharCode(0x22), [])), escapedV), $.base<string>(String.fromCharCode(0x22), []));",
   "Return the greatest (closest to +∞) integral Number value that is not greater than _n_.": "return $.floor(n);",
   "Return the smallest (closest to -∞) integral Number value that is not less than _n_.": "return $.ceil(n);",
-  "Return the integral Number closest to _n_, preferring the Number closer to +∞ in the case of a tie.": "return $.round(n);"
+  "Return the integral Number closest to _n_, preferring the Number closer to +∞ in the case of a tie.": "return $.round(n);",
+  "Return the integral Number nearest _n_ in the direction of *+0*<sub>𝔽</sub>.": "return $.truncate(n);"
 }
