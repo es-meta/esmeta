@@ -27,13 +27,13 @@ case class Polyfill(
 
   val banner: String =
     s"""|// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
-        |import type { Wrapped, SpecRuntime } from "@/model/type.js";
+        |import type { Lifted, SpecRuntime } from "@/model/type.js";
         |
         |""".stripMargin
 
   def headToString: String = {
     val receiver =
-      if (hasThis) List(s"${Polyfill.THIS_PARAM} : Wrapped<unknown>") else Nil
+      if (hasThis) List(s"${Polyfill.THIS_PARAM} : Lifted<unknown>") else Nil
     val paramStr =
       params.map { p =>
         val ts = Polyfill.tsParamType(p.ty)
@@ -73,18 +73,18 @@ object Polyfill {
     */
   val THIS_PARAM = "$this"
 
-  // Map a spec parameter type to its TS type. Every value is Wrapped (so ops can
+  // Map a spec parameter type to its TS type. Every value is Lifted (so ops can
   // track it for taint/concolic). A List recurses into its element type; the
   // payload narrows when known (String/Number/integer/Boolean) and keeps a
   // `| undefined` union so `$.is(x, base(undefined))` guards narrow downstream
-  // (e.g. GetSubstitution's `captures: Wrapped<string | undefined>[]`). Shared
+  // (e.g. GetSubstitution's `captures: Lifted<string | undefined>[]`). Shared
   // with PolyfillGenerator, which casts AO-call args to their callee param type.
   def tsParamType(tpe: Type): String = tpe.ty match
-    case vt: ValueTy if vt <= ListT => s"Wrapped<${tsPayload(vt.list.elem)}>[]"
-    case vt: ValueTy                => s"Wrapped<${tsPayload(vt)}>"
-    case _                          => "Wrapped<unknown>"
+    case vt: ValueTy if vt <= ListT => s"Lifted<${tsPayload(vt.list.elem)}>[]"
+    case vt: ValueTy                => s"Lifted<${tsPayload(vt)}>"
+    case _                          => "Lifted<unknown>"
 
-  // TS payload type inside Wrapped<...>; preserves a `| undefined` union.
+  // TS payload type inside Lifted<...>; preserves a `| undefined` union.
   private def tsPayload(vt: ValueTy): String =
     val core = vt -- UndefT
     val base =
@@ -141,11 +141,11 @@ object Polyfill {
           // lets an analysis observe it as a unit; `range` itself re-registers the
           // loop-bound comparison via `condition(branchId, ...)` on each step, so a
           // symbolic `high` (e.g. a string length) stays a flippable path
-          // constraint. The index stays a Wrapped<number>, so a native `for`
+          // constraint. The index stays a Lifted<number>, so a native `for`
           // counter — which would coerce the proxy and break the value domain — is
           // still avoided; `range` advances it through the runtime `add`/`subtract`.
           val range =
-            s"${RUNTIME}.range(($low as Wrapped<number>), $lowInc, ($high as Wrapped<number>), $highInc, $ascending, Number.MAX_SAFE_INTEGER - $branchId)"
+            s"${RUNTIME}.range(($low as Lifted<number>), $lowInc, ($high as Lifted<number>), $highInc, $ascending, Number.MAX_SAFE_INTEGER - $branchId)"
           s"for (var $index of $range)" + LINE_SEP + s"${body.toString(depth)}"
         case BlockStmt(stmts) =>
           "{" + LINE_SEP + stmts
