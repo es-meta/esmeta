@@ -747,9 +747,13 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       val e = s"($lo && $hi)"
       (if (neg) s"!" else "") + e
     case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
+      // `contains` is a condition like any other comparison: funnel it through
+      // `$.condition(bid, ...)` so the branch is flippable and the analysis
+      // records the path constraint. The op returns a Lifted<boolean> (List
+      // membership or String substring, dispatched at runtime).
       val c =
         s"${RUNTIME}.contains(${compile(pb, list)}, ${compile(pb, target)})"
-      (if (neg) s"!" else "") + c
+      (if (neg) s"!" else "") + branchWithUnlift(pb, c)
     case ContainsCondition(list, neg, _) => ???
     case CompoundCondition(left, op, right) =>
       import CompoundConditionOperator.*
