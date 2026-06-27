@@ -135,6 +135,12 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           case InvokeAbstractOperationExpression(name, args, _) =>
             result ++= spec.fnameMap.get(name)
             walkList(args, walk)
+          // Numeric methods (e.g. `Number::equal`) are real algorithms too; pull
+          // them into the worklist so a polyfill file is generated and imported,
+          // instead of leaving a dangling `Number__equal` reference.
+          case InvokeNumericMethodExpression(base, name, args) =>
+            result ++= spec.fnameMap.get(s"$base::$name")
+            walkList(args, walk)
           case XRefExpression(
                 XRefExpressionOperator.Algo |
                 XRefExpressionOperator.Definition |
@@ -211,6 +217,18 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       }.walk(algo.body)
       names.filterNot(_ == name).toList.sorted
     }
+    // Numeric methods referenced by this polyfill are imported as `<ty>__<name>`
+    // from their own generated files (mirrors aoImports above).
+    val numericImports = {
+      val names = mutable.Set[String]()
+      new LangUnitWalker {
+        override def walk(expr: Expression): Unit = expr match
+          case InvokeNumericMethodExpression(base, n, args) =>
+            names += s"${base}__$n"; walkList(args, walk)
+          case _ => super.walk(expr)
+      }.walk(algo.body)
+      names.toList.sorted
+    }
     Polyfill(
       name,
       params,
@@ -218,6 +236,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       hasThis = hasThis,
       isAbstractOp = isAbstractOp,
       aoImports = aoImports,
+      numericImports = numericImports,
     )
 
   def compilePrelude(pb: PolyfillBuilder, head: Head, body: Step): Stmt =
@@ -479,7 +498,16 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       }
       s"${AO_HEADER}__$name(${(RUNTIME :: argStrs).mkString(", ")})"
     case InvokeNumericMethodExpression(ty, name, args) =>
-      s"${ty}__$name(${compile(pb, args)})"
+      // A numeric method (`Number::equal`, …) is generated as a sibling polyfill
+      // `<ty>__<name>` taking `$` first; call it like an AO — runtime receiver
+      // plus args cast to the callee's declared param type past lost narrowing.
+      val params =
+        spec.fnameMap.get(s"$ty::$name").map(_.head.originalParams).getOrElse(Nil)
+      val argStrs = args.zipWithIndex.map { (arg, i) =>
+        val c = compile(pb, arg)
+        params.lift(i).fold(c)(p => s"($c as ${Polyfill.tsParamType(p.ty)})")
+      }
+      s"${ty}__$name(${(RUNTIME :: argStrs).mkString(", ")})"
     case InvokeAbstractClosureExpression(ref, args) =>
       s"${compile(pb, ref)}(${args.map(compile(pb, _)).mkString(", ")})"
     case InvokeMethodExpression(ref, args, tag) =>

@@ -14,16 +14,18 @@ case class Polyfill(
   hasThis: Boolean = false,
   isAbstractOp: Boolean = false,
   aoImports: List[String] = Nil,
+  numericImports: List[String] = Nil,
 ) {
   override def toString: String =
     s"${banner}${importsToString}export function $preferedIdentifier ${headToString} ${body.toString}"
 
   def importsToString: String =
-    if (aoImports.isEmpty) ""
-    else
-      aoImports
-        .map(n => s"""import { AO__$n } from "./AO__$n.js";""")
-        .mkString("", LINE_SEP, LINE_SEP + LINE_SEP)
+    val lines =
+      aoImports.map(n => s"""import { AO__$n } from "./AO__$n.js";""") ++
+      // Numeric-method imports are already fully-qualified identifiers (`Number__equal`).
+      numericImports.map(n => s"""import { $n } from "./$n.js";""")
+    if (lines.isEmpty) ""
+    else lines.mkString("", LINE_SEP, LINE_SEP + LINE_SEP)
 
   val banner: String =
     s"""|// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
@@ -55,6 +57,9 @@ case class Polyfill(
       .replace("%", "Percent")
       .replace("[", "LeftBracket")
       .replace("]", "RightBracket")
+      // numeric methods are named `Number::equal`; `::` is not a legal JS
+      // identifier, so render them as `Number__equal` (matching the call site).
+      .replace("::", "__")
     if (isAbstractOp) s"AO__${normalizedName}.ts"
     else if (normalizedName.startsWith("INTRINSICS.yet:"))
       s"${normalizedName.stripPrefix("INTRINSICS.yet:").replace("`", "").replace(".", "")}.ts"
