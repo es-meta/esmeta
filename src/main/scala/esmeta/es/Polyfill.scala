@@ -15,21 +15,34 @@ case class Polyfill(
   isAbstractOp: Boolean = false,
   aoImports: List[String] = Nil,
   numericImports: List[String] = Nil,
+  isConstructor: Boolean = false,
 ) {
   override def toString: String =
-    s"${banner}${importsToString}export function $preferedIdentifier ${headToString} ${body.toString}"
+    s"${banner}${importsToString}export function $preferedIdentifier ${headToString} ${body.toString}${markerToString}"
 
   def importsToString: String =
     val lines =
+      // A constructor polyfill is stamped via markConstructable (see
+      // markerToString) so the runtime permits `new`; import the helper.
+      (if (isConstructor)
+         List(s"""import { markConstructable } from "../internal/constructable.js";""")
+       else Nil) ++
       aoImports.map(n => s"""import { AO__$n } from "./AO__$n.js";""") ++
       // Numeric-method imports are already fully-qualified identifiers (`Number__equal`).
       numericImports.map(n => s"""import { $n } from "./$n.js";""")
     if (lines.isEmpty) ""
     else lines.mkString("", LINE_SEP, LINE_SEP + LINE_SEP)
 
+  /** Mark a constructor polyfill so the runtime allows `new <fn>()`. Absent for
+    * ordinary built-in functions, which the runtime then treats as
+    * non-constructors (throwing on `new`, like native). */
+  def markerToString: String =
+    if (isConstructor) s"${LINE_SEP}markConstructable($preferedIdentifier);$LINE_SEP"
+    else ""
+
   val banner: String =
     s"""|// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
-        |import type { Lifted, SpecRuntime } from "../type.js";
+        |import type { SpecRuntime, Lifted, Unlifted } from "../type.js";
         |
         |""".stripMargin
 
@@ -54,9 +67,9 @@ case class Polyfill(
 
   def preferedFilename: String =
     val normalizedName = name
-      .replace("%", "Percent")
-      .replace("[", "LeftBracket")
-      .replace("]", "RightBracket")
+      .replace("%", "_")
+      .replace("[", "_")
+      .replace("]", "_")
       // numeric methods are named `Number::equal`; `::` is not a legal JS
       // identifier, so render them as `Number__equal` (matching the call site).
       .replace("::", "__")
@@ -97,6 +110,7 @@ object Polyfill {
       else if core <= StrT then "string"
       else if core <= MathT || core <= NumberT then "number"
       else if core <= BoolT then "boolean"
+      else if core <= BigIntT then "bigint"
       else "unknown"
     if base == "unknown" then "unknown"
     else if base.isEmpty then "undefined"

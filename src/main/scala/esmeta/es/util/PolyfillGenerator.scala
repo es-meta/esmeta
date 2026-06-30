@@ -18,9 +18,9 @@ object PolyfillGenerator {
 
   val targetPatterns = List(
     // https://tc39.es/ecma262/#sec-properties-of-the-string-prototype-object
-    """INTRINSICS\.(get:|set:)?String\..*""",
+    """INTRINSICS\.(get:|set:)?String(\..*)?""",
     // https://tc39.es/ecma262/#sec-properties-of-the-array-prototype-object
-    """INTRINSICS\.(get:|set:)?Array\..*""",
+    """INTRINSICS\.(get:|set:)?Array(\..*)?""",
     // https://tc39.es/ecma262/#sec-map-objects
     """INTRINSICS\.(get:|set:)?Map.*""",
     // https://tc39.es/ecma262/#sec-set-objects
@@ -37,32 +37,28 @@ object PolyfillGenerator {
     // no RegExp targets - we model them in manual way
   )
 
+  /** Intrinsic names (`INTRINSICS.<name>`) whose builtin object declares a
+    * [[Construct]] internal method in the manual intrinsics model — the same
+    * signal `Initialize.intrTypes` uses (`obj.map contains "Construct"`), read
+    * straight from `manuals/intrinsics` so it stays authoritative without needing
+    * a CFG. A generated polyfill matching one of these is stamped CONSTRUCTABLE so
+    * the runtime permits `new`; everything else defaults to non-constructable.
+    * (Note: the manual model gives Symbol/BigInt a throwing [[Construct]], so they
+    * are included here too — matching esmeta's semantics, not native IsConstructor.) */
+  lazy val constructorTargets: Set[String] =
+    ManualInfo.intrinsics.replacedModels.iterator
+      .filter(_.imap.exists(_._1 == "Construct"))
+      .map(m => s"INTRINSICS.${m.name}")
+      .toSet
+
   val ignoreTargets = List(
-    // ES3
-    // "INTRINSICS.String.prototype.charAt",
-    // "INTRINSICS.String.prototype.charCodeAt",
-    // "INTRINSICS.String.prototype.concat",
-    // "INTRINSICS.String.prototype.indexOf",
-    // "INTRINSICS.String.prototype.lastIndexOf",
-    // "INTRINSICS.String.prototype.localeCompare",
-    // "INTRINSICS.String.prototype.match",
-    // "INTRINSICS.String.prototype.replace",
-    // "INTRINSICS.String.prototype.search",
-    // "INTRINSICS.String.prototype.slice",
-    // "INTRINSICS.String.prototype.split",
-    // "INTRINSICS.String.prototype.substring",
-    // "INTRINSICS.String.prototype.toLocaleLowerCase",
-    // "INTRINSICS.String.prototype.toLocaleUpperCase",
-    // "INTRINSICS.String.prototype.toLowerCase",
-    // "INTRINSICS.String.prototype.toString",
-    // "INTRINSICS.String.prototype.toUpperCase",
-    // "INTRINSICS.String.prototype.valueOf",
 
     // Unsupported
     "INTRINSICS.MapIteratorPrototype.next",
     "INTRINSICS.SetIteratorPrototype.next",
 
     // Yet AOs
+    "StringCreate",
     "ArrayCreate",
     "ArraySpeciesCreate",
     "AsyncGeneratorYield",
@@ -187,6 +183,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     val pb = PolyfillBuilder()
 
     val name = algo.name
+    val isConstructor = constructorTargets.contains(name)
     val params = algo.head.originalParams
     val prelude = compilePrelude(pb, algo.head, algo.body)
     val body =
@@ -237,6 +234,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       isAbstractOp = isAbstractOp,
       aoImports = aoImports,
       numericImports = numericImports,
+      isConstructor = isConstructor,
     )
 
   def compilePrelude(pb: PolyfillBuilder, head: Head, body: Step): Stmt =
@@ -476,10 +474,14 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       s"${RUNTIME}.default<number>(${compile(pb, ref)}.length, [])"
     case NumberOfExpression(_, _, expr, _) => ???
     case IntrinsicExpression(intr) =>
-      if (intr.props.isEmpty)
-        s"${intr.base}"
-      else
-        s"${intr.base}.${intr.props.mkString(".")}"
+      // An intrinsic referenced as a *value* (e.g. `%Object.prototype.toString%`)
+      // must enter the model lifted, so it flows like any other Lifted value
+      // (assigned into a Lifted var, passed to AO__Call, …). Direct-call callees
+      // go through the Reference path (IntrinsicField/IntrinsicObject), not here.
+      val raw =
+        if (intr.props.isEmpty) s"${intr.base}"
+        else s"${intr.base}.${intr.props.mkString(".")}"
+      s"${RUNTIME}.default($raw as Function as Unlifted<Function>, [])"
     case SourceTextExpression(expr)      => ???
     case CoveredByExpression(code, rule) => ???
     case GetItemsExpression(nt, expr @ NonterminalLiteral(_, _, _, _)) =>
@@ -579,8 +581,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       s"${RUNTIME}.${compile(op)}(${compile(pb, l)}, ${compile(pb, r)})"
     case AbstractClosureExpression(params, captured, body) =>
       val funcBody =
-        s"(${params.map(compile).mkString(", ")}) => ${compileWithScope(pb, body)}"
-      s"(() => {var _self = $funcBody; return _self;})()" // return IIFE
+        s"${RUNTIME}.default<Unlifted<Function>>( /* ABSTRACT_CLOSURE */ (${params.map(compile).mkString(", ")}) => ${compileWithScope(pb, body)} , [${
+          captured.map(compile(pb, _)).mkString(", ")
+        }])"
+      s"(() => {var _self = $funcBody; return _self as Lifted<Function>;})() as Lifted<Function>" // return IIFE
     case XRefExpression(
           XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
           XRefExpressionOperator.InternalMethod,
@@ -821,13 +825,15 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     lit match {
       case _: ThisLiteral          => THIS_PARAM
       case _: ThisParseNodeLiteral => ???
-      case _: NewTargetLiteral     => "new.target"
+      case _: NewTargetLiteral     => "$.default<Unlifted<unknown>>(new.target as unknown as Unlifted<unknown>, [])"
       case HexLiteral(hex, _, _, _) =>
         w(tsStringLit(hex.toChar.toString), "string")
       case CodeLiteral(code)                 => w(tsStringLit(code), "string")
       case GrammarSymbolLiteral(name, flags) => ???
       case NonterminalLiteral(ordinal, name, flags, hasArticle) => ???
-      case EnumLiteral(name)     => w(tsStringLit(name), "string")
+      case EnumLiteral(name)     => name match
+        case "not-found" => w("-1", "number")
+        case _ => w(tsStringLit(name), "string")
       case StringLiteral(str, _) => w(tsStringLit(str), "string")
       case FieldLiteral(name) =>
         s"\"$name\" /* TODO INTERNAL slots cannot be modeled */"
