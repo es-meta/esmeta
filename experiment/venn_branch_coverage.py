@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
-"""Generate a three-way Venn SVG for ESMeta branch-side coverage logs.
 
-The universe is the set of all branch sides reachable from builtin entries,
-loaded from ``logs/solver``.  The solver-covered set is the solver ``pass``
-status, while Test262 and fuzz sets are loaded from the coverage archives under
-``experiment/data``.  The archives are extracted on demand and the JSON output
-also keeps branch-side lists for each Venn region, including solver pass
-programs when available.
-"""
+# python3 experiment/venn_branch_coverage.py
+#   ../fuzz-data/0fs-50h logs/test262/recent \
+#   -o experiment/result.svg
 
 from __future__ import annotations
 
+import argparse
 import html
 import json
+import os
 import re
 import sys
-import tarfile
 from pathlib import Path
 from typing import Iterable
 
@@ -26,118 +22,10 @@ SUMMARY_BRANCH_RE = re.compile(r"\bBranch\[(\d+)\]:(T|F)\b")
 SUMMARY_STATUS_RE = re.compile(r"^\s*\[([A-Za-z0-9_.-]+)\]\s+\d+\s*$")
 JS_LINE_RE = re.compile(r"^\s*js:\s*(.*\S)\s*$")
 SIDE_ORDER = {"T": 0, "F": 1}
-SKIPPED_TAR_METADATA_NAMES = {".DS_Store"}
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = REPO_ROOT / "experiment" / "data"
-FUZZ_ARCHIVE = DATA_DIR / "fuzz-50h.tar"
-TEST262_ARCHIVE = DATA_DIR / "test262.tar"
-DEFAULT_FUZZ_COVERAGE = DATA_DIR / "fuzz-50h" / "branch-coverage.json"
-DEFAULT_TEST262_COVERAGE = (
-    REPO_ROOT / "logs" / "test262" / "test262" / "branch-coverage.json"
-)
-DEFAULT_SOLVER_LOG = REPO_ROOT / "logs" / "solver"
-DEFAULT_OUT = REPO_ROOT / "experiment" / "result.svg"
-DEFAULT_JSON_OUT = DEFAULT_OUT.with_suffix(".json")
-SOLVER_STATUSES = {"pass"}
-SOLVER_LABEL = "Solver"
-TEST262_LABEL = "Test262"
-FUZZ_LABEL = "Fuzz"
-TITLE = ""
-MERGE_NESTED_COVERAGE = False
-EXTRACTION_STAMPS = {
-    FUZZ_ARCHIVE: DATA_DIR / ".fuzz-50h.tar.extracted",
-    TEST262_ARCHIVE: DATA_DIR / ".test262.tar.extracted",
-}
 
 
 def format_int(n: int) -> str:
     return f"{n:,}"
-
-
-def tar_stamp(tar_path: Path) -> str:
-    stat = tar_path.stat()
-    return f"{stat.st_size}:{stat.st_mtime_ns}\n"
-
-
-def is_skipped_tar_metadata(path: Path) -> bool:
-    return any(part in SKIPPED_TAR_METADATA_NAMES or part.startswith("._") for part in path.parts)
-
-
-def validate_tar_member(tar_root: Path, member: tarfile.TarInfo) -> None:
-    member_name = Path(member.name)
-    if member_name.is_absolute():
-        raise ValueError(f"refusing to extract absolute tar path: {member.name}")
-
-    member_path = (tar_root / member_name).resolve()
-    try:
-        member_path.relative_to(tar_root)
-    except ValueError as exc:
-        raise ValueError(f"refusing to extract tar path outside repo: {member.name}") from exc
-
-    if member.issym() or member.islnk():
-        link_name = Path(member.linkname)
-        link_path = (
-            link_name
-            if link_name.is_absolute()
-            else (member_path.parent / link_name if member.issym() else tar_root / link_name)
-        ).resolve()
-        try:
-            link_path.relative_to(tar_root)
-        except ValueError as exc:
-            raise ValueError(
-                f"refusing to extract tar link outside repo: {member.name} -> {member.linkname}",
-            ) from exc
-
-
-def extract_archive_if_needed(
-    archive: Path,
-    expected_coverage: Path,
-    extract_root: Path = REPO_ROOT,
-) -> Path:
-    if not archive.exists():
-        raise FileNotFoundError(f"coverage archive not found: {archive}")
-
-    stamp = EXTRACTION_STAMPS[archive]
-    current_stamp = tar_stamp(archive)
-    if (
-        expected_coverage.exists()
-        and stamp.exists()
-        and stamp.read_text(encoding="utf-8") == current_stamp
-    ):
-        return expected_coverage
-
-    tar_root = extract_root.resolve()
-    try:
-        expected_member_path = expected_coverage.resolve().relative_to(tar_root)
-    except ValueError as exc:
-        raise ValueError(f"expected coverage is outside extraction root: {expected_coverage}") from exc
-
-    with tarfile.open(archive) as tar:
-        members = tar.getmembers()
-        extracted_members: list[tarfile.TarInfo] = []
-        member_paths: set[Path] = set()
-        for member in members:
-            validate_tar_member(tar_root, member)
-            member_name = Path(member.name)
-            if is_skipped_tar_metadata(member_name):
-                continue
-            extracted_members.append(member)
-            member_paths.add((tar_root / member_name).resolve().relative_to(tar_root))
-        if expected_member_path not in member_paths:
-            raise FileNotFoundError(
-                f"expected branch coverage is not in {archive}: {expected_coverage}",
-            )
-        tar.extractall(tar_root, members=extracted_members)
-
-    if not expected_coverage.exists():
-        raise FileNotFoundError(
-            f"expected branch coverage was not extracted from {archive}: "
-            f"{expected_coverage}",
-        )
-
-    stamp.parent.mkdir(parents=True, exist_ok=True)
-    stamp.write_text(current_stamp, encoding="utf-8")
-    return expected_coverage
 
 
 def parse_side(value: object) -> str:
@@ -436,26 +324,72 @@ def write_json_summary(
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def parse_args() -> argparse.Namespace:
+    default_home = Path(
+        os.environ.get("ESMETA_HOME", Path(__file__).resolve().parents[1]),
+    )
+    parser = argparse.ArgumentParser(
+        description=(
+            "Generate a Venn SVG for Solver/Test262/Fuzz branch-side coverage "
+            "restricted to builtin-entry reachable solver targets."
+        ),
+    )
+    parser.add_argument("fuzz_log", type=Path, help="fuzzer log directory or branch-coverage.json")
+    parser.add_argument("test262_log", type=Path, help="test262 log directory or branch-coverage.json")
+    parser.add_argument(
+        "-s",
+        "--solver-log",
+        type=Path,
+        default=default_home / "logs" / "solver",
+        help="solver log directory used for universe and solver set",
+    )
+    parser.add_argument(
+        "--solver-statuses",
+        default="pass",
+        help="comma-separated solver statuses counted as the Solver set",
+    )
+    parser.add_argument(
+        "--merge-nested",
+        action="store_true",
+        help="merge every nested branch-coverage.json under fuzz/test262 paths",
+    )
+    parser.add_argument(
+        "-o",
+        "--out",
+        type=Path,
+        default=default_home / "experiment" / "venn.svg",
+        help="output SVG path",
+    )
+    parser.add_argument(
+        "--json-out",
+        type=Path,
+        default=None,
+        help="optional JSON summary path; defaults to OUT with .json suffix",
+    )
+    parser.add_argument("--title", default="", help="SVG title")
+    parser.add_argument("--solver-label", default="Solver", help="left set label")
+    parser.add_argument("--test262-label", default="Test262", help="right set label")
+    parser.add_argument("--fuzz-label", default="Fuzz", help="bottom set label")
+    return parser.parse_args()
+
+
 def main() -> int:
-    if len(sys.argv) != 1:
-        print(f"usage: {Path(sys.argv[0]).name}", file=sys.stderr)
+    args = parse_args()
+    solver_statuses = {
+        status.strip()
+        for status in args.solver_statuses.split(",")
+        if status.strip()
+    }
+    if not solver_statuses:
+        print("error: --solver-statuses must not be empty", file=sys.stderr)
         return 2
 
-    fuzz_log = extract_archive_if_needed(
-        FUZZ_ARCHIVE,
-        DEFAULT_FUZZ_COVERAGE,
-    )
-    test262_log = extract_archive_if_needed(
-        TEST262_ARCHIVE,
-        DEFAULT_TEST262_COVERAGE,
-    )
-
     universe, raw_solver, solver_status_counts, solver_programs = load_solver_sets(
-        DEFAULT_SOLVER_LOG,
-        SOLVER_STATUSES,
+        args.solver_log,
+        solver_statuses,
     )
-    fuzz_files = coverage_json_files(fuzz_log, MERGE_NESTED_COVERAGE)
-    test262_files = coverage_json_files(test262_log, MERGE_NESTED_COVERAGE)
+    fuzz_files = coverage_json_files(args.fuzz_log, args.merge_nested)
+    test262_files = coverage_json_files(args.test262_log, args.merge_nested)
     raw_fuzz = load_branch_coverage(fuzz_files)
     raw_test262 = load_branch_coverage(test262_files)
 
@@ -473,50 +407,48 @@ def main() -> int:
         "fuzz": len(raw_fuzz - universe),
     }
 
-    DEFAULT_OUT.parent.mkdir(parents=True, exist_ok=True)
-    DEFAULT_OUT.write_text(
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(
         svg_text(
             counts,
-            SOLVER_LABEL,
-            TEST262_LABEL,
-            FUZZ_LABEL,
-            TITLE,
+            args.solver_label,
+            args.test262_label,
+            args.fuzz_label,
+            args.title,
         ),
         encoding="utf-8",
     )
 
-    DEFAULT_JSON_OUT.parent.mkdir(parents=True, exist_ok=True)
-    sources = {
-        "solver_log": str(DEFAULT_SOLVER_LOG),
-        "solver_statuses": sorted(SOLVER_STATUSES),
-        "fuzz_archive": str(FUZZ_ARCHIVE),
-        "test262_archive": str(TEST262_ARCHIVE),
-        "fuzz_coverage": [str(p) for p in fuzz_files],
-        "test262_coverage": [str(p) for p in test262_files],
-    }
+    json_out = args.json_out or args.out.with_suffix(".json")
+    json_out.parent.mkdir(parents=True, exist_ok=True)
     write_json_summary(
-        DEFAULT_JSON_OUT,
+        json_out,
         counts,
         regions,
-        sources=sources,
+        sources={
+            "solver_log": str(args.solver_log),
+            "solver_statuses": sorted(solver_statuses),
+            "fuzz_coverage": [str(p) for p in fuzz_files],
+            "test262_coverage": [str(p) for p in test262_files],
+        },
         outside_universe=outside_universe,
         solver_status_counts=solver_status_counts,
     )
 
-    print(f"wrote SVG:  {DEFAULT_OUT}")
-    print(f"wrote JSON: {DEFAULT_JSON_OUT}")
+    print(f"wrote SVG:  {args.out}")
+    print(f"wrote JSON: {json_out}")
     print(f"universe:   {format_int(counts['universe'])}")
     print(
         "sets:       "
-        f"{SOLVER_LABEL}={format_int(counts['solver'])}, "
-        f"{TEST262_LABEL}={format_int(counts['test262'])}, "
-        f"{FUZZ_LABEL}={format_int(counts['fuzz'])}",
+        f"{args.solver_label}={format_int(counts['solver'])}, "
+        f"{args.test262_label}={format_int(counts['test262'])}, "
+        f"{args.fuzz_label}={format_int(counts['fuzz'])}",
     )
     print(
         "regions:    "
-        f"only({SOLVER_LABEL})={format_int(counts['solver_only'])}, "
-        f"only({TEST262_LABEL})={format_int(counts['test262_only'])}, "
-        f"only({FUZZ_LABEL})={format_int(counts['fuzz_only'])}, "
+        f"only({args.solver_label})={format_int(counts['solver_only'])}, "
+        f"only({args.test262_label})={format_int(counts['test262_only'])}, "
+        f"only({args.fuzz_label})={format_int(counts['fuzz_only'])}, "
         f"all={format_int(counts['all_three'])}, "
         f"none={format_int(counts['none'])}",
     )
