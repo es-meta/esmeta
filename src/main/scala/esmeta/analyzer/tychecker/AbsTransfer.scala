@@ -160,13 +160,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         if ((newV !⊑ oldV)(using entrySt)) {
           val constr = givenSt.constr.onlySym
           val hasSym = v.symty.hasSym
-          val symRetV =
-            val ret = v.onlySym(using givenSt)
-            if (config.resultTypeInsensitive) ret.withoutTypeGuard else ret
           val newRet = AbsRet(
             oldV ⊔ newV,
             if (hasSym) noSym else (noSymV ⊔ newV, noSymConstr || constr),
-            if (hasSym) syms + (np -> (symRetV, constr))
+            if (hasSym) syms + (np -> (v.onlySym(using givenSt), constr))
             else syms - np,
           )
           rpMap += rp -> newRet

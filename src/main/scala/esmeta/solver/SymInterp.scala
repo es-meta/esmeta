@@ -18,7 +18,6 @@ class SymInterp(
   val target: Cond,
   val timeLimit: Option[Int] = None,
   val detail: Boolean = false,
-  val useSummary: Boolean = true,
 ) extends Solver {
   import tychecker.*, monad.*, SymTy.*, Result.*
 
@@ -77,8 +76,8 @@ class SymInterp(
   var st: AbsState = AbsState.Bot
   // side of the branch condition (true for then, false for else)
   var conds: List[Cond] = Nil
-  // call continuations
-  var konts: List[Kont] = Nil
+  // call stack
+  var calls: List[Call] = Nil
   // visited functions to avoid infinite exploration
   var funcs: Set[Func] = Set(entryFunc)
   // visited loops to avoid infinite exploration
@@ -105,26 +104,23 @@ class SymInterp(
     log(s"$node @ ${cfg.funcOf(node).name}")
     // -------------------------------------------------------------------------
     given np: NodePoint[?] = NodePoint(cfg.funcOf(node), node, emptyView)
-    if ((useSummary && !isCandidate(node)) || st.isBottom) return unwrap(pop)
+    if (!isCandidate(node) || st.isBottom) return unwrap(pop)
     node match
       case Block(_, insts, next) =>
-        executeBlock(insts) match
-          case Some(value) => returnFromCall(value)
-          case None =>
-            next match
-              case Some(next) => node = next
-              case None       => returnFromCall(AbsValue.Bot)
+        st = insts.foldLeft(st) {
+          case (nextSt, _) if nextSt.isBottom => nextSt
+          case (nextSt, inst)                 => transfer.transfer(inst)(nextSt)
+        }
+        next match
+          case Some(next) => node = next
+          case None       => unwrap(pop)
       case call: Call =>
         call.callInst match
-          case ICall(_, fexpr @ EClo(f, Nil), args) if useSummary =>
+          case ICall(_, fexpr @ EClo(f, Nil), args) =>
             pushCall(call, fexpr, args)
             val callee = cfg.fnameMap(f)
             // enter a candidate function
             if (isCandidate(callee) && !funcs.contains(callee)) {
-              val callerSt = st
-              val callerConds = conds
-              val callerFuncs = funcs
-              val callerLoops = loops
               (for {
                 vs <- join(args.map(transfer.transfer))
               } yield {
@@ -141,22 +137,12 @@ class SymInterp(
               })(st)
               node = callee.entry
               funcs += callee
-              for (next <- call.next)
-                konts ::= Kont(
-                  call,
-                  next,
-                  callerSt,
-                  callerConds,
-                  callerFuncs,
-                  callerLoops,
-                )
+              calls ::= call
             } else unwrap(pop)
           // use a summary
           case ICall(_, fexpr, args) =>
-            if (useSummary)
-              pushCall(call, fexpr, args)
-              unwrap(pop)
-            else stepIntoCall(call, fexpr, args)
+            pushCall(call, fexpr, args)
+            unwrap(pop)
           case _ => unwrap(pop) // TODO: handle other calls
       case branch: Branch if target.branch == branch =>
         // reached the target branch, check the constraint
@@ -197,146 +183,6 @@ class SymInterp(
   }
 
   private var _configs: List[Config] = Nil
-
-  private def stepIntoCall(
-    call: Call,
-    fexpr: Expr,
-    args: List[Expr],
-  )(using np: NodePoint[?]): Unit = call.next match
-    case Some(next) =>
-      given callerNp: NodePoint[Call] = np.copy(node = call)
-      val configs = (for {
-        fv <- transfer.transfer(fexpr)
-        given AbsState <- get
-        fty = fv.ty
-        vs <- join(args.map(transfer.transfer))
-        st <- get
-      } yield {
-        val cloCallees = possibleCloCallees(fty.clo)
-        val contCallees = possibleContCallees(fty.cont)
-        val callees = (cloCallees ++ contCallees).toList.sortBy(_.id)
-        val stepInConfigs = callees.flatMap(stepInConfig(_, call, next, vs, st))
-        stepInConfigs ++ fallbackCallConfig(call, next, fty, st)
-      }).eval(st)
-
-      configs match
-        case first :: rest => push(rest); unwrap(first)
-        case Nil           => unwrap(pop)
-    case None => unwrap(pop)
-
-  private def possibleCloCallees(cloTy: CloTy): Set[Func] = cloTy match
-    case CloSetTy(names) => names.flatMap(cfg.fnameMap.get)
-    case _               => Set.empty
-
-  private def possibleContCallees(contTy: BSet[Int]): Set[Func] = contTy match
-    case Fin(fids) => fids.flatMap(cfg.funcMap.get)
-    case Inf       => Set.empty
-
-  private def fallbackCallConfig(
-    call: Call,
-    next: Node,
-    fty: ValueTy,
-    callerSt: AbsState,
-  ): Option[Config] =
-    given AbsState = callerSt
-    val retV = fallbackReturnValue(fty)
-    if (retV.isBottom) None
-    else
-      Some(
-        wrap.copy(
-          node = next,
-          state = callerSt.copy(locals = callerSt.locals + (call.lhs -> retV)),
-        ),
-      )
-
-  private def fallbackReturnValue(fty: ValueTy)(using AbsState): AbsValue =
-    val cloRet = fty.clo match
-      case CloTopTy           => AbsValue(AnyT)
-      case CloArrowTy(_, ret) => AbsValue(ret)
-      case _                  => AbsValue.Bot
-    val contRet = fty.cont match
-      case Inf => AbsValue(AnyT)
-      case _   => AbsValue.Bot
-    cloRet ⊔ contRet
-
-  private def stepInConfig(
-    callee: Func,
-    call: Call,
-    next: Node,
-    vs: List[AbsValue],
-    callerSt: AbsState,
-  ): Option[Config] =
-    if ((useSummary && !isCandidate(callee)) || funcs.contains(callee)) None
-    else
-      given AbsState = callerSt
-      val params = callee.irFunc.params
-      val newLocals: Map[Local, AbsValue] = (for {
-        (param, arg) <- params zip vs
-      } yield param.lhs -> noSummaryArgumentValue(arg, param.ty.toValue)).toMap
-      Some(
-        wrap.copy(
-          node = callee.entry,
-          state = callerSt.copy(
-            locals = newLocals,
-            constr = callerSt.constr.onlySym,
-          ),
-          funcs = funcs + callee,
-          konts = Kont(call, next, callerSt, conds, funcs, loops) :: konts,
-        ),
-      )
-
-  private def noSummaryArgumentValue(
-    value: AbsValue,
-    fallback: ValueTy,
-  )(using AbsState): AbsValue =
-    if (value.hasLocal) AbsValue(fallback) else value.onlySym
-
-  private def executeBlock(
-    insts: Iterable[NormalInst],
-  )(using np: NodePoint[?]): Option[AbsValue] = {
-    if (useSummary) {
-      st = insts.foldLeft(st) {
-        case (nextSt, _) if nextSt.isBottom => nextSt
-        case (nextSt, inst)                 => transfer.transfer(inst)(nextSt)
-      }
-      None
-    } else {
-      var retOpt: Option[AbsValue] = None
-      val iter = insts.iterator
-      while (iter.hasNext && retOpt.isEmpty && !st.isBottom)
-        iter.next match
-          case IReturn(expr) =>
-            val (value, nextSt) = transfer.transfer(expr)(st)
-            st = nextSt
-            retOpt = Some(value)
-          case inst => st = transfer.transfer(inst)(st)
-      retOpt
-    }
-  }
-
-  private def returnFromCall(value: AbsValue): Unit = konts match
-    case kont :: rest if !value.isBottom =>
-      given AbsState = st
-      val retV = noSummaryReturnValue(value)
-      val callerBase =
-        kont.state.copy(symEnv = st.symEnv, constr = st.constr.onlySym)
-      val callerSt = callerBase.copy(
-        locals = callerBase.locals + (kont.call.lhs -> retV),
-      )
-      node = kont.next
-      st = callerSt
-      conds = kont.conds
-      funcs = kont.funcs
-      loops = kont.loops
-      konts = rest
-    case _ => unwrap(pop)
-
-  private def noSummaryReturnValue(value: AbsValue)(using AbsState): AbsValue =
-    val retV =
-      if (value.hasLocal) AbsValue(cfg.funcOf(node).retTy.ty.toValue)
-      else value.onlySym
-    if (tychecker.config.resultTypeInsensitive) retV.withoutTypeGuard else retV
-
   def pushCall(
     call: Call,
     fexpr: Expr,
@@ -484,20 +330,20 @@ class SymInterp(
   }
 
   // get the current configuration
-  def wrap: Config = Config(node, st, conds, funcs, konts, loops)
+  def wrap: Config = Config(node, st, conds, funcs, calls, loops)
   def unwrap(config: Config): Unit = {
     node = config.node
     st = config.state
     conds = config.conds
     funcs = config.funcs
-    konts = config.konts
+    calls = config.calls
     loops = config.loops
   }
 
   // push the current config and refine it using the branch condition and side
   def push(config: Config): Unit =
     val next = config
-    if ((!useSummary || isCandidate(next.node)) && !next.state.isBottom)
+    if (isCandidate(next.node) && !next.state.isBottom)
       configs.enqueue(next -> configScore(next))
   def push(configs: List[Config]): Unit = configs.foreach(push)
 
@@ -529,11 +375,10 @@ class SymInterp(
     state: AbsState,
     conds: List[Cond],
     funcs: Set[Func],
-    konts: List[Kont],
+    calls: List[Call],
     loops: Set[Branch],
   ) {
     def push(cond: Cond): Config = copy(conds = cond :: conds)
-    def calls: List[Call] = konts.map(_.call)
     override def toString: String = stringify(this)
   }
 
@@ -555,15 +400,6 @@ class SymInterp(
     }
   }
 
-  case class Kont(
-    call: Call,
-    next: Node,
-    state: AbsState,
-    conds: List[Cond],
-    funcs: Set[Func],
-    loops: Set[Branch],
-  )
-
   // found valid path and formula
   enum Result extends Exception:
     case Found(state: Config)
@@ -579,12 +415,10 @@ object SymInterp {
     cfg: CFG,
     timeLimit: Option[Int] = None,
     detail: Boolean = false,
-    tyCheckerConfig: TyChecker.Config = TyChecker.Config(),
-    useSummary: Boolean = true,
   ): SymInterpRunner = {
-    val tyChecker = TyChecker(cfg, config = tyCheckerConfig, silent = true)
+    val tyChecker = TyChecker(cfg, silent = true)
     tyChecker.analyze
-    SymInterpRunner(tyChecker, timeLimit, detail, useSummary)
+    SymInterpRunner(tyChecker, timeLimit, detail)
   }
 
   /** BFS from `func` over the reverse call graph, mapping each reached function
@@ -667,8 +501,7 @@ case class SymInterpRunner(
   tyChecker: TyChecker,
   timeLimit: Option[Int] = None,
   detail: Boolean = false,
-  useSummary: Boolean = true,
 ) {
   def apply(func: Func, cond: Cond): SymInterp =
-    new SymInterp(tyChecker, func, cond, timeLimit, detail, useSummary)
+    new SymInterp(tyChecker, func, cond, timeLimit, detail)
 }

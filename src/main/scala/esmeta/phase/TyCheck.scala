@@ -22,9 +22,7 @@ case object TyCheck extends Phase[CFG, Unit] {
     val tychecker = TyChecker(
       cfg = cfg,
       targetPattern = config.target,
-      config = TyChecker.Config(
-        resultTypeInsensitive = config.resultTypeInsensitive,
-      ),
+      config = TyChecker.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
       log = config.log,
       detail = config.detail,
@@ -65,11 +63,6 @@ case object TyCheck extends Phase[CFG, Unit] {
       "update the given JSON file used in ignoring type errors.",
     ),
     (
-      "result-type-insensitive",
-      BoolOption(_.resultTypeInsensitive = _),
-      "drop type guards from return values for result-type-insensitive ablation.",
-    ),
-    (
       "log",
       BoolOption(_.log = _),
       "logging mode.",
@@ -86,7 +79,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var updateIgnore: Boolean = false,
     var useRepl: Boolean = false,
     var replContinue: Boolean = false,
-    var resultTypeInsensitive: Boolean = false,
     var log: Boolean = false,
     var detail: Boolean = false,
   )
