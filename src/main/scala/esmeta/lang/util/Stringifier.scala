@@ -1047,6 +1047,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (!ty.grammarSymbol.isBottom)
       tys :+= "grammar symbol".withArticle(article)
 
+    // code units
+    if (ty.codeUnit)
+      tys :+= "code unit".withArticle(article)
+
     // lists
     ty.list match
       case ListTy.Top => tys :+= "a List"
@@ -1072,6 +1076,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     // numbers
     if (ty.number == NumberTy.Int)
       tys :+= "integral Number".withArticle(article)
+    else if (ty.number == (NumberTy.Top -- NumberTy.NaN))
+      tys :+= "Number, but not *NaN*".withArticle(article)
     else if (ty.number == NumberTy.NaN)
       tys :+= "NaN".withArticle(article)
     else if (!ty.number.isBottom) tys :+= "Number".withArticle(article)

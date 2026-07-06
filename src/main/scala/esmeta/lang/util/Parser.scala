@@ -1296,7 +1296,10 @@ trait Parsers extends IndentParsers {
   }.named("lang.Type (single)")
 
   // types
-  lazy val langTy: P[Ty] = multi(valueTy, either = false) | specialTy
+  lazy val langTy: P[Ty] =
+    ("either" ~> multi(valueTy, either = false)) |
+    multi(valueTy, either = false) |
+    specialTy
   lazy val singleLangTy: P[Ty] = singleValueTy | specialTy
 
   // unknown types
@@ -1312,6 +1315,8 @@ trait Parsers extends IndentParsers {
   // completion record types
   lazy val singleCompTy: P[ValueTy] =
     "a Completion Record" ^^^ CompT |
+    "a normal completion containing one of ~suspended-start~, ~suspended-yield~, or ~completed~" ^^^
+    NormalT(EnumT("suspended-start", "suspended-yield", "completed")) |
     "a normal completion containing" ~> pureValueTy ^^ { NormalT(_) } |
     "a normal completion" ^^^ NormalT |
     "a throw completion" ^^^ AbruptT("throw") |
@@ -1360,7 +1365,7 @@ trait Parsers extends IndentParsers {
 
   // AST types
   lazy val astTy: P[ValueTy] =
-    val singleAstTy = opt(article) ~> nt <~ opt("Parse Node")
+    val singleAstTy = opt(article) ~> nt <~ opt("Parse Node" ~ opt("s"))
     opt(article) ~ "Parse Node" ~ opt("s") ^^^ AstT |
     rep1sep(singleAstTy, sep("or")) ^^ { ss => AstT(ss.toSet) }
 
@@ -1369,6 +1374,38 @@ trait Parsers extends IndentParsers {
 
   // simple types
   lazy val simpleTy: P[ValueTy] = opt(indefArticle) ~> {
+    "anything" ^^^ AnyT |
+    "<emu-not-ref>Unicode property name</emu-not-ref>" ^^^ StrT |
+    """\*"[^"]*"\*""".r ^^ { s => StrT(s.drop(2).dropRight(2)) } |
+    "`[^`]+`".r ^^ { s => StrT(s.drop(1).dropRight(1)) } |
+    "finite time value" ^^^ NumberT |
+    "time value" ^^^ NumberT |
+    "TypedArray element type" ^^^ EnumT(
+      "int8",
+      "uint8",
+      "uint8clamped",
+      "int16",
+      "uint16",
+      "int32",
+      "uint32",
+      "bigint64",
+      "biguint64",
+      "float32",
+      "float64",
+    ) |
+    "Unicode code point" ^^^ NonNegIntT |
+    "code point" ^^^ NonNegIntT |
+    "code unit" ^^^ CodeUnitT |
+    "character" ^^^ StrT |
+    "sequence of characters" ^^^ StrT |
+    "sequence of Unicode code points" ^^^ StrT |
+    "source text" ^^^ StrT |
+    "candidate execution" ^^^ RecordT("CandidateExecutionRecord") |
+    "read-modify-write modification function" ^^^ CloT |
+    "mathematical value" ^^^ MathT |
+    "Unicode property value" ^^^ StrT |
+    "nonterminal in one of the ECMAScript grammars" ^^^ AstT |
+    "Number, but not *NaN*" ^^^ (NumberT -- NaNT) |
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
@@ -1379,20 +1416,6 @@ trait Parsers extends IndentParsers {
     "*true*" ^^^ TrueT |
     "integer" ^^^ IntT |
     "non-negative integer" ^^^ NonNegIntT |
-    // TODO See https://tc39.es/ecma262/2024/#sec-typedarray-objects
-    // "TypedArray element type" ^^^ EnumT(
-    //   "int8",
-    //   "uint8",
-    //   "uint8clamped",
-    //   "int16",
-    //   "uint16",
-    //   "int32",
-    //   "uint32",
-    //   "bigint64",
-    //   "biguint64",
-    //   "float32",
-    //   "float64",
-    // ) |
     "negative integer" ^^^ NegIntT |
     "non-positive integer" ^^^ NonPosIntT |
     "positive integer" ^^^ PosIntT |
@@ -1403,8 +1426,11 @@ trait Parsers extends IndentParsers {
     decimal ^^ { MathT(_) } |
     "+∞" ^^^ PosInfinityT |
     "-∞" ^^^ NegInfinityT |
+    "ECMAScript source text" ^^^ StrT |
     "ECMAScript language value" ^^^ ESValueT |
     "internal slot name" ^^^ StrT |
+    "nonterminal" ^^^ AstT |
+    "For-In Iterator" ^^^ RecordT("ForInIterator") |
     "Array" ^^^ ArrayT |
     "TypedArray" ^^^ TypedArrayT |
     opt("initialized") ~ "RegExp" ~ opt("instance") ^^^ RegExpT |
@@ -1412,6 +1438,7 @@ trait Parsers extends IndentParsers {
     "*NaN*" ^^! NaNT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
+    "property name" ^^^ StrT |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }
   } <~ opt("s")
 
