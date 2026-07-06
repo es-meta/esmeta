@@ -1310,7 +1310,6 @@ trait Parsers extends IndentParsers {
   lazy val singleValueTy: P[ValueTy] = singleCompTy | singlePureValueTy
 
   // completion record types
-  lazy val compTy: P[ValueTy] = multi(singleCompTy)
   lazy val singleCompTy: P[ValueTy] =
     "a Completion Record" ^^^ CompT |
     "a normal completion containing" ~> pureValueTy ^^ { NormalT(_) } |
@@ -1532,8 +1531,6 @@ trait Parsers extends IndentParsers {
     b ~ p ^^ { case b ~ p => new ~(b, List(p)) }
   private def isEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
     either(isNeg, p)
-  private def hasEither[T](p: Parser[T]): Parser[Boolean ~ List[T]] =
-    either(hasNeg, p)
   private def isNeg: Parser[Boolean] =
     "is not" ^^^ true | "is" ^^^ false
   private def areNeg: Parser[Boolean] =
@@ -1552,9 +1549,6 @@ trait Parsers extends IndentParsers {
   // helper for creating expressions, conditions
   private def getRefExpr(r: Reference): Expression = ReferenceExpression(r)
   private def getExprCond(e: Expression): Condition = ExpressionCondition(e)
-
-  // literal for mathematical one
-  private val one = DecimalMathValueLiteral(1)
 
   // article
   private val indefArticle = "an " | "a "
