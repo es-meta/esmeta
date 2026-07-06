@@ -1,0 +1,7 @@
+let map = @REALM.GlobalObject.__MAP__
+assert (= map.x.Value +NUM_INF)
+assert (= map.y.Value +NUM_INF)
+assert (= map.z.Value +NUM_INF)
+assert (= map.w.Value +NUM_INF)
+assert (= map.p.Value +NUM_INF)
+assert (= map.q.Value +NUM_INF)
