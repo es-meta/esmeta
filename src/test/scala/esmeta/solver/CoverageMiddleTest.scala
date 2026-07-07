@@ -15,14 +15,7 @@ import io.circe.*, io.circe.generic.semiauto.*
 import scala.collection.mutable.{Set => MSet, Queue}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Future, Await, ExecutionContext}
-import java.util.concurrent.{
-  Callable,
-  ExecutorCompletionService,
-  Executors,
-  ThreadFactory,
-  TimeUnit,
-  TimeoutException,
-}
+import java.util.concurrent.*
 
 class CoverageMiddleTest extends SolverTest {
   val name = "solverCovTest"
@@ -91,10 +84,7 @@ class CoverageMiddleTest extends SolverTest {
     val solveTimeout = Duration(solveTimeLimit, "seconds")
     val allBuiltins = cfg.funcs.filter(_.isBuiltin).sortBy(_.name)
 
-    val runner = SymInterp(
-      cfg,
-      timeLimit = Some(solveTimeLimit),
-    )
+    val runner = SymInterp(cfg, timeLimit = Some(solveTimeLimit))
     import runner.tyChecker.{cfg => _, *}, AbsState.given
 
     val nThreads = Runtime.getRuntime.availableProcessors
@@ -124,9 +114,7 @@ class CoverageMiddleTest extends SolverTest {
       futures.flatMap(Await.result(_, Duration.Inf))
     }
     val reachableByBuiltin: List[(Func, Set[Func])] = {
-      val futures = builtins.map { f =>
-        Future(f -> reachableFuncs(List(f)))
-      }
+      val futures = builtins.map { f => Future(f -> reachableFuncs(List(f))) }
       futures.map(Await.result(_, Duration.Inf)).toList
     }
     val builtinEntries = builtins.toSet
@@ -145,21 +133,21 @@ class CoverageMiddleTest extends SolverTest {
         cfg.funcOf(b).id,
         SymInterp.sortedEntries(b).filter(accessibleBuiltins.contains),
       )
-    val targetBranchEntries: List[(Func, Branch)] = {
+    val targetBranchEntries: List[(List[Func], Branch)] = {
       val seen = MSet[Int]()
-      val buf = List.newBuilder[(Func, Branch)]
+      val buf = List.newBuilder[(List[Func], Branch)]
       for {
         (_, reachable) <- reachableByBuiltin
         b <- targetBranches(reachable).sortBy(_.id)
         if seen.add(b.id)
         entries = entriesFor(b)
         if entries.nonEmpty
-      } buf += (entries.head -> b)
+      } buf += (entries -> b)
       buf.result()
     }
-    val targets: List[(Func, Cond)] =
-      targetBranchEntries.flatMap { (f, b) =>
-        List(f -> Cond(b, true), f -> Cond(b, false))
+    val targets: List[(List[Func], Cond)] =
+      targetBranchEntries.flatMap { (fs, b) =>
+        List(fs -> Cond(b, true), fs -> Cond(b, false))
       }
 
     check("builtin branches: solve and verify") {
@@ -188,7 +176,7 @@ class CoverageMiddleTest extends SolverTest {
       println(
         s"  Solving ${targets.size} branch sides from " +
         s"${targetBranchEntries.size} branches with $nThreads threads " +
-        s"(timeout: $solveTimeout per side)...",
+        s"(time limit: $solveTimeout per entry)...",
       )
 
       // per-case detail, written into one file per (branch, taken side)
@@ -237,10 +225,13 @@ class CoverageMiddleTest extends SolverTest {
       mkdir(SOLVER_LOG_DIR, remove = true)
 
       val results = {
-        def timeoutResult(
+        def result(
           f: Func,
           cond: Cond,
+          status: String,
+          js: Option[String] = None,
           attempts: Int = 0,
+          elapsed: Long = 0L,
         ): BranchResult = {
           val b = cond.branch
           val targetFunc = cfg.funcOf(b)
@@ -250,17 +241,24 @@ class CoverageMiddleTest extends SolverTest {
             s"logs/cfg/func/${targetFunc.normalizedName}.cfg",
             b.id,
             cond.cond,
-            "timeout",
-            None,
+            status,
+            js,
             attempts,
-            solveTimeout.toNanos,
+            elapsed,
             None,
             None,
             None,
           )
         }
 
-        def solveTarget(f: Func, cond: Cond): BranchResult = {
+        def timeoutResult(f: Func, cond: Cond, attempts: Int): BranchResult =
+          val elapsed = solveTimeout.toNanos
+          result(f, cond, "timeout", attempts = attempts, elapsed = elapsed)
+
+        def errorResult(f: Func, cond: Cond, e: Throwable): BranchResult =
+          result(f, cond, "error", js = Some(e.toString))
+
+        def solveEntry(f: Func, cond: Cond): BranchResult = {
           val t0 = System.nanoTime()
           val interp = runner(f, cond)
           def checkTimeout(): Unit =
@@ -268,7 +266,7 @@ class CoverageMiddleTest extends SolverTest {
           def elapsedNanos: Long = System.nanoTime() - t0
           val b = cond.branch
           val targetFunc = cfg.funcOf(b)
-          def result(
+          def normalResult(
             status: String,
             js: Option[String],
             conf: Option[interp.Config],
@@ -298,8 +296,8 @@ class CoverageMiddleTest extends SolverTest {
             rejected: Option[Rejected],
             attempts: Int,
           ): BranchResult = rejected
-            .map(r => result(r.status, r.js, Some(r.conf), attempts))
-            .getOrElse(result("unsolved", None, None, attempts))
+            .map(r => normalResult(r.status, r.js, Some(r.conf), attempts))
+            .getOrElse(normalResult("unsolved", None, None, attempts))
           Thread.currentThread().setName {
             s"builtin-branch-test ${f.name} " +
             s"Branch[${b.id}]:${sideString(cond.cond)}"
@@ -328,21 +326,25 @@ class CoverageMiddleTest extends SolverTest {
                 case Some(conf) =>
                   val cands = interp.reifyAll.take(maxCandsPerPath).toList
                   cands match {
-                    case Nil if rejected.isEmpty =>
-                      retry(Some(Rejected("fail-reify", None, conf)))
-                    case Nil => retry(rejected)
+                    case Nil =>
+                      val curRejected = Rejected("fail-reify", None, conf)
+                      retry(rejected.orElse(Some(curRejected)))
                     case _ =>
                       val passing = cands.iterator
-                        .map { js =>
-                          attempts += 1; js
-                        }
+                        .map { js => { attempts += 1; js } }
                         .find(verifies)
                       passing match {
                         case Some(js) =>
-                          result("pass", Some(js), Some(conf), attempts)
+                          normalResult("pass", Some(js), Some(conf), attempts)
                         case None => // reified but none covering target
-                          val js = cands.head
-                          retry(Some(Rejected("fail-verify", Some(js), conf)))
+                          val curRejected =
+                            Rejected("fail-verify", Some(cands.head), conf)
+                          retry(rejected match {
+                            case Some(r) =>
+                              if (r.status == "fail-verify") rejected
+                              else Some(curRejected)
+                            case _ => Some(curRejected)
+                          })
                       }
                   }
                 case None =>
@@ -358,6 +360,23 @@ class CoverageMiddleTest extends SolverTest {
           }
         }
 
+        // isolate fatal failures so one entry cannot abort the whole run
+        def safeSolveEntry(f: Func, cond: Cond): BranchResult =
+          try { solveEntry(f, cond) }
+          catch {
+            case e: Throwable =>
+              val b = cond.branch
+              println(s"  [error] ${f.name} -> $cond  $e")
+              for (fr <- e.getStackTrace.take(10)) println(s"      at $fr")
+              errorResult(f, cond, e)
+          }
+
+        // try entries until pass from closest
+        def solveTarget(entries: List[Func], cond: Cond): BranchResult = {
+          val results = LazyList.from(entries).map(safeSolveEntry(_, cond))
+          results.find(_.status == "pass").getOrElse(results.head)
+        }
+
         val completion = ExecutorCompletionService[BranchResult](pool)
         val targetIter = targets.iterator
         val resultBuilder = List.newBuilder[BranchResult]
@@ -366,9 +385,9 @@ class CoverageMiddleTest extends SolverTest {
 
         def submitNext(): Unit =
           if (targetIter.hasNext) {
-            val (f, cond) = targetIter.next()
+            val (fs, cond) = targetIter.next()
             completion.submit(new Callable[BranchResult] {
-              def call(): BranchResult = solveTarget(f, cond)
+              def call(): BranchResult = solveTarget(fs, cond)
             })
             submitted += 1
           }
@@ -412,7 +431,14 @@ class CoverageMiddleTest extends SolverTest {
           .map(r => (r.fname, r.bid, r.side, r.elapsed, r.attempts))
 
       val statusOrder =
-        List("pass", "fail-verify", "fail-reify", "unsolved", "timeout")
+        List(
+          "pass",
+          "fail-verify", // reified and executed but not covering the target
+          "fail-reify", // no js code pattern to reify
+          "unsolved", // exhausted all paths; none feasibly reached the target
+          "timeout", // exceeded time limit
+          "error", // crash (e.g. stack overflow)
+        )
       val byStatus = results.groupBy(_.status)
       val orderedStatuses =
         statusOrder.filter(byStatus.contains) ++
