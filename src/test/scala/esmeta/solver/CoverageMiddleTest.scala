@@ -373,8 +373,10 @@ class CoverageMiddleTest extends SolverTest {
 
         // try entries until pass from closest
         def solveTarget(entries: List[Func], cond: Cond): BranchResult = {
-          val results = LazyList.from(entries).map(safeSolveEntry(_, cond))
-          results.find(_.status == "pass").getOrElse(results.head)
+          val results = entries.iterator.map(safeSolveEntry(_, cond))
+          val first = results.next() // keep the closest entry's result for dump
+          if (first.status == "pass") first
+          else results.find(_.status == "pass").getOrElse(first)
         }
 
         val completion = ExecutorCompletionService[BranchResult](pool)
