@@ -306,7 +306,25 @@ class CoverageMiddleTest extends SolverTest {
           def verifies(js: String): Boolean =
             checkTimeout()
             try {
-              val interp = cov.run(js)
+              val interp = new Coverage.Interp(
+                cfg.init.from(js),
+                cov.tyCheck,
+                cov.kFs,
+                cov.cp,
+                cov.timeLimit,
+                cov.isTargetNode,
+                cov.isTargetBranch,
+              ) {
+                private var hitTarget = false
+                override def step: Boolean = !hitTarget && super.step
+                override def moveBranch(branch: Branch, side: Boolean): Unit =
+                  super.moveBranch(branch, side)
+                  if (branch.id == b.id && side == cond.cond)
+                    hitTarget = touchedCondViews.keys.exists { cv =>
+                      cv.cond.branch.id == b.id && cv.cond.cond == cond.cond
+                    }
+              }
+              interp.result
               checkTimeout()
               interp.touchedCondViews.keys.exists { cv =>
                 cv.cond.branch.id == b.id && cv.cond.cond == cond.cond
