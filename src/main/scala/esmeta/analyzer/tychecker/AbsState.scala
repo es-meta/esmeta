@@ -280,7 +280,9 @@ trait AbsStateDecl { self: TyChecker =>
       else BoolT
 
     /** variable existence check */
-    def exists(ref: Ref): AbsValue = AbsValue.BoolTop
+    def exists(ref: Ref): AbsValue = ref match
+      case x: Local if !locals.contains(x) => AbsValue(FalseT)
+      case _                               => AbsValue.BoolTop
 
     /** expand a field of a record object */
     def expand(base: AbsValue, field: AbsValue): AbsState = this
