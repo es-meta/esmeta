@@ -23,7 +23,8 @@
     "_realm_.[[Intrinsics]].[[%ThrowTypeError%]] exists and has been initialized": "(exists realm.Intrinsics[\"%ThrowTypeError%\"])",
     "_x_ and _y_ are both finite": "(&& (! (|| (= x +INF) (= x -INF))) (! (|| (= y +INF) (= y -INF))))",
     "the host is a web browser": "false",
-    "the host is a web browser or otherwise supports <emu-xref href=\"#sec-block-level-function-declarations-web-legacy-compatibility-semantics\" title></emu-xref>" : "false"
+    "the host is a web browser or otherwise supports <emu-xref href=\"#sec-block-level-function-declarations-web-legacy-compatibility-semantics\" title></emu-xref>": "false",
+    "the host is a web browser or otherwise supports <emu-xref href=\"#sec-IsHTMLDDA-internal-slot\" title></emu-xref>": "false"
   },
   "inst": {
     "<emu-not-ref>Record</emu-not-ref> that the binding for _N_ in _envRec_ has been initialized.": "envRec.__MAP__[N].__INITIALIZED__ = true",
