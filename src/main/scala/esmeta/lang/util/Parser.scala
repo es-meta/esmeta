@@ -1171,7 +1171,7 @@ trait Parsers extends IndentParsers {
       )
   } | {
     // InitializeHostDefinedRealm
-    "the host requires use of an exotic object to serve as _realm_'s global object" |
+    "the host requires use of a specific object to serve as _realm_'s global object" |
     "the host requires that the `this` binding in _realm_'s global scope return an object other than the global object"
   } ^^! getExprCond(
     FalseLiteral(),
