@@ -14,4 +14,4 @@ case class Figure(lines: List[String]) extends Block
 case class SubStep(directive: List[Directive], step: Step) extends Syntax
 
 // user-defined directives
-case class Directive(name: String, values: Option[String]) extends Syntax
+case class Directive(name: String, values: List[String]) extends Syntax

@@ -71,14 +71,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
         directives.zipWithIndex.foreach {
           case (d, i) =>
             app >> d
-            if (i < directives.length - 1) app >> ", "
+            if (i < directives.length - 1) app >> ","
         }
-        app >> "]"
+        app >> "] "
 
   given directiveRule: Rule[Directive] = (app, directive) =>
+    given Rule[List[String]] = (app, values) => app >> values.mkString(",")
     val Directive(name, values) = directive
     app >> name
-    values.map { app >> "=\"" >> _ >> "\"" }
+    values match
+      case Nil =>
+      case _   => app >> "=\"" >> values >> "\""
     app
 
   // steps

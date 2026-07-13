@@ -20,7 +20,7 @@ class StringifyTinyTest extends LangTest {
     checkParseAndStringify("Block", Block)(
       stepBlock -> """
       |  1. Let _x_ be _x_.
-      |  1. [id="x,y,z"] Let _x_ be _x_.
+      |  1. [id="x,y,z",some-name] Let _x_ be _x_.
       |  1. Let _x_ be _x_.""".stripMargin,
       exprBlock -> """
       |  * _x_

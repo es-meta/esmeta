@@ -19,8 +19,8 @@ object LangTest {
   def toBlockStep(steps: Step*): BlockStep =
     BlockStep(StepBlock(steps.toList.map(SubStep(Nil, _))))
   lazy val subStep = SubStep(Nil, letStep)
-  lazy val directiveWithValue = Directive("id", Some("x"))
-  lazy val directiveWithoutValue = Directive("some-name", None)
+  lazy val directiveWithValue = Directive("id", List("x", "y", "z"))
+  lazy val directiveWithoutValue = Directive("some-name", Nil)
   lazy val subStepId =
     SubStep(List(directiveWithValue, directiveWithoutValue), letStep)
   lazy val stepBlock = StepBlock(List(subStep, subStepId, subStep))

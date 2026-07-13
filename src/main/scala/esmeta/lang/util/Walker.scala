@@ -45,7 +45,7 @@ trait Walker extends BasicWalker {
 
   def walk(directive: Directive): Directive =
     val Directive(name, values) = directive
-    Directive(walk(name), walkOpt(values, walk))
+    Directive(walk(name), walkList(values, walk))
 
   def walk(step: Step): Step = step match {
     case LetStep(x, expr)       => LetStep(walk(x), walk(expr))
