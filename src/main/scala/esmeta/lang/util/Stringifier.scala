@@ -61,13 +61,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given subStepRule: Rule[SubStep] = (app, subStep) =>
     given Rule[Step] = stepWithUpperRule(true)
     val SubStep(directive, step) = subStep
-    directive.map(app >> _ >> " ")
-    app >> step
+    app >> directive >> step
+
+  given directiveListRule: Rule[List[Directive]] = (app, directives) =>
+    directives match
+      case Nil => app
+      case _ =>
+        app >> "["
+        directives.zipWithIndex.foreach {
+          case (d, i) =>
+            app >> d
+            if (i < directives.length - 1) app >> ", "
+        }
+        app >> "]"
 
   given directiveRule: Rule[Directive] = (app, directive) =>
-    given Rule[List[String]] = iterableRule(sep = ",")
     val Directive(name, values) = directive
-    app >> "[" >> name >> "=\"" >> values >> "\"]"
+    app >> name
+    values.map { app >> "=\"" >> _ >> "\"" }
+    app
 
   // steps
   given stepRule: Rule[Step] = stepWithUpperRule(false)

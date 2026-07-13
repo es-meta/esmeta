@@ -30,18 +30,17 @@ trait Parsers extends IndentParsers {
     indent ~> (rep1(subStep) ^^ { StepBlock(_) }) <~ dedent
 
   // user-defined directives
-  lazy val directive: Parser[Directive] =
+  lazy val directives: Parser[List[Directive]] =
     lazy val name = "[-a-zA-Z0-9]+".r
-    ("[" ~> name <~ "=\"") ~ rep1sep(name, ",") <~ "\"]" ^^ {
-      case x ~ vs => Directive(x, vs)
-    }
+    lazy val attribute = rep1sep(name ~ opt("=\"" ~> name <~ "\""), ",")
+    ("[" ~> attribute <~ "]") ^^ { _.map { case n ~ v => Directive(n, v) } }
 
   // sub-steps
-  lazy val subStepPrefix: Parser[Option[Directive]] =
-    next ~ "1." ~> opt(directive) <~ upper
+  lazy val subStepPrefix: Parser[Option[List[Directive]]] =
+    next ~ "1." ~> opt(directives) <~ upper
   lazy val subStep: Parser[SubStep] =
     subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ {
-      case d ~ s => SubStep(d, s)
+      case d ~ s => SubStep(d.getOrElse(Nil), s)
     }
 
   // figure string

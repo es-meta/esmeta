@@ -41,11 +41,11 @@ trait UnitWalker extends BasicUnitWalker {
 
   def walk(subStep: SubStep): Unit =
     val SubStep(directive, step) = subStep
-    walkOpt(directive, walk); walk(step)
+    walkList(directive, walk); walk(step)
 
   def walk(directive: Directive): Unit =
     val Directive(name, values) = directive
-    walk(name); walkList(values, walk)
+    walk(name); walkOpt(values, walk)
 
   def walk(step: Step): Unit = step match {
     case LetStep(x, expr)       => walk(x); walk(expr)
