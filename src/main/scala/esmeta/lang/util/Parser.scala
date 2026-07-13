@@ -32,7 +32,8 @@ trait Parsers extends IndentParsers {
   // user-defined directives
   lazy val directive: Parser[Directive] =
     lazy val name = "[-a-zA-Z0-9]+".r
-    ("[" ~> name <~ "=\"") ~ rep1sep(name, ",") <~ "\"]" ^^ {
+    ("[" ~> name <~ "=\"") ~ rep1sep(name, ",") <~ "\"" <~
+    opt(", normative-optional") <~ "]" ^^ {
       case x ~ vs => Directive(x, vs)
     }
 
