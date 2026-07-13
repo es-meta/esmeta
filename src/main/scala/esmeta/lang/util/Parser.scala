@@ -1296,10 +1296,7 @@ trait Parsers extends IndentParsers {
   }.named("lang.Type (single)")
 
   // types
-  lazy val langTy: P[Ty] =
-    ("either" ~> multi(valueTy, either = false)) |
-    multi(valueTy, either = false) |
-    specialTy
+  lazy val langTy: P[Ty] = multi(valueTy, either = false) | specialTy
   lazy val singleLangTy: P[Ty] = singleValueTy | specialTy
 
   // unknown types
