@@ -1178,6 +1178,11 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(
     FalseLiteral(),
   ) | {
+    // normative optional clauses for web hosts
+    "the host is a web browser or otherwise supports" ~> xrefId
+  } ^^! getExprCond(
+    FalseLiteral(),
+  ) | {
     // PropertyDefinitionEvaluation
     // NOTE if JSON.parse is supported, then the next line should be handled properly
     "this |PropertyDefinition| is contained within a |Script| that is being evaluated for ParseJSON (see step <emu-xref href=\"#step-json-parse-eval\"></emu-xref> of ParseJSON)"
