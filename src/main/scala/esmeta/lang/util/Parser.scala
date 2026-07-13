@@ -648,8 +648,10 @@ trait Parsers extends IndentParsers {
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    exists("the") ~ opt(ordinal) ~ ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
-      case a ~ ord ~ x ~ fs => NonterminalLiteral(ord, x, fs, a)
+    exists("the") ~ opt(ordinal) ~ opt("derived") ~ ("|" ~> word <~ opt(
+      "?",
+    )) ~ flags <~ "|" ^^ {
+      case a ~ ord ~ _ ~ x ~ fs => NonterminalLiteral(ord, x, fs, a)
     }
 
   lazy val flags: P[List[String]] =
