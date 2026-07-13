@@ -46,7 +46,7 @@
     "If _genContext_ does not have a Generator component, return ~non-generator~.": "if (! (exists genContext.Generator)) return ~non-generator~",
     "If _runningContext_ is not already suspended, suspend _runningContext_.": "nop",
     "If _x_ and _y_ are both *true* or both *false*, return *true*.": "if (|| (&& (= x true) (= y true)) (&& (= x false) (= y false))) return true",
-    "If _x_ and _y_ have the same length and the same code units in the same positions, return *true*; otherwise, return *false*.": "if (= x y) return true else return false",
+    "If _x_ and _y_ have the same length and the same code units in the same positions, return *true*.": "if (= x y) return true",
     "If all Job Queues are empty, the result is implementation-defined.": "if (= (sizeof @JOB_QUEUE) 0) return errors",
     "If it is not possible to create a Data Block _block_ consisting of _maxByteLength_ bytes, throw a *RangeError* exception.": " if (< 4294967296 maxByteLength) { call __errObj__ = clo<\"__NEW_ERROR_OBJ__\">(\"%RangeError.prototype%\") call __comp__ = clo<\"ThrowCompletion\">(__errObj__) return __comp__ }",
     "If no such execution context exists, return *null*.": "if (! (exists ec)) return null",
