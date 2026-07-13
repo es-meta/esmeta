@@ -46,7 +46,7 @@
     "If _x_ and _y_ have the same length and the same code units in the same positions, return *true*; otherwise, return *false*.": "if (= x y) return true else return false",
     "If all Job Queues are empty, the result is implementation-defined.": "if (= (sizeof @JOB_QUEUE) 0) return errors",
     "If it is not possible to create a Data Block _block_ consisting of _maxByteLength_ bytes, throw a *RangeError* exception.": " if (< 4294967296 maxByteLength) { call __errObj__ = clo<\"__NEW_ERROR_OBJ__\">(\"%RangeError.prototype%\") call __comp__ = clo<\"ThrowCompletion\">(__errObj__) return __comp__ }",
-    "If no such execution context exists, return *null*. Otherwise, return _ec_'s ScriptOrModule.": "if (! (exists ec)) return null else return ec.ScriptOrModule",
+    "If no such execution context exists, return *null*.": "if (! (exists ec)) return null",
     "If only one argument was passed, return _to_.": "if (= (sizeof ArgumentsList) 0) return to",
     "If the binding for _N_ in _envRec_ is an uninitialized binding, throw a *ReferenceError* exception.": "if (! envRec.__MAP__[N].__INITIALIZED__) { call __errObj__ = clo<\"__NEW_ERROR_OBJ__\">(\"%ReferenceError.prototype%\") call __comp__ = clo<\"ThrowCompletion\">(__errObj__) return __comp__ }",
     "If the execution context stack is empty, return *null*.": "if (= (sizeof @EXECUTION_STACK) 0) return null",
