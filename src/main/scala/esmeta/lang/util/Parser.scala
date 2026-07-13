@@ -1384,23 +1384,9 @@ trait Parsers extends IndentParsers {
     "`[^`]+`".r ^^ { s => StrT(s.drop(1).dropRight(1)) } |
     "finite time value" ^^^ NumberT |
     "time value" ^^^ NumberT |
-    "TypedArray element type" ^^^ EnumT(
-      "int8",
-      "uint8",
-      "uint8clamped",
-      "int16",
-      "uint16",
-      "int32",
-      "uint32",
-      "bigint64",
-      "biguint64",
-      "float32",
-      "float64",
-    ) |
     "Unicode code point" ^^^ NonNegIntT |
     "code point" ^^^ NonNegIntT |
     "code unit" ^^^ CodeUnitT |
-    "character" ^^^ StrT |
     "sequence of characters" ^^^ StrT |
     "sequence of Unicode code points" ^^^ StrT |
     "source text" ^^^ StrT |
@@ -1408,7 +1394,6 @@ trait Parsers extends IndentParsers {
     "read-modify-write modification function" ^^^ CloT |
     "mathematical value" ^^^ MathT |
     "Unicode property value" ^^^ StrT |
-    "nonterminal in one of the ECMAScript grammars" ^^^ AstT |
     "Number, but not *NaN*" ^^^ (NumberT -- NaNT) |
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
@@ -1420,6 +1405,20 @@ trait Parsers extends IndentParsers {
     "*true*" ^^^ TrueT |
     "integer" ^^^ IntT |
     "non-negative integer" ^^^ NonNegIntT |
+    // TODO See https://tc39.es/ecma262/2024/#sec-typedarray-objects
+    // "TypedArray element type" ^^^ EnumT(
+    //   "int8",
+    //   "uint8",
+    //   "uint8clamped",
+    //   "int16",
+    //   "uint16",
+    //   "int32",
+    //   "uint32",
+    //   "bigint64",
+    //   "biguint64",
+    //   "float32",
+    //   "float64",
+    // ) |
     "negative integer" ^^^ NegIntT |
     "non-positive integer" ^^^ NonPosIntT |
     "positive integer" ^^^ PosIntT |
@@ -1433,7 +1432,6 @@ trait Parsers extends IndentParsers {
     "ECMAScript source text" ^^^ StrT |
     "ECMAScript language value" ^^^ ESValueT |
     "internal slot name" ^^^ StrT |
-    "nonterminal" ^^^ AstT |
     "For-In Iterator" ^^^ RecordT("ForInIterator") |
     "Array" ^^^ ArrayT |
     "TypedArray" ^^^ TypedArrayT |
