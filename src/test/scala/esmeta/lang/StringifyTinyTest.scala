@@ -471,25 +471,6 @@ class StringifyTinyTest extends LangTest {
       Type(FalseT) -> "*false*",
       Type(UndefT) -> "*undefined*",
       Type(NullT) -> "*null*",
-      Type(UnknownTy("any value except a Completion Record")) ->
-      "any value except a Completion Record",
-      Type(UnknownTy("a String of length 2")) -> "a String of length 2",
-      Type(UnknownTy("an ECMAScript language value, but not a Number")) ->
-      "an ECMAScript language value, but not a Number",
-      Type(UnknownTy("an Object that has a [[StringData]] internal slot")) ->
-      "an Object that has a [[StringData]] internal slot",
-      Type(
-        UnknownTy(
-          "a List of Records with fields [[Key]] (an ECMAScript language value) and [[Elements]] (a List of ECMAScript language values)",
-        ),
-      ) ->
-      "a List of Records with fields [[Key]] (an ECMAScript language value) and [[Elements]] (a List of ECMAScript language values)",
-      Type(
-        UnknownTy(
-          "an Abstract Closure, a set of algorithm steps, or some other definition of a function's behaviour provided in this specification",
-        ),
-      ) ->
-      "an Abstract Closure, a set of algorithm steps, or some other definition of a function's behaviour provided in this specification",
       Type(AstT) -> "a Parse Node",
       Type(AstT("Identifier")) -> "an |Identifier| Parse Node",
       Type(EnumT("unused")) -> "~unused~",
