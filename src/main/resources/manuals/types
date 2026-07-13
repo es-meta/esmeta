@@ -327,6 +327,7 @@ type BuiltinFunctionObject extends OrdinaryObject {
   def Construct?;
   Realm: Record[RealmRecord];
   InitialName: String | Null;
+  Async: Boolean;
   __CODE__: Clo[(ESValue, List[ESValue], Record[Constructor] | Undefined) => Normal[ESValue] | Throw];
 }
 
