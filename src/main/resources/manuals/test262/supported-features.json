@@ -91,6 +91,7 @@
   "globalThis",
   "import.meta",
   "iterator-helpers",
+  "iterator-sequencing",
   "json-parse-with-source",
   "json-superset",
   "let",
