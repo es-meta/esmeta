@@ -237,7 +237,7 @@ object MathOpExpression extends Parser.From(Parser.mathOpExpr)
 enum MathOpExpressionOperator extends LangElem:
   case Neg, Add, Sub, Mul, Pow
   case Expm1, Log10, Log2, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
-  case Asinh, Atanh, Asin, Atan2, Atan, Log1p, Log, Sin, Sqrt, Tan
+  case Asinh, Atanh, Asin, Atan2, Atan, Log, Sin, Sqrt, Tan
 
 // -----------------------------------------------------------------------------
 // bitwise expressions

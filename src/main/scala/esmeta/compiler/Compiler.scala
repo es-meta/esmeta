@@ -795,7 +795,6 @@ class Compiler(
       case (Asin, List(e))     => EMathOp(MOp.Asin, List(e))
       case (Atan2, List(x, y)) => EMathOp(MOp.Atan2, List(x, y))
       case (Atan, List(e))     => EMathOp(MOp.Atan, List(e))
-      case (Log1p, List(e))    => EMathOp(MOp.Log1p, List(e))
       case (Log, List(e))      => EMathOp(MOp.Log, List(e))
       case (Sin, List(e))      => EMathOp(MOp.Sin, List(e))
       case (Sqrt, List(e))     => EMathOp(MOp.Sqrt, List(e))

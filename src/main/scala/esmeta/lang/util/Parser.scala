@@ -706,9 +706,11 @@ trait Parsers extends IndentParsers {
         case l ~ r => MathOpExpression(Pow, List(l, r))
       } | "subtracting 1 from the exponential function of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Expm1, List(e))
-      } | "base 10 logarithm of" ~> baseCalcExpr ^^ {
+      } | "ln(" ~> calcExpr <~ ")" ^^ {
+        case e => MathOpExpression(Log, List(e))
+      } | "log10(" ~> calcExpr <~ ")" ^^ {
         case e => MathOpExpression(Log10, List(e))
-      } | "base 2 logarithm of" ~> baseCalcExpr ^^ {
+      } | "log2(" ~> calcExpr <~ ")" ^^ {
         case e => MathOpExpression(Log2, List(e))
       } | "cosine of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Cos, List(e))
@@ -737,10 +739,6 @@ trait Parsers extends IndentParsers {
         case x ~ y => MathOpExpression(Atan2, List(x, y))
       } | "inverse tangent of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Atan, List(e))
-      } | "natural logarithm of 1 +" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log1p, List(e))
-      } | "natural logarithm of" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log, List(e))
       } | "sine of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Sin, List(e))
       } | "square root of" ~> baseCalcExpr ^^ {
