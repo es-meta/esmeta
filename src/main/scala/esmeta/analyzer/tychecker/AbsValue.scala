@@ -387,11 +387,11 @@ trait AbsValueDecl { self: TyChecker =>
         bool = BoolTy(
           if (
             (
-              (!l.ty.math.isBottom || !l.ty.number.isBottom) &&
-              (!r.ty.math.isBottom || !r.ty.number.isBottom)
-            ) || (
-              !l.ty.bigInt.isBottom && !r.ty.bigInt.isBottom
-            )
+              (!l.ty.math.isBottom || !l.ty.infinity.isBottom) &&
+              (!r.ty.math.isBottom || !r.ty.infinity.isBottom)
+            ) ||
+            (!l.ty.number.isBottom && !r.ty.number.isBottom) ||
+            (!l.ty.bigInt.isBottom && !r.ty.bigInt.isBottom)
           ) Set(true, false)
           else Set(),
         ),
