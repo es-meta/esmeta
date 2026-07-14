@@ -1471,7 +1471,9 @@ trait Parsers extends IndentParsers {
       case x => (x, new StepUpdater { def apply[T <: Step](s: T) = s })
     }
 
-  private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
+  private def normRecordT(s: String): ValueTy = Type.normalizeName(s) match
+    case "Record" => RecordT
+    case name     => RecordT(name)
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
     val multiParser = (if (either) "either" else "") ~> {
