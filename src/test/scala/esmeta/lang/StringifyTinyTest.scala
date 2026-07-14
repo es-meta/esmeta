@@ -232,11 +232,11 @@ class StringifyTinyTest extends LangTest {
       MathOpExpression(
         MathOpExpressionOperator.Log10,
         List(refExpr),
-      ) -> "the base 10 logarithm of _x_",
+      ) -> "log10(_x_)",
       MathOpExpression(
         MathOpExpressionOperator.Log2,
         List(refExpr),
-      ) -> "the base 2 logarithm of _x_",
+      ) -> "log2(_x_)",
       MathOpExpression(
         MathOpExpressionOperator.Cos,
         List(refExpr),
@@ -290,13 +290,9 @@ class StringifyTinyTest extends LangTest {
         List(refExpr),
       ) -> "the inverse tangent of _x_",
       MathOpExpression(
-        MathOpExpressionOperator.Log1p,
-        List(refExpr),
-      ) -> "the natural logarithm of 1 + _x_",
-      MathOpExpression(
         MathOpExpressionOperator.Log,
         List(refExpr),
-      ) -> "the natural logarithm of _x_",
+      ) -> "ln(_x_)",
       MathOpExpression(
         MathOpExpressionOperator.Sin,
         List(refExpr),

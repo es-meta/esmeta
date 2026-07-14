@@ -242,7 +242,6 @@ class StringifyTinyTest extends IRTest {
       MOp.Asin -> "[math:asin]",
       MOp.Atan2 -> "[math:atan2]",
       MOp.Atan -> "[math:atan]",
-      MOp.Log1p -> "[math:log1p]",
       MOp.Log -> "[math:log]",
       MOp.Sin -> "[math:sin]",
       MOp.Sqrt -> "[math:sqrt]",

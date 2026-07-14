@@ -405,8 +405,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     val MathOpExpression(op, args) = expr
     (op, args) match
       case (Log10, List(e)) => app >> "log10(" >> e >> ")"
-      case (Log2, List(e)) => app >> "log2(" >> e >> ")"
-      case (Log, List(e)) => app >> "ln(" >> e >> ")"
+      case (Log2, List(e))  => app >> "log2(" >> e >> ")"
+      case (Log, List(e))   => app >> "ln(" >> e >> ")"
       case _ => {
         app >> "the " >> op >> " "
         (op, args) match
