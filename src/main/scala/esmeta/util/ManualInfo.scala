@@ -28,15 +28,6 @@ object ManualInfo {
     readJson[CompileRule](s"$MANUALS_DIR/rule.json")
   type CompileRule = Map[String, Map[String, String]]
 
-  /** builtin functions who needs its [[Async]] to be true, because it is
-    * `described as async functions`
-    */
-  lazy val describedAsAsync = Set(
-    "AsyncFunction",
-    "AsyncGeneratorFunction",
-    "AsyncGenerator",
-  )
-
   /** bugfix patch map */
   lazy val bugfixPatchMap: Map[String, String] = (for {
     file <- getFiles(patchFilter)

@@ -84,9 +84,7 @@ class Compiler(
       "AsyncFromSyncIteratorContinuation".r,
       "CreateResolvingFunctions".r,
       "NewPromiseCapability".r,
-      // PerformPromiseAll
-      // PerformPromiseAllSettled
-      // PerformPromiseAny
+      "PerformPromise.*".r, // All|Any|Race|Then|AllSettled
       "INTRINSICS.Promise.prototype.finally".r,
       "AsyncGeneratorAwaitReturn".r,
       "INTRINSICS.Proxy.revocable".r,

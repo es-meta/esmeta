@@ -368,6 +368,8 @@ Array.prototype = Array [
   %Symbol.unscopables%: [FFT] #INTRINSICS.Array.prototype[%Symbol.unscopables%];
 }
 
+Array.fromAsync = BuiltinFunctionObject [ Async: true; ] {}
+
 // https://tc39.es/ecma262/#sec-array.prototype.concat
 Array.prototype.concat = BuiltinFunctionObject { length: [FFT] 1.0f; }
 
