@@ -36,7 +36,8 @@ trait Solver { self: SymInterp =>
         val argCands = args.map(candidates(_).toList)
         val ntCands = newTargetCandidates(newTarget)
         val slots = (thisCands :: argCands) :+ ntCands
-        oneChange(slots).flatMap {
+        // XXX: temporarily disable candidate enumeration
+        oneChange(slots).take(1).flatMap {
           case thisV :: rest =>
             rest.splitAt(args.length) match
               case (vs, nt :: Nil) =>
