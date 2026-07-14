@@ -82,7 +82,7 @@ class Compiler(
       "FinishDynamicImport".r,
       "INTRINSICS\\.Object\\.fromEntries".r,
       "AsyncFromSyncIteratorContinuation".r,
-      // CreateResolvingFunctions
+      "CreateResolvingFunctions".r,
       "NewPromiseCapability".r,
       // PerformPromiseAll
       // PerformPromiseAllSettled

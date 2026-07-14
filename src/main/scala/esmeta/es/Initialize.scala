@@ -6,6 +6,7 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.ty.*
+import esmeta.util.ManualInfo
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
 
@@ -305,8 +306,7 @@ class Initialize(cfg: CFG) {
       "Realm" -> realmAddr,
       "Prototype" -> intrAddr("Function.prototype"),
       "InitialName" -> Str(defaultName),
-      // TODO this is a temporary fix;
-      "Async" -> Bool(false),
+      "Async" -> Bool(ManualInfo.describedAsAsync.contains(name)),
       INNER_CODE -> intrClo(name),
       INNER_MAP -> subAddr,
       PRIVATE_ELEMENTS -> listAddr,

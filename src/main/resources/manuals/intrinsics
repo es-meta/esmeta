@@ -968,6 +968,7 @@ print = BuiltinFunctionObject [
   __CODE__: clo<INTRINSICS.print>;
   Prototype: #INTRINSICS.Function.prototype;
   InitialName: "print";
+  Async: false;
 ] {
   length: [FFT] 0.0f;
 }
