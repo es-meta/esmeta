@@ -1,5 +1,6 @@
 [
   "AggregateError",
+  "Array.fromAsync",
   "Array.prototype.at",
   "Array.prototype.flat",
   "Array.prototype.flatMap",
