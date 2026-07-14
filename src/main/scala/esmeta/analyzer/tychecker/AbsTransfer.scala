@@ -470,7 +470,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     ): Unit = {
       given AbsState = callerSt
       callInfo += callerNp -> callerSt
-      analyzer.argsInfo += callerNp -> vs
+      argsInfo += callerNp -> vs
       if (canUseReturnTy(callee)) {
         val call = callerNp.node
         val retTy = callee.retTy.ty.toValue
@@ -1287,10 +1287,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     // =========================================================================
     /** check if the return type can be used */
     lazy val canUseReturnTy: Func => Boolean = cached { func =>
-      manualRefiners.contains(func.name) || (
-        !func.retTy.isImprec &&
-        TargetType.from(func.retTy.ty.toValue).isEmpty
-      )
+      manualRefiners.contains(func.name) ||
+      (!func.retTy.isImprec && TargetType.from(func.retTy.ty.toValue).isEmpty)
     }
 
     /** default type guards */
