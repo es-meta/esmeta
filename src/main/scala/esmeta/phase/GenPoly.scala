@@ -42,16 +42,6 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
       "turn on logging mode.",
     ),
     (
-      "log-with-loc",
-      BoolOption((c, b) => { c.log ||= b; c.loc = b }),
-      "turn on logging mode with location info.",
-    ),
-    (
-      "opt",
-      BoolOption((c, b) => { c.opt ||= b; c.opt = b }),
-      "turn on ir optimization",
-    ),
-    (
       "dsl-dir",
       StrOption((c, s) => c.dslDir = Some(s)),
       "set a directory of custom transformation before polyfill extraction (default: none).",
@@ -60,7 +50,6 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
   case class Config(
     var log: Boolean = false,
     var loc: Boolean = false,
-    var opt: Boolean = false,
     var dslDir: Option[String] = None,
   )
 }

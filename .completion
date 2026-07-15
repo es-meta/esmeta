@@ -28,7 +28,7 @@ _esmeta_completions() {
   dumpdebuggerOpt=""
   dumpvisualizerOpt=""
   yetcheckOpt="-yet-check:log -yet-check:github-alert -yet-check:merge-threshold"
-  genpolyOpt="-gen-poly:log -gen-poly:log-with-loc -gen-poly:opt -gen-poly:dsl-dir"
+  genpolyOpt="-gen-poly:log -gen-poly:dsl-dir"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
