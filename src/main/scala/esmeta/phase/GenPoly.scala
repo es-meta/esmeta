@@ -20,6 +20,7 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
 
     // logging mode
     if (config.log)
+      rmdir(POLYFILL_LOG_DIR)
       dumpDir(
         name = "generated polyfills",
         iterable = ProgressBar("Dump polyfills", polyfills, detail = false),
