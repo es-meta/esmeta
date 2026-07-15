@@ -10,7 +10,7 @@ import esmeta.util.BaseUtils.*
 import esmeta.ty.{NumberTy, ValueTy}
 import org.jsoup.nodes.Element
 import scala.collection.mutable
-import PolyfillInspector.*
+import PolyfillInspector.*, CompletionType.*, PredicateConditionOperator.*
 
 extension (l: List[Step])
   def toBlockStep: Step = l match {
@@ -22,9 +22,7 @@ extension (l: List[Step])
       }))
   }
 
-// =============================================================================
 // Completion Types
-// =============================================================================
 enum CompletionType {
   case MayCompletion
   case MayNormal
@@ -49,11 +47,8 @@ object CompletionType {
     case other    => raise(s"Unknown completion tag: $other")
   }
 }
-import CompletionType.*
 
-// =============================================================================
 // Type Environment
-// =============================================================================
 case class TypeEnv(map: Map[String, CompletionType] = Map.empty) {
   def +(pair: (String, CompletionType)): TypeEnv = copy(map = map + pair)
   def -(name: String): TypeEnv = copy(map = map - name)
@@ -65,16 +60,16 @@ case class TypeEnv(map: Map[String, CompletionType] = Map.empty) {
   )
 }
 
-// =============================================================================
 // Contexts
-// =============================================================================
 case class Context(
   input: List[Step],
   history: List[Step],
   env: TypeEnv,
   optimizer: Optimizer,
   checkedVars: Set[String],
-)
+) {
+  def unwrapper: ValueAccessUnwrapper = ValueAccessUnwrapper(env)
+}
 
 trait OptimizeRule {
   def apply(ctx: Context): Option[Context]
@@ -90,8 +85,8 @@ trait TransformRule {
 }
 
 class Optimizer(
-  val optimizeRules: List[OptimizeRule],
-  val transformRules: List[TransformRule],
+  val optimizeRule: OptimizeRule,
+  val transformRule: TransformRule,
   val algos: List[Algorithm],
 ) {
 
@@ -103,7 +98,7 @@ class Optimizer(
   ): (List[Step], TypeEnv) = input match {
     case head :: tail =>
       val ctx = Context(input, history, env, this, checkedVars)
-      optimizeRules.iterator.flatMap(_.apply(ctx)).nextOption() match {
+      optimizeRule(ctx) match {
         case Some(result) =>
           optimize(
             result.input,
@@ -129,10 +124,7 @@ class Optimizer(
     env: TypeEnv,
     checkedVars: Set[String],
   ): (Option[Step], TypeEnv) =
-    transformRules.iterator
-      .flatMap(_.apply(step, env, this, checkedVars))
-      .nextOption()
-      .getOrElse((Some(step), env))
+    transformRule(step, env, this, checkedVars).getOrElse((Some(step), env))
 
   def optimizeExpr(
     expr: Expression,
@@ -197,7 +189,6 @@ object CompletionCheckAnalyzer {
               _,
               op,
             ) =>
-          import PredicateConditionOperator.*
           op match {
             case Abrupt | Throw | Normal | Return => result.add(name)
             case _                                =>
@@ -215,41 +206,28 @@ object CompletionCheckAnalyzer {
 
 class PolyfillInspector(algos: List[Algorithm]) {
 
-  private val simpleOptimizer = new Optimizer(
-    optimizeRules = List(BasicOptimizeRule),
-    transformRules = List(
-      LetStepTransform,
-      RecurseTransformRule,
-    ),
-    algos = algos,
-  )
+  private val simpleOptimizer =
+    new Optimizer(BasicOptimizeRule, BasicTransformRule, algos)
 
-  def transformHead(head: Head): Head = {
-    head match {
-      case ao @ AbstractOperationHead(_, _, params, _) =>
-        val unwrapParams = params.flatMap {
-          case p @ Param(name, Type(ty), paramKind) if ty.isCompletion =>
-            List(
-              p.copy(
-                name = s"${name}_flag",
-                ty = Type(ValueTy.Top),
-              ),
-              p.copy(ty = Type(ValueTy.Top)),
-            )
-          case x => Some(x)
-        }
-        ao.copy(params = unwrapParams)
-      case x => x
-    }
+  def transformHead(head: Head): Head = head match {
+    case ao @ AbstractOperationHead(_, _, params, _) =>
+      val unwrapParams = params.flatMap {
+        case p @ Param(name, Type(ty), paramKind) if ty.isCompletion =>
+          List(
+            p.copy(name = s"${name}_flag", ty = Type(ValueTy.Top)),
+            p.copy(ty = Type(ValueTy.Top)),
+          )
+        case x => Some(x)
+      }
+      ao.copy(params = unwrapParams)
+    case x => x
   }
 
   def transformBody(head: Head, body: Step): Step = {
     val completionParams = head match {
       case AbstractOperationHead(_, _, params, _) =>
-        params.filter {
-          case Param(name, Type(ty), paramKind) => ty.isCompletion
-        }
-      case x => List()
+        params.filter { _.ty.ty.isCompletion }
+      case x => Nil
     }
     val env = completionParams.foldLeft(TypeEnv())((it, item) =>
       it + (item.name -> MayCompletion),
@@ -279,12 +257,10 @@ object PolyfillInspector {
     step: Step,
     name: String,
     value: String,
-  ): TaggedStep =
-    step match {
-      case TaggedStep(realStep, existingTag) =>
-        TaggedStep(realStep, existingTag + (name -> value))
-      case x => TaggedStep(x, Map(name -> value))
-    }
+  ): TaggedStep = step match {
+    case TaggedStep(s, tag) => TaggedStep(s, tag + (name -> value))
+    case x                  => TaggedStep(x, Map(name -> value))
+  }
 
   def getHoistedFlagSetting(
     flagName: String,
@@ -301,7 +277,6 @@ object PolyfillInspector {
           _,
           op,
         ) =>
-      import PredicateConditionOperator.*
       op match {
         case Abrupt | Throw | Normal | Return =>
           completionCondition.get(targetVar)
@@ -321,26 +296,38 @@ object PolyfillInspector {
     case _ => Some(cond)
   }
 
-  def wrapProducerOnly(
-    producer: List[Step],
-    varName: String,
-    catchVar: String,
-    flagName: String,
-    env: TypeEnv,
-  ): Step = {
-    // env is expected to already have flagName declared (withFlag), so SetStep is used here
-    val catchStmts = List(
-      SetStep(
-        Variable(varName, None),
-        ReferenceExpression(Variable(catchVar, None)),
-      ),
-      getHoistedFlagSetting(flagName, "abrupt", env),
+  def wrap(
+    ctx: Context,
+    x: String,
+    expr: Expression,
+    ctype: CompletionType,
+    isDecl: Boolean = true,
+  ): List[Step] = {
+    val flagName = s"${x}_flag"
+    val catchVar = s"_${x}_err"
+    val step = ctx.unwrapper.walk(
+      if (isDecl) LetStep(Variable(x), expr)
+      else SetStep(Variable(x), expr),
     )
-    WrappedTryCatchStep(
-      producer.toBlockStep,
-      Variable(catchVar),
-      Some(catchStmts.toBlockStep),
-    )
+    def aux(flag: String): Step = LetStep(Variable(flagName), EnumLiteral(flag))
+    ctype match {
+      case MayCompletion =>
+        val catchStmts = List(
+          SetStep(
+            Variable(x),
+            ReferenceExpression(Variable(catchVar, None)),
+          ),
+          getHoistedFlagSetting(flagName, "abrupt", ctx.env),
+        )
+        WrappedTryCatchStep(
+          List(step, aux("normal")).toBlockStep,
+          Variable(catchVar),
+          Some(catchStmts.toBlockStep),
+        ) :: ctx.history
+      case MayNormal     => aux("normal") :: step :: ctx.history
+      case MayAbrupt     => aux("abrupt") :: step :: ctx.history
+      case NotCompletion => step :: ctx.history
+    }
   }
 }
 
@@ -348,44 +335,13 @@ object PolyfillInspector {
 // TransformRules — step-level transformations (no history access)
 // =============================================================================
 
-object LetStepTransform extends TransformRule {
+object BasicTransformRule extends TransformRule {
   def apply(
     step: Step,
     env: TypeEnv,
     optimizer: Optimizer,
     checkedVars: Set[String],
   ) = step match {
-    case LetStep(v @ Variable(name, _, _, _), expr) =>
-      val (newExpr, typeUpdate) = optimizer.optimizeExpr(expr, env)
-      Some(
-        Some(LetStep(v, newExpr)),
-        env + (name -> typeUpdate),
-      )
-    case SetStep(v @ Variable(name, _, _, _), expr) =>
-      expr match {
-        case ReturnIfAbruptExpression(
-              ReferenceExpression(Variable(inner, _, _, _)),
-              false,
-            ) if name == inner =>
-          // Remove Remove redundant Set x = ! x shorthand
-          Some(Some(step), env - name)
-        case _ =>
-          val (newExpr, typeUpdate) = optimizer.optimizeExpr(expr, env)
-          env(name) match {
-            case _ if typeUpdate == MayCompletion =>
-              Some(
-                Some(SetStep(v, newExpr)),
-                env + (name -> typeUpdate),
-              )
-            case MayNormal =>
-              Some((Some(SetStep(v, newExpr)), env))
-            case _ =>
-              Some(
-                Some(SetStep(v, newExpr)),
-                env + (name -> typeUpdate),
-              )
-          }
-      }
     case ReturnStep(
           InvokeAbstractOperationExpression(
             name,
@@ -494,6 +450,48 @@ object LetStepTransform extends TransformRule {
           // Unwrap tagged step and recurse
           Some(optimizer.transformStep(taggedInnerStep, env, checkedVars))
       }
+    case BlockStep(StepBlock(stmts)) =>
+      val (newSteps, newEnv) =
+        optimizer.optimize(stmts.map(_.step), Nil, env, checkedVars)
+      if (newSteps.isEmpty) Some((None, newEnv))
+      else Some((Some(newSteps.toBlockStep), newEnv))
+
+    case RepeatStep(c, b) =>
+      val newBody =
+        optimizer.optimize(b :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(RepeatStep(c, newBody)), env))
+
+    case s @ ForEachStep(_, _, _, _, body) =>
+      val newBody =
+        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(s.copy(body = newBody)), env))
+
+    case s @ ForEachIntegerStep(_, _, _, _, _, _, body) =>
+      val newBody =
+        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(s.copy(body = newBody)), env))
+
+    case s @ ForEachOwnPropertyKeyStep(_, _, _, _, _, body) =>
+      val newBody =
+        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(s.copy(body = newBody)), env))
+
+    case s @ ForEachParseNodeStep(_, _, body) =>
+      val newBody =
+        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+      Some((Some(s.copy(body = newBody)), env))
+
+    case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
+      val newTry =
+        optimizer
+          .optimize(tryBlock :: Nil, Nil, env, checkedVars)
+          ._1
+          .toBlockStep
+      val newCatch = catchBlock.map(b =>
+        optimizer.optimize(b :: Nil, Nil, env, checkedVars)._1.toBlockStep,
+      )
+      Some((Some(WrappedTryCatchStep(newTry, catchVar, newCatch)), env))
+
     case _ => None
   }
 
@@ -595,81 +593,6 @@ object LetStepTransform extends TransformRule {
   }
 }
 
-// Recurse into all container step types and apply optimizer rules to their bodies.
-// Use this as a catch-all transform in passes that don't need per-step env tracking.
-object RecurseTransformRule extends TransformRule {
-  def apply(
-    step: Step,
-    env: TypeEnv,
-    optimizer: Optimizer,
-    checkedVars: Set[String],
-  ): Option[(Option[Step], TypeEnv)] = step match {
-    case BlockStep(StepBlock(stmts)) =>
-      val (newSteps, newEnv) =
-        optimizer.optimize(stmts.map(_.step), Nil, env, checkedVars)
-      if (newSteps.isEmpty) Some((None, newEnv))
-      else Some((Some(newSteps.toBlockStep), newEnv))
-
-    case IfStep(cond, t, e, cfg) =>
-      val (thenSteps, thenEnv) =
-        optimizer.optimize(t :: Nil, Nil, env, checkedVars)
-      val (elseResult, elseEnv) = e match {
-        case Some(b) =>
-          val (steps, eEnv) =
-            optimizer.optimize(b :: Nil, Nil, env, checkedVars)
-          if (steps.isEmpty) (None, eEnv) else (Some(steps.toBlockStep), eEnv)
-        case None => (None, env)
-      }
-      Some(
-        Some(IfStep(cond, thenSteps.toBlockStep, elseResult, cfg)),
-        thenEnv ++ elseEnv,
-      )
-
-    case RepeatStep(c, b) =>
-      val newBody =
-        optimizer.optimize(b :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(RepeatStep(c, newBody)), env))
-
-    case s @ ForEachStep(_, _, _, _, body) =>
-      val newBody =
-        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(s.copy(body = newBody)), env))
-
-    case s @ ForEachIntegerStep(_, _, _, _, _, _, body) =>
-      val newBody =
-        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(s.copy(body = newBody)), env))
-
-    case s @ ForEachOwnPropertyKeyStep(_, _, _, _, _, body) =>
-      val newBody =
-        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(s.copy(body = newBody)), env))
-
-    case s @ ForEachParseNodeStep(_, _, body) =>
-      val newBody =
-        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(s.copy(body = newBody)), env))
-
-    case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
-      val newTry =
-        optimizer
-          .optimize(tryBlock :: Nil, Nil, env, checkedVars)
-          ._1
-          .toBlockStep
-      val newCatch = catchBlock.map(b =>
-        optimizer.optimize(b :: Nil, Nil, env, checkedVars)._1.toBlockStep,
-      )
-      Some((Some(WrappedTryCatchStep(newTry, catchVar, newCatch)), env))
-
-    case TaggedStep(inner, tag) =>
-      val (newInnerOpt, newEnv) =
-        optimizer.transformStep(inner, env, checkedVars)
-      Some((newInnerOpt.map(TaggedStep(_, tag)), newEnv))
-
-    case _ => None
-  }
-}
-
 // =============================================================================
 // OptimizeRules — stream-level rules (with history access)
 // =============================================================================
@@ -677,132 +600,38 @@ object RecurseTransformRule extends TransformRule {
 object BasicOptimizeRule extends OptimizeRule {
 
   def apply(ctx: Context): Option[Context] = ctx.input match {
-    case InvokeShorthandStep(name, args) :: tail =>
-      val targetAlgo = ctx.optimizer.algos.find(_.name == name)
-      if (targetAlgo.isEmpty) None
-      else {
-        val targetStep = targetAlgo.get.body
-        // TODO: ignore parameter types for now
-        val targetParameters = targetAlgo.get.head.originalParams.map(_.name)
-        // Parameter matching
-        val inlinedStep = (targetParameters zip args).foldLeft(targetStep) {
-          (step, paramToArg) =>
-            ParameterInlineWalker(paramToArg._1, paramToArg._2).walk(step)
-        }
-        val (transformedStep, newEnv) =
-          ctx.optimizer.transformStep(inlinedStep, ctx.env, ctx.checkedVars)
-        Some(
-          ctx.copy(
-            tail,
-            transformedStep.getOrElse(
-              raise(s"Cannot inline shorthand: ${name} : ${targetStep}"),
-            ) :: ctx.history,
-            newEnv,
-          ),
-        )
-      }
     // XRefExpressionOperator.Algo = Let x be the algorithm steps defined in...
-    case (step @ LetStep(
-          Variable(name, _, _, _),
+    case LetStep(
+          Variable(x, _, _, _),
           XRefExpression(XRefExpressionOperator.Algo, id),
-        )) :: tail =>
+        ) :: tail =>
       val targetFunction = ctx.optimizer.algos.find(_.name.endsWith(id))
-      if (targetFunction.isEmpty) None
-      else {
-        val func = targetFunction.head
+      targetFunction.map { func =>
         val extractedHead = func.head.asInstanceOf[BuiltinHead]
         val extractedBody = func.body
+        val checkedVars = CompletionCheckAnalyzer.analyze(extractedBody)
         val optimizedClosureBody = ctx.optimizer
-          .optimize(
-            extractedBody :: Nil,
-            Nil,
-            TypeEnv(),
-            CompletionCheckAnalyzer.analyze(extractedBody),
-          )
+          .optimize(List(extractedBody), Nil, TypeEnv(), checkedVars)
           ._1
           .toBlockStep
         val params = extractedHead.params
         val closureExpression = AbstractClosureExpression(
           params.map(it => Variable(it.name, Some("xref_inlined"))),
-          List(),
+          Nil,
           optimizedClosureBody,
         )
-        Some(
-          ctx.copy(
-            tail,
-            step.copy(expr = closureExpression) :: ctx.history,
-            ctx.env,
-          ),
-        )
+        ctx.copy(tail, LetStep(Variable(x), closureExpression) :: ctx.history)
       }
-    case (step @ LetStep(Variable(name, _, _, _), expr)) :: tail
-        if ctx.checkedVars.contains(name) =>
+    case LetStep(Variable(x, _, _, _), expr) :: tail =>
       val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
-      // Always wrap — no optimization for known types.
-      val newEnv = ctx.env + (name -> MayAbrupt)
-      typeUpdate match {
-        case MayAbrupt =>
-          Some(
-            ctx.copy(
-              tail,
-              getHoistedFlagSetting(
-                s"${name}_flag",
-                "abrupt",
-                newEnv,
-              ) :: ValueAccessUnwrapper(ctx.env).walk(step) :: ctx.history,
-              newEnv,
-            ),
-          )
-        case MayNormal | NotCompletion => None
-        case _ =>
-          val flagName = s"${name}_flag"
-          val env = ctx.env
-          val flagDecl = getHoistedFlagSetting(flagName, "normal", ctx.env)
-          val wrapped = wrapProducerOnly(
-            List(LetStep(Variable(name, None), newExpr), flagDecl),
-            name,
-            s"_${name}_err",
-            flagName,
-            env, // already declared → SetStep in catch
-          )
-          val newEnv = env + (name -> MayCompletion)
-          Some(
-            ctx.copy(
-              tail,
-              ValueAccessUnwrapper(ctx.env).walk(wrapped) :: ctx.history,
-              newEnv,
-            ),
-          )
-      }
-    case SetStep(
-          Variable(name, _, _, _),
-          ReturnIfAbruptExpression(expr, false),
-        ) :: _ =>
-      None
-    case SetStep(Variable(name, _, _, _), expr) :: tail
-        if ctx.checkedVars.contains(name) =>
+      val newHistory = wrap(ctx, x, newExpr, typeUpdate)
+      val newEnv = ctx.env + (x -> typeUpdate)
+      Some(ctx.copy(tail, newHistory, newEnv))
+    case SetStep(Variable(x, _, _, _), expr) :: tail =>
       val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
-      if (typeUpdate == NotCompletion) None
-      else {
-        val flagName = s"${name}_flag"
-        val env = ctx.env
-        val flagDecl = getHoistedFlagSetting(flagName, "normal", ctx.env)
-        val wrapped = wrapProducerOnly(
-          List(SetStep(Variable(name, None), newExpr), flagDecl),
-          name,
-          s"_${name}_err",
-          flagName,
-          env, // already declared → SetStep in catch
-        )
-        val newEnv = env + (name -> MayCompletion)
-        Some(
-          ctx.copy(
-            tail,
-            ValueAccessUnwrapper(ctx.env).walk(wrapped) :: ctx.history,
-            newEnv,
-          ),
-        )
-      }
+      val newHistory = wrap(ctx, x, newExpr, typeUpdate, isDecl = false)
+      val newEnv = ctx.env + (x -> typeUpdate)
+      Some(ctx.copy(tail, newHistory, newEnv))
     case (check @ CompletionCheckPattern(checks)) :: tail =>
       val ifStep = check.asInstanceOf[IfStep]
       val (checkType, targetVar) = checks
@@ -941,7 +770,6 @@ private object CompletionCheckPattern {
   ): Option[(CompletionType, String)] =
     cond match {
       case PredicateCondition(expr, _, op) =>
-        import PredicateConditionOperator.*
         op match {
           case Abrupt | Throw => Some((MayAbrupt, extractVarName(expr)))
           case Normal         => Some((MayNormal, extractVarName(expr)))

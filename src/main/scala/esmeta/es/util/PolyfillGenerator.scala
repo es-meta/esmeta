@@ -192,6 +192,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       } catch {
         case e: Throwable =>
           println("-" * 80)
+          e.getStackTrace.take(10).foreach(println)
+          println("-" * 80)
           println(algo)
           println("-" * 80)
           println(pb.currentResult)
