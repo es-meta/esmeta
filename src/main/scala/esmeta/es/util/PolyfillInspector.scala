@@ -48,14 +48,14 @@ case class TypeEnv(map: Map[String, CompletionType] = Map.empty) {
   )
 }
 
-case class State(
+case class Config(
   env: TypeEnv = TypeEnv(),
   steps: Vector[Step] = Vector.empty,
 ) {
-  def apply(env: TypeEnv): State = copy(env = env)
-  def +(pair: (String, CompletionType)): State = copy(env = env + pair)
-  def :+(step: Step): State = copy(steps = steps :+ unwrap(step))
-  def ++(steps: Vector[Step]): State = copy(steps = this.steps ++ steps)
+  def apply(env: TypeEnv): Config = copy(env = env)
+  def +(pair: (String, CompletionType)): Config = copy(env = env + pair)
+  def :+(step: Step): Config = copy(steps = steps :+ unwrap(step))
+  def ++(steps: Vector[Step]): Config = copy(steps = this.steps ++ steps)
   def unwrap(step: Step): Step = ValueAccessUnwrapper(env).walk(step)
 }
 
@@ -82,10 +82,10 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
       param <- head.originalParams
       if param.ty.ty.isCompletion
     } yield param.name -> MayCompletion).toMap)
-    transform(body, State(env)).steps.toBlockStep
+    transform(body, Config(env)).steps.toBlockStep
   }
 
-  def transform(step: Step, st: State): State = step match {
+  def transform(step: Step, st: Config): Config = step match {
     case InvokeShorthandStep(name, args) =>
       val targetAlgo = algos.find(_.name == name)
       if (targetAlgo.isEmpty) st :+ step
@@ -96,7 +96,7 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
           (step, paramToArg) =>
             ParameterInlineWalker(paramToArg._1, paramToArg._2).walk(step)
         }
-        transform(inlinedStep, State(st.env))
+        transform(inlinedStep, Config(st.env))
       }
     case LetStep(
           Variable(x, _, _, _),
@@ -108,7 +108,7 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
         val extractedBody = func.body
         val optimizedClosureBody = transform(
           extractedBody,
-          State(),
+          Config(),
         ).steps.toBlockStep
         val params = extractedHead.params
         val closureExpression = AbstractClosureExpression(
@@ -184,10 +184,10 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
       )
     case IfStep(cond, t, e, cfg) =>
       val env = st.env
-      val State(thenEnv, thenSteps) = transform(t, State(env))
+      val Config(thenEnv, thenSteps) = transform(t, Config(env))
       val (elseResult, elseEnv) = e match {
         case Some(b) =>
-          val State(eEnv, steps) = transform(b, State(env))
+          val Config(eEnv, steps) = transform(b, Config(env))
           if (steps.isEmpty) (None, eEnv)
           else (Some(steps.toBlockStep), eEnv)
         case None => (None, env)
@@ -225,36 +225,36 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
         case _ => transform(taggedInnerStep, st)
       }
     case BlockStep(StepBlock(stmts)) =>
-      val State(newEnv, newSteps) = stmts.foldLeft(State(st.env)) {
+      val Config(newEnv, newSteps) = stmts.foldLeft(Config(st.env)) {
         case (st, stmt) => transform(stmt.step, st)
       }
       if (newSteps.isEmpty) st(newEnv)
       else st(newEnv) :+ newSteps.toBlockStep
 
     case RepeatStep(c, b) =>
-      val newBody = transform(b, State(st.env)).steps.toBlockStep
+      val newBody = transform(b, Config(st.env)).steps.toBlockStep
       st :+ RepeatStep(c, newBody)
 
     case s @ ForEachStep(_, _, _, _, body) =>
-      val newBody = transform(body, State(st.env)).steps.toBlockStep
+      val newBody = transform(body, Config(st.env)).steps.toBlockStep
       st :+ s.copy(body = newBody)
 
     case s @ ForEachIntegerStep(_, _, _, _, _, _, body) =>
-      val newBody = transform(body, State(st.env)).steps.toBlockStep
+      val newBody = transform(body, Config(st.env)).steps.toBlockStep
       st :+ s.copy(body = newBody)
 
     case s @ ForEachOwnPropertyKeyStep(_, _, _, _, _, body) =>
-      val newBody = transform(body, State(st.env)).steps.toBlockStep
+      val newBody = transform(body, Config(st.env)).steps.toBlockStep
       st :+ s.copy(body = newBody)
 
     case s @ ForEachParseNodeStep(_, _, body) =>
-      val newBody = transform(body, State(st.env)).steps.toBlockStep
+      val newBody = transform(body, Config(st.env)).steps.toBlockStep
       st :+ s.copy(body = newBody)
 
     case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
-      val newTry = transform(tryBlock, State(st.env)).steps.toBlockStep
+      val newTry = transform(tryBlock, Config(st.env)).steps.toBlockStep
       val newCatch =
-        catchBlock.map(b => transform(b, State(st.env)).steps.toBlockStep)
+        catchBlock.map(b => transform(b, Config(st.env)).steps.toBlockStep)
       st :+ WrappedTryCatchStep(newTry, catchVar, newCatch)
     case _ => st :+ step
   }
@@ -290,8 +290,8 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     tag: Map[String, String],
     targetVar: String,
     checkType: CompletionType,
-    st: State,
-  ): State = {
+    st: Config,
+  ): Config = {
     val env = st.env
     val thenType =
       if (checkType == MayAbrupt) MayAbrupt
@@ -303,11 +303,11 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     val thenEnv = env + (targetVar -> thenType)
     val elseEnv = env + (targetVar -> elseType)
 
-    val State(thenOptEnv, thenSteps) = transform(thenStep, State(thenEnv))
+    val Config(thenOptEnv, thenSteps) = transform(thenStep, Config(thenEnv))
     val newThen = thenSteps.toBlockStep
     val (newElse, elseOptEnv) = elseStep match {
       case Some(e) =>
-        val State(eEnv, steps) = transform(e, State(elseEnv))
+        val Config(eEnv, steps) = transform(e, Config(elseEnv))
         (Some(steps.toBlockStep), eEnv)
       case None => (None, elseEnv)
     }
@@ -343,14 +343,14 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     elseStep: Option[Step],
     cfg: IfStep.ElseConfig,
     tag: Map[String, String],
-    st: State,
-  ): State = {
+    st: Config,
+  ): Config = {
     val env = st.env
-    val State(thenOptEnv, thenSteps) = transform(thenStep, State(env))
+    val Config(thenOptEnv, thenSteps) = transform(thenStep, Config(env))
     val newThen = thenSteps.toBlockStep
     val (newElse, elseOptEnv) = elseStep match {
       case Some(e) =>
-        val State(eEnv, steps) = transform(e, State(env))
+        val Config(eEnv, steps) = transform(e, Config(env))
         (Some(steps.toBlockStep), eEnv)
       case None => (None, env)
     }
@@ -422,12 +422,12 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
   }
 
   def wrap(
-    st: State,
+    st: Config,
     x: String,
     expr: Expression,
     ctype: CompletionType,
     isDecl: Boolean,
-  ): State = {
+  ): Config = {
     val flagName = s"${x}_flag"
     val catchVar = s"_${x}_err"
     val step =
@@ -467,7 +467,7 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
       (args.head, MayAbrupt)
     case AbstractClosureExpression(params, captured, body) =>
-      val optimizedBody = transform(body, State(env)).steps.toBlockStep
+      val optimizedBody = transform(body, Config(env)).steps.toBlockStep
       (
         AbstractClosureExpression(params, captured, optimizedBody),
         NotCompletion,
