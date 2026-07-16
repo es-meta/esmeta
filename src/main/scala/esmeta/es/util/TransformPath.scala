@@ -53,11 +53,10 @@ class ShorthandInlinePath(spec: Spec) extends TransformPath {
 
 class CompletionPath extends TransformPath {
   override def apply(targets: List[Algorithm]): List[Algorithm] = {
-    val inspector = new PolyfillInspector(targets)
-
     targets.map { algo =>
-      val newHead = inspector.transformHead(algo.head)
-      val transformedBody = inspector.transformBody(algo.head, algo.body)
+      val inspector = new PolyfillInspector(algo, targets)
+      val newHead = inspector.transformHead
+      val transformedBody = inspector.transformBody
       algo.copy(head = newHead, body = transformedBody)
     }
   }

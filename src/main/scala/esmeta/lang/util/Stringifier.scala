@@ -227,8 +227,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
       // Should not reach here (polyfill)
-      case WrappedTryCatchStep(t, c, cb) => ???
-      case TaggedStep(s, t)              => ???
+      case WrappedTryCatchStep(t, c, cb) => app >> "TODO: try-catch step"
+      case TaggedStep(s, t)              => app >> "TODO: tagged step"
       case MetaStep(name, true, _)       => app >> name >> ":step*"
       case MetaStep(name, false, _)      => app >> name >> ":step"
     }

@@ -3,26 +3,15 @@ package esmeta.es.util
 import esmeta.lang.*
 import esmeta.lang.BinaryConditionOperator.Eq
 import esmeta.lang.IfStep.ElseConfig
-import esmeta.lang.RepeatStep.LoopCondition.{NoCondition, Until, While}
 import esmeta.lang.util.{UnitWalker as LangUnitWalker, Walker as LangWalker}
 import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 import esmeta.ty.{NumberTy, ValueTy}
 import org.jsoup.nodes.Element
 import scala.collection.mutable
-import PolyfillInspector.*, CompletionType.*, PredicateConditionOperator.*
+import CompletionType.*, PredicateConditionOperator.*
+import esmeta.es.util.dsl.PredicateExpr.matches
 
-extension (l: List[Step])
-  def toBlockStep: Step = l match {
-    case (b: BlockStep) :: Nil => b
-    case _ =>
-      BlockStep(StepBlock(l.flatMap {
-        case BlockStep(StepBlock(steps)) => steps
-        case x                           => List(SubStep(None, x))
-      }))
-  }
-
-// Completion Types
 enum CompletionType {
   case MayCompletion
   case MayNormal
@@ -48,7 +37,6 @@ object CompletionType {
   }
 }
 
-// Type Environment
 case class TypeEnv(map: Map[String, CompletionType] = Map.empty) {
   def +(pair: (String, CompletionType)): TypeEnv = copy(map = map + pair)
   def -(name: String): TypeEnv = copy(map = map - name)
@@ -60,156 +48,22 @@ case class TypeEnv(map: Map[String, CompletionType] = Map.empty) {
   )
 }
 
-// Contexts
-case class Context(
-  input: List[Step],
-  history: List[Step],
-  env: TypeEnv,
-  optimizer: Optimizer,
-  checkedVars: Set[String],
+case class State(
+  env: TypeEnv = TypeEnv(),
+  steps: Vector[Step] = Vector.empty,
 ) {
-  def unwrapper: ValueAccessUnwrapper = ValueAccessUnwrapper(env)
+  def apply(env: TypeEnv): State = copy(env = env)
+  def +(pair: (String, CompletionType)): State = copy(env = env + pair)
+  def :+(step: Step): State = copy(steps = steps :+ unwrap(step))
+  def ++(steps: Vector[Step]): State = copy(steps = this.steps ++ steps)
+  def unwrap(step: Step): Step = ValueAccessUnwrapper(env).walk(step)
 }
 
-trait OptimizeRule {
-  def apply(ctx: Context): Option[Context]
-}
+class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
+  val head = algo.head
+  val body = algo.body
 
-trait TransformRule {
-  def apply(
-    step: Step,
-    env: TypeEnv,
-    optimizer: Optimizer,
-    checkedVars: Set[String],
-  ): Option[(Option[Step], TypeEnv)]
-}
-
-class Optimizer(
-  val optimizeRule: OptimizeRule,
-  val transformRule: TransformRule,
-  val algos: List[Algorithm],
-) {
-
-  def optimize(
-    input: List[Step],
-    history: List[Step],
-    env: TypeEnv,
-    checkedVars: Set[String],
-  ): (List[Step], TypeEnv) = input match {
-    case head :: tail =>
-      val ctx = Context(input, history, env, this, checkedVars)
-      optimizeRule(ctx) match {
-        case Some(result) =>
-          optimize(
-            result.input,
-            result.history,
-            result.env,
-            checkedVars,
-          )
-        case None =>
-          val (newStepOpt, newEnv) = transformStep(head, env, checkedVars)
-          newStepOpt match {
-            case Some(newStep) =>
-              val unwrapped = ValueAccessUnwrapper(env).walk(newStep)
-              optimize(tail, unwrapped :: history, newEnv, checkedVars)
-            case None =>
-              optimize(tail, history, newEnv, checkedVars)
-          }
-      }
-    case Nil => (history.reverse, env)
-  }
-
-  def transformStep(
-    step: Step,
-    env: TypeEnv,
-    checkedVars: Set[String],
-  ): (Option[Step], TypeEnv) =
-    transformRule(step, env, this, checkedVars).getOrElse((Some(step), env))
-
-  def optimizeExpr(
-    expr: Expression,
-    env: TypeEnv,
-  ): (Expression, CompletionType) = expr match {
-    case InvokeAbstractOperationExpression("Completion", args, _) =>
-      (args.head, MayCompletion)
-    case InvokeAbstractOperationExpression("NormalCompletion", args, _) =>
-      (args.head, MayNormal)
-    case InvokeAbstractOperationExpression("ThrowCompletion", args, _) =>
-      (args.head, MayAbrupt)
-    case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
-      (args.head, MayAbrupt)
-    case AbstractClosureExpression(params, captured, body) =>
-      val closureCheckedVars = CompletionCheckAnalyzer.analyze(body)
-      val (optimizedBody, _) =
-        optimize(body :: Nil, Nil, env, closureCheckedVars)
-      (
-        AbstractClosureExpression(params, captured, optimizedBody.toBlockStep),
-        NotCompletion,
-      )
-    case ReferenceExpression(Variable(name, _, _, _)) =>
-      (expr, env(name))
-    case ReturnIfAbruptExpression(expr, _) => (expr, NotCompletion)
-    case _                                 => (expr, NotCompletion)
-  }
-}
-
-// =============================================================================
-// Pre-Analysis: Completion Check Analyzer
-// =============================================================================
-
-object CompletionCheckAnalyzer {
-  def analyze(step: Step): Set[String] = {
-    val result = mutable.Set[String]()
-    new LangUnitWalker {
-      override def walk(step: Step): Unit = step match {
-        case InvokeShorthandStep(name, args) if name.contains("IfAbrupt") =>
-          args.head match {
-            case ReferenceExpression(Variable(v, _, _, _)) => result.add(v)
-            case _                                         =>
-          }
-        case ReturnStep(
-              ReturnIfAbruptExpression(
-                ReferenceExpression(Variable(name, _, _, _)),
-                true,
-              ),
-            ) =>
-          result.add(name)
-        case _ => super.walk(step)
-      }
-      override def walk(expr: Expression): Unit = expr match {
-        case InvokeAbstractOperationExpression(_, args, _) =>
-          for {
-            case ReferenceExpression(Variable(name, _, _, _)) <- args
-          } result.add(name)
-        case _ => super.walk(expr)
-      }
-      override def walk(cond: Condition): Unit = cond match {
-        case PredicateCondition(
-              ReferenceExpression(Variable(name, _, _, _)),
-              _,
-              op,
-            ) =>
-          op match {
-            case Abrupt | Throw | Normal | Return => result.add(name)
-            case _                                =>
-          }
-        case _ => super.walk(cond)
-      }
-    }.walk(step)
-    result.toSet
-  }
-}
-
-// =============================================================================
-// Entry Point and Utilities
-// =============================================================================
-
-class PolyfillInspector(algos: List[Algorithm]) {
-
-  private val simpleOptimizer =
-    new Optimizer(BasicOptimizeRule, BasicTransformRule, algos)
-
-  def transformHead(head: Head): Head = head match {
+  def transformHead: Head = head match {
     case ao @ AbstractOperationHead(_, _, params, _) =>
       val unwrapParams = params.flatMap {
         case p @ Param(name, Type(ty), paramKind) if ty.isCompletion =>
@@ -223,25 +77,296 @@ class PolyfillInspector(algos: List[Algorithm]) {
     case x => x
   }
 
-  def transformBody(head: Head, body: Step): Step = {
-    val completionParams = head match {
-      case AbstractOperationHead(_, _, params, _) =>
-        params.filter { _.ty.ty.isCompletion }
-      case x => Nil
-    }
-    val env = completionParams.foldLeft(TypeEnv())((it, item) =>
-      it + (item.name -> MayCompletion),
-    )
-    val checkedVars = CompletionCheckAnalyzer.analyze(body)
-    simpleOptimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
+  def transformBody: Step = {
+    val env = TypeEnv((for {
+      param <- head.originalParams
+      if param.ty.ty.isCompletion
+    } yield param.name -> MayCompletion).toMap)
+    transform(body, State(env)).steps.toBlockStep
   }
-}
 
-object PolyfillInspector {
+  def transform(step: Step, st: State): State = step match {
+    case InvokeShorthandStep(name, args) =>
+      val targetAlgo = algos.find(_.name == name)
+      if (targetAlgo.isEmpty) st :+ step
+      else {
+        val targetStep = targetAlgo.get.body
+        val targetParameters = targetAlgo.get.head.originalParams.map(_.name)
+        val inlinedStep = (targetParameters zip args).foldLeft(targetStep) {
+          (step, paramToArg) =>
+            ParameterInlineWalker(paramToArg._1, paramToArg._2).walk(step)
+        }
+        transform(inlinedStep, State(st.env))
+      }
+    case LetStep(
+          Variable(x, _, _, _),
+          XRefExpression(XRefExpressionOperator.Algo, id),
+        ) =>
+      val targetFunction = algos.find(_.name.endsWith(id))
+      targetFunction.fold(st :+ step) { func =>
+        val extractedHead = func.head.asInstanceOf[BuiltinHead]
+        val extractedBody = func.body
+        val optimizedClosureBody = transform(
+          extractedBody,
+          State(),
+        ).steps.toBlockStep
+        val params = extractedHead.params
+        val closureExpression = AbstractClosureExpression(
+          params.map(it => Variable(it.name, Some("xref_inlined"))),
+          Nil,
+          optimizedClosureBody,
+        )
+        st :+ LetStep(Variable(x), closureExpression)
+      }
+    case LetStep(Variable(x, _, _, _), expr) =>
+      val (newExpr, typeUpdate) = transform(expr, st.env)
+      wrap(st, x, newExpr, typeUpdate, isDecl = true) + (x -> typeUpdate)
+    case SetStep(Variable(x, _, _, _), expr) =>
+      val (newExpr, typeUpdate) = transform(expr, st.env)
+      wrap(st, x, newExpr, typeUpdate, isDecl = false) + (x -> typeUpdate)
+    case (check @ CompletionCheckPattern(checks)) =>
+      val ifStep = check.asInstanceOf[IfStep]
+      val (checkType, targetVar) = checks
+      val canOmit = ifStep.elseStep.isEmpty && st.env(targetVar) == MayNormal
+      if (canOmit) {
+        transform(ifStep.thenStep, st + (targetVar -> checkType))
+      } else {
+        val flagName = s"${targetVar}_flag"
+        val taggedCheck = annotateStep(
+          annotateStep(
+            annotateStep(check, "USE_FLAG", flagName),
+            "TYPE",
+            checkType.toTag,
+          ),
+          "TARGET_VAR",
+          targetVar,
+        )
+        transform(taggedCheck, st + (targetVar -> checkType))
+      }
+    case ReturnStep(
+          InvokeAbstractOperationExpression(
+            name,
+            ReferenceExpression(Variable(varName, _, _, _)) :: Nil,
+            _,
+          ),
+        ) if name == "ThrowCompletion" =>
+      st :+ TaggedStep(ThrowStep(varName), Map("reason" -> "abrupt"))
+    case ReturnStep(ReferenceExpression(Variable(name, _, _, _)))
+        if st.env(name) == MayAbrupt =>
+      st :+ TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))
+    // return ? x — ShorthandInliningRule only covers `? x` as a standalone step;
+    // `return ? x` is ReturnStep(ReturnIfAbruptExpression(...)) and needs explicit handling.
+    case ReturnStep(
+          ReturnIfAbruptExpression(
+            ReferenceExpression(Variable(name, _, _, _)),
+            true,
+          ),
+        ) =>
+      st :+ IfStep(
+        BinaryCondition(
+          ReferenceExpression(Variable(s"${name}_flag", None)),
+          Eq,
+          EnumLiteral("abrupt"),
+        ),
+        TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
+        Some(ReturnStep(ReferenceExpression(Variable(name, None)))),
+      )
+    case ret @ ReturnStep(ReferenceExpression(Variable(name, _, _, _)))
+        if st.env(name) != NotCompletion =>
+      st :+ IfStep(
+        BinaryCondition(
+          ReferenceExpression(Variable(s"${name}_flag", None)),
+          Eq,
+          EnumLiteral("abrupt"),
+        ),
+        TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
+        Some(ret),
+      )
+    case IfStep(cond, t, e, cfg) =>
+      val env = st.env
+      val State(thenEnv, thenSteps) = transform(t, State(env))
+      val (elseResult, elseEnv) = e match {
+        case Some(b) =>
+          val State(eEnv, steps) = transform(b, State(env))
+          if (steps.isEmpty) (None, eEnv)
+          else (Some(steps.toBlockStep), eEnv)
+        case None => (None, env)
+      }
+      val mergedEnv = thenEnv ++ elseEnv
+      st(mergedEnv) :+ IfStep(cond, thenSteps.toBlockStep, elseResult, cfg)
+    case TaggedStep(taggedInnerStep, tag) =>
+      taggedInnerStep match {
+        case IfStep(cond, thenStep, elseStep, cfg) =>
+          val targetVarOpt = tag.get("TARGET_VAR")
+          val checkTypeOpt = tag.get("TYPE").map(CompletionType.fromTag)
 
-  // ---------------------------------------------------------------------------
-  // Utility methods shared across rules
-  // ---------------------------------------------------------------------------
+          (targetVarOpt, checkTypeOpt) match {
+            case (Some(targetVar), Some(checkType)) =>
+              handleTaggedCompletion(
+                cond,
+                thenStep,
+                elseStep,
+                cfg,
+                tag,
+                targetVar,
+                checkType,
+                st,
+              )
+            case _ =>
+              handleTaggedGeneric(
+                cond,
+                thenStep,
+                elseStep,
+                cfg,
+                tag,
+                st,
+              )
+          }
+        case _ => transform(taggedInnerStep, st)
+      }
+    case BlockStep(StepBlock(stmts)) =>
+      val State(newEnv, newSteps) = stmts.foldLeft(State(st.env)) {
+        case (st, stmt) => transform(stmt.step, st)
+      }
+      if (newSteps.isEmpty) st(newEnv)
+      else st(newEnv) :+ newSteps.toBlockStep
+
+    case RepeatStep(c, b) =>
+      val newBody = transform(b, State(st.env)).steps.toBlockStep
+      st :+ RepeatStep(c, newBody)
+
+    case s @ ForEachStep(_, _, _, _, body) =>
+      val newBody = transform(body, State(st.env)).steps.toBlockStep
+      st :+ s.copy(body = newBody)
+
+    case s @ ForEachIntegerStep(_, _, _, _, _, _, body) =>
+      val newBody = transform(body, State(st.env)).steps.toBlockStep
+      st :+ s.copy(body = newBody)
+
+    case s @ ForEachOwnPropertyKeyStep(_, _, _, _, _, body) =>
+      val newBody = transform(body, State(st.env)).steps.toBlockStep
+      st :+ s.copy(body = newBody)
+
+    case s @ ForEachParseNodeStep(_, _, body) =>
+      val newBody = transform(body, State(st.env)).steps.toBlockStep
+      st :+ s.copy(body = newBody)
+
+    case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
+      val newTry = transform(tryBlock, State(st.env)).steps.toBlockStep
+      val newCatch =
+        catchBlock.map(b => transform(b, State(st.env)).steps.toBlockStep)
+      st :+ WrappedTryCatchStep(newTry, catchVar, newCatch)
+    case _ => st :+ step
+  }
+
+  private class ParameterInlineWalker(
+    paramName: String,
+    replaceWith: Expression,
+  ) extends LangWalker {
+    override def walk(expr: Expression): Expression = expr match {
+      case ReferenceExpression(ref) =>
+        ref match {
+          case Variable(name, None, _, _) =>
+            if (name == paramName) replaceWith else expr
+          case x => ReferenceExpression(walk(x))
+        }
+      case _ => super.walk(expr)
+    }
+
+    override def walk(ref: Reference): Reference = ref match {
+      case Variable(name, _, _, _) =>
+        if (name == paramName) {
+          replaceWith.asInstanceOf[ReferenceExpression].ref
+        } else ref
+      case x => super.walk(x)
+    }
+  }
+
+  private def handleTaggedCompletion(
+    cond: Condition,
+    thenStep: Step,
+    elseStep: Option[Step],
+    cfg: IfStep.ElseConfig,
+    tag: Map[String, String],
+    targetVar: String,
+    checkType: CompletionType,
+    st: State,
+  ): State = {
+    val env = st.env
+    val thenType =
+      if (checkType == MayAbrupt) MayAbrupt
+      else MayNormal
+    val elseType =
+      if (checkType == MayAbrupt) MayNormal
+      else MayAbrupt
+
+    val thenEnv = env + (targetVar -> thenType)
+    val elseEnv = env + (targetVar -> elseType)
+
+    val State(thenOptEnv, thenSteps) = transform(thenStep, State(thenEnv))
+    val newThen = thenSteps.toBlockStep
+    val (newElse, elseOptEnv) = elseStep match {
+      case Some(e) =>
+        val State(eEnv, steps) = transform(e, State(elseEnv))
+        (Some(steps.toBlockStep), eEnv)
+      case None => (None, elseEnv)
+    }
+    val mergedEnv = (isTerminal(thenStep), elseStep.map(isTerminal)) match {
+      case (true, Some(false)) => elseOptEnv
+      case (false, Some(true)) => thenOptEnv
+      case _                   => thenOptEnv ++ elseOptEnv
+    }
+
+    val flagVar = tag.getOrElse("USE_FLAG", s"${targetVar}_flag")
+    rebaseCondition(
+      cond,
+      Map(
+        targetVar -> BinaryCondition(
+          ReferenceExpression(Variable(flagVar, None)),
+          Eq,
+          if (checkType == MayAbrupt) EnumLiteral("abrupt")
+          else EnumLiteral("normal"),
+        ),
+      ),
+    ) match {
+      case Some(newCond) =>
+        st(mergedEnv) :+ TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag)
+      // TODO Can we ignore ElseStep? If not, how can we handle it?
+      case None =>
+        st(mergedEnv) :+ newThen
+    }
+  }
+
+  private def handleTaggedGeneric(
+    cond: Condition,
+    thenStep: Step,
+    elseStep: Option[Step],
+    cfg: IfStep.ElseConfig,
+    tag: Map[String, String],
+    st: State,
+  ): State = {
+    val env = st.env
+    val State(thenOptEnv, thenSteps) = transform(thenStep, State(env))
+    val newThen = thenSteps.toBlockStep
+    val (newElse, elseOptEnv) = elseStep match {
+      case Some(e) =>
+        val State(eEnv, steps) = transform(e, State(env))
+        (Some(steps.toBlockStep), eEnv)
+      case None => (None, env)
+    }
+    val mergedEnv = (isTerminal(thenStep), elseStep.map(isTerminal)) match {
+      case (true, Some(false) | None) => elseOptEnv
+      case (false, Some(true))        => thenOptEnv
+      case _                          => thenOptEnv ++ elseOptEnv
+    }
+    rebaseCondition(cond, Map()) match {
+      case Some(newCond) =>
+        st(mergedEnv) :+ TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag)
+      // TODO Can we ignore ElseStep? If not, how can we handle it?
+      case None =>
+        st(mergedEnv) :+ newThen
+    }
+  }
 
   def isTerminal(stmt: Step): Boolean = stmt match {
     case ReturnStep(_) => true
@@ -297,18 +422,17 @@ object PolyfillInspector {
   }
 
   def wrap(
-    ctx: Context,
+    st: State,
     x: String,
     expr: Expression,
     ctype: CompletionType,
-    isDecl: Boolean = true,
-  ): List[Step] = {
+    isDecl: Boolean,
+  ): State = {
     val flagName = s"${x}_flag"
     val catchVar = s"_${x}_err"
-    val step = ctx.unwrapper.walk(
+    val step =
       if (isDecl) LetStep(Variable(x), expr)
-      else SetStep(Variable(x), expr),
-    )
+      else SetStep(Variable(x), expr)
     def aux(flag: String): Step = LetStep(Variable(flagName), EnumLiteral(flag))
     ctype match {
       case MayCompletion =>
@@ -317,447 +441,43 @@ object PolyfillInspector {
             Variable(x),
             ReferenceExpression(Variable(catchVar, None)),
           ),
-          getHoistedFlagSetting(flagName, "abrupt", ctx.env),
+          getHoistedFlagSetting(flagName, "abrupt", st.env),
         )
-        WrappedTryCatchStep(
+        st :+ WrappedTryCatchStep(
           List(step, aux("normal")).toBlockStep,
           Variable(catchVar),
           Some(catchStmts.toBlockStep),
-        ) :: ctx.history
-      case MayNormal     => aux("normal") :: step :: ctx.history
-      case MayAbrupt     => aux("abrupt") :: step :: ctx.history
-      case NotCompletion => step :: ctx.history
+        )
+      case MayNormal     => st :+ step :+ aux("normal")
+      case MayAbrupt     => st :+ step :+ aux("abrupt")
+      case NotCompletion => st :+ step
     }
+  }
+
+  def transform(
+    expr: Expression,
+    env: TypeEnv,
+  ): (Expression, CompletionType) = expr match {
+    case InvokeAbstractOperationExpression("Completion", args, _) =>
+      (args.head, MayCompletion)
+    case InvokeAbstractOperationExpression("NormalCompletion", args, _) =>
+      (args.head, MayNormal)
+    case InvokeAbstractOperationExpression("ThrowCompletion", args, _) =>
+      (args.head, MayAbrupt)
+    case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
+      (args.head, MayAbrupt)
+    case AbstractClosureExpression(params, captured, body) =>
+      val optimizedBody = transform(body, State(env)).steps.toBlockStep
+      (
+        AbstractClosureExpression(params, captured, optimizedBody),
+        NotCompletion,
+      )
+    case ReferenceExpression(Variable(name, _, _, _)) =>
+      (expr, env(name))
+    case ReturnIfAbruptExpression(expr, _) => (expr, NotCompletion)
+    case _                                 => (expr, NotCompletion)
   }
 }
-
-// =============================================================================
-// TransformRules — step-level transformations (no history access)
-// =============================================================================
-
-object BasicTransformRule extends TransformRule {
-  def apply(
-    step: Step,
-    env: TypeEnv,
-    optimizer: Optimizer,
-    checkedVars: Set[String],
-  ) = step match {
-    case ReturnStep(
-          InvokeAbstractOperationExpression(
-            name,
-            ReferenceExpression(Variable(varName, _, _, _)) :: Nil,
-            _,
-          ),
-        ) if name == "ThrowCompletion" =>
-      Some(
-        (Some(TaggedStep(ThrowStep(varName), Map("reason" -> "abrupt"))), env),
-      )
-    case ReturnStep(ReferenceExpression(Variable(name, _, _, _)))
-        if env(name) == MayAbrupt =>
-      Some(
-        (Some(TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))), env),
-      )
-    // return ? x — ShorthandInliningRule only covers `? x` as a standalone step;
-    // `return ? x` is ReturnStep(ReturnIfAbruptExpression(...)) and needs explicit handling.
-    case ReturnStep(
-          ReturnIfAbruptExpression(
-            ReferenceExpression(Variable(name, _, _, _)),
-            true,
-          ),
-        ) =>
-      Some(
-        Some(
-          IfStep(
-            BinaryCondition(
-              ReferenceExpression(Variable(s"${name}_flag", None)),
-              Eq,
-              EnumLiteral("abrupt"),
-            ),
-            TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
-            Some(ReturnStep(ReferenceExpression(Variable(name, None)))),
-          ),
-        ),
-        env,
-      )
-    case ret @ ReturnStep(ReferenceExpression(Variable(name, _, _, _)))
-        if env(name) != NotCompletion =>
-      Some(
-        Some(
-          IfStep(
-            BinaryCondition(
-              ReferenceExpression(Variable(s"${name}_flag", None)),
-              Eq,
-              EnumLiteral("abrupt"),
-            ),
-            TaggedStep(ThrowStep(name), Map("reason" -> "abrupt")),
-            Some(ret),
-          ),
-        ),
-        env,
-      )
-    case IfStep(cond, t, e, cfg) =>
-      val (thenSteps, thenEnv) =
-        optimizer.optimize(t :: Nil, Nil, env, checkedVars)
-      val (elseResult, elseEnv) = e match {
-        case Some(b) =>
-          val (steps, eEnv) =
-            optimizer.optimize(b :: Nil, Nil, env, checkedVars)
-          if (steps.isEmpty) (None, eEnv)
-          else (Some(steps.toBlockStep), eEnv)
-        case None => (None, env)
-      }
-      val mergedEnv = thenEnv ++ elseEnv
-      Some(
-        (Some(IfStep(cond, thenSteps.toBlockStep, elseResult, cfg)), mergedEnv),
-      )
-    case TaggedStep(taggedInnerStep, tag) =>
-      taggedInnerStep match {
-        case IfStep(cond, thenStep, elseStep, cfg) =>
-          val targetVarOpt = tag.get("TARGET_VAR")
-          val checkTypeOpt = tag.get("TYPE").map(CompletionType.fromTag)
-
-          (targetVarOpt, checkTypeOpt) match {
-            case (Some(targetVar), Some(checkType)) =>
-              Some(
-                handleTaggedCompletion(
-                  cond,
-                  thenStep,
-                  elseStep,
-                  cfg,
-                  tag,
-                  targetVar,
-                  checkType,
-                  env,
-                  optimizer,
-                  checkedVars,
-                ),
-              )
-            case _ =>
-              Some(
-                handleTaggedGeneric(
-                  cond,
-                  thenStep,
-                  elseStep,
-                  cfg,
-                  tag,
-                  env,
-                  optimizer,
-                  checkedVars,
-                ),
-              )
-          }
-        case _ =>
-          // Unwrap tagged step and recurse
-          Some(optimizer.transformStep(taggedInnerStep, env, checkedVars))
-      }
-    case BlockStep(StepBlock(stmts)) =>
-      val (newSteps, newEnv) =
-        optimizer.optimize(stmts.map(_.step), Nil, env, checkedVars)
-      if (newSteps.isEmpty) Some((None, newEnv))
-      else Some((Some(newSteps.toBlockStep), newEnv))
-
-    case RepeatStep(c, b) =>
-      val newBody =
-        optimizer.optimize(b :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(RepeatStep(c, newBody)), env))
-
-    case s @ ForEachStep(_, _, _, _, body) =>
-      val newBody =
-        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(s.copy(body = newBody)), env))
-
-    case s @ ForEachIntegerStep(_, _, _, _, _, _, body) =>
-      val newBody =
-        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(s.copy(body = newBody)), env))
-
-    case s @ ForEachOwnPropertyKeyStep(_, _, _, _, _, body) =>
-      val newBody =
-        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(s.copy(body = newBody)), env))
-
-    case s @ ForEachParseNodeStep(_, _, body) =>
-      val newBody =
-        optimizer.optimize(body :: Nil, Nil, env, checkedVars)._1.toBlockStep
-      Some((Some(s.copy(body = newBody)), env))
-
-    case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
-      val newTry =
-        optimizer
-          .optimize(tryBlock :: Nil, Nil, env, checkedVars)
-          ._1
-          .toBlockStep
-      val newCatch = catchBlock.map(b =>
-        optimizer.optimize(b :: Nil, Nil, env, checkedVars)._1.toBlockStep,
-      )
-      Some((Some(WrappedTryCatchStep(newTry, catchVar, newCatch)), env))
-
-    case _ => None
-  }
-
-  private def handleTaggedCompletion(
-    cond: Condition,
-    thenStep: Step,
-    elseStep: Option[Step],
-    cfg: IfStep.ElseConfig,
-    tag: Map[String, String],
-    targetVar: String,
-    checkType: CompletionType,
-    env: TypeEnv,
-    optimizer: Optimizer,
-    checkedVars: Set[String],
-  ): (Option[Step], TypeEnv) = {
-    val thenType =
-      if (checkType == MayAbrupt) MayAbrupt
-      else MayNormal
-    val elseType =
-      if (checkType == MayAbrupt) MayNormal
-      else MayAbrupt
-
-    val thenEnv = env + (targetVar -> thenType)
-    val elseEnv = env + (targetVar -> elseType)
-
-    val (thenSteps, thenOptEnv) =
-      optimizer.optimize(thenStep :: Nil, Nil, thenEnv, checkedVars)
-    val newThen = thenSteps.toBlockStep
-    val (newElse, elseOptEnv) = elseStep match {
-      case Some(e) =>
-        val (steps, eEnv) =
-          optimizer.optimize(e :: Nil, Nil, elseEnv, checkedVars)
-        (Some(steps.toBlockStep), eEnv)
-      case None => (None, elseEnv)
-    }
-    val mergedEnv = (isTerminal(thenStep), elseStep.map(isTerminal)) match {
-      case (true, Some(false)) => elseOptEnv
-      case (false, Some(true)) => thenOptEnv
-      case _                   => thenOptEnv ++ elseOptEnv
-    }
-
-    val flagVar = tag.getOrElse("USE_FLAG", s"${targetVar}_flag")
-    rebaseCondition(
-      cond,
-      Map(
-        targetVar -> BinaryCondition(
-          ReferenceExpression(Variable(flagVar, None)),
-          Eq,
-          if (checkType == MayAbrupt) EnumLiteral("abrupt")
-          else EnumLiteral("normal"),
-        ),
-      ),
-    ) match {
-      case Some(newCond) =>
-        (
-          Some(TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag)),
-          mergedEnv,
-        )
-      // TODO Can we ignore ElseStep? If not, how can we handle it?
-      case None =>
-        (Some(newThen), mergedEnv)
-    }
-  }
-
-  private def handleTaggedGeneric(
-    cond: Condition,
-    thenStep: Step,
-    elseStep: Option[Step],
-    cfg: IfStep.ElseConfig,
-    tag: Map[String, String],
-    env: TypeEnv,
-    optimizer: Optimizer,
-    checkedVars: Set[String],
-  ): (Option[Step], TypeEnv) = {
-    val (thenSteps, thenOptEnv) =
-      optimizer.optimize(thenStep :: Nil, Nil, env, checkedVars)
-    val newThen = thenSteps.toBlockStep
-    val (newElse, elseOptEnv) = elseStep match {
-      case Some(e) =>
-        val (steps, eEnv) = optimizer.optimize(e :: Nil, Nil, env, checkedVars)
-        (Some(steps.toBlockStep), eEnv)
-      case None => (None, env)
-    }
-    val mergedEnv = (isTerminal(thenStep), elseStep.map(isTerminal)) match {
-      case (true, Some(false) | None) => elseOptEnv
-      case (false, Some(true))        => thenOptEnv
-      case _                          => thenOptEnv ++ elseOptEnv
-    }
-    rebaseCondition(cond, Map()) match {
-      case Some(newCond) =>
-        (
-          Some(TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag)),
-          mergedEnv,
-        )
-      // TODO Can we ignore ElseStep? If not, how can we handle it?
-      case None =>
-        (Some(newThen), mergedEnv)
-    }
-  }
-}
-
-// =============================================================================
-// OptimizeRules — stream-level rules (with history access)
-// =============================================================================
-
-object BasicOptimizeRule extends OptimizeRule {
-
-  def apply(ctx: Context): Option[Context] = ctx.input match {
-    // XRefExpressionOperator.Algo = Let x be the algorithm steps defined in...
-    case LetStep(
-          Variable(x, _, _, _),
-          XRefExpression(XRefExpressionOperator.Algo, id),
-        ) :: tail =>
-      val targetFunction = ctx.optimizer.algos.find(_.name.endsWith(id))
-      targetFunction.map { func =>
-        val extractedHead = func.head.asInstanceOf[BuiltinHead]
-        val extractedBody = func.body
-        val checkedVars = CompletionCheckAnalyzer.analyze(extractedBody)
-        val optimizedClosureBody = ctx.optimizer
-          .optimize(List(extractedBody), Nil, TypeEnv(), checkedVars)
-          ._1
-          .toBlockStep
-        val params = extractedHead.params
-        val closureExpression = AbstractClosureExpression(
-          params.map(it => Variable(it.name, Some("xref_inlined"))),
-          Nil,
-          optimizedClosureBody,
-        )
-        ctx.copy(tail, LetStep(Variable(x), closureExpression) :: ctx.history)
-      }
-    case LetStep(Variable(x, _, _, _), expr) :: tail =>
-      val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
-      val newHistory = wrap(ctx, x, newExpr, typeUpdate)
-      val newEnv = ctx.env + (x -> typeUpdate)
-      Some(ctx.copy(tail, newHistory, newEnv))
-    case SetStep(Variable(x, _, _, _), expr) :: tail =>
-      val (newExpr, typeUpdate) = ctx.optimizer.optimizeExpr(expr, ctx.env)
-      val newHistory = wrap(ctx, x, newExpr, typeUpdate, isDecl = false)
-      val newEnv = ctx.env + (x -> typeUpdate)
-      Some(ctx.copy(tail, newHistory, newEnv))
-    case (check @ CompletionCheckPattern(checks)) :: tail =>
-      val ifStep = check.asInstanceOf[IfStep]
-      val (checkType, targetVar) = checks
-      val canOmit = ifStep.elseStep.isEmpty &&
-        ctx.env(targetVar) == MayNormal
-
-      val result = if (canOmit) {
-        ctx.optimizer.transformStep(
-          ifStep.thenStep,
-          ctx.env + (targetVar -> checkType),
-          ctx.checkedVars,
-        ) match {
-          case (Some(optimizedThen), newEnv) =>
-            ctx.copy(ctx.input.tail, optimizedThen :: ctx.history, newEnv)
-          case (None, newEnv) => ctx.copy(ctx.input.tail, ctx.history, newEnv)
-        }
-      } else {
-        val flagName = s"${targetVar}_flag"
-        val taggedCheck = annotateStep(
-          annotateStep(
-            annotateStep(check, "USE_FLAG", flagName),
-            "TYPE",
-            checkType.toTag,
-          ),
-          "TARGET_VAR",
-          targetVar,
-        )
-        ctx.optimizer.transformStep(
-          taggedCheck,
-          ctx.env + (targetVar -> checkType),
-          ctx.checkedVars,
-        ) match {
-          case (Some(optimizedCheck), continuationEnv) =>
-            ctx.copy(
-              ctx.input.tail,
-              optimizedCheck :: ctx.history,
-              continuationEnv,
-            )
-          case (None, newEnv) => ctx.copy(ctx.input.tail, ctx.history, newEnv)
-        }
-      }
-      Some(result)
-    case _ => None
-  }
-
-  private class ParameterInlineWalker(
-    paramName: String,
-    replaceWith: Expression,
-  ) extends LangWalker {
-    override def walk(expr: Expression): Expression = expr match {
-      case ReferenceExpression(ref) =>
-        ref match {
-          case Variable(name, None, _, _) =>
-            if (name == paramName) replaceWith else expr
-          case x => ReferenceExpression(walk(x))
-        }
-      case _ => super.walk(expr)
-    }
-
-    override def walk(ref: Reference): Reference = ref match {
-      case Variable(name, _, _, _) =>
-        if (name == paramName) {
-          replaceWith.asInstanceOf[ReferenceExpression].ref
-        } else ref
-      case x => super.walk(x)
-    }
-  }
-
-  private def handleParameter(
-    ctx: Context,
-    ifStep: IfStep,
-    checkType: CompletionType,
-    targetVar: String,
-  ): Context = {
-    val checkFlagLiteral = EnumLiteral(checkType.toTag)
-    val newCond = rebaseCondition(
-      ifStep.cond,
-      Map(
-        targetVar -> BinaryCondition(
-          ReferenceExpression(Variable(s"${targetVar}_flag", None)),
-          Eq,
-          checkFlagLiteral,
-        ),
-      ),
-    )
-      .getOrElse(raise("Checking completion from parameter cannot be omitted"))
-
-    val isAbruptTerminal = isTerminal(ifStep.thenStep)
-    val newThenStep = ctx.optimizer
-      .optimize(
-        ifStep.thenStep :: Nil,
-        Nil,
-        ctx.env + (targetVar -> checkType),
-        ctx.checkedVars,
-      )
-      ._1
-      .toBlockStep
-
-    val newElseStep = ifStep.elseStep.map(it =>
-      ctx.optimizer
-        .optimize(
-          it :: Nil,
-          Nil,
-          ctx.env + (targetVar -> checkType),
-          ctx.checkedVars,
-        )
-        ._1
-        .toBlockStep,
-    )
-
-    val newIfStep = ifStep.copy(
-      cond = newCond,
-      thenStep = newThenStep,
-      elseStep = newElseStep,
-    )
-    val newEnv =
-      if (checkType == MayAbrupt && isAbruptTerminal)
-        ctx.env + (targetVar -> MayCompletion)
-      else ctx.env
-    ctx.copy(ctx.input.tail, newIfStep :: ctx.history, newEnv)
-  }
-}
-
-// =============================================================================
-// Pattern Matching Helpers
-// =============================================================================
 
 private object CompletionCheckPattern {
   def unapply(step: Step): Option[(CompletionType, String)] = step match {
@@ -788,10 +508,6 @@ private object CompletionCheckPattern {
       )
   }
 }
-
-// =============================================================================
-// Value Access Unwrapper
-// =============================================================================
 
 private class ValueAccessUnwrapper(env: TypeEnv) extends LangWalker {
 
@@ -863,5 +579,16 @@ private class ValueAccessUnwrapper(env: TypeEnv) extends LangWalker {
       }
       aoExpr.copy(args = newArgs)
     case _ => super.walk(expr)
+  }
+}
+
+extension (iter: Iterable[Step]) {
+  def toBlockStep: Step = iter.toList match {
+    case (b: BlockStep) :: Nil => b
+    case list =>
+      BlockStep(StepBlock(list.flatMap {
+        case BlockStep(StepBlock(steps)) => steps
+        case x                           => List(SubStep(None, x))
+      }))
   }
 }

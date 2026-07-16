@@ -568,24 +568,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       op match {
         case Finite =>
           (if (neg) s"!" else "") + s"isFinite(${compile(pb, expr)})"
-        case Abrupt      => ???
-        case Throw       => ???
-        case Return      => ???
-        case Break       => ???
-        case Continue    => ???
-        case NeverAbrupt => ???
-        case Normal      => ???
-        case Duplicated  => ???
         case Present => (if (neg) s"!" else "") + compile(pb, expr) + IS_PRESENT
-        case Empty   => ???
-        case StrictMode       => ???
-        case ArrayIndex       => ???
-        case FalseToken       => ???
-        case TrueToken        => ???
-        case DataProperty     => ???
-        case AccessorProperty => ???
-        case FullyPopulated   => ???
-        case Nonterminal      => ???
+        case x       => s"TODO: $x"
       }
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
