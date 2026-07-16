@@ -52,7 +52,9 @@ case class Config(
   env: TypeEnv = TypeEnv(),
   steps: Vector[Step] = Vector.empty,
 ) {
+  def clear: Config = copy(steps = Vector.empty)
   def apply(env: TypeEnv): Config = copy(env = env)
+  def apply(name: String): CompletionType = env(name)
   def +(pair: (String, CompletionType)): Config = copy(env = env + pair)
   def :+(step: Step): Config = copy(steps = steps :+ unwrap(step))
   def ++(steps: Vector[Step]): Config = copy(steps = this.steps ++ steps)
@@ -85,10 +87,10 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     transform(body, Config(env)).steps.toBlockStep
   }
 
-  def transform(step: Step, st: Config): Config = step match {
+  def transform(step: Step, config: Config): Config = step match {
     case InvokeShorthandStep(name, args) =>
       val targetAlgo = algos.find(_.name == name)
-      if (targetAlgo.isEmpty) st :+ step
+      if (targetAlgo.isEmpty) config :+ step
       else {
         val targetStep = targetAlgo.get.body
         val targetParameters = targetAlgo.get.head.originalParams.map(_.name)
@@ -96,14 +98,14 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
           (step, paramToArg) =>
             ParameterInlineWalker(paramToArg._1, paramToArg._2).walk(step)
         }
-        transform(inlinedStep, Config(st.env))
+        transform(inlinedStep, config.clear)
       }
     case LetStep(
           Variable(x, _, _, _),
           XRefExpression(XRefExpressionOperator.Algo, id),
         ) =>
       val targetFunction = algos.find(_.name.endsWith(id))
-      targetFunction.fold(st :+ step) { func =>
+      targetFunction.fold(config :+ step) { func =>
         val extractedHead = func.head.asInstanceOf[BuiltinHead]
         val extractedBody = func.body
         val optimizedClosureBody = transform(
@@ -116,20 +118,21 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
           Nil,
           optimizedClosureBody,
         )
-        st :+ LetStep(Variable(x), closureExpression)
+        config :+ LetStep(Variable(x), closureExpression)
       }
     case LetStep(Variable(x, _, _, _), expr) =>
-      val (newExpr, typeUpdate) = transform(expr, st.env)
-      wrap(st, x, newExpr, typeUpdate, isDecl = true) + (x -> typeUpdate)
+      val (newExpr, typeUpdate) = transform(expr, config)
+      wrap(config, x, newExpr, typeUpdate, isDecl = true) + (x -> typeUpdate)
     case SetStep(Variable(x, _, _, _), expr) =>
-      val (newExpr, typeUpdate) = transform(expr, st.env)
-      wrap(st, x, newExpr, typeUpdate, isDecl = false) + (x -> typeUpdate)
+      val (newExpr, typeUpdate) = transform(expr, config)
+      wrap(config, x, newExpr, typeUpdate, isDecl = false) + (x -> typeUpdate)
     case (check @ CompletionCheckPattern(checks)) =>
       val ifStep = check.asInstanceOf[IfStep]
       val (checkType, targetVar) = checks
-      val canOmit = ifStep.elseStep.isEmpty && st.env(targetVar) == MayNormal
+      val canOmit =
+        ifStep.elseStep.isEmpty && config(targetVar) == MayNormal
       if (canOmit) {
-        transform(ifStep.thenStep, st + (targetVar -> checkType))
+        transform(ifStep.thenStep, config + (targetVar -> checkType))
       } else {
         val flagName = s"${targetVar}_flag"
         val taggedCheck = annotateStep(
@@ -141,7 +144,7 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
           "TARGET_VAR",
           targetVar,
         )
-        transform(taggedCheck, st + (targetVar -> checkType))
+        transform(taggedCheck, config + (targetVar -> checkType))
       }
     case ReturnStep(
           InvokeAbstractOperationExpression(
@@ -150,10 +153,10 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
             _,
           ),
         ) if name == "ThrowCompletion" =>
-      st :+ TaggedStep(ThrowStep(varName), Map("reason" -> "abrupt"))
+      config :+ TaggedStep(ThrowStep(varName), Map("reason" -> "abrupt"))
     case ReturnStep(ReferenceExpression(Variable(name, _, _, _)))
-        if st.env(name) == MayAbrupt =>
-      st :+ TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))
+        if config(name) == MayAbrupt =>
+      config :+ TaggedStep(ThrowStep(name), Map("reason" -> "abrupt"))
     // return ? x — ShorthandInliningRule only covers `? x` as a standalone step;
     // `return ? x` is ReturnStep(ReturnIfAbruptExpression(...)) and needs explicit handling.
     case ReturnStep(
@@ -162,7 +165,7 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
             true,
           ),
         ) =>
-      st :+ IfStep(
+      config :+ IfStep(
         BinaryCondition(
           ReferenceExpression(Variable(s"${name}_flag", None)),
           Eq,
@@ -172,8 +175,8 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
         Some(ReturnStep(ReferenceExpression(Variable(name, None)))),
       )
     case ret @ ReturnStep(ReferenceExpression(Variable(name, _, _, _)))
-        if st.env(name) != NotCompletion =>
-      st :+ IfStep(
+        if config(name) != NotCompletion =>
+      config :+ IfStep(
         BinaryCondition(
           ReferenceExpression(Variable(s"${name}_flag", None)),
           Eq,
@@ -183,17 +186,16 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
         Some(ret),
       )
     case IfStep(cond, t, e, cfg) =>
-      val env = st.env
-      val Config(thenEnv, thenSteps) = transform(t, Config(env))
+      val Config(thenEnv, thenSteps) = transform(t, config.clear)
       val (elseResult, elseEnv) = e match {
         case Some(b) =>
-          val Config(eEnv, steps) = transform(b, Config(env))
+          val Config(eEnv, steps) = transform(b, config.clear)
           if (steps.isEmpty) (None, eEnv)
           else (Some(steps.toBlockStep), eEnv)
-        case None => (None, env)
+        case None => (None, config.env)
       }
       val mergedEnv = thenEnv ++ elseEnv
-      st(mergedEnv) :+ IfStep(cond, thenSteps.toBlockStep, elseResult, cfg)
+      config(mergedEnv) :+ IfStep(cond, thenSteps.toBlockStep, elseResult, cfg)
     case TaggedStep(taggedInnerStep, tag) =>
       taggedInnerStep match {
         case IfStep(cond, thenStep, elseStep, cfg) =>
@@ -210,7 +212,7 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
                 tag,
                 targetVar,
                 checkType,
-                st,
+                config,
               )
             case _ =>
               handleTaggedGeneric(
@@ -219,44 +221,44 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
                 elseStep,
                 cfg,
                 tag,
-                st,
+                config,
               )
           }
-        case _ => transform(taggedInnerStep, st)
+        case _ => transform(taggedInnerStep, config)
       }
     case BlockStep(StepBlock(stmts)) =>
-      val Config(newEnv, newSteps) = stmts.foldLeft(Config(st.env)) {
-        case (st, stmt) => transform(stmt.step, st)
+      val Config(newEnv, newSteps) = stmts.foldLeft(config.clear) {
+        case (config, stmt) => transform(stmt.step, config)
       }
-      if (newSteps.isEmpty) st(newEnv)
-      else st(newEnv) :+ newSteps.toBlockStep
+      if (newSteps.isEmpty) config(newEnv)
+      else config(newEnv) :+ newSteps.toBlockStep
 
     case RepeatStep(c, b) =>
-      val newBody = transform(b, Config(st.env)).steps.toBlockStep
-      st :+ RepeatStep(c, newBody)
+      val newBody = transform(b, config.clear).steps.toBlockStep
+      config :+ RepeatStep(c, newBody)
 
     case s @ ForEachStep(_, _, _, _, body) =>
-      val newBody = transform(body, Config(st.env)).steps.toBlockStep
-      st :+ s.copy(body = newBody)
+      val newBody = transform(body, config.clear).steps.toBlockStep
+      config :+ s.copy(body = newBody)
 
     case s @ ForEachIntegerStep(_, _, _, _, _, _, body) =>
-      val newBody = transform(body, Config(st.env)).steps.toBlockStep
-      st :+ s.copy(body = newBody)
+      val newBody = transform(body, config.clear).steps.toBlockStep
+      config :+ s.copy(body = newBody)
 
     case s @ ForEachOwnPropertyKeyStep(_, _, _, _, _, body) =>
-      val newBody = transform(body, Config(st.env)).steps.toBlockStep
-      st :+ s.copy(body = newBody)
+      val newBody = transform(body, config.clear).steps.toBlockStep
+      config :+ s.copy(body = newBody)
 
     case s @ ForEachParseNodeStep(_, _, body) =>
-      val newBody = transform(body, Config(st.env)).steps.toBlockStep
-      st :+ s.copy(body = newBody)
+      val newBody = transform(body, config.clear).steps.toBlockStep
+      config :+ s.copy(body = newBody)
 
     case WrappedTryCatchStep(tryBlock, catchVar, catchBlock) =>
-      val newTry = transform(tryBlock, Config(st.env)).steps.toBlockStep
+      val newTry = transform(tryBlock, config.clear).steps.toBlockStep
       val newCatch =
-        catchBlock.map(b => transform(b, Config(st.env)).steps.toBlockStep)
-      st :+ WrappedTryCatchStep(newTry, catchVar, newCatch)
-    case _ => st :+ step
+        catchBlock.map(b => transform(b, config.clear).steps.toBlockStep)
+      config :+ WrappedTryCatchStep(newTry, catchVar, newCatch)
+    case _ => config :+ step
   }
 
   private class ParameterInlineWalker(
@@ -290,9 +292,9 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     tag: Map[String, String],
     targetVar: String,
     checkType: CompletionType,
-    st: Config,
+    config: Config,
   ): Config = {
-    val env = st.env
+    val env = config.env
     val thenType =
       if (checkType == MayAbrupt) MayAbrupt
       else MayNormal
@@ -330,10 +332,13 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
       ),
     ) match {
       case Some(newCond) =>
-        st(mergedEnv) :+ TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag)
+        config(mergedEnv) :+ TaggedStep(
+          IfStep(newCond, newThen, newElse, cfg),
+          tag,
+        )
       // TODO Can we ignore ElseStep? If not, how can we handle it?
       case None =>
-        st(mergedEnv) :+ newThen
+        config(mergedEnv) :+ newThen
     }
   }
 
@@ -343,9 +348,9 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     elseStep: Option[Step],
     cfg: IfStep.ElseConfig,
     tag: Map[String, String],
-    st: Config,
+    config: Config,
   ): Config = {
-    val env = st.env
+    val env = config.env
     val Config(thenOptEnv, thenSteps) = transform(thenStep, Config(env))
     val newThen = thenSteps.toBlockStep
     val (newElse, elseOptEnv) = elseStep match {
@@ -361,10 +366,13 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     }
     rebaseCondition(cond, Map()) match {
       case Some(newCond) =>
-        st(mergedEnv) :+ TaggedStep(IfStep(newCond, newThen, newElse, cfg), tag)
+        config(mergedEnv) :+ TaggedStep(
+          IfStep(newCond, newThen, newElse, cfg),
+          tag,
+        )
       // TODO Can we ignore ElseStep? If not, how can we handle it?
       case None =>
-        st(mergedEnv) :+ newThen
+        config(mergedEnv) :+ newThen
     }
   }
 
@@ -422,7 +430,7 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
   }
 
   def wrap(
-    st: Config,
+    config: Config,
     x: String,
     expr: Expression,
     ctype: CompletionType,
@@ -441,22 +449,22 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
             Variable(x),
             ReferenceExpression(Variable(catchVar, None)),
           ),
-          getHoistedFlagSetting(flagName, "abrupt", st.env),
+          getHoistedFlagSetting(flagName, "abrupt", config.env),
         )
-        st :+ WrappedTryCatchStep(
+        config :+ WrappedTryCatchStep(
           List(step, aux("normal")).toBlockStep,
           Variable(catchVar),
           Some(catchStmts.toBlockStep),
         )
-      case MayNormal     => st :+ step :+ aux("normal")
-      case MayAbrupt     => st :+ step :+ aux("abrupt")
-      case NotCompletion => st :+ step
+      case MayNormal     => config :+ step :+ aux("normal")
+      case MayAbrupt     => config :+ step :+ aux("abrupt")
+      case NotCompletion => config :+ step
     }
   }
 
   def transform(
     expr: Expression,
-    env: TypeEnv,
+    config: Config,
   ): (Expression, CompletionType) = expr match {
     case InvokeAbstractOperationExpression("Completion", args, _) =>
       (args.head, MayCompletion)
@@ -467,15 +475,14 @@ class PolyfillInspector(algo: Algorithm, algos: List[Algorithm]) {
     case InvokeAbstractOperationExpression("AbruptCompletion", args, _) =>
       (args.head, MayAbrupt)
     case AbstractClosureExpression(params, captured, body) =>
-      val optimizedBody = transform(body, Config(env)).steps.toBlockStep
+      val optimizedBody = transform(body, config.clear).steps.toBlockStep
       (
         AbstractClosureExpression(params, captured, optimizedBody),
         NotCompletion,
       )
-    case ReferenceExpression(Variable(name, _, _, _)) =>
-      (expr, env(name))
-    case ReturnIfAbruptExpression(expr, _) => (expr, NotCompletion)
-    case _                                 => (expr, NotCompletion)
+    case ReferenceExpression(Variable(name, _, _, _)) => (expr, config(name))
+    case ReturnIfAbruptExpression(expr, _)            => (expr, NotCompletion)
+    case _                                            => (expr, NotCompletion)
   }
 }
 
