@@ -396,6 +396,8 @@ class StringifyTinyTest extends LangTest {
       finiteCond -> "_x_ is finite",
       finiteNumberCond -> "_x_ is a finite Number",
       finiteNumbersCond -> "_x_ is a finite Number and _x_ is a finite Number",
+      nonZeroFiniteNumberCond -> "_x_ is a non-zero finite Number",
+      nonZeroFiniteNumbersCond -> "_x_ is a non-zero finite Number and _x_ is a non-zero finite Number",
       abruptCond -> "_x_ is an abrupt completion",
       normalCond -> "_x_ is a normal completion",
       dupCond -> "_x_ is duplicate entries",
@@ -427,6 +429,23 @@ class StringifyTinyTest extends LangTest {
         PredicateCondition(refExpr, T, PredicateConditionOperator.FiniteNumber),
         CompoundConditionOperator.And,
         PredicateCondition(refExpr, T, PredicateConditionOperator.FiniteNumber),
+      ),
+      Condition.from(
+        "_x_ and _x_ are non-zero finite Numbers",
+      ) -> nonZeroFiniteNumbersCond,
+      Condition.from("_x_ and _x_ are not non-zero finite Numbers") ->
+      CompoundCondition(
+        PredicateCondition(
+          refExpr,
+          T,
+          PredicateConditionOperator.NonZeroFiniteNumber,
+        ),
+        CompoundConditionOperator.And,
+        PredicateCondition(
+          refExpr,
+          T,
+          PredicateConditionOperator.NonZeroFiniteNumber,
+        ),
       ),
     )
 

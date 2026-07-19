@@ -1017,6 +1017,7 @@ trait Parsers extends IndentParsers {
     lazy val op: Parser[PredicateConditionOperator] =
       "finite" ^^^ Finite |
       "a finite Number" ^^^ FiniteNumber |
+      "a non-zero finite Number" ^^^ NonZeroFiniteNumber |
       "a normal completion" ^^^ Normal |
       "an abrupt completion" ^^^ Abrupt |
       "a throw completion" ^^^ Throw |
@@ -1115,6 +1116,20 @@ trait Parsers extends IndentParsers {
         PredicateCondition(l, n, PredicateConditionOperator.FiniteNumber),
         CompoundConditionOperator.And,
         PredicateCondition(r, n, PredicateConditionOperator.FiniteNumber),
+      )
+  } | {
+    // Number::remainder
+    expr ~ ("and" ~> expr) ~ areNeg <~ "non-zero finite Numbers"
+  } ^^ {
+    case l ~ r ~ n =>
+      CompoundCondition(
+        PredicateCondition(
+          l,
+          n,
+          PredicateConditionOperator.NonZeroFiniteNumber,
+        ),
+        CompoundConditionOperator.And,
+        PredicateCondition(r, n, PredicateConditionOperator.NonZeroFiniteNumber),
       )
   } | {
     // ResolveBinding

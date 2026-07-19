@@ -931,10 +931,14 @@ class Compiler(
               case Break    => EENUM_BREAK
               case Continue => EENUM_CONTINUE
             and(isCompletion(x), is(tv, expected))
-          case Finite | FiniteNumber =>
-            not(
+          case Finite | FiniteNumber | NonZeroFiniteNumber =>
+            val finite = not(
               or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
             )
+            op match
+              case NonZeroFiniteNumber =>
+                and(finite, not(or(is(x, ENumber(0.0)), is(x, ENumber(-0.0)))))
+              case _ => finite
           case Duplicated =>
             val (b, bExpr) = fb.newTIdWithExpr
             fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))

@@ -409,6 +409,17 @@ object LangTest {
     CompoundConditionOperator.And,
     finiteNumberCond,
   )
+  lazy val nonZeroFiniteNumberCond =
+    PredicateCondition(
+      refExpr,
+      F,
+      PredicateConditionOperator.NonZeroFiniteNumber,
+    )
+  lazy val nonZeroFiniteNumbersCond = CompoundCondition(
+    nonZeroFiniteNumberCond,
+    CompoundConditionOperator.And,
+    nonZeroFiniteNumberCond,
+  )
   lazy val abruptCond =
     PredicateCondition(refExpr, F, PredicateConditionOperator.Abrupt)
   lazy val normalCond =
