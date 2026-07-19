@@ -402,6 +402,13 @@ object LangTest {
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
   lazy val finiteCond =
     PredicateCondition(refExpr, F, PredicateConditionOperator.Finite)
+  lazy val finiteNumberCond =
+    PredicateCondition(refExpr, F, PredicateConditionOperator.FiniteNumber)
+  lazy val finiteNumbersCond = CompoundCondition(
+    finiteNumberCond,
+    CompoundConditionOperator.And,
+    finiteNumberCond,
+  )
   lazy val abruptCond =
     PredicateCondition(refExpr, F, PredicateConditionOperator.Abrupt)
   lazy val normalCond =

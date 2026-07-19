@@ -931,7 +931,7 @@ class Compiler(
               case Break    => EENUM_BREAK
               case Continue => EENUM_CONTINUE
             and(isCompletion(x), is(tv, expected))
-          case Finite =>
+          case Finite | FiniteNumber =>
             not(
               or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
             )

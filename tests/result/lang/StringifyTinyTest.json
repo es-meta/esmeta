@@ -10,5 +10,6 @@
   "MathOpExpression" : true,
   "Reference" : true,
   "Step" : true,
-  "Type" : true
+  "Type" : true,
+  "finite Numbers Condition parsing" : true
 }

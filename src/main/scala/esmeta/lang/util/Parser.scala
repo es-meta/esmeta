@@ -1016,6 +1016,7 @@ trait Parsers extends IndentParsers {
     import PredicateConditionOperator.*
     lazy val op: Parser[PredicateConditionOperator] =
       "finite" ^^^ Finite |
+      "a finite Number" ^^^ FiniteNumber |
       "a normal completion" ^^^ Normal |
       "an abrupt completion" ^^^ Abrupt |
       "a throw completion" ^^^ Throw |
@@ -1106,6 +1107,16 @@ trait Parsers extends IndentParsers {
   // rarely used conditions
   // TODO clean-up
   lazy val specialCond: PL[Condition] = {
+    // Number::add, Number::lessThan
+    expr ~ ("and" ~> expr) ~ areNeg <~ "finite Numbers"
+  } ^^ {
+    case l ~ r ~ n =>
+      CompoundCondition(
+        PredicateCondition(l, n, PredicateConditionOperator.FiniteNumber),
+        CompoundConditionOperator.And,
+        PredicateCondition(r, n, PredicateConditionOperator.FiniteNumber),
+      )
+  } | {
     // ResolveBinding
     "the source text matched by the syntactic production" ~
     "that is being evaluated is contained in strict mode code"

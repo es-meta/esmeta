@@ -783,6 +783,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     import PredicateConditionOperator.*
     app >> (op match {
       case Finite           => "finite"
+      case FiniteNumber     => "a finite Number"
       case Abrupt           => "an abrupt completion"
       case Throw            => "a throw completion"
       case Return           => "a return completion"
