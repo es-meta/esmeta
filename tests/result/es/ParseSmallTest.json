@@ -75,6 +75,7 @@
   "instanceof1.js" : true,
   "instanceof2.js" : true,
   "map-iter.js" : true,
+  "math-nonfinite.js" : true,
   "multiple-statements.js" : true,
   "number1.js" : true,
   "number2.js" : true,

@@ -267,15 +267,11 @@ class Interpreter(
         case (CodeUnit(c), ToMath) => Math(c.toInt)
         case (Math(n), ToCodeUnit) => CodeUnit(n.toChar)
         // extended mathematical value
-        case (Infinity(true), ToNumber)        => NUMBER_POS_INF
-        case (Infinity(false), ToNumber)       => NUMBER_NEG_INF
-        case (Infinity(true), ToApproxNumber)  => NUMBER_POS_INF
-        case (Infinity(false), ToApproxNumber) => NUMBER_NEG_INF
-        case (Number(d), ToApproxNumber)       => Number(d)
-        case (Math(n), ToApproxNumber)         => Number(n.toDouble)
-        case (Math(n), ToNumber)               => Number(n.toDouble)
-        case (Math(n), ToBigInt)               => BigInt(n.toBigInt)
-        case (Math(n), ToMath)                 => Math(n)
+        case (Infinity(pos), ToNumber | ToApproxNumber) =>
+          if (pos) NUMBER_POS_INF else NUMBER_NEG_INF
+        case (Math(n), ToNumber | ToApproxNumber) => Number(n.toDouble)
+        case (Math(n), ToBigInt)                  => BigInt(n.toBigInt)
+        case (Math(n), ToMath)                    => Math(n)
         // string
         case (Str(s), ToNumber) => ESValueParser.str2number(s)
         case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
@@ -285,7 +281,7 @@ class Interpreter(
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
-        case (Number(d), ToNumber) => Number(d)
+        case (Number(d), ToNumber | ToApproxNumber) => Number(d)
         case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
         // big integer
         case (BigInt(n), ToMath) => Math(n)
@@ -592,11 +588,7 @@ object Interpreter {
       case (Pow, Math(l), Math(r)) if r.isValidInt && r >= 0 =>
         Math(l.pow(r.toInt))
       case (Pow, Math(l), Math(r)) =>
-        math.pow(l.toDouble, r.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
+        toMathResult(math.pow(l.toDouble, r.toDouble))
       // TODO consider 2's complement 32-bit strings
       case (BAnd, Math(l), Math(r))   => Math(l.toBigInt & r.toBigInt)
       case (BOr, Math(l), Math(r))    => Math(l.toBigInt | r.toBigInt)
@@ -703,122 +695,41 @@ object Interpreter {
   /** transition for mathematical operators */
   def eval(mop: MOp, st: State, vs: List[Value]): Value =
     import math.*
-    (mop, vs) match
-      case (MOp.Expm1, List(Math(x))) =>
-        expm1(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Log10, List(Math(x))) =>
-        log10(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Log2, List(Math(x))) =>
-        (log(x.toDouble) / log(2)) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Cos, List(Math(x))) =>
-        cos(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Cbrt, List(Math(x))) =>
-        cbrt(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Exp, List(Math(x))) =>
-        exp(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Cosh, List(Math(x))) =>
-        cosh(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Sinh, List(Math(x))) =>
-        sinh(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Tanh, List(Math(x))) =>
-        tanh(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Acos, List(Math(x))) =>
-        acos(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
+    val result = (mop, vs) match
+      case (MOp.Expm1, List(Math(x))) => expm1(x.toDouble)
+      case (MOp.Log10, List(Math(x))) => log10(x.toDouble)
+      case (MOp.Log2, List(Math(x)))  => log(x.toDouble) / log(2)
+      case (MOp.Cos, List(Math(x)))   => cos(x.toDouble)
+      case (MOp.Cbrt, List(Math(x)))  => cbrt(x.toDouble)
+      case (MOp.Exp, List(Math(x)))   => exp(x.toDouble)
+      case (MOp.Cosh, List(Math(x)))  => cosh(x.toDouble)
+      case (MOp.Sinh, List(Math(x)))  => sinh(x.toDouble)
+      case (MOp.Tanh, List(Math(x)))  => tanh(x.toDouble)
+      case (MOp.Acos, List(Math(x)))  => acos(x.toDouble)
       case (MOp.Acosh, List(Math(x))) =>
         throw NotSupported(Metalanguage)("acosh")
       case (MOp.Asinh, List(Math(x))) =>
         throw NotSupported(Metalanguage)("asinh")
       case (MOp.Atanh, List(Math(x))) =>
         throw NotSupported(Metalanguage)("atanh")
-      case (MOp.Asin, List(Math(x))) =>
-        asin(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
+      case (MOp.Asin, List(Math(x))) => asin(x.toDouble)
       case (MOp.Atan2, List(Math(x), Math(y))) =>
-        atan2(x.toDouble, y.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Atan, List(Math(x))) =>
-        atan(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Log1p, List(Math(x))) =>
-        log1p(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Log, List(Math(x))) =>
-        log(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Sin, List(Math(x))) =>
-        sin(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Sqrt, List(Math(x))) =>
-        sqrt(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case (MOp.Tan, List(Math(x))) =>
-        tan(x.toDouble) match
-          case d if d.isPosInfinity => POS_INF
-          case d if d.isNegInfinity => NEG_INF
-          case d if d.isNaN         => Number(Double.NaN)
-          case d                    => Math(d)
-      case _ => throw InvalidMathOp(mop, vs)
+        atan2(x.toDouble, y.toDouble)
+      case (MOp.Atan, List(Math(x)))  => atan(x.toDouble)
+      case (MOp.Log1p, List(Math(x))) => log1p(x.toDouble)
+      case (MOp.Log, List(Math(x)))   => log(x.toDouble)
+      case (MOp.Sin, List(Math(x)))   => sin(x.toDouble)
+      case (MOp.Sqrt, List(Math(x)))  => sqrt(x.toDouble)
+      case (MOp.Tan, List(Math(x)))   => tan(x.toDouble)
+      case _                          => throw InvalidMathOp(mop, vs)
+    toMathResult(result)
+
+  /** convert a double result to a mathematical value */
+  private def toMathResult(d: Double): Value =
+    if (d.isPosInfinity) POS_INF
+    else if (d.isNegInfinity) NEG_INF
+    else if (d.isNaN) Number(d)
+    else Math(d)
 
   /** the absolute value operation for mathematical values */
   def abs(m: Math): Math = Math(m.decimal.abs)
