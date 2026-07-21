@@ -20,20 +20,12 @@ import scala.collection.mutable.ListBuffer
 
 /** assertion injector */
 object Injector {
-  def apply(
-    cfg: CFG,
-    src: String,
-    log: Boolean = false,
-  ): ConformTest =
+  def apply(cfg: CFG, src: String, log: Boolean = false): ConformTest =
     val extractor = ExitStateExtractor(cfg.init.from(src))
     new Injector(cfg, extractor.result, log).result
 
   /** injection from files */
-  def fromFile(
-    cfg: CFG,
-    filename: String,
-    log: Boolean = false,
-  ): ConformTest =
+  def fromFile(cfg: CFG, filename: String, log: Boolean = false): ConformTest =
     val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
     new Injector(cfg, extractor.result, log).result
 
@@ -49,11 +41,7 @@ object Injector {
 }
 
 /** extensible helper of assertion injector */
-class Injector(
-  cfg: CFG,
-  exitSt: State,
-  log: Boolean,
-) {
+class Injector(cfg: CFG, exitSt: State, log: Boolean) {
 
   /** generated assertions */
   lazy val assertions: Vector[Assertion] =
@@ -67,13 +55,8 @@ class Injector(
     _assertions.toVector
 
   /** generated conformance test */
-  lazy val conformTest: ConformTest = ConformTest(
-    0,
-    script.trim,
-    exitTag,
-    async,
-    assertions,
-  )
+  lazy val conformTest: ConformTest =
+    ConformTest(0, script.trim, exitTag, async, assertions)
 
   /** injected script */
   lazy val result: ConformTest = conformTest
@@ -118,8 +101,7 @@ class Injector(
 
   // get created variables
   private lazy val globalMap = s"@REALM.GlobalObject.$INNER_MAP"
-  private lazy val globalThis =
-    getValue(s"$globalMap.globalThis.Value")
+  private lazy val globalThis = getValue(s"$globalMap.globalThis.Value")
   private lazy val createdVars: Set[String] =
     val initial = getStrKeys(getValue(s"@GLOBAL.$INNER_MAP"), "<global>")
     val current = getStrKeys(getValue(globalMap), "<global>")
@@ -181,9 +163,8 @@ class Injector(
   private def handleExtensible(addr: Addr, path: String): Unit =
     log(s"handleExtensible: $addr, $path")
     access(addr, Str("Extensible")) match
-      case Bool(b) =>
-        _assertions += IsExtensible(addr, path, b)
-      case _ => warning("non-boolean [[Extensible]]: $path")
+      case Bool(b) => _assertions += IsExtensible(addr, path, b)
+      case _       => warning("non-boolean [[Extensible]]: $path")
 
   // handle [[Call]]
   private def handleCall(addr: Addr, path: String): Unit =
@@ -193,11 +174,7 @@ class Injector(
   // handle [[Construct]]
   private def handleConstruct(addr: Addr, path: String): Unit =
     log(s"handleConstruct: $addr, $path")
-    _assertions += IsConstructable(
-      addr,
-      path,
-      exists(addr, Str("Construct")),
-    )
+    _assertions += IsConstructable(addr, path, exists(addr, Str("Construct")))
 
   // handle property names
   private def handlePropKeys(addr: Addr, path: String): Unit =
@@ -229,9 +206,7 @@ class Injector(
             })
           if (array.length == len)
             _assertions += CompareArray(addr, path, array)
-        } catch {
-          case e => warning("failed to interpret [[OwnPropertyKeys]]")
-        }
+        } catch { case e => warning("failed to interpret [[OwnPropertyKeys]]") }
       case _ => warning("non-closure [[OwnPropertyKeys]]: $path")
 
   // handle properties

@@ -14,11 +14,7 @@ import esmeta.util.SystemUtils.*
 case object Inject extends Phase[CFG, String] {
   val name = "inject"
   val help = "injects assertions to check final state of an ECMAScript file."
-  def apply(
-    cfg: CFG,
-    cmdConfig: CommandConfig,
-    config: Config,
-  ): String =
+  def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
     val filename = getFirstFilename(cmdConfig, this.name)
     val test = Injector.fromFile(cfg, filename, config.log)
     val injected = test.toString(detail = config.defs)
