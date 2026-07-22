@@ -27,14 +27,17 @@ case object ConformTest extends Phase[CFG, Unit] {
   ): Unit = {
     val scriptDir = File(getFirstFilename(cmdConfig, name)).getAbsoluteFile
     if (!scriptDir.isDirectory)
-      raise(s"conform-test requires a directory of ECMAScript files: $scriptDir")
+      raise(
+        s"conform-test requires a directory of ECMAScript files: $scriptDir",
+      )
 
     val engines = EngineSpec.resolve(config.engine)
     val workDir = Files.createTempDirectory("esmeta-conform-work-")
-    val results = try {
-      val tests = inject(cfg, scriptDir, workDir, config.timeLimit)
-      engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
-    } finally rmdir(workDir.toString)
+    val results =
+      try {
+        val tests = inject(cfg, scriptDir, workDir, config.timeLimit)
+        engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
+      } finally rmdir(workDir.toString)
 
     for (filename <- config.out)
       dumpJson(reportJson(scriptDir.getPath, results), filename)
@@ -261,7 +264,7 @@ case object ConformTest extends Phase[CFG, Unit] {
         .start
       val finished = timeLimit match
         case Some(seconds) => process.waitFor(seconds.toLong, TimeUnit.SECONDS)
-        case None => process.waitFor; true
+        case None          => process.waitFor; true
       if (!finished) {
         process.destroyForcibly
         process.waitFor
@@ -379,8 +382,8 @@ case object ConformTest extends Phase[CFG, Unit] {
       else None
 
     category match
-      case None                => Outcome.Pass
-      case Some((_, true))     => Outcome.Skip
+      case None            => Outcome.Pass
+      case Some((_, true)) => Outcome.Skip
       case Some((name, false)) =>
         val stdout =
           if (name.endsWith("assertion-fail")) assertionFailure
