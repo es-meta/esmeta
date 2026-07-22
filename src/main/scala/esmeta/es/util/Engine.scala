@@ -166,10 +166,7 @@ object GraalJS extends Engine {
     try {
       context.eval("js", src)
       out.toString
-    } finally {
-      context.close
-      stat.done = true
-    }
+    } finally { stat.done = true }
 }
 
 /** ECAMScript external engines */
