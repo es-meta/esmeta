@@ -15,40 +15,92 @@ import esmeta.{LINE_SEP, RESOURCE_DIR}
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
 import scala.collection.mutable.{Map => MMap}
-import scala.concurrent.TimeoutException
 import scala.collection.mutable.ListBuffer
 
 /** assertion injector */
 object Injector {
-  def apply(cfg: CFG, src: String, log: Boolean = false): ConformTest =
-    val extractor = ExitStateExtractor(cfg.init.from(src))
-    new Injector(cfg, extractor.result, log).result
+
+  /** prefix used to distinguish assertion diagnostics from program output */
+  val assertionFailurePrefix = "[ESMeta assertion failure] "
+
+  def apply(
+    cfg: CFG,
+    src: String,
+    log: Boolean = false,
+    timeLimit: Option[Int] = Some(10),
+  ): ConformTest = fromState(cfg, cfg.init.from(src), log, timeLimit)
 
   /** injection from files */
-  def fromFile(cfg: CFG, filename: String, log: Boolean = false): ConformTest =
-    val extractor = ExitStateExtractor(cfg.init.fromFile(filename))
-    new Injector(cfg, extractor.result, log).result
+  def fromFile(
+    cfg: CFG,
+    filename: String,
+    log: Boolean = false,
+    timeLimit: Option[Int] = Some(10),
+  ): ConformTest = fromState(cfg, cfg.init.fromFile(filename), log, timeLimit)
+
+  /** injection from an initial state */
+  private def fromState(
+    cfg: CFG,
+    initSt: State,
+    log: Boolean,
+    timeLimit: Option[Int],
+  ): ConformTest = {
+    val deadline = timeLimit.map { seconds =>
+      System.currentTimeMillis + seconds.toLong * 1000
+    }
+    val extractor = ExitStateExtractor(initSt, timeLimit)
+    // Start measuring before interpretation rather than at the first periodic
+    // timeout check.
+    extractor.startTime
+    val exitSt =
+      try extractor.result
+      catch {
+        case _: TimeoutException =>
+          val script = initSt.sourceText.get.trim
+          return ConformTest(
+            0,
+            script,
+            ExitTag.Timeout,
+            script.contains("async") || script.contains("Promise"),
+            Vector.empty,
+          )
+      }
+    new Injector(cfg, exitSt, log, deadline).result
+  }
 
   /** assertion definitions */
   lazy val header: String =
     val line = "// " + "-" * 77
+    val markAssertionFailure =
+      s"""var $$originalError = $$error;
+         |$$error = function (message) {
+         |  $$originalError("$assertionFailurePrefix" + message);
+         |};""".stripMargin
     LINE_SEP +
     line + LINE_SEP +
     "// ASSERTION DEFINITIONS" + LINE_SEP +
     line + LINE_SEP +
     readFile(s"$RESOURCE_DIR/assertions.js").trim + LINE_SEP +
+    markAssertionFailure + LINE_SEP +
     line
 }
 
 /** extensible helper of assertion injector */
-class Injector(cfg: CFG, exitSt: State, log: Boolean) {
+class Injector(
+  cfg: CFG,
+  exitSt: State,
+  log: Boolean,
+  deadline: Option[Long],
+) {
 
   /** generated assertions */
   lazy val assertions: Vector[Assertion] =
+    checkTimeout()
     _assertions.clear
     if (normalExit)
       handleVariable // inject assertions from variables
       handleLet // inject assertions from lexical variables
+    checkTimeout()
     if (log)
       pw.close
       println("[Injector] Logging finished")
@@ -86,11 +138,23 @@ class Injector(cfg: CFG, exitSt: State, log: Boolean) {
   private def log(data: Any): Unit = if (log) { pw.println(data); pw.flush() }
   private def warning(msg: String): Unit = log(s"[Warning] $msg")
 
+  // timeout
+  private def checkTimeout(): Unit = deadline.foreach { deadline =>
+    if (System.currentTimeMillis >= deadline)
+      throw TimeoutException("assertion injection")
+  }
+  private def remainingTimeLimit: Option[Int] = deadline.map { deadline =>
+    val millis = deadline - System.currentTimeMillis
+    if (millis <= 0) throw TimeoutException("assertion injection")
+    math.max(1, ((millis + 999) / 1000).toInt)
+  }
+
   // internal assertions
   private val _assertions: ListBuffer[Assertion] = ListBuffer()
 
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {
+    checkTimeout()
     log("handling variable...")
     val path = s"globalThis[\"$x\"]"
     getValue(s"""$globalMap["$x"].Value""") match
@@ -109,6 +173,7 @@ class Injector(cfg: CFG, exitSt: State, log: Boolean) {
 
   // handle lexical variables
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {
+    checkTimeout()
     log("handling let...")
     getValue(s"""$lexRecord["$x"].__BOUND_VALUE__""") match
       case sv: SimpleValue => _assertions += HasValue(x, sv)
@@ -118,6 +183,7 @@ class Injector(cfg: CFG, exitSt: State, log: Boolean) {
 
   // handle addresses
   private def handleObject(addr: Addr, path: String): Unit =
+    checkTimeout()
     log(s"handleObject: $addr, $path")
     (addr, handledObjects.get(addr)) match
       case (_, Some(origPath)) =>
@@ -186,7 +252,13 @@ class Injector(cfg: CFG, exitSt: State, log: Boolean) {
         newSt.callStack = Nil
         try {
           // @TODO(@hyp3rflow): handle proxy correctly in interpreter
-          Interpreter(newSt)
+          val interpreter = new Interpreter(
+            newSt,
+            timeLimit = remainingTimeLimit,
+          )
+          interpreter.startTime
+          interpreter.result
+          checkTimeout()
           val propsAddr = newSt(GLOBAL_RESULT) match
             case addr: Addr =>
               newSt(addr) match
@@ -206,16 +278,24 @@ class Injector(cfg: CFG, exitSt: State, log: Boolean) {
             })
           if (array.length == len)
             _assertions += CompareArray(addr, path, array)
-        } catch { case e => warning("failed to interpret [[OwnPropertyKeys]]") }
+        } catch {
+          case error: TimeoutException => throw error
+          case _ =>
+            warning("failed to interpret [[OwnPropertyKeys]]")
+        }
       case _ => warning("non-closure [[OwnPropertyKeys]]: $path")
 
   // handle properties
   private lazy val fields =
     List("Get", "Set", "Value", "Writable", "Enumerable", "Configurable")
   private def handleProperty(addr: Addr, path: String): Unit =
+    checkTimeout()
     log(s"handleProperty: $addr, $path")
     val map = access(addr, Str(INNER_MAP))
-    for (p <- getKeys(map, path)) access(map, p) match
+    for {
+      p <- getKeys(map, path)
+      _ = checkTimeout()
+    } access(map, p) match
       case addr: Addr =>
         exitSt(addr) match
           // NOTE : next line cannot be MapObj
@@ -233,16 +313,16 @@ class Injector(cfg: CFG, exitSt: State, log: Boolean) {
                   desc += (field.toLowerCase -> sv)
                 case addr: Addr =>
                   field match
-                    case "Value" => handleObject(addr, s"$path[$propStr]")
+                    case "Value" => handleObject(addr, s"$path?.[$propStr]")
                     case "Get" =>
                       handleObject(
                         addr,
-                        s"Object.getOwnPropertyDescriptor($path, $propStr).get",
+                        s"Object.getOwnPropertyDescriptor($path, $propStr)?.get",
                       )
                     case "Set" =>
                       handleObject(
                         addr,
-                        s"Object.getOwnPropertyDescriptor($path, $propStr).set",
+                        s"Object.getOwnPropertyDescriptor($path, $propStr)?.set",
                       )
                     case _ =>
                 case _ => warning("invalid property: $path")

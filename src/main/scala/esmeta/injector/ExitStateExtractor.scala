@@ -7,7 +7,10 @@ import esmeta.state.*
 import scala.collection.mutable.{Map => MMap}
 
 /** exit state extractor */
-class ExitStateExtractor(val initSt: State) extends Interpreter(initSt) {
+class ExitStateExtractor(
+  val initSt: State,
+  timeLimit: Option[Int],
+) extends Interpreter(initSt, timeLimit = timeLimit) {
 
   /** address name mapping */
   val addrNames: MMap[Addr, String] = MMap()

@@ -49,6 +49,7 @@ class Stringifier(detail: Boolean) {
       case Timeout                  => app >> s"timeout"
       case SpecError(error, cursor) => app >> s"spec-error: $cursor"
       case ThrowValue(values)       => app >> s"throw: ${values.mkString(", ")}"
+      case ThrowError(name)         => app >> s"throw-error: $name"
 
   // assertions
   given assertRule: Rule[Assertion] = (app, assert) =>
