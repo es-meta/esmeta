@@ -179,8 +179,10 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   val examples = List(
     "esmeta inject a.js                               # inject assertions.",
     "esmeta inject a.js -inject:defs -inject:out=b.js # dump with definitions.",
+    "esmeta inject dir -inject:batch -inject:defs " +
+    "-inject:out=base/minimal-injected",
   )
-  override val targetName = "<js>+"
+  override val targetName = "<js|dir>"
 }
 
 /** `conform-test` command */

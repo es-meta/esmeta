@@ -39,19 +39,36 @@ case object Inject extends Phase[CFG, String] {
     (injected, files.size)
   }
 
-  def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
-    val filename = getFirstFilename(cmdConfig, this.name)
-    val injected = injectFile(cfg, filename, config)
+  def apply(
+    cfg: CFG,
+    cmdConfig: CommandConfig,
+    config: Config,
+  ): String =
+    val path = getFirstFilename(cmdConfig, this.name)
+    if (config.batch) {
+      val (injected, total) = injectFiles(cfg, path, config)
+      config.out match
+        case Some(dirname) =>
+          mkdir(dirname, remove = true)
+          for ((filename, source) <- injected)
+            dumpFile(source, s"$dirname/$filename")
+          s"Injected ${injected.size}/$total ECMAScript program(s), " +
+          s"skipped ${total - injected.size}."
+        case None =>
+          injected.map(_._2).mkString(LINE_SEP + LINE_SEP)
+    } else {
+      val injected = injectFile(cfg, path, config)
 
-    // dump the assertion-injected ECMAScript program
-    for (filename <- config.out)
-      dumpFile(
-        name = "an assertion-injected ECMAScript program",
-        data = injected,
-        filename = filename,
-      )
+      // dump the assertion-injected ECMAScript program
+      for (filename <- config.out)
+        dumpFile(
+          name = "an assertion-injected ECMAScript program",
+          data = injected,
+          filename = filename,
+        )
 
-    injected
+      injected
+    }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
@@ -62,12 +79,18 @@ case object Inject extends Phase[CFG, String] {
     (
       "out",
       StrOption((c, s) => c.out = Some(s)),
-      "dump an assertion-injected ECMAScript program to a given path.",
+      "dump assertion-injected ECMAScript program(s) to a given path.",
     ),
     (
       "log",
       BoolOption(_.log = _),
       "turn on logging mode.",
+    ),
+    (
+      "batch",
+      BoolOption(_.batch = _),
+      "inject assertions into all JavaScript files in a target directory, " +
+      "skipping not-supported files.",
     ),
     (
       "timeout",
@@ -79,6 +102,7 @@ case object Inject extends Phase[CFG, String] {
     var defs: Boolean = false,
     var out: Option[String] = None,
     var log: Boolean = false,
+    var batch: Boolean = false,
     var timeLimit: Option[Int] = Some(10),
   )
 }
