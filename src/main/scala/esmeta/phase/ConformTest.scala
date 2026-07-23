@@ -246,6 +246,15 @@ case object ConformTest extends Phase[CFG, Unit] {
           .getOrElse("throw")
   }
 
+  /** forcibly terminate a process and every process spawned by it */
+  private def destroyProcessTree(process: java.lang.Process): Unit =
+    val descendants =
+      process.toHandle.descendants.iterator.asScala.toVector.reverse
+    descendants.foreach(_.destroyForcibly())
+    process.destroyForcibly()
+    process.waitFor()
+    descendants.filter(_.isAlive).foreach(_.destroyForcibly())
+
   private def execute(
     engine: EngineSpec,
     source: String,
@@ -265,10 +274,7 @@ case object ConformTest extends Phase[CFG, Unit] {
       val finished = timeLimit match
         case Some(seconds) => process.waitFor(seconds.toLong, TimeUnit.SECONDS)
         case None          => process.waitFor; true
-      if (!finished) {
-        process.destroyForcibly
-        process.waitFor
-      }
+      if (!finished) destroyProcessTree(process)
       Execution(
         timedOut = !finished,
         exitCode = if (finished) process.exitValue else -1,
@@ -276,10 +282,7 @@ case object ConformTest extends Phase[CFG, Unit] {
         stderr = Files.readString(stderrFile, UTF_8).trim,
       )
     } finally {
-      if (process != null && process.isAlive) {
-        process.destroyForcibly
-        process.waitFor
-      }
+      if (process != null && process.isAlive) destroyProcessTree(process)
       Files.deleteIfExists(script)
       Files.deleteIfExists(stdoutFile)
       Files.deleteIfExists(stderrFile)
