@@ -183,6 +183,18 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   override val targetName = "<js>+"
 }
 
+/** `conform-test` command */
+case object CmdConformTest
+  extends Command("conform-test", CmdBuildCFG >> ConformTest) {
+  val help = "injects and runs conformance tests on JavaScript engines."
+  val examples = List(
+    "esmeta conform-test minimal -conform-test:out=bugs.json",
+    "esmeta conform-test minimal -conform-test:engine=v8 " +
+    "-conform-test:out=v8-bugs.json",
+  )
+  override val targetName = "<js-dir>"
+}
+
 /** `mutate` command */
 case object CmdMutate extends Command("mutate", CmdBuildCFG >> Mutate) {
   def help = "mutates an ECMAScript program."

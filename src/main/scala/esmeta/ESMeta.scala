@@ -82,6 +82,7 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Fuzzer
     CmdFuzz,
     CmdInject,
+    CmdConformTest,
     CmdMutate,
     CmdDumpDebugger,
     CmdDumpVisualizer,
@@ -110,6 +111,7 @@ object ESMeta extends Git(BASE_DIR) {
     // ECMAScript Fuzzer
     Fuzz,
     Inject,
+    ConformTest,
     Mutate,
     DumpDebugger,
     DumpVisualizer,
