@@ -117,5 +117,4 @@ enum BuiltinPath extends SpecElem:
   case Getter(base: BuiltinPath)
   case Setter(base: BuiltinPath)
   case SymbolAccess(base: BuiltinPath, symbol: String)
-  case YetPath(name: String)
 object BuiltinPath extends Parser.From(Parser.builtinPath)

@@ -295,8 +295,6 @@ class Extractor(
     "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
   private lazy val aliasPattern =
     "means? the same thing as:".r
-  private lazy val anonBuiltinPattern =
-    "When a ([A-Za-z.` ]+) is called with argument _(\\w+)_,.*".r
   private def extractUnusualHead(
     parent: Element,
     elem: Element,
@@ -310,11 +308,7 @@ class Extractor(
           UnknownType,
         ),
       )
-    case aliasPattern() => extractAbsOpHead(parent, elem, false)
-    case anonBuiltinPattern(name, param) =>
-      val rname = name.trim.split(" ").map(_.capitalize).mkString
-      val ref = BuiltinPath.YetPath(rname)
-      List(BuiltinHead(ref, List(Param(param, UnknownType)), UnknownType))
+    case aliasPattern()              => extractAbsOpHead(parent, elem, false)
     case _ if parent.hasAttr("aoid") => Nil
     case _                           => extractBuiltinHead(parent, elem)
 
