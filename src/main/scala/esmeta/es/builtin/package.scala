@@ -71,6 +71,7 @@ val yetFuncs: Set[String] = Set(
   "String.prototype.localeCompare",
   "String.prototype.toLocaleLowerCase",
   "Number.prototype.toLocaleString",
+  "BigInt.prototype.toLocaleString",
   "String.prototype.toUpperCase",
   "String.prototype.toLocaleUpperCase",
 )

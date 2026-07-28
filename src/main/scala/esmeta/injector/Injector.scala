@@ -198,6 +198,12 @@ class Injector(
             handleConstruct(addr, path)
             handlePropKeys(addr, path)
             handleProperty(addr, path)
+          case RecordObj("Symbol", fields) =>
+            _assertions += HasValue(s"typeof $path", Str("symbol"))
+            fields.get("Description") match
+              case Some(sv: SimpleValue) =>
+                _assertions += HasValue(s"$path.description", sv)
+              case _ => warning(s"invalid symbol description: $path")
           case (_: RecordObj) =>
             handlePrototype(addr, path)
             handleExtensible(addr, path)
@@ -268,15 +274,15 @@ class Injector(
                     case v          => raise("not an address: $v")
                 case _ => addr
             case v => raise("not an address: $v")
-          val len = newSt(propsAddr, Str("length")).asMath.toInt
-          val array = (0 until len)
-            .map(k => newSt(propsAddr, Math(k)))
-            .flatMap(_ match {
-              case Str(str)   => Some(s"'$str'")
-              case addr: Addr => addrToName(addr)
-              case _          => None
-            })
-          if (array.length == len)
+          val values = newSt(propsAddr) match
+            case ListObj(values) => values
+            case obj             => raise(s"not a list object: $obj")
+          val array = values.flatMap(_ match {
+            case Str(str)   => Some(s"'$str'")
+            case addr: Addr => addrToName(addr)
+            case _          => None
+          })
+          if (array.length == values.length)
             _assertions += CompareArray(addr, path, array)
         } catch {
           case error: TimeoutException => throw error

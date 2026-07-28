@@ -31,7 +31,7 @@ class Stringifier(detail: Boolean) {
         // prepend auxiliary definitions for assertions
         if (detail) app >> header
         // handle async tests by delaying the execution
-        if (isAsync) app.wrap(delayHead, delayTail) {
+        if (isAsync) (app :> "").wrap(delayHead, delayTail) {
           assertions.foreach(app :> _)
         }
         else assertions.foreach(app :> _)

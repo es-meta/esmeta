@@ -1,0 +1,7 @@
+def <BUILTIN>:INTRINSICS.BigInt.prototype.toLocaleString(
+  this: ESValue,
+  ArgumentsList: List[ESValue],
+  NewTarget: Record[Object] | Undefined,
+): Unknown = {
+  (yet "[YET] BigInt.prototype.toLocaleString")
+}
