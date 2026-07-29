@@ -259,7 +259,7 @@ class Interpreter(
       Interpreter.eval(vop, vs)
     case EMathOp(mop, exprs) =>
       val vs = for (e <- exprs) yield eval(e)
-      Interpreter.eval(mop, st, vs)
+      Interpreter.eval(mop, vs)
     case EConvert(cop, expr) =>
       import COp.*
       (eval(expr), cop) match {
@@ -267,6 +267,8 @@ class Interpreter(
         case (CodeUnit(c), ToMath) => Math(c.toInt)
         case (Math(n), ToCodeUnit) => CodeUnit(n.toChar)
         // extended mathematical value
+        // XXX ToApproxNumber is handled as ToNumber because the rounding of
+        //     the double approximation is the only approximation of ESMeta
         case (Infinity(pos), ToNumber | ToApproxNumber) =>
           if (pos) NUMBER_POS_INF else NUMBER_NEG_INF
         case (Math(n), ToNumber | ToApproxNumber) => Number(n.toDouble)
@@ -277,7 +279,8 @@ class Interpreter(
         case (Str(s), ToBigInt) => ESValueParser.str2bigint(s)
         case (Str(s), _: ToStr) => Str(s)
         // numbers
-        case (Number(d), ToMath) => Math(d)
+        // NOTE the mathematical value of a nonfinite number is not defined
+        case (Number(d), ToMath) if d.isFinite => Math(d)
         case (Number(d), ToStr(radixOpt)) =>
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
@@ -587,8 +590,10 @@ object Interpreter {
       case (Mod, Math(l), Math(r)) => Math(l %% r)
       case (Pow, Math(l), Math(r)) if r.isValidInt && r >= 0 =>
         Math(l.pow(r.toInt))
+      // XXX approximated by double arithmetic, whose overflow becomes infinity
       case (Pow, Math(l), Math(r)) =>
-        toMathResult(math.pow(l.toDouble, r.toDouble))
+        val result = math.pow(l.toDouble, r.toDouble)
+        ExtMath.from(result).getOrElse(throw InvalidBinaryOp(Pow, left, right))
       // TODO consider 2's complement 32-bit strings
       case (BAnd, Math(l), Math(r))   => Math(l.toBigInt & r.toBigInt)
       case (BOr, Math(l), Math(r))    => Math(l.toBigInt | r.toBigInt)
@@ -626,8 +631,7 @@ object Interpreter {
       case (Lt, Math(_), POS_INF)           => Bool(true)
       case (Lt, NEG_INF, Math(_))           => Bool(true)
       case (Lt, Math(_), NEG_INF)           => Bool(false)
-      case (Lt, NEG_INF, POS_INF)           => Bool(true)
-      case (Lt, POS_INF, NEG_INF)           => Bool(false)
+      case (Lt, Infinity(l), Infinity(r))   => Bool(!l && r)
 
       // logical operations
       case (And, Bool(l), Bool(r)) => Bool(l && r)
@@ -693,7 +697,7 @@ object Interpreter {
         vopEval(toString, _ + _, Str(_), vs)
 
   /** transition for mathematical operators */
-  def eval(mop: MOp, st: State, vs: List[Value]): Value =
+  def eval(mop: MOp, vs: List[Value]): ExtMath =
     import math.*
     val result = (mop, vs) match
       case (MOp.Expm1, List(Math(x))) => expm1(x.toDouble)
@@ -722,14 +726,9 @@ object Interpreter {
       case (MOp.Sqrt, List(Math(x)))  => sqrt(x.toDouble)
       case (MOp.Tan, List(Math(x)))   => tan(x.toDouble)
       case _                          => throw InvalidMathOp(mop, vs)
-    toMathResult(result)
-
-  /** convert a double result to a mathematical value */
-  private def toMathResult(d: Double): Value =
-    if (d.isPosInfinity) POS_INF
-    else if (d.isNegInfinity) NEG_INF
-    else if (d.isNaN) Number(d)
-    else Math(d)
+    // an undefined result means that the operator is applied to an argument
+    // out of its domain, which never happens in the specification
+    ExtMath.from(result).getOrElse(throw InvalidMathOp(mop, vs))
 
   /** the absolute value operation for mathematical values */
   def abs(m: Math): Math = Math(m.decimal.abs)

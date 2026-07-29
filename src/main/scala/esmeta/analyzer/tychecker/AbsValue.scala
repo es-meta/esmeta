@@ -179,17 +179,24 @@ trait AbsValueDecl { self: TyChecker =>
     /** helper functions for abstract transfer */
     def convertTo(cop: COp, radix: AbsValue)(using AbsState): AbsValue = {
       val ty = this.ty
+      // infinities are converted to the infinite numbers
+      lazy val fromInfinity: NumberTy = NumberSetTy(ty.infinity.pos.map {
+        case true  => NUMBER_POS_INF
+        case false => NUMBER_NEG_INF
+      })
       AbsValue(cop match
         case COp.ToApproxNumber =>
-          if (!ty.math.isBottom) NumberT
-          else ValueTy.Bot
+          // an approximated number of a mathematical value is unknown
+          lazy val fromMath =
+            if (ty.math.isBottom) NumberTy.Bot else NumberTy.Top
+          ValueTy(number = ty.number || fromMath || fromInfinity)
         case COp.ToNumber =>
           lazy val fromMath = ty.math match
             case MathSignTy(_)  => NumberTy.Top
             case MathIntTy(int) => NumberIntTy(int, false)
             case MathSetTy(set) => NumberSetTy(set.map(n => Number(n.toDouble)))
           if (!ty.str.isBottom) NumberT
-          else ValueTy(number = ty.number || fromMath)
+          else ValueTy(number = ty.number || fromMath || fromInfinity)
         case COp.ToBigInt
             if (
               !ty.math.isBottom ||
@@ -200,10 +207,14 @@ trait AbsValueDecl { self: TyChecker =>
           if (!ty.str.isBottom) BigIntT || UndefT
           else BigIntT
         case COp.ToMath =>
+          // NOTE the mathematical value of a nonfinite number is not defined
           val fromNumber = ty.number match
             case NumberSignTy(sign, _) => MathSignTy(sign)
             case NumberIntTy(int, _)   => MathIntTy(int)
-            case NumberSetTy(set) => MathSetTy(set.map(n => Math(n.double)))
+            case NumberSetTy(set) =>
+              MathSetTy(set.collect {
+                case Number(d) if d.isFinite => Math(d)
+              })
           val fromBigInt = if (ty.bigInt) MathTy.Int else MathTy.Bot
           ValueTy(math = ty.math || fromNumber || fromBigInt)
         case COp.ToStr(_)
@@ -271,8 +282,14 @@ trait AbsValueDecl { self: TyChecker =>
         case NumberSignTy(s, _) => NumberSignTy(-s, false)
         case NumberIntTy(x, _)  => NumberIntTy(-x, false)
         case NumberSetTy(set)   => NumberSetTy(set.map(n => Number(-n.double)))
+      val infinityTy = InfinityTy(ty.infinity.pos.map(!_))
       AbsValue(
-        ValueTy(math = mathTy, number = numberTy, bigInt = this.ty.bigInt),
+        ValueTy(
+          math = mathTy,
+          infinity = infinityTy,
+          number = numberTy,
+          bigInt = this.ty.bigInt,
+        ),
       )
 
     /** unary logical negation operation */
@@ -433,6 +450,7 @@ trait AbsValueDecl { self: TyChecker =>
     lazy val StrTop = AbsValue(StrT)
     lazy val NonNegInt = AbsValue(NonNegIntT)
     lazy val MathTop = AbsValue(MathT)
+    lazy val ExtMathTop = AbsValue(ExtMathT)
     lazy val NumberTop = AbsValue(NumberT)
     lazy val BigIntTop = AbsValue(BigIntT)
 
