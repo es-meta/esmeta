@@ -28,7 +28,16 @@ object Injector {
     src: String,
     log: Boolean = false,
     timeLimit: Option[Int] = Some(10),
-  ): ConformTest = fromState(cfg, cfg.init.from(src), log, timeLimit)
+    instrument: Boolean = false,
+  ): ConformTest = {
+    val initSt =
+      if (instrument) {
+        val instrumented = OrderInstrumenter(cfg, src)
+        val (_, source) = cfg.scriptParser.fromWithCode(instrumented)
+        cfg.init.from(source)
+      } else cfg.init.from(src)
+    fromState(cfg, initSt, log, timeLimit, instrument)
+  }
 
   /** injection from files */
   def fromFile(
@@ -36,7 +45,16 @@ object Injector {
     filename: String,
     log: Boolean = false,
     timeLimit: Option[Int] = Some(10),
-  ): ConformTest = fromState(cfg, cfg.init.fromFile(filename), log, timeLimit)
+    instrument: Boolean = false,
+  ): ConformTest = {
+    val initSt =
+      if (instrument) {
+        val instrumented = OrderInstrumenter(cfg, readFile(filename))
+        val (ast, source) = cfg.scriptParser.fromWithCode(instrumented)
+        cfg.init.from(source, ast, Some(filename))
+      } else cfg.init.fromFile(filename)
+    fromState(cfg, initSt, log, timeLimit, instrument)
+  }
 
   /** injection from an initial state */
   private def fromState(
@@ -44,6 +62,7 @@ object Injector {
     initSt: State,
     log: Boolean,
     timeLimit: Option[Int],
+    instrument: Boolean,
   ): ConformTest = {
     val deadline = timeLimit.map { seconds =>
       System.currentTimeMillis + seconds.toLong * 1000
@@ -65,7 +84,7 @@ object Injector {
             Vector.empty,
           )
       }
-    new Injector(cfg, exitSt, log, deadline).result
+    new Injector(cfg, exitSt, log, deadline, instrument).result
   }
 
   /** assertion definitions */
@@ -91,6 +110,7 @@ class Injector(
   exitSt: State,
   log: Boolean,
   deadline: Option[Long],
+  instrument: Boolean,
 ) {
 
   /** generated assertions */
@@ -169,7 +189,7 @@ class Injector(
   private lazy val createdVars: Set[String] =
     val initial = getStrKeys(getValue(s"@GLOBAL.$INNER_MAP"), "<global>")
     val current = getStrKeys(getValue(globalMap), "<global>")
-    current -- initial
+    current -- (if (instrument) initial + "__instrument" else initial)
 
   // handle lexical variables
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {

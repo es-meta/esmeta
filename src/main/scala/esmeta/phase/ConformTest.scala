@@ -52,6 +52,7 @@ case object ConformTest extends Phase[CFG, Unit] {
   ): List[TestInput] = {
     val injectConfig = Inject.Config(
       defs = true,
+      instrument = true,
       timeLimit = timeLimit,
     )
     val (injected, total) = Inject.injectFiles(
