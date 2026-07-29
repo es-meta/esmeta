@@ -68,9 +68,11 @@ object FVExport {
     case Field(base, expr) => s"(RField ${rocqRef(base)} ${rocqExpr(expr)})"
 
   def rocqUOp(op: UOp): String = op match
-    case UOp.Neg => "UNeg"
-    case UOp.Not => "UNot"
-    case _       => throw Unsupported(s"uop: $op")
+    case UOp.Neg   => "UNeg"
+    case UOp.Not   => "UNot"
+    case UOp.Abs   => "UAbs"
+    case UOp.Floor => "UFloor"
+    case _         => throw Unsupported(s"uop: $op")
 
   def rocqBOp(op: BOp): String = op match
     case BOp.Add => "BAdd"
@@ -78,9 +80,32 @@ object FVExport {
     case BOp.Mul => "BMul"
     case BOp.Lt  => "BLt"
     case BOp.Eq  => "BEq"
-    case BOp.And => "BAnd"
-    case BOp.Or  => "BOr"
-    case _       => throw Unsupported(s"bop: $op")
+    case BOp.And   => "BAnd"
+    case BOp.Or    => "BOr"
+    case BOp.Div   => "BDiv"
+    case BOp.Mod   => "BMod"
+    case BOp.Equal => "BEqual"
+    case _         => throw Unsupported(s"bop: $op")
+
+  /** map an ESMeta type to the model's restricted [tyexp] (ADR-11).
+    * Uses ESMeta's own stringification with a strict whitelist. */
+  def rocqTy(t: Type): String = t.ty.toString match
+    case "Record[CompletionRecord]" => "TCompletion"
+    case "Record[AbruptCompletion]" => "TAbrupt"
+    case "Record[NormalCompletion]" => "TNormal"
+    case "List"                     => "TList"
+    case "Map"                      => "TMapTy"
+    case "String"                   => "TStrTy"
+    case "Boolean"                  => "TBoolTy"
+    case "Math"                     => "TMathTy"
+    case "Undefined"                => "TUndefTy"
+    case "Null"                     => "TNullTy"
+    case s if s.startsWith("Record[") && s.endsWith("]") && !s.contains(",") =>
+      val name = s.stripPrefix("Record[").stripSuffix("]")
+      if (name.forall(c => c.isLetterOrDigit || c == '.' || c == '_'))
+        s"(TRecord ${strLit(name)})"
+      else throw Unsupported(s"ty: $s")
+    case s => throw Unsupported(s"ty: $s")
 
   def rocqExpr(e: Expr): String = e match
     case EMath(n) =>
@@ -102,6 +127,15 @@ object FVExport {
     case ERecord(tname, pairs) =>
       val fields = pairs.map { case (f, e) => s"(${strLit(f)}, ${rocqExpr(e)})" }
       s"(ERecord ${strLit(tname)} ${coqList(fields)})"
+    case EExists(ref)          => s"(EExists ${rocqRef(ref)})"
+    case ETypeOf(base)         => s"(ETypeOf ${rocqExpr(base)})"
+    case ETypeCheck(base, ty)  => s"(ETypeCheck ${rocqExpr(base)} ${rocqTy(ty)})"
+    case EYet(msg)             => s"(EYet ${strLit(msg)})"
+    case EMap(_, pairs) =>
+      val ps = pairs.map { case (k, v) => s"(${rocqExpr(k)}, ${rocqExpr(v)})" }
+      s"(EMap ${coqList(ps)})"
+    case EKeys(m, intSorted)   => s"(EKeys ${rocqExpr(m)} $intSorted)"
+    case ECopy(obj)            => s"(ECopy ${rocqExpr(obj)})"
     case _             => throw Unsupported(s"expr: ${e.getClass.getSimpleName}")
 
   def rocqInst(i: Inst): String = i match
@@ -117,7 +151,16 @@ object FVExport {
     case IReturn(e) => s"(IReturn ${rocqExpr(e)})"
     case IAssert(e) => s"(IAssert ${rocqExpr(e)})"
     case IPrint(e)  => s"(IPrint ${rocqExpr(e)})"
-    case _          => throw Unsupported(s"inst: ${i.getClass.getSimpleName}")
+    case IPush(elem, list, front) =>
+      s"(IPush ${rocqExpr(elem)} ${rocqExpr(list)} $front)"
+    case IPop(lhs, list, front) =>
+      s"(IPop ${local(lhs)} ${rocqExpr(list)} $front)"
+    case IExpand(base, expr) => s"(IExpand ${rocqRef(base)} ${rocqExpr(expr)})"
+    case IDelete(base, expr) => s"(IDelete ${rocqRef(base)} ${rocqExpr(expr)})"
+    case ISdoCall(lhs, base, method, args) =>
+      s"(ISdoCall ${local(lhs)} ${rocqExpr(base)} ${strLit(method)} " +
+      s"${coqList(args.map(rocqExpr))})"
+    case _ => throw Unsupported(s"inst: ${i.getClass.getSimpleName}")
 
   def rocqFunc(f: Func): String = {
     val params = f.params.map { p =>
