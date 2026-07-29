@@ -7,6 +7,92 @@ Relevant Papers.
 
 ---
 
+## 2026-07-29 (night, correction) — ADR-10: the spec IS the guard; T-3 replaces T-2
+
+**Objective.** Answer a user challenge: optional chaining already parses
+in ESMeta, so was T-2's synthetic `EOptField` necessary?
+
+**Current Status.** Challenge upheld; correction implemented and proved.
+`t3_contextual_equivalence` (`formal/T3Proof.v`) — mutual contextual
+refinement of the spec-shaped optional-access program and its `t1_prog`
+transform, **mirrored IR only, no synthetic construct**. All builds green
+(11 → 12 modules), validation extended, axiom base unchanged.
+
+**Observations (evidence gathered, strongest last).**
+- **[VF]** ESMeta v0.7.3 source parses `var x = a?.prop` →
+  `|OptionalExpression|[FF]<0>( … |OptionalChain|[FF]<2>(
+  |IdentifierName|(prop) ) )`. The user was right. (Aside: the
+  checked-in `bin/esmeta` is a stale v0.6.4 that dies on the current
+  spec — must use `sbt run`.)
+- **[PF]** `sec-optional-chaining-evaluation` defines `?.` as: receiver
+  evaluated once → `GetValue` → if undefined/null return undefined →
+  else `ChainEvaluation`.
+- **[RF]** `sbt "run dump-debugger"` →
+  `logs/dump/debugger/funcs.json`: the *compiled* IR of
+  `OptionalExpression[0,0].Evaluation` literally contains
+  `if (|| (= baseValue undefined) (= baseValue null)) { call %2 =
+  clo<"NormalCompletion">(undefined); return %2 }` after one
+  `sdo-call`+`GetValue`, then `ChainEvaluation`. All three
+  `OptionalExpression` productions share the shape.
+- Therefore **the specification itself is the desugaring**: the guard is
+  introduced by spec→IR compilation, so at IR level there is nothing to
+  desugar and inventing a source form was unnecessary. ADR-9's factual
+  claim (no IR `?.` primitive) stands; its design decision was wrong.
+
+**Design Decisions.** ADR-10 written as an explicit correction record
+(ADR-9 marked superseded-in-part, retained since T-2 is proved and its
+machinery is reused). T-3 = spec-shaped source + `t1_prog`, receiver is
+an effectful **context call** so "exactly once" is observable (T-2's
+version was only syntactic — IR-Core has no getters). Guard test order
+flipped to `undefined`-then-`null` to match the compiled IR verbatim
+(unobservable, but keeps the correspondence visible). T-2 demoted to a
+model-internal exercise; PO-015 added, PO-014 marked demoted.
+
+**Honesty correction made to my own prose.** The first draft of
+T3Proof.v's header said the program was "written exactly as the
+ECMAScript specification defines it" — an overclaim. Rewritten: it models
+the *control shape*; a "WHAT IS NOT ESTABLISHED" section now tabulates the
+evidence chain and names the single unmechanized link (model ↔ compiled
+IR), the abstractions (References/GetValue → no getters, no prototype
+chain, no ToObject, no abrupt completions) and the outright **divergence**
+`(42)?.foo` = `undefined` in JS vs UB in the model (new limitation L-8).
+Asked directly whether "JS `?.` = guard form" is proven, the answer
+recorded everywhere is **no**.
+
+**Proof Progress.** PO-015 proved (exemplar family, both directions).
+Reused unchanged: T-2's `SGet`-pairing and receiver case analysis,
+`env_lookup_update_same`, `fresh_temp_is_fresh`, `main_adequacy`.
+Validation added: `t3v_src_trace` `[7;42]`, `t3v_null_trace`
+`[7;undefined]`, `t3v_preserved`, `t3v_null_preserved`, and the
+receiver-once negative test `t3v_reeval_detected` (`[7;42]` vs
+`[7;7;42]`).
+
+**Failed Attempts.** Factored the proof prefix into an `Ltac t3prefix`
+referencing `st_tgt`: Ltac1 resolves free term identifiers at *definition*
+time, so it failed with "reference st_tgt was not found". Inlined at each
+use site, as T1/T2 already did.
+
+**Research Debt.** The `?.`-to-model link is the honest gap (tabulated in
+ADR-10); nested chains (`a?.b?.c`), call chains (`f?.()`), and bracket
+form remain unmodelled. `logs/dump/debugger/` is now populated — useful
+for future spec-IR inspection, and gitignored.
+
+**Open Questions.** OQ-4/OQ-8 unchanged. New: whether a *fragment-level*
+faithfulness proof against the compiled `OptionalExpression` IR is
+feasible without the full object model (probably not — `GetValue` reaches
+getters), which is why it stays [FW].
+
+**Next Steps.** Unchanged candidates: schematic ∀p generalization,
+PO-013, fragment growth.
+
+**Relevant Commits.** `bac2a188`, `8c163fc9` on `dev-cris`; this work
+pending commit.
+
+**Relevant Papers.** ecma262 @ 84b38ad8 §13.3.9 (optional chains); CRIS;
+Interaction Trees.
+
+---
+
 ## 2026-07-29 (night, tooling) — Coqtail-MCP + interactive model execution
 
 Work committed on branch `dev-cris` (bac2a188; local only, per user).

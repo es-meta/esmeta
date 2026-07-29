@@ -134,3 +134,93 @@ Definition print2_main : func :=
     (IPrint (EMath 1) :: IPrint (EMath 2) :: nil)).
 
 Definition print2_prog : prog := mkProg (print2_main :: nil).
+
+(** ** T-3: spec-shaped optional access (ADR-10)
+
+    The ECMAScript specification defines optional chaining as *already
+    guarded* code (ecma262 @ 84b38ad8, sec-optional-chaining-evaluation):
+
+      OptionalExpression : MemberExpression OptionalChain
+        1. Let baseReference be ? Evaluation of MemberExpression.
+        2. Let baseValue be ? GetValue(baseReference).
+        3. If baseValue is either undefined or null, then
+           a. Return undefined.
+        4. Return ? ChainEvaluation of OptionalChain with arguments
+           baseValue and baseReference.
+      OptionalChain : `?.` IdentifierName
+        1. Return EvaluatePropertyAccessWithIdentifierKey(baseValue, …).
+
+    ESMeta's *compiled* IR for that production has the same shape — the
+    guard is real code, not just prose (see the quote in ADR-10, from
+    `logs/dump/debugger/funcs.json`, `OptionalExpression[0,0].Evaluation`):
+    one receiver evaluation, `if (|| (= baseValue undefined)
+    (= baseValue null)) return NormalCompletion(undefined)`, then
+    `ChainEvaluation`.
+
+    The program below models that CONTROL SHAPE in mirrored IR-Core, with
+    the receiver an effectful call to a context-supplied function — the
+    case in which "evaluated exactly once" is genuinely OBSERVABLE (each
+    call is an event at the linking boundary).
+
+    No synthetic construct is involved: every constructor here mirrors
+    real ESMeta IR, so both this program and its transformation are
+    executable by ESMeta and exportable by the differential harness.
+
+    BOUNDARY: this is a model of the control shape only — no Reference
+    Records/GetValue (hence no getters), no prototype chain, no ToObject
+    coercion (so `(42)?.foo` is UB here but `undefined` in JS), no abrupt
+    completions.  It is NOT proven to be ECMAScript `?.`; see the "WHAT
+    IS NOT ESTABLISHED" section of T3Proof.v and limitation L-8. *)
+
+(* Test order matches the compiled IR quoted above: undefined first,
+   then null.  Both operands are pure equality tests on an
+   already-computed value, so the order is unobservable; we match it
+   anyway to keep the correspondence syntactically visible. *)
+Definition t3_guard (v : expr) : expr :=
+  EBinary BOr (EBinary BEq v EUndef) (EBinary BEq v ENull).
+
+(** `x = f()?.prop`, spec-shaped; "f" is supplied by the linking context. *)
+Definition t3_optaccess_main : func :=
+  mkFunc true "main" nil (ISeq
+    (ICall (LName "t") (EClo "f" nil) nil ::
+     IIf (t3_guard (lref "t"))
+         (ILet "x" EUndef)
+         (ILet "x" (ERef (RField (RVar (VLocal (LName "t"))) (EStr "prop")))) ::
+     IPrint (lref "x") :: nil)).
+
+Definition t3ex_src : prog := mkProg (t3_optaccess_main :: nil).
+
+(** *** Closed variants for executable validation
+
+    A local receiver function that PRINTS before returning a record, so
+    that re-evaluating the receiver is observable. *)
+
+Definition t3v_f : func :=
+  mkFunc false "f" nil (ISeq
+    (IPrint (EMath 7) ::
+     ILet "o" (ERecord "R" (("prop", EMath 42) :: nil)) ::
+     IReturn (lref "o") :: nil)).
+
+Definition t3v_src : prog := mkProg (t3v_f :: t3_optaccess_main :: nil).
+
+(** A nullish-returning receiver: the guard must skip the property access. *)
+Definition t3v_fnull : func :=
+  mkFunc false "f" nil (ISeq
+    (IPrint (EMath 7) :: IReturn ENull :: nil)).
+
+Definition t3v_null : prog := mkProg (t3v_fnull :: t3_optaccess_main :: nil).
+
+(** WRONG transformation: the receiver is re-evaluated inside the
+    non-nullish branch, so the context call happens twice.  IR-Core has
+    no call expressions, so re-evaluation is a second [ICall]. *)
+Definition t3_reeval_main : func :=
+  mkFunc true "main" nil (ISeq
+    (ICall (LName "t") (EClo "f" nil) nil ::
+     IIf (t3_guard (lref "t"))
+         (ILet "x" EUndef)
+         (ISeq (ICall (LName "t2") (EClo "f" nil) nil ::
+                ILet "x" (ERef (RField (RVar (VLocal (LName "t2")))
+                                  (EStr "prop"))) :: nil)) ::
+     IPrint (lref "x") :: nil)).
+
+Definition t3v_reeval : prog := mkProg (t3v_f :: t3_reeval_main :: nil).

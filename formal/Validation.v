@@ -89,6 +89,34 @@ Example t1_prog_preserves_fibo :
   run 100000 fibo_prog = run 100000 (t1_prog fibo_prog).
 Proof. vm_compute. reflexivity. Qed.
 
+(** ** T-3 (spec-shaped optional access, ADR-10) — mirrored IR only
+
+    The receiver is an effectful context call, so "evaluated exactly
+    once" is observable.  Positive: the real transformation [t1_prog]
+    preserves the trace on both the record and the nullish receiver.
+    Negative: re-evaluating the receiver calls it twice — detected. *)
+
+Example t3v_src_trace : run 1000 t3v_src = Ok (VUndef, [VMath 7; VMath 42]).
+Proof. vm_compute. reflexivity. Qed.
+
+Example t3v_null_trace : run 1000 t3v_null = Ok (VUndef, [VMath 7; VUndef]).
+Proof. vm_compute. reflexivity. Qed.
+
+Example t3v_preserved : run 1000 t3v_src = run 1000 (t1_prog t3v_src).
+Proof. vm_compute. reflexivity. Qed.
+
+Example t3v_null_preserved : run 1000 t3v_null = run 1000 (t1_prog t3v_null).
+Proof. vm_compute. reflexivity. Qed.
+
+(** The receiver-once obligation has real teeth: re-evaluation prints 7
+    twice. *)
+Example t3v_reeval_trace :
+  run 1000 t3v_reeval = Ok (VUndef, [VMath 7; VMath 7; VMath 42]).
+Proof. vm_compute. reflexivity. Qed.
+
+Example t3v_reeval_detected : run 1000 t3v_src <> run 1000 t3v_reeval.
+Proof. vm_compute. discriminate. Qed.
+
 (** NEGATIVE TEST 1 — an INCORRECT transformation that duplicates the
     call.  The callee's print fires twice; the harness detects it. *)
 

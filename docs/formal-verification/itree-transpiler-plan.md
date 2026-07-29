@@ -410,7 +410,114 @@ deferred to PO-010 [user decision: "linking now, syntactic later"].
   hard aborts). The negative tests (deliberately wrong transformation) must
   be chosen to differ observably *before* any stuck point.
 
+### ADR-10 — CORRECTION to ADR-9: the specification *is* the desugaring; T-3 supersedes T-2
+- **Problem.** ADR-9 introduced a synthetic `EOptField` to have an
+  optional-chaining *source* form. User challenge (2026-07-29): ESMeta
+  already parses optional chaining, so is the synthetic construct needed?
+- **Empirical findings.**
+  1. **[VF]** ESMeta (v0.7.3 source; note the checked-in `bin/esmeta` is a
+     stale v0.6.4 that fails on the current spec) parses `var x = a?.prop`
+     into `|OptionalExpression|[FF]<0>( |MemberExpression|…(a),
+     |OptionalChain|[FF]<2>( |IdentifierName|(prop) ) )`. The user was
+     right.
+  2. **[PF]** `ecma262@84b38ad8` `sec-optional-chaining-evaluation`
+     defines `OptionalExpression : MemberExpression OptionalChain` as:
+     *(1)* `baseReference ← Evaluation of MemberExpression`;
+     *(2)* `baseValue ← GetValue(baseReference)` — **receiver evaluated
+     once**; *(3)* if `baseValue` is undefined or null, **return
+     undefined**; *(4)* otherwise `ChainEvaluation` →
+     `EvaluatePropertyAccessWithIdentifierKey`.
+  3. **[RF — strongest available]** ESMeta's *compiled IR* for that
+     production confirms the guard is real code, not a reading of prose.
+     From `logs/dump/debugger/funcs.json` (`sbt "run dump-debugger"`),
+     function `OptionalExpression[0,0].Evaluation`, location annotations
+     stripped:
+
+     ```
+     sdo-call %0 = this[0]->Evaluation()
+     if (? %0: Abrupt) return %0 else %0 = %0.Value
+     let baseReference = %0
+     call %1 = clo<"GetValue">(baseReference)
+     if (? %1: Abrupt) return %1 else %1 = %1.Value
+     let baseValue = %1
+     if (|| (= baseValue undefined) (= baseValue null)) {
+       call %2 = clo<"NormalCompletion">(undefined)
+       return %2 }
+     sdo-call %3 = this[1]->ChainEvaluation(baseValue, baseReference)
+     ```
+
+     One receiver evaluation, the literal nullish disjunction, early
+     `undefined` return, property access only afterwards. (All three
+     `OptionalExpression` productions compile to the same shape.)
+- **Consequence — ADR-9's factual claim stands, its design choice was
+  wrong.** There is still no IR-level `?.` primitive, and now we know
+  *why*: the guard is introduced by the specification itself, hence by
+  spec→IR compilation. At IR level there is nothing left to desugar, so
+  inventing a source form was unnecessary. Every obligation the project
+  brief asks of this transformation class — receiver evaluated exactly
+  once, no property access on the nullish branch, unchanged effect order
+  — is expressible **between two mirrored-IR programs**, by taking the
+  source to be the spec-shaped guarded code.
+- **What T-2 actually proves** (recorded plainly): "our desugaring
+  implements *our* definition of `EOptField`". Sound, and its case
+  analysis and guard obligation were real, but the source semantics is
+  model-defined, so the theorem cannot be right or wrong *relative to
+  ECMAScript*, and ESMeta cannot execute its source side — the
+  differential harness never covered it.
+- **Decision.** Add **T-3** (`formal/T3Proof.v`, `Programs.v`
+  `t3_optaccess_main`): the spec-shaped optional access
+  `x = f()?.prop` in mirrored IR only, receiver an **effectful context
+  call**, transformed by the already-verified `t1_prog`. T-3 becomes the
+  project's optional-chaining result; T-2 is retained (proved, and its
+  proof machinery — abstract-store `SGet` pairing, receiver case
+  analysis — is reused by T-3) but **demoted to a model-internal
+  exercise** and must not be cited as an ECMAScript-level claim.
+- **Why the receiver must be a call.** ADR-9 already noted that IR-Core
+  has no getters, so re-evaluating a *pure* receiver is unobservable.
+  Making the receiver a context call fixes exactly that gap: each call
+  is an event at the linking boundary, so "exactly once" becomes a
+  genuinely observable obligation — the wrong, re-evaluating
+  transformation calls it twice and is detected
+  (`t3v_reeval_detected`: traces `[7;42]` vs `[7;7;42]`).
+- **What is still NOT proven (asked directly, 2026-07-29).** *"Is it
+  proven that JavaScript `?.` equals the guard form?"* — **No.** Nothing
+  in `formal/` mentions JavaScript or `?.`; T-3's theorem is about two
+  IR-Core programs. The chain from JS to that theorem has one
+  unmechanized link:
+
+  | Step | Status |
+  |---|---|
+  | `a?.b` parses in ESMeta | **[VF]** verified by running the parser |
+  | spec text defines `?.` as the guarded form | **[PF]** reading of normative prose |
+  | ESMeta's compiled IR has the guard shape | **[RF]** inspected above — machine-generated, so not a reading |
+  | `t3ex_src` models that compiled IR | **[EA] unverified modelling step — the weak link** |
+  | `t1_prog` preserves `t3ex_src`'s behaviour in all contexts | **proved (Qed)** |
+
+  The modelling step abstracts, and in one case **diverges from**, real
+  JavaScript: no Reference Records/`GetValue` (hence no getter calls,
+  which in real JS can run arbitrary user code at steps 2 and 4), no
+  prototype chain or accessor properties, no `ToObject` coercion, no
+  abrupt-completion propagation. The divergence: `(42)?.foo` is
+  `undefined` in JS (a Number is not nullish, so access proceeds through
+  `ToObject`) whereas the model makes a non-address receiver **UB**
+  (limitation L-8). Closing the link means mechanizing the compiled IR
+  functions above (`GetValue`, `ChainEvaluation`,
+  `EvaluatePropertyAccessWithIdentifierKey`, …) and proving them
+  equivalent to the guarded program — the PO-012-style spec-level
+  faithfulness route, [FW].
+- **Consequences.** Both sides of T-3 are real IR: ESMeta can execute
+  them and `FVExport` can emit them, so differential validation applies
+  to source *and* target — an honesty gap T-2 could not close. What
+  remains open for T-3 is the modelling step above, which must be stated
+  whenever the result is described. Full JS-level optional chaining
+  (References, getters, calls, private names, nested chains) remains
+  [FW] — it needs the spec-derived IR.
+
 ### ADR-9 — T-2 optional-field desugaring over a synthetic source construct
+> **Superseded in part by ADR-10** (2026-07-29): the synthetic construct
+> was unnecessary; see ADR-10 for the spec evidence and for T-3, the
+> mirrored-IR replacement. Retained because T-2 is proved and its proof
+> machinery is reused.
 - **Problem.** Prove an optional-chaining-style desugaring (the brief's
   candidate #3). **[RF]** ESMeta IR has no `?.` construct — real optional
   chaining is compiled from the spec into AST dispatch + completion-record
@@ -620,6 +727,13 @@ proved-statement summary, claim classification, and a research-log entry.
 - **L-5** The connection to ESMeta execution is by testing until PO-012;
   the connection to ECMAScript is not part of this project.
 - **L-6** Observable payloads restricted to address-free values (OQ-8).
+- **L-8** The T-3 optional-access model (ADR-10) captures only the
+  *control shape* of `?.`: receiver evaluated once, nullish guard, access
+  only on the non-nullish branch. It has no Reference Records/`GetValue`
+  (so no getter calls), no prototype chain or accessor properties, no
+  `ToObject`, and no abrupt-completion propagation. It **diverges** from
+  JavaScript on primitive receivers: `(42)?.foo` is `undefined` in JS but
+  UB in the model. No claim is made that the model *is* ECMAScript `?.`.
 - **L-7** Short-circuit `And`/`Or` semantics pinned to the interpreter's
   behavior in M2 (OQ-7): **[RF]** `Interpreter.scala:358–365` short-circuits;
   the fragment's denotation must do the same, and `tests/ir/expr/` fixtures

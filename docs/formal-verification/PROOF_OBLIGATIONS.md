@@ -229,6 +229,10 @@ note header). "AN §n" = architecture-note section n.
   **Difficulty.** ★★★★
 
 ### PO-014 — T-2 optional-field desugaring equivalence
+> **Demoted by ADR-10** (2026-07-29): proved, but over a *synthetic*
+> source construct, so it is a model-internal exercise. Superseded as the
+> project's optional-chaining result by PO-015 (T-3). Do not cite as an
+> ECMAScript-level claim.
 - **Statement.** For the T-2 exemplar (main receives a value from an
   unknown context call, applies `EOptField`, prints):
   `ctx_refines (ir_mod mn (t2_prog p)) (ir_mod mn p)` and the converse,
@@ -253,6 +257,33 @@ note header). "AN §n" = architecture-note section n.
   `t2v_rec_preserved`, `t2v_null_preserved`, negative `t2v_bad_detected`
   (all vm_compute). Axiom audit: framework base only. Schematic
   ∀-programs version open, as with T-1. **Difficulty.** ★★★★
+
+### PO-015 — T-3 spec-shaped optional access: receiver-once (supersedes PO-014)
+- **Statement.** For `t3ex_src` (`x = f()?.prop` modelled in **mirrored
+  IR only**: receiver = call to a context-supplied function, nullish
+  guard, property access only on the non-nullish branch):
+  `ctx_refines (ir_mod mn (t1_prog t3ex_src)) (ir_mod mn t3ex_src)` and
+  the converse.
+- **Motivation.** ADR-10: the specification itself *is* the guarded form,
+  so no synthetic construct is needed; and with an effectful receiver,
+  "evaluated exactly once" becomes an *observable* obligation (T-2's
+  version was only syntactic, since IR-Core has no getters).
+- **Dependencies.** ADR-10; `env_lookup_update_same`; T-2's proof
+  machinery (abstract-store `SGet` pairing, receiver case analysis);
+  `fresh_temp_is_fresh` for the freshness premise.
+- **Technique.** T-1/T-2 isim skeleton + full receiver case analysis
+  (undefined / null / four non-address shapes as symmetric UB / address
+  with paired `SGet`, downcast, record-shape and field-presence splits).
+- **Status.** **proved (Qed), 2026-07-29** — `formal/T3Proof.v`:
+  `t3_contextual_equivalence`. Executable validation in `Validation.v`:
+  `t3v_src_trace` = `[7;42]`, `t3v_null_trace` = `[7;undefined]`,
+  `t3v_preserved`/`t3v_null_preserved`, and the receiver-once negative
+  test `t3v_reeval_detected` (`[7;42]` vs `[7;7;42]`). Axiom audit:
+  framework base only.
+- **Explicitly NOT proved.** That JavaScript `?.` *is* this guarded form.
+  Evidence chain and the one unmechanized modelling step are tabulated in
+  ADR-10; the model diverges from JS on primitive receivers (L-8).
+  Closing it is the PO-012-style spec-level route. **Difficulty.** ★★★★
 
 ---
 
