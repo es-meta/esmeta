@@ -28,8 +28,8 @@ Section EXAMPLES.
       is literally the two log events in program order followed by normal
       completion — the semantics neither drops, duplicates, nor reorders
       the observable effects (observable-behavior spec O-1). *)
-  Lemma print2_body_trace (mn : string) (ρ : env) :
-    denote_inst mn (f_body print2_main) ρ =
+  Lemma print2_body_trace (mn : string) (fnames : list string) (ρ : env) :
+    denote_inst mn fnames (f_body print2_main) ρ =
     (log_val (VMath 1);;;
      log_val (VMath 2);;;
      Ret (ρ, CNormal VUndef)).

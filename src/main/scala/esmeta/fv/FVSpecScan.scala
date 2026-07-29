@@ -74,14 +74,8 @@ object FVSpecScan {
         }
         super.walk(e)
       }
-      override def walk(i: Inst): Unit = {
-        i match {
-          case _: ISdoCall =>
-            found += s"inst:${i.getClass.getSimpleName}"
-          case _ => ()
-        }
-        super.walk(i)
-      }
+      // all Inst forms are now covered by the Rocq model
+      override def walk(i: Inst): Unit = super.walk(i)
     }
     walker.walk(body)
     found.toSet

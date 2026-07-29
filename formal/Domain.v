@@ -38,6 +38,120 @@ Definition eval_uop (op : uop) (v : val) : option val :=
   | _, _ => None
   end.
 
+(** Structural equality on parse trees (needed by [val_eqb]). *)
+Fixpoint ast_eqb (a1 a2 : ast) {struct a1} : bool :=
+  match a1, a2 with
+  | ALex n1 s1, ALex n2 s2 => andb (String.eqb n1 n2) (String.eqb s1 s2)
+  | ASyn n1 g1 r1 b1 c1, ASyn n2 g2 r2 b2 c2 =>
+      andb (String.eqb n1 n2)
+        (andb (Nat.eqb r1 r2)
+           (andb (Nat.eqb b1 b2)
+              (andb ((fix bs (l1 l2 : list bool) : bool :=
+                        match l1, l2 with
+                        | nil, nil => true
+                        | x :: t1, y :: t2 => andb (Bool.eqb x y) (bs t1 t2)
+                        | _, _ => false
+                        end) g1 g2)
+                 ((fix cs (l1 l2 : list (option ast)) : bool :=
+                     match l1, l2 with
+                     | nil, nil => true
+                     | None :: t1, None :: t2 => cs t1 t2
+                     | Some x :: t1, Some y :: t2 =>
+                         andb (ast_eqb x y) (cs t1 t2)
+                     | _, _ => false
+                     end) c1 c2))))
+  | _, _ => false
+  end.
+
+Definition ast_name (a : ast) : string :=
+  match a with ASyn n _ _ _ _ => n | ALex n _ => n end.
+
+Definition ast_children (a : ast) : list (option ast) :=
+  match a with ASyn _ _ _ _ cs => cs | ALex _ _ => nil end.
+
+(** Production chains (Ast.scala:38-44): the node itself, then, while a
+    node has exactly one present child, that child — the fall-through used
+    by SDO lookup.  Fuel is the tree size, which bounds the chain length,
+    because the single-present-child projection is not a structural
+    subterm the guard checker can follow. *)
+
+Fixpoint ast_size (a : ast) : nat :=
+  match a with
+  | ALex _ _ => 1
+  | ASyn _ _ _ _ cs =>
+      S ((fix go (l : list (option ast)) : nat :=
+            match l with
+            | nil => 0
+            | None :: t => go t
+            | Some c :: t => ast_size c + go t
+            end) cs)
+  end.
+
+Definition single_present (l : list (option ast)) : option ast :=
+  match List.filter (fun o => match o with Some _ => true | None => false end) l with
+  | Some c :: nil => Some c
+  | _ => None
+  end.
+
+Fixpoint ast_chain_fuel (n : nat) (a : ast) : list ast :=
+  a :: match n with
+       | O => nil
+       | S n' =>
+           match single_present (ast_children a) with
+           | Some c => ast_chain_fuel n' c
+           | None => nil
+           end
+       end.
+
+Definition ast_chain (a : ast) : list ast := ast_chain_fuel (ast_size a) a.
+
+(** Decimal rendering of a natural number, shared by the denotation and
+    the executable interpreter so the two build identical SDO names. *)
+Fixpoint nat_to_dec (fuel n : nat) (acc : string) : string :=
+  match fuel with
+  | O => acc
+  | S fuel' =>
+      let d := Nat.modulo n 10 in
+      let ch := match d with
+                | 0 => "0" | 1 => "1" | 2 => "2" | 3 => "3" | 4 => "4"
+                | 5 => "5" | 6 => "6" | 7 => "7" | 8 => "8" | _ => "9"
+                end in
+      let acc' := (ch ++ acc)%string in
+      let q := Nat.div n 10 in
+      match q with O => acc' | _ => nat_to_dec fuel' q acc' end
+  end.
+
+Definition nat_str (n : nat) : string := nat_to_dec (S n) n "".
+
+(** SDO target resolution (Ast.scala:102-113): for each node in the chain
+    try `Name[rhsIdx,subIdx].Method`, else `DEFAULT:Method`; first hit
+    wins.  Existence is decided against the program's function names. *)
+Definition sdo_candidate (a : ast) (m : string) : string :=
+  match a with
+  | ASyn n _ r b _ =>
+      (n ++ "[" ++ nat_str r ++ "," ++ nat_str b ++ "]." ++ m)%string
+  | ALex n _ => (n ++ "[0,0]." ++ m)%string
+  end.
+
+Fixpoint name_mem (x : string) (l : list string) : bool :=
+  match l with
+  | nil => false
+  | y :: tl => if String.eqb x y then true else name_mem x tl
+  end.
+
+Definition sdo_resolve (fnames : list string) (a : ast) (m : string)
+  : option (ast * string) :=
+  let dflt := ("DEFAULT:" ++ m)%string in
+  (fix go (l : list ast) : option (ast * string) :=
+     match l with
+     | nil => None
+     | a0 :: tl =>
+         let c := sdo_candidate a0 m in
+         if name_mem c fnames then Some (a0, c)
+         else if name_mem dflt fnames then Some (a0, dflt)
+         else go tl
+     end) (ast_chain a).
+
 (** Structural equality, mirroring Scala case-class equality on the
     fragment's value forms (BOp.Eq, Interpreter.scala:566ff). *)
 Fixpoint val_eqb (v1 v2 : val) {struct v1} : bool :=
@@ -49,6 +163,7 @@ Fixpoint val_eqb (v1 v2 : val) {struct v1} : bool :=
   | VNull, VNull => true
   | VEnum n1, VEnum n2 => String.eqb n1 n2
   | VAddr a1, VAddr a2 => Nat.eqb a1 a2
+  | VAst a1, VAst a2 => ast_eqb a1 a2
   | VClo f1 c1, VClo f2 c2 =>
       andb (String.eqb f1 f2)
         ((fix go (l1 l2 : list (string * val)) : bool :=
@@ -239,7 +354,7 @@ Definition typeof_prim (v : val) : option string :=
   | VBool _ => Some "Boolean"
   | VUndef => Some "Undefined"
   | VNull => Some "Null"
-  | VMath _ | VEnum _ | VClo _ _ => Some "SpecType"
+  | VMath _ | VEnum _ | VClo _ _ | VAst _ => Some "SpecType"
   | VAddr _ => None
   end.
 

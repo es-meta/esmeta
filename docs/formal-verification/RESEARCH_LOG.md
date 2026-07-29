@@ -7,6 +7,85 @@ Relevant Papers.
 
 ---
 
+## 2026-07-29 (late night) — Scaling toward JS-level execution: 8 -> 2417 of 2951 spec functions
+
+**Objective.** User asked to model enough that Test262 can actually run.
+Measure the real requirement, then build toward it.
+
+**Current Status.** Model constructor coverage over the compiled spec:
+**2417 / 2951 functions (82%)**, up from 8 at the start of the session.
+13 modules build clean, differential validation passes, no `Admitted`, and
+T-1/T-2/T-3 still hold under the extended model.
+
+**Measurements (new tooling, `esmeta.fv`).**
+- `FVSpecScan` reparses the compiled spec IR with ESMeta's own parser and
+  reports blocking constructors with a cumulative-unlock ordering.
+- Call-graph closure from `OptionalExpression[0,0].Evaluation`:
+  1628/2951 with calls expanded, **1513** with user-code calls treated as
+  boundaries, **290** once the receiver's own `Evaluation` is a black box,
+  **21** for property access alone. So the JS-level route needs the
+  reachable closure — NOT all of Test262 — and open simulation lets the
+  shared parts stay unmodelled as matched calls.
+- `FVTyModel` exports ESMeta's record subtyping (112 decls / 74 edges) to
+  the generated `formal/TyModel.v`.
+
+**Implemented this session.** Operators Abs/Floor/Div/Mod/Equal;
+`EExists`, `ETypeOf`, `ETypeCheck` (ADR-11), `EYet`, `EMap`, `EKeys`,
+`ECopy`; `IPush`, `IPop`, `IExpand`, `IDelete`; insertion-ordered `OMap`;
+AST values with `ISdoCall` dispatch (ADR-12) including the production-chain
+walk and `DEFAULT:` fallback; AST child indexing and `ESizeOf` on ASTs.
+Each clause cites its `Interpreter.scala`/`Obj.scala`/`Ast.scala`
+counterpart; where faithfulness needs machinery we lack, the model raises
+**UB instead of guessing** (ETypeOf on addresses, UTF-16 string length,
+int-sorted `EKeys`, named AST fields, lexical SDOs).
+
+**Roadmap to actually running Test262 (honest accounting).**
+1. Numeric tower — `ENumber` (162), `EConvert` (245), `EInfinity` (33),
+   `ECodeUnit` (30), `EBigInt` (12): ~480 functions. Rocq `PrimFloat`
+   gives vm_compute-executable IEEE-754 doubles. `EMathOp` (21,
+   transcendentals) has no PrimFloat support -> UB.
+2. Cheap remainder — `EVariadic` (72), `EContains` (49), `bop:**` (49),
+   `EGrammarSymbol` (49), `ESourceText` (37), `EParse` (33, only the
+   cached-AST case is needed since ESMeta short-circuits the main script),
+   `ESubstring` (22).
+3. `ESValueParser` in Rocq (462 Scala lines): lexical SDOs
+   (StringValue/NumericValue/MV/SV/TV/TRV). Required for any literal.
+4. Initial-state export: ESMeta's intrinsics heap, global object, realm
+   (hundreds-to-thousands of objects) as exported data.
+5. Efficient heap: the current `list obj` heap is O(n) per access; real
+   execution needs a map/trie or vm_compute will crawl.
+6. `ECont` (11) for generators/async -> UB for most tests.
+Items 1, 2 and 4 are mechanical; 3 and 5 are real chunks. This is several
+more sessions at the present pace, not one.
+
+**Failed Attempts.** `ast_chain` rejected by the guard checker (the
+single-present-child projection is not a structural subterm) -> fuel by
+`ast_size`. `.(` parsed as record projection in `| UFloor.(* … *)` ->
+needed a space. `++` re-parsed in `string_scope` inside list code ->
+`%list`. A blanket `try (apply andb_true_intro; …)` in the freshness proof
+intercepted `IIf` -> reverted to explicit bullets. `ty_check` placed after
+`val_eqb` although the latter now calls `ast_eqb` -> reordered.
+
+**Research Debt.** `Semantics.denote_inst` and `Exec.exec_inst` now take
+the program's function-name list for SDO resolution; `ir_mod`'s signature
+was preserved deliberately so the T-1/T-2/T-3 proofs did not have to
+change. `TyModel.v` is generated but checked in — keep it in sync when the
+spec pin moves.
+
+**Open Questions.** Whether `EMathOp`'s transcendentals can be given any
+executable meaning in Rocq (probably not without a float library) — they
+stay UB. Whether the intrinsics heap export is small enough for
+vm_compute at usable speed (item 5 depends on it).
+
+**Next Steps.** Numeric tower (biggest unlock), then the cheap remainder,
+then `ESValueParser`.
+
+**Relevant Commits.** `b6f0d4e1` and the follow-up on `dev-cris`.
+
+**Relevant Papers.** Unchanged.
+
+---
+
 ## 2026-07-29 (night, correction) — ADR-10: the spec IS the guard; T-3 replaces T-2
 
 **Objective.** Answer a user challenge: optional chaining already parses

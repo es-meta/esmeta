@@ -88,6 +88,16 @@ Section DENOTE.
         | OMap es, _ => (map_lookup es k)?
         | _, _ => triggerUB
         end
+    (* AST child access, e.g. `this[0]` (State.scala:52, Ast.scala:90-91).
+       Named-field and "parent" access need the grammar / parent pointers
+       (Ast.scala:84-89), which the model does not carry: UB, not guessed. *)
+    | TField (VAst a) (VMath i) =>
+        if (0 <=? i)%Z
+        then
+          c <- (nth_error (ast_children a) (Z.to_nat i))?;;
+          c0 <- c?;;
+          Ret (VAst c0)
+        else triggerUB
     | _ => triggerUB
     end.
 
@@ -203,6 +213,8 @@ Section DENOTE.
             o <- get_obj a;;
             n <- (obj_size o)?;;
             Ret (VMath (Z.of_nat n))
+        (* ast.children.size — Interpreter.scala:321 *)
+        | VAst a => Ret (VMath (Z.of_nat (List.length (ast_children a))))
         | _ => triggerUB
         end
     | ERecord tname fields =>
@@ -335,8 +347,8 @@ Section DENOTE.
 
   (** ** Instruction denotation *)
 
-  Fixpoint denote_inst (i : inst) (ρ : env) {struct i}
-    : itree crisE (env * completion) :=
+  Fixpoint denote_inst (fnames : list string) (i : inst) (ρ : env)
+      {struct i} : itree crisE (env * completion) :=
     match i with
     | INop => Ret (ρ, CNormal VUndef)
     | ISeq insts =>
@@ -344,7 +356,7 @@ Section DENOTE.
            match l with
            | nil => Ret (ρ0, CNormal VUndef)
            | i1 :: tl =>
-               '(ρ1, k) : env * completion <- denote_inst i1 ρ0;;
+               '(ρ1, k) : env * completion <- denote_inst fnames i1 ρ0;;
                match k with
                | CNormal _ => go tl ρ1
                | CReturn v => Ret (ρ1, CReturn v)
@@ -364,8 +376,8 @@ Section DENOTE.
     | IIf c thn els =>
         cv <- denote_expr c ρ;;
         match cv with
-        | VBool true => denote_inst thn ρ
-        | VBool false => denote_inst els ρ
+        | VBool true => denote_inst fnames thn ρ
+        | VBool false => denote_inst fnames els ρ
         | _ => triggerUB
         end
     | IWhile c body =>
@@ -374,7 +386,7 @@ Section DENOTE.
              cv <- denote_expr c ρ0;;
              match cv with
              | VBool true =>
-                 '(ρ1, k) : env * completion <- denote_inst body ρ0;;
+                 '(ρ1, k) : env * completion <- denote_inst fnames body ρ0;;
                  match k with
                  | CNormal _ => Ret (inl ρ1)
                  | CReturn v => Ret (inr (ρ1, CReturn v))
@@ -475,15 +487,35 @@ Section DENOTE.
             end
         | _ => triggerUB
         end
+    (* Syntax-directed dispatch (Interpreter.scala:177-192): resolve the
+       target through the production chain, prepend the receiver AST as the
+       first argument, and call.  Lexical receivers are dispatched to
+       Scala-implemented value parsers in ESMeta (Interpreter.scala:521);
+       those are not modelled, so a lexical receiver is UB here. *)
+    | ISdoCall lhs base method args =>
+        bv <- denote_expr base ρ;;
+        match bv with
+        | VAst a =>
+            match a with
+            | ALex _ _ => triggerUB
+            | ASyn _ _ _ _ _ =>
+                '(a0, fname) : ast * string <- (sdo_resolve fnames a method)?;;
+                vs <- denote_exprs args ρ;;
+                rv <- ccallU (ir_sig fname) (nil, VAst a0 :: vs);;
+                Ret (env_update lhs rv ρ, CNormal VUndef)
+            end
+        | _ => triggerUB
+        end
     end.
 
   (** ** Function bodies *)
 
-  Definition denote_fbody (f : func) (arg : ir_arg) : itree crisE val :=
+  Definition denote_fbody (fnames : list string) (f : func) (arg : ir_arg)
+    : itree crisE val :=
     let '(captured, args) := arg in
     ρ0 <- (init_env (f_params f) args)?;;
     '(_, k) : env * completion
-      <- denote_inst (f_body f) (ρ0 ++ captured_env captured)%list;;
+      <- denote_inst fnames (f_body f) (ρ0 ++ captured_env captured)%list;;
     match k with
     | CReturn v => Ret v
     | CNormal _ => if f_main f then Ret VUndef else triggerUB
@@ -493,26 +525,32 @@ Section DENOTE.
 
   Definition ir_mask : emask := msk_scp (mn :: nil) msk_true.
 
-  Definition ir_fnsem (f : func)
+  Definition ir_fnsem (fnames : list string) (f : func)
     : fname * option (emask * (option fspec_rel * fbody)) :=
     (funid (f_name f),
-     Some (ir_mask, (fsp_none, cfunU (fntyp ir_arg val) (denote_fbody f)))).
+     Some (ir_mask,
+           (fsp_none, cfunU (fntyp ir_arg val) (denote_fbody fnames f)))).
 
   (** The distinguished [entry] function runs main with no captured
       environment and no arguments ([RF]: standalone-IR mains are
       nullary in all of tests/ir). *)
-  Definition ir_entry (f : func)
+  Definition ir_entry (fnames : list string) (f : func)
     : fname * option (emask * (option fspec_rel * fbody)) :=
     (entry,
      Some (ir_mask,
            (fsp_none,
-            cfunU (fntyp unit val) (fun _ => denote_fbody f (nil, nil))))).
+            cfunU (fntyp unit val)
+              (fun _ => denote_fbody fnames f (nil, nil))))).
+
+  Definition prog_fnames (p : prog) : list string :=
+    List.map f_name (p_funcs p).
 
   Definition ir_fnsems (p : prog) : fnsemmap :=
+    let fns := prog_fnames p in
     list_to_map
-      (List.map ir_fnsem (p_funcs p) ++
+      (List.map (ir_fnsem fns) (p_funcs p) ++
        match List.find f_main (p_funcs p) with
-       | Some f => ir_entry f :: nil
+       | Some f => ir_entry fns f :: nil
        | None => nil
        end).
 
@@ -576,11 +614,12 @@ Section DENOTE.
 
       [ISeq] denotation unfolds one instruction at a time... *)
 
-  Lemma denote_seq_cons (i : inst) (rest : list inst) (ρ : env) :
-    denote_inst (ISeq (i :: rest)) ρ =
-    '(ρ1, k) : env * completion <- denote_inst i ρ;;
+  Lemma denote_seq_cons (fnames : list string) (i : inst)
+      (rest : list inst) (ρ : env) :
+    denote_inst fnames (ISeq (i :: rest)) ρ =
+    '(ρ1, k) : env * completion <- denote_inst fnames i ρ;;
     match k with
-    | CNormal _ => denote_inst (ISeq rest) ρ1
+    | CNormal _ => denote_inst fnames (ISeq rest) ρ1
     | CReturn v => Ret (ρ1, CReturn v)
     end.
   Proof. reflexivity. Qed.
@@ -589,10 +628,10 @@ Section DENOTE.
       instructions: nothing after a returning instruction is executed,
       mirroring ESMeta's [retVal]-then-[ExitCursor] discipline. *)
 
-  Lemma denote_seq_return_shortcircuit
+  Lemma denote_seq_return_shortcircuit (fnames : list string)
       (i : inst) (rest : list inst) (ρ ρ1 : env) (v : val)
-      (H : denote_inst i ρ = Ret (ρ1, CReturn v)) :
-    denote_inst (ISeq (i :: rest)) ρ = Ret (ρ1, CReturn v).
+      (H : denote_inst fnames i ρ = Ret (ρ1, CReturn v)) :
+    denote_inst fnames (ISeq (i :: rest)) ρ = Ret (ρ1, CReturn v).
   Proof. rewrite denote_seq_cons H bind_ret_l. reflexivity. Qed.
 
 End DENOTE.

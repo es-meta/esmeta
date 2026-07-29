@@ -114,6 +114,13 @@ Definition read_target_x (st : xstate) (ρ : env) (t : xtarget) : out val :=
       | OMap es, _ => of_option (map_lookup es k)
       | _, _ => Stuck
       end
+  | XField (VAst a) (VMath i) =>
+      if (0 <=? i)%Z
+      then
+        c <- of_option (nth_error (ast_children a) (Z.to_nat i));;
+        c0 <- of_option c;;
+        Ok (VAst c0)
+      else Stuck
   | _ => Stuck
   end.
 
@@ -224,6 +231,7 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
           o <- of_option (heap_get st1 a);;
           n <- of_option (obj_size o);;
           Ok (st1, VMath (Z.of_nat n))
+      | VAst a => Ok (st1, VMath (Z.of_nat (List.length (ast_children a))))
       | _ => Stuck
       end
   | ERecord tname fields =>
@@ -483,6 +491,22 @@ Fixpoint exec_inst (fuel : nat) (p : prog) (st : xstate) (ρ : env)
                   st3 <- of_option (heap_set st2 a (OMap (map_delete kv es)));;
                   Ok (st3, ρ, CNormal VUndef)
               | _ => Stuck
+              end
+          | _ => Stuck
+          end
+      | ISdoCall lhs base method args =>
+          '(st1, bv) <- exec_expr st ρ base;;
+          match bv with
+          | VAst a =>
+              match a with
+              | ALex _ _ => Stuck   (* Scala-implemented lexical SDOs *)
+              | ASyn _ _ _ _ _ =>
+                  '(a0, fname) <-
+                    of_option (sdo_resolve (List.map f_name (p_funcs p))
+                                 a method);;
+                  '(st2, vs) <- exec_exprs st1 ρ args;;
+                  '(st3, rv) <- exec_call fuel p st2 fname nil (VAst a0 :: vs);;
+                  Ok (st3, env_update lhs rv ρ, CNormal VUndef)
               end
           | _ => Stuck
           end

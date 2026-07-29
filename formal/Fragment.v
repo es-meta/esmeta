@@ -75,6 +75,19 @@ Inductive bop : Type :=
     Open Question OQ-7 in the architecture note; the denotation (M2) must
     pick the interpreter's behavior.  Syntax is unaffected. *)
 
+(** ** ECMAScript parse trees as values (mirrors es/Ast.scala)
+
+    [ASyn name args rhsIdx subIdx children] mirrors
+    [Syntactic(name, args, rhsIdx, children)]; [subIdx] is ESMeta's
+    [Ast.subIdx], which is derived from the grammar (Ast.scala:116-128) and
+    is therefore PRECOMPUTED BY THE EXPORTER rather than recomputed here —
+    the model does not carry the grammar.  [ALex] mirrors [Lexical]. *)
+
+Inductive ast : Type :=
+| ASyn (name : string) (args : list bool) (rhsIdx subIdx : nat)
+       (children : list (option ast))
+| ALex (name : string) (str : string).
+
 (** ** Restricted type expressions (for [ETypeCheck], ADR-11)
 
     ESMeta's [Type] wraps the full [esmeta.ty] language (unions, record
@@ -157,7 +170,10 @@ Inductive inst : Type :=
 | IPush (elem : expr) (lst : expr) (front : bool)   (* IPush *)
 | IPop (lhs : local) (lst : expr) (front : bool)    (* IPop *)
 | IExpand (base : ref) (fld : expr)                 (* IExpand *)
-| IDelete (base : ref) (key : expr).                (* IDelete *)
+| IDelete (base : ref) (key : expr)                 (* IDelete *)
+| ISdoCall (lhs : local) (base : expr) (method : string) (args : list expr).
+    (* ISdoCall — syntax-directed dispatch on an AST value
+       (ir/Inst.scala:43, Interpreter.scala:177-192) *)
 
 (** ** Functions and programs
 
@@ -192,7 +208,8 @@ Inductive val : Type :=
 | VNull
 | VEnum (name : string)
 | VAddr (a : nat)
-| VClo (fn : irname) (captured : list (string * val)).
+| VClo (fn : irname) (captured : list (string * val))
+| VAst (a : ast).                (* AstValue — state/Value.scala:83 *)
 
 (** [val] nests [list (string * val)]; the auto-generated induction
     principle is too weak for closure environments.  A proper mutual

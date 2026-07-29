@@ -127,6 +127,14 @@ Fixpoint temp_fresh_inst (k : nat) (i : inst) {struct i} : bool :=
       andb (temp_fresh_ref k base) (temp_fresh_expr k fld)
   | IDelete base key =>
       andb (temp_fresh_ref k base) (temp_fresh_expr k key)
+  | ISdoCall lhs base _ args =>
+      andb (temp_fresh_local k lhs)
+        (andb (temp_fresh_expr k base)
+           ((fix go (l : list expr) : bool :=
+               match l with
+               | nil => true
+               | e1 :: tl => andb (temp_fresh_expr k e1) (go tl)
+               end) args))
   end.
 
 (** ** A designated fresh temporary: one above every occurring index *)
@@ -218,6 +226,14 @@ Fixpoint temp_bound_inst (i : inst) {struct i} : nat :=
       Nat.max (temp_bound_local lhs) (temp_bound_expr lst)
   | IExpand base fld => Nat.max (temp_bound_ref base) (temp_bound_expr fld)
   | IDelete base key => Nat.max (temp_bound_ref base) (temp_bound_expr key)
+  | ISdoCall lhs base _ args =>
+      Nat.max (temp_bound_local lhs)
+        (Nat.max (temp_bound_expr base)
+           ((fix go (l : list expr) : nat :=
+               match l with
+               | nil => 0
+               | e1 :: tl => Nat.max (temp_bound_expr e1) (go tl)
+               end) args))
   end.
 
 Definition fresh_temp (i : inst) : nat := temp_bound_inst i.
@@ -335,6 +351,12 @@ Proof.
   - (* IDelete *)
     apply andb_true_intro; split;
       [apply temp_fresh_ref_bound; lia | apply temp_fresh_expr_bound; lia].
+  - (* ISdoCall *)
+    apply andb_true_intro; split; [apply temp_fresh_local_bound; lia|].
+    apply andb_true_intro; split; [apply temp_fresh_expr_bound; lia|].
+    induction args as [|e1 tl IH]; simpl in *; [reflexivity|].
+    apply andb_true_intro; split;
+      [apply temp_fresh_expr_bound; lia | apply IH; lia].
 Qed.
 
 Theorem fresh_temp_is_fresh (i : inst) :
@@ -480,4 +502,11 @@ Fixpoint t2_ok_inst (i : inst) {struct i} : bool :=
   | IPop _ lst _ => opt_free_expr lst
   | IExpand base fld => andb (opt_free_ref base) (opt_free_expr fld)
   | IDelete base key => andb (opt_free_ref base) (opt_free_expr key)
+  | ISdoCall _ base _ args =>
+      andb (opt_free_expr base)
+        ((fix go (l : list expr) : bool :=
+            match l with
+            | nil => true
+            | e1 :: tl => andb (opt_free_expr e1) (go tl)
+            end) args)
   end.
