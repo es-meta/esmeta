@@ -1,0 +1,464 @@
+(** * ESMetaFV.Semantics — ITree denotation of IR-Core (Milestone 2)
+
+    Implements the layered design of the architecture note §4 (ADR-6):
+    - local environments : threaded purely (no events);
+    - globals + heap     : CRIS keyed store ([pgE] via [cput]/[cgetU]);
+    - control            : an explicit [completion] result type;
+    - observable effects : [IO "esmeta.print"] (Events.v) and [callE] calls;
+    - stuck states       : [triggerUB] (ADR-7, provisional).
+
+    Fidelity notes (each checked against the Scala interpreter, with the
+    source location cited; deviations are listed in the research log):
+    - [IAssign] evaluates the reference BEFORE the right-hand side
+      (Interpreter.scala:129-133).
+    - [RField] evaluates the base reference before the field expression
+      (Interpreter.scala:397-402).
+    - [BAnd]/[BOr] short-circuit (Interpreter.scala:251-252, 358-365).
+    - [ILet] and [IAssign]-to-local are the same unconditional update
+      (State.scala:75-77).
+    - Call arity must match exactly.  DEVIATION: ESMeta silently ignores
+      arity underflow due to a latent unthrown error
+      (Interpreter.scala:381); we model strict arity (UB on mismatch) and
+      exclude underflow by admissibility.  Recorded in the research log.
+    - A non-main function body falling through without [IReturn] is UB,
+      mirroring [NoReturnValue] (Interpreter.scala:98).  A main body
+      falling through returns [VUndef] (modeling choice; ESMeta leaves the
+      RESULT global unset — research log 2026-07-29).
+    - [IAssert]: condition must evaluate to [VBool true]; everything else
+      is UB.  DEVIATION: ESMeta silently skips assertions whose condition
+      evaluation itself crashes (Interpreter.scala:147-151); such programs
+      are excluded by admissibility (M0 OQ-5). *)
+
+From CRIS Require Import CRIS.
+From stdpp Require Import pretty.
+From ESMetaFV Require Import Fragment Domain Events.
+
+Set Implicit Arguments.
+
+Local Open Scope string_scope.
+
+(** The pure semantic domain (completions, operator evaluation,
+    environments, heap objects) lives in [Domain.v], shared with the
+    executable reference interpreter [Exec.v]. *)
+
+(** ** Store layout (ADR-6, OQ-9)
+
+    All keys of a program module live in its single scope [mn], as required
+    by CRIS well-scopedness (SMod.v:21-25 [RF]).  Three key families:
+    globals, heap cells, and the allocation counter.  The [$] separator
+    cannot occur in ESMeta global names or produce collisions between
+    families because each family has a distinct prefix. *)
+
+Section DENOTE.
+  Context `{!crisG Γ Σ α β τ _S _I}.
+
+  Variable mn : string.   (* module (scope) name *)
+
+  Definition glb_key (x : string) : key := (mn, "g$" ++ x).
+  Definition heap_key (a : nat) : key := (mn, "h$" ++ pretty (N.of_nat a)).
+  Definition alloc_key : key := (mn, "alloc$").
+
+  Definition get_obj (a : nat) : itree crisE obj := cgetU (heap_key a).
+  Definition put_obj (a : nat) (o : obj) : itree crisE unit :=
+    cput (heap_key a) o.
+
+  (** Deterministic counter allocation (Heap.scala:62-67). *)
+  Definition alloc_obj (o : obj) : itree crisE nat :=
+    a <- cgetU alloc_key;;
+    cput alloc_key (S a);;;
+    put_obj a o;;;
+    Ret a.
+
+  (** ** Reference targets (state/RefTarget.scala) *)
+
+  Variant ref_target : Type :=
+  | TVar (x : var)
+  | TField (base : val) (field : val).
+
+  Definition read_target (ρ : env) (t : ref_target) : itree crisE val :=
+    match t with
+    | TVar (VLocal l) => (env_lookup ρ l)?
+    | TVar (VGlobal x) => cgetU (glb_key x)
+    | TField (VAddr a) (VStr fld) =>
+        o <- get_obj a;;
+        match o with
+        | ORecord _ fs => (fields_lookup fs fld)?
+        | OList _ => triggerUB
+        end
+    | TField (VAddr a) (VMath i) =>
+        o <- get_obj a;;
+        match o with
+        | OList vs =>
+            if (0 <=? i)%Z then (nth_error vs (Z.to_nat i))? else triggerUB
+        | ORecord _ _ => triggerUB
+        end
+    | _ => triggerUB
+    end.
+
+  (** Writing.  Returns the (possibly updated) local environment; store
+      writes happen as events.  Locals/globals update unconditionally
+      (State.scala:75-77); record-field write inserts-or-updates
+      (Obj.scala:29-30, OQ-11 resolved); list update requires the index
+      in bounds (Obj.scala:32-36 throws otherwise). *)
+  Definition write_target (ρ : env) (t : ref_target) (v : val)
+    : itree crisE env :=
+    match t with
+    | TVar (VLocal l) => Ret (env_update l v ρ)
+    | TVar (VGlobal x) => cput (glb_key x) v;;; Ret ρ
+    | TField (VAddr a) (VStr fld) =>
+        o <- get_obj a;;
+        match o with
+        | ORecord tn fs =>
+            put_obj a (ORecord tn (fields_insert fld v fs));;;
+            Ret ρ
+        | OList _ => triggerUB
+        end
+    | TField (VAddr a) (VMath i) =>
+        o <- get_obj a;;
+        match o with
+        | OList vs =>
+            if (0 <=? i)%Z
+            then
+              vs' <- (list_update (Z.to_nat i) v vs)?;;
+              put_obj a (OList vs');;;
+              Ret ρ
+            else triggerUB
+        | ORecord _ _ => triggerUB
+        end
+    | _ => triggerUB
+    end.
+
+  (** Capture for [EClo]: each captured name must be bound in the current
+      locals (Interpreter.scala:279-281: absent name throws). *)
+  Fixpoint capture (ρ : env) (xs : list string)
+    : itree crisE (list (string * val)) :=
+    match xs with
+    | nil => Ret nil
+    | x :: tl =>
+        v <- (env_lookup ρ (LName x))?;;
+        cs <- capture ρ tl;;
+        Ret ((x, v) :: cs)
+    end.
+
+  (** ** Expression denotation
+
+      Mutual over [expr]/[ref]; list arguments handled by nested fixes
+      (rose-tree pattern).  Expression evaluation can allocate ([EList])
+      and read state, mirroring the Scala evaluator's effectfulness. *)
+
+  Fixpoint denote_expr (e : expr) (ρ : env) {struct e} : itree crisE val :=
+    match e with
+    | EMath z => Ret (VMath z)
+    | EBool b => Ret (VBool b)
+    | EStr s => Ret (VStr s)
+    | EUndef => Ret VUndef
+    | ENull => Ret VNull
+    | EEnum n => Ret (VEnum n)
+    | ERef r =>
+        t <- denote_ref r ρ;;
+        read_target ρ t
+    | EUnary op e1 =>
+        v <- denote_expr e1 ρ;;
+        (eval_uop op v)?
+    | EBinary BAnd e1 e2 =>
+        v1 <- denote_expr e1 ρ;;
+        match v1 with
+        | VBool false => Ret (VBool false)
+        | VBool true =>
+            v2 <- denote_expr e2 ρ;;
+            match v2 with
+            | VBool b => Ret (VBool b)
+            | _ => triggerUB
+            end
+        | _ => triggerUB
+        end
+    | EBinary BOr e1 e2 =>
+        v1 <- denote_expr e1 ρ;;
+        match v1 with
+        | VBool true => Ret (VBool true)
+        | VBool false =>
+            v2 <- denote_expr e2 ρ;;
+            match v2 with
+            | VBool b => Ret (VBool b)
+            | _ => triggerUB
+            end
+        | _ => triggerUB
+        end
+    | EBinary op e1 e2 =>
+        v1 <- denote_expr e1 ρ;;
+        v2 <- denote_expr e2 ρ;;
+        (eval_bop op v1 v2)?
+    | EClo fn captured =>
+        cs <- capture ρ captured;;
+        Ret (VClo fn cs)
+    | EList es =>
+        vs <- (fix go (l : list expr) : itree crisE (list val) :=
+                 match l with
+                 | nil => Ret nil
+                 | e1 :: tl =>
+                     v <- denote_expr e1 ρ;;
+                     vs <- go tl;;
+                     Ret (v :: vs)
+                 end) es;;
+        a <- alloc_obj (OList vs);;
+        Ret (VAddr a)
+    | ESizeOf e1 =>
+        v <- denote_expr e1 ρ;;
+        match v with
+        | VAddr a =>
+            o <- get_obj a;;
+            match o with
+            | OList vs => Ret (VMath (Z.of_nat (List.length vs)))
+            | ORecord _ _ => triggerUB
+            end
+        | _ => triggerUB
+        end
+    | ERecord tname fields =>
+        (* fields evaluate left-to-right (Interpreter.scala:337-338) *)
+        fs <- (fix go (l : list (string * expr))
+                 : itree crisE (list (string * val)) :=
+                 match l with
+                 | nil => Ret nil
+                 | (f, e1) :: tl =>
+                     v <- denote_expr e1 ρ;;
+                     vs <- go tl;;
+                     Ret ((f, v) :: vs)
+                 end) fields;;
+        a <- alloc_obj (ORecord tname fs);;
+        Ret (VAddr a)
+    | EOptField recv fld =>
+        (* SYNTHETIC (ADR-9): receiver once; nullish guard; no heap
+           access on the nullish branch *)
+        v <- denote_expr recv ρ;;
+        if orb (val_eqb v VNull) (val_eqb v VUndef)
+        then Ret VUndef
+        else read_target ρ (TField v (VStr fld))
+    end
+
+  (** Reference denotation: base reference is dereferenced before the
+      field expression is evaluated (Interpreter.scala:397-402). *)
+  with denote_ref (r : ref) (ρ : env) {struct r} : itree crisE ref_target :=
+    match r with
+    | RVar x => Ret (TVar x)
+    | RField b f =>
+        tb <- denote_ref b ρ;;
+        bv <- read_target ρ tb;;
+        fv <- denote_expr f ρ;;
+        Ret (TField bv fv)
+    end.
+
+  (** Standalone monadic map for argument lists (reused by [ICall]). *)
+  Fixpoint denote_exprs (es : list expr) (ρ : env)
+    : itree crisE (list val) :=
+    match es with
+    | nil => Ret nil
+    | e :: tl =>
+        v <- denote_expr e ρ;;
+        vs <- denote_exprs tl ρ;;
+        Ret (v :: vs)
+    end.
+
+  (** ** Calls
+
+      Uniform CRIS signature of every denoted IR function: it receives the
+      closure's captured environment and the argument values, and returns
+      the callee's result value (OQ-10 resolved: values cross the [Any.t]
+      boundary as [val]). *)
+
+  Definition ir_arg : Type := (list (string * val)) * (list val).
+
+  Definition ir_sig (fn : string) : fnsig_t ir_arg val :=
+    fnsig fn (fntyp ir_arg val).
+
+  (** ** Instruction denotation *)
+
+  Fixpoint denote_inst (i : inst) (ρ : env) {struct i}
+    : itree crisE (env * completion) :=
+    match i with
+    | INop => Ret (ρ, CNormal VUndef)
+    | ISeq insts =>
+        (fix go (l : list inst) (ρ0 : env) : itree crisE (env * completion) :=
+           match l with
+           | nil => Ret (ρ0, CNormal VUndef)
+           | i1 :: tl =>
+               '(ρ1, k) : env * completion <- denote_inst i1 ρ0;;
+               match k with
+               | CNormal _ => go tl ρ1
+               | CReturn v => Ret (ρ1, CReturn v)
+               end
+           end) insts ρ
+    | IExpr e =>
+        denote_expr e ρ;;;
+        Ret (ρ, CNormal VUndef)
+    | ILet x e =>
+        v <- denote_expr e ρ;;
+        Ret (env_update (LName x) v ρ, CNormal VUndef)
+    | IAssign r e =>
+        t <- denote_ref r ρ;;
+        v <- denote_expr e ρ;;
+        ρ' <- write_target ρ t v;;
+        Ret (ρ', CNormal VUndef)
+    | IIf c thn els =>
+        cv <- denote_expr c ρ;;
+        match cv with
+        | VBool true => denote_inst thn ρ
+        | VBool false => denote_inst els ρ
+        | _ => triggerUB
+        end
+    | IWhile c body =>
+        ITree.iter
+          (fun ρ0 : env =>
+             cv <- denote_expr c ρ0;;
+             match cv with
+             | VBool true =>
+                 '(ρ1, k) : env * completion <- denote_inst body ρ0;;
+                 match k with
+                 | CNormal _ => Ret (inl ρ1)
+                 | CReturn v => Ret (inr (ρ1, CReturn v))
+                 end
+             | VBool false => Ret (inr (ρ0, CNormal VUndef))
+             | _ => triggerUB
+             end) ρ
+    | ICall lhs f args =>
+        fv <- denote_expr f ρ;;
+        match fv with
+        | VClo fn captured =>
+            vs <- denote_exprs args ρ;;
+            rv <- ccallU (ir_sig fn) (captured, vs);;
+            Ret (env_update lhs rv ρ, CNormal VUndef)
+        | _ => triggerUB
+        end
+    | IReturn e =>
+        v <- denote_expr e ρ;;
+        Ret (ρ, CReturn v)
+    | IAssert e =>
+        cv <- denote_expr e ρ;;
+        match cv with
+        | VBool true => Ret (ρ, CNormal VUndef)
+        | _ => triggerUB
+        end
+    | IPrint e =>
+        v <- denote_expr e ρ;;
+        log_val v;;;
+        Ret (ρ, CNormal VUndef)
+    end.
+
+  (** ** Function bodies *)
+
+  Definition denote_fbody (f : func) (arg : ir_arg) : itree crisE val :=
+    let '(captured, args) := arg in
+    ρ0 <- (init_env (f_params f) args)?;;
+    '(_, k) : env * completion
+      <- denote_inst (f_body f) (ρ0 ++ captured_env captured)%list;;
+    match k with
+    | CReturn v => Ret v
+    | CNormal _ => if f_main f then Ret VUndef else triggerUB
+    end.
+
+  (** ** CRIS module packaging *)
+
+  Definition ir_mask : emask := msk_scp (mn :: nil) msk_true.
+
+  Definition ir_fnsem (f : func)
+    : fname * option (emask * (option fspec_rel * fbody)) :=
+    (funid (f_name f),
+     Some (ir_mask, (fsp_none, cfunU (fntyp ir_arg val) (denote_fbody f)))).
+
+  (** The distinguished [entry] function runs main with no captured
+      environment and no arguments ([RF]: standalone-IR mains are
+      nullary in all of tests/ir). *)
+  Definition ir_entry (f : func)
+    : fname * option (emask * (option fspec_rel * fbody)) :=
+    (entry,
+     Some (ir_mask,
+           (fsp_none,
+            cfunU (fntyp unit val) (fun _ => denote_fbody f (nil, nil))))).
+
+  Definition ir_fnsems (p : prog) : fnsemmap :=
+    list_to_map
+      (List.map ir_fnsem (p_funcs p) ++
+       match List.find f_main (p_funcs p) with
+       | Some f => ir_entry f :: nil
+       | None => nil
+       end).
+
+  Definition ir_initial_st : gmap key (option Any.t) :=
+    {[ alloc_key # ((0%nat : nat)↑) ]}.
+
+  (** The packaged CRIS module of an IR-Core program.  The well-formedness
+      obligations hold for EVERY program because all function entries use
+      the module-scoped mask [ir_mask] and the initial store is the
+      singleton allocation counter. *)
+  Program Definition ir_smod (p : prog) : SMod.t := {|
+    SMod.scopes := mn :: nil;
+    SMod.fnsems := ir_fnsems p;
+    SMod.initial_st := ir_initial_st;
+  |}.
+  Next Obligation.
+  Proof. intros; repeat constructor. Qed.
+  Next Obligation.
+  Proof.
+    intros p. apply map_Forall_lookup. intros fn mb H.
+    rewrite lookup_omap in H.
+    unfold ir_fnsems in H.
+    destruct (list_to_map _ !! fn) as [[b|]|] eqn:Hf; simpl in H;
+      simplify_eq.
+    apply elem_of_list_to_map_2, elem_of_list_In in Hf.
+    apply List.in_app_iff in Hf.
+    destruct mb as [msk fb].
+    assert (Hmask : msk = ir_mask).
+    { destruct Hf as [Hf|Hf].
+      - apply List.in_map_iff in Hf.
+        destruct Hf as (f & Hf & _).
+        unfold ir_fnsem in Hf. by simplify_eq.
+      - destruct (List.find f_main (p_funcs p)) as [f0|]; simpl in Hf;
+          [|by destruct Hf].
+        destruct Hf as [Hf|Hf]; [|by destruct Hf].
+        unfold ir_entry in Hf. by simplify_eq. }
+    subst msk.
+    split.
+    - intros k' v' Hmsk. unfold ir_mask, msk_scp in Hmsk. cbn in Hmsk.
+      by apply bool_decide_eq_true in Hmsk.
+    - intros k' Hmsk. unfold ir_mask, msk_scp in Hmsk. cbn in Hmsk.
+      by apply bool_decide_eq_true in Hmsk.
+  Qed.
+  Next Obligation.
+  Proof.
+    intros p. unfold ir_initial_st.
+    rewrite dom_singleton_L.
+    intros x Hx. apply elem_of_map in Hx.
+    destruct Hx as (k' & -> & Hk').
+    apply elem_of_singleton in Hk'. subst k'.
+    unfold alloc_key. cbn. set_solver.
+  Qed.
+  Next Obligation.
+  Proof.
+    intros p _. apply map_Forall_singleton. by eexists.
+  Qed.
+
+  Definition ir_mod (p : prog) : Mod.t := SMod.to_mod ∅ (ir_smod p).
+
+  (** ** First denotation facts (PO-004: completion preservation)
+
+      [ISeq] denotation unfolds one instruction at a time... *)
+
+  Lemma denote_seq_cons (i : inst) (rest : list inst) (ρ : env) :
+    denote_inst (ISeq (i :: rest)) ρ =
+    '(ρ1, k) : env * completion <- denote_inst i ρ;;
+    match k with
+    | CNormal _ => denote_inst (ISeq rest) ρ1
+    | CReturn v => Ret (ρ1, CReturn v)
+    end.
+  Proof. reflexivity. Qed.
+
+  (** ... and an early [CReturn] short-circuits the remaining
+      instructions: nothing after a returning instruction is executed,
+      mirroring ESMeta's [retVal]-then-[ExitCursor] discipline. *)
+
+  Lemma denote_seq_return_shortcircuit
+      (i : inst) (rest : list inst) (ρ ρ1 : env) (v : val)
+      (H : denote_inst i ρ = Ret (ρ1, CReturn v)) :
+    denote_inst (ISeq (i :: rest)) ρ = Ret (ρ1, CReturn v).
+  Proof. rewrite denote_seq_cons H bind_ret_l. reflexivity. Qed.
+
+End DENOTE.

@@ -40,3 +40,16 @@ tests/result/test262
 ## local .bashrc/.zshrc files
 .bashrc
 .zshrc
+
+## Rocq build artifacts (formal/)
+formal/**/*.vo
+formal/**/*.vos
+formal/**/*.vok
+formal/**/*.glob
+formal/**/*.aux
+formal/**/.*.aux
+formal/.deps.mk
+
+## generated differential-validation expectations (sbt "runMain esmeta.fv.FVExport")
+formal/validation/Generated.v
+formal/.lia.cache

@@ -1,0 +1,428 @@
+# Research Log — ESMetaFV
+
+Living log (Rule 5). Newest entry first. Every entry: Date, Objective,
+Current Status, Observations, Design Decisions, Proof Progress, Failed
+Attempts, Research Debt, Open Questions, Next Steps, Relevant Commits,
+Relevant Papers.
+
+---
+
+## 2026-07-29 (night) — T-2: optional-field desugaring proved
+
+**Objective.** Answer "can an optional-chaining-style transformation be
+proved?" by proving one: the ADR-9 desugaring (PO-014).
+
+**Current Status.** **Done, all Qed.** `t2_contextual_equivalence`
+(`formal/T2Proof.v`): mutual contextual refinement of
+`ir_mod mn t2ex_src` and `ir_mod mn (t2_prog t2ex_src)` over all linking
+contexts, where main receives an arbitrary value from an unknown context
+call, applies `EOptField`, prints. Fragment extended: `ERecord`
+(mirrored; semantics verified against Interpreter.scala:337-338,
+Obj.scala:113-121 before implementing) and `EOptField` (SYNTHETIC,
+ADR-9). Differential corpus grew to 19/19 passing (`inst/assign.ir`
+now exports thanks to `ERecord`). Executable T-2 validation:
+record/nullish branches preserved by the real `t2_prog`; unguarded
+desugaring detected (`t2v_bad_detected` — Stuck vs printed undefined).
+
+**Observations (new proof machinery).**
+- Store reads under an ABSTRACT post-call store: `cStepsS/T` do not fire
+  on `SGet` when (a) wrapped in our definitions (`unfold get_obj, cgetU`
+  needed) and (b) the store is abstract (`state_lookup_simpl` fails) —
+  apply `wsim_sget_src`/`wsim_sget_tgt` manually; the rule returns
+  `default tt↑ (mjoin (st !! k))`, so absent keys yield `tt↑` whose
+  obj-downcast fails into UB — exactly "reading unallocated memory is
+  UB", and identical on both sides since the stores are equal.
+- Ill-typed receiver branches leave `_q : False` in context after the
+  spec-side `Take False` steps: `contradiction` closes them.
+- Unbounded `repeat first [...]` normalization loops can diverge/crawl
+  with these tactic sets; bounded `do 6 (try …)` rounds are reliable.
+- OQ-12 (new, resolved by reading WSim.v:179-187): SGet on an absent
+  key is NOT stuck at the event level — it returns the `tt↑` default;
+  UB arises from the typed downcast. Recorded because Exec.v models
+  heap_get absence as immediate Stuck — same observable outcome (UB)
+  through a different mechanism; PO-013 must map this correctly.
+
+**Design Decisions.** ADR-9 (synthetic source construct + honesty
+boundary + mirrored ERecord); T-2 restriction to binding positions
+(`t2_ok_inst`); receiver-once clause is syntactic-only within the
+fragment (no getters) — stated in ADR-9, not claimed as an observable
+obligation.
+
+**Proof Progress.** PO-014 proved (exemplar family). Reused unchanged:
+`env_lookup_update_same`, the T-1 skeleton, `main_adequacy`. New shared
+tactic `t2branches` (receiver case analysis).
+
+**Failed Attempts.** The convergence-loop tactic (`repeat first [...]`)
+ran >5 minutes without terminating visibly — replaced by bounded rounds.
+`cStep as reply` again failed pre-normalization (same `log_val` unfold
+issue as T-1; now folded into the branch tactic).
+
+**Research Debt.** `t2branches`' hypothesis-pattern matching
+(`fs : list (string * val)`) relies on most-recent-first matching and
+would pick `captured` if the field list were absent — acceptable in the
+validated scripts, but brittle for reuse; name bindings explicitly if
+the tactic is generalized. Exec.v vs denotation absent-key mechanism
+divergence (OQ-12 note above) for PO-013.
+
+**Open Questions.** OQ-4/OQ-8 unchanged. OQ-12 resolved (above).
+
+**Next Steps.** Candidates: schematic ∀-programs theorems (PO-006/
+PO-009/PO-014 remainder — the fundamental-lemma route), PO-013, or
+fragment growth (lists/strings ops, `IPush`/`IPop`) to widen the
+differential corpus.
+
+**Relevant Commits.** Working tree on `dev` @ `de537ba9`, not committed.
+
+**Relevant Papers.** Unchanged.
+
+---
+
+## 2026-07-29 (late) — Decision: Milestone 5 deferred
+
+User decision: the project is not being productionized now, so M5 (CI
+workflow, final packaging) is deferred indefinitely. Local build/validate
+commands in `formal/README.md` remain the verification entry points.
+Next exploration target under discussion: an optional-chaining-style
+desugaring proof (assessment in session notes; becomes a log entry when
+work starts).
+
+---
+
+## 2026-07-29 (evening) — Milestone 4: the transpilation equivalence theorem
+
+**Objective.** Define T-1 (fresh-temporary introduction) as a real Rocq
+function; prove contextual equivalence of source and transformed modules
+with no `Admitted` (PO-003…PO-009).
+
+**Current Status.** **Done.** New files `formal/Transform.v` (the
+transformation + decidable freshness + `fresh_temp_is_fresh`, a general
+theorem over all fragment syntax) and `formal/T1Proof.v` (the equivalence
+proof). Final theorem:
+
+    t1_contextual_equivalence :
+      (⊢ ctx_refines (ir_mod mn (t1_prog t1ex_src)) (ir_mod mn t1ex_src))
+      ∧ (⊢ ctx_refines (ir_mod mn t1ex_src) (ir_mod mn (t1_prog t1ex_src)))
+
+where `t1ex_src`'s main calls an UNKNOWN context-supplied function and
+prints the result, and the target module is the literal output of
+`t1_prog`. Both directions of `ISim.t` are proved (`sim_st`, `sim_ts`),
+covering arbitrary call arguments (arity-UB branches) and, via the
+∀-context quantification of `ctx_refines`, every callee behavior —
+printing, state, re-entrancy, divergence. Effect ordering is preserved
+by the trace-inclusion definition of refinement itself.
+
+**Scope honesty.** This is PO-006's *recorded fallback* (concrete program
+family, real transformation output), NOT the schematic ∀-programs
+theorem — that remains open in the ledger and is the main next-phase
+item. Claim classification: proved facts relative to the ITree model;
+connection to ESMeta execution remains testing (PO-011/PO-013); no
+ECMAScript-level claim.
+
+**Axiom audit.** `Print Assumptions t1_contextual_equivalence` (emitted
+at every build, end of T1Proof.v): only the framework's standard base —
+`proof_irrelevance`, `functional_extensionality_dep`, `eq_rect_eq`,
+`constructive_definite_description`, `classic`, ITreeS `bisim_is_eq`.
+No project axioms; zero `Admitted`/`admit`/`Axiom` in `formal/` (swept).
+
+**Observations.**
+- CRIS's `cStartFunSim`/`cStartModSim` work directly against our
+  `list_to_map`-packaged `ir_mod` modules — no hand-literal module
+  workaround needed. Module-sim goals surface function names as
+  `(ir_fnsem …).1` projections; order-robust `all: try solve […]`
+  bullets handle it.
+- Executable validation added first: `t1_prog` preserves `run` on eff
+  (prints), gcd, fibo (`Validation.v`) — caught nothing, but bounded the
+  risk before proof work began.
+
+**Design Decisions.**
+- `Ist := ⌜s = t⌝` (store equality) suffices; the exemplar performs no
+  store operations, and `cCall` re-establishes equality across unknown
+  calls.
+- One designated fresh temp per function (`fresh_temp` = 1 + max index)
+  — the temp is dead after each copy, so one index serves all sites;
+  freshness is a proved theorem, not an assumption.
+
+**Proof Progress.** PO-003 (discharged in-proof), PO-004 (M2), PO-005
+(`env_lookup_update_same`, `fresh_temp_is_fresh`), PO-006 (exemplar
+family), PO-007, PO-008, PO-009 (exemplar) — see ledger for exact
+statements and the open schematic remainder.
+
+**Failed Attempts** (diagnosed via a batch-mode goal-printing probe file,
+since no interactive session):
+- `cStep as reply` initially found no IO event: (a) the target was stuck
+  on `env_lookup (env_update (LTemp 0) rv (captured_env captured))
+  (LTemp 0)` — abstract `captured` blocks computation; fixed by the new
+  `env_lookup_update_same` rewrite; (b) `log_val` is a wrapper
+  definition hiding `trigger (IO …)` from the tactic's syntactic match;
+  fixed by `unfold log_val` before the event step.
+- Assumed goal order in `cStartModSim` bullets — wrong; made
+  order-robust.
+
+**Research Debt.** The schematic ∀-programs theorem (PO-006/PO-009
+remainder) needs: PO-001 induction schemes, an environment-agreement
+fundamental lemma, and loop coinduction (`cCoind`) — none needed for the
+exemplar. Trace-level (`refines_lmod`) corollary via `refines_adequacy`
+not yet unfolded.
+
+**Open Questions.** OQ-4/OQ-8 unchanged; ADR-7's premise materialized as
+proof branches (UB on the spec side discharged the arity/downcast
+mismatches — symmetric in both directions, as predicted).
+
+**Next Steps.** M5: CI workflow for `formal/` (build + validate),
+developer docs on adding constructs/proofs, gap analysis (schematic
+theorem, PO-012/PO-013, fragment growth), final report.
+
+**Relevant Commits.** Working tree on `dev` @ `de537ba9`, not committed.
+
+**Relevant Papers.** CRIS (simulation/adequacy/linking used as-is;
+imaginary-spec layer never needed — trivial resource throughout, as
+planned); Interaction Trees; JISET.
+
+---
+
+## 2026-07-29 (later still) — Milestone 3: executable differential validation
+
+**Objective.** PO-011: run fragment programs under both ESMeta's
+interpreter and an executable counterpart of the Rocq semantics; detect
+effect reordering/duplication/skipping; include negative transformation
+tests. Resolve OQ-11.
+
+**Current Status.** Done; all validation passing.
+- New Rocq files: `Domain.v` (pure domain, refactored out of
+  `Semantics.v`), `Programs.v` (corpus terms, refactored out of
+  `Examples.v`), `Exec.v` (fuel-based executable reference interpreter,
+  stdlib-only, clause-by-clause mirror of the denotation),
+  `Validation.v` (vm_compute corpus runs + effect-sensitivity +
+  3 negative tests + T-1-shape positive test).
+- New Scala: `src/main/scala/esmeta/fv/FVExport.scala` (isolated package;
+  scalafmt-clean; no existing files touched) — translates
+  fragment-compatible IR to Rocq terms, runs ESMeta capturing `IPrint`
+  values (via an `Interpreter` subclass) and the final `RESULT` global,
+  emits `formal/validation/Generated.v` (git-ignored).
+- Differential result: **18/44 `tests/ir` programs exported, 18/18 match
+  ESMeta observables** under `make validate` (8 substantive — sum, gcd,
+  fibo, branch, parity, inst/{let,return,assert}; 10 near-empty
+  placeholder fixtures); 26 skipped with per-construct reasons (ENumber,
+  EBigInt, ERecord/EMap literals, IPush/IPop, ECopy/EKeys, shifts, …) —
+  exactly the declared fragment boundary, no silent coverage claims.
+
+**Observations.**
+- Several `tests/ir/expr/*` fixtures are empty placeholders in ESMeta
+  itself (`@main def main() = {}` + commented-out bodies, "TODO
+  implementation is missing") — they validate trivially and are counted
+  separately above.
+- OQ-11 resolved from `state/Obj.scala:29-30`: record-field write is
+  insert-or-update; the M2 model (which made absent-field update UB) was
+  WRONG and is fixed (`fields_insert` in `Domain.v`). This is precisely
+  the class of error the Rule-2 discipline + differential testing exist
+  to catch; caught by source reading before any test could.
+
+**Design Decisions.**
+- Interchange format amendment (architecture note §7): export Rocq terms
+  directly instead of structural JSON — no parser needed on the Rocq
+  side; generated expectations are human-reviewable. JSON deferred until
+  a non-Rocq consumer exists.
+- Validation executes inside Rocq via `vm_compute` (no OCaml extraction);
+  fuel-based `Exec.v` with `Ok/Stuck/OOF` outcomes; `OOF` is
+  inconclusive-by-construction, never a pass.
+- PO-013 (Exec ↔ denotation correspondence) added to the ledger as the
+  explicitly-documented residual gap; until then PO-011 validates
+  `Exec.v` and the denotation only via clause parallelism [engineering
+  assumption].
+
+**Proof Progress.** No new theorem-level proofs (M3 is testing by
+design). `Validation.v` contains 9 vm_compute-checked `Example`s; the
+generated file adds 18 more.
+
+**Failed Attempts.** `++` parsed in `string_scope` inside `Exec.v`
+(fixed with `%list`); `esmeta.state.*` wildcard import shadowed
+`scala.math.BigInt` in the exporter (fixed by qualifying).
+
+**Research Debt.** The 10 placeholder fixtures inflate the raw exported
+count — always report the substantive-8 figure alongside. Cosmetic:
+`Generated.v` triggers Rocq's large-nat-literal warning for the fuel
+constant (harmless; generated file is not committed).
+
+**Open Questions.** OQ-4/OQ-8 unchanged (both non-blocking for M4's
+planned theorem); OQ-11 resolved.
+
+**Next Steps.** M4: define T-1 (fresh-temporary introduction) as a Rocq
+function on IR-Core, state its preconditions (freshness, admissibility),
+prove `ISim.t` both directions (PO-005, PO-006, PO-003 as needed), apply
+`main_adequacy` (PO-007), assemble `ctx_equiv` (PO-008, PO-009).
+
+**Relevant Commits.** Working tree on `dev` @ `de537ba9`, not yet
+committed.
+
+**Relevant Papers.** Unchanged.
+
+---
+
+## 2026-07-29 (later) — Milestone 2: executable ITree semantics
+
+**Objective.** Implement the IR-Core state model and ITree denotation per
+ADR-6/ADR-7, package programs as CRIS modules, mirror 3–5 `tests/ir`
+programs, discharge PO-002/PO-004, settle OQ-9/OQ-10.
+
+**Current Status.** Done and building cleanly (`make` in `formal/`, zero
+warnings). New files: `formal/Semantics.v` (completion type, pure operator
+evaluation incl. structural `val_eqb`, environments, heap objects, store
+layout, `denote_expr`/`denote_ref`/`denote_inst`/`denote_fbody`,
+`ir_smod`/`ir_mod` packaging with all four `SMod.t` obligations `Qed`,
+PO-004 lemmas) and `formal/Examples.v` (mirrors of `sum.ir`, `gcd.ir`,
+`fibo.ir` + a two-print program; four packaged modules; `print2_body_trace`).
+The observable-behavior spec (architecture §3) was user-approved before
+implementation began (Rule 4 gate passed).
+
+**Observations.**
+- The CRIS pattern-bind notation requires a type ascription
+  (`' p : T <- t ;; k`); plain `'(a,b) <- t;;` does not parse.
+- Our `fname := string` alias clashed with CRIS `Fn.fname`; renamed to
+  `irname` (Fragment.v).
+- `mod_tac` only discharges module obligations for *concrete* insert-built
+  maps; for the program-parameterized `ir_fnsems` the four obligations
+  needed ~45 lines of hand proof (map_Forall over `list_to_map` via
+  `elem_of_list_to_map_2` + stdlib `in_map_iff`).
+- `msk_scp` masks store events by a bare `bool_decide (k.1 ∈ scp)`.
+- `ired` (CRIS itree-rewriting tactic) proves equational trace facts
+  directly; `print2_body_trace` needed only `cbn. by ired.`
+
+**Design Decisions.**
+- OQ-9 resolved: one scope per program module; key families `g$x`
+  (globals), `h$n` (heap, `pretty`-encoded counter addresses), `alloc$`.
+- OQ-10 resolved: uniform cross-`Any.t` signature
+  `ir_arg = captured-env × args ↦ val`; `entry` runs main nullary.
+- Main falling through without `IReturn` returns `VUndef` (ESMeta leaves
+  RESULT unset — modeling choice, documented in Semantics.v header);
+  non-main fallthrough is UB mirroring `NoReturnValue`.
+- Strict call arity (UB on mismatch): deliberate deviation from ESMeta's
+  latent silent-underflow bug; excluded by admissibility.
+- New OQ-11: record-field update currently requires field existence;
+  verify against `state/Obj.scala` in M3.
+
+**Proof Progress.** PO-002 proved (definitional + obligations `Qed`);
+PO-004 proved (`denote_seq_cons`, `denote_seq_return_shortcircuit`);
+first effect-order fact `print2_body_trace` `Qed`. PO-001 deferred to
+first consumer (M4); PO-003 repositioned to M4 alongside PO-006 (ledger
+updated with rationale). No `Admitted` anywhere.
+
+**Failed Attempts.**
+- `'(ρ1, k) <- …;;` without type ascription — parse error; fixed with
+  `: env * completion` ascriptions.
+- First obligation proof used `injection … as <-` inside a `[…|…]`
+  bracket (Ltac parse error) and assumed `msk_scp` produced a
+  conjunction (it does not); rewritten per the actual definition.
+
+**Research Debt.** Unchanged from M1 (mirroring drift until PO-011;
+ADR-5 exactness assumption untested until M3; rocq-cris SHA mirroring
+before M5). Added: `print2` has no `tests/ir` counterpart — the M3
+harness must also run model-vs-ESMeta on print-bearing programs it
+generates itself.
+
+**Open Questions.** OQ-4, OQ-8 unchanged; OQ-9/OQ-10 resolved; OQ-11 new.
+
+**Next Steps.** M3: Scala-side structural-JSON exporter for
+fragment-compatible IR + differential harness over `tests/ir`
+(PO-011), including effect-sensitive and negative tests; resolve OQ-11
+by reading `state/Obj.scala`; then M4 (T-1 transformation + PO-005/006).
+
+**Relevant Commits.** Working tree on `dev` @ `de537ba9`, not yet
+committed.
+
+**Relevant Papers.** Unchanged (JISET / CRIS / Interaction Trees).
+
+---
+
+## 2026-07-29 — Milestones 0 (inspection) and 1 (architecture + skeleton)
+
+**Objective.** M0: map ESMeta and the CRIS practice environment without
+modifying code; surface every ambiguity blocking a sound design. M1:
+architecture note with ADRs, PO ledger, this log, and a buildable minimal
+Rocq project defining the fragment syntax and event interface.
+
+**Current Status.** M0 complete (report delivered in-session, 2026-07-29).
+M1 artifacts written: `docs/formal-verification/{itree-transpiler-plan.md,
+PROOF_OBLIGATIONS.md, RESEARCH_LOG.md}`, `formal/{_CoqProject, Makefile,
+README.md, Fragment.v, Events.v}`; `formal` builds cleanly (`make` on
+Rocq 9.0.0, cris-workshop switch). Awaiting the Rule-4 review gate on the
+observable-behavior specification (architecture note §3) before starting
+M2 semantics.
+
+**Observations** (details + file/line citations in the architecture note §2):
+- ESMeta has no `lower : JS → IR`; the spec compiles to IR and JS ASTs are
+  runtime values. [Repository fact]
+- The interpreter executes the CFG, not the instruction tree; `CFGBuilder`
+  (~60 lines) eliminates `IIf`/`IWhile`/`ISeq`. [Repository fact]
+- Completion records are heap records; abrupt propagation is data + explicit
+  branches; no interpreter exception mechanism for the object language.
+  [Repository fact]
+- Termination result = global `RESULT`; `IPrint`→stdout is the only other
+  output channel (suppressed under TEST_MODE). [Repository fact]
+- 44 standalone `.ir` programs under `tests/ir/` run via test-only
+  `interpFile`; ready-made differential oracle. [Repository fact]
+- The CRIS framework proper lives in the pinned opam package (source at
+  `~/.opam/cris-workshop/lib/coq/user-contrib/CRIS/`, ~42k lines), not in
+  the workshop repo. Trivial-resource `isim` use is demonstrated by the
+  workshop (`day1/answers/Optimizations.v`). Iris-free core exists
+  (`Behavior.v`, `gsim`, `lsim`) but carries no tactics. [Repository facts]
+- Interpreter quirks catalogued for admissibility fencing: `Cont` replaces
+  the call stack; `MapObj` insertion order; `Math` division rounds to
+  DECIMAL128; `-0.0` special case; silent skipped asserts when the
+  condition itself fails to evaluate; latent unthrown `RemainingParams`
+  (arity underflow silently ignored — possible upstream ESMeta bug, worth
+  reporting independently). [Repository facts]
+
+**Design Decisions** (full ADRs in the architecture note §6):
+- ADR-1 IR-level theorem restatement — **user decision** (options presented
+  in M0 report).
+- ADR-2 linking contexts now, syntactic bridge deferred (PO-010) — **user
+  decision**.
+- ADR-3 CRIS `isim` + trivial resource; keep Iris dependency — **user
+  decision**; eutt-vs-simulation comparison recorded in the ADR.
+- ADR-4 denote tree IR, connect to CFG execution by testing first —
+  [design hypothesis, flagged for review].
+- ADR-5 `Math` = ℤ; `Div` excluded. ADR-6 locals threaded purely,
+  globals+heap in the CRIS keyed store [provisional]. ADR-7 stuck = UB
+  [provisional, OQ-4 open]. ADR-8 depend on pinned opam package, no
+  vendoring.
+
+**Proof Progress.** None yet (by design — Rule 3: PO ledger written first;
+PO-001 is the M2 entry task). One trivial lemma `local_eqb_eq` is Qed in
+`Fragment.v` as a build sanity check.
+
+**Failed Attempts.**
+- First `formal/` Makefile passed `coqc` flags to `coqdep`, which rejects
+  `-require-import`; fixed by a separate `COQDEPFLAGS`.
+- `From Coq Require` triggers a Rocq-9 deprecation; switched to
+  `From Stdlib`.
+- (Design-level) Initially drafted `Scheme Equality for local`; replaced
+  with a hand-written `local_eqb` because derived equality over
+  string-containing types is fragile across Rocq versions.
+
+**Research Debt.**
+- Hand-mirrored `Fragment.v` can drift from `ir/*.scala` until PO-011's
+  differential harness lands (M3). Accepted per AN §7.
+- ADR-5's "integer arithmetic agrees with BigDecimal on included operators"
+  is an engineering assumption until PO-011 tests it.
+- The `rocq-cris` git-SHA pin has no release artifact; mirror before M5 CI.
+
+**Open Questions.** OQ-4 (stuck: UB vs abort — provisional UB, becomes
+load-bearing only for stuck-site-changing transformations), OQ-8
+(address-bearing observables — provisionally excluded by admissibility),
+OQ-9 (keyed-store encoding of addresses+globals — M2 experiment), OQ-10
+(`RR` at the `Any.t` main boundary — M2/M4). OQ-7 (And/Or short-circuit)
+resolved: mirror the interpreter (short-circuit), L-7.
+
+**Next Steps.** (1) User review of the observable-behavior spec (AN §3) —
+the Rule-4 gate for M2. (2) M2: PO-001 induction principles; state model +
+denotation per ADR-6; settle OQ-9/OQ-10 with a spike; 3–5 executable
+examples mirroring `tests/ir` programs.
+
+**Relevant Commits.** ESMeta `dev` @ `de537ba9` (baseline; M1 files not yet
+committed at the time of writing). Pins: ecma262 `84b38ad8`; rocq-cris
+`c0bcd04e`.
+
+**Relevant Papers.** JISET (10.1145/3324884.3416632) — provenance of the
+spec-derived IR; CRIS (10.1145/3808317) — behaviors/simulation/adequacy/
+linking, imaginary-spec layer deliberately unused; Interaction Trees
+(10.1145/3371119) — representation, iter, weak bisimulation.
