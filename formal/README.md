@@ -45,6 +45,9 @@ make clean
 
 Editors (VsRocq / Coqtail / Proof General) pick up `_CoqProject` when the
 editor is opened from this directory with the opam switch active.
+For MCP-driven interactive sessions (stepping proofs, executing fragment
+programs in the model) and the Test262 execution boundary, see
+[INTERACTIVE.md](INTERACTIVE.md).
 
 ## Layout
 

@@ -7,6 +7,25 @@ Relevant Papers.
 
 ---
 
+## 2026-07-29 (night, tooling) — Coqtail-MCP + interactive model execution
+
+Work committed on branch `dev-cris` (bac2a188; local only, per user).
+Installed [Coqtail-MCP](https://github.com/park-sunho/Coqtail-mcp) in an
+isolated venv (gotcha: requires `mcp<2` — SDK 2.0 removed
+`mcp.server.fastmcp`) registered against the `cris-workshop` coqidetop;
+future sessions can step proofs (`rocq_step_to`/`rocq_goals`) instead of
+the batch goal-printing probes, and EXECUTE fragment programs in the
+model via `rocq_query` + `Eval vm_compute in (run …)` (path verified in
+batch: gcd and t1_prog gcd both `Ok (VUndef, nil)`).
+
+**Boundary restated (user asked whether Test262 can now run "via CRIS
+itree"):** No — Test262 is JavaScript and requires the full spec-derived
+IR; the model runs IR-Core only. The execution matrix and rationale are
+documented in `formal/INTERACTIVE.md`; making Test262 model-runnable is
+the [FW] JS-level route (spec-IR mechanization), not configuration.
+
+---
+
 ## 2026-07-29 (night) — T-2: optional-field desugaring proved
 
 **Objective.** Answer "can an optional-chaining-style transformation be
