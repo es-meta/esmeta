@@ -52,8 +52,10 @@ Inductive var : Type :=
 (** ** Operators (subset of ir/Op.scala) *)
 
 Inductive uop : Type :=
-| UNeg   (* Neg  : arithmetic negation *)
-| UNot.  (* Not  : boolean negation *)
+| UNeg   (* Neg   : arithmetic negation *)
+| UNot   (* Not   : boolean negation *)
+| UAbs   (* Abs   : mathematical absolute value *)
+| UFloor. (* Floor : mathematical floor *)
 
 Inductive bop : Type :=
 | BAdd   (* Add *)
@@ -61,14 +63,35 @@ Inductive bop : Type :=
 | BMul   (* Mul *)
 | BLt    (* Lt  : Math comparison *)
 | BEq    (* Eq  : structural equality *)
-| BAnd   (* And : strict boolean conjunction (non-short-circuit) *)
-| BOr.   (* Or  : strict boolean disjunction (non-short-circuit) *)
+| BAnd   (* And   : boolean conjunction (short-circuit, see Semantics) *)
+| BOr    (* Or    : boolean disjunction (short-circuit) *)
+| BDiv   (* Div   : mathematical division (integers: exact only) *)
+| BMod   (* Mod   : mathematical modulo *)
+| BEqual. (* Equal : numeric equality (=== on Math in the fragment) *)
 
 (** NOTE (repository fact): the ESMeta interpreter short-circuits [And]/[Or]
     at expression-evaluation level (Interpreter.scala:251-252, 358-365).
     Whether the fragment adopts short-circuit or strict evaluation is
     Open Question OQ-7 in the architecture note; the denotation (M2) must
     pick the interpreter's behavior.  Syntax is unaffected. *)
+
+(** ** Restricted type expressions (for [ETypeCheck], ADR-11)
+
+    ESMeta's [Type] wraps the full [esmeta.ty] language (unions, record
+    field maps, …).  The compiled spec uses type *tests* far more simply:
+    overwhelmingly `(? x: Completion)` / `(? x: Abrupt)` plus a handful of
+    value-kind and record-name tests.  We mirror exactly that much; the
+    exporter rejects any [Ty] outside this grammar, so unsupported tests
+    are reported rather than silently mis-modelled. *)
+
+Inductive tyexp : Type :=
+| TRecord (tname : string)   (* record with this type name (exact) *)
+| TCompletion                (* a CompletionRecord *)
+| TAbrupt                    (* CompletionRecord whose Type <> ~normal~ *)
+| TNormal                    (* CompletionRecord whose Type  = ~normal~ *)
+| TList                      (* list object *)
+| TMapTy                     (* map object *)
+| TStrTy | TBoolTy | TMathTy | TUndefTy | TNullTy | TEnumTy | TCloTy.
 
 (** ** Expressions and references (mutual)
 
@@ -92,6 +115,13 @@ Inductive expr : Type :=
        left-to-right in declaration order (Interpreter.scala:337-338),
        allocation like lists (Heap.scala:50-53; RecordObj.apply inserts
        exactly the given pairs, Obj.scala:113-121) *)
+| EExists (r : ref)                             (* EExists: ref present? *)
+| ETypeOf (e : expr)                            (* ETypeOf: kind string *)
+| ETypeCheck (e : expr) (t : tyexp)             (* ETypeCheck (ADR-11) *)
+| EYet (msg : string)                           (* EYet: unimplemented -> UB *)
+| EMap (pairs : list (expr * expr))             (* EMap: map allocation *)
+| EKeys (m : expr) (intSorted : bool)           (* EKeys: key list *)
+| ECopy (e : expr)                              (* ECopy: shallow copy *)
 | EOptField (recv : expr) (fld : string)
     (* SYNTHETIC (ADR-9) — NOT an ESMeta IR construct.  "recv?.fld":
        evaluate the receiver once; if it is Null or Undef, yield Undef
@@ -123,7 +153,11 @@ Inductive inst : Type :=
 | ICall (lhs : local) (f : expr) (args : list expr) (* ICall *)
 | IReturn (e : expr)                            (* IReturn *)
 | IAssert (e : expr)                            (* IAssert — ADR-7 *)
-| IPrint (e : expr).                            (* IPrint — the Log effect *)
+| IPrint (e : expr)                             (* IPrint — the Log effect *)
+| IPush (elem : expr) (lst : expr) (front : bool)   (* IPush *)
+| IPop (lhs : local) (lst : expr) (front : bool)    (* IPop *)
+| IExpand (base : ref) (fld : expr)                 (* IExpand *)
+| IDelete (base : ref) (key : expr).                (* IDelete *)
 
 (** ** Functions and programs
 

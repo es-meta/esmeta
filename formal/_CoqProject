@@ -7,6 +7,7 @@
 -arg -w -arg -cannot-define-projection
 -arg -require-import -arg ExtLib.Structures.Monad
 -Q . ESMetaFV
+TyModel.v
 Fragment.v
 Domain.v
 Events.v

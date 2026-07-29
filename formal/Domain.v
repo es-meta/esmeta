@@ -11,7 +11,7 @@
 From Stdlib Require Import String ZArith List Bool.
 Import ListNotations.
 
-From ESMetaFV Require Import Fragment.
+From ESMetaFV Require Import Fragment TyModel.
 
 Set Implicit Arguments.
 
@@ -33,6 +33,8 @@ Definition eval_uop (op : uop) (v : val) : option val :=
   match op, v with
   | UNeg, VMath z => Some (VMath (- z))
   | UNot, VBool b => Some (VBool (negb b))
+  | UAbs, VMath z => Some (VMath (Z.abs z))
+  | UFloor, VMath z => Some (VMath z)   (* integers: floor is identity *)
   | _, _ => None
   end.
 
@@ -68,6 +70,17 @@ Definition eval_bop (op : bop) (v1 v2 : val) : option val :=
   | BMul, VMath z1, VMath z2 => Some (VMath (z1 * z2))
   | BLt, VMath z1, VMath z2 => Some (VBool (Z.ltb z1 z2))
   | BEq, _, _ => Some (VBool (val_eqb v1 v2))
+  (* Numeric equality; on the fragment's integer Math values this
+     coincides with structural equality (Interpreter.scala BOp.Equal). *)
+  | BEqual, VMath z1, VMath z2 => Some (VBool (Z.eqb z1 z2))
+  (* ESMeta's Math division rounds to DECIMAL128 (Interpreter.scala:584);
+     to avoid modelling that artifact (ADR-5) we admit division only when
+     it is exact on integers, and leave it undefined otherwise. *)
+  | BDiv, VMath z1, VMath z2 =>
+      if Z.eqb z2 0 then None
+      else if Z.eqb (Z.rem z1 z2) 0 then Some (VMath (Z.quot z1 z2)) else None
+  | BMod, VMath z1, VMath z2 =>
+      if Z.eqb z2 0 then None else Some (VMath (Z.modulo z1 z2))
   | _, _, _ => None
   end.
 
@@ -111,7 +124,32 @@ Qed.
 
 Variant obj : Type :=
 | OList (vs : list val)                          (* ListObj *)
-| ORecord (tname : string) (fields : list (string * val)). (* RecordObj *)
+| ORecord (tname : string) (fields : list (string * val)) (* RecordObj *)
+| OMap (entries : list (val * val)).             (* MapObj — insertion-ordered
+    (state/Obj.scala:129 uses a LinkedHashMap; EKeys depends on that order) *)
+
+Fixpoint map_lookup (es : list (val * val)) (k : val) : option val :=
+  match es with
+  | nil => None
+  | (k', v) :: tl => if val_eqb k k' then Some v else map_lookup tl k
+  end.
+
+(* insertion-ordered update: existing key keeps its position, new key
+   appends (mirrors `m.map += key -> value`) *)
+Fixpoint map_insert (k : val) (v : val) (es : list (val * val))
+  : list (val * val) :=
+  match es with
+  | nil => (k, v) :: nil
+  | (k', v') :: tl =>
+      if val_eqb k k' then (k, v) :: tl else (k', v') :: map_insert k v tl
+  end.
+
+Fixpoint map_delete (k : val) (es : list (val * val)) : list (val * val) :=
+  match es with
+  | nil => nil
+  | (k', v') :: tl =>
+      if val_eqb k k' then tl else (k', v') :: map_delete k tl
+  end.
 
 Fixpoint fields_lookup (fs : list (string * val)) (x : string) : option val :=
   match fs with
@@ -130,6 +168,95 @@ Fixpoint fields_insert (x : string) (v : val) (fs : list (string * val))
       if String.eqb x x'
       then (x, v) :: tl
       else (x', v') :: fields_insert x v tl
+  end.
+
+(** ** Type tests for [ETypeCheck] (ADR-11)
+
+    ESMeta evaluates `(? x : T)` as [T.contains(value, state)]
+    (Interpreter.scala:315-316).  On record types containment follows the
+    type model's hierarchy AND the declared field refinements:
+    `AbruptCompletion extends CompletionRecord { Type : Enum[~break~,
+    ~continue~, ~return~, ~throw~] }` while `NormalCompletion` refines
+    `Type : Enum[~normal~]` — and at runtime a completion is stored as a
+    record whose own tname may be the base `CompletionRecord`
+    (state/State.scala:169-175).  We therefore decide Abrupt/Normal by the
+    `Type` field, and other record tests by the exported subtyping
+    relation ([TyModel.v], generated from esmeta.ty.TyModel.parentOf).
+
+    Field refinements beyond Completion's `Type` are NOT modelled; the
+    exporter only emits [tyexp]s in this grammar, so anything else is
+    reported rather than silently mis-modelled.  Validation of these tests
+    against ESMeta is by the differential harness. *)
+
+Definition completion_type (fs : list (string * val)) : option string :=
+  match fields_lookup fs "Type" with
+  | Some (VEnum n) => Some n
+  | _ => None
+  end.
+
+Definition ty_check_obj (t : tyexp) (o : obj) : bool :=
+  match o, t with
+  | OList _, TList => true
+  | OMap _, TMapTy => true
+  | ORecord tn _, TRecord want => record_subtype tn want
+  | ORecord tn _, TCompletion => record_subtype tn "CompletionRecord"
+  | ORecord tn fs, TAbrupt =>
+      andb (record_subtype tn "CompletionRecord")
+        (match completion_type fs with
+         | Some n => negb (String.eqb n "normal")
+         | None => false
+         end)
+  | ORecord tn fs, TNormal =>
+      andb (record_subtype tn "CompletionRecord")
+        (match completion_type fs with
+         | Some n => String.eqb n "normal"
+         | None => false
+         end)
+  | _, _ => false
+  end.
+
+Definition ty_check_prim (t : tyexp) (v : val) : bool :=
+  match v, t with
+  | VStr _, TStrTy => true
+  | VBool _, TBoolTy => true
+  | VMath _, TMathTy => true
+  | VUndef, TUndefTy => true
+  | VNull, TNullTy => true
+  | VEnum _, TEnumTy => true
+  | VClo _ _, TCloTy => true
+  | _, _ => false
+  end.
+
+(** [ETypeOf] (Interpreter.scala:297-309).  The fragment has no Number or
+    BigInt values, and Math/Enum/Clo are not contained in ObjectT or
+    SymbolT, so they yield "SpecType" exactly as ESMeta does.  Addresses
+    need ObjectT/SymbolT containment, which depends on field refinements
+    we do not model: those are left to the caller as UB (see Semantics.v),
+    NOT guessed. *)
+Definition typeof_prim (v : val) : option string :=
+  match v with
+  | VStr _ => Some "String"
+  | VBool _ => Some "Boolean"
+  | VUndef => Some "Undefined"
+  | VNull => Some "Null"
+  | VMath _ | VEnum _ | VClo _ _ => Some "SpecType"
+  | VAddr _ => None
+  end.
+
+(** Keys of a record/map as a list of values (EKeys, state/Obj.scala:88-99).
+    The [intSorted] variant filters and numerically sorts map keys; that
+    path is not modelled (the caller raises UB). *)
+Definition obj_keys (o : obj) : option (list val) :=
+  match o with
+  | ORecord _ fs => Some (List.map (fun p => VStr (fst p)) fs)
+  | OMap es => Some (List.map fst es)
+  | OList _ => None
+  end.
+
+Definition obj_size (o : obj) : option nat :=
+  match o with
+  | OList vs => Some (List.length vs)
+  | _ => None    (* Obj.size throws InvalidSizeOf for non-lists *)
   end.
 
 Fixpoint list_update {A} (n : nat) (a : A) (l : list A) : option (list A) :=

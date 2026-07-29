@@ -93,6 +93,12 @@ Section T3PROOF.
           cStepsS; [cStepsT|]; ss
     end.
 
+  (* shared tail once the field value is in hand *)
+  Ltac t3roundTAIL Hn Hu :=
+    do 3 (t3round Hn Hu);
+    unfold log_val; try cStepsS; try cStepsT;
+    cStep as reply; cStep; iSplit; done.
+
   (** Shared tail: from "the context returned [rv], both sides at the
       nullish guard" to Qed, by cases on [rv]. *)
   Ltac t3branches rv Hn Hu :=
@@ -126,19 +132,28 @@ Section T3PROOF.
         end;
         lazymatch goal with
         | o : obj |- _ =>
-            destruct o as [?vs|?tn ?fs];
-            [ do 2 (t3round Hn Hu); contradiction |]
-        end;
-        do 2 (t3round Hn Hu);
-        lazymatch goal with
-        | fs : list (string * val) |- _ =>
-            let Hf := fresh "Hf" in
-            destruct (fields_lookup fs "prop") as [?pv|] eqn:Hf;
-            [| do 2 (t3round Hn Hu); contradiction ]
-        end;
-        do 3 (t3round Hn Hu);
-        unfold log_val; try cStepsS; try cStepsT;
-        cStep as reply; cStep; iSplit; done
+            destruct o as [?vs|?tn ?fs|?es];
+            [ (* OList: field read on a list is UB on both sides *)
+              do 2 (t3round Hn Hu); contradiction
+            | (* ORecord: the modelled case *)
+              do 2 (t3round Hn Hu);
+              lazymatch goal with
+              | fs : list (string * val) |- _ =>
+                  let Hf := fresh "Hf" in
+                  destruct (fields_lookup fs "prop") as [?pv|] eqn:Hf;
+                  [| do 2 (t3round Hn Hu); contradiction ]
+              end;
+              t3roundTAIL Hn Hu
+            | (* OMap: keyed lookup, same shape *)
+              do 2 (t3round Hn Hu);
+              lazymatch goal with
+              | es : list (val * val) |- _ =>
+                  let Hm := fresh "Hm" in
+                  destruct (map_lookup es (VStr "prop")) as [?pv|] eqn:Hm;
+                  [| do 2 (t3round Hn Hu); contradiction ]
+              end;
+              t3roundTAIL Hn Hu ]
+        end
       ]
     ].
 

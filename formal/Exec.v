@@ -105,19 +105,14 @@ Definition read_target_x (st : xstate) (ρ : env) (t : xtarget) : out val :=
   match t with
   | XVar (VLocal l) => of_option (env_lookup ρ l)
   | XVar (VGlobal x) => of_option (fields_lookup (x_globals st) x)
-  | XField (VAddr a) (VStr fld) =>
+  | XField (VAddr a) k =>
       o <- of_option (heap_get st a);;
-      match o with
-      | ORecord _ fs => of_option (fields_lookup fs fld)
-      | OList _ => Stuck
-      end
-  | XField (VAddr a) (VMath i) =>
-      o <- of_option (heap_get st a);;
-      match o with
-      | OList vs =>
-          if (0 <=? i)%Z then of_option (nth_error vs (Z.to_nat i))
-          else Stuck
-      | ORecord _ _ => Stuck
+      match o, k with
+      | ORecord _ fs, VStr fld => of_option (fields_lookup fs fld)
+      | OList vs, VMath i =>
+          if (0 <=? i)%Z then of_option (nth_error vs (Z.to_nat i)) else Stuck
+      | OMap es, _ => of_option (map_lookup es k)
+      | _, _ => Stuck
       end
   | _ => Stuck
   end.
@@ -127,25 +122,23 @@ Definition write_target_x (st : xstate) (ρ : env) (t : xtarget) (v : val)
   match t with
   | XVar (VLocal l) => Ok (st, env_update l v ρ)
   | XVar (VGlobal x) => Ok (globals_set st x v, ρ)
-  | XField (VAddr a) (VStr fld) =>
+  | XField (VAddr a) k =>
       o <- of_option (heap_get st a);;
-      match o with
-      | ORecord tn fs =>
+      match o, k with
+      | ORecord tn fs, VStr fld =>
           st' <- of_option (heap_set st a (ORecord tn (fields_insert fld v fs)));;
           Ok (st', ρ)
-      | OList _ => Stuck
-      end
-  | XField (VAddr a) (VMath i) =>
-      o <- of_option (heap_get st a);;
-      match o with
-      | OList vs =>
+      | OList vs, VMath i =>
           if (0 <=? i)%Z
           then
             vs' <- of_option (list_update (Z.to_nat i) v vs);;
             st' <- of_option (heap_set st a (OList vs'));;
             Ok (st', ρ)
           else Stuck
-      | ORecord _ _ => Stuck
+      | OMap es, _ =>
+          st' <- of_option (heap_set st a (OMap (map_insert k v es)));;
+          Ok (st', ρ)
+      | _, _ => Stuck
       end
   | _ => Stuck
   end.
@@ -229,10 +222,8 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
       match v with
       | VAddr a =>
           o <- of_option (heap_get st1 a);;
-          match o with
-          | OList vs => Ok (st1, VMath (Z.of_nat (List.length vs)))
-          | ORecord _ _ => Stuck
-          end
+          n <- of_option (obj_size o);;
+          Ok (st1, VMath (Z.of_nat n))
       | _ => Stuck
       end
   | ERecord tname fields =>
@@ -248,6 +239,75 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
             end) fields st);;
       let '(st2, a) := heap_alloc st1 (ORecord tname fs) in
       Ok (st2, VAddr a)
+  | EExists r =>
+      '(st1, t) <- exec_ref st ρ r;;
+      match t with
+      | XVar (VLocal l) =>
+          Ok (st1, VBool (match env_lookup ρ l with Some _ => true | None => false end))
+      | XVar (VGlobal _) => Stuck
+      | XField (VAddr a) k =>
+          o <- of_option (heap_get st1 a);;
+          match o, k with
+          | ORecord _ fs, VStr fld =>
+              Ok (st1, VBool (match fields_lookup fs fld with
+                              | Some _ => true | None => false end))
+          | OMap es, _ =>
+              Ok (st1, VBool (match map_lookup es k with
+                              | Some _ => true | None => false end))
+          | OList vs, VMath i =>
+              Ok (st1, VBool (andb (0 <=? i)%Z
+                                (Nat.ltb (Z.to_nat i) (List.length vs))))
+          | _, _ => Stuck
+          end
+      | _ => Stuck
+      end
+  | ETypeOf e1 =>
+      '(st1, v) <- exec_expr st ρ e1;;
+      s0 <- of_option (typeof_prim v);;
+      Ok (st1, VStr s0)
+  | ETypeCheck e1 t =>
+      '(st1, v) <- exec_expr st ρ e1;;
+      match v with
+      | VAddr a =>
+          o <- of_option (heap_get st1 a);;
+          Ok (st1, VBool (ty_check_obj t o))
+      | _ => Ok (st1, VBool (ty_check_prim t v))
+      end
+  | EYet _ => Stuck
+  | EMap pairs =>
+      '(st1, es) <-
+        ((fix go (l : list (expr * expr)) (st0 : xstate)
+            : out (xstate * list (val * val)) :=
+            match l with
+            | nil => Ok (st0, nil)
+            | (ke, ve) :: tl =>
+                '(st1, kv) <- exec_expr st0 ρ ke;;
+                '(st2, vv) <- exec_expr st1 ρ ve;;
+                '(st3, rest) <- go tl st2;;
+                Ok (st3, (kv, vv) :: rest)
+            end) pairs st);;
+      let '(st2, a) := heap_alloc st1 (OMap es) in
+      Ok (st2, VAddr a)
+  | EKeys m intSorted =>
+      '(st1, v) <- exec_expr st ρ m;;
+      if intSorted then Stuck else
+      match v with
+      | VAddr a =>
+          o <- of_option (heap_get st1 a);;
+          ks <- of_option (obj_keys o);;
+          let '(st2, a2) := heap_alloc st1 (OList ks) in
+          Ok (st2, VAddr a2)
+      | _ => Stuck
+      end
+  | ECopy e1 =>
+      '(st1, v) <- exec_expr st ρ e1;;
+      match v with
+      | VAddr a =>
+          o <- of_option (heap_get st1 a);;
+          let '(st2, a2) := heap_alloc st1 o in
+          Ok (st2, VAddr a2)
+      | _ => Stuck
+      end
   | EOptField recv fld =>
       '(st1, v) <- exec_expr st ρ recv;;
       if orb (val_eqb v VNull) (val_eqb v VUndef)
@@ -350,6 +410,82 @@ Fixpoint exec_inst (fuel : nat) (p : prog) (st : xstate) (ρ : env)
       | IPrint e =>
           '(st1, v) <- exec_expr st ρ e;;
           Ok (out_print st1 v, ρ, CNormal VUndef)
+      | IPush elem lst front =>
+          '(st1, v) <- exec_expr st ρ elem;;
+          '(st2, lv) <- exec_expr st1 ρ lst;;
+          match lv with
+          | VAddr a =>
+              o <- of_option (heap_get st2 a);;
+              match o with
+              | OList vs =>
+                  st3 <- of_option (heap_set st2 a
+                           (OList (if front then v :: vs
+                                   else (vs ++ (v :: nil))%list)));;
+                  Ok (st3, ρ, CNormal VUndef)
+              | _ => Stuck
+              end
+          | _ => Stuck
+          end
+      | IPop lhs lst front =>
+          '(st1, lv) <- exec_expr st ρ lst;;
+          match lv with
+          | VAddr a =>
+              o <- of_option (heap_get st1 a);;
+              match o with
+              | OList vs =>
+                  if front
+                  then match vs with
+                       | nil => Stuck
+                       | v :: tl =>
+                           st2 <- of_option (heap_set st1 a (OList tl));;
+                           Ok (st2, env_update lhs v ρ, CNormal VUndef)
+                       end
+                  else match List.rev vs with
+                       | nil => Stuck
+                       | v :: rtl =>
+                           st2 <- of_option
+                                    (heap_set st1 a (OList (List.rev rtl)));;
+                           Ok (st2, env_update lhs v ρ, CNormal VUndef)
+                       end
+              | _ => Stuck
+              end
+          | _ => Stuck
+          end
+      | IExpand base fld =>
+          '(st1, t) <- exec_ref st ρ base;;
+          bv <- read_target_x st1 ρ t;;
+          '(st2, fv) <- exec_expr st1 ρ fld;;
+          match bv, fv with
+          | VAddr a, VStr f =>
+              o <- of_option (heap_get st2 a);;
+              match o with
+              | ORecord tn fs =>
+                  match fields_lookup fs f with
+                  | Some _ => Ok (st2, ρ, CNormal VUndef)
+                  | None =>
+                      st3 <- of_option (heap_set st2 a
+                               (ORecord tn (fields_insert f VUndef fs)));;
+                      Ok (st3, ρ, CNormal VUndef)
+                  end
+              | _ => Stuck
+              end
+          | _, _ => Stuck
+          end
+      | IDelete base key =>
+          '(st1, t) <- exec_ref st ρ base;;
+          bv <- read_target_x st1 ρ t;;
+          '(st2, kv) <- exec_expr st1 ρ key;;
+          match bv with
+          | VAddr a =>
+              o <- of_option (heap_get st2 a);;
+              match o with
+              | OMap es =>
+                  st3 <- of_option (heap_set st2 a (OMap (map_delete kv es)));;
+                  Ok (st3, ρ, CNormal VUndef)
+              | _ => Stuck
+              end
+          | _ => Stuck
+          end
       end
   end
 

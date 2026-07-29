@@ -79,18 +79,14 @@ Section DENOTE.
     match t with
     | TVar (VLocal l) => (env_lookup ρ l)?
     | TVar (VGlobal x) => cgetU (glb_key x)
-    | TField (VAddr a) (VStr fld) =>
+    | TField (VAddr a) k =>
         o <- get_obj a;;
-        match o with
-        | ORecord _ fs => (fields_lookup fs fld)?
-        | OList _ => triggerUB
-        end
-    | TField (VAddr a) (VMath i) =>
-        o <- get_obj a;;
-        match o with
-        | OList vs =>
+        match o, k with
+        | ORecord _ fs, VStr fld => (fields_lookup fs fld)?
+        | OList vs, VMath i =>
             if (0 <=? i)%Z then (nth_error vs (Z.to_nat i))? else triggerUB
-        | ORecord _ _ => triggerUB
+        | OMap es, _ => (map_lookup es k)?
+        | _, _ => triggerUB
         end
     | _ => triggerUB
     end.
@@ -105,25 +101,19 @@ Section DENOTE.
     match t with
     | TVar (VLocal l) => Ret (env_update l v ρ)
     | TVar (VGlobal x) => cput (glb_key x) v;;; Ret ρ
-    | TField (VAddr a) (VStr fld) =>
+    | TField (VAddr a) k =>
         o <- get_obj a;;
-        match o with
-        | ORecord tn fs =>
-            put_obj a (ORecord tn (fields_insert fld v fs));;;
-            Ret ρ
-        | OList _ => triggerUB
-        end
-    | TField (VAddr a) (VMath i) =>
-        o <- get_obj a;;
-        match o with
-        | OList vs =>
+        match o, k with
+        | ORecord tn fs, VStr fld =>
+            put_obj a (ORecord tn (fields_insert fld v fs));;; Ret ρ
+        | OList vs, VMath i =>
             if (0 <=? i)%Z
             then
               vs' <- (list_update (Z.to_nat i) v vs)?;;
-              put_obj a (OList vs');;;
-              Ret ρ
+              put_obj a (OList vs');;; Ret ρ
             else triggerUB
-        | ORecord _ _ => triggerUB
+        | OMap es, _ => put_obj a (OMap (map_insert k v es));;; Ret ρ
+        | _, _ => triggerUB
         end
     | _ => triggerUB
     end.
@@ -203,14 +193,16 @@ Section DENOTE.
         a <- alloc_obj (OList vs);;
         Ret (VAddr a)
     | ESizeOf e1 =>
+        (* Obj.size is lists only (state/Obj.scala:50-52).  ESMeta also
+           accepts strings and ASTs (Interpreter.scala:317-321); strings
+           would need a UTF-16 code-unit model (L-1), so they stay UB
+           rather than being approximated by byte length. *)
         v <- denote_expr e1 ρ;;
         match v with
         | VAddr a =>
             o <- get_obj a;;
-            match o with
-            | OList vs => Ret (VMath (Z.of_nat (List.length vs)))
-            | ORecord _ _ => triggerUB
-            end
+            n <- (obj_size o)?;;
+            Ret (VMath (Z.of_nat n))
         | _ => triggerUB
         end
     | ERecord tname fields =>
@@ -226,6 +218,77 @@ Section DENOTE.
                  end) fields;;
         a <- alloc_obj (ORecord tname fs);;
         Ret (VAddr a)
+    | EExists r =>
+        t <- denote_ref r ρ;;
+        (* Bool(st.exists(...)) — Interpreter.scala:296 *)
+        match t with
+        | TVar (VLocal l) =>
+            Ret (VBool (match env_lookup ρ l with Some _ => true | None => false end))
+        | TVar (VGlobal x) =>
+            (* store lookups cannot fail at the event level, so existence of a
+               global is not observable in this model: UB rather than a guess *)
+            triggerUB
+        | TField (VAddr a) k =>
+            o <- get_obj a;;
+            match o, k with
+            | ORecord _ fs, VStr fld =>
+                Ret (VBool (match fields_lookup fs fld with
+                            | Some _ => true | None => false end))
+            | OMap es, _ =>
+                Ret (VBool (match map_lookup es k with
+                            | Some _ => true | None => false end))
+            | OList vs, VMath i =>
+                Ret (VBool (andb (0 <=? i)%Z
+                              (Nat.ltb (Z.to_nat i) (List.length vs))))
+            | _, _ => triggerUB
+            end
+        | _ => triggerUB
+        end
+    | ETypeOf e1 =>
+        v <- denote_expr e1 ρ;;
+        (* addresses need ObjectT/SymbolT containment (not modelled) *)
+        s0 <- (typeof_prim v)?;;
+        Ret (VStr s0)
+    | ETypeCheck e1 t =>
+        v <- denote_expr e1 ρ;;
+        match v with
+        | VAddr a => o <- get_obj a;; Ret (VBool (ty_check_obj t o))
+        | _ => Ret (VBool (ty_check_prim t v))
+        end
+    | EYet _ => triggerUB      (* NotSupported — Interpreter.scala:231 *)
+    | EMap pairs =>
+        es <- (fix go (l : list (expr * expr))
+                 : itree crisE (list (val * val)) :=
+                 match l with
+                 | nil => Ret nil
+                 | (ke, ve) :: tl =>
+                     kv <- denote_expr ke ρ;;
+                     vv <- denote_expr ve ρ;;
+                     rest <- go tl;;
+                     Ret ((kv, vv) :: rest)
+                 end) pairs;;
+        a <- alloc_obj (OMap es);;
+        Ret (VAddr a)
+    | EKeys m intSorted =>
+        v <- denote_expr m ρ;;
+        if intSorted then triggerUB else
+        match v with
+        | VAddr a =>
+            o <- get_obj a;;
+            ks <- (obj_keys o)?;;
+            a2 <- alloc_obj (OList ks);;
+            Ret (VAddr a2)
+        | _ => triggerUB
+        end
+    | ECopy e1 =>
+        v <- denote_expr e1 ρ;;
+        match v with
+        | VAddr a =>
+            o <- get_obj a;;
+            a2 <- alloc_obj o;;
+            Ret (VAddr a2)
+        | _ => triggerUB
+        end
     | EOptField recv fld =>
         (* SYNTHETIC (ADR-9): receiver once; nullish guard; no heap
            access on the nullish branch *)
@@ -341,6 +404,77 @@ Section DENOTE.
         v <- denote_expr e ρ;;
         log_val v;;;
         Ret (ρ, CNormal VUndef)
+    | IPush elem lst front =>
+        v <- denote_expr elem ρ;;
+        lv <- denote_expr lst ρ;;
+        match lv with
+        | VAddr a =>
+            o <- get_obj a;;
+            match o with
+            | OList vs =>
+                put_obj a (OList (if front then v :: vs else (vs ++ (v :: nil))%list));;;
+                Ret (ρ, CNormal VUndef)
+            | _ => triggerUB
+            end
+        | _ => triggerUB
+        end
+    | IPop lhs lst front =>
+        lv <- denote_expr lst ρ;;
+        match lv with
+        | VAddr a =>
+            o <- get_obj a;;
+            match o with
+            | OList vs =>
+                if front
+                then
+                  match vs with
+                  | nil => triggerUB
+                  | v :: tl => put_obj a (OList tl);;;
+                               Ret (env_update lhs v ρ, CNormal VUndef)
+                  end
+                else
+                  match List.rev vs with
+                  | nil => triggerUB
+                  | v :: rtl => put_obj a (OList (List.rev rtl));;;
+                                Ret (env_update lhs v ρ, CNormal VUndef)
+                  end
+            | _ => triggerUB
+            end
+        | _ => triggerUB
+        end
+    | IExpand base fld =>
+        t <- denote_ref base ρ;;
+        bv <- read_target ρ t;;
+        fv <- denote_expr fld ρ;;
+        match bv, fv with
+        | VAddr a, VStr f =>
+            o <- get_obj a;;
+            match o with
+            | ORecord tn fs =>
+                (* add with undefined if absent, else keep — Obj.scala:55-58 *)
+                match fields_lookup fs f with
+                | Some _ => Ret (ρ, CNormal VUndef)
+                | None => put_obj a (ORecord tn (fields_insert f VUndef fs));;;
+                          Ret (ρ, CNormal VUndef)
+                end
+            | _ => triggerUB
+            end
+        | _, _ => triggerUB
+        end
+    | IDelete base key =>
+        t <- denote_ref base ρ;;
+        bv <- read_target ρ t;;
+        kv <- denote_expr key ρ;;
+        match bv with
+        | VAddr a =>
+            o <- get_obj a;;
+            match o with
+            | OMap es => put_obj a (OMap (map_delete kv es));;;
+                         Ret (ρ, CNormal VUndef)
+            | _ => triggerUB     (* Obj.delete only supports maps *)
+            end
+        | _ => triggerUB
+        end
     end.
 
   (** ** Function bodies *)

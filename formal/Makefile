@@ -27,6 +27,7 @@ COQFLAGS := \
 COQDEPFLAGS := -Q . ESMetaFV
 
 SOURCES := \
+	TyModel.v \
 	Fragment.v \
 	Domain.v \
 	Events.v \

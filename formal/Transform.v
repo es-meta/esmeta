@@ -69,6 +69,20 @@ Fixpoint temp_fresh_expr (k : nat) (e : expr) {struct e} : bool :=
          | nil => true
          | (_, e1) :: tl => andb (temp_fresh_expr k e1) (go tl)
          end) fields
+  | EExists r => temp_fresh_ref k r
+  | ETypeOf e1 => temp_fresh_expr k e1
+  | ETypeCheck e1 _ => temp_fresh_expr k e1
+  | EYet _ => true
+  | EMap pairs =>
+      (fix go (l : list (expr * expr)) : bool :=
+         match l with
+         | nil => true
+         | (ke, ve) :: tl =>
+             andb (temp_fresh_expr k ke)
+               (andb (temp_fresh_expr k ve) (go tl))
+         end) pairs
+  | EKeys m _ => temp_fresh_expr k m
+  | ECopy e1 => temp_fresh_expr k e1
   | EOptField recv _ => temp_fresh_expr k recv
   end
 
@@ -105,6 +119,14 @@ Fixpoint temp_fresh_inst (k : nat) (i : inst) {struct i} : bool :=
   | IReturn e => temp_fresh_expr k e
   | IAssert e => temp_fresh_expr k e
   | IPrint e => temp_fresh_expr k e
+  | IPush elem lst _ =>
+      andb (temp_fresh_expr k elem) (temp_fresh_expr k lst)
+  | IPop lhs lst _ =>
+      andb (temp_fresh_local k lhs) (temp_fresh_expr k lst)
+  | IExpand base fld =>
+      andb (temp_fresh_ref k base) (temp_fresh_expr k fld)
+  | IDelete base key =>
+      andb (temp_fresh_ref k base) (temp_fresh_expr k key)
   end.
 
 (** ** A designated fresh temporary: one above every occurring index *)
@@ -141,6 +163,20 @@ Fixpoint temp_bound_expr (e : expr) {struct e} : nat :=
          | nil => 0
          | (_, e1) :: tl => Nat.max (temp_bound_expr e1) (go tl)
          end) fields
+  | EExists r => temp_bound_ref r
+  | ETypeOf e1 => temp_bound_expr e1
+  | ETypeCheck e1 _ => temp_bound_expr e1
+  | EYet _ => 0
+  | EMap pairs =>
+      (fix go (l : list (expr * expr)) : nat :=
+         match l with
+         | nil => 0
+         | (ke, ve) :: tl =>
+             Nat.max (temp_bound_expr ke)
+               (Nat.max (temp_bound_expr ve) (go tl))
+         end) pairs
+  | EKeys m _ => temp_bound_expr m
+  | ECopy e1 => temp_bound_expr e1
   | EOptField recv _ => temp_bound_expr recv
   end
 
@@ -177,6 +213,11 @@ Fixpoint temp_bound_inst (i : inst) {struct i} : nat :=
   | IReturn e => temp_bound_expr e
   | IAssert e => temp_bound_expr e
   | IPrint e => temp_bound_expr e
+  | IPush elem lst _ => Nat.max (temp_bound_expr elem) (temp_bound_expr lst)
+  | IPop lhs lst _ =>
+      Nat.max (temp_bound_local lhs) (temp_bound_expr lst)
+  | IExpand base fld => Nat.max (temp_bound_ref base) (temp_bound_expr fld)
+  | IDelete base key => Nat.max (temp_bound_ref base) (temp_bound_expr key)
   end.
 
 Definition fresh_temp (i : inst) : nat := temp_bound_inst i.
@@ -198,8 +239,7 @@ Fixpoint t1_inst (k : nat) (i : inst) {struct i} : inst :=
                end) insts)
   | IIf c t e => IIf c (t1_inst k t) (t1_inst k e)
   | IWhile c b => IWhile c (t1_inst k b)
-  | INop | IExpr _ | ILet _ _ | IAssign _ _
-  | IReturn _ | IAssert _ | IPrint _ => i
+  | _ => i    (* other instructions contain no call to split *)
   end.
 
 Definition t1_func (f : func) : func :=
@@ -238,19 +278,21 @@ Fixpoint temp_fresh_expr_bound (k : nat) (e : expr) {struct e} :
 with temp_fresh_ref_bound (k : nat) (r : ref) {struct r} :
     (temp_bound_ref r <= k)%nat -> temp_fresh_ref k r = true.
 Proof.
-  - destruct e; simpl; intros H; try reflexivity.
-    + apply temp_fresh_ref_bound; exact H.
-    + apply temp_fresh_expr_bound; exact H.
+  - destruct e; simpl; intros H; try reflexivity;
+      try (apply temp_fresh_expr_bound; exact H);
+      try (apply temp_fresh_ref_bound; exact H).
     + apply andb_true_intro; split;
         [apply temp_fresh_expr_bound | apply temp_fresh_expr_bound]; lia.
     + induction es as [|e1 tl IH]; simpl in *; [reflexivity|].
       apply andb_true_intro; split;
         [apply temp_fresh_expr_bound; lia | apply IH; lia].
-    + apply temp_fresh_expr_bound; exact H.
     + induction fields as [|[f e1] tl IH]; simpl in *; [reflexivity|].
       apply andb_true_intro; split;
         [apply temp_fresh_expr_bound; lia | apply IH; lia].
-    + apply temp_fresh_expr_bound; exact H.
+    + induction pairs as [|[ke ve] tl IH]; simpl in *; [reflexivity|].
+      apply andb_true_intro; split; [apply temp_fresh_expr_bound; lia|].
+      apply andb_true_intro; split;
+        [apply temp_fresh_expr_bound; lia | apply IH; lia].
   - destruct r; simpl; intros H.
     + apply temp_fresh_var_bound; exact H.
     + apply andb_true_intro; split;
@@ -282,6 +324,17 @@ Proof.
     induction args as [|e1 tl IH]; simpl in *; [reflexivity|].
     apply andb_true_intro; split;
       [apply temp_fresh_expr_bound; lia | apply IH; lia].
+  - (* IPush *)
+    apply andb_true_intro; split; apply temp_fresh_expr_bound; lia.
+  - (* IPop *)
+    apply andb_true_intro; split;
+      [apply temp_fresh_local_bound; lia | apply temp_fresh_expr_bound; lia].
+  - (* IExpand *)
+    apply andb_true_intro; split;
+      [apply temp_fresh_ref_bound; lia | apply temp_fresh_expr_bound; lia].
+  - (* IDelete *)
+    apply andb_true_intro; split;
+      [apply temp_fresh_ref_bound; lia | apply temp_fresh_expr_bound; lia].
 Qed.
 
 Theorem fresh_temp_is_fresh (i : inst) :
@@ -369,6 +422,19 @@ Fixpoint opt_free_expr (e : expr) {struct e} : bool :=
          | nil => true
          | (_, e1) :: tl => andb (opt_free_expr e1) (go tl)
          end) fields
+  | EExists r => opt_free_ref r
+  | ETypeOf e1 => opt_free_expr e1
+  | ETypeCheck e1 _ => opt_free_expr e1
+  | EYet _ => true
+  | EMap pairs =>
+      (fix go (l : list (expr * expr)) : bool :=
+         match l with
+         | nil => true
+         | (ke, ve) :: tl =>
+             andb (opt_free_expr ke) (andb (opt_free_expr ve) (go tl))
+         end) pairs
+  | EKeys m _ => opt_free_expr m
+  | ECopy e1 => opt_free_expr e1
   | EOptField _ _ => false
   end
 
@@ -410,4 +476,8 @@ Fixpoint t2_ok_inst (i : inst) {struct i} : bool :=
   | IReturn e => opt_free_expr e
   | IAssert e => opt_free_expr e
   | IPrint e => opt_free_expr e
+  | IPush elem lst _ => andb (opt_free_expr elem) (opt_free_expr lst)
+  | IPop _ lst _ => opt_free_expr lst
+  | IExpand base fld => andb (opt_free_ref base) (opt_free_expr fld)
+  | IDelete base key => andb (opt_free_ref base) (opt_free_expr key)
   end.
