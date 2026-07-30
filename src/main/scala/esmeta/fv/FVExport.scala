@@ -128,15 +128,29 @@ object FVExport {
     case _          => throw Unsupported(s"bop: $op")
 
   /** map an ESMeta type to the model's restricted [tyexp] (ADR-11).
-    * Uses ESMeta's own stringification with a strict whitelist. */
+    * Uses ESMeta's own stringification with a strict whitelist.
+    *
+    * ONLY types whose model test is EXACT are listed.  In particular
+    * `Abrupt` and `Normal` are deliberately absent even though `tyexp`
+    * has `TAbrupt`/`TNormal`: ESMeta decides them by the field-map
+    * difference `ownFieldsOf` (TyModel.scala:86-93, RecordTy.scala:157-168),
+    * which for `AbruptCompletion` is
+    *   Type: Enum[~break~,~continue~,~return~,~throw~];
+    *   Value: ESValue | Enum[~empty~];
+    *   Target: String | Enum[~empty~]
+    * (manuals/types:35-39) — three field constraints, of which the model
+    * tests only `Type`.  Accepting them would silently over-approximate
+    * 3355 type tests.  See OQ-12. */
   def rocqTy(t: Type): String = t.ty.toString match
-    case "Record[CompletionRecord]" => "TCompletion"
-    case "Record[AbruptCompletion]" => "TAbrupt"
-    case "Record[NormalCompletion]" => "TNormal"
+    // exact: r = CompletionRecord with a top field map, so `contains`
+    // reduces to the record-subtype test (RecordTy.scala:157-168)
+    case "Completion"               => "TCompletion"
     case "List"                     => "TList"
     case "Map"                      => "TMapTy"
     case "String"                   => "TStrTy"
     case "Boolean"                  => "TBoolTy"
+    case "Number"                   => "TNumberTy"
+    case "BigInt"                   => "TBigIntTy"
     case "Math"                     => "TMathTy"
     case "Undefined"                => "TUndefTy"
     case "Null"                     => "TNullTy"

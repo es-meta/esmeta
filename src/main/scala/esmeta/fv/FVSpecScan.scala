@@ -1,10 +1,9 @@
 package esmeta.fv
 
-import esmeta.BASE_DIR
+import esmeta.cfgBuilder.CFGBuilder
+import esmeta.compiler.Compiler
+import esmeta.extractor.Extractor
 import esmeta.ir.*
-import esmeta.ir.util.Parser
-import esmeta.util.SystemUtils.*
-import io.circe.*, io.circe.parser.*
 import scala.collection.mutable.{Map => MMap}
 import scala.util.{Failure, Success, Try}
 
@@ -12,82 +11,76 @@ import scala.util.{Failure, Success, Try}
   * translation into the Rocq model, ordered by how many functions each
   * blocks.
   *
-  * Input: `logs/dump/debugger/funcs.json` (produce with
-  * `sbt "run dump-debugger"`), whose entries carry the function body as
-  * IR concrete syntax — reparsed here with ESMeta's own parser.
+  * SOURCE OF TRUTH. Every rejection below is decided by calling the real
+  * exporter (`FVExport.rocqExpr` / `rocqTy` / `rocqFunc`), never by a
+  * parallel list of "supported" constructors. An earlier version kept its
+  * own whitelist and drifted badly: it reported 2909/2951 translatable
+  * while `rocqFunc` actually rejected 1287 functions, because it never
+  * checked `rocqTy`'s type whitelist or optional parameters. The final
+  * cross-check at the end of `blockers` makes that class of drift
+  * impossible to hide — a function with no reported blocker that the
+  * exporter still refuses is reported as `UNCAUGHT`.
+  *
+  * Input: the spec CFG, built here (~30 s) rather than read from a dump,
+  * so parameters and types are visible and nothing can be stale.
   *
   * Usage:
   *   sbt "runMain esmeta.fv.FVSpecScan"                 # whole spec
   *   sbt "runMain esmeta.fv.FVSpecScan OrdinaryGet ..." # named closure
-  *
-  * This is a planning tool for the JS-level route: it turns "how much
-  * must we model?" into an ordered, countable work list.
   */
 object FVSpecScan {
 
-  case class SpecFunc(name: String, body: Inst, main: Boolean)
-
-  /** read funcs.json; bodies are IR concrete syntax (ir/util/JsonProtocol) */
-  def readFuncs(path: String): List[SpecFunc] = {
-    val json = parse(readFile(path)).getOrElse(Json.Null)
-    val arr = json.asArray.getOrElse(Vector())
-    arr.toList.flatMap { j =>
-      val c = j.hcursor
-      for {
-        name <- c.downField("name").as[String].toOption
-        bodyStr <- c.downField("body").as[String].toOption
-        body <- Try(Inst.from(bodyStr)).toOption
-        main = c.downField("main").as[Boolean].getOrElse(false)
-      } yield SpecFunc(name, body, main)
-    }
-  }
-
-  /** collect every construct in a body that FVExport cannot translate */
-  def blockers(body: Inst): Set[String] = {
+  /** collect every reason the exporter would refuse this function */
+  def blockers(f: Func): Set[String] = {
     val found = scala.collection.mutable.Set[String]()
+
+    if (f.params.exists(_.optional)) found += "param:optional"
+
     val walker = new esmeta.ir.util.UnitWalker {
       override def walk(e: Expr): Unit = {
         e match {
-          // NOTE: ETypeCheck counts as supported only for the restricted
-          // tyexp grammar of formal/Fragment.v; FVExport still validates
-          // the concrete Ty and rejects anything outside it.
-          case _: ETrim |
-              _: EMathOp |
-              _: ECont | _: EDebug |
-              _: ERandom | _: ESyntactic | _: ELexical =>
-            found += s"expr:${e.getClass.getSimpleName}"
-          // COp.ToStr needs toStringHelper (Scala), so it stays UB
-          case EConvert(COp.ToStr(_), _) => found += "expr:EConvert(ToStr)"
-          case EMath(n) if !n.isWhole => found += "expr:EMath(non-integer)"
-          case EUnary(uop, _) =>
-            uop match
-              case UOp.Neg | UOp.Not | UOp.Abs | UOp.Floor | UOp.BNot => ()
-              case _                 => found += s"uop:$uop"
-          case EBinary(bop, _, _) =>
-            bop match
-              case BOp.Add | BOp.Sub | BOp.Mul | BOp.Lt | BOp.Eq | BOp.And |
-                  BOp.Or | BOp.Equal | BOp.Div | BOp.Mod | BOp.Pow |
-                  BOp.BAnd | BOp.BOr | BOp.BXOr | BOp.LShift | BOp.RShift =>
-                ()
-              case _ => found += s"bop:$bop"
-          case _ => ()
+          // the type whitelist is ADR-11's, and it is checked by asking
+          // the exporter, not by restating it here
+          case ETypeCheck(_, ty) =>
+            Try(FVExport.rocqTy(ty)) match
+              case Failure(_) => found += s"ty:${ty.ty}"
+              case Success(_) => ()
+          case _ =>
+            // ask the exporter itself; the message names the offending
+            // node, so nesting does not misattribute the reason
+            Try(FVExport.rocqExpr(e)) match
+              case Failure(FVExport.Unsupported(msg)) => found += reasonOf(msg)
+              case _                                  => ()
         }
         super.walk(e)
       }
-      // all Inst forms are now covered by the Rocq model
-      override def walk(i: Inst): Unit = super.walk(i)
     }
-    walker.walk(body)
+    walker.walk(f.body)
+
+    // cross-check: no silent divergence between this scan and the exporter
+    if (found.isEmpty) Try(FVExport.rocqFunc(f)) match
+      case Failure(FVExport.Unsupported(msg)) => found += s"UNCAUGHT:$msg"
+      case Failure(err) => found += s"UNCAUGHT:${err.getClass.getSimpleName}"
+      case Success(_)   => ()
+
     found.toSet
   }
 
+  /** normalise an exporter message into a stable histogram key.  The
+    * message always names the offending node, so a rejection nested deep
+    * inside a probed parent is still attributed correctly. */
+  private def reasonOf(msg: String): String =
+    if (msg.startsWith("expr: ")) s"expr:${msg.drop(6)}"
+    else if (msg.startsWith("ty: ")) s"ty:${msg.drop(4)}"
+    else if (msg.startsWith("non-integer Math")) "expr:EMath(non-integer)"
+    else if (msg.startsWith("cop: ToStr")) "expr:EConvert(ToStr)"
+    else if (msg.startsWith("optional param")) "param:optional"
+    else msg
+
   def main(args: Array[String]): Unit = {
-    val path = s"$BASE_DIR/logs/dump/debugger/funcs.json"
-    if (!new java.io.File(path).exists) {
-      println(s"[fv] missing $path — run: sbt \"run dump-debugger\"")
-      return
-    }
-    val funcs = readFuncs(path)
+    println("[fv] extracting spec and building CFG (this takes a while)")
+    val cfg = CFGBuilder(Compiler(Extractor()))
+    val funcs = cfg.program.funcs
     println(s"[fv] parsed ${funcs.size} spec functions")
 
     val selected =
@@ -98,7 +91,7 @@ object FVSpecScan {
       }
     println(s"[fv] scanning ${selected.size} function(s)")
 
-    val perFunc = selected.map(f => f.name -> blockers(f.body))
+    val perFunc = selected.map(f => f.name -> blockers(f))
     val clean = perFunc.filter(_._2.isEmpty)
     println(
       f"[fv] translatable as-is: ${clean.size}%d / ${selected.size}%d " +
@@ -108,14 +101,15 @@ object FVSpecScan {
     val hist = MMap[String, Int]()
     for ((_, bs) <- perFunc; b <- bs) hist(b) = hist.getOrElse(b, 0) + 1
     println("[fv] blocking constructs, by number of functions blocked:")
-    for ((c, n) <- hist.toList.sortBy(-_._2))
+    for ((c, n) <- hist.toList.sortBy(-_._2).take(25))
       println(f"    $n%5d  $c")
+    if (hist.size > 25) println(f"    ... ${hist.size - 25} more")
 
     // cumulative gain: how many functions unlock as blockers are added
     val ordered = hist.toList.sortBy(-_._2).map(_._1)
     var supported = Set[String]()
     println("[fv] cumulative unlock if implemented in this order:")
-    for (c <- ordered.take(20)) {
+    for (c <- ordered.take(12)) {
       supported += c
       val ok = perFunc.count(_._2.subsetOf(supported))
       println(f"    +$c%-34s => $ok%5d / ${selected.size}%d functions")

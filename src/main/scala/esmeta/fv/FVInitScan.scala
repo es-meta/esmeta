@@ -50,6 +50,67 @@ object FVInitScan {
     println(s"[fv]   records=$records lists=$lists maps=$maps other=$others")
     println(s"[fv]   total fields/elements: $fields")
 
+    // how big is the whole spec IR as a Rocq term?
+    var okFuncs, badFuncs, chars = 0
+    val reasons = scala.collection.mutable.Map[String, Int]()
+    for (f <- cfg.program.funcs) {
+      try { chars += FVExport.rocqFunc(f).length; okFuncs += 1 }
+      catch {
+        case FVExport.Unsupported(msg) =>
+          badFuncs += 1
+          val key =
+            if (msg.startsWith("ty: ")) msg else msg.takeWhile(_ != ':')
+          reasons(key) = reasons.getOrElse(key, 0) + 1
+      }
+    }
+    println(s"[fv] spec funcs translatable: $okFuncs, rejected: $badFuncs")
+    println(f"[fv] Rocq term size for the translatable ones: " +
+      f"${chars / 1024.0 / 1024.0}%.2f MiB")
+    for ((k, n) <- reasons.toList.sortBy(-_._2).take(25)) println(f"[fv]   $n%5d  $k")
+    println(s"[fv] distinct rejection reasons: ${reasons.size}")
+
+    // census of every type test in the spec (not just first-blocker)
+    val tyHist = scala.collection.mutable.Map[String, Int]()
+    val w = new esmeta.ir.util.UnitWalker {
+      override def walk(e: esmeta.ir.Expr): Unit = {
+        e match
+          case esmeta.ir.ETypeCheck(_, t) =>
+            val k = t.ty.toString
+            tyHist(k) = tyHist.getOrElse(k, 0) + 1
+          case _ => ()
+        super.walk(e)
+      }
+    }
+    for (f <- cfg.program.funcs) w.walk(f.body)
+    val tot = tyHist.values.sum
+    println(s"[fv] ETypeCheck occurrences: $tot over ${tyHist.size} distinct types")
+    for ((k, n) <- tyHist.toList.sortBy(-_._2).take(20))
+      println(f"[fv]   $n%5d  $k")
+
+    // which record type names does the spec actually ALLOCATE?
+    val recHist = scala.collection.mutable.Map[String, Int]()
+    val w2 = new esmeta.ir.util.UnitWalker {
+      override def walk(e: esmeta.ir.Expr): Unit = {
+        e match
+          case esmeta.ir.ERecord(tname, _) =>
+            recHist(tname) = recHist.getOrElse(tname, 0) + 1
+          case _ => ()
+        super.walk(e)
+      }
+    }
+    for (f <- cfg.program.funcs) w2.walk(f.body)
+    val comp = recHist.toList.filter(_._1.contains("Completion")).sortBy(-_._2)
+    println(s"[fv] ERecord allocations of Completion-ish types:")
+    for ((k, n) <- comp) println(f"[fv]   $n%5d  $k")
+    // and in the initial heap
+    val heapNames = scala.collection.mutable.Map[String, Int]()
+    for (o <- st.heap.map.values) o match
+      case r: RecordObj =>
+        heapNames(r.tname) = heapNames.getOrElse(r.tname, 0) + 1
+      case _ => ()
+    println("[fv] initial-heap record tnames containing Completion: " +
+      heapNames.filter(_._1.contains("Completion")).mkString(", "))
+
     // cached AST for the given source
     st.cachedAst match
       case Some(ast) =>

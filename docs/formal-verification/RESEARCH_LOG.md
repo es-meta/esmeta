@@ -7,6 +7,107 @@ Relevant Papers.
 
 ---
 
+## 2026-07-30 (G4 prep) — CORRECTION: the coverage figure was wrong. 1769/2951, not 2909
+
+**Objective.** Start G4 by measuring what a full spec export costs. The
+measurement invalidated a number I reported in the two previous entries.
+
+**Current Status — RETRACTION.** The headline "2909 / 2951 (99%)
+translatable" in the G1 and G2 entries is **wrong**. The true figure with
+the same definition is **1769 / 2951 (60%)**. The commits, the
+differential results (39/39) and the model work are unaffected; only the
+coverage *metric* was overstated. Corrected everywhere.
+
+**What went wrong.** `FVSpecScan.blockers` kept its **own list** of
+supported constructors, parallel to what `FVExport` actually does. It
+walked expressions and checked constructor names — but never called
+`FVExport.rocqTy`, so ADR-11's type whitelist was invisible to it, and it
+read function bodies from a JSON dump, so optional parameters were
+invisible too. Measuring the real thing exposed the gap:
+
+```
+[fv] spec funcs translatable: 1664, rejected: 1287
+[fv]   1055  ty: Completion
+[fv]    112  ty: Normal
+[fv]     44  optional param
+```
+
+1233 of the rejections were type tests. `rocqTy`'s whitelist was keyed on
+`"Record[CompletionRecord]"`, `"Record[NormalCompletion]"`,
+`"Record[AbruptCompletion]"` — stringifications that **no longer exist**.
+`ty/util/Stringifier.scala:190-206` prints `Completion`, `Normal`,
+`Abrupt`. So the single most common type test in the entire specification
+(`Completion`, 3770 occurrences) had been silently rejected the whole
+time, and the scanner counted those functions as translatable anyway.
+
+**The structural fix**, not just the numeric one: `FVSpecScan` now builds
+the CFG itself (so it sees parameters and types, and cannot go stale) and
+decides **every** rejection by calling the real exporter. It ends with a
+cross-check — a function with no reported blocker that `rocqFunc` still
+refuses is reported as `UNCAUGHT:<msg>`. There are currently zero
+`UNCAUGHT` entries, so scan and exporter now agree by construction.
+
+**Observations.**
+
+1. *Type-test census over the whole spec [verified by command].* 7760
+   `ETypeCheck` occurrences over 86 distinct types; three of them are 92%
+   of all uses: `Completion` 3770, `Abrupt` 2745, `Normal` 610.
+
+2. *`Completion` is now accepted, and the test is exact.* `RecordTy`
+   prints `Completion` when `RecordTy("CompletionRecord") <= ty`
+   (Stringifier.scala:190-192), and for `r = CompletionRecord` with a top
+   field map `RecordTy.contains` (RecordTy.scala:157-168) reduces to the
+   record-subtype test the model already implements.
+
+3. *`Abrupt` and `Normal` are deliberately still REFUSED, and this is the
+   real finding.* It would have been easy to add two whitelist lines and
+   watch the number jump to 2775/2951. It would also have been wrong.
+   ESMeta decides them by the **field-map difference**: `contains` takes
+   its third branch (`lca`/`diffOf`), and `diffOf(u, l)` is
+   `FieldMap(upper ++ ownFieldsOf(l))` (TyModel.scala:86-93). For
+   `AbruptCompletion`, `ownFieldsOf` is three constraints
+   (manuals/types:35-39):
+
+   ```
+   type AbruptCompletion extends CompletionRecord {
+     Type: Enum[~break~, ~continue~, ~return~, ~throw~];
+     Value: ESValue | Enum[~empty~];
+     Target: String | Enum[~empty~];
+   }
+   ```
+
+   The model's `TAbrupt` tests **only `Type`**. Accepting `Abrupt` would
+   have silently over-approximated 2745 type tests — and every later
+   Test262 result would have rested on it. `Normal` is the same story
+   (`Target: Enum[~empty~]` untested). Filed as OQ-12.
+
+   The third branch is definitely the one that runs: the spec allocates
+   **only** `CompletionRecord` (9 `ERecord` sites, no `NormalCompletion`
+   or `ThrowCompletion` anywhere, and no completion records in the initial
+   heap) [verified by command], so the runtime tname is never a strict
+   subtype of `AbruptCompletion` and the field check always decides.
+
+**Design Decisions.** `rocqTy` lists only types whose model test is
+*exact*; `Abrupt`/`Normal` stay out until the field-map refinement is
+implemented. `FVSpecScan` rewritten to delegate to the exporter.
+
+**Research Debt / OQ-12.** Implementing `TAbrupt`/`TNormal` faithfully
+needs the `Value` field checked against `ESValue = ObjectT || ESPrimT`
+(`ty/package.scala:78`), i.e. a record subtyped from `Object` or `Symbol`,
+or a primitive. That is a **second heap lookup inside a type test**, which
+the current pure `ty_check_obj` cannot express — the completion cases will
+have to be handled monadically in both interpreters. This is the next
+piece of work and it gates everything: `Abrupt` is how the spec spells
+ReturnIfAbrupt, so essentially no spec algorithm runs without it.
+
+**Next Steps.** (1) OQ-12: exact `TAbrupt`/`TNormal`. (2) Then the full
+spec export (0.63 MiB for the 1664 that translated at measurement time)
+and the initial state, whose size is already shown to compile in 4.55 s.
+
+**Relevant Commits.** ESMeta `dev` @ `de537ba9` (baseline).
+
+---
+
 ## 2026-07-30 (later still) — G3 groundwork + the G4 initial state, measured
 
 **Objective.** Realise D-3 (lexical SDO values) and measure the initial
@@ -69,7 +170,7 @@ implemented and unreachable until an AST can be exported (L-11b).
 
 ---
 
-## 2026-07-30 (later) — G2 complete: 2909/2951 (99%), 39/39 match, and ESMeta silently skips assertions
+## 2026-07-30 (later) — G2: 39/39 match; coverage figure later CORRECTED (see the G4-prep entry)
 
 **Objective.** Stage G2: `EGrammarSymbol`, `EInstanceOf`, `ESubstring`,
 `ESourceText`, `EParse` (cached-AST case only). Gate: >= 2890/2951 with
@@ -78,7 +179,8 @@ every remaining blocker documented as UB.
 **Current Status.** Gate met.
 
 ```
-[fv] translatable as-is: 2909 / 2951 (99%)
+[fv] translatable as-is: 2909 / 2951 (99%)   <-- WRONG, see the G4-prep entry;
+                                             the real figure is 1769 / 2951
 [fv] exported 39 program(s), skipped 8 (each with a reason)
 make: rc=0, 0 errors, 11 modules;  make validate: rc=0, 0 errors
 ```
@@ -206,7 +308,7 @@ FVExport > 28 programs all matching ESMeta.
 check fails and recovers as required.
 
 ```
-[fv] translatable as-is: 2804 / 2951 (95%)
+[fv] translatable as-is: 2804 / 2951 (95%)   <-- overstated; see the G4-prep entry
 [fv] exported 37 program(s), skipped 8 (each with a reason)
 formal/: rc=0, 0 errors, 12 .vo
 make validate: rc=0, 0 errors

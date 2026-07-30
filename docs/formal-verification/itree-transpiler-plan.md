@@ -847,8 +847,14 @@ proved-statement summary, claim classification, and a research-log entry.
   `EMathOp` 21, `ECont` 11, `ESyntactic` 4, `EConvert(COp.ToStr)` 2,
   non-integer `EMath` 2, `ETrim` 1, `ERandom` 1; plus `ELexical` and
   `EDebug` (used by no spec function), and the `^^` (`BOp.Xor`) operator.
-  Each is UB in the model, never approximated. 2909/2951 (99%) of spec
-  functions contain none of them. Constructs the original L-1 listed as
+  Each is UB in the model, never approximated.
+  **Corrected 2026-07-30:** an earlier revision of this list said
+  "2909/2951 (99%) of spec functions contain none of them". That figure
+  came from a scanner that kept its own supported-constructor list and
+  never consulted `rocqTy`; the real figure, measured by delegating every
+  decision to the exporter, is **1769/2951 (60%)**. The dominant blockers
+  are not expressions at all but two *type tests*, `Abrupt` (1040
+  functions) and `Normal` (268) — see OQ-12. Constructs the original L-1 listed as
   absent that are now modelled: `Number`, `BigInt`, `Infinity`,
   `CodeUnit`, maps (`EMap`/`EKeys`), `IPush`/`IPop`, `IExpand`/`IDelete`,
   `ECopy`, `ETypeOf`/`ETypeCheck`, `EYet` (as UB by construction),
@@ -904,6 +910,24 @@ proved-statement summary, claim classification, and a research-log entry.
 ---
 
 ## 14. Open questions ledger
+
+**OQ-12 (open, 2026-07-30, load-bearing).** `TAbrupt` and `TNormal` test
+only the completion's `Type` field, but ESMeta decides `(? x: Abrupt)` /
+`(? x: Normal)` by the field-map difference `diffOf` = `ownFieldsOf`
+(TyModel.scala:86-93, RecordTy.scala:157-168), which for
+`AbruptCompletion` constrains **three** fields (manuals/types:35-39):
+`Type: Enum[~break~,~continue~,~return~,~throw~]`,
+`Value: ESValue | Enum[~empty~]`, `Target: String | Enum[~empty~]`;
+`NormalCompletion` additionally constrains `Target: Enum[~empty~]`. The
+third `contains` branch is the one that runs, because the spec allocates
+only `CompletionRecord` (9 `ERecord` sites; no `NormalCompletion` /
+`ThrowCompletion` anywhere, none in the initial heap) [VF]. Until the
+refinement is implemented, `rocqTy` **refuses** both rather than
+over-approximate 3355 type tests. Implementing it needs `ESValue`
+(`= ObjectT || ESPrimT`, ty/package.scala:78), i.e. a second heap lookup
+*inside* a type test, which the pure `ty_check_obj` cannot express: the
+completion cases must move into the monadic layer of both interpreters.
+This gates JS execution — `Abrupt` is how the spec spells ReturnIfAbrupt.
 
 | ID | Question | State | Blocking |
 |---|---|---|---|
