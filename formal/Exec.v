@@ -70,7 +70,7 @@ Local Open Scope exec_scope.
     the [IO "esmeta.print"] trace events. *)
 
 Record xstate : Type := mkXState {
-  x_heap : list obj;
+  x_heap : list (option obj);
   x_globals : list (string * val);
   x_out : list val;
   (* immutable run parameters, mirroring State.scala:17-18 *)
@@ -78,19 +78,26 @@ Record xstate : Type := mkXState {
   x_cached : option ast;
 }.
 
+(** The exported initial state (Initialize.scala:29-40): heap objects at
+    their exported addresses, initial globals, empty print log. *)
 Definition init_xstate (p : prog) : xstate :=
-  mkXState nil nil nil (p_source p) (p_cached p).
+  mkXState (p_heap p) (p_globals p) nil (p_source p) (p_cached p).
 
+(* [None] both for an out-of-range address and for a slot that exists but
+   is unmapped; ESMeta throws UnknownAddr for the latter (Heap.scala:19). *)
 Definition heap_get (st : xstate) (a : nat) : option obj :=
-  nth_error (x_heap st) a.
+  match nth_error (x_heap st) a with
+  | Some (Some o) => Some o
+  | _ => None
+  end.
 
 Definition heap_set (st : xstate) (a : nat) (o : obj) : option xstate :=
   option_map
     (fun h => mkXState h (x_globals st) (x_out st) (x_source st) (x_cached st))
-    (list_update a o (x_heap st)).
+    (list_update a (Some o) (x_heap st)).
 
 Definition heap_alloc (st : xstate) (o : obj) : xstate * nat :=
-  (mkXState (x_heap st ++ [o]) (x_globals st) (x_out st)
+  (mkXState (x_heap st ++ [Some o]) (x_globals st) (x_out st)
      (x_source st) (x_cached st),
    List.length (x_heap st)).
 

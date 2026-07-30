@@ -454,6 +454,37 @@ deferred to PO-010 [user decision: "linking now, syntactic later"].
   so a lexical receiver is UB until that is reimplemented — the main
   remaining blocker for running real JS (L-10).
 
+### ADR-16 — Addresses renumbered to list positions; unmapped slots are explicit
+- **Problem.** The model's `VAddr` carries a `nat`, but ESMeta has two
+  address forms, `NamedAddr(String)` and `DynamicAddr(Long)`
+  (state/Value.scala:56-58). The exported initial heap uses **only** named
+  addresses — 2591 of them, with the dynamic-allocation counter at 0 [VF].
+- **Decision.** The exporter renumbers every address to its position in the
+  exported heap list, and the model's allocation counter starts at that
+  list's length, so freshly allocated objects continue from there exactly
+  as `Heap.size` does.
+- **Why it is sound.** The renumbering is a bijection on addresses, and the
+  semantics does exactly one thing with an address besides dereferencing
+  it: compare it for equality. A bijection preserves equality. Nothing else
+  observes the numeric value — an `IPrint` payload carrying an address is
+  excluded by the observable-behaviour spec (L-6), and ESMeta's own
+  rendering of `#42` is not part of our observable.
+- **Unmapped slots.** ESMeta's initial state references **75 addresses it
+  does not map** [VF] — `#CandidateExecution`, `#KeptAlive`, every
+  `…PrivateElements`, `#INTRINSICS.Date.prototype`, `#INTRINSICS.JSON.parse`
+  and so on. Dereferencing one throws `UnknownAddr` (Heap.scala:19). So
+  `p_heap` is a `list (option obj)`: those addresses get a slot holding
+  `None`, which makes a dereference stuck (matching the throw) while
+  ensuring allocation — which appends — can never hand out that index
+  later. Simply leaving them past the end of the list would have been
+  wrong: the first allocation would then have silently reused the index.
+- **Unrepresentable data is made stuck, never approximated.** A heap object
+  the model cannot represent faithfully becomes an unmapped slot, and an
+  unrepresentable global is omitted. Measured on `var x = 1;`: **16
+  objects** and **one global**, `MATH_PI` — ESMeta's `Math(π)`, which ADR-5
+  excludes because `Math` is restricted to `Z`. Reading `Math.PI` is
+  therefore stuck in the model rather than wrong (extends L-2).
+
 ### ADR-15 — D-3 realised: lexical SDO answers precomputed onto `ALex` nodes
 - **Problem.** `StringValue`, `NumericValue`, `MV`, `SV`, `TV`, `TRV` are the
   gateway from a parsed literal to a value, and ESMeta implements them in

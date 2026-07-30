@@ -657,11 +657,52 @@ Section DENOTE.
        | None => nil
        end).
 
+  (** The exported initial state (Initialize.scala:29-40) as store
+      entries: one key per global and one per heap address.  Addresses are
+      list positions (ADR-16), so the allocation counter starts at the
+      exported heap's length and freshly allocated objects continue from
+      there, exactly as ESMeta's [Heap.size] counter does. *)
+  Definition glb_kvs (p : prog) : list (key * option Any.t) :=
+    List.map (fun xv => (glb_key (fst xv), Some ((snd xv)↑))) (p_globals p).
+
+  (* An unmapped slot simply has no key: [cgetU] on a missing key is UB,
+     which is what ESMeta's UnknownAddr amounts to. *)
+  Fixpoint mapped_slots (l : list (nat * option obj)) : list (nat * obj) :=
+    match l with
+    | nil => nil
+    | (i, Some o) :: tl => (i, o) :: mapped_slots tl
+    | (_, None) :: tl => mapped_slots tl
+    end.
+
+  Definition heap_kvs (p : prog) : list (key * option Any.t) :=
+    List.map (fun ia => (heap_key (fst ia), Some ((snd ia)↑)))
+      (mapped_slots (combine (seq 0 (List.length (p_heap p))) (p_heap p))).
+
   Definition ir_initial_st (p : prog) : gmap key (option Any.t) :=
     <[ src_key := Some ((p_source p)↑) ]>
       (<[ cached_key := Some ((p_cached p)↑) ]>
-         {[ alloc_key # ((0%nat : nat)↑) ]}).
+         (<[ alloc_key := Some ((List.length (p_heap p) : nat)↑) ]>
+            (list_to_map (glb_kvs p ++ heap_kvs p)))).
 
+
+  (** Every key of the exported initial store lives in scope [mn]: the
+      three fixed keys by construction, and the globals/heap keys because
+      [glb_key]/[heap_key] build them that way. *)
+  Lemma initial_st_scope (p : prog) (k : key) :
+    k ∈ dom (ir_initial_st p) -> fst k = mn.
+  Proof.
+    unfold ir_initial_st. rewrite !dom_insert_L.
+    rewrite !elem_of_union !elem_of_singleton. intros Hk.
+    destruct Hk as [E|[E|[E|Hk]]];
+      [ rewrite E; unfold src_key; reflexivity
+      | rewrite E; unfold cached_key; reflexivity
+      | rewrite E; unfold alloc_key; reflexivity
+      | ].
+    apply elem_of_dom in Hk. destruct Hk as [v Hv].
+    apply elem_of_list_to_map_2, elem_of_list_In, in_app_iff in Hv.
+    destruct Hv as [Hv|Hv]; apply in_map_iff in Hv;
+      destruct Hv as (z & Heq & _); inversion Heq; reflexivity.
+  Qed.
 
   (** The packaged CRIS module of an IR-Core program.  The well-formedness
       obligations hold for EVERY program because all function entries use
@@ -702,20 +743,18 @@ Section DENOTE.
   Qed.
   Next Obligation.
   Proof.
-    intros p. unfold ir_initial_st.
-    rewrite !dom_insert_L.
-    intros x Hx. apply elem_of_map in Hx.
-    destruct Hx as (k' & -> & Hk').
-    assert (k' = src_key \/ k' = cached_key \/ k' = alloc_key) as Hor
-      by set_solver.
-    destruct Hor as [E | [E | E]]; rewrite E;
-      unfold src_key, cached_key, alloc_key; cbn; set_solver.
+    intros p x Hx. apply elem_of_map in Hx.
+    destruct Hx as (k' & Hxk & Hk').
+    apply initial_st_scope in Hk'. rewrite Hxk Hk'. set_solver.
   Qed.
   Next Obligation.
   Proof.
     intros p _. unfold ir_initial_st.
     repeat (apply map_Forall_insert_2; [by eexists|]).
-    apply map_Forall_empty.
+    apply map_Forall_lookup. intros k v Hv.
+    apply elem_of_list_to_map_2, elem_of_list_In, in_app_iff in Hv.
+    destruct Hv as [Hv|Hv]; apply in_map_iff in Hv;
+      destruct Hv as (z & Heq & _); inversion Heq; by eexists.
   Qed.
 
   Definition ir_mod (p : prog) : Mod.t := SMod.to_mod ∅ (ir_smod p).

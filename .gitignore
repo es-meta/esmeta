@@ -52,4 +52,7 @@ formal/.deps.mk
 
 ## generated differential-validation expectations (sbt "runMain esmeta.fv.FVExport")
 formal/validation/Generated.v
+## generated spec + initial-state export (sbt "runMain esmeta.fv.FVInitState")
+formal/validation/Spec.v
+formal/validation/SpecRun.v
 formal/.lia.cache

@@ -274,13 +274,6 @@ Record func : Type := mkFunc {
     (Interpreter.scala:198-209).  [mkProg] keeps the old one-argument
     shape for the many programs that have neither. *)
 
-Record prog : Type := mkProgFull {
-  p_funcs  : list func;
-  p_source : option cstr;
-  p_cached : option ast;
-}.
-
-Definition mkProg (fs : list func) : prog := mkProgFull fs None None.
 
 (** ** Semantic values (domain of the M2 denotation)
 
@@ -312,6 +305,35 @@ Inductive val : Type :=
     principle is too weak for closure environments.  A proper mutual
     induction principle is PO-000 groundwork and will be added with the
     first proof that needs it (Milestone 2). *)
+
+(** ** Heap objects (fragment of state/Obj.scala)
+
+    Defined here rather than in [Domain.v] because [prog] carries an
+    exported initial heap. *)
+
+Variant obj : Type :=
+| OList (vs : list val)                          (* ListObj *)
+| ORecord (tname : string) (fields : list (string * val)) (* RecordObj *)
+| OMap (entries : list (val * val)).             (* MapObj — insertion-ordered
+    (state/Obj.scala:129 uses a LinkedHashMap; EKeys depends on that order) *)
+
+Record prog : Type := mkProgFull {
+  p_funcs  : list func;
+  p_source : option cstr;
+  p_cached : option ast;
+  (* Exported initial state (Initialize.scala:29-40).  [p_heap] is indexed
+     by address; ESMeta's initial heap uses only NamedAddrs, which the
+     exporter renumbers to list positions (ADR-16).  A slot is [None] when
+     the address is REFERENCED but not mapped — ESMeta's initial globals
+     include such an address (#CandidateExecution), and dereferencing it
+     throws UnknownAddr (Heap.scala:19).  The slot must still exist so that
+     allocation, which appends, cannot later hand out that index. *)
+  p_globals : list (string * val);
+  p_heap    : list (option obj);
+}.
+
+Definition mkProg (fs : list func) : prog :=
+  mkProgFull fs None None nil nil.
 
 (** ASCII convenience for hand-written programs and the exporter's ASCII
     fast path: turn a Coq byte string into code units.  Only sound for

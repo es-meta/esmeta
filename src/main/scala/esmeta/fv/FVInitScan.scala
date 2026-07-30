@@ -87,6 +87,32 @@ object FVInitScan {
     for ((k, n) <- tyHist.toList.sortBy(-_._2).take(20))
       println(f"[fv]   $n%5d  $k")
 
+    // what shapes must an initial-state exporter be able to emit?
+    var named, dyn = 0
+    val valKinds = scala.collection.mutable.Map[String, Int]()
+    def note(v: Value): Unit =
+      valKinds(v.getClass.getSimpleName) = valKinds.getOrElse(v.getClass.getSimpleName, 0) + 1
+    for ((a, o) <- st.heap.map) {
+      a match
+        case _: NamedAddr   => named += 1
+        case _: DynamicAddr => dyn += 1
+      o match
+        case r: RecordObj => r.map.values.foreach(note)
+        case l: ListObj   => l.values.foreach(note)
+        case m: MapObj    => m.map.foreach { (k, v) => note(k); note(v) }
+        case _            => ()
+    }
+    println(s"[fv] initial-heap addresses: named=$named dynamic=$dyn " +
+      s"heap.size counter=${st.heap.size}")
+    println(s"[fv] value kinds stored in the initial heap: " +
+      valKinds.toList.sortBy(-_._2).map((k, n) => s"$k=$n").mkString(", "))
+    val recTys = scala.collection.mutable.Set[String]()
+    for (o <- st.heap.map.values) o match
+      case r: RecordObj => recTys += r.tname
+      case _            => ()
+    println(s"[fv] distinct record tnames in the initial heap: ${recTys.size}")
+    println(s"[fv] globals: " + st.globals.keys.map(_.name).toList.sorted.mkString(", "))
+
     // exact field-map refinements ESMeta uses for the completion tests
     val tm = esmeta.util.ManualInfo.tyModel
     for (t <- List("AbruptCompletion", "NormalCompletion", "CompletionRecord"))

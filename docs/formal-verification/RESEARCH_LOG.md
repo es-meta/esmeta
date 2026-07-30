@@ -7,6 +7,100 @@ Relevant Papers.
 
 ---
 
+## 2026-07-30 (G4) — the whole spec + initial state compiles; the model runs it and gets stuck, diagnosed
+
+**Objective.** Stage G4: export ESMeta's initial state and the spec itself,
+and try to run a script in the model.
+
+**Current Status.** The export exists and compiles. The model runs it and
+reaches a **definite stuck**, not a timeout — and the cause is now known
+precisely rather than guessed.
+
+```
+[fv] spec functions: 2775 exported, 176 omitted
+[fv] main function(s): RunJobs params=0 EXPORTED
+[fv] globals omitted as unrepresentable (reads are stuck): MATH_PI
+[fv] heap objects unrepresentable, slot left unmapped: 16
+[fv] wrote formal/validation/Spec.v (4157 KiB)
+[fv] ESMeta ran the source in 69 ms; RESULT=undefined, 0 print(s)
+
+coqc validation/Spec.v      62.19s user  0.67s system 99% cpu 1:03.14 total
+coqc validation/SpecRun.v   22.97s user  0.22s system 99% cpu    23.31 total
+  File "./validation/SpecRun.v", line 15:
+  Error: Unable to unify "Ok (VUndef, [])" with "Stuck".
+```
+
+**Observations.**
+
+1. *Size is a non-issue [verified by command].* 4.1 MiB of Rocq — the
+   entire specification as 2775 `func` terms, 2666 heap slots, 22 globals
+   and a 34-node cached AST — compiles in **62 s**. The earlier synthetic
+   probe predicted this; the real thing confirms it. `vm_compute`-ing the
+   run takes 23 s, so performance is not the obstacle either.
+
+2. *The stuck was diagnosed by asking ESMeta, not by guessing.* A probe
+   interpreter records which spec functions the run actually enters, and
+   the set is intersected with the omitted ones:
+
+   ```
+   [fv] functions entered by this run: 76
+   [fv] of those, omitted from the export: 9
+     GetValue                          <- ty:Record[Symbol] | String
+     PutValue                          <- ty:Record[Symbol] | String
+     ValidateAndApplyPropertyDescriptor<- ty:Record[Symbol] | String
+     ResolveBinding                    <- param:optional
+     OrdinaryObjectCreate              <- param:optional
+     StatementListItem[0,0].TopLevelVarDeclaredNames     <- ty:Ast[Statement[10]]
+     StatementListItem[0,0].TopLevelVarScopedDeclarations<- ty:Ast[Statement[10]]
+     ParseScript                       <- ty:List[Record[Error]]
+     GlobalDeclarationInstantiation    <- ty:Ast, ty:Ast[...|...], ty:Ast[...]
+   ```
+
+   This replaces the frequency histogram with a **reachability-driven**
+   work list: running `var x = 1;` needs exactly six more features —
+   union types, `Ast` / `Ast[names]` / `Ast[Name[idx]]` tests,
+   `List[T]` element types, and optional parameters.
+
+3. *Optional parameters need no semantic change.* `getLocals`
+   (Interpreter.scala:376-392) binds positionally and, on running out of
+   arguments, simply skips an optional parameter — it never supplies a
+   default. (Worth noting in passing: the non-optional branch constructs
+   `RemainingParams(ps)` **without throwing it**, so a missing required
+   argument is silently unbound too.) So the exporter only has to stop
+   rejecting the flag, exactly as L-3 already drops parameter types.
+
+4. *Two type tests need care rather than a quick win.* `AstTy.Simple(names)`
+   matches against `ast.types`, not `ast.name` (AstTy.scala:76-81), so the
+   production chain is involved; and `ListTy.Elem(ty)` requires **every
+   element** to satisfy `ty` (ListTy.scala:57-60), i.e. a heap lookup per
+   element — the same monadic shape OQ-12 needed for `Value`.
+
+5. *Unrepresentable initial data is stuck, not approximated (ADR-16).*
+   `MATH_PI` is `Math(π)` and ADR-5 restricts `Math` to `Z`, so the global
+   is omitted and reading `Math.PI` is stuck. 16 heap objects likewise.
+   And ESMeta's initial state references **75 addresses it does not map**
+   (`#CandidateExecution`, `#KeptAlive`, every `…PrivateElements`, …);
+   those get a slot holding `None` so a dereference is stuck — matching
+   `UnknownAddr` — while allocation, which appends, cannot later reuse the
+   index.
+
+**Design Decisions.** ADR-16 (address renumbering; explicit unmapped
+slots; unrepresentable data made stuck). `prog` carries `p_globals` and
+`p_heap`; `Exec`'s `init_xstate` and the CRIS `ir_initial_st` both build
+from it, the latter with the two well-formedness obligations generalised
+from three fixed keys to a list.
+
+**Proof Progress.** `T1Proof.v` unaffected.
+
+**Research Debt.** `Stuck` carries no reason, so a failed run says only
+"stuck". The diagnosis above came from the ESMeta side; a reason-carrying
+`Stuck` would make the model self-diagnosing and is worth doing before the
+work list grows.
+
+**Next Steps.** The six features in observation 2, in that order.
+
+---
+
 ## 2026-07-30 (OQ-12 resolved) — exact completion type tests; 2775/2951, 40/40 match
 
 **Objective.** Implement `(? x: Abrupt)` / `(? x: Normal)` exactly, per

@@ -51,6 +51,14 @@ validate: all validation/Generated.v
 validation/Generated.v:
 	@echo "validation/Generated.v missing — run: sbt \"runMain esmeta.fv.FVExport\"" && exit 1
 
+# The ECMAScript specification plus its initial state (stage G4).
+# Regenerate with:  sbt "runMain esmeta.fv.FVInitState [source]"
+spec: all validation/Spec.v
+	$(COQC) $(COQFLAGS) validation/Spec.v
+
+validation/Spec.v:
+	@echo "validation/Spec.v missing — run: sbt \"runMain esmeta.fv.FVInitState\"" && exit 1
+
 %.vo: %.v
 	$(COQC) $(COQFLAGS) $<
 
@@ -65,4 +73,4 @@ clean:
 	rm -f validation/*.vo validation/*.vos validation/*.vok validation/*.glob
 	rm -f validation/.*.aux
 
-.PHONY: all validate clean
+.PHONY: all validate spec clean

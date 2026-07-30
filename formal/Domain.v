@@ -535,13 +535,8 @@ Proof.
     + rewrite Heq. exact IH.
 Qed.
 
-(** ** Heap objects (fragment of state/Obj.scala) *)
-
-Variant obj : Type :=
-| OList (vs : list val)                          (* ListObj *)
-| ORecord (tname : string) (fields : list (string * val)) (* RecordObj *)
-| OMap (entries : list (val * val)).             (* MapObj — insertion-ordered
-    (state/Obj.scala:129 uses a LinkedHashMap; EKeys depends on that order) *)
+(** ** Heap objects — the type lives in [Fragment.v] because [prog] must
+    carry an exported initial heap; the operations stay here. *)
 
 Fixpoint map_lookup (es : list (val * val)) (k : val) : option val :=
   match es with
