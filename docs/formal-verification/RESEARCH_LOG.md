@@ -7,6 +7,130 @@ Relevant Papers.
 
 ---
 
+## 2026-07-30 — G1 complete: 2804/2951 spec functions, 37/37 corpus programs match
+
+**Objective.** Close stage G1 of the Test262 goal: D-1 (UTF-16 code-unit
+strings) plus the numeric tower, gated at FVSpecScan >= 2800/2951 and
+FVExport > 28 programs all matching ESMeta.
+
+**Current Status.** G1 gate met. `formal/` builds clean (12 modules);
+`make validate` is green over 37 differential programs; the falsification
+check fails and recovers as required.
+
+```
+[fv] translatable as-is: 2804 / 2951 (95%)
+[fv] exported 37 program(s), skipped 8 (each with a reason)
+formal/: rc=0, 0 errors, 12 .vo
+make validate: rc=0, 0 errors
+```
+
+**Observations.**
+
+1. *A genuine differential mismatch, found and diagnosed before any fix
+   [verified by command].* After the D-1 migration `make validate` reported
+
+   ```
+   File "./validation/Generated.v", line 103:
+   Error: Unable to unify "Ok (VUndef, [])" with "Stuck".
+   ```
+
+   on `tests/ir/expr/ref.ir`, whose body asserts `(= str[0] 97cu)`.
+   **The model was wrong, ESMeta was right.** ESMeta indexes a *string*
+   value and returns a code unit — `State.scala:57-59`,
+   `def apply(str: String, field: Value) = field match { case Math(k) =>
+   CodeUnit(str(k.toInt)); case _ => throw WrongStringRef(...) }` — while
+   `read_target`/`read_target_x` handled only `VAddr` and `VAst` bases and
+   fell through to UB. Added the missing case verbatim in both
+   `Semantics.v` and `Exec.v`; out-of-range and non-`Math` fields stay UB
+   because Scala throws there. This case only became *expressible* under
+   D-1: a byte-string model could not have returned a code unit.
+
+2. *The cumulative-unlock table chose the work, not intuition
+   [verified by command].* The numeric tower alone reached 2704/2951. The
+   scanner's cumulative table showed `EVariadic` then `EContains` are
+   exactly what crosses the gate (2761, then 2804), so both were pulled
+   forward from G2. Remaining blockers, all still UB: EGrammarSymbol 49,
+   ESourceText 37, EParse 33, ESubstring 22, EMathOp 21, ECont 11,
+   EInstanceOf 4, ESyntactic 4, EConvert(ToStr) 2, EMath(non-integer) 2,
+   ETrim 1, ERandom 1.
+
+3. *Scala `==` on `Number` is `doubleEquals`, so `EContains` is exact
+   [repository fact].* `case class Number(double: Double) extends Numeric
+   with DoubleEquals` (`state/Value.scala:143`) overrides `equals` with
+   `doubleEquals` (`util/DoubleEquals.scala:7-10`). `EContains` is
+   `Bool(l.values.contains(e))` (`Interpreter.scala:233-236`), i.e. Scala
+   `==`, which is precisely what `val_eqb` already models via
+   `num_struct_eqb`. No new equality notion was needed — the existing
+   comment in `Domain.v` is now verified rather than assumed.
+
+4. *`EVariadic` is order-sensitive in a way worth writing down
+   [repository fact].* `Interpreter.scala:669-693`: `Min` short-circuits on
+   `-inf`, *then* drops every `+inf`, and returns `+inf` if that leaves
+   nothing; only then does `asMath` demand every survivor be a `Math`.
+   `Concat` maps `Str(s) |-> s` and `CodeUnit(c) |-> c.toString` — under
+   D-1 the latter is a one-code-unit string, so `Concat` is exact.
+   An empty argument list is `InvalidVariadicOp` (UB).
+
+5. *A silent coverage hole, found and closed [verified by command].*
+   After wiring `EVariadic`, `grep -o 'VoMin|VoMax|VoConcat' Generated.v`
+   showed `VoConcat` 4 and `VoMin`/`VoMax` **0**: the only corpus test for
+   min/max, `tests/ir/expr/variadic.ir`, is skipped for its `3.2` literal
+   (ADR-5). Green validation would have implied coverage that did not
+   exist. Closed by ADR-13 (below) with
+   `formal/validation/extra/variadic-int.ir`, the integer-and-infinity
+   lines of the upstream file copied verbatim; expectations still come
+   from running ESMeta, so it is a real differential test. Now VoMin 4,
+   VoMax 4.
+
+6. *`Print Assumptions` for `T1Proof.v` now also lists Coq's
+   `PrimFloat`/`PrimInt63` primitives [verified by command].* This is a
+   consequence of D-2 putting `PrimFloat` in the value domain. They are
+   kernel-realised primitive operators, not admitted lemmas; the framework
+   axioms are unchanged (proof_irrelevance, functional_extensionality_dep,
+   eq_rect_eq, constructive_definite_description, classic, bisim_is_eq).
+   The goal's invariant 5 was amended to say so.
+
+**Design Decisions.** ADR-13 (targeted differential corpus in
+`formal/validation/extra/`). Scope change recorded in the goal artifacts:
+`T2Proof.v`/`T3Proof.v` moved to `formal/attic/` per the user's
+instruction to focus on Test262, so invariant 5 covers `T1Proof.v` only.
+Their *statements* are untouched; only the Ltac1 scripts broke (see
+`formal/attic/README.md`).
+
+**Proof Progress.** None this stage — G1 is modelling and differential
+testing. `T1Proof.v` still compiles unchanged.
+
+**Failed Attempts.**
+- `Generated.v` newly exported `tests/ir/map-unzip.ir` (unlocked by
+  `EContains`), which contains a `Number` map key, and the generated header
+  did not `Require Floats`: `Error: Unknown scope delimiting key float.`
+  Fixed in the exporter header rather than by hand-editing the generated
+  file.
+- Adding two `expr` constructors broke four exhaustive matches in
+  `Transform.v` (`temp_fresh_expr`, `temp_bound_expr`, `opt_free_expr`) and
+  the bullet structure of `temp_fresh_expr_bound`. Mechanical, but it is
+  the recurring cost of every fragment extension.
+
+**Research Debt.**
+- `VoMin`/`VoMax` are exercised only over `Z` and `±inf`; ESMeta's `Math`
+  is `BigDecimal` (ADR-5 limitation L-2), so non-integer min/max is
+  untested by construction.
+- `EContains` is tested over `Math`, `BigInt` and `Number` elements via
+  `map-unzip.ir`; equality over `VAst` elements is still untested and, per
+  the `Eq`-on-AST finding, is reference equality in ESMeta.
+
+**Open Questions.** No new ones. The string-indexing gap was a missing
+faithful case, not a semantic ambiguity, so it did not need an OQ.
+
+**Next Steps.** G2: `EGrammarSymbol`, `ESourceText`, `EParse` (cached-AST
+case only), `ESubstring`, `ETrim`, `EInstanceOf`, `ESyntactic`, `ELexical`
+— target >= 2890/2951.
+
+**Relevant Commits.** ESMeta `dev` @ `de537ba9` (baseline). Pins: ecma262
+`84b38ad8`; rocq-cris `c0bcd04e`.
+
+---
+
 ## 2026-07-29 (late night) — Scaling toward JS-level execution: 8 -> 2417 of 2951 spec functions
 
 **Objective.** User asked to model enough that Test262 can actually run.

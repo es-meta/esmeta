@@ -25,12 +25,30 @@
     Coq standard library, so the syntax can be reused even if the proof
     framework changes.  Semantics lives in later files (Milestone 2). *)
 
-From Stdlib Require Import String ZArith List.
+From Stdlib Require Import String ZArith List Floats Uint63.
 Import ListNotations.
 
 Set Implicit Arguments.
 
 Local Open Scope string_scope.
+
+(** ** ECMAScript strings as UTF-16 code units (D-1)
+
+    ESMeta's [Str] wraps a Scala [String], i.e. a sequence of UTF-16 code
+    units, and [CodeUnit] is one such unit (state/Value.scala:129, 149).
+    Byte strings would make [ESizeOf]/[ESubstring] wrong for non-ASCII, so
+    string VALUES carry code units.
+
+    Record type names and record FIELD names stay Coq [string]: they are
+    spec-internal identifiers.  Verified over the compiled spec: of 157
+    distinct quoted field names and 474 distinct dotted field names, **zero**
+    are non-ASCII (the 48 non-ASCII string literals in the spec are all
+    [EYet] prose).  Arbitrary ECMAScript strings reach the heap only as
+    *values* — object properties live in [MapObj] keyed by values, not in
+    record field names. *)
+
+Definition cunit := Z.           (* one UTF-16 code unit, 0..65535 *)
+Definition cstr := list cunit.   (* an ECMAScript string value *)
 
 (** ** Identifiers *)
 
@@ -55,7 +73,8 @@ Inductive uop : Type :=
 | UNeg   (* Neg   : arithmetic negation *)
 | UNot   (* Not   : boolean negation *)
 | UAbs   (* Abs   : mathematical absolute value *)
-| UFloor. (* Floor : mathematical floor *)
+| UFloor (* Floor : mathematical floor *)
+| UBNot. (* BNot  : bitwise negation on integral Math *)
 
 Inductive bop : Type :=
 | BAdd   (* Add *)
@@ -67,13 +86,31 @@ Inductive bop : Type :=
 | BOr    (* Or    : boolean disjunction (short-circuit) *)
 | BDiv   (* Div   : mathematical division (integers: exact only) *)
 | BMod   (* Mod   : mathematical modulo *)
-| BEqual. (* Equal : numeric equality (=== on Math in the fragment) *)
+| BEqual (* Equal  : numeric equality *)
+| BPow   (* Pow    : exponentiation *)
+| BBAnd  (* BAnd   : bitwise and   on integral Math *)
+| BBOr   (* BOr    : bitwise or    on integral Math *)
+| BBXOr  (* BXOr   : bitwise xor   on integral Math *)
+| BLShift(* LShift : left shift    on integral Math *)
+| BRShift. (* RShift: right shift   on integral Math *)
 
 (** NOTE (repository fact): the ESMeta interpreter short-circuits [And]/[Or]
     at expression-evaluation level (Interpreter.scala:251-252, 358-365).
     Whether the fragment adopts short-circuit or strict evaluation is
     Open Question OQ-7 in the architecture note; the denotation (M2) must
     pick the interpreter's behavior.  Syntax is unaffected. *)
+
+(** ** Value conversions ([EConvert], Interpreter.scala:263-289) *)
+
+Inductive cop : Type :=
+| CToApproxNumber | CToNumber | CToBigInt | CToMath | CToCodeUnit.
+
+(** ** Variadic operators ([EVariadic], ir/Op.scala:35-39)
+
+    [VOp.Min], [VOp.Max], [VOp.Concat]; the interpreter's transition is
+    Interpreter.scala:669-693. *)
+
+Inductive vop : Type := VoMin | VoMax | VoConcat.
 
 (** ** ECMAScript parse trees as values (mirrors es/Ast.scala)
 
@@ -104,7 +141,8 @@ Inductive tyexp : Type :=
 | TNormal                    (* CompletionRecord whose Type  = ~normal~ *)
 | TList                      (* list object *)
 | TMapTy                     (* map object *)
-| TStrTy | TBoolTy | TMathTy | TUndefTy | TNullTy | TEnumTy | TCloTy.
+| TStrTy | TBoolTy | TMathTy | TUndefTy | TNullTy | TEnumTy | TCloTy
+| TNumberTy | TBigIntTy | TCodeUnitTy | TInfinityTy | TAstTy.
 
 (** ** Expressions and references (mutual)
 
@@ -113,7 +151,7 @@ Inductive tyexp : Type :=
 Inductive expr : Type :=
 | EMath (z : Z)                                 (* EMath — ADR-5: Z only *)
 | EBool (b : bool)                              (* EBool *)
-| EStr (s : string)                             (* EStr *)
+| EStr (cs : cstr)                              (* EStr — D-1 *)
 | EUndef                                        (* EUndef *)
 | ENull                                         (* ENull *)
 | EEnum (name : string)                         (* EEnum, e.g. ~empty~ *)
@@ -135,6 +173,14 @@ Inductive expr : Type :=
 | EMap (pairs : list (expr * expr))             (* EMap: map allocation *)
 | EKeys (m : expr) (intSorted : bool)           (* EKeys: key list *)
 | ECopy (e : expr)                              (* ECopy: shallow copy *)
+| ENumber (f : float)                           (* ENumber: IEEE-754 double *)
+| EBigInt (z : Z)                               (* EBigInt *)
+| EInfinity (pos : bool)                        (* EInfinity: extended Math *)
+| ECodeUnit (c : cunit)                         (* ECodeUnit *)
+| EConvert (op : cop) (e : expr)                (* EConvert, flat cases *)
+| EToStr (e : expr) (radix : option expr)       (* EConvert with COp.ToStr *)
+| EVariadic (op : vop) (es : list expr)         (* EVariadic *)
+| EContains (lst : expr) (e : expr)             (* EContains *)
 | EOptField (recv : expr) (fld : string)
     (* SYNTHETIC (ADR-9) — NOT an ESMeta IR construct.  "recv?.fld":
        evaluate the receiver once; if it is Null or Undef, yield Undef
@@ -203,18 +249,69 @@ Record prog : Type := mkProg {
 Inductive val : Type :=
 | VMath (z : Z)
 | VBool (b : bool)
-| VStr (s : string)
+| VStr (cs : cstr)
 | VUndef
 | VNull
 | VEnum (name : string)
 | VAddr (a : nat)
 | VClo (fn : irname) (captured : list (string * val))
-| VAst (a : ast).                (* AstValue — state/Value.scala:83 *)
+| VAst (a : ast)                 (* AstValue — state/Value.scala:83 *)
+| VNumber (f : float)            (* Number   — state/Value.scala:143 *)
+| VBigInt (z : Z)                (* BigInt   — state/Value.scala:146 *)
+| VInfinity (pos : bool)         (* Infinity — state/Value.scala:123 *)
+| VCodeUnit (c : cunit).         (* CodeUnit — state/Value.scala:129 *)
 
 (** [val] nests [list (string * val)]; the auto-generated induction
     principle is too weak for closure environments.  A proper mutual
     induction principle is PO-000 groundwork and will be added with the
     first proof that needs it (Milestone 2). *)
+
+(** ASCII convenience for hand-written programs and the exporter's ASCII
+    fast path: turn a Coq byte string into code units.  Only sound for
+    ASCII; the exporter emits explicit code units for anything else. *)
+Definition cu (s : string) : cstr :=
+  List.map (fun c => Z.of_nat (Ascii.nat_of_ascii c)) (list_ascii_of_string s).
+
+(** Inverse for record-field lookup: a [VStr] key must be matched against a
+    field name, which is a Coq [string].  Defined only on ASCII, which the
+    empirical check above justifies; non-ASCII yields [None] and the caller
+    raises UB rather than guessing. *)
+Fixpoint ascii_of_cstr (cs : cstr) : option string :=
+  match cs with
+  | nil => Some EmptyString
+  | z :: tl =>
+      if andb (0 <=? z)%Z (z <? 128)%Z
+      then option_map (String (Ascii.ascii_of_nat (Z.to_nat z)))
+             (ascii_of_cstr tl)
+      else None
+  end.
+
+(** All-ASCII test, and the round trip that record-field lookup relies on:
+    encoding an ASCII field name to code units and decoding it back is the
+    identity.  Proved once so proofs and tactics do not have to unfold the
+    character encoding. *)
+Fixpoint ascii_str (s : string) : bool :=
+  match s with
+  | EmptyString => true
+  | String c t => andb (Nat.ltb (Ascii.nat_of_ascii c) 128) (ascii_str t)
+  end.
+
+Lemma ascii_of_cstr_cu (s : string) :
+  ascii_str s = true -> ascii_of_cstr (cu s) = Some s.
+Proof.
+  induction s as [|c t IH]; simpl; intros H; [reflexivity|].
+  apply Bool.andb_true_iff in H as [Hc Ht].
+  apply Nat.ltb_lt in Hc.
+  assert (Hz : ((0 <=? Z.of_nat (Ascii.nat_of_ascii c))%Z
+                && (Z.of_nat (Ascii.nat_of_ascii c) <? 128)%Z)%bool = true).
+  { apply Bool.andb_true_iff; split.
+    - apply Z.leb_le. apply Nat2Z.is_nonneg.
+    - apply Z.ltb_lt. change 128%Z with (Z.of_nat 128).
+      apply Nat2Z.inj_lt. exact Hc. }
+  unfold cu in *; simpl. rewrite Hz.
+  rewrite Nat2Z.id, Ascii.ascii_nat_embedding.
+  rewrite IH by exact Ht. reflexivity.
+Qed.
 
 (** ** Basic decidable equalities (needed pervasively from M2 on) *)
 

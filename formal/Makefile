@@ -37,9 +37,7 @@ SOURCES := \
 	Exec.v \
 	Transform.v \
 	Validation.v \
-	T1Proof.v \
-	T2Proof.v \
-	T3Proof.v
+	T1Proof.v
 OBJECTS := $(SOURCES:.v=.vo)
 DEPS := .deps.mk
 

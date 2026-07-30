@@ -83,7 +83,20 @@ Fixpoint temp_fresh_expr (k : nat) (e : expr) {struct e} : bool :=
          end) pairs
   | EKeys m _ => temp_fresh_expr k m
   | ECopy e1 => temp_fresh_expr k e1
+  | ENumber _ | EBigInt _ | EInfinity _ | ECodeUnit _ => true
+  | EConvert _ e1 => temp_fresh_expr k e1
+  | EToStr e1 r =>
+      andb (temp_fresh_expr k e1)
+        (match r with Some e2 => temp_fresh_expr k e2 | None => true end)
   | EOptField recv _ => temp_fresh_expr k recv
+  | EVariadic _ es =>
+      (fix go (l : list expr) : bool :=
+         match l with
+         | nil => true
+         | e1 :: tl => andb (temp_fresh_expr k e1) (go tl)
+         end) es
+  | EContains lst e1 =>
+      andb (temp_fresh_expr k lst) (temp_fresh_expr k e1)
   end
 
 with temp_fresh_ref (k : nat) (r : ref) {struct r} : bool :=
@@ -185,7 +198,20 @@ Fixpoint temp_bound_expr (e : expr) {struct e} : nat :=
          end) pairs
   | EKeys m _ => temp_bound_expr m
   | ECopy e1 => temp_bound_expr e1
+  | ENumber _ | EBigInt _ | EInfinity _ | ECodeUnit _ => 0
+  | EConvert _ e1 => temp_bound_expr e1
+  | EToStr e1 r =>
+      Nat.max (temp_bound_expr e1)
+        (match r with Some e2 => temp_bound_expr e2 | None => 0 end)
   | EOptField recv _ => temp_bound_expr recv
+  | EVariadic _ es =>
+      (fix go (l : list expr) : nat :=
+         match l with
+         | nil => 0
+         | e1 :: tl => Nat.max (temp_bound_expr e1) (go tl)
+         end) es
+  | EContains lst e1 =>
+      Nat.max (temp_bound_expr lst) (temp_bound_expr e1)
   end
 
 with temp_bound_ref (r : ref) {struct r} : nat :=
@@ -309,6 +335,17 @@ Proof.
       apply andb_true_intro; split; [apply temp_fresh_expr_bound; lia|].
       apply andb_true_intro; split;
         [apply temp_fresh_expr_bound; lia | apply IH; lia].
+    + (* EToStr: body and optional radix *)
+      apply andb_true_intro; split;
+        [apply temp_fresh_expr_bound; lia|].
+      destruct radix as [e2|]; [apply temp_fresh_expr_bound; lia|reflexivity].
+    + (* EVariadic: argument list *)
+      induction es as [|e1 tl IH]; simpl in *; [reflexivity|].
+      apply andb_true_intro; split;
+        [apply temp_fresh_expr_bound; lia | apply IH; lia].
+    + (* EContains: list and element *)
+      apply andb_true_intro; split;
+        [apply temp_fresh_expr_bound | apply temp_fresh_expr_bound]; lia.
   - destruct r; simpl; intros H.
     + apply temp_fresh_var_bound; exact H.
     + apply andb_true_intro; split;
@@ -398,7 +435,7 @@ Definition t2_desugar (k : nat) (lhs : local) (recv : expr) (fld : string)
         IIf (nullish_test (t1_temp_ref k))
             (IAssign (RVar (VLocal lhs)) EUndef)
             (IAssign (RVar (VLocal lhs))
-               (ERef (RField (RVar (VLocal (LTemp k))) (EStr fld))))
+               (ERef (RField (RVar (VLocal (LTemp k))) (EStr (cu fld)))))
         :: nil).
 
 Fixpoint t2_inst (k : nat) (i : inst) {struct i} : inst :=
@@ -457,6 +494,18 @@ Fixpoint opt_free_expr (e : expr) {struct e} : bool :=
          end) pairs
   | EKeys m _ => opt_free_expr m
   | ECopy e1 => opt_free_expr e1
+  | ENumber _ | EBigInt _ | EInfinity _ | ECodeUnit _ => true
+  | EConvert _ e1 => opt_free_expr e1
+  | EToStr e1 r =>
+      andb (opt_free_expr e1)
+        (match r with Some e2 => opt_free_expr e2 | None => true end)
+  | EVariadic _ es =>
+      (fix go (l : list expr) : bool :=
+         match l with
+         | nil => true
+         | e1 :: tl => andb (opt_free_expr e1) (go tl)
+         end) es
+  | EContains lst e1 => andb (opt_free_expr lst) (opt_free_expr e1)
   | EOptField _ _ => false
   end
 

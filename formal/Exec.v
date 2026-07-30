@@ -108,7 +108,9 @@ Definition read_target_x (st : xstate) (ρ : env) (t : xtarget) : out val :=
   | XField (VAddr a) k =>
       o <- of_option (heap_get st a);;
       match o, k with
-      | ORecord _ fs, VStr fld => of_option (fields_lookup fs fld)
+      | ORecord _ fs, VStr cs =>
+          fld <- of_option (ascii_of_cstr cs);;
+          of_option (fields_lookup fs fld)
       | OList vs, VMath i =>
           if (0 <=? i)%Z then of_option (nth_error vs (Z.to_nat i)) else Stuck
       | OMap es, _ => of_option (map_lookup es k)
@@ -121,6 +123,11 @@ Definition read_target_x (st : xstate) (ρ : env) (t : xtarget) : out val :=
         c0 <- of_option c;;
         Ok (VAst c0)
       else Stuck
+  (* String indexing -> code unit (State.scala:57-59). *)
+  | XField (VStr cs) (VMath i) =>
+      if (0 <=? i)%Z
+      then c <- of_option (nth_error cs (Z.to_nat i));; Ok (VCodeUnit c)
+      else Stuck
   | _ => Stuck
   end.
 
@@ -132,7 +139,8 @@ Definition write_target_x (st : xstate) (ρ : env) (t : xtarget) (v : val)
   | XField (VAddr a) k =>
       o <- of_option (heap_get st a);;
       match o, k with
-      | ORecord tn fs, VStr fld =>
+      | ORecord tn fs, VStr cs =>
+          fld <- of_option (ascii_of_cstr cs);;
           st' <- of_option (heap_set st a (ORecord tn (fields_insert fld v fs)));;
           Ok (st', ρ)
       | OList vs, VMath i =>
@@ -227,6 +235,7 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
   | ESizeOf e1 =>
       '(st1, v) <- exec_expr st ρ e1;;
       match v with
+      | VStr cs => Ok (st1, VMath (Z.of_nat (List.length cs)))
       | VAddr a =>
           o <- of_option (heap_get st1 a);;
           n <- of_option (obj_size o);;
@@ -256,7 +265,8 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
       | XField (VAddr a) k =>
           o <- of_option (heap_get st1 a);;
           match o, k with
-          | ORecord _ fs, VStr fld =>
+          | ORecord _ fs, VStr cs =>
+              fld <- of_option (ascii_of_cstr cs);;
               Ok (st1, VBool (match fields_lookup fs fld with
                               | Some _ => true | None => false end))
           | OMap es, _ =>
@@ -272,7 +282,7 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
   | ETypeOf e1 =>
       '(st1, v) <- exec_expr st ρ e1;;
       s0 <- of_option (typeof_prim v);;
-      Ok (st1, VStr s0)
+      Ok (st1, VStr (cu s0))
   | ETypeCheck e1 t =>
       '(st1, v) <- exec_expr st ρ e1;;
       match v with
@@ -316,12 +326,45 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
           Ok (st2, VAddr a2)
       | _ => Stuck
       end
+  | ENumber f => Ok (st, VNumber f)
+  | EBigInt z => Ok (st, VBigInt z)
+  | EInfinity p => Ok (st, VInfinity p)
+  | ECodeUnit c => Ok (st, VCodeUnit c)
+  | EConvert op e1 =>
+      '(st1, v) <- exec_expr st ρ e1;;
+      r <- of_option (eval_cop op v);;
+      Ok (st1, r)
+  | EToStr _ _ => Stuck
+  | EVariadic op es =>
+      '(st1, vs) <-
+        ((fix go (l : list expr) (st0 : xstate) : out (xstate * list val) :=
+            match l with
+            | nil => Ok (st0, nil)
+            | e1 :: tl =>
+                '(sta, v) <- exec_expr st0 ρ e1;;
+                '(stb, vs) <- go tl sta;;
+                Ok (stb, v :: vs)
+            end) es st);;
+      r <- of_option (eval_vop op vs);;
+      Ok (st1, r)
+  | EContains lst e1 =>
+      '(st1, lv) <- exec_expr st ρ lst;;
+      '(st2, ev) <- exec_expr st1 ρ e1;;
+      match lv with
+      | VAddr a =>
+          o <- of_option (heap_get st2 a);;
+          match o with
+          | OList vs => Ok (st2, VBool (existsb (val_eqb ev) vs))
+          | _ => Stuck
+          end
+      | _ => Stuck
+      end
   | EOptField recv fld =>
       '(st1, v) <- exec_expr st ρ recv;;
       if orb (val_eqb v VNull) (val_eqb v VUndef)
       then Ok (st1, VUndef)
       else
-        rv <- read_target_x st1 ρ (XField v (VStr fld));;
+        rv <- read_target_x st1 ρ (XField v (VStr (cu fld)));;
         Ok (st1, rv)
   end
 
@@ -464,7 +507,8 @@ Fixpoint exec_inst (fuel : nat) (p : prog) (st : xstate) (ρ : env)
           bv <- read_target_x st1 ρ t;;
           '(st2, fv) <- exec_expr st1 ρ fld;;
           match bv, fv with
-          | VAddr a, VStr f =>
+          | VAddr a, VStr cs =>
+              f <- of_option (ascii_of_cstr cs);;
               o <- of_option (heap_get st2 a);;
               match o with
               | ORecord tn fs =>

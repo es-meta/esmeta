@@ -454,6 +454,31 @@ deferred to PO-010 [user decision: "linking now, syntactic later"].
   so a lexical receiver is UB until that is reimplemented — the main
   remaining blocker for running real JS (L-10).
 
+### ADR-13 — A targeted differential corpus alongside `tests/ir`
+- **Problem.** `FVExport` derives its expectations by *running ESMeta's own
+  interpreter*, so `tests/ir` is the ground truth — but it is ESMeta's test
+  suite, not ours, and it does not cover every construct we model at a
+  granularity we can export. Concretely: after implementing `EVariadic`,
+  `VoMin`/`VoMax` had **zero** occurrences in `Generated.v`, because the
+  only min/max test (`tests/ir/expr/variadic.ir`) is skipped over its `3.2`
+  literal (ADR-5). Validation was green and the code was untested.
+- **Alternatives.** (a) add cases to `tests/ir` — pollutes ESMeta's suite
+  and changes what `EvalTinyTest` runs; (b) hand-write expectations in
+  `Validation.v` — the expectation would then be *our* belief, not ESMeta's
+  behaviour, which defeats the point of a differential test;
+  (c) **a second input directory that `FVExport` also walks.**
+- **Decision.** (c). `FVExport` walks `tests/ir` *and*
+  `formal/validation/extra`; ids are namespaced by the parent directory
+  (`g_extra_*` vs `g_ir_*`), so nothing collides. Expectations are still
+  produced by running ESMeta, so these remain true differential tests.
+- **Consequences.** Coverage of the model can be driven independently of
+  ESMeta's suite, and a construct we implement can always be given a test
+  that actually reaches it. The obligation this creates: **after adding any
+  construct, grep `Generated.v` for its constructor**; a green
+  `make validate` proves nothing about code the corpus never executes.
+  First instance: `formal/validation/extra/variadic-int.ir`, the
+  integer-and-infinity lines of the upstream file copied verbatim.
+
 ### ADR-10 — CORRECTION to ADR-9: the specification *is* the desugaring; T-3 supersedes T-2
 - **Problem.** ADR-9 introduced a synthetic `EOptField` to have an
   optional-chaining *source* form. User challenge (2026-07-29): ESMeta
@@ -755,14 +780,27 @@ proved-statement summary, claim classification, and a research-log entry.
 
 ## 13. Limitations of the initial fragment
 
-- **L-1** IR-Core omits: continuations (`ECont`/`Cont`), AST/grammar values
-  (`EParse`, `ESyntactic`, `ISdoCall`), IEEE-754 `Number`, `BigInt`,
-  `Infinity`, `CodeUnit`, maps (`EMap`/`EKeys` — insertion-order-sensitive
-  [RF]), `IPush`/`IPop`, `IExpand`/`IDelete`, `ECopy`, `ETypeOf` /
-  `EInstanceOf` / `ETypeCheck`, `EYet`, `ERandom`, `EDebug`, string
-  operations beyond literals/equality. No support is claimed for any of
-  these.
-- **L-2** `Math` is integer-only; no `Div`/`Mod`/`Pow` (ADR-5).
+- **L-1** *(rewritten 2026-07-30 — the original list is stale; what follows
+  is the measured state.)* The constructs still outside the fragment, as
+  reported by `FVSpecScan` over the 2951 compiled spec functions, with the
+  number of functions each one blocks:
+  `EGrammarSymbol` 49, `ESourceText` 37, `EParse` 33, `ESubstring` 22,
+  `EMathOp` 21, `ECont` 11, `EInstanceOf` 4, `ESyntactic` 4,
+  `EConvert(COp.ToStr)` 2, non-integer `EMath` 2, `ETrim` 1, `ERandom` 1;
+  plus `ELexical` and `EDebug`, and the `^^` (`BOp.Xor`) operator. Each is
+  UB in the model, never approximated. 2804/2951 (95%) of spec functions
+  contain none of them. Constructs the original L-1 listed as absent that
+  are now modelled: `Number`, `BigInt`, `Infinity`, `CodeUnit`, maps
+  (`EMap`/`EKeys`), `IPush`/`IPop`, `IExpand`/`IDelete`, `ECopy`,
+  `ETypeOf`/`ETypeCheck`, `EYet` (as UB by construction), `ISdoCall`
+  (ADR-12), `EVariadic`, `EContains`, and string operations including
+  UTF-16 code-unit indexing (`State.scala:57-59`).
+- **L-2** `Math` is integer-only (`Z`), whereas ESMeta's `Math` is a
+  `BigDecimal` (ADR-5). `Div`/`Mod`/`Pow` *are* modelled, over `Z`;
+  the exporter rejects any non-integer `Math` literal rather than rounding
+  it, so the restriction is visible as a skip, never as a wrong answer.
+  Consequence for testing: constructs whose only corpus test carries a
+  non-integer literal get no coverage from `tests/ir` — see ADR-13.
 - **L-3** Untyped: parameter/return type annotations and `FuncKind` dropped;
   optional parameters unsupported.
 - **L-4** Promise jobs, async/await, generators, agents/shared memory,

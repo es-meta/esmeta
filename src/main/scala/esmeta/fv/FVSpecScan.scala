@@ -52,22 +52,23 @@ object FVSpecScan {
           // tyexp grammar of formal/Fragment.v; FVExport still validates
           // the concrete Ty and rejects anything outside it.
           case _: EParse | _: EGrammarSymbol | _: ESourceText |
-              _: EContains | _: ESubstring | _: ETrim | _: EVariadic |
-              _: EMathOp | _: EConvert |
+              _: ESubstring | _: ETrim |
+              _: EMathOp |
               _: EInstanceOf | _: ECont | _: EDebug |
-              _: ERandom | _: ESyntactic | _: ELexical |
-              _: ENumber | _: EBigInt | _: EInfinity |
-              _: ECodeUnit =>
+              _: ERandom | _: ESyntactic | _: ELexical =>
             found += s"expr:${e.getClass.getSimpleName}"
+          // COp.ToStr needs toStringHelper (Scala), so it stays UB
+          case EConvert(COp.ToStr(_), _) => found += "expr:EConvert(ToStr)"
           case EMath(n) if !n.isWhole => found += "expr:EMath(non-integer)"
           case EUnary(uop, _) =>
             uop match
-              case UOp.Neg | UOp.Not | UOp.Abs | UOp.Floor => ()
+              case UOp.Neg | UOp.Not | UOp.Abs | UOp.Floor | UOp.BNot => ()
               case _                 => found += s"uop:$uop"
           case EBinary(bop, _, _) =>
             bop match
               case BOp.Add | BOp.Sub | BOp.Mul | BOp.Lt | BOp.Eq | BOp.And |
-                  BOp.Or | BOp.Equal | BOp.Div | BOp.Mod =>
+                  BOp.Or | BOp.Equal | BOp.Div | BOp.Mod | BOp.Pow |
+                  BOp.BAnd | BOp.BOr | BOp.BXOr | BOp.LShift | BOp.RShift =>
                 ()
               case _ => found += s"bop:$bop"
           case _ => ()

@@ -76,12 +76,15 @@ Section T3PROOF.
   Definition Ist : ist_type Σ := fun s t => ⌜s = t⌝%I.
 
   Ltac t3round Hn Hu :=
+    (* D-1: record field keys arrive as code units; the round trip
+       (Fragment.ascii_of_cstr_cu) exposes the field name again. *)
+    try (rewrite ascii_of_cstr_cu; [|reflexivity]);
     try rewrite !env_lookup_update_same;
     try rewrite Hn;
     try rewrite Hu;
     try cStepsS;
     try cStepsT.
-  Ltac t3step Hn Hu := do 6 (t3round Hn Hu).
+  Ltac t3step Hn Hu := do 12 (t3round Hn Hu).
 
   (* Adapted from the CRIS workshop, day1/answers/Optimizations.v. *)
   Ltac cStartTypedFunSim x :=
@@ -96,66 +99,22 @@ Section T3PROOF.
   (* shared tail once the field value is in hand *)
   Ltac t3roundTAIL Hn Hu :=
     do 3 (t3round Hn Hu);
-    unfold log_val; try cStepsS; try cStepsT;
+    unfold log_val; do 4 (try cStepsS; try cStepsT);
     cStep as reply; cStep; iSplit; done.
 
   (** Shared tail: from "the context returned [rv], both sides at the
       nullish guard" to Qed, by cases on [rv]. *)
-  Ltac t3branches rv Hn Hu :=
+  Ltac t3ub Hn Hu := do 3 (t3round Hn Hu); first [contradiction | ss | done].
+
+  (** Closes the two nullish branches and leaves the non-nullish goal open.
+      The VAddr continuation is INLINED at each call site: inside an Ltac
+      body the `Any.downcast` pattern is elaborated at definition time and
+      then fails to match the goal, while the same steps work inline. *)
+  Ltac t3nullish rv Hn Hu :=
     destruct (val_eqb rv VUndef) eqn:Hu;
-    [ (* receiver is undefined: guard taken, no heap access either side *)
-      t3step Hu Hu;
-      unfold log_val; try cStepsS; try cStepsT;
-      cStep as reply; cStep; iSplit; done
+    [ t3roundTAIL Hu Hu
     | destruct (val_eqb rv VNull) eqn:Hn;
-      [ (* receiver is null: same *)
-        t3step Hn Hu;
-        unfold log_val; try cStepsS; try cStepsT;
-        cStep as reply; cStep; iSplit; done
-      | (* non-nullish: property access on both sides *)
-        t3step Hn Hu;
-        destruct rv;
-          try (simpl in Hn; discriminate Hn);
-          try (simpl in Hu; discriminate Hu);
-        t3step Hn Hu;
-        try contradiction;
-        (* address receiver: paired SGet against equal stores *)
-        unfold get_obj, cgetU;
-        do 2 (t3round Hn Hu);
-        iApply wsim_sget_src; iApply wsim_sget_tgt;
-        do 2 (t3round Hn Hu);
-        lazymatch goal with
-        | |- context [Any.downcast ?X] =>
-            let Hd := fresh "Hd" in
-            destruct (Any.downcast X) as [?o|] eqn:Hd;
-            [| do 2 (t3round Hn Hu); contradiction ]
-        end;
-        lazymatch goal with
-        | o : obj |- _ =>
-            destruct o as [?vs|?tn ?fs|?es];
-            [ (* OList: field read on a list is UB on both sides *)
-              do 2 (t3round Hn Hu); contradiction
-            | (* ORecord: the modelled case *)
-              do 2 (t3round Hn Hu);
-              lazymatch goal with
-              | fs : list (string * val) |- _ =>
-                  let Hf := fresh "Hf" in
-                  destruct (fields_lookup fs "prop") as [?pv|] eqn:Hf;
-                  [| do 2 (t3round Hn Hu); contradiction ]
-              end;
-              t3roundTAIL Hn Hu
-            | (* OMap: keyed lookup, same shape *)
-              do 2 (t3round Hn Hu);
-              lazymatch goal with
-              | es : list (val * val) |- _ =>
-                  let Hm := fresh "Hm" in
-                  destruct (map_lookup es (VStr "prop")) as [?pv|] eqn:Hm;
-                  [| do 2 (t3round Hn Hu); contradiction ]
-              end;
-              t3roundTAIL Hn Hu ]
-        end
-      ]
-    ].
+      [ t3roundTAIL Hu Hn | ] ].
 
   (** ** Direction 1: transformed module refines the source *)
 
@@ -176,7 +135,27 @@ Section T3PROOF.
     cStepsS. cStepsT.
     try rewrite !env_lookup_update_same.
     try cStepsS. try cStepsT.
-    t3branches rv Hn Hu.
+    t3nullish rv Hn Hu.
+    destruct rv;
+      try (simpl in Hn; discriminate Hn);
+      try (simpl in Hu; discriminate Hu).
+    all: t3step Hn Hu.
+    all: try (first [contradiction | ss]).
+    (* only the address receiver survives: paired SGet on equal stores *)
+    unfold get_obj, cgetU. do 2 (t3round Hn Hu).
+    iApply wsim_sget_src. iApply wsim_sget_tgt. do 2 (t3round Hn Hu).
+    match goal with
+    | |- context [Any.downcast ?X] => destruct (Any.downcast X) as [oo|] eqn:Hd
+    end.
+    2: { t3ub Hn Hu. }
+    destruct oo as [vs0|tn0 fs0|es0].
+    { t3ub Hn Hu. }
+    { do 2 (t3round Hn Hu).
+      destruct (fields_lookup fs0 "prop") as [pv0|] eqn:Hf.
+      { t3roundTAIL Hn Hu. } { t3ub Hn Hu. } }
+    { do 2 (t3round Hn Hu).
+      destruct (map_lookup es0 (VStr (cu "prop"))) as [pv1|] eqn:Hm.
+      { t3roundTAIL Hn Hu. } { t3ub Hn Hu. } }
   Qed.
 
   Lemma simF_entry_st :
@@ -193,7 +172,27 @@ Section T3PROOF.
     cStepsS. cStepsT.
     try rewrite !env_lookup_update_same.
     try cStepsS. try cStepsT.
-    t3branches rv Hn Hu.
+    t3nullish rv Hn Hu.
+    destruct rv;
+      try (simpl in Hn; discriminate Hn);
+      try (simpl in Hu; discriminate Hu).
+    all: t3step Hn Hu.
+    all: try (first [contradiction | ss]).
+    (* only the address receiver survives: paired SGet on equal stores *)
+    unfold get_obj, cgetU. do 2 (t3round Hn Hu).
+    iApply wsim_sget_src. iApply wsim_sget_tgt. do 2 (t3round Hn Hu).
+    match goal with
+    | |- context [Any.downcast ?X] => destruct (Any.downcast X) as [oo|] eqn:Hd
+    end.
+    2: { t3ub Hn Hu. }
+    destruct oo as [vs0|tn0 fs0|es0].
+    { t3ub Hn Hu. }
+    { do 2 (t3round Hn Hu).
+      destruct (fields_lookup fs0 "prop") as [pv0|] eqn:Hf.
+      { t3roundTAIL Hn Hu. } { t3ub Hn Hu. } }
+    { do 2 (t3round Hn Hu).
+      destruct (map_lookup es0 (VStr (cu "prop"))) as [pv1|] eqn:Hm.
+      { t3roundTAIL Hn Hu. } { t3ub Hn Hu. } }
   Qed.
 
   Lemma sim_st : ISim.t open T3Src T3Tgt emp%I Ist.
@@ -227,7 +226,27 @@ Section T3PROOF.
     cStepsS. cStepsT.
     try rewrite !env_lookup_update_same.
     try cStepsS. try cStepsT.
-    t3branches rv Hn Hu.
+    t3nullish rv Hn Hu.
+    destruct rv;
+      try (simpl in Hn; discriminate Hn);
+      try (simpl in Hu; discriminate Hu).
+    all: t3step Hn Hu.
+    all: try (first [contradiction | ss]).
+    (* only the address receiver survives: paired SGet on equal stores *)
+    unfold get_obj, cgetU. do 2 (t3round Hn Hu).
+    iApply wsim_sget_src. iApply wsim_sget_tgt. do 2 (t3round Hn Hu).
+    match goal with
+    | |- context [Any.downcast ?X] => destruct (Any.downcast X) as [oo|] eqn:Hd
+    end.
+    2: { t3ub Hn Hu. }
+    destruct oo as [vs0|tn0 fs0|es0].
+    { t3ub Hn Hu. }
+    { do 2 (t3round Hn Hu).
+      destruct (fields_lookup fs0 "prop") as [pv0|] eqn:Hf.
+      { t3roundTAIL Hn Hu. } { t3ub Hn Hu. } }
+    { do 2 (t3round Hn Hu).
+      destruct (map_lookup es0 (VStr (cu "prop"))) as [pv1|] eqn:Hm.
+      { t3roundTAIL Hn Hu. } { t3ub Hn Hu. } }
   Qed.
 
   Lemma simF_entry_ts :
@@ -244,7 +263,27 @@ Section T3PROOF.
     cStepsS. cStepsT.
     try rewrite !env_lookup_update_same.
     try cStepsS. try cStepsT.
-    t3branches rv Hn Hu.
+    t3nullish rv Hn Hu.
+    destruct rv;
+      try (simpl in Hn; discriminate Hn);
+      try (simpl in Hu; discriminate Hu).
+    all: t3step Hn Hu.
+    all: try (first [contradiction | ss]).
+    (* only the address receiver survives: paired SGet on equal stores *)
+    unfold get_obj, cgetU. do 2 (t3round Hn Hu).
+    iApply wsim_sget_src. iApply wsim_sget_tgt. do 2 (t3round Hn Hu).
+    match goal with
+    | |- context [Any.downcast ?X] => destruct (Any.downcast X) as [oo|] eqn:Hd
+    end.
+    2: { t3ub Hn Hu. }
+    destruct oo as [vs0|tn0 fs0|es0].
+    { t3ub Hn Hu. }
+    { do 2 (t3round Hn Hu).
+      destruct (fields_lookup fs0 "prop") as [pv0|] eqn:Hf.
+      { t3roundTAIL Hn Hu. } { t3ub Hn Hu. } }
+    { do 2 (t3round Hn Hu).
+      destruct (map_lookup es0 (VStr (cu "prop"))) as [pv1|] eqn:Hm.
+      { t3roundTAIL Hn Hu. } { t3ub Hn Hu. } }
   Qed.
 
   Lemma sim_ts : ISim.t open T3Tgt T3Src emp%I Ist.

@@ -53,6 +53,23 @@ object FVExport {
   def zLit(n: scala.math.BigInt): String =
     if (n < 0) s"($n)" else s"$n"
 
+  /** ECMAScript strings are UTF-16 code units in the model (D-1).  ASCII
+    * uses the readable [cu "..."] helper; anything else is emitted as an
+    * explicit code-unit list so no character is silently mangled. */
+  def cstrLit(s: String): String =
+    if (s.forall(c => c >= ' ' && c < 128)) s"(cu ${strLit(s)})"
+    else coqList(s.toCharArray.toList.map(c => c.toInt.toString))
+
+  /** IEEE-754 double literal; 17 significant digits round-trip exactly. */
+  def floatLit(d: Double): String =
+    if (d.isNaN) "PrimFloat.nan"
+    else if (d.isPosInfinity) "PrimFloat.infinity"
+    else if (d.isNegInfinity) "PrimFloat.neg_infinity"
+    else {
+      val r = "%.17g".format(d)
+      if (d < 0) s"(- $r)%float" else s"($r)%float"
+    }
+
   def coqList(elems: List[String]): String =
     if (elems.isEmpty) "nil"
     else elems.mkString("(", " :: ", " :: nil)")
@@ -72,6 +89,7 @@ object FVExport {
     case UOp.Not   => "UNot"
     case UOp.Abs   => "UAbs"
     case UOp.Floor => "UFloor"
+    case UOp.BNot  => "UBNot"
     case _         => throw Unsupported(s"uop: $op")
 
   def rocqBOp(op: BOp): String = op match
@@ -84,8 +102,14 @@ object FVExport {
     case BOp.Or    => "BOr"
     case BOp.Div   => "BDiv"
     case BOp.Mod   => "BMod"
-    case BOp.Equal => "BEqual"
-    case _         => throw Unsupported(s"bop: $op")
+    case BOp.Equal  => "BEqual"
+    case BOp.Pow    => "BPow"
+    case BOp.BAnd   => "BBAnd"
+    case BOp.BOr    => "BBOr"
+    case BOp.BXOr   => "BBXOr"
+    case BOp.LShift => "BLShift"
+    case BOp.RShift => "BRShift"
+    case _          => throw Unsupported(s"bop: $op")
 
   /** map an ESMeta type to the model's restricted [tyexp] (ADR-11).
     * Uses ESMeta's own stringification with a strict whitelist. */
@@ -112,7 +136,7 @@ object FVExport {
       if (!n.isWhole) throw Unsupported(s"non-integer Math literal: $n")
       s"(EMath ${zLit(n.toBigInt)})"
     case EBool(b)         => s"(EBool $b)"
-    case EStr(s)          => s"(EStr ${strLit(s)})"
+    case EStr(s)          => s"(EStr ${cstrLit(s)})"
     case EUndef()         => "EUndef"
     case ENull()          => "ENull"
     case EEnum(name)      => s"(EEnum ${strLit(name)})"
@@ -136,6 +160,27 @@ object FVExport {
       s"(EMap ${coqList(ps)})"
     case EKeys(m, intSorted)   => s"(EKeys ${rocqExpr(m)} $intSorted)"
     case ECopy(obj)            => s"(ECopy ${rocqExpr(obj)})"
+    case ENumber(d)            => s"(ENumber ${floatLit(d)})"
+    case EBigInt(n)            => s"(EBigInt ${zLit(n)})"
+    case EInfinity(pos)        => s"(EInfinity $pos)"
+    case ECodeUnit(c)          => s"(ECodeUnit ${c.toInt})"
+    case EConvert(cop, e1) =>
+      val op = cop match
+        case COp.ToApproxNumber => "CToApproxNumber"
+        case COp.ToNumber       => "CToNumber"
+        case COp.ToBigInt       => "CToBigInt"
+        case COp.ToMath         => "CToMath"
+        case COp.ToCodeUnit     => "CToCodeUnit"
+        case COp.ToStr(_)       => throw Unsupported("cop: ToStr")
+      s"(EConvert $op ${rocqExpr(e1)})"
+    case EVariadic(vop, exprs) =>
+      val op = vop match
+        case VOp.Min    => "VoMin"
+        case VOp.Max    => "VoMax"
+        case VOp.Concat => "VoConcat"
+      s"(EVariadic $op ${coqList(exprs.map(rocqExpr))})"
+    case EContains(list, expr) =>
+      s"(EContains ${rocqExpr(list)} ${rocqExpr(expr)})"
     case _             => throw Unsupported(s"expr: ${e.getClass.getSimpleName}")
 
   def rocqInst(i: Inst): String = i match
@@ -176,10 +221,13 @@ object FVExport {
       if (!d.isWhole) throw Unsupported(s"non-integer Math value: $d")
       s"(VMath ${zLit(d.toBigInt)})"
     case Bool(b)    => s"(VBool $b)"
-    case Str(s)     => s"(VStr ${strLit(s)})"
+    case Str(s)     => s"(VStr ${cstrLit(s)})"
     case Undef      => "VUndef"
     case Null       => "VNull"
     case Enum(name) => s"(VEnum ${strLit(name)})"
+    case Number(d)  => s"(VNumber ${floatLit(d)})"
+    case CodeUnit(c) => s"(VCodeUnit ${c.toInt})"
+    case Infinity(p) => s"(VInfinity $p)"
     case _ => throw Unsupported(s"observable value: ${v.getClass.getSimpleName}")
 
   // ---------------------------------------------------------------------
@@ -237,10 +285,12 @@ object FVExport {
     val inputs =
       if (args.nonEmpty) args.toList
       else
-        walkTree(s"$BASE_DIR/tests/ir")
+        // ESMeta's own IR corpus, plus targeted differential cases added
+        // for constructs the corpus does not reach (formal/validation/extra)
+        List(s"$BASE_DIR/tests/ir", s"$BASE_DIR/formal/validation/extra")
+          .flatMap(walkTree)
           .filter(f => irFilter(f.getName))
           .map(_.toString)
-          .toList
           .sorted
 
     val results = inputs.map(exportFile)
@@ -258,7 +308,7 @@ object FVExport {
          | *
          | * Exported: ${exported.size}, skipped: ${skipped.size}
          | *)
-         |From Stdlib Require Import String ZArith List.
+         |From Stdlib Require Import String ZArith List Floats.
          |Import ListNotations.
          |From ESMetaFV Require Import Fragment Domain Exec.
          |Local Open Scope string_scope.

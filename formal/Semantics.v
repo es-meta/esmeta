@@ -82,7 +82,9 @@ Section DENOTE.
     | TField (VAddr a) k =>
         o <- get_obj a;;
         match o, k with
-        | ORecord _ fs, VStr fld => (fields_lookup fs fld)?
+        | ORecord _ fs, VStr cs =>
+            fld <- (ascii_of_cstr cs)?;;    (* field names are ASCII (D-1) *)
+            (fields_lookup fs fld)?
         | OList vs, VMath i =>
             if (0 <=? i)%Z then (nth_error vs (Z.to_nat i))? else triggerUB
         | OMap es, _ => (map_lookup es k)?
@@ -97,6 +99,14 @@ Section DENOTE.
           c <- (nth_error (ast_children a) (Z.to_nat i))?;;
           c0 <- c?;;
           Ret (VAst c0)
+        else triggerUB
+    (* Indexing a string yields the code unit at that position
+       (State.scala:57-59: [case Math(k) => CodeUnit(str(k.toInt))]).  Any
+       non-[Math] field raises WrongStringRef and an out-of-range index
+       throws in Scala; both are UB here. *)
+    | TField (VStr cs) (VMath i) =>
+        if (0 <=? i)%Z
+        then c <- (nth_error cs (Z.to_nat i))?;; Ret (VCodeUnit c)
         else triggerUB
     | _ => triggerUB
     end.
@@ -114,7 +124,8 @@ Section DENOTE.
     | TField (VAddr a) k =>
         o <- get_obj a;;
         match o, k with
-        | ORecord tn fs, VStr fld =>
+        | ORecord tn fs, VStr cs =>
+            fld <- (ascii_of_cstr cs)?;;
             put_obj a (ORecord tn (fields_insert fld v fs));;; Ret ρ
         | OList vs, VMath i =>
             if (0 <=? i)%Z
@@ -203,12 +214,12 @@ Section DENOTE.
         a <- alloc_obj (OList vs);;
         Ret (VAddr a)
     | ESizeOf e1 =>
-        (* Obj.size is lists only (state/Obj.scala:50-52).  ESMeta also
-           accepts strings and ASTs (Interpreter.scala:317-321); strings
-           would need a UTF-16 code-unit model (L-1), so they stay UB
-           rather than being approximated by byte length. *)
+        (* Obj.size is lists only (state/Obj.scala:50-52); ESMeta also
+           accepts strings and ASTs (Interpreter.scala:317-321).  With D-1
+           the string case is exact: length in UTF-16 code units. *)
         v <- denote_expr e1 ρ;;
         match v with
+        | VStr cs => Ret (VMath (Z.of_nat (List.length cs)))
         | VAddr a =>
             o <- get_obj a;;
             n <- (obj_size o)?;;
@@ -243,7 +254,8 @@ Section DENOTE.
         | TField (VAddr a) k =>
             o <- get_obj a;;
             match o, k with
-            | ORecord _ fs, VStr fld =>
+            | ORecord _ fs, VStr cs =>
+                fld <- (ascii_of_cstr cs)?;;
                 Ret (VBool (match fields_lookup fs fld with
                             | Some _ => true | None => false end))
             | OMap es, _ =>
@@ -260,7 +272,7 @@ Section DENOTE.
         v <- denote_expr e1 ρ;;
         (* addresses need ObjectT/SymbolT containment (not modelled) *)
         s0 <- (typeof_prim v)?;;
-        Ret (VStr s0)
+        Ret (VStr (cu s0))
     | ETypeCheck e1 t =>
         v <- denote_expr e1 ρ;;
         match v with
@@ -301,13 +313,47 @@ Section DENOTE.
             Ret (VAddr a2)
         | _ => triggerUB
         end
+    | ENumber f => Ret (VNumber f)
+    | EBigInt z => Ret (VBigInt z)
+    | EInfinity p => Ret (VInfinity p)
+    | ECodeUnit c => Ret (VCodeUnit c)
+    | EConvert op e1 =>
+        v <- denote_expr e1 ρ;;
+        (eval_cop op v)?
+    (* COp.ToStr needs toStringHelper / ESValueParser (Scala): UB (L-11) *)
+    | EToStr _ _ => triggerUB
+    (* Arguments evaluate left-to-right (Interpreter.scala:257-258). *)
+    | EVariadic op es =>
+        vs <- (fix go (l : list expr) : itree crisE (list val) :=
+                 match l with
+                 | nil => Ret nil
+                 | e1 :: tl =>
+                     v <- denote_expr e1 ρ;;
+                     vs <- go tl;;
+                     Ret (v :: vs)
+                 end) es;;
+        (eval_vop op vs)?
+    (* [asList] then Scala [==] membership (Interpreter.scala:233-236);
+       a non-list receiver throws NoList/NoAddr, hence UB. *)
+    | EContains lst e1 =>
+        lv <- denote_expr lst ρ;;
+        ev <- denote_expr e1 ρ;;
+        match lv with
+        | VAddr a =>
+            o <- get_obj a;;
+            match o with
+            | OList vs => Ret (VBool (existsb (val_eqb ev) vs))
+            | _ => triggerUB
+            end
+        | _ => triggerUB
+        end
     | EOptField recv fld =>
         (* SYNTHETIC (ADR-9): receiver once; nullish guard; no heap
            access on the nullish branch *)
         v <- denote_expr recv ρ;;
         if orb (val_eqb v VNull) (val_eqb v VUndef)
         then Ret VUndef
-        else read_target ρ (TField v (VStr fld))
+        else read_target ρ (TField v (VStr (cu fld)))
     end
 
   (** Reference denotation: base reference is dereferenced before the
@@ -459,7 +505,8 @@ Section DENOTE.
         bv <- read_target ρ t;;
         fv <- denote_expr fld ρ;;
         match bv, fv with
-        | VAddr a, VStr f =>
+        | VAddr a, VStr cs =>
+            f <- (ascii_of_cstr cs)?;;
             o <- get_obj a;;
             match o with
             | ORecord tn fs =>

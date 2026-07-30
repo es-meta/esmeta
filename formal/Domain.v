@@ -8,7 +8,7 @@
     Fidelity notes are attached to each definition; the authoritative
     catalogue is the header of [Semantics.v] and the research log. *)
 
-From Stdlib Require Import String ZArith List Bool.
+From Stdlib Require Import String ZArith List Bool Floats Uint63.
 Import ListNotations.
 
 From ESMetaFV Require Import Fragment TyModel.
@@ -35,8 +35,29 @@ Definition eval_uop (op : uop) (v : val) : option val :=
   | UNot, VBool b => Some (VBool (negb b))
   | UAbs, VMath z => Some (VMath (Z.abs z))
   | UFloor, VMath z => Some (VMath z)   (* integers: floor is identity *)
+  | UBNot, VMath z => Some (VMath (Z.lnot z))
   | _, _ => None
   end.
+
+(** ** Number equality — ESMeta uses TWO different notions
+
+    [BOp.Eq] on Numbers uses [doubleEquals] (util/DoubleEquals.scala:7-12,
+    BaseUtils.scala:197-201): NaN equals NaN, and -0.0 differs from +0.0.
+    [BOp.Equal] on Numbers uses plain [==] (Interpreter.scala:645), i.e.
+    IEEE semantics: NaN differs from NaN and -0.0 equals +0.0.  Modelling
+    them with one comparison would be wrong either way. *)
+
+Definition is_negzero (f : float) : bool :=
+  andb (PrimFloat.is_zero f) (PrimFloat.get_sign f).
+
+(** [BOp.Eq] / case-class equality on [Number]. *)
+Definition num_struct_eqb (x y : float) : bool :=
+  if andb (PrimFloat.is_nan x) (PrimFloat.is_nan y) then true
+  else if xorb (is_negzero x) (is_negzero y) then false
+  else PrimFloat.eqb x y.
+
+(** [BOp.Equal] on [Number] — plain IEEE equality. *)
+Definition num_ieee_eqb (x y : float) : bool := PrimFloat.eqb x y.
 
 (** Structural equality on parse trees (needed by [val_eqb]). *)
 Fixpoint ast_eqb (a1 a2 : ast) {struct a1} : bool :=
@@ -158,7 +179,19 @@ Fixpoint val_eqb (v1 v2 : val) {struct v1} : bool :=
   match v1, v2 with
   | VMath z1, VMath z2 => Z.eqb z1 z2
   | VBool b1, VBool b2 => Bool.eqb b1 b2
-  | VStr s1, VStr s2 => String.eqb s1 s2
+  | VStr c1, VStr c2 =>
+      (fix zs (l1 l2 : cstr) : bool :=
+         match l1, l2 with
+         | nil, nil => true
+         | a :: t1, b :: t2 => andb (Z.eqb a b) (zs t1 t2)
+         | _, _ => false
+         end) c1 c2
+  (* case-class equality on Number is doubleEquals (see above); MapObj keys
+     are compared with Scala == , so this is the right notion there. *)
+  | VNumber f1, VNumber f2 => num_struct_eqb f1 f2
+  | VBigInt z1, VBigInt z2 => Z.eqb z1 z2
+  | VInfinity p1, VInfinity p2 => Bool.eqb p1 p2
+  | VCodeUnit c1, VCodeUnit c2 => Z.eqb c1 c2
   | VUndef, VUndef => true
   | VNull, VNull => true
   | VEnum n1, VEnum n2 => String.eqb n1 n2
@@ -176,27 +209,206 @@ Fixpoint val_eqb (v1 v2 : val) {struct v1} : bool :=
   | _, _ => false
   end.
 
-(** Strict binary operators.  [BAnd]/[BOr] are handled (short-circuit) by
-    the interpreters and must not reach here. *)
+(** ** Strict binary operators (Interpreter.scala:566-666)
+
+    [BAnd]/[BOr] on booleans are handled (short-circuit) by the
+    interpreters and do not reach here.  [None] means ESMeta throws
+    [InvalidBinaryOp], i.e. UB in this model — including the cases ESMeta
+    itself leaves out (e.g. INF * 0). *)
+
+(** Exact [Z] to double, used by [CToNumber] on Math.  Restricted to the
+    range where doubles are exact; beyond it ESMeta's [BigDecimal.toDouble]
+    rounds, and we do not model that rounding (limitation, not a guess). *)
+Definition float_of_Z (z : Z) : option float :=
+  if (Z.abs z <=? 9007199254740992)%Z    (* 2^53 *)
+  then
+    let m := PrimFloat.of_uint63 (Uint63.of_Z (Z.abs z)) in
+    Some (if (z <? 0)%Z then PrimFloat.opp m else m)
+  else None.
+
 Definition eval_bop (op : bop) (v1 v2 : val) : option val :=
   match op, v1, v2 with
+  (* --- IEEE-754 doubles --- *)
+  | BAdd, VNumber l, VNumber r => Some (VNumber (PrimFloat.add l r))
+  | BSub, VNumber l, VNumber r => Some (VNumber (PrimFloat.sub l r))
+  | BMul, VNumber l, VNumber r => Some (VNumber (PrimFloat.mul l r))
+  | BDiv, VNumber l, VNumber r => Some (VNumber (PrimFloat.div l r))
+  (* ESMeta returns Bool(true) for -0.0 < 0.0 (Interpreter.scala:576-577),
+     which IEEE does not; model that special case explicitly. *)
+  | BLt, VNumber l, VNumber r =>
+      if andb (is_negzero l) (andb (PrimFloat.is_zero r)
+                                (negb (PrimFloat.get_sign r)))
+      then Some (VBool true)
+      else Some (VBool (PrimFloat.ltb l r))
+  (* Pow and Mod on doubles use math.pow / a Scala helper; PrimFloat has no
+     primitive for either, so they are UB rather than approximated. *)
+
+  (* --- mathematical values (integers here, ADR-5) --- *)
   | BAdd, VMath z1, VMath z2 => Some (VMath (z1 + z2))
   | BSub, VMath z1, VMath z2 => Some (VMath (z1 - z2))
   | BMul, VMath z1, VMath z2 => Some (VMath (z1 * z2))
   | BLt, VMath z1, VMath z2 => Some (VBool (Z.ltb z1 z2))
-  | BEq, _, _ => Some (VBool (val_eqb v1 v2))
-  (* Numeric equality; on the fragment's integer Math values this
-     coincides with structural equality (Interpreter.scala BOp.Equal). *)
-  | BEqual, VMath z1, VMath z2 => Some (VBool (Z.eqb z1 z2))
-  (* ESMeta's Math division rounds to DECIMAL128 (Interpreter.scala:584);
-     to avoid modelling that artifact (ADR-5) we admit division only when
-     it is exact on integers, and leave it undefined otherwise. *)
   | BDiv, VMath z1, VMath z2 =>
+      (* ESMeta rounds Math division to DECIMAL128 (Interpreter.scala:584);
+         admit only the exact case (ADR-5). *)
       if Z.eqb z2 0 then None
       else if Z.eqb (Z.rem z1 z2) 0 then Some (VMath (Z.quot z1 z2)) else None
+  (* %% is floored modulo (interpreter/package.scala:23-26): the sign
+     follows the divisor, which is exactly Coq's Z.modulo. *)
   | BMod, VMath z1, VMath z2 =>
       if Z.eqb z2 0 then None else Some (VMath (Z.modulo z1 z2))
+  | BPow, VMath z1, VMath z2 =>
+      if (0 <=? z2)%Z then Some (VMath (Z.pow z1 z2)) else None
+  | BBAnd, VMath z1, VMath z2 => Some (VMath (Z.land z1 z2))
+  | BBOr, VMath z1, VMath z2 => Some (VMath (Z.lor z1 z2))
+  | BBXOr, VMath z1, VMath z2 => Some (VMath (Z.lxor z1 z2))
+  | BLShift, VMath z1, VMath z2 => Some (VMath (Z.shiftl z1 z2))
+  | BRShift, VMath z1, VMath z2 => Some (VMath (Z.shiftr z1 z2))
+
+  (* --- extended mathematical values (Interpreter.scala:600-630) --- *)
+  | BAdd, VInfinity p, VMath _ => Some (VInfinity p)
+  | BAdd, VMath _, VInfinity p => Some (VInfinity p)
+  | BAdd, VInfinity p1, VInfinity p2 =>
+      if Bool.eqb p1 p2 then Some (VInfinity p1) else None
+  | BSub, VInfinity p, VMath _ => Some (VInfinity p)
+  | BSub, VMath _, VInfinity p => Some (VInfinity (negb p))
+  | BSub, VInfinity p1, VInfinity p2 =>
+      if Bool.eqb p1 p2 then None else Some (VInfinity p1)
+  | BMul, VInfinity p, VMath z =>
+      if Z.eqb z 0 then None else Some (VInfinity (xorb p (z <? 0)%Z))
+  | BMul, VMath z, VInfinity p =>
+      if Z.eqb z 0 then None else Some (VInfinity (xorb p (z <? 0)%Z))
+  | BMul, VInfinity p1, VInfinity p2 => Some (VInfinity (xorb p1 (negb p2)))
+  | BLt, VInfinity p, VMath _ => Some (VBool (negb p))
+  | BLt, VMath _, VInfinity p => Some (VBool p)
+  | BLt, VInfinity p1, VInfinity p2 =>
+      Some (VBool (andb (negb p1) p2))
+
+  (* --- booleans (Interpreter.scala:633-635) --- *)
+  | BAnd, VBool b1, VBool b2 => Some (VBool (andb b1 b2))
+  | BOr, VBool b1, VBool b2 => Some (VBool (orb b1 b2))
+
+  (* --- structural equality (Interpreter.scala:638-640) --- *)
+  (* AstValue-vs-AstValue is REFERENCE equality (`l eq r`) in ESMeta; the
+     model carries no node identity, so that pair is UB rather than
+     silently structural (Open Question for the AST exporter, G4/G5).
+     The test is written as a nested match on the SECOND operand so that
+     `BEq v VNull` still reduces when `v` is abstract — matching on the
+     first operand would block every proof that compares an unknown value
+     against a literal. *)
+  | BEq, _, _ =>
+      match v2 with
+      | VAst _ =>
+          match v1 with
+          | VAst _ => None
+          | _ => Some (VBool (val_eqb v1 v2))
+          end
+      | _ => Some (VBool (val_eqb v1 v2))
+      end
+
+  (* --- numeric equality (Interpreter.scala:643-651) --- *)
+  | BEqual, VMath z1, VMath z2 => Some (VBool (Z.eqb z1 z2))
+  | BEqual, VInfinity p1, VInfinity p2 => Some (VBool (Bool.eqb p1 p2))
+  | BEqual, VNumber f1, VNumber f2 => Some (VBool (num_ieee_eqb f1 f2))
+  | BEqual, VBigInt z1, VBigInt z2 => Some (VBool (Z.eqb z1 z2))
+  | BEqual, VInfinity _, VMath _ => Some (VBool false)
+  | BEqual, VMath _, VInfinity _ => Some (VBool false)
+
+  (* --- big integers (Interpreter.scala:654-665) --- *)
+  | BAdd, VBigInt z1, VBigInt z2 => Some (VBigInt (z1 + z2))
+  | BSub, VBigInt z1, VBigInt z2 => Some (VBigInt (z1 - z2))
+  | BMul, VBigInt z1, VBigInt z2 => Some (VBigInt (z1 * z2))
+  | BDiv, VBigInt z1, VBigInt z2 =>
+      if Z.eqb z2 0 then None else Some (VBigInt (Z.quot z1 z2))
+  | BMod, VBigInt z1, VBigInt z2 =>
+      if Z.eqb z2 0 then None else Some (VBigInt (Z.modulo z1 z2))
+  | BLt, VBigInt z1, VBigInt z2 => Some (VBool (Z.ltb z1 z2))
+  | BBAnd, VBigInt z1, VBigInt z2 => Some (VBigInt (Z.land z1 z2))
+  | BBOr, VBigInt z1, VBigInt z2 => Some (VBigInt (Z.lor z1 z2))
+  | BBXOr, VBigInt z1, VBigInt z2 => Some (VBigInt (Z.lxor z1 z2))
+  | BLShift, VBigInt z1, VBigInt z2 => Some (VBigInt (Z.shiftl z1 z2))
+  | BRShift, VBigInt z1, VBigInt z2 => Some (VBigInt (Z.shiftr z1 z2))
+  | BPow, VBigInt z1, VBigInt z2 =>
+      if (0 <=? z2)%Z then Some (VBigInt (Z.pow z1 z2)) else None
+
   | _, _, _ => None
+  end.
+
+(** ** Conversions ([EConvert], Interpreter.scala:263-289)
+
+    The string<->number cases go through [ESValueParser.str2number] and
+    [toStringHelper], which are Scala implementations, not IR; they are UB
+    here.  [EToStr] is likewise UB (limitation L-11). *)
+Definition eval_cop (op : cop) (v : val) : option val :=
+  match op, v with
+  | CToMath, VCodeUnit c => Some (VMath c)
+  | CToCodeUnit, VMath z => Some (VCodeUnit (Z.modulo z 65536))  (* n.toChar *)
+  | CToNumber, VInfinity true => Some (VNumber PrimFloat.infinity)
+  | CToNumber, VInfinity false => Some (VNumber PrimFloat.neg_infinity)
+  | CToApproxNumber, VMath z => option_map VNumber (float_of_Z z)
+  | CToNumber, VMath z => option_map VNumber (float_of_Z z)
+  | CToBigInt, VMath z => Some (VBigInt z)
+  | CToMath, VMath z => Some (VMath z)
+  | CToNumber, VNumber f => Some (VNumber f)
+  | CToMath, VBigInt z => Some (VMath z)
+  | _, _ => None
+  end.
+
+(** ** Variadic operators ([EVariadic], Interpreter.scala:669-693)
+
+    [Min]: if any argument is [-inf] the result is [-inf]; otherwise drop
+    every [+inf] and, if nothing is left, return [+inf]; otherwise every
+    remaining argument must be a [Math] ([asMath] throws otherwise) and
+    the result is their minimum.  [Max] is the mirror image.  [Concat]
+    maps [Str s |-> s] and [CodeUnit c |-> c.toString] (a one-code-unit
+    string under D-1) and concatenates; any other value raises [NoString].
+    An empty argument list raises [InvalidVariadicOp] in every case.
+    ESMeta's [Math] is a [BigDecimal]; ADR-5 restricts us to [Z]. *)
+
+Definition is_inf (p : bool) (v : val) : bool :=
+  match v with VInfinity q => Bool.eqb p q | _ => false end.
+
+Fixpoint maths_of (vs : list val) : option (list Z) :=
+  match vs with
+  | nil => Some nil
+  | VMath z :: t => option_map (cons z) (maths_of t)
+  | _ :: _ => None
+  end.
+
+(** Scala's [reduce]: fold the tail onto the head; undefined when empty. *)
+Definition reduce_z (f : Z -> Z -> Z) (zs : list Z) : option Z :=
+  match zs with nil => None | z :: t => Some (fold_left f t z) end.
+
+Definition vop_extremum (f : Z -> Z -> Z) (absorb drop : bool)
+    (vs : list val) : option val :=
+  if existsb (is_inf absorb) vs then Some (VInfinity absorb)
+  else
+    match filter (fun v => negb (is_inf drop v)) vs with
+    | nil => Some (VInfinity drop)
+    | kept =>
+        match maths_of kept with
+        | None => None
+        | Some zs => option_map VMath (reduce_z f zs)
+        end
+    end.
+
+Fixpoint concat_vals (vs : list val) : option cstr :=
+  match vs with
+  | nil => Some nil
+  | VStr cs :: t => option_map (app cs) (concat_vals t)
+  | VCodeUnit c :: t => option_map (app [c]) (concat_vals t)
+  | _ :: _ => None
+  end.
+
+Definition eval_vop (op : vop) (vs : list val) : option val :=
+  match vs with
+  | nil => None                       (* InvalidVariadicOp *)
+  | _ :: _ =>
+      match op with
+      | VoMin => vop_extremum Z.min false true vs
+      | VoMax => vop_extremum Z.max true false vs
+      | VoConcat => option_map VStr (concat_vals vs)
+      end
   end.
 
 (** ** Local environments (pure; ADR-6)
@@ -339,6 +551,11 @@ Definition ty_check_prim (t : tyexp) (v : val) : bool :=
   | VNull, TNullTy => true
   | VEnum _, TEnumTy => true
   | VClo _ _, TCloTy => true
+  | VNumber _, TNumberTy => true
+  | VBigInt _, TBigIntTy => true
+  | VCodeUnit _, TCodeUnitTy => true
+  | VInfinity _, TInfinityTy => true
+  | VAst _, TAstTy => true
   | _, _ => false
   end.
 
@@ -350,11 +567,15 @@ Definition ty_check_prim (t : tyexp) (v : val) : bool :=
     NOT guessed. *)
 Definition typeof_prim (v : val) : option string :=
   match v with
+  | VNumber _ => Some "Number"
+  | VBigInt _ => Some "BigInt"
   | VStr _ => Some "String"
   | VBool _ => Some "Boolean"
   | VUndef => Some "Undefined"
   | VNull => Some "Null"
-  | VMath _ | VEnum _ | VClo _ _ | VAst _ => Some "SpecType"
+  (* not contained in ObjectT or SymbolT, so ESMeta answers "SpecType" *)
+  | VMath _ | VEnum _ | VClo _ _ | VAst _ | VInfinity _ | VCodeUnit _ =>
+      Some "SpecType"
   | VAddr _ => None
   end.
 
@@ -363,7 +584,7 @@ Definition typeof_prim (v : val) : option string :=
     path is not modelled (the caller raises UB). *)
 Definition obj_keys (o : obj) : option (list val) :=
   match o with
-  | ORecord _ fs => Some (List.map (fun p => VStr (fst p)) fs)
+  | ORecord _ fs => Some (List.map (fun p => VStr (cu (fst p))) fs)
   | OMap es => Some (List.map fst es)
   | OList _ => None
   end.

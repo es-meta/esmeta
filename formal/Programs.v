@@ -185,7 +185,7 @@ Definition t3_optaccess_main : func :=
     (ICall (LName "t") (EClo "f" nil) nil ::
      IIf (t3_guard (lref "t"))
          (ILet "x" EUndef)
-         (ILet "x" (ERef (RField (RVar (VLocal (LName "t"))) (EStr "prop")))) ::
+         (ILet "x" (ERef (RField (RVar (VLocal (LName "t"))) (EStr (cu "prop"))))) ::
      IPrint (lref "x") :: nil)).
 
 Definition t3ex_src : prog := mkProg (t3_optaccess_main :: nil).
@@ -220,7 +220,7 @@ Definition t3_reeval_main : func :=
          (ILet "x" EUndef)
          (ISeq (ICall (LName "t2") (EClo "f" nil) nil ::
                 ILet "x" (ERef (RField (RVar (VLocal (LName "t2")))
-                                  (EStr "prop"))) :: nil)) ::
+                                  (EStr (cu "prop")))) :: nil)) ::
      IPrint (lref "x") :: nil)).
 
 Definition t3v_reeval : prog := mkProg (t3v_f :: t3_reeval_main :: nil).

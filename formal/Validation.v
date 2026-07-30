@@ -193,7 +193,7 @@ Definition t2_bad_desugar (k : nat) (lhs : local) (recv : expr)
     (fld : string) : inst :=
   ISeq (IAssign (RVar (VLocal (LTemp k))) recv ::
         IAssign (RVar (VLocal lhs))
-          (ERef (RField (RVar (VLocal (LTemp k))) (EStr fld))) :: nil).
+          (ERef (RField (RVar (VLocal (LTemp k))) (EStr (cu fld)))) :: nil).
 
 Definition t2v_null_bad_main : func :=
   mkFunc true "main" nil (ISeq
