@@ -55,4 +55,5 @@ formal/validation/Generated.v
 ## generated spec + initial-state export (sbt "runMain esmeta.fv.FVInitState")
 formal/validation/Spec.v
 formal/validation/SpecRun.v
+formal/validation/t262/
 formal/.lia.cache

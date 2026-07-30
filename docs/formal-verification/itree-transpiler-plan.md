@@ -454,6 +454,39 @@ deferred to PO-010 [user decision: "linking now, syntactic later"].
   so a lexical receiver is UB until that is reimplemented — the main
   remaining blocker for running real JS (L-10).
 
+### ADR-17 — `IAssert` mirrors ESMeta's skip, but only for `EYet`
+- **Problem.** ADR-14 established that ESMeta's `IAssert` evaluates inside
+  `optional(...)` (Interpreter.scala:147-151), so a throw *skips* the
+  assertion. There it was a harness concern; here it is a semantic one:
+  running `var x = 1;` through the real specification reaches
+  `assert (yet "If the caller will not be overridden …")` **twice** [VF],
+  and without the skip the entire run is stuck. This was the last thing
+  between the model and executing a script.
+- **Tension.** Swallowing every stuck would match ESMeta exactly — and
+  would hide every future modelling gap that happens to sit inside an
+  assertion, which is precisely what ADR-14 refused to do.
+- **Decision.** Swallow **only** `Stuck "EYet"`. `EYet` is ESMeta's own
+  `NotSupported(Metalanguage)` throw (Interpreter.scala:231-232): a
+  *defined* behaviour of the specification, not a hole in our model. Every
+  other stuck keeps propagating.
+- **Consequences.** The divergence is one-sided and safe in the right
+  direction: where ESMeta swallows something else, the model gets stuck and
+  the harness reports a mismatch — it never silently produces a wrong
+  answer. Recorded caveat: an expression that allocated before failing
+  keeps those effects in ESMeta while the model resumes from the pre-assert
+  state; the assertion that actually occurs is a bare `EYet`, which
+  allocates nothing.
+- **Why the reason string exists.** This decision is only expressible
+  because `Stuck` now carries a reason. Before that, "stuck" was
+  undiagnosable from inside the model — the only way to find a cause was to
+  instrument ESMeta and diff reachable-function sets, which finds missing
+  functions and nothing else.
+- **The ITree side cannot follow.** CRIS's UB (`Take False`) is not
+  catchable, so `Semantics.v` cannot mirror the skip. This is a real
+  divergence between the denotation and the executable interpreter,
+  affecting the clause-by-clause correspondence that PO-013 would have to
+  prove. Stated here rather than left to be discovered.
+
 ### ADR-16 — Addresses renumbered to list positions; unmapped slots are explicit
 - **Problem.** The model's `VAddr` carries a `nat`, but ESMeta has two
   address forms, `NamedAddr(String)` and `DynamicAddr(Long)`

@@ -199,14 +199,18 @@ Local Open Scope Z_scope.
     sb ++= s"\nDefinition spec_funcs : list func :=\n  " +
       coqList(funcDefs.toList.map(_._1)) + ".\n\n"
 
-    val gPairs = st.globals.toList.sortBy(_._1.name).map { (g, v) =>
-      g.name -> tryEmit(s"(${strLit(g.name)}, ${value(v)})")
-    }
+    // SOURCE_TEXT is the only global that varies with the script, so it is
+    // left out here: Spec.v is source-independent and compiles once, and a
+    // per-test file prepends its own SOURCE_TEXT.
+    val gPairs = st.globals.toList
+      .filter(_._1.name != "SOURCE_TEXT")
+      .sortBy(_._1.name)
+      .map { (g, v) => g.name -> tryEmit(s"(${strLit(g.name)}, ${value(v)})") }
     val droppedGlobals = gPairs.collect { case (n, None) => n }
     if (droppedGlobals.nonEmpty)
       println("[fv] globals omitted as unrepresentable (reads are stuck): " +
         droppedGlobals.mkString(", "))
-    sb ++= s"Definition init_globals : list (string * val) :=\n  " +
+    sb ++= s"Definition base_globals : list (string * val) :=\n  " +
       coqList(gPairs.flatMap(_._2)) + ".\n\n"
 
     var droppedObjs = 0
@@ -222,14 +226,75 @@ Local Open Scope Z_scope.
     sb ++= "Definition init_heap : list (option obj) :=\n  " +
       coqList(heapTerms) + ".\n\n"
 
-    val srcTerm = s"(Some ${cstrLit(source)})"
-    val astTerm = st.cachedAst.fold("None")(a => s"(Some ${ast(a)})")
-    sb ++= s"Definition spec_prog : prog :=\n" +
-      s"  mkProgFull spec_funcs $srcTerm $astTerm init_globals init_heap.\n"
+    // a script becomes a `prog` by supplying its source, its parsed AST and
+    // the SOURCE_TEXT global; everything else above is shared
+    sb ++= """Definition script_prog (src : cstr) (a : ast) : prog :=
+  mkProgFull spec_funcs (Some src) (Some a)
+    (("SOURCE_TEXT", VStr src) :: base_globals) init_heap.
+"""
 
     val out = s"$BASE_DIR/formal/validation/Spec.v"
     dumpFile(sb.toString, out)
     println(s"[fv] wrote $out (${sb.length / 1024} KiB)")
+
+    // ---- Test262 batch mode -------------------------------------------
+    // Spec.v above is source-independent, so it compiles once and every
+    // test is a small file that supplies only its source, its AST and its
+    // expected observable (produced by running ESMeta).
+    if (args.headOption.contains("--test262")) {
+      val want = args.lift(1).flatMap(_.toIntOption).getOrElse(10)
+      val t262 = esmeta.test262.Test262(
+        esmeta.test262.Test262.getVersion(None), cfg)
+      val pool = t262.allTargetTests
+        .filter(_.relName.startsWith("language/"))
+        .sortBy(_.relName)
+      val dir = s"$BASE_DIR/formal/validation/t262"
+      new java.io.File(dir).mkdirs()
+      var emitted, esmetaFailed, notRepresentable = 0
+      val index = ListBuffer[String]()
+      for ((t, i) <- pool.grouped(math.max(1, pool.size / want))
+             .map(_.head).take(want).zipWithIndex) {
+        val path = s"${esmeta.TEST262_TEST_DIR}/${t.relName}"
+        val emitOne =
+          try {
+            val (tast, code) = t262.loadTest(path)
+            val tst = Initialize(cfg).from(code, tast)
+            val ti = new FVExport.CapturingInterpreter(tst)
+            val fin = ti.result
+            val res = fin.globals.getOrElse(GLOBAL_RESULT, Undef)
+            val exp = s"Ok (${value(res)}, ${coqList(ti.prints.toList.map(value))})"
+            Some((code, tast, exp))
+          } catch { case _: Throwable => esmetaFailed += 1; None }
+        emitOne match
+          case None => ()
+          case Some((code, tast, exp)) =>
+            tryEmit(s"${cstrLit(code)}|${ast(tast)}|$exp") match
+              case None => notRepresentable += 1
+              case Some(_) =>
+                val name = f"T$i%03d"
+                val body = s"""(* AUTO-GENERATED — ${t.relName} *)
+From Stdlib Require Import String ZArith List Floats.
+Import ListNotations.
+From ESMetaFV Require Import Fragment Domain Exec Spec.
+Local Open Scope string_scope.
+Local Open Scope Z_scope.
+
+Definition ${name}_src : cstr := ${cstrLit(code)}.
+Definition ${name}_ast : ast := ${ast(tast)}.
+Definition ${name}_prog : prog := script_prog ${name}_src ${name}_ast.
+
+Example ${name}_ok : run 10000000 ${name}_prog = $exp.
+Proof. vm_compute. reflexivity. Qed.
+"""
+                dumpFile(body, s"$dir/$name.v")
+                index += s"$name  ${t.relName}"
+                emitted += 1
+      }
+      dumpFile(index.mkString("\n") + "\n", s"$dir/INDEX.txt")
+      println(s"[fv] test262: emitted $emitted, ESMeta failed $esmetaFailed, " +
+        s"not representable $notRepresentable -> $dir")
+      return
+    }
 
     // ---- which spec functions does the run actually enter? -------------
     // Cheapest way to find out whether an omitted function is the reason
@@ -262,6 +327,35 @@ Local Open Scope Z_scope.
     println("[fv] blockers on the reachable set, by function count:")
     for ((r, c) <- allReasons.toList.sortBy(-_._2))
       println(f"[fv]   $c%3d  $r")
+
+    // ---- which assertions does ESMeta silently skip during the run? ----
+    // The model gets stuck on EYet, yet ESMeta completes: Interpreter.scala
+    // 147-151 evaluates an asserted expression inside `optional(...)`, so a
+    // throw skips the assertion.  Record exactly which ones, and whether
+    // the swallowed expression could have had a side effect.
+    val skipHist = scala.collection.mutable.Map[String, Int]()
+    val skipSt = Initialize(cfg).from(source)
+    val skipProbe = new Interpreter(skipSt, timeLimit = Some(60)) {
+      override def eval(inst: esmeta.ir.NormalInst): Unit = inst match
+        case esmeta.ir.IAssert(expr) =>
+          try {
+            val v = eval(expr)
+            if (v != Bool(true))
+              throw esmeta.error.AssertionFail(expr)
+          } catch {
+            case _: esmeta.error.AssertionFail => throw esmeta.error.AssertionFail(expr)
+            case e: Throwable =>
+              val k = s"${e.getClass.getSimpleName}: " +
+                s"${Option(e.getMessage).getOrElse("").take(60)}"
+              skipHist(k) = skipHist.getOrElse(k, 0) + 1
+          }
+        case _ => super.eval(inst)
+    }
+    try skipProbe.result catch { case _: Throwable => () }
+    println(s"[fv] assertions ESMeta silently skipped during the run: " +
+      skipHist.values.sum)
+    for ((k, c) <- skipHist.toList.sortBy(-_._2).take(10))
+      println(f"[fv]   $c%4d  $k")
 
     // ---- ESMeta's own run of the same source: the differential oracle --
     // A SEPARATE file so Spec.v's compile cost can be measured on its own.
@@ -304,7 +398,11 @@ From ESMetaFV Require Import Spec.
 Local Open Scope string_scope.
 Local Open Scope Z_scope.
 
-Example spec_run_ok : run 10000000 spec_prog = $expected.
+Definition this_src : cstr := ${cstrLit(source)}.
+Definition this_ast : ast := ${st.cachedAst.fold("(ALex \"\" \"\" nil nil)")(a => ast(a))}.
+Definition this_prog : prog := script_prog this_src this_ast.
+
+Example spec_run_ok : run 10000000 this_prog = $expected.
 Proof. vm_compute. reflexivity. Qed.
 """
             val ro = s"$BASE_DIR/formal/validation/SpecRun.v"

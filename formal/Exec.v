@@ -515,11 +515,34 @@ Fixpoint exec_inst (fuel : nat) (p : prog) (st : xstate) (ρ : env)
       | IReturn e =>
           '(st1, v) <- exec_expr st ρ e;;
           Ok (st1, ρ, CReturn v)
+      (* Interpreter.scala:147-151 evaluates the asserted expression inside
+         `optional(...)`, so a THROW during evaluation SKIPS the assertion
+         ("skip not yet compiled assertions").  Running the specification
+         needs this: `var x = 1;` reaches `assert (yet "If the caller will
+         not be overridden ...")` twice, and without the skip the whole run
+         is stuck [VF].
+
+         We mirror it only for [EYet], which is precisely ESMeta's own
+         `NotSupported(Metalanguage)` throw (Interpreter.scala:231-232) and
+         therefore a DEFINED behaviour rather than a gap in our model.  Any
+         other stuck stays propagated, because ours also means "the model
+         has no case here" and swallowing those would hide exactly the gaps
+         this development exists to find (ADR-14).  The divergence is
+         one-sided: where ESMeta swallows something else, the model gets
+         stuck and the harness reports a mismatch — it never silently
+         produces a wrong answer.
+
+         One caveat, recorded rather than glossed: an expression that
+         allocated before failing would keep those effects in ESMeta, while
+         we resume from the pre-assert state.  The assertion that actually
+         occurs is a bare [EYet], which allocates nothing. *)
       | IAssert e =>
-          '(st1, cv) <- exec_expr st ρ e;;
-          match cv with
-          | VBool true => Ok (st1, ρ, CNormal VUndef)
-          | _ => Stuck "IAssert"
+          match exec_expr st ρ e with
+          | Ok (st1, VBool true) => Ok (st1, ρ, CNormal VUndef)
+          | Ok (_, _) => Stuck "IAssert(false)"
+          | Stuck "EYet" => Ok (st, ρ, CNormal VUndef)
+          | Stuck w => Stuck w
+          | OOF => OOF
           end
       | IPrint e =>
           '(st1, v) <- exec_expr st ρ e;;
