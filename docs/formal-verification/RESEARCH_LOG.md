@@ -7,6 +7,54 @@ Relevant Papers.
 
 ---
 
+## 2026-07-30 (later still) — G3 groundwork + the G4 initial state, measured
+
+**Objective.** Realise D-3 (lexical SDO values) and measure the initial
+state G4 must export, which the goal flags as a stop-and-ask point.
+
+**Current Status.** D-3 implemented (ADR-15) and building; the G4 initial
+state is now measured rather than guessed.
+
+```
+[fv] spec functions in CFG: 2951
+[fv] initial globals: 23
+[fv] initial heap objects: 2591
+[fv]   records=1774 lists=375 maps=426 other=16
+[fv]   total fields/elements: 15396
+[fv] cached AST for "var x = 1;": 34 nodes (32 syntactic, 2 lexical)
+[fv]   |IdentifierName \ (ReservedWord)|(x) -> StringValue="x"
+[fv]   |NumericLiteral|(1) -> NumericValue=1.0f, MV=1
+```
+
+**Observations.**
+
+1. *The lexical-SDO purity argument checks out empirically
+   [verified by command].* `Interpreter.eval(lex, m)` answers exactly the
+   methods ADR-15 predicted, and only those:
+   `NumericLiteral(1)` gives `NumericValue` and `MV` but not `StringValue`;
+   `IdentifierName(x)` gives only `StringValue`. That asymmetry is what the
+   per-node table encodes, and a missing entry is UB — ESMeta's
+   `InvalidAstField`.
+
+2. *The G4 initial state is 2591 objects / 15396 fields.* Large, but the
+   heap is a `list obj` indexed by address, so lookup is not the problem;
+   the question is whether a Rocq term of that size compiles and
+   `vm_compute`s in reasonable time. **This is the goal's designated
+   stop-and-ask point** and is put to the user rather than decided here.
+
+3. *A trivial script parses to 34 AST nodes.* Small — the AST is not the
+   scaling risk; the intrinsics heap is.
+
+**Design Decisions.** ADR-15. `FVInitScan` added as a measurement-only
+tool (`CFGBuilder(Compiler(Extractor()))`, ~26 s).
+
+**Research Debt.** ADR-15's table, `ESourceText` and `EParse` are all
+implemented and unreachable until an AST can be exported (L-11b).
+
+**Next Steps.** Decide the G4 initial-state strategy with the user.
+
+---
+
 ## 2026-07-30 (later) — G2 complete: 2909/2951 (99%), 39/39 match, and ESMeta silently skips assertions
 
 **Objective.** Stage G2: `EGrammarSymbol`, `EInstanceOf`, `ESubstring`,
