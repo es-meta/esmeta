@@ -301,8 +301,14 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
       end
   | ETypeOf e1 =>
       '(st1, v) <- exec_expr st ρ e1;;
-      s0 <- of_option "ETypeOf" (typeof_prim v);;
-      Ok (st1, VStr (cu s0))
+      match v with
+      | VAddr a =>
+          o <- of_option "ETypeOf" (heap_get st1 a);;
+          Ok (st1, VStr (cu (typeof_obj o)))
+      | _ =>
+          s0 <- of_option "ETypeOf" (typeof_prim v);;
+          Ok (st1, VStr (cu s0))
+      end
   | ETypeCheck e1 t =>
       '(st1, v) <- exec_expr st ρ e1;;
       match v with

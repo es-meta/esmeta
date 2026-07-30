@@ -275,9 +275,10 @@ Section DENOTE.
         end
     | ETypeOf e1 =>
         v <- denote_expr e1 ρ;;
-        (* addresses need ObjectT/SymbolT containment (not modelled) *)
-        s0 <- (typeof_prim v)?;;
-        Ret (VStr (cu s0))
+        match v with
+        | VAddr a => o <- get_obj a;; Ret (VStr (cu (typeof_obj o)))
+        | _ => s0 <- (typeof_prim v)?;; Ret (VStr (cu s0))
+        end
     | ETypeCheck e1 t =>
         v <- denote_expr e1 ρ;;
         match v with

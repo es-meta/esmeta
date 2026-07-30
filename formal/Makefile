@@ -59,6 +59,12 @@ spec: all validation/Spec.v
 validation/Spec.v:
 	@echo "validation/Spec.v missing — run: sbt \"runMain esmeta.fv.FVInitState\"" && exit 1
 
+# Run the exported Test262 tests and write logs/t262-report.txt.
+# Regenerate the tests with, from the repository root:
+#   sbt "runMain esmeta.fv.FVInitState --test262 20"
+t262: all
+	./run-t262.sh
+
 %.vo: %.v
 	$(COQC) $(COQFLAGS) $<
 
@@ -68,9 +74,10 @@ $(DEPS): $(SOURCES)
 -include $(DEPS)
 
 clean:
+	rm -rf logs
 	rm -f *.vo *.vos *.vok *.glob $(DEPS)
 	rm -f .*.aux *.aux
 	rm -f validation/*.vo validation/*.vos validation/*.vok validation/*.glob
 	rm -f validation/.*.aux
 
-.PHONY: all validate spec clean
+.PHONY: all validate spec t262 clean

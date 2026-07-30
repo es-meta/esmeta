@@ -821,7 +821,25 @@ Definition typeof_prim (v : val) : option string :=
   (* not contained in ObjectT or SymbolT, so ESMeta answers "SpecType" *)
   | VMath _ | VEnum _ | VClo _ _ | VAst _ | VInfinity _ | VCodeUnit _
   | VGrammarSymbol _ _ => Some "SpecType"
+  (* an address needs the heap; see [typeof_obj] *)
   | VAddr _ => None
+  end.
+
+(** [ETypeOf] on an address (Interpreter.scala:305-308).  [ObjectT] and
+    [SymbolT] are [RecordT("Object")] / [RecordT("Symbol")]
+    (ty/package.scala:62, 94).  Both names are ROOTS of the exported type
+    hierarchy [VF: neither appears on the left of [record_parent]], so
+    [RecordTy.contains]'s lca branch cannot fire for an unrelated record
+    and the containment test is exactly the subtype test.  A list or a map
+    is neither, so it falls through to "SpecType" like every other
+    non-Object, non-Symbol value. *)
+Definition typeof_obj (o : obj) : string :=
+  match o with
+  | ORecord tn _ =>
+      if record_subtype tn "Object" then "Object"
+      else if record_subtype tn "Symbol" then "Symbol"
+      else "SpecType"
+  | _ => "SpecType"
   end.
 
 (** Keys of a record/map as a list of values (EKeys, state/Obj.scala:88-99).
