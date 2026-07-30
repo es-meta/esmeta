@@ -1,0 +1,26 @@
+// Differential coverage for EGrammarSymbol (Interpreter.scala:226) and the
+// total `false` branch of EInstanceOf (Interpreter.scala:310-314).  No test
+// in tests/ir/ mentions either.
+//
+// The AST-receiver branches of `instanceof` are NOT covered here: no AST
+// value can be constructed in the model yet (EParse's fast path needs the
+// cached AST an initial state would supply, ESyntactic is UB), so those
+// clauses stay untested until the initial-state exporter lands.
+@main def main() = {
+  let g = (grammar-symbol |Script|)
+  let h = (grammar-symbol |Script|)
+  let k = (grammar-symbol |Statement|[T])
+  let k2 = (grammar-symbol |Statement|[T])
+  let k3 = (grammar-symbol |Statement|[F])
+
+  assert (= g h)
+  assert (= k k2)
+  assert (! (= g k))
+  assert (! (= k k3))
+
+  // non-AST receiver: false, never an error
+  assert (! (instanceof 42 g))
+  assert (! (instanceof "Script" g))
+  assert (! (instanceof g g))
+  assert (! (instanceof undefined k))
+}

@@ -51,10 +51,9 @@ object FVSpecScan {
           // NOTE: ETypeCheck counts as supported only for the restricted
           // tyexp grammar of formal/Fragment.v; FVExport still validates
           // the concrete Ty and rejects anything outside it.
-          case _: EParse | _: EGrammarSymbol | _: ESourceText |
-              _: ESubstring | _: ETrim |
+          case _: ETrim |
               _: EMathOp |
-              _: EInstanceOf | _: ECont | _: EDebug |
+              _: ECont | _: EDebug |
               _: ERandom | _: ESyntactic | _: ELexical =>
             found += s"expr:${e.getClass.getSimpleName}"
           // COp.ToStr needs toStringHelper (Scala), so it stays UB

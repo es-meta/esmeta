@@ -118,12 +118,20 @@ Inductive vop : Type := VoMin | VoMax | VoConcat.
     [Syntactic(name, args, rhsIdx, children)]; [subIdx] is ESMeta's
     [Ast.subIdx], which is derived from the grammar (Ast.scala:116-128) and
     is therefore PRECOMPUTED BY THE EXPORTER rather than recomputed here —
-    the model does not carry the grammar.  [ALex] mirrors [Lexical]. *)
+    the model does not carry the grammar.  [ALex] mirrors [Lexical].
+
+    [src] is the node's printed source text, i.e. ESMeta's
+    [ast.toString(grammar = Some(grammar)).trim] (Interpreter.scala:227-230)
+    — again grammar-derived, so again PRECOMPUTED BY THE EXPORTER.  It is a
+    *derived* field: two nodes equal on the other fields have equal [src],
+    which is why [ast_eqb] ignores it (ESMeta compares case-class fields
+    only).  ASTs are immutable in ESMeta — [State.update] on an AST base
+    throws (State.scala:78-80) — so precomputing cannot go stale. *)
 
 Inductive ast : Type :=
 | ASyn (name : string) (args : list bool) (rhsIdx subIdx : nat)
-       (children : list (option ast))
-| ALex (name : string) (str : string).
+       (children : list (option ast)) (src : cstr)
+| ALex (name : string) (str : string) (src : cstr).
 
 (** ** Restricted type expressions (for [ETypeCheck], ADR-11)
 
@@ -181,6 +189,11 @@ Inductive expr : Type :=
 | EToStr (e : expr) (radix : option expr)       (* EConvert with COp.ToStr *)
 | EVariadic (op : vop) (es : list expr)         (* EVariadic *)
 | EContains (lst : expr) (e : expr)             (* EContains *)
+| EGrammarSymbol (name : string) (params : list bool)
+| EInstanceOf (e : expr) (target : expr)        (* EInstanceOf *)
+| ESubstring (e : expr) (from : expr) (to : option expr)
+| ESourceText (e : expr)                        (* ESourceText *)
+| EParse (code : expr) (rule : expr)            (* EParse — cached case *)
 | EOptField (recv : expr) (fld : string)
     (* SYNTHETIC (ADR-9) — NOT an ESMeta IR construct.  "recv?.fld":
        evaluate the receiver once; if it is Null or Undef, yield Undef
@@ -233,9 +246,20 @@ Record func : Type := mkFunc {
   f_body   : inst;
 }.
 
-Record prog : Type := mkProg {
-  p_funcs : list func;
+(** A program plus the two immutable *run parameters* ESMeta keeps on
+    [State]: the source text being executed and the AST it was already
+    parsed into (state/State.scala:17-18).  Both are `val`s — nothing ever
+    writes them — and [EParse]'s fast path compares against exactly these
+    (Interpreter.scala:198-209).  [mkProg] keeps the old one-argument
+    shape for the many programs that have neither. *)
+
+Record prog : Type := mkProgFull {
+  p_funcs  : list func;
+  p_source : option cstr;
+  p_cached : option ast;
 }.
+
+Definition mkProg (fs : list func) : prog := mkProgFull fs None None.
 
 (** ** Semantic values (domain of the M2 denotation)
 
@@ -259,7 +283,9 @@ Inductive val : Type :=
 | VNumber (f : float)            (* Number   — state/Value.scala:143 *)
 | VBigInt (z : Z)                (* BigInt   — state/Value.scala:146 *)
 | VInfinity (pos : bool)         (* Infinity — state/Value.scala:123 *)
-| VCodeUnit (c : cunit).         (* CodeUnit — state/Value.scala:129 *)
+| VCodeUnit (c : cunit)          (* CodeUnit — state/Value.scala:129 *)
+| VGrammarSymbol (name : string) (params : list bool).
+                                 (* GrammarSymbol — state/Value.scala:86 *)
 
 (** [val] nests [list (string * val)]; the auto-generated induction
     principle is too weak for closure environments.  A proper mutual

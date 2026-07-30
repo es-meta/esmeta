@@ -62,8 +62,10 @@ Definition num_ieee_eqb (x y : float) : bool := PrimFloat.eqb x y.
 (** Structural equality on parse trees (needed by [val_eqb]). *)
 Fixpoint ast_eqb (a1 a2 : ast) {struct a1} : bool :=
   match a1, a2 with
-  | ALex n1 s1, ALex n2 s2 => andb (String.eqb n1 n2) (String.eqb s1 s2)
-  | ASyn n1 g1 r1 b1 c1, ASyn n2 g2 r2 b2 c2 =>
+  (* [src] is derived from the other fields, and ESMeta compares case-class
+     fields only, so it takes no part in equality. *)
+  | ALex n1 s1 _, ALex n2 s2 _ => andb (String.eqb n1 n2) (String.eqb s1 s2)
+  | ASyn n1 g1 r1 b1 c1 _, ASyn n2 g2 r2 b2 c2 _ =>
       andb (String.eqb n1 n2)
         (andb (Nat.eqb r1 r2)
            (andb (Nat.eqb b1 b2)
@@ -85,10 +87,15 @@ Fixpoint ast_eqb (a1 a2 : ast) {struct a1} : bool :=
   end.
 
 Definition ast_name (a : ast) : string :=
-  match a with ASyn n _ _ _ _ => n | ALex n _ => n end.
+  match a with ASyn n _ _ _ _ _ => n | ALex n _ _ => n end.
+
+(** Printed source text (ESourceText, Interpreter.scala:227-230):
+    exporter-precomputed, see Fragment.v. *)
+Definition ast_src (a : ast) : cstr :=
+  match a with ASyn _ _ _ _ _ s => s | ALex _ _ s => s end.
 
 Definition ast_children (a : ast) : list (option ast) :=
-  match a with ASyn _ _ _ _ cs => cs | ALex _ _ => nil end.
+  match a with ASyn _ _ _ _ cs _ => cs | ALex _ _ _ => nil end.
 
 (** Production chains (Ast.scala:38-44): the node itself, then, while a
     node has exactly one present child, that child — the fall-through used
@@ -98,8 +105,8 @@ Definition ast_children (a : ast) : list (option ast) :=
 
 Fixpoint ast_size (a : ast) : nat :=
   match a with
-  | ALex _ _ => 1
-  | ASyn _ _ _ _ cs =>
+  | ALex _ _ _ => 1
+  | ASyn _ _ _ _ cs _ =>
       S ((fix go (l : list (option ast)) : nat :=
             match l with
             | nil => 0
@@ -149,9 +156,9 @@ Definition nat_str (n : nat) : string := nat_to_dec (S n) n "".
     wins.  Existence is decided against the program's function names. *)
 Definition sdo_candidate (a : ast) (m : string) : string :=
   match a with
-  | ASyn n _ r b _ =>
+  | ASyn n _ r b _ _ =>
       (n ++ "[" ++ nat_str r ++ "," ++ nat_str b ++ "]." ++ m)%string
-  | ALex n _ => (n ++ "[0,0]." ++ m)%string
+  | ALex n _ _ => (n ++ "[0,0]." ++ m)%string
   end.
 
 Fixpoint name_mem (x : string) (l : list string) : bool :=
@@ -192,6 +199,14 @@ Fixpoint val_eqb (v1 v2 : val) {struct v1} : bool :=
   | VBigInt z1, VBigInt z2 => Z.eqb z1 z2
   | VInfinity p1, VInfinity p2 => Bool.eqb p1 p2
   | VCodeUnit c1, VCodeUnit c2 => Z.eqb c1 c2
+  | VGrammarSymbol n1 p1, VGrammarSymbol n2 p2 =>
+      andb (String.eqb n1 n2)
+        ((fix bs (l1 l2 : list bool) : bool :=
+            match l1, l2 with
+            | nil, nil => true
+            | x :: t1, y :: t2 => andb (Bool.eqb x y) (bs t1 t2)
+            | _, _ => false
+            end) p1 p2)
   | VUndef, VUndef => true
   | VNull, VNull => true
   | VEnum n1, VEnum n2 => String.eqb n1 n2
@@ -411,6 +426,56 @@ Definition eval_vop (op : vop) (vs : list val) : option val :=
       end
   end.
 
+(** ** [EInstanceOf] (Interpreter.scala:310-314)
+
+    Total: a non-AST value or a non-GrammarSymbol target is [false], not an
+    error.  The first clause is a wildcard grammar symbol matching any
+    *syntactic* node; a lexical node still has to match by name. *)
+
+Definition eval_instanceof (v t : val) : val :=
+  match v, t with
+  | VAst a, VGrammarSymbol nm _ =>
+      match a with
+      | ASyn _ _ _ _ _ _ => if String.eqb nm "" then VBool true
+                            else VBool (String.eqb (ast_name a) nm)
+      | ALex _ _ _ => VBool (String.eqb (ast_name a) nm)
+      end
+  | _, _ => VBool false
+  end.
+
+(** ** [ESubstring] (Interpreter.scala:237-243)
+
+    [asStr]/[asInt] throw on the wrong shape, and [java.lang.String.substring]
+    throws unless [0 <= from <= to <= length]; all of those are UB here.
+    Under D-1 a [cstr] is exactly Java's UTF-16 code-unit sequence, so the
+    index arithmetic is the same arithmetic.  The one non-obvious clause is
+    ESMeta's own: an upper bound *strictly greater* than the length is not
+    an error, it degrades to [substring(from)]. *)
+
+Definition substr_from (cs : cstr) (f : Z) : option cstr :=
+  if andb (0 <=? f)%Z (f <=? Z.of_nat (List.length cs))%Z
+  then Some (skipn (Z.to_nat f) cs) else None.
+
+Definition substr_range (cs : cstr) (f t : Z) : option cstr :=
+  if andb (0 <=? f)%Z
+       (andb (f <=? t)%Z (t <=? Z.of_nat (List.length cs))%Z)
+  then Some (firstn (Z.to_nat (t - f)) (skipn (Z.to_nat f) cs))
+  else None.
+
+Definition eval_substring (sv fv : val) (tv : option val) : option val :=
+  match sv, fv with
+  | VStr cs, VMath f =>
+      match tv with
+      | None => option_map VStr (substr_from cs f)
+      | Some (VMath t) =>
+          if (Z.of_nat (List.length cs) <? t)%Z
+          then option_map VStr (substr_from cs f)
+          else option_map VStr (substr_range cs f t)
+      | Some _ => None
+      end
+  | _, _ => None
+  end.
+
 (** ** Local environments (pure; ADR-6)
 
     Mirrors the flat, unscoped [MMap[Local, Value]] of a call context
@@ -574,8 +639,8 @@ Definition typeof_prim (v : val) : option string :=
   | VUndef => Some "Undefined"
   | VNull => Some "Null"
   (* not contained in ObjectT or SymbolT, so ESMeta answers "SpecType" *)
-  | VMath _ | VEnum _ | VClo _ _ | VAst _ | VInfinity _ | VCodeUnit _ =>
-      Some "SpecType"
+  | VMath _ | VEnum _ | VClo _ _ | VAst _ | VInfinity _ | VCodeUnit _
+  | VGrammarSymbol _ _ => Some "SpecType"
   | VAddr _ => None
   end.
 

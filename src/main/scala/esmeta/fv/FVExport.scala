@@ -31,13 +31,29 @@ import scala.util.{Failure, Success, Try}
   */
 object FVExport {
 
-  /** interpreter that captures prints instead of writing to stdout */
+  /** Interpreter that captures prints instead of writing to stdout, and
+    * counts assertions ESMeta SILENTLY SKIPS.
+    *
+    * Interpreter.scala:147-151 wraps the asserted expression in
+    * `optional(...)`, so an assertion whose evaluation throws is skipped
+    * rather than failed ("skip not yet compiled assertions"). A program
+    * containing such an assertion is not a usable differential test: it
+    * "passes" in ESMeta without the assertion ever having been checked,
+    * while the Rocq model — which does not swallow UB — gets stuck.
+    * `exportFile` therefore refuses those programs with a reason instead
+    * of emitting an expectation that would look like a model bug. */
   class CapturingInterpreter(st0: State)
     extends Interpreter(st0, timeLimit = Some(10)) {
     val prints: ListBuffer[Value] = ListBuffer()
+    var skippedAsserts: Int = 0
     override def eval(inst: NormalInst): Unit = inst match
       case IPrint(expr) => prints += eval(expr)
-      case _            => super.eval(inst)
+      case IAssert(expr) =>
+        esmeta.util.BaseUtils.optional(eval(expr)) match
+          case None             => skippedAsserts += 1
+          case Some(Bool(true)) =>
+          case _                => throw esmeta.error.AssertionFail(expr)
+      case _ => super.eval(inst)
   }
 
   /** thrown on out-of-fragment constructs */
@@ -181,6 +197,16 @@ object FVExport {
       s"(EVariadic $op ${coqList(exprs.map(rocqExpr))})"
     case EContains(list, expr) =>
       s"(EContains ${rocqExpr(list)} ${rocqExpr(expr)})"
+    case EGrammarSymbol(name, params) =>
+      s"(EGrammarSymbol ${strLit(name)} ${coqList(params.map(_.toString))})"
+    case EInstanceOf(expr, target) =>
+      s"(EInstanceOf ${rocqExpr(expr)} ${rocqExpr(target)})"
+    case ESubstring(expr, from, to) =>
+      val toTerm = to.fold("None")(e => s"(Some ${rocqExpr(e)})")
+      s"(ESubstring ${rocqExpr(expr)} ${rocqExpr(from)} $toTerm)"
+    case ESourceText(expr) => s"(ESourceText ${rocqExpr(expr)})"
+    // only the cached-AST fast path is modelled; a real parse is UB
+    case EParse(code, rule) => s"(EParse ${rocqExpr(code)} ${rocqExpr(rule)})"
     case _             => throw Unsupported(s"expr: ${e.getClass.getSimpleName}")
 
   def rocqInst(i: Inst): String = i match
@@ -228,6 +254,9 @@ object FVExport {
     case Number(d)  => s"(VNumber ${floatLit(d)})"
     case CodeUnit(c) => s"(VCodeUnit ${c.toInt})"
     case Infinity(p) => s"(VInfinity $p)"
+    case BigInt(n)   => s"(VBigInt ${zLit(n)})"
+    case GrammarSymbol(name, params) =>
+      s"(VGrammarSymbol ${strLit(name)} ${coqList(params.map(_.toString))})"
     case _ => throw Unsupported(s"observable value: ${v.getClass.getSimpleName}")
 
   // ---------------------------------------------------------------------
@@ -259,6 +288,11 @@ object FVExport {
       val st = State(CFGBuilder(program))
       val interp = new CapturingInterpreter(st)
       val finalSt = interp.result
+      if (interp.skippedAsserts > 0)
+        throw Unsupported(
+          s"ESMeta silently skipped ${interp.skippedAsserts} assertion(s) " +
+          "(Interpreter.scala:147-151); not a valid differential test",
+        )
       val result = finalSt.globals.getOrElse(GLOBAL_RESULT, Undef)
       val resultTerm = rocqValue(result)
       val printTerms = interp.prints.toList.map(rocqValue)

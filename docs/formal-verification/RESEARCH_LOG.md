@@ -7,6 +7,132 @@ Relevant Papers.
 
 ---
 
+## 2026-07-30 (later) — G2 complete: 2909/2951 (99%), 39/39 match, and ESMeta silently skips assertions
+
+**Objective.** Stage G2: `EGrammarSymbol`, `EInstanceOf`, `ESubstring`,
+`ESourceText`, `EParse` (cached-AST case only). Gate: >= 2890/2951 with
+every remaining blocker documented as UB.
+
+**Current Status.** Gate met.
+
+```
+[fv] translatable as-is: 2909 / 2951 (99%)
+[fv] exported 39 program(s), skipped 8 (each with a reason)
+make: rc=0, 0 errors, 11 modules;  make validate: rc=0, 0 errors
+```
+
+Remaining blockers, all UB and all documented: EMathOp 21, ECont 11,
+ESyntactic 4, EConvert(ToStr) 2, non-integer EMath 2, ETrim 1, ERandom 1
+(plus ELexical and EDebug, which no spec function uses).
+
+**Observations.**
+
+1. *ESMeta's `IAssert` silently swallows evaluation errors — so a corpus
+   program can "pass" without its assertions ever running
+   [repository fact, Interpreter.scala:147-151].*
+
+   ```scala
+   case IAssert(expr) =>
+     optional(eval(expr)) match
+       case None             => /* skip not yet compiled assertions */
+       case Some(Bool(true)) =>
+       case v                => throw AssertionFail(expr)
+   ```
+
+   `optional` is `try Some(f) catch { case _: Throwable => None }`
+   (BaseUtils.scala:76-78). This surfaced as a second differential
+   mismatch (model `Stuck` vs ESMeta `Ok (VUndef, [])`) on
+   `tests/ir/expr/substring.ir`, which contains
+
+   ```
+   assert (= (substring str 0f 1f) "0")
+   ```
+
+   `0f` parses to `ENumber(0.0)`, and `ESubstring` calls `.asInt`, which
+   accepts only `Math` (Value.scala:23-25). So the call throws, `optional`
+   swallows it, and **three of that file's assertions are never checked**
+   — while our model, which does not swallow UB, gets stuck.
+
+   *Neither side is wrong about ECMAScript; the file is not a valid
+   differential test.* Making `IAssert` swallow `Stuck` to match would
+   have been the wrong fix: our `Stuck` also means "the model does not
+   implement this", so catching it would silently mask exactly the
+   modelling gaps this harness exists to find. Instead the exporter now
+   *counts* skipped assertions and refuses such programs with a reason
+   (ADR-14). It reports `substring.ir: ESMeta silently skipped 3
+   assertion(s)` and the Math-index cases moved to
+   `formal/validation/extra/substring-int.ir`, which also covers the two
+   clauses upstream never reaches: an omitted upper bound, and an upper
+   bound strictly greater than the length (ESMeta degrades that to
+   `substring(from)` rather than raising — Interpreter.scala:240-242).
+
+2. *ADR-13's grep obligation paid off twice more [verified by command].*
+   Constructor counts in `Generated.v` after wiring each construct:
+   `EGrammarSymbol` 0 and `EInstanceOf` 0 — no file in `tests/ir/` mentions
+   either. Closed with `formal/validation/extra/grammar-symbol.ir`
+   (5 and 4 occurrences now). Still at **zero**: `ESourceText` and
+   `EParse`. Both need an AST value, and the model has no way to build one
+   — `EParse`'s fast path needs the cached AST an initial state would
+   supply, and `ESyntactic` is UB because `subIdx` is grammar-derived
+   (Ast.scala:116-128) and cannot be precomputed for a node built at
+   runtime. So they are *implemented and unexercised* until G4. Said
+   plainly rather than left to be inferred from a green run.
+
+3. *Run parameters belong in the state, not in a new parameter
+   [repository fact].* `sourceText` and `cachedAst` are `val` fields of
+   `State` (State.scala:17-18), so the model puts them where ESMeta does:
+   two new store keys `src$`/`cached$` in the CRIS keyed store, and two
+   fields on `xstate`. `denote_expr` needed no new argument. `prog` gained
+   `p_source`/`p_cached` with `mkProg` kept as a smart constructor, so
+   every existing one-argument `mkProg` call still typechecks.
+
+4. *`ESubstring` is exact under D-1 [repository fact].* A `cstr` *is*
+   Java's UTF-16 code-unit sequence, so `substring` is the same index
+   arithmetic; `java.lang.String.substring` throws unless
+   `0 <= from <= to <= length`, which is UB here.
+
+5. *`EInstanceOf` is total.* `(instanceof 42 g)` is `false`, not an error
+   (Interpreter.scala:310-314) — the wildcard `GrammarSymbol("")` matches
+   any *syntactic* node, while a lexical node still matches by name.
+
+**Design Decisions.** ADR-14 (refuse programs whose assertions ESMeta
+silently skipped). `ELexical` deliberately NOT added: it blocks zero spec
+functions, and modelling it would force the lexeme through the model's
+ASCII-only `ALex.str`, adding a hidden restriction for no coverage gain.
+
+**Proof Progress.** `T1Proof.v` still compiles. Extending the initial
+store from one key to three broke two `ir_smod` obligations; both are
+re-proved, no new assumptions.
+
+**Failed Attempts.**
+- `rewrite !dom_insert_L dom_singleton_L` fails: with Iris loaded
+  `rewrite` is ssreflect's (so no commas between rules), and `!` is greedy
+  enough to unfold the singleton itself, leaving `dom_singleton_L` nothing
+  to match. Replaced with an `assert (k = _ \/ _ \/ _) by set_solver`.
+- `destruct Hor as [->|[->|->]]` is rejected under ssreflect; used
+  explicit equation names and `rewrite`.
+- Two `Non exhaustive pattern-matching` rounds in `Transform.v` again —
+  five new `expr` constructors, three traversals, one bullet structure.
+
+**Research Debt.**
+- `ESourceText`/`EParse` implemented but unexercised (see 2 above).
+- `EParse` models only the cached-AST branch; a real parse is UB.
+- The `translatable as-is` metric is **syntactic**. It counts a function
+  as translatable when the exporter can emit it, not when it will run:
+  `EYet`, `EParse`'s non-cached branch, named AST field access and
+  `ETypeOf` on addresses are all translatable-but-UB. 2909/2951 is a
+  bound on executable coverage, not a measurement of it.
+
+**Open Questions.** None new.
+
+**Next Steps.** G3 (lexical values via the exporter), then G4 (initial-state
+exporter + extraction harness), which is also what finally makes
+`ESourceText`/`EParse` reachable.
+
+**Relevant Commits.** ESMeta `dev` @ `de537ba9` (baseline).
+
+---
+
 ## 2026-07-30 — G1 complete: 2804/2951 spec functions, 37/37 corpus programs match
 
 **Objective.** Close stage G1 of the Test262 goal: D-1 (UTF-16 code-unit

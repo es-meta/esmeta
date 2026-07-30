@@ -454,6 +454,33 @@ deferred to PO-010 [user decision: "linking now, syntactic later"].
   so a lexical receiver is UB until that is reimplemented — the main
   remaining blocker for running real JS (L-10).
 
+### ADR-14 — Refuse corpus programs whose assertions ESMeta silently skipped
+- **Problem.** `IAssert` evaluates its expression inside `optional(...)`
+  (Interpreter.scala:147-151, BaseUtils.scala:76-78): if evaluation
+  *throws*, the assertion is skipped, not failed — "skip not yet compiled
+  assertions". So an ESMeta run can report success while some assertions
+  were never checked. `tests/ir/expr/substring.ir` is exactly this: its
+  `0f`/`1f` cases call `.asInt` on a `Number`, which accepts only `Math`
+  (Value.scala:23-25), so three assertions silently evaporate. The model
+  does not swallow UB, so it gets stuck and the harness reports a
+  mismatch that looks like a model bug but is not.
+- **Alternatives.** (a) make the model's `IAssert` swallow `Stuck` too;
+  (b) hand-exclude the offending file; (c) **detect the condition in the
+  exporter and refuse the program with a reason.**
+- **Decision.** (c). (a) is actively harmful: our `Stuck` also means "the
+  model does not implement this", so catching it would silently mask the
+  modelling gaps this harness exists to find — it would turn every future
+  unimplemented construct inside an `assert` into a false pass. (b) fixes
+  one file and leaves the trap set for the next one.
+  `CapturingInterpreter` now counts skipped assertions and `exportFile`
+  rejects any program with a non-zero count.
+- **Consequences.** The skip list carries an explicit reason
+  (`ESMeta silently skipped 3 assertion(s)`), and the affected cases are
+  re-covered by a targeted file under ADR-13. Cost: corpus programs that
+  mix supported and unsupported constructs inside assertions are refused
+  wholesale rather than partially used — the right trade, since a partial
+  use is indistinguishable from a full one in a green build.
+
 ### ADR-13 — A targeted differential corpus alongside `tests/ir`
 - **Problem.** `FVExport` derives its expectations by *running ESMeta's own
   interpreter*, so `tests/ir` is the ground truth — but it is ESMeta's test
@@ -784,17 +811,30 @@ proved-statement summary, claim classification, and a research-log entry.
   is the measured state.)* The constructs still outside the fragment, as
   reported by `FVSpecScan` over the 2951 compiled spec functions, with the
   number of functions each one blocks:
-  `EGrammarSymbol` 49, `ESourceText` 37, `EParse` 33, `ESubstring` 22,
-  `EMathOp` 21, `ECont` 11, `EInstanceOf` 4, `ESyntactic` 4,
-  `EConvert(COp.ToStr)` 2, non-integer `EMath` 2, `ETrim` 1, `ERandom` 1;
-  plus `ELexical` and `EDebug`, and the `^^` (`BOp.Xor`) operator. Each is
-  UB in the model, never approximated. 2804/2951 (95%) of spec functions
-  contain none of them. Constructs the original L-1 listed as absent that
-  are now modelled: `Number`, `BigInt`, `Infinity`, `CodeUnit`, maps
-  (`EMap`/`EKeys`), `IPush`/`IPop`, `IExpand`/`IDelete`, `ECopy`,
-  `ETypeOf`/`ETypeCheck`, `EYet` (as UB by construction), `ISdoCall`
-  (ADR-12), `EVariadic`, `EContains`, and string operations including
-  UTF-16 code-unit indexing (`State.scala:57-59`).
+  `EMathOp` 21, `ECont` 11, `ESyntactic` 4, `EConvert(COp.ToStr)` 2,
+  non-integer `EMath` 2, `ETrim` 1, `ERandom` 1; plus `ELexical` and
+  `EDebug` (used by no spec function), and the `^^` (`BOp.Xor`) operator.
+  Each is UB in the model, never approximated. 2909/2951 (99%) of spec
+  functions contain none of them. Constructs the original L-1 listed as
+  absent that are now modelled: `Number`, `BigInt`, `Infinity`,
+  `CodeUnit`, maps (`EMap`/`EKeys`), `IPush`/`IPop`, `IExpand`/`IDelete`,
+  `ECopy`, `ETypeOf`/`ETypeCheck`, `EYet` (as UB by construction),
+  `ISdoCall` (ADR-12), `EVariadic`, `EContains`, `EGrammarSymbol`,
+  `EInstanceOf`, `ESubstring`, `ESourceText`, `EParse` (cached-AST branch
+  only), and string operations including UTF-16 code-unit indexing
+  (`State.scala:57-59`).
+  **This count is syntactic.** It says the exporter can translate the
+  function, not that it will run: `EYet`, `EParse`'s non-cached branch,
+  named AST field access and `ETypeOf` on addresses are all
+  translatable-but-UB. Treat 2909/2951 as an upper bound on executable
+  coverage, not a measurement of it.
+- **L-11b** `ESourceText` and `EParse` are implemented but currently
+  *unreachable*: both need an AST value, and no AST can be constructed —
+  `EParse`'s fast path needs the cached AST an initial state supplies, and
+  `ESyntactic` is UB because `subIdx` is grammar-derived
+  (Ast.scala:116-128) and cannot be precomputed for a node built at
+  runtime. They gain differential coverage only with the initial-state
+  exporter (stage G4).
 - **L-2** `Math` is integer-only (`Z`), whereas ESMeta's `Math` is a
   `BigDecimal` (ADR-5). `Div`/`Mod`/`Pow` *are* modelled, over `Z`;
   the exporter rejects any non-integer `Math` literal rather than rounding

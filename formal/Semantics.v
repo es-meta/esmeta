@@ -57,6 +57,11 @@ Section DENOTE.
   Definition glb_key (x : string) : key := (mn, "g$" ++ x).
   Definition heap_key (a : nat) : key := (mn, "h$" ++ pretty (N.of_nat a)).
   Definition alloc_key : key := (mn, "alloc$").
+  (* Immutable run parameters, mirroring State.scala:17-18.  They live in
+     the store rather than as extra parameters because that is where
+     ESMeta keeps them: fields of [State]. *)
+  Definition src_key : key := (mn, "src$").
+  Definition cached_key : key := (mn, "cached$").
 
   Definition get_obj (a : nat) : itree crisE obj := cgetU (heap_key a).
   Definition put_obj (a : nat) (o : obj) : itree crisE unit :=
@@ -347,6 +352,40 @@ Section DENOTE.
             end
         | _ => triggerUB
         end
+    | EGrammarSymbol nm ps => Ret (VGrammarSymbol nm ps)
+    | EInstanceOf e1 tgt =>
+        v <- denote_expr e1 ρ;;
+        t <- denote_expr tgt ρ;;
+        Ret (eval_instanceof v t)
+    (* [to] is evaluated only when present (Interpreter.scala:240). *)
+    | ESourceText e1 =>
+        v <- denote_expr e1 ρ;;
+        match v with
+        | VAst a => Ret (VStr (ast_src a))
+        | _ => triggerUB
+        end
+    (* Only the cached-AST fast path (Interpreter.scala:206-209); a real
+       parse needs ESMeta's Scala parser, so everything else is UB. *)
+    | EParse code rule =>
+        cv <- denote_expr code ρ;;
+        rv <- denote_expr rule ρ;;
+        src <- cgetU src_key;;
+        cached <- cgetU cached_key;;
+        match cv, rv, src, cached with
+        | VStr x, VGrammarSymbol nm nil, Some y, Some a =>
+            if andb (String.eqb nm "Script") (val_eqb (VStr x) (VStr y))
+            then Ret (VAst a) else triggerUB
+        | _, _, _, _ => triggerUB
+        end
+    | ESubstring e1 from to =>
+        sv <- denote_expr e1 ρ;;
+        fv <- denote_expr from ρ;;
+        match to with
+        | None => (eval_substring sv fv None)?
+        | Some e2 =>
+            tv <- denote_expr e2 ρ;;
+            (eval_substring sv fv (Some tv))?
+        end
     | EOptField recv fld =>
         (* SYNTHETIC (ADR-9): receiver once; nullish guard; no heap
            access on the nullish branch *)
@@ -544,8 +583,8 @@ Section DENOTE.
         match bv with
         | VAst a =>
             match a with
-            | ALex _ _ => triggerUB
-            | ASyn _ _ _ _ _ =>
+            | ALex _ _ _ => triggerUB
+            | ASyn _ _ _ _ _ _ =>
                 '(a0, fname) : ast * string <- (sdo_resolve fnames a method)?;;
                 vs <- denote_exprs args ρ;;
                 rv <- ccallU (ir_sig fname) (nil, VAst a0 :: vs);;
@@ -601,8 +640,11 @@ Section DENOTE.
        | None => nil
        end).
 
-  Definition ir_initial_st : gmap key (option Any.t) :=
-    {[ alloc_key # ((0%nat : nat)↑) ]}.
+  Definition ir_initial_st (p : prog) : gmap key (option Any.t) :=
+    <[ src_key := Some ((p_source p)↑) ]>
+      (<[ cached_key := Some ((p_cached p)↑) ]>
+         {[ alloc_key # ((0%nat : nat)↑) ]}).
+
 
   (** The packaged CRIS module of an IR-Core program.  The well-formedness
       obligations hold for EVERY program because all function entries use
@@ -611,7 +653,7 @@ Section DENOTE.
   Program Definition ir_smod (p : prog) : SMod.t := {|
     SMod.scopes := mn :: nil;
     SMod.fnsems := ir_fnsems p;
-    SMod.initial_st := ir_initial_st;
+    SMod.initial_st := ir_initial_st p;
   |}.
   Next Obligation.
   Proof. intros; repeat constructor. Qed.
@@ -644,15 +686,19 @@ Section DENOTE.
   Next Obligation.
   Proof.
     intros p. unfold ir_initial_st.
-    rewrite dom_singleton_L.
+    rewrite !dom_insert_L.
     intros x Hx. apply elem_of_map in Hx.
     destruct Hx as (k' & -> & Hk').
-    apply elem_of_singleton in Hk'. subst k'.
-    unfold alloc_key. cbn. set_solver.
+    assert (k' = src_key \/ k' = cached_key \/ k' = alloc_key) as Hor
+      by set_solver.
+    destruct Hor as [E | [E | E]]; rewrite E;
+      unfold src_key, cached_key, alloc_key; cbn; set_solver.
   Qed.
   Next Obligation.
   Proof.
-    intros p _. apply map_Forall_singleton. by eexists.
+    intros p _. unfold ir_initial_st.
+    repeat (apply map_Forall_insert_2; [by eexists|]).
+    apply map_Forall_empty.
   Qed.
 
   Definition ir_mod (p : prog) : Mod.t := SMod.to_mod ∅ (ir_smod p).

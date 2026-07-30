@@ -1,0 +1,20 @@
+// Math-index fragment of tests/ir/expr/substring.ir, plus the two clauses
+// the upstream file does not exercise: the omitted upper bound, and an
+// upper bound STRICTLY GREATER than the length, which ESMeta degrades to
+// `substring(from)` instead of raising (Interpreter.scala:240-242).
+//
+// The upstream file is rejected by FVExport because its `0f`/`1f` cases
+// throw NoInteger inside `optional(...)` (Interpreter.scala:147-151), so
+// ESMeta silently skips those three assertions and never checks them.
+@main def main() = {
+  let str = "0123456789"
+
+  assert (= (substring str 0 1) "0")
+  assert (= (substring str 0 10) "0123456789")
+  assert (= (substring str 4 6) "45")
+  assert (= (substring str 4) "456789")
+  assert (= (substring str 10) "")
+  assert (= (substring str 0 100) "0123456789")
+  assert (= (substring str 3 100) "3456789")
+  assert (= (substring str 5 5) "")
+}

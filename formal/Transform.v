@@ -97,6 +97,14 @@ Fixpoint temp_fresh_expr (k : nat) (e : expr) {struct e} : bool :=
          end) es
   | EContains lst e1 =>
       andb (temp_fresh_expr k lst) (temp_fresh_expr k e1)
+  | EGrammarSymbol _ _ => true
+  | EInstanceOf e1 t => andb (temp_fresh_expr k e1) (temp_fresh_expr k t)
+  | ESubstring e1 f t =>
+      andb (temp_fresh_expr k e1)
+        (andb (temp_fresh_expr k f)
+           (match t with Some e2 => temp_fresh_expr k e2 | None => true end))
+  | ESourceText e1 => temp_fresh_expr k e1
+  | EParse c r => andb (temp_fresh_expr k c) (temp_fresh_expr k r)
   end
 
 with temp_fresh_ref (k : nat) (r : ref) {struct r} : bool :=
@@ -212,6 +220,14 @@ Fixpoint temp_bound_expr (e : expr) {struct e} : nat :=
          end) es
   | EContains lst e1 =>
       Nat.max (temp_bound_expr lst) (temp_bound_expr e1)
+  | EGrammarSymbol _ _ => 0
+  | EInstanceOf e1 t => Nat.max (temp_bound_expr e1) (temp_bound_expr t)
+  | ESubstring e1 f t =>
+      Nat.max (temp_bound_expr e1)
+        (Nat.max (temp_bound_expr f)
+           (match t with Some e2 => temp_bound_expr e2 | None => 0 end))
+  | ESourceText e1 => temp_bound_expr e1
+  | EParse c r => Nat.max (temp_bound_expr c) (temp_bound_expr r)
   end
 
 with temp_bound_ref (r : ref) {struct r} : nat :=
@@ -344,6 +360,16 @@ Proof.
       apply andb_true_intro; split;
         [apply temp_fresh_expr_bound; lia | apply IH; lia].
     + (* EContains: list and element *)
+      apply andb_true_intro; split;
+        [apply temp_fresh_expr_bound | apply temp_fresh_expr_bound]; lia.
+    + (* EInstanceOf: value and grammar symbol *)
+      apply andb_true_intro; split;
+        [apply temp_fresh_expr_bound | apply temp_fresh_expr_bound]; lia.
+    + (* ESubstring: string, from, optional to *)
+      apply andb_true_intro; split; [apply temp_fresh_expr_bound; lia|].
+      apply andb_true_intro; split; [apply temp_fresh_expr_bound; lia|].
+      destruct to as [eto|]; [apply temp_fresh_expr_bound; lia|reflexivity].
+    + (* EParse: code and rule *)
       apply andb_true_intro; split;
         [apply temp_fresh_expr_bound | apply temp_fresh_expr_bound]; lia.
   - destruct r; simpl; intros H.
@@ -506,6 +532,14 @@ Fixpoint opt_free_expr (e : expr) {struct e} : bool :=
          | e1 :: tl => andb (opt_free_expr e1) (go tl)
          end) es
   | EContains lst e1 => andb (opt_free_expr lst) (opt_free_expr e1)
+  | EGrammarSymbol _ _ => true
+  | EInstanceOf e1 t => andb (opt_free_expr e1) (opt_free_expr t)
+  | ESubstring e1 f t =>
+      andb (opt_free_expr e1)
+        (andb (opt_free_expr f)
+           (match t with Some e2 => opt_free_expr e2 | None => true end))
+  | ESourceText e1 => opt_free_expr e1
+  | EParse c r => andb (opt_free_expr c) (opt_free_expr r)
   | EOptField _ _ => false
   end
 

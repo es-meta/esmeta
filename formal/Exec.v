@@ -73,27 +73,34 @@ Record xstate : Type := mkXState {
   x_heap : list obj;
   x_globals : list (string * val);
   x_out : list val;
+  (* immutable run parameters, mirroring State.scala:17-18 *)
+  x_source : option cstr;
+  x_cached : option ast;
 }.
 
-Definition init_xstate : xstate := mkXState nil nil nil.
+Definition init_xstate (p : prog) : xstate :=
+  mkXState nil nil nil (p_source p) (p_cached p).
 
 Definition heap_get (st : xstate) (a : nat) : option obj :=
   nth_error (x_heap st) a.
 
 Definition heap_set (st : xstate) (a : nat) (o : obj) : option xstate :=
   option_map
-    (fun h => mkXState h (x_globals st) (x_out st))
+    (fun h => mkXState h (x_globals st) (x_out st) (x_source st) (x_cached st))
     (list_update a o (x_heap st)).
 
 Definition heap_alloc (st : xstate) (o : obj) : xstate * nat :=
-  (mkXState (x_heap st ++ [o]) (x_globals st) (x_out st),
+  (mkXState (x_heap st ++ [o]) (x_globals st) (x_out st)
+     (x_source st) (x_cached st),
    List.length (x_heap st)).
 
 Definition globals_set (st : xstate) (x : string) (v : val) : xstate :=
-  mkXState (x_heap st) (fields_insert x v (x_globals st)) (x_out st).
+  mkXState (x_heap st) (fields_insert x v (x_globals st)) (x_out st)
+    (x_source st) (x_cached st).
 
 Definition out_print (st : xstate) (v : val) : xstate :=
-  mkXState (x_heap st) (x_globals st) (x_out st ++ [v]).
+  mkXState (x_heap st) (x_globals st) (x_out st ++ [v])
+    (x_source st) (x_cached st).
 
 (** ** Reference targets (mirrors Semantics.v [ref_target]) *)
 
@@ -359,6 +366,40 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
           end
       | _ => Stuck
       end
+  | EGrammarSymbol nm ps => Ok (st, VGrammarSymbol nm ps)
+  | EInstanceOf e1 tgt =>
+      '(st1, v) <- exec_expr st ρ e1;;
+      '(st2, t) <- exec_expr st1 ρ tgt;;
+      Ok (st2, eval_instanceof v t)
+  | ESourceText e1 =>
+      '(st1, v) <- exec_expr st ρ e1;;
+      match v with
+      | VAst a => Ok (st1, VStr (ast_src a))
+      | _ => Stuck
+      end
+  (* Only the cached-AST fast path (Interpreter.scala:206-209); a real
+     parse needs ESMeta's Scala parser, so everything else is UB. *)
+  | EParse code rule =>
+      '(st1, cv) <- exec_expr st ρ code;;
+      '(st2, rv) <- exec_expr st1 ρ rule;;
+      match cv, rv, x_source st2, x_cached st2 with
+      | VStr x, VGrammarSymbol nm nil, Some y, Some a =>
+          if andb (String.eqb nm "Script") (val_eqb (VStr x) (VStr y))
+          then Ok (st2, VAst a) else Stuck
+      | _, _, _, _ => Stuck
+      end
+  | ESubstring e1 from to =>
+      '(st1, sv) <- exec_expr st ρ e1;;
+      '(st2, fv) <- exec_expr st1 ρ from;;
+      match to with
+      | None =>
+          r <- of_option (eval_substring sv fv None);;
+          Ok (st2, r)
+      | Some e2 =>
+          '(st3, tv) <- exec_expr st2 ρ e2;;
+          r <- of_option (eval_substring sv fv (Some tv));;
+          Ok (st3, r)
+      end
   | EOptField recv fld =>
       '(st1, v) <- exec_expr st ρ recv;;
       if orb (val_eqb v VNull) (val_eqb v VUndef)
@@ -543,8 +584,8 @@ Fixpoint exec_inst (fuel : nat) (p : prog) (st : xstate) (ρ : env)
           match bv with
           | VAst a =>
               match a with
-              | ALex _ _ => Stuck   (* Scala-implemented lexical SDOs *)
-              | ASyn _ _ _ _ _ =>
+              | ALex _ _ _ => Stuck (* Scala-implemented lexical SDOs *)
+              | ASyn _ _ _ _ _ _ =>
                   '(a0, fname) <-
                     of_option (sdo_resolve (List.map f_name (p_funcs p))
                                  a method);;
@@ -584,7 +625,7 @@ with exec_call (fuel : nat) (p : prog) (st : xstate) (fn : irname)
 
 Definition exec_prog (fuel : nat) (p : prog) : out (xstate * val) :=
   match List.find f_main (p_funcs p) with
-  | Some f => exec_call fuel p init_xstate (f_name f) nil nil
+  | Some f => exec_call fuel p (init_xstate p) (f_name f) nil nil
   | None => Stuck
   end.
 
