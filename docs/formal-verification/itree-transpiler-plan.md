@@ -454,6 +454,39 @@ deferred to PO-010 [user decision: "linking now, syntactic later"].
   so a lexical receiver is UB until that is reimplemented — the main
   remaining blocker for running real JS (L-10).
 
+### ADR-15 — D-3 realised: lexical SDO answers precomputed onto `ALex` nodes
+- **Problem.** `StringValue`, `NumericValue`, `MV`, `SV`, `TV`, `TRV` are the
+  gateway from a parsed literal to a value, and ESMeta implements them in
+  *Scala* (`ESValueParser`), not IR — limitation L-10, the last thing
+  standing between the model and real JavaScript.
+- **What the interpreter actually does** (repository fact). A lexical
+  receiver is not a call at all: `Interpreter.scala:192-193` is
+  `case lex: Lexical => setCallResult(lhs, Interpreter.eval(lex, method))`
+  — no call frame, no CFG lookup. And `Interpreter.eval(lex, method)`
+  (lines 521-542) is a **pure function of `(lex.name, lex.str, method)`**,
+  covering exactly those six method names and throwing `InvalidAstField`
+  otherwise.
+- **Alternatives.** (a) reimplement `ESValueParser` (462 lines of Scala:
+  escape sequences, hex/binary/legacy-octal/exponent forms, BigInt
+  suffixes) in Rocq; (b) **have the exporter call
+  `Interpreter.eval(lex, m)` for each of the six methods and ship the
+  answers on the node.**
+- **Decision.** (b), per D-3. Purity is what makes it sound: the answer
+  cannot depend on state, so a value computed at export time is the value
+  ESMeta would compute at run time. `ALex` carries
+  `sdos : list (string * lexval)`; `ISdoCall` on a lexical receiver is a
+  table lookup returning immediately, mirroring `setCallResult`. A method
+  absent from the table is UB — exactly ESMeta's `InvalidAstField`.
+- **Consequences.** `lexval` is a closed result type (`Str`/`Math`/
+  `Number`/`BigInt`) so `ast` need not become mutually inductive with
+  `val`; the exporter rejects any lexical value outside it rather than
+  approximating. (a) was rejected as unverifiable line-by-line
+  reimplementation — precisely the "never invent semantics" case.
+  **Status: implemented, not yet reachable.** Like `ESourceText` and
+  `EParse` it needs an AST value, so it gains differential coverage only
+  once the exporter can emit one (stage G4, which needs the spec CFG to
+  parse JavaScript).
+
 ### ADR-14 — Refuse corpus programs whose assertions ESMeta silently skipped
 - **Problem.** `IAssert` evaluates its expression inside `optional(...)`
   (Interpreter.scala:147-151, BaseUtils.scala:76-78): if evaluation
@@ -828,8 +861,8 @@ proved-statement summary, claim classification, and a research-log entry.
   named AST field access and `ETypeOf` on addresses are all
   translatable-but-UB. Treat 2909/2951 as an upper bound on executable
   coverage, not a measurement of it.
-- **L-11b** `ESourceText` and `EParse` are implemented but currently
-  *unreachable*: both need an AST value, and no AST can be constructed —
+- **L-11b** `ESourceText`, `EParse` and the D-3 lexical SDO table (ADR-15)
+  are implemented but currently *unreachable*: both need an AST value, and no AST can be constructed —
   `EParse`'s fast path needs the cached AST an initial state supplies, and
   `ESyntactic` is UB because `subIdx` is grammar-derived
   (Ast.scala:116-128) and cannot be precomputed for a node built at

@@ -128,10 +128,31 @@ Inductive vop : Type := VoMin | VoMax | VoConcat.
     only).  ASTs are immutable in ESMeta — [State.update] on an AST base
     throws (State.scala:78-80) — so precomputing cannot go stale. *)
 
+(** Values a lexical SDO can produce.  ESMeta dispatches a lexical
+    receiver straight to Scala (Interpreter.scala:192-193 returns
+    [Interpreter.eval(lex, method)] with no call frame; that function,
+    lines 521-542, is a pure function of the node's name, its lexeme and
+    the method name, implemented by [ESValueParser]).  D-3 therefore has
+    the exporter evaluate it and ship the answers.  The result type is a
+    closed set so that [ast] need not be mutually inductive with [val];
+    the exporter rejects any lexical value outside it rather than
+    approximating. *)
+
+Inductive lexval : Type :=
+| LVStr (cs : cstr)
+| LVMath (z : Z)
+| LVNumber (f : float)
+| LVBigInt (z : Z).
+
 Inductive ast : Type :=
 | ASyn (name : string) (args : list bool) (rhsIdx subIdx : nat)
        (children : list (option ast)) (src : cstr)
-| ALex (name : string) (str : string) (src : cstr).
+(** [sdos] maps a lexical SDO name ("StringValue", "NumericValue", "MV",
+    "SV", "TV", "TRV" — the six of Interpreter.scala:525-536) to the value
+    ESMeta computes for THIS lexeme.  A method absent from the table is UB,
+    which is exactly ESMeta's [InvalidAstField]. *)
+| ALex (name : string) (str : string) (src : cstr)
+       (sdos : list (string * lexval)).
 
 (** ** Restricted type expressions (for [ETypeCheck], ADR-11)
 

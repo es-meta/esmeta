@@ -576,14 +576,18 @@ Section DENOTE.
     (* Syntax-directed dispatch (Interpreter.scala:177-192): resolve the
        target through the production chain, prepend the receiver AST as the
        first argument, and call.  Lexical receivers are dispatched to
-       Scala-implemented value parsers in ESMeta (Interpreter.scala:521);
-       those are not modelled, so a lexical receiver is UB here. *)
+       Scala-implemented value parsers (Interpreter.scala:192-193, 521-542);
+       D-3 has the exporter precompute those, so a lexical receiver is a
+       table lookup that returns immediately, with NO call frame — exactly
+       ESMeta's [setCallResult]. *)
     | ISdoCall lhs base method args =>
         bv <- denote_expr base ρ;;
         match bv with
         | VAst a =>
             match a with
-            | ALex _ _ _ => triggerUB
+            | ALex _ _ _ _ =>
+                rv <- (ast_lex_sdo a method)?;;
+                Ret (env_update lhs rv ρ, CNormal VUndef)
             | ASyn _ _ _ _ _ _ =>
                 '(a0, fname) : ast * string <- (sdo_resolve fnames a method)?;;
                 vs <- denote_exprs args ρ;;

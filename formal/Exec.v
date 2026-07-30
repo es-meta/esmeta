@@ -584,7 +584,11 @@ Fixpoint exec_inst (fuel : nat) (p : prog) (st : xstate) (ρ : env)
           match bv with
           | VAst a =>
               match a with
-              | ALex _ _ _ => Stuck (* Scala-implemented lexical SDOs *)
+              (* D-3: exporter-precomputed lexical SDO, returned with no
+                 call frame (Interpreter.scala:192-193). *)
+              | ALex _ _ _ _ =>
+                  rv <- of_option (ast_lex_sdo a method);;
+                  Ok (st1, env_update lhs rv ρ, CNormal VUndef)
               | ASyn _ _ _ _ _ _ =>
                   '(a0, fname) <-
                     of_option (sdo_resolve (List.map f_name (p_funcs p))

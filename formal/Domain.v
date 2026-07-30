@@ -64,7 +64,7 @@ Fixpoint ast_eqb (a1 a2 : ast) {struct a1} : bool :=
   match a1, a2 with
   (* [src] is derived from the other fields, and ESMeta compares case-class
      fields only, so it takes no part in equality. *)
-  | ALex n1 s1 _, ALex n2 s2 _ => andb (String.eqb n1 n2) (String.eqb s1 s2)
+  | ALex n1 s1 _ _, ALex n2 s2 _ _ => andb (String.eqb n1 n2) (String.eqb s1 s2)
   | ASyn n1 g1 r1 b1 c1 _, ASyn n2 g2 r2 b2 c2 _ =>
       andb (String.eqb n1 n2)
         (andb (Nat.eqb r1 r2)
@@ -87,15 +87,38 @@ Fixpoint ast_eqb (a1 a2 : ast) {struct a1} : bool :=
   end.
 
 Definition ast_name (a : ast) : string :=
-  match a with ASyn n _ _ _ _ _ => n | ALex n _ _ => n end.
+  match a with ASyn n _ _ _ _ _ => n | ALex n _ _ _ => n end.
 
 (** Printed source text (ESourceText, Interpreter.scala:227-230):
     exporter-precomputed, see Fragment.v. *)
 Definition ast_src (a : ast) : cstr :=
-  match a with ASyn _ _ _ _ _ s => s | ALex _ _ s => s end.
+  match a with ASyn _ _ _ _ _ s => s | ALex _ _ s _ => s end.
+
+(** D-3: the exporter-precomputed answer of a lexical SDO
+    (Interpreter.scala:521-542).  [None] mirrors [InvalidAstField]. *)
+Definition lexval_to_val (l : lexval) : val :=
+  match l with
+  | LVStr cs => VStr cs
+  | LVMath z => VMath z
+  | LVNumber f => VNumber f
+  | LVBigInt z => VBigInt z
+  end.
+
+Fixpoint lex_lookup (tbl : list (string * lexval)) (m : string)
+  : option lexval :=
+  match tbl with
+  | nil => None
+  | (k, v) :: tl => if String.eqb k m then Some v else lex_lookup tl m
+  end.
+
+Definition ast_lex_sdo (a : ast) (m : string) : option val :=
+  match a with
+  | ALex _ _ _ tbl => option_map lexval_to_val (lex_lookup tbl m)
+  | ASyn _ _ _ _ _ _ => None
+  end.
 
 Definition ast_children (a : ast) : list (option ast) :=
-  match a with ASyn _ _ _ _ cs _ => cs | ALex _ _ _ => nil end.
+  match a with ASyn _ _ _ _ cs _ => cs | ALex _ _ _ _ => nil end.
 
 (** Production chains (Ast.scala:38-44): the node itself, then, while a
     node has exactly one present child, that child — the fall-through used
@@ -105,7 +128,7 @@ Definition ast_children (a : ast) : list (option ast) :=
 
 Fixpoint ast_size (a : ast) : nat :=
   match a with
-  | ALex _ _ _ => 1
+  | ALex _ _ _ _ => 1
   | ASyn _ _ _ _ cs _ =>
       S ((fix go (l : list (option ast)) : nat :=
             match l with
@@ -158,7 +181,7 @@ Definition sdo_candidate (a : ast) (m : string) : string :=
   match a with
   | ASyn n _ r b _ _ =>
       (n ++ "[" ++ nat_str r ++ "," ++ nat_str b ++ "]." ++ m)%string
-  | ALex n _ _ => (n ++ "[0,0]." ++ m)%string
+  | ALex n _ _ _ => (n ++ "[0,0]." ++ m)%string
   end.
 
 Fixpoint name_mem (x : string) (l : list string) : bool :=
@@ -438,7 +461,7 @@ Definition eval_instanceof (v t : val) : val :=
       match a with
       | ASyn _ _ _ _ _ _ => if String.eqb nm "" then VBool true
                             else VBool (String.eqb (ast_name a) nm)
-      | ALex _ _ _ => VBool (String.eqb (ast_name a) nm)
+      | ALex _ _ _ _ => VBool (String.eqb (ast_name a) nm)
       end
   | _, _ => VBool false
   end.
