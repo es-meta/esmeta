@@ -283,18 +283,18 @@ Section DENOTE.
         match v with
         | VAddr a =>
             o <- get_obj a;;
-            (* [TAbrupt] alone needs the `Value` field's object as well
-               (OQ-12); every other test is decided by the receiver, and
-               reading nothing extra keeps their event traces unchanged. *)
-            if ty_needs_value_obj t
-            then
-              match value_field_addr o with
-              | Some b =>
-                  ob <- get_obj b;;
-                  Ret (VBool (ty_check_obj t o (Some ob)))
-              | None => Ret (VBool (ty_check_obj t o None))
-              end
-            else Ret (VBool (ty_check_obj t o None))
+            (* Resolve exactly the addresses this test needs (OQ-12):
+               none for most tests, so their event traces are unchanged. *)
+            r <- (fix go (l : list nat)
+                    : itree crisE (list (nat * obj)) :=
+                    match l with
+                    | nil => Ret nil
+                    | b :: tl =>
+                        ob <- get_obj b;;
+                        rest <- go tl;;
+                        Ret ((b, ob) :: rest)
+                    end) (ty_addrs_needed t o);;
+            Ret (VBool (ty_check_obj t o r))
         | _ => Ret (VBool (ty_check_prim t v))
         end
     | EYet _ => triggerUB      (* NotSupported — Interpreter.scala:231 *)

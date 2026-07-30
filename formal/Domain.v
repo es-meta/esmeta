@@ -91,6 +91,10 @@ Definition ast_name (a : ast) : string :=
 
 (** Printed source text (ESourceText, Interpreter.scala:227-230):
     exporter-precomputed, see Fragment.v. *)
+(** [Ast.idx] (es/Ast.scala:25-27): the rhs index, 0 for a lexical node. *)
+Definition ast_idx (a : ast) : nat :=
+  match a with ASyn _ _ r _ _ _ => r | ALex _ _ _ _ => 0%nat end.
+
 Definition ast_src (a : ast) : cstr :=
   match a with ASyn _ _ _ _ _ s => s | ALex _ _ s _ => s end.
 
@@ -155,6 +159,13 @@ Fixpoint ast_chain_fuel (n : nat) (a : ast) : list ast :=
        end.
 
 Definition ast_chain (a : ast) : list ast := ast_chain_fuel (ast_size a) a.
+
+(** [Ast.types] (es/Ast.scala:46-53): this node's name plus the names down
+    its single-present-child chain — the same chain [ast_chain] walks for
+    SDO dispatch, since [children.flatten match { case Vector(child) => .. }]
+    is exactly "exactly one present child". *)
+Definition ast_types (a : ast) : list string :=
+  List.map ast_name (ast_chain a).
 
 (** Decimal rendering of a natural number, shared by the denotation and
     the executable interpreter so the two build identical SDO names. *)
@@ -696,43 +707,44 @@ Definition normal_fields_ok (fs : list (string * val)) : bool :=
     (andb (binding_ok fs "Value" (fun _ => true))
        (binding_ok fs "Target" (fun v => enum_in v ("empty" :: nil)))).
 
-(** Only [TAbrupt] needs the `Value` field's object resolved; every other
-    test is decided by the receiver alone.  The callers use this to avoid
-    an extra store read (and an extra event in the denotation) elsewhere. *)
-Definition ty_needs_value_obj (t : tyexp) : bool :=
-  match t with TAbrupt => true | _ => false end.
+(** *** Which heap addresses does a type test need resolved?
 
-Definition value_field_addr (o : obj) : option nat :=
-  match o with
-  | ORecord _ fs =>
-      match fields_lookup fs "Value" with
-      | Some (VAddr b) => Some b
-      | _ => None
+    Most tests are decided by the receiver alone.  Two are not: [TAbrupt]
+    must classify the completion's `Value` field, and [TListOf] must
+    classify every element.  [Domain.v] is pure, so the caller resolves
+    exactly these addresses and passes the objects back in.  Computing the
+    list up front keeps the extra store reads — and, in the denotation, the
+    extra events — confined to the tests that actually need them. *)
+
+Definition addr_of (v : val) : list nat :=
+  match v with VAddr a => a :: nil | _ => nil end.
+
+Fixpoint ty_addrs_needed (t : tyexp) (o : obj) : list nat :=
+  match t with
+  | TUnion ts => flat_map (fun t' => ty_addrs_needed t' o) ts
+  | TAbrupt =>
+      match o with
+      | ORecord _ fs =>
+          match fields_lookup fs "Value" with
+          | Some v => addr_of v
+          | None => nil
+          end
+      | _ => nil
       end
-  | _ => None
+  | TListOf _ =>
+      match o with OList vs => flat_map addr_of vs | _ => nil end
+  | _ => nil
   end.
 
-Definition ty_check_obj (t : tyexp) (o : obj) (vobj : option obj) : bool :=
-  match o, t with
-  | OList _, TList => true
-  | OMap _, TMapTy => true
-  | ORecord tn _, TRecord want => record_subtype tn want
-  | ORecord tn _, TCompletion => record_subtype tn "CompletionRecord"
-  | ORecord tn fs, TAbrupt =>
-      if record_subtype tn "AbruptCompletion" then true
-      else if record_subtype tn "CompletionRecord"
-           then abrupt_fields_ok fs vobj
-           else false
-  | ORecord tn fs, TNormal =>
-      if record_subtype tn "NormalCompletion" then true
-      else if record_subtype tn "CompletionRecord"
-           then normal_fields_ok fs
-           else false
-  | _, _ => false
+Fixpoint resolved_lookup (r : list (nat * obj)) (a : nat) : option obj :=
+  match r with
+  | nil => None
+  | (b, o) :: tl => if Nat.eqb a b then Some o else resolved_lookup tl a
   end.
 
-Definition ty_check_prim (t : tyexp) (v : val) : bool :=
+Fixpoint ty_check_prim (t : tyexp) (v : val) : bool :=
   match v, t with
+  | _, TUnion ts => existsb (fun t' => ty_check_prim t' v) ts
   | VStr _, TStrTy => true
   | VBool _, TBoolTy => true
   | VMath _, TMathTy => true
@@ -745,8 +757,52 @@ Definition ty_check_prim (t : tyexp) (v : val) : bool :=
   | VCodeUnit _, TCodeUnitTy => true
   | VInfinity _, TInfinityTy => true
   | VAst _, TAstTy => true
+  (* AstTy.Simple: some listed name is among the node's [types] *)
+  | VAst a, TAstNames ns =>
+      existsb (fun n => name_mem n (ast_types a)) ns
+  (* AstTy.Detail: exact production name and rhs index *)
+  | VAst a, TAstDetail n i =>
+      andb (String.eqb (ast_name a) n) (Nat.eqb (ast_idx a) i)
   | _, _ => false
   end.
+
+Fixpoint ty_check_obj (t : tyexp) (o : obj) (r : list (nat * obj)) : bool :=
+  match o, t with
+  | _, TUnion ts => existsb (fun t' => ty_check_obj t' o r) ts
+  | OList _, TList => true
+  | OMap _, TMapTy => true
+  | ORecord tn _, TRecord want => record_subtype tn want
+  | ORecord tn _, TCompletion => record_subtype tn "CompletionRecord"
+  | ORecord tn fs, TAbrupt =>
+      if record_subtype tn "AbruptCompletion" then true
+      else if record_subtype tn "CompletionRecord"
+           then abrupt_fields_ok fs
+                  (match fields_lookup fs "Value" with
+                   | Some (VAddr b) => resolved_lookup r b
+                   | _ => None
+                   end)
+           else false
+  | ORecord tn fs, TNormal =>
+      if record_subtype tn "NormalCompletion" then true
+      else if record_subtype tn "CompletionRecord"
+           then normal_fields_ok fs
+           else false
+  (* every element satisfies [t'] (ty/ListTy.scala:57-60).  The nested test
+     is run with no further resolution, which is exact because the exporter
+     only emits [TListOf t'] for a [t'] that needs none. *)
+  | OList vs, TListOf t' =>
+      forallb (fun v =>
+                 match v with
+                 | VAddr b =>
+                     match resolved_lookup r b with
+                     | Some o' => ty_check_obj t' o' nil
+                     | None => false
+                     end
+                 | _ => ty_check_prim t' v
+                 end) vs
+  | _, _ => false
+  end.
+
 
 (** [ETypeOf] (Interpreter.scala:297-309).  The fragment has no Number or
     BigInt values, and Math/Enum/Clo are not contained in ObjectT or
@@ -798,7 +854,16 @@ Fixpoint init_env (params : list string) (args : list val) : option env :=
   | nil, nil => Some nil
   | p :: ps, a :: aas =>
       option_map (fun ρ => (LName p, a) :: ρ) (init_env ps aas)
-  | _, _ => None    (* strict arity; see Semantics.v fidelity notes *)
+  (* Fewer arguments than parameters: ESMeta leaves the remaining
+     parameters UNBOUND and stops binding (Interpreter.scala:377-381) —
+     for an optional parameter deliberately, and for a required one only
+     because the `RemainingParams(ps)` on line 381 is constructed and never
+     thrown.  Either way nothing further is bound, and reading one of them
+     is then UnknownVar, i.e. UB here. *)
+  | _ :: _, nil => Some nil
+  (* More arguments than parameters: RemainingArgs is thrown for a
+     non-continuation callee (Interpreter.scala:382-386). *)
+  | nil, _ :: _ => None
   end.
 
 Definition captured_env (cs : list (string * val)) : env :=

@@ -34,8 +34,6 @@ object FVSpecScan {
   def blockers(f: Func): Set[String] = {
     val found = scala.collection.mutable.Set[String]()
 
-    if (f.params.exists(_.optional)) found += "param:optional"
-
     val walker = new esmeta.ir.util.UnitWalker {
       override def walk(e: Expr): Unit = {
         e match {
@@ -57,11 +55,16 @@ object FVSpecScan {
     }
     walker.walk(f.body)
 
-    // cross-check: no silent divergence between this scan and the exporter
-    if (found.isEmpty) Try(FVExport.rocqFunc(f)) match
-      case Failure(FVExport.Unsupported(msg)) => found += s"UNCAUGHT:$msg"
-      case Failure(err) => found += s"UNCAUGHT:${err.getClass.getSimpleName}"
-      case Success(_)   => ()
+    // Cross-check in BOTH directions, so neither kind of drift can hide:
+    // UNCAUGHT = the exporter refuses a function this scan called clean;
+    // PHANTOM  = this scan refuses one the exporter is happy with.
+    Try(FVExport.rocqFunc(f)) match
+      case Failure(FVExport.Unsupported(msg)) =>
+        if (found.isEmpty) found += s"UNCAUGHT:$msg"
+      case Failure(err) =>
+        if (found.isEmpty) found += s"UNCAUGHT:${err.getClass.getSimpleName}"
+      case Success(_) =>
+        if (found.nonEmpty) found += "PHANTOM"
 
     found.toSet
   }

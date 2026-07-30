@@ -5,6 +5,7 @@ import esmeta.cfgBuilder.CFGBuilder
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.state.*
+import esmeta.ty.*
 import esmeta.util.SystemUtils.*
 import java.io.File
 import scala.collection.mutable.ListBuffer
@@ -185,28 +186,111 @@ object FVExport {
       case Some(why) => throw Unsupported(s"ty: $name (model stale: $why)")
       case None      => rocq
 
-  def rocqTy(t: Type): String = t.ty.toString match
-    // exact: r = CompletionRecord with a top field map, so `contains`
-    // reduces to the record-subtype test (RecordTy.scala:157-168)
-    case "Completion"               => "TCompletion"
-    // exact only because the field-map refinement is checked above
-    case "Abrupt"                   => completionTy("Abrupt", "TAbrupt")
-    case "Normal"                   => completionTy("Normal", "TNormal")
-    case "List"                     => "TList"
-    case "Map"                      => "TMapTy"
-    case "String"                   => "TStrTy"
-    case "Boolean"                  => "TBoolTy"
-    case "Number"                   => "TNumberTy"
-    case "BigInt"                   => "TBigIntTy"
-    case "Math"                     => "TMathTy"
-    case "Undefined"                => "TUndefTy"
-    case "Null"                     => "TNullTy"
-    case s if s.startsWith("Record[") && s.endsWith("]") && !s.contains(",") =>
-      val name = s.stripPrefix("Record[").stripSuffix("]")
-      if (name.forall(c => c.isLetterOrDigit || c == '.' || c == '_'))
-        s"(TRecord ${strLit(name)})"
-      else throw Unsupported(s"ty: $s")
-    case s => throw Unsupported(s"ty: $s")
+  /** Map an ESMeta type to the model's restricted [tyexp] (ADR-11).
+    *
+    * Decomposes the `ValueTy` STRUCTURALLY rather than matching its
+    * stringification. `ValueTy` is a product of per-kind lattices and
+    * `contains` dispatches on the value's kind (ValueTy.scala:167-188), so
+    * a type with several non-bottom components is exactly a disjunction —
+    * which is what `TUnion` models. Every component below is either
+    * translated to a test the model performs exactly, or refused.
+    *
+    * An earlier version matched `t.ty.toString` against a whitelist. That
+    * silently rotted when the stringifier changed: the keys said
+    * `Record[CompletionRecord]` while the printer had moved to
+    * `Completion`, so the most common type test in the specification was
+    * rejected for months without anyone noticing. Structure does not rot
+    * the same way — a new component is a compile error here, not a silent
+    * miss. */
+  def rocqTy(t: Type): String = t.ty match
+    case _: UnknownTy => throw Unsupported(s"ty: unknown (${t.ty})")
+    case vt: ValueTy =>
+      val parts = scala.collection.mutable.ListBuffer[String]()
+      def bad(what: String): Nothing = throw Unsupported(s"ty: ${t.ty}")
+
+      // records
+      vt.record match
+        case RecordTy.Top => parts += "(TRecord \"Record\")"
+        case RecordTy.Elem(m) if m.nonEmpty =>
+          for ((name, fm) <- m) name match
+            case "CompletionRecord" if fm.isTop => parts += "TCompletion"
+            case "AbruptCompletion" if fm.isTop =>
+              parts += completionTy("Abrupt", "TAbrupt")
+            case "NormalCompletion" if fm.isTop =>
+              parts += completionTy("Normal", "TNormal")
+            // any other record type: only an unrefined name is exact,
+            // because the model has no field-map refinement for it
+            case n if fm.isTop && n.forall(c =>
+                c.isLetterOrDigit || c == '.' || c == '_') =>
+              parts += s"(TRecord ${strLit(n)})"
+            case _ => bad("record")
+        case _ => ()
+
+      // lists and maps: only the unrefined forms; ListTy.Elem needs a
+      // per-element heap lookup the model does not do yet
+      vt.list match
+        case ListTy.Top => parts += "TList"
+        case ListTy.Bot => ()
+        // ListTy.Elem: every element satisfies the element type.  The
+        // model resolves one level of element addresses, so the element
+        // type must itself need no resolution — no TAbrupt, no nested
+        // TListOf.  Enforced here rather than assumed.
+        case ListTy.Elem(elem) =>
+          val inner = rocqTy(Type(elem))
+          if (inner.contains("TAbrupt") || inner.contains("TListOf"))
+            throw Unsupported(s"ty: ${t.ty} (element needs resolution)")
+          parts += s"(TListOf $inner)"
+        case _ => bad("list")
+      vt.map match
+        case MapTy.Top => parts += "TMapTy"
+        case MapTy.Bot => ()
+        case _         => bad("map")
+
+      // ASTs (AstTy.scala:76-81)
+      vt.ast match
+        case AstTy.Top             => parts += "TAstTy"
+        case AstTy.Simple(names) if names.nonEmpty =>
+          parts += s"(TAstNames ${coqList(names.toList.sorted.map(strLit))})"
+        case AstTy.Detail(n, i)    => parts += s"(TAstDetail ${strLit(n)} $i)"
+        case _                     => ()
+
+      // closures: only the top element, i.e. "any closure"
+      if (!vt.clo.isBottom) {
+        if (vt.clo.isTop) parts += "TCloTy" else bad("clo")
+      }
+      if (!vt.cont.isBottom) bad("cont")
+      if (!vt.grammarSymbol.isBottom) bad("grammarSymbol")
+
+      // primitives: only the unrefined forms.  A refined one (an enum with
+      // a specific name set, a string with a specific value set, NumberInt,
+      // ...) is a test the model does not perform.
+      if (!vt.math.isBottom) {
+        if (vt.math == MathTy.Top) parts += "TMathTy" else bad("math")
+      }
+      if (!vt.number.isBottom) {
+        if (vt.number == NumberTy.Top) parts += "TNumberTy" else bad("number")
+      }
+      if (!vt.infinity.isBottom) {
+        if (vt.infinity.isTop) parts += "TInfinityTy" else bad("infinity")
+      }
+      if (!vt.enumv.isBottom) {
+        if (vt.enumv.isTop) parts += "TEnumTy" else bad("enum")
+      }
+      if (!vt.str.isBottom) {
+        if (vt.str.isTop) parts += "TStrTy" else bad("str")
+      }
+      if (!vt.bool.isBottom) {
+        if (vt.bool.isTop) parts += "TBoolTy" else bad("bool")
+      }
+      if (vt.codeUnit) parts += "TCodeUnitTy"
+      if (vt.bigInt) parts += "TBigIntTy"
+      if (vt.undef) parts += "TUndefTy"
+      if (vt.nullv) parts += "TNullTy"
+
+      parts.toList match
+        case Nil      => throw Unsupported(s"ty: ${t.ty} (empty)")
+        case p :: Nil => p
+        case ps       => s"(TUnion ${coqList(ps)})"
 
   def rocqExpr(e: Expr): String = e match
     case EMath(n) =>
@@ -295,10 +379,13 @@ object FVExport {
     case _ => throw Unsupported(s"inst: ${i.getClass.getSimpleName}")
 
   def rocqFunc(f: Func): String = {
-    val params = f.params.map { p =>
-      if (p.optional) throw Unsupported(s"optional param: ${p.lhs.name}")
-      strLit(p.lhs.name)
-    }
+    // The optional flag is dropped along with the parameter types (L-3).
+    // `getLocals` binds positionally and, when the arguments run out,
+    // leaves the remaining parameters unbound whether or not they are
+    // optional (Interpreter.scala:377-381 — the non-optional branch builds
+    // a `RemainingParams` it never throws).  `init_env` mirrors that, so
+    // the flag carries no semantics the model needs.
+    val params = f.params.map(p => strLit(p.lhs.name))
     s"mkFunc ${f.main} ${strLit(f.name)} ${coqList(params)} ${rocqInst(f.body)}"
   }
 

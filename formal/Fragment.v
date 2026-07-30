@@ -171,7 +171,20 @@ Inductive tyexp : Type :=
 | TList                      (* list object *)
 | TMapTy                     (* map object *)
 | TStrTy | TBoolTy | TMathTy | TUndefTy | TNullTy | TEnumTy | TCloTy
-| TNumberTy | TBigIntTy | TCodeUnitTy | TInfinityTy | TAstTy.
+| TNumberTy | TBigIntTy | TCodeUnitTy | TInfinityTy | TAstTy
+(* AstTy.Simple / AstTy.Detail (ty/AstTy.scala:76-81).  [TAstNames] matches
+   against the node's [types], the names down its single-child chain
+   (es/Ast.scala:46-53), not just its own name. *)
+| TAstNames (ns : list string)
+| TAstDetail (n : string) (idx : nat)
+(* [ValueTy] is a product of per-kind lattices and [contains] dispatches on
+   the value's kind (ty/ValueTy.scala:167-188), so a type with several
+   non-bottom components is exactly a disjunction. *)
+| TUnion (ts : list tyexp)
+(* ListTy.Elem (ty/ListTy.scala:57-60): EVERY element satisfies [t].  The
+   exporter only emits this when [t] itself needs no heap resolution, so
+   one level of element lookup suffices; see [ty_addrs_needed]. *)
+| TListOf (t : tyexp).
 
 (** ** Expressions and references (mutual)
 
