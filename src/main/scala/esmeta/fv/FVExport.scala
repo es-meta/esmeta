@@ -130,21 +130,68 @@ object FVExport {
   /** map an ESMeta type to the model's restricted [tyexp] (ADR-11).
     * Uses ESMeta's own stringification with a strict whitelist.
     *
-    * ONLY types whose model test is EXACT are listed.  In particular
-    * `Abrupt` and `Normal` are deliberately absent even though `tyexp`
-    * has `TAbrupt`/`TNormal`: ESMeta decides them by the field-map
-    * difference `ownFieldsOf` (TyModel.scala:86-93, RecordTy.scala:157-168),
-    * which for `AbruptCompletion` is
-    *   Type: Enum[~break~,~continue~,~return~,~throw~];
-    *   Value: ESValue | Enum[~empty~];
-    *   Target: String | Enum[~empty~]
-    * (manuals/types:35-39) — three field constraints, of which the model
-    * tests only `Type`.  Accepting them would silently over-approximate
-    * 3355 type tests.  See OQ-12. */
+    * ONLY types whose model test is EXACT are listed.  `Abrupt` and
+    * `Normal` qualify since OQ-12: the model now checks the full field-map
+    * refinement `ownFieldsOf` (TyModel.scala:86-93, RecordTy.scala:157-168,
+    * manuals/types:27-39), and `completionRefinementStale` re-derives that
+    * refinement from the live type model on every export so the
+    * transcription cannot drift. */
+  /** The model hard-codes the field-map refinements ESMeta uses for
+    * `Abrupt` and `Normal` (Domain.v, OQ-12).  Re-derive them from the
+    * live type model on every export: if they ever change, refuse to emit
+    * `TAbrupt`/`TNormal` instead of silently mis-modelling 3355 type
+    * tests.  Returns the reason it is stale, or None if it matches. */
+  private lazy val completionRefinementStale: Option[String] = {
+    val tm = esmeta.util.ManualInfo.tyModel
+    def check(t: String, want: Map[String, String]): Option[String] = {
+      val own = tm.ownFieldsOf(t)
+      if (own.keySet != want.keySet)
+        Some(s"$t has fields ${own.keySet}, model assumes ${want.keySet}")
+      else
+        own.collectFirst {
+          case (f, b) if b.toString != want(f) =>
+            s"$t.$f is '$b' but the model assumes '${want(f)}'"
+        }
+    }
+    check(
+      "AbruptCompletion",
+      Map(
+        "Type" -> ": Enum[~break~, ~continue~, ~return~, ~throw~]",
+        "Value" -> ": ESValue | Enum[~empty~]",
+        "Target" -> ": Enum[~empty~] | String",
+      ),
+    ).orElse(
+      check(
+        "NormalCompletion",
+        Map(
+          "Type" -> ": Enum[~normal~]",
+          "Value" -> "",
+          "Target" -> ": Enum[~empty~]",
+        ),
+      ),
+    ).orElse(
+      // the model relies on the third `RecordTy.contains` branch being the
+      // one that decides, which needs this lca
+      if (tm.lcaOf(("CompletionRecord", "AbruptCompletion")) !=
+          Some("CompletionRecord"))
+        Some("lcaOf(CompletionRecord, AbruptCompletion) is no longer " +
+          "CompletionRecord")
+      else None,
+    )
+  }
+
+  private def completionTy(name: String, rocq: String): String =
+    completionRefinementStale match
+      case Some(why) => throw Unsupported(s"ty: $name (model stale: $why)")
+      case None      => rocq
+
   def rocqTy(t: Type): String = t.ty.toString match
     // exact: r = CompletionRecord with a top field map, so `contains`
     // reduces to the record-subtype test (RecordTy.scala:157-168)
     case "Completion"               => "TCompletion"
+    // exact only because the field-map refinement is checked above
+    case "Abrupt"                   => completionTy("Abrupt", "TAbrupt")
+    case "Normal"                   => completionTy("Normal", "TNormal")
     case "List"                     => "TList"
     case "Map"                      => "TMapTy"
     case "String"                   => "TStrTy"

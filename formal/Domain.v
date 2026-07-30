@@ -593,12 +593,12 @@ Fixpoint fields_insert (x : string) (v : val) (fs : list (string * val))
     `AbruptCompletion extends CompletionRecord { Type : Enum[~break~,
     ~continue~, ~return~, ~throw~] }` while `NormalCompletion` refines
     `Type : Enum[~normal~]` — and at runtime a completion is stored as a
-    record whose own tname may be the base `CompletionRecord`
-    (state/State.scala:169-175).  We therefore decide Abrupt/Normal by the
-    `Type` field, and other record tests by the exported subtyping
-    relation ([TyModel.v], generated from esmeta.ty.TyModel.parentOf).
+    record whose own tname is the base `CompletionRecord`.  Record tests
+    use the exported subtyping relation ([TyModel.v], generated from
+    esmeta.ty.TyModel.parentOf); Abrupt/Normal additionally check the field
+    refinement, exactly, as set out below (OQ-12).
 
-    Field refinements beyond Completion's `Type` are NOT modelled; the
+    Field refinements on OTHER record types are still not modelled; the
     exporter only emits [tyexp]s in this grammar, so anything else is
     reported rather than silently mis-modelled.  Validation of these tests
     against ESMeta is by the differential harness. *)
@@ -609,24 +609,130 @@ Definition completion_type (fs : list (string * val)) : option string :=
   | _ => None
   end.
 
-Definition ty_check_obj (t : tyexp) (o : obj) : bool :=
+(** *** Completion type tests: the exact field-map refinement (OQ-12)
+
+    `(? x: Abrupt)` and `(? x: Normal)` are 3355 of the specification's
+    7760 type tests, so getting them approximately right is not an option.
+
+    ESMeta decides them with [RecordTy.contains] (RecordTy.scala:157-168).
+    The runtime tname is always `CompletionRecord` — the spec allocates no
+    other completion record (9 [ERecord] sites, none of them
+    Normal/Throw/…, and none in the initial heap) [VF] — so the
+    `isStrictSubTy` and `l == r` branches never fire and the third one
+    decides: [lcaOf(CompletionRecord, AbruptCompletion) = CompletionRecord]
+    and [diffOf(lca, r) = FieldMap(upper ++ ownFieldsOf(r))]
+    (TyModel.scala:86-93). Measured from ESMeta [VF]:
+
+<<
+  ownFieldsOf(AbruptCompletion) =
+    Type   : Enum[~break~, ~continue~, ~return~, ~throw~]
+    Value  : ESValue | Enum[~empty~]
+    Target : Enum[~empty~] | String
+  ownFieldsOf(NormalCompletion) =
+    Type   : Enum[~normal~]
+    Value  : (unconstrained, but present)
+    Target : Enum[~empty~]
+>>
+
+    [FieldMap.contains] applies [Binding.contains] to every field
+    (FieldMap.scala:71-73), and that function has two clauses that are easy
+    to get wrong (Binding.scala:62-65):
+
+      case Some(Undef) => true   // "Undef represents uninitialized value"
+      case None        => this.absent
+
+    So a field holding [Undef] satisfies ANY binding, and an ABSENT field
+    satisfies only a binding that admits absence — which none of these six
+    do. Both are modelled below.
+
+    The previous model tested only `Type`, which over-approximates: it
+    ignored `Value` and `Target` entirely. `FVExport.rocqTy` now re-derives
+    these two field maps from ESMeta at export time and refuses to emit
+    [TAbrupt]/[TNormal] if they differ from what is written here, so this
+    transcription cannot drift silently. *)
+
+Definition enum_in (v : val) (names : list string) : bool :=
+  match v with
+  | VEnum n => existsb (String.eqb n) names
+  | _ => false
+  end.
+
+(** [Binding.contains] for a binding that does not admit absence. *)
+Definition binding_ok (fs : list (string * val)) (f : string)
+    (p : val -> bool) : bool :=
+  match fields_lookup fs f with
+  | None => false               (* absent, and absent is not admitted *)
+  | Some VUndef => true         (* Undef satisfies any binding *)
+  | Some v => p v
+  end.
+
+(** [ESValue = ObjectT || ESPrimT] (ty/package.scala:63-78): a record
+    subtyped from `Object` or from `Symbol`, or a primitive.  Notably NOT
+    Math, Enum, CodeUnit, Infinity, Clo, Ast or GrammarSymbol.  [vobj] is
+    the heap object the value points at, resolved by the caller because
+    this file is pure. *)
+Definition esvalue_ok (vobj : option obj) (v : val) : bool :=
+  match v with
+  | VNumber _ | VBigInt _ | VStr _ | VBool _ | VUndef | VNull => true
+  | VAddr _ =>
+      match vobj with
+      | Some (ORecord tn _) =>
+          orb (record_subtype tn "Object") (record_subtype tn "Symbol")
+      | _ => false
+      end
+  | _ => false
+  end.
+
+Definition abrupt_fields_ok (fs : list (string * val)) (vobj : option obj)
+  : bool :=
+  andb
+    (binding_ok fs "Type"
+       (fun v => enum_in v ("break" :: "continue" :: "return" :: "throw"
+                            :: nil)))
+    (andb
+       (binding_ok fs "Value"
+          (fun v => orb (enum_in v ("empty" :: nil)) (esvalue_ok vobj v)))
+       (binding_ok fs "Target"
+          (fun v => orb (enum_in v ("empty" :: nil))
+                      (match v with VStr _ => true | _ => false end)))).
+
+Definition normal_fields_ok (fs : list (string * val)) : bool :=
+  andb (binding_ok fs "Type" (fun v => enum_in v ("normal" :: nil)))
+    (andb (binding_ok fs "Value" (fun _ => true))
+       (binding_ok fs "Target" (fun v => enum_in v ("empty" :: nil)))).
+
+(** Only [TAbrupt] needs the `Value` field's object resolved; every other
+    test is decided by the receiver alone.  The callers use this to avoid
+    an extra store read (and an extra event in the denotation) elsewhere. *)
+Definition ty_needs_value_obj (t : tyexp) : bool :=
+  match t with TAbrupt => true | _ => false end.
+
+Definition value_field_addr (o : obj) : option nat :=
+  match o with
+  | ORecord _ fs =>
+      match fields_lookup fs "Value" with
+      | Some (VAddr b) => Some b
+      | _ => None
+      end
+  | _ => None
+  end.
+
+Definition ty_check_obj (t : tyexp) (o : obj) (vobj : option obj) : bool :=
   match o, t with
   | OList _, TList => true
   | OMap _, TMapTy => true
   | ORecord tn _, TRecord want => record_subtype tn want
   | ORecord tn _, TCompletion => record_subtype tn "CompletionRecord"
   | ORecord tn fs, TAbrupt =>
-      andb (record_subtype tn "CompletionRecord")
-        (match completion_type fs with
-         | Some n => negb (String.eqb n "normal")
-         | None => false
-         end)
+      if record_subtype tn "AbruptCompletion" then true
+      else if record_subtype tn "CompletionRecord"
+           then abrupt_fields_ok fs vobj
+           else false
   | ORecord tn fs, TNormal =>
-      andb (record_subtype tn "CompletionRecord")
-        (match completion_type fs with
-         | Some n => String.eqb n "normal"
-         | None => false
-         end)
+      if record_subtype tn "NormalCompletion" then true
+      else if record_subtype tn "CompletionRecord"
+           then normal_fields_ok fs
+           else false
   | _, _ => false
   end.
 

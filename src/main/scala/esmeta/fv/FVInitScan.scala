@@ -87,6 +87,17 @@ object FVInitScan {
     for ((k, n) <- tyHist.toList.sortBy(-_._2).take(20))
       println(f"[fv]   $n%5d  $k")
 
+    // exact field-map refinements ESMeta uses for the completion tests
+    val tm = esmeta.util.ManualInfo.tyModel
+    for (t <- List("AbruptCompletion", "NormalCompletion", "CompletionRecord"))
+      println(s"[fv] ownFieldsOf($t) = ${tm.ownFieldsOf(t)}")
+    for (r <- List("AbruptCompletion", "NormalCompletion"))
+      println(s"[fv] diffOf(CompletionRecord, $r) = " +
+        tm.diffOf(("CompletionRecord", r)))
+    println(s"[fv] ESValueT = ${esmeta.ty.ESValueT}")
+    println(s"[fv] lcaOf(CompletionRecord, AbruptCompletion) = " +
+      tm.lcaOf(("CompletionRecord", "AbruptCompletion")))
+
     // which record type names does the spec actually ALLOCATE?
     val recHist = scala.collection.mutable.Map[String, Int]()
     val w2 = new esmeta.ir.util.UnitWalker {

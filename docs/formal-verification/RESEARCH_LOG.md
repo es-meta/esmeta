@@ -7,6 +7,93 @@ Relevant Papers.
 
 ---
 
+## 2026-07-30 (OQ-12 resolved) — exact completion type tests; 2775/2951, 40/40 match
+
+**Objective.** Implement `(? x: Abrupt)` / `(? x: Normal)` exactly, per
+OQ-12, instead of the `Type`-field approximation.
+
+**Current Status.** OQ-12 **resolved**. The two tests now check the full
+field-map refinement and are validated against ESMeta on the cases that
+distinguish the two implementations.
+
+```
+[fv] translatable as-is: 2775 / 2951 (94%)      (was 1769 / 2951)
+make: rc=0, 0 errors, 11 modules
+make validate: rc=0, 0 errors, 40 programs
+Generated.v now contains TAbrupt 15, TNormal 5, TCompletion 4 (all were 0)
+```
+
+**Observations.**
+
+1. *The refinement, taken from the live type model rather than read off
+   the `.types` file [verified by command].*
+
+   ```
+   ownFieldsOf(AbruptCompletion) = Map(
+     Type   -> : Enum[~break~, ~continue~, ~return~, ~throw~],
+     Value  -> : ESValue | Enum[~empty~],
+     Target -> : Enum[~empty~] | String)
+   ownFieldsOf(NormalCompletion) = Map(
+     Type   -> : Enum[~normal~], Value -> , Target -> : Enum[~empty~])
+   lcaOf(CompletionRecord, AbruptCompletion) = Some(CompletionRecord)
+   ```
+
+2. *Two clauses of `Binding.contains` (Binding.scala:62-65) drive most of
+   the surprising behaviour.* `case Some(Undef) => true` — a field holding
+   `Undef` satisfies **any** binding — and `case None => this.absent`, so
+   an absent field satisfies none of these six. Both are now modelled.
+
+3. *ESMeta was made the oracle, not our expectations.* The new
+   `formal/validation/extra/completion-ty.ir` **prints** every answer
+   instead of asserting it, so the expectation recorded in `Generated.v` is
+   ESMeta's own print trace and the file encodes no belief of ours.
+   (Asserting would only have checked our expectation against itself; and
+   `tests/ir/expr/typecheck.ir` is an empty stub, so the corpus had **zero**
+   type-test coverage.) All 24 answers match:
+
+   | case | ESMeta | why it discriminates |
+   |---|---|---|
+   | `Value : 7` (a Math), `Abrupt` | **false** | Math is not an `ESValue` |
+   | `Target : 3` (a Math), `Abrupt` | **false** | `Target` must be `String \| ~empty~` |
+   | `Normal` with `Target : "lbl"` | **false** | `NormalCompletion` pins `Target : ~empty~` |
+   | `Value`/`Target` both `Undef`, `Abrupt` | **true** | the `Undef` clause |
+   | `Target` field absent, `Abrupt` | **false** | the absent clause |
+   | `Type : undefined`, `Abrupt` **and** `Normal` | **true, true** | `Undef` satisfies both `Type` bindings at once |
+   | `Value` = an `OrdinaryObject` record | **true** | `ObjectT` branch — the second heap lookup |
+   | `Value` = a `PrivateName` record | **false** | a record that is not an `ESValue` |
+
+   The old `Type`-only test would have answered *true* to the first three
+   and to the last, i.e. wrong on four of the eight discriminators.
+
+4. *The transcription is pinned against drift.* `FVExport` re-derives
+   `ownFieldsOf` for both types plus the `lcaOf` on every export and
+   refuses to emit `TAbrupt`/`TNormal` with a `model stale: …` reason if
+   anything differs. Hard-coding a spec constant is acceptable only with a
+   machine check that it is still the spec constant.
+
+5. *Only `TAbrupt` triggers the extra heap read.* `ty_needs_value_obj`
+   keeps every other type test to a single store access, so no other
+   construct's event trace changed.
+
+**Design Decisions.** Completion tests moved into the monadic layer of
+both interpreters (the `Value` field needs a second heap lookup, which the
+pure `ty_check_obj` cannot do); `ty_check_obj` gained a resolved
+`vobj : option obj` parameter supplied by the caller.
+
+**Proof Progress.** `T1Proof.v` unaffected and still compiles.
+
+**Research Debt.** `TRecord` still uses plain `record_subtype`, which is
+ESMeta's first two `contains` branches only; a sibling record whose fields
+happen to satisfy the target's own fields would be judged differently.
+Untested (0 occurrences of `TRecord` in the corpus) and not yet needed.
+
+**Next Steps.** Remaining blockers are now small and mostly `Ast[...]`
+type tests: `param:optional` 44, `EMathOp` 21, `NumberInt` 13, `ECont` 11,
+`Record[{ Key, Value }]` 11, `Ast` 10, then a long tail. Then the full
+spec export and the initial state.
+
+---
+
 ## 2026-07-30 (G4 prep) — CORRECTION: the coverage figure was wrong. 1769/2951, not 2909
 
 **Objective.** Start G4 by measuring what a full spec export costs. The

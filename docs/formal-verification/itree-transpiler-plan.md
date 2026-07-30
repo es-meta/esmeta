@@ -852,9 +852,13 @@ proved-statement summary, claim classification, and a research-log entry.
   "2909/2951 (99%) of spec functions contain none of them". That figure
   came from a scanner that kept its own supported-constructor list and
   never consulted `rocqTy`; the real figure, measured by delegating every
-  decision to the exporter, is **1769/2951 (60%)**. The dominant blockers
-  are not expressions at all but two *type tests*, `Abrupt` (1040
-  functions) and `Normal` (268) — see OQ-12. Constructs the original L-1 listed as
+  decision to the exporter, was **1769/2951 (60%)**. The dominant blockers
+  were not expressions at all but two *type tests*, `Abrupt` (1040
+  functions) and `Normal` (268); both are now modelled exactly (OQ-12
+  resolved), and the measured figure is **2775/2951 (94%)**. Remaining:
+  `param:optional` 44, `EMathOp` 21, `ty:NumberInt` 13, `ECont` 11,
+  `ty:Record[{ Key, Value }]` 11, `ty:Ast` 10, then a tail of `Ast[...]`
+  and union type tests. Constructs the original L-1 listed as
   absent that are now modelled: `Number`, `BigInt`, `Infinity`,
   `CodeUnit`, maps (`EMap`/`EKeys`), `IPush`/`IPop`, `IExpand`/`IDelete`,
   `ECopy`, `ETypeOf`/`ETypeCheck`, `EYet` (as UB by construction),
@@ -911,7 +915,21 @@ proved-statement summary, claim classification, and a research-log entry.
 
 ## 14. Open questions ledger
 
-**OQ-12 (open, 2026-07-30, load-bearing).** `TAbrupt` and `TNormal` test
+**OQ-12 (RESOLVED 2026-07-30).** `TAbrupt`/`TNormal` now check the full
+field-map refinement and are validated against ESMeta by
+`formal/validation/extra/completion-ty.ir`, which *prints* its answers so
+ESMeta's own trace is the oracle rather than our expectation. All 24
+answers match, including the eight cases that distinguish the exact test
+from the old `Type`-only one: a `Math` in `Value` or in `Target` is
+rejected; `Normal` requires `Target : ~empty~`; a field holding `Undef`
+satisfies any binding, so a completion with `Type : undefined` is
+simultaneously `Abrupt` **and** `Normal`; an absent field satisfies none;
+an `OrdinaryObject` in `Value` is an `ESValue` but a `PrivateName` record
+is not. `FVExport` re-derives `ownFieldsOf` on every export and refuses to
+emit the constructors if the type model changes. Coverage went
+1769 -> 2775 / 2951. The original statement follows.
+
+**OQ-12 (original, load-bearing).** `TAbrupt` and `TNormal` test
 only the completion's `Type` field, but ESMeta decides `(? x: Abrupt)` /
 `(? x: Normal)` by the field-map difference `diffOf` = `ownFieldsOf`
 (TyModel.scala:86-93, RecordTy.scala:157-168), which for

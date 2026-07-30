@@ -1,0 +1,124 @@
+// Differential coverage for (? x: Completion) / (? x: Abrupt) /
+// (? x: Normal) — 7760 type tests in the specification, of which these
+// three are 92%, and for which tests/ir/ has NO coverage at all
+// (tests/ir/expr/typecheck.ir is an empty stub).
+//
+// Every answer is PRINTED rather than asserted.  FVExport records the
+// print trace ESMeta actually produces, so ESMeta is the oracle and this
+// file encodes no belief of ours about the outcomes.  Asserting would only
+// have checked our expectation against itself.
+//
+// The cases are chosen to DISCRIMINATE between testing only the `Type`
+// field (what the model used to do) and checking the full field-map
+// refinement (what ESMeta does — TyModel.scala:86-93 with
+// RecordTy.scala:157-168):
+//
+//   ownFieldsOf(AbruptCompletion) =
+//     Type   : Enum[~break~, ~continue~, ~return~, ~throw~]
+//     Value  : ESValue | Enum[~empty~]
+//     Target : Enum[~empty~] | String
+//
+// plus the two clauses of Binding.contains (Binding.scala:62-65): a field
+// holding Undef satisfies ANY binding, and an ABSENT field satisfies none
+// of these three.
+@main def main() = {
+  // plainly abrupt / plainly normal
+  let thr = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : "boom", "Target" : ~empty~
+  })
+  print (? thr: Completion)
+  print (? thr: Abrupt)
+  print (? thr: Normal)
+
+  let nor = (record [CompletionRecord] {
+    "Type" : ~normal~, "Value" : "v", "Target" : ~empty~
+  })
+  print (? nor: Completion)
+  print (? nor: Abrupt)
+  print (? nor: Normal)
+
+  // break carrying a String Target
+  let brk = (record [CompletionRecord] {
+    "Type" : ~break~, "Value" : ~empty~, "Target" : "lbl"
+  })
+  print (? brk: Abrupt)
+
+  // DISCRIMINATOR: Value is a Math, which is not an ESValue
+  // (ESValue = ObjectT || ESPrimT, ty/package.scala:63-78, covers Number,
+  //  BigInt, String, Boolean, Undefined, Null, Object and Symbol records
+  //  but NOT Math).  Type-only testing would say true.
+  let badval = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : 7, "Target" : ~empty~
+  })
+  print (? badval: Abrupt)
+
+  // DISCRIMINATOR: Target is a Math, not String | ~empty~
+  let badtgt = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : "v", "Target" : 3
+  })
+  print (? badtgt: Abrupt)
+
+  // DISCRIMINATOR: Normal with a non-empty Target
+  let badnor = (record [CompletionRecord] {
+    "Type" : ~normal~, "Value" : "v", "Target" : "lbl"
+  })
+  print (? badnor: Normal)
+
+  // DISCRIMINATOR: Undef satisfies any binding
+  let undefval = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : undefined, "Target" : undefined
+  })
+  print (? undefval: Abrupt)
+
+  // DISCRIMINATOR: an absent field satisfies none of these bindings
+  let notarget = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : "v"
+  })
+  print (? notarget: Abrupt)
+  print (? notarget: Completion)
+
+  // DISCRIMINATOR: Undef in the Type field
+  let undeftype = (record [CompletionRecord] {
+    "Type" : undefined, "Value" : "v", "Target" : ~empty~
+  })
+  print (? undeftype: Abrupt)
+  print (? undeftype: Normal)
+
+  // the remaining ESValue primitive shapes
+  let numval = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : 1f, "Target" : ~empty~
+  })
+  print (? numval: Abrupt)
+  let bigval = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : 2n, "Target" : ~empty~
+  })
+  print (? bigval: Abrupt)
+  let boolval = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : true, "Target" : ~empty~
+  })
+  print (? boolval: Abrupt)
+  let nullval = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : null, "Target" : ~empty~
+  })
+  print (? nullval: Abrupt)
+
+  // Value is a heap object: exercises the ObjectT branch of ESValue,
+  // which is the case that forces the second heap lookup
+  let obj = (record [OrdinaryObject] { "Extensible" : true })
+  let objval = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : obj, "Target" : ~empty~
+  })
+  print (? objval: Abrupt)
+
+  // Value is a heap object that is NOT an ESValue
+  let nonobj = (record [PrivateName] { "Description" : "d" })
+  let nonobjval = (record [CompletionRecord] {
+    "Type" : ~throw~, "Value" : nonobj, "Target" : ~empty~
+  })
+  print (? nonobjval: Abrupt)
+
+  // a non-completion record is none of the three
+  print (? nonobj: Completion)
+  print (? nonobj: Abrupt)
+  print (? nonobj: Normal)
+}

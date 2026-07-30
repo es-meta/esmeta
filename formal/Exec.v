@@ -295,7 +295,16 @@ Fixpoint exec_expr (st : xstate) (ρ : env) (e : expr) {struct e}
       match v with
       | VAddr a =>
           o <- of_option (heap_get st1 a);;
-          Ok (st1, VBool (ty_check_obj t o))
+          (* TAbrupt also needs the `Value` field's object (OQ-12) *)
+          if ty_needs_value_obj t
+          then
+            match value_field_addr o with
+            | Some b =>
+                ob <- of_option (heap_get st1 b);;
+                Ok (st1, VBool (ty_check_obj t o (Some ob)))
+            | None => Ok (st1, VBool (ty_check_obj t o None))
+            end
+          else Ok (st1, VBool (ty_check_obj t o None))
       | _ => Ok (st1, VBool (ty_check_prim t v))
       end
   | EYet _ => Stuck
