@@ -36,11 +36,23 @@ state is now measured rather than guessed.
    per-node table encodes, and a missing entry is UB — ESMeta's
    `InvalidAstField`.
 
-2. *The G4 initial state is 2591 objects / 15396 fields.* Large, but the
-   heap is a `list obj` indexed by address, so lookup is not the problem;
-   the question is whether a Rocq term of that size compiles and
-   `vm_compute`s in reasonable time. **This is the goal's designated
-   stop-and-ask point** and is put to the user rather than decided here.
+2. *The G4 initial state is 2591 objects / 15396 fields — and it is NOT
+   too large to compile [verified by command].* This is the goal's
+   designated stop-and-ask point, so instead of asking cold I built a
+   synthetic probe of the measured shape (1774 records x 6 fields, 375
+   lists x 5, 426 maps x 6, 16 empty; 2591 objects, 15075 fields) as a
+   `list obj` literal, plus two `vm_compute` checks including a field
+   lookup at address 1773:
+
+   ```
+   -rw-r--r--  390838  SizeProbe.v
+   coqc ... SizeProbe.v   4.55s user 0.16s system 98% cpu 4.778 total
+   ```
+
+   391 KB, **4.55 s**, both `vm_compute` goals closed. The risk the goal
+   flagged is retired: a full initial-state export is viable, and no
+   compressed representation or lazy subsetting is needed. (The probe was
+   deleted after measuring; it is synthetic, not evidence about ESMeta.)
 
 3. *A trivial script parses to 34 AST nodes.* Small — the AST is not the
    scaling risk; the intrinsics heap is.
@@ -51,7 +63,9 @@ tool (`CFGBuilder(Compiler(Extractor()))`, ~26 s).
 **Research Debt.** ADR-15's table, `ESourceText` and `EParse` are all
 implemented and unreachable until an AST can be exported (L-11b).
 
-**Next Steps.** Decide the G4 initial-state strategy with the user.
+**Next Steps.** G4: `FVInitState` exporter emitting the 23 globals, the
+2591-object heap, the source text and the cached AST (with precomputed
+`subIdx`, `src` and lexical SDO tables), then the extraction harness.
 
 ---
 
