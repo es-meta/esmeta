@@ -85,8 +85,31 @@ case class AstValue(ast: Ast) extends Value
 /** grammar symbols */
 case class GrammarSymbol(name: String, params: List[Boolean]) extends Value
 
+/** extended mathematical values
+  *
+  * Extended mathematical values are mathematical values together with the
+  * infinities (+INF and -INF).
+  */
+sealed trait ExtMath extends Value
+object ExtMath {
+
+  /** conversion from a double to an extended mathematical value
+    *
+    * ESMeta approximates the implementation-approximated operations of the
+    * specification (e.g. `[math:exp]`) with double arithmetic, whose overflow
+    * is represented by an infinity. `None` means that the result is not an
+    * extended mathematical value (i.e. NaN), which indicates an undefined
+    * result (e.g. the square root of a negative value).
+    */
+  def from(d: Double): Option[ExtMath] =
+    if (d.isNaN) None
+    else if (d.isPosInfinity) Some(POS_INF)
+    else if (d.isNegInfinity) Some(NEG_INF)
+    else Some(Math(d))
+}
+
 /** mathematical values */
-case class Math(decimal: BigDecimal) extends Value
+case class Math(decimal: BigDecimal) extends ExtMath
 object Math {
   val zero: Math = Math(0)
   val one: Math = Math(1)
@@ -120,7 +143,7 @@ object Math {
 }
 
 /** infinity values */
-case class Infinity(pos: Boolean) extends Value
+case class Infinity(pos: Boolean) extends ExtMath
 
 /** enums */
 case class Enum(name: String) extends Value

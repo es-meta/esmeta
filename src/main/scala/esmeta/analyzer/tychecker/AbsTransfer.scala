@@ -1216,7 +1216,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         unary.uop match
           case Abs | Floor =>
             checkUnary(unary, operandTy, MathT)
-          case Neg | BNot =>
+          case Neg =>
+            checkUnary(unary, operandTy, ExtMathT || NumberT || BigIntT)
+          case BNot =>
             checkUnary(unary, operandTy, MathT || NumberT || BigIntT)
           case Not =>
             checkUnary(unary, operandTy, BoolT)
@@ -1321,7 +1323,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       st: AbsState,
       mop: MOp,
       vs: List[AbsValue],
-    )(using np: NodePoint[Node]): AbsValue = MathTop
+    )(using np: NodePoint[Node]): AbsValue = ExtMathTop
 
     // =========================================================================
     // Implementation for TyChecker
