@@ -61,9 +61,11 @@ object Solver {
     val base = exprFor(ty).iterator.to(LazyList)
     val objects =
       if (isBasePlainObject(ty)) objectCandidates(ty) else LazyList.empty
-    val extra =
-      extraCands.collect { case (isTy, js) if isTy(ty) => js }.to(LazyList)
-    distinct(base #::: objects #::: extra)
+    val fixedExprsForType = fixedExprsFor(ty).to(LazyList)
+    val extra = extraCands
+      .collect { case (isTy, expr) if isTy(ty) => expr }
+      .to(LazyList)
+    distinct(base #::: objects #::: fixedExprsForType #::: extra)
 
   def newTargetCandidates(ty: ValueTy): List[String] =
     if (UndefT ⊑ ty) List("")
@@ -83,6 +85,30 @@ object Solver {
   private def distinct(xs: LazyList[String]): LazyList[String] =
     val seen = scala.collection.mutable.Set[String]()
     xs.filter(seen.add)
+
+  private def fixedExprsFor(ty: ValueTy): List[String] =
+    if (ty.isBottom) Nil
+    else
+      val atoms = ty.toAtomicTys.filterNot(_.isBottom)
+      val applicable = fixedExprs.filter {
+        case (tyCase, _) => atoms.exists(atom => atom ⊑ tyCase)
+      }
+      applicable.zipWithIndex
+        .sortBy {
+          case ((tyCase, _), index) =>
+            val specificity = applicable.count {
+              case (otherTy, _) => tyCase ⊑ otherTy && !(otherTy ⊑ tyCase)
+            }
+            (-specificity, index)
+        }
+        .flatMap(_._1._2)
+        .distinct
+
+  private def throwingTrap(name: String): String =
+    val target = name match
+      case "apply" | "construct" => "function(){}"
+      case _                     => "{}"
+    s"new Proxy($target, { $name() { throw 0; } })"
 
   private val extraCands: List[(ValueTy => Boolean, String)] =
     def isNum(v: Double): ValueTy => Boolean = _.number.contains(Number(v))
@@ -277,12 +303,7 @@ object Solver {
   private def baseDefaultFor(ty: ValueTy): Option[String] =
     if (ty.isBottom) None
     else if (ty == ObjectT) Some("{}")
-    else
-      defaults
-        .collectFirst { case (tyCase, js) if tyCase ⊑ ty => js }
-        .orElse(defaults.collectFirst {
-          case (tyCase, js) if ty overlap tyCase => js
-        })
+    else fixedExprsFor(ty).headOption
 
   private def isBasePlainObject(ty: ValueTy): Boolean = ty.record match
     case RecordTy.Elem(map, _) =>
@@ -314,39 +335,58 @@ object Solver {
     case Property.PStr(str) => str
     case Property.PSym(sym) => s"[Symbol.$sym]"
 
-  private val defaults: List[(ValueTy, String)] = List(
-    SymbolT -> "Symbol()",
-    ConstructorT -> "function() {}",
-    FunctionT -> "() => {}",
-    RecordT("ProxyExoticObject") -> "new Proxy({}, {})",
-    RecordT("BoundFunctionExoticObject") -> "(function(){}).bind()",
-    RecordT("BuiltinFunctionObject") -> "Math.max",
-    ArrayT -> "[]",
-    TypedArrayT -> "new Int8Array()",
-    RecordT("BigInt64Array") -> "new BigInt64Array()",
-    RecordT("BigUint64Array") -> "new BigUint64Array()",
-    RecordT("ArrayIteratorInstance") -> "[][Symbol.iterator]()",
-    RegExpT -> "/./",
-    RecordT("BooleanObject") -> "Object(true)",
-    RecordT("NumberObject") -> "Object(0)",
-    RecordT("StringExoticObject") -> "Object('')",
-    RecordT("SymbolObject") -> "Object(Symbol())",
-    RecordT("BigIntObject") -> "Object(0n)",
-    RecordT("Map") -> "new Map()",
-    RecordT("Set") -> "new Set()",
-    RecordT("WeakMap") -> "new WeakMap()",
-    RecordT("WeakSet") -> "new WeakSet()",
-    RecordT("ArrayBuffer") -> "new ArrayBuffer(0)",
-    RecordT("SharedArrayBuffer") -> "new SharedArrayBuffer(0)",
-    RecordT("DataView") -> "new DataView(new ArrayBuffer(0))",
-    RecordT("Date") -> "new Date()",
-    RecordT("Promise") -> "new Promise(() => {})",
-    RecordT("ErrorObject") -> "new Error()",
-    RecordT("Generator") -> "(function*(){})()",
-    RecordT("AsyncGenerator") -> "(async function*(){})()",
-    RecordT("WeakRef") -> "new WeakRef({})",
-    RecordT("FinalizationRegistry") -> "new FinalizationRegistry(() => {})",
-    RecordT("ArgumentsExoticObject") -> "(function(){ return arguments; })()",
-    ObjectT -> "{}",
+  private val fixedExprs: List[(ValueTy, List[String])] = List(
+    RecordT("ProxyExoticObject") -> List(
+      "new Proxy({}, {})",
+      throwingTrap("getPrototypeOf"),
+      throwingTrap("setPrototypeOf"),
+      throwingTrap("isExtensible"),
+      throwingTrap("preventExtensions"),
+      throwingTrap("getOwnPropertyDescriptor"),
+      throwingTrap("defineProperty"),
+      throwingTrap("has"),
+      throwingTrap("get"),
+      throwingTrap("set"),
+      throwingTrap("deleteProperty"),
+      throwingTrap("ownKeys"),
+      throwingTrap("apply"),
+      throwingTrap("construct"),
+    ),
+    SymbolT -> List("Symbol()"),
+    ConstructorT -> List("function() {}"),
+    FunctionT -> List("() => {}"),
+    RecordT("BoundFunctionExoticObject") -> List("(function(){}).bind()"),
+    RecordT("BuiltinFunctionObject") -> List("Math.max"),
+    ArrayT -> List("[]"),
+    TypedArrayT -> List("new Int8Array()"),
+    RecordT("BigInt64Array") -> List("new BigInt64Array()"),
+    RecordT("BigUint64Array") -> List("new BigUint64Array()"),
+    RecordT("ArrayIteratorInstance") -> List("[][Symbol.iterator]()"),
+    RegExpT -> List("/./"),
+    RecordT("BooleanObject") -> List("Object(true)"),
+    RecordT("NumberObject") -> List("Object(0)"),
+    RecordT("StringExoticObject") -> List("Object('')"),
+    RecordT("SymbolObject") -> List("Object(Symbol())"),
+    RecordT("BigIntObject") -> List("Object(0n)"),
+    RecordT("Map") -> List("new Map()"),
+    RecordT("Set") -> List("new Set()"),
+    RecordT("WeakMap") -> List("new WeakMap()"),
+    RecordT("WeakSet") -> List("new WeakSet()"),
+    RecordT("ArrayBuffer") -> List("new ArrayBuffer(0)"),
+    RecordT("SharedArrayBuffer") -> List("new SharedArrayBuffer(0)"),
+    RecordT("DataView") -> List("new DataView(new ArrayBuffer(0))"),
+    RecordT("Date") -> List("new Date()"),
+    RecordT("Promise") -> List("new Promise(() => {})"),
+    RecordT("ErrorObject") -> List("new Error()"),
+    RecordT("Generator") -> List("(function*(){})()"),
+    RecordT("AsyncGenerator") -> List("(async function*(){})()"),
+    RecordT("WeakRef") -> List("new WeakRef({})"),
+    RecordT("FinalizationRegistry") -> List(
+      "new FinalizationRegistry(() => {})",
+    ),
+    RecordT("ArgumentsExoticObject") -> List(
+      "(function(){ return arguments; })()",
+    ),
+    ObjectT -> List("{}"),
   )
 }
