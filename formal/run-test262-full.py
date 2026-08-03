@@ -697,9 +697,12 @@ def pending_ranges(
 
 def run_command(command: list[str], cwd: Path, timeout: float) -> CommandResult:
     started = time.monotonic()
+    environment = os.environ.copy()
+    environment["ESMETA_HOME"] = str(ROOT)
     process = subprocess.Popen(
         command,
         cwd=cwd,
+        env=environment,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -867,6 +870,7 @@ class PersistentExporter:
         self.process = subprocess.Popen(
             self.command,
             cwd=ROOT,
+            env={**os.environ, "ESMETA_HOME": str(ROOT)},
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

@@ -280,6 +280,27 @@ class RunTest262FullTest(unittest.TestCase):
                 args.build_timeout,
             )
 
+    def test_run_command_pins_esmeta_home_to_runner_checkout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            command = [
+                runner.sys.executable,
+                "-c",
+                "import os; print(os.environ['ESMETA_HOME'])",
+            ]
+            with (
+                mock.patch.object(runner, "ROOT", root),
+                mock.patch.dict(
+                    runner.os.environ,
+                    {"ESMETA_HOME": "/different/checkout"},
+                ),
+            ):
+                result = runner.run_command(command, root, 5)
+
+            self.assertEqual(result.returncode, 0)
+            self.assertFalse(result.timed_out)
+            self.assertEqual(result.output.strip(), str(root))
+
     def test_persistent_exporter_command_starts_one_server(self):
         self.assertEqual(
             runner.persistent_exporter_command(
