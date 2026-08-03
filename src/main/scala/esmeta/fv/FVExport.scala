@@ -1800,8 +1800,12 @@ object FVExport {
     case "ToUint8Clamp" => normalizeToUint8Clamp(f)
     case _              => f
 
-  def rocqFunc(f: Func)(using CFG): String = {
-    val normalized = normalizeForRocq(f)
+  /** Emit a generic Rocq function from a value normalized by the caller.
+    * Whole-backend exporters use this together with
+    * `FVDirectExport.compileNormalized` so normalization is performed exactly
+    * once and both backends consume the identical function object.
+    */
+  private[fv] def rocqNormalizedFunc(normalized: Func)(using CFG): String = {
     val params = normalized.params.map(p => strLit(p.lhs.name))
     val paramTypes = normalized.params.map(rocqParamAnnotation)
     s"mkTypedFunc ${normalized.main} ${rocqFuncKind(normalized.kind)} " +
@@ -1809,6 +1813,9 @@ object FVExport {
     s"${coqList(paramTypes)} ${rocqTypeAnnotation(normalized.retTy)} " +
     s"${rocqInst(normalized.body)}"
   }
+
+  def rocqFunc(f: Func)(using CFG): String =
+    rocqNormalizedFunc(normalizeForRocq(f))
 
   /** observable values (address-free per the observable-behavior spec) */
   def rocqValue(v: Value): String = v match

@@ -40,7 +40,10 @@ TestEncoding.v
 Domain.v
 Events.v
 Semantics.v
+DirectSemantics.v
 ITreeExec.v
+DirectITreeExec.v
+DirectITreeTierA.v
 Programs.v
 Examples.v
 Exec.v
@@ -62,6 +65,7 @@ FloorDivisionNormalizationRegression.v
 ExtMathRegression.v
 TyExpSetRegression.v
 EParseRecoveryRegression.v
+DirectSemanticsRegression.v
 SpecAssertionProof.v
 JSClosedEquiv.v
 JSEquivProof.v

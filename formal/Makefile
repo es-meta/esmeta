@@ -28,11 +28,13 @@ T262_FULL_ARGS ?=
 JS_EQUIV_INPUT_STAMP := $(ITREE_BUILD)/js-equiv-inputs.stamp
 JS_EQUIV_ARTIFACT_STAMP := $(ITREE_BUILD)/js-equiv-artifacts.stamp
 SPEC_SOURCE_MANIFEST := validation/SpecSources.mk
+DIRECT_SOURCE_MANIFEST := validation/DirectSources.mk
 
 # FVInitState emits the immutable specification as independent compilation
 # units.  Keep the manifest optional for the ordinary, specification-free
 # build; targets that consume Spec.v validate it explicitly below.
 -include $(SPEC_SOURCE_MANIFEST)
+-include $(DIRECT_SOURCE_MANIFEST)
 
 SPEC_FUNC_SHARD_SOURCES := \
 	$(filter validation/spec/SpecFuncs_%.v,$(SPEC_GENERATED_SOURCES))
@@ -45,6 +47,16 @@ SPEC_FACADE_SOURCES := \
 	validation/spec/SpecGlobals.v \
 	validation/spec/SpecHeap.v
 SPEC_FACADE_OBJECTS := $(SPEC_FACADE_SOURCES:.v=.vo)
+DIRECT_FUNC_SHARD_SOURCES := \
+	$(filter validation/spec_direct/DirectFuncs_%.v,$(DIRECT_GENERATED_SOURCES))
+DIRECT_FUNC_SHARD_OBJECTS := $(DIRECT_FUNC_SHARD_SOURCES:.v=.vo)
+DIRECT_NAMES_SOURCE := validation/spec_direct/DirectNames.v
+DIRECT_NAMES_OBJECT := $(DIRECT_NAMES_SOURCE:.v=.vo)
+DIRECT_FACADE_SOURCE := validation/spec_direct/DirectFuncs.v
+DIRECT_FACADE_OBJECT := $(DIRECT_FACADE_SOURCE:.v=.vo)
+DIRECT_REPRESENTATIVE_SOURCE := $(firstword $(DIRECT_FUNC_SHARD_SOURCES))
+DIRECT_REPRESENTATIVE_OBJECT := $(DIRECT_REPRESENTATIVE_SOURCE:.v=.vo)
+GENERIC_REPRESENTATIVE_SOURCE := $(firstword $(SPEC_FUNC_SHARD_SOURCES))
 
 # Flags mirror the CRIS workshop build (2026-verification-workshop/Makefile):
 # same warning suppressions and the pre-imported monad notation.
@@ -76,7 +88,10 @@ SOURCES := \
 	Domain.v \
 	Events.v \
 	Semantics.v \
+	DirectSemantics.v \
 	ITreeExec.v \
+	DirectITreeExec.v \
+	DirectITreeTierA.v \
 	Programs.v \
 	Examples.v \
 	Exec.v \
@@ -160,6 +175,41 @@ validation/Tests.vo: validation/Tests.v Fragment.vo $(ITREE_TEST_OBJECTS)
 validation/itree/%.vo: validation/itree/%.v Fragment.vo Domain.vo TestEncoding.vo
 	$(COQC) $(COQFLAGS) $<
 
+# Direct generated artifacts are deliberately disjoint from the generic Spec
+# graph.  Full generation currently fails closed at the unsupported ERandom
+# policy boundary; these opt-in targets never alter generic Test262 defaults.
+.PHONY: direct-manifest-ready
+direct-manifest-ready:
+	@test -f "$(DIRECT_SOURCE_MANIFEST)" || { \
+	  echo "$(DIRECT_SOURCE_MANIFEST) missing — run: sbt \"runMain esmeta.fv.FVInitState --direct-itree\""; \
+	  echo "Known phase-1 gate: Math.random/ERandom has no deterministic formal semantics."; \
+	  exit 1; \
+	}
+	@test -n "$(strip $(DIRECT_GENERATED_SOURCES))" || { \
+	  echo "$(DIRECT_SOURCE_MANIFEST) contains no generated direct sources"; \
+	  exit 1; \
+	}
+
+validation/spec_direct/DirectNames.vo: validation/spec_direct/DirectNames.v
+	$(COQC) $(COQFLAGS) $<
+
+validation/spec_direct/DirectFuncs_%.vo: validation/spec_direct/DirectFuncs_%.v \
+    DirectSemantics.vo $(DIRECT_NAMES_OBJECT)
+	$(COQC) $(COQFLAGS) $<
+
+$(DIRECT_FACADE_OBJECT): $(DIRECT_FACADE_SOURCE) \
+    $(DIRECT_FUNC_SHARD_OBJECTS) $(DIRECT_NAMES_OBJECT)
+	$(COQC) $(COQFLAGS) $<
+
+.PHONY: direct-generated-shard-smoke
+direct-generated-shard-smoke: direct-manifest-ready
+	@test -n "$(DIRECT_REPRESENTATIVE_OBJECT)" || { \
+	  echo "direct manifest contains no function shard"; exit 1; \
+	}
+	$(MAKE) --no-print-directory $(DIRECT_NAMES_OBJECT) \
+	  $(DIRECT_REPRESENTATIVE_OBJECT)
+	@echo "compiled representative generated direct shard (opt-in)"
+
 # Small, specification-independent regression for the actual ITree call
 # machine.  It covers ordinary calls, print order, and nonlocal ECont
 # restore before the multi-megabyte generated Test262 specification is
@@ -240,6 +290,73 @@ TyExpSetRegression.vo: TyExpSetRegression.v Domain.vo Exec.vo
 EParseRecoveryRegression.vo: EParseRecoveryRegression.v Domain.vo \
     Semantics.vo Exec.vo
 	$(COQC) $(COQFLAGS) $<
+
+DirectSemanticsRegression.vo: DirectSemanticsRegression.v \
+    DirectSemantics.vo Semantics.vo Programs.vo
+	$(COQC) $(COQFLAGS) $<
+
+.PHONY: direct-regression
+direct-regression: DirectSemanticsRegression.vo
+	@echo "compiled direct ITree backend differential fixture"
+
+direct_itree_tier_a_generic.ml: DirectITreeTierAGenericExtract.v \
+    DirectITreeTierA.vo DirectITreeExec.vo
+	$(COQC) $(COQFLAGS) DirectITreeTierAGenericExtract.v
+
+direct_itree_tier_a_direct.ml: DirectITreeTierADirectExtract.v \
+    DirectITreeTierA.vo DirectITreeExec.vo
+	$(COQC) $(COQFLAGS) DirectITreeTierADirectExtract.v
+
+direct_itree_tier_a_generic.mli: direct_itree_tier_a_generic.ml
+	@test -f $@
+
+direct_itree_tier_a_direct.mli: direct_itree_tier_a_direct.ml
+	@test -f $@
+
+direct_itree_tier_a_generic.cmi: direct_itree_tier_a_generic.mli
+	ocamlfind ocamlopt -package zarith,rocq-runtime.kernel \
+	  $(OCAML_GENERATED_FLAGS) -c $<
+
+direct_itree_tier_a_direct.cmi: direct_itree_tier_a_direct.mli
+	ocamlfind ocamlopt -package zarith,rocq-runtime.kernel \
+	  $(OCAML_GENERATED_FLAGS) -c $<
+
+direct_itree_tier_a_generic.cmx: direct_itree_tier_a_generic.ml \
+    direct_itree_tier_a_generic.cmi
+	ocamlfind ocamlopt -package zarith,rocq-runtime.kernel \
+	  $(OCAML_GENERATED_FLAGS) -c $<
+
+direct_itree_tier_a_direct.cmx: direct_itree_tier_a_direct.ml \
+    direct_itree_tier_a_direct.cmi
+	ocamlfind ocamlopt -package zarith,rocq-runtime.kernel \
+	  $(OCAML_GENERATED_FLAGS) -c $<
+
+direct_itree_tier_a_driver.cmx: direct_itree_tier_a_driver.ml \
+    direct_itree_tier_a_generic.cmi direct_itree_tier_a_generic.cmx \
+    direct_itree_tier_a_direct.cmi direct_itree_tier_a_direct.cmx
+	ocamlfind ocamlopt -package zarith,rocq-runtime.kernel \
+	  $(OCAML_RUNTIME_FLAGS) -c $<
+
+direct-itree-tier-a-native: direct_itree_tier_a_generic.cmx \
+    direct_itree_tier_a_direct.cmx direct_itree_tier_a_driver.cmx
+	ocamlfind ocamlopt -package zarith,rocq-runtime.kernel -linkpkg \
+	  $(OCAML_GENERATED_FLAGS) direct_itree_tier_a_generic.cmx \
+	  direct_itree_tier_a_direct.cmx \
+	  direct_itree_tier_a_driver.cmx -o $@
+
+.PHONY: direct-tier-a
+direct-tier-a: direct-itree-tier-a-native
+	./direct-itree-tier-a-native
+
+# Representative source/wall/RSS/.vo accounting.  This target is opt-in, and
+# exits 2 when direct wall time or peak RSS exceeds the generic shard by 2x.
+.PHONY: direct-resource-gate
+direct-resource-gate: direct-generated-shard-smoke \
+    $(GENERIC_REPRESENTATIVE_SOURCE) measure-direct-resource.py
+	python3 ./measure-direct-resource.py \
+	  $(GENERIC_REPRESENTATIVE_SOURCE) $(DIRECT_REPRESENTATIVE_SOURCE) \
+	  --output-dir $(ITREE_BUILD)/direct-resource \
+	  --coqc $(COQC) $(COQFLAGS)
 
 SpecAssertionProof.vo: SpecAssertionProof.v Exec.vo validation/Spec.vo
 	$(COQC) $(COQFLAGS) $<
@@ -323,7 +440,7 @@ regressions: ITreeCoreRegression.vo ITreeExecRegression.vo Int32OpsRegression.vo
 	    ContEqualityRegression.vo TypeTrimRegression.vo NumberMathRegression.vo \
 	    NumberToBigIntRegression.vo FloorDivisionNormalizationRegression.vo \
 	    ExtMathRegression.vo TyExpSetRegression.vo EParseRecoveryRegression.vo \
-	    SpecAssertionProof.vo JSClosedEquiv.vo
+	    DirectSemanticsRegression.vo SpecAssertionProof.vo JSClosedEquiv.vo
 	$(MAKE) js-equiv
 	@echo "compiled semantic regression proofs"
 

@@ -361,6 +361,10 @@ class FVTyModelTest extends AnyFunSuite {
     assert(
       FVInitState.sourceForArgs(Array("--js-equiv")) == "var x = 1;",
     )
+    assert(
+      FVInitState.sourceForArgs(Array("--direct-itree", "let x = 3;")) ==
+      "let x = 3;",
+    )
     assert(FVInitState.sourceForArgs(Array("let x = 2;")) == "let x = 2;")
   }
 

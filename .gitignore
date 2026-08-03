@@ -85,6 +85,13 @@ formal/fvitree-modular
 formal/fvitree-spec-algorithm
 formal/fvitree-worker
 formal/fvitree-worker-native
+formal/direct_itree_tier_a.ml
+formal/direct_itree_tier_a.mli
+formal/direct_itree_tier_a_direct.ml
+formal/direct_itree_tier_a_direct.mli
+formal/direct_itree_tier_a_generic.ml
+formal/direct_itree_tier_a_generic.mli
+formal/direct-itree-tier-a-native
 formal/fvitree.ml
 formal/fvitree.mli
 formal/fvrun
