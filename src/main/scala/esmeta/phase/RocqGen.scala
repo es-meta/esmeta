@@ -2,11 +2,8 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.ir.Program
-import esmeta.compiler.Compiler
-import esmeta.rocq.{RocqGenerator, RocqPartialGenerator}
-import esmeta.spec.Spec
-import esmeta.util.*
-import esmeta.util.SystemUtils.*
+import esmeta.rocq.RocqGenerator
+import esmeta.util.BoolOption
 
 /** `rocqgen` phase */
 case object RocqGen extends Phase[Program, Unit] {
@@ -17,24 +14,15 @@ case object RocqGen extends Phase[Program, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit = {
-    ???
+    RocqGenerator(program).dumpTo(ROCQ262_LOG_DIR)
+
     ()
   }
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
-    (
-      "log",
-      BoolOption(_.log = _),
-      "turn on logging mode.",
-    ),
-    (
-      "partial",
-      BoolOption(_.partial = _),
-      "dump sample Rocq files and their source IR ASTs.",
-    ),
+    ("log", BoolOption(_.log = _), "turn on logging mode."),
   )
   case class Config(
     var log: Boolean = false,
-    var partial: Boolean = false,
   )
 }

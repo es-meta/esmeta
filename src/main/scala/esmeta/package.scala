@@ -15,6 +15,7 @@ val BASE_DIR = sys.env.getOrElse("ESMETA_HOME", throw NoEnvVarError)
 val LOG_DIR = s"$BASE_DIR/logs"
 val EXTRACT_LOG_DIR = s"$LOG_DIR/extract"
 val COMPILE_LOG_DIR = s"$LOG_DIR/compile"
+val ROCQ262_LOG_DIR = s"$LOG_DIR/rocq262"
 val CFG_LOG_DIR = s"$LOG_DIR/cfg"
 val YET_CHECK_LOG_DIR = s"$LOG_DIR/yet-check"
 val ANALYZE_LOG_DIR = s"$LOG_DIR/analyze"
@@ -53,6 +54,7 @@ val PACKAGE_NAME = "esmeta"
 /** tests directory */
 val IR_TEST_DIR = s"$TEST_DIR/ir"
 val ES_TEST_DIR = s"$TEST_DIR/es"
+val ROCQ262_TEST_DIR = s"$TEST_DIR/rocq262"
 
 /** error stack trace display mode */
 var ERROR_MODE = false
