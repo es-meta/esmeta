@@ -1,6 +1,15 @@
 # ITree-Based Verification of IR-Level Transpilation in ESMeta — Architecture Note
 
-Status: Milestone 1 (architecture + skeleton). Last updated 2026-07-29.
+Status: historical design record. Last updated 2026-07-29.
+
+> **Current implementation note (2026-08-02).** This document preserves the
+> original milestone decisions and is not the operational source of truth for
+> the expanded generated-spec/Test262 runner. In particular, current code has
+> broader IR coverage, compact payload transport, persistent exporter/native
+> workers, and production Test262 ITree execution. Use
+> `formal/README.md`, `formal/TEST262_FULL_RUNNER.md`, and the executable source
+> files for current commands and boundaries. Statements below about a ≤30-case
+> fragment, Test262 being unavailable, or future-only CI are historical.
 
 Version pins this document assumes:
 
@@ -657,7 +666,7 @@ deferred to PO-010 [user decision: "linking now, syntactic later"].
   model-defined, so the theorem cannot be right or wrong *relative to
   ECMAScript*, and ESMeta cannot execute its source side — the
   differential harness never covered it.
-- **Decision.** Add **T-3** (`formal/T3Proof.v`, `Programs.v`
+- **Decision.** Add **T-3** (`formal/attic/T3Proof.v`, `Programs.v`
   `t3_optaccess_main`): the spec-shaped optional access
   `x = f()?.prop` in mirrored IR only, receiver an **effectful context
   call**, transformed by the already-verified `t1_prog`. T-3 becomes the

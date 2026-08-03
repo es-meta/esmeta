@@ -249,7 +249,7 @@ note header). "AN §n" = architecture-note section n.
   closers for ill-typed receivers, paired `SGet` stepping on equal
   stores for the address case.
 - **Status.** **proved for the exemplar family (Qed), 2026-07-29** —
-  `formal/T2Proof.v`: `t2_contextual_equivalence`, both `ctx_refines`
+  archived `formal/attic/T2Proof.v`: `t2_contextual_equivalence`, both `ctx_refines`
   directions via `main_adequacy`, with complete receiver case analysis
   (nullish ×2, four ill-typed shapes as symmetric UB, address case with
   paired `SGet` on equal stores via `wsim_sget_src/tgt` + downcast /
@@ -274,7 +274,7 @@ note header). "AN §n" = architecture-note section n.
 - **Technique.** T-1/T-2 isim skeleton + full receiver case analysis
   (undefined / null / four non-address shapes as symmetric UB / address
   with paired `SGet`, downcast, record-shape and field-presence splits).
-- **Status.** **proved (Qed), 2026-07-29** — `formal/T3Proof.v`:
+- **Status.** **proved (Qed), 2026-07-29** — archived `formal/attic/T3Proof.v`:
   `t3_contextual_equivalence`. Executable validation in `Validation.v`:
   `t3v_src_trace` = `[7;42]`, `t3v_null_trace` = `[7;undefined]`,
   `t3v_preserved`/`t3v_null_preserved`, and the receiver-once negative
@@ -284,6 +284,117 @@ note header). "AN §n" = architecture-note section n.
   Evidence chain and the one unmechanized modelling step are tabulated in
   ADR-10; the model diverges from JS on primitive receivers (L-8).
   Closing it is the PO-012-style spec-level route. **Difficulty.** ★★★★
+
+## Independent pipeline audit gates (2026-08-02)
+
+These are explicit stop conditions from the post-Test262 implementation audit;
+they must not be hidden by `UNSUPPORTED`, cache reuse, or cleanup.
+
+### PA-001 — Match ESMeta's `EParse` recovery boundary
+
+- **Finding.** ESMeta evaluates both `EParse` operands inside its recoverable
+  parse boundary. The model must therefore preserve operand effects and catch
+  ordinary evaluation exceptions without also swallowing model/cache defects.
+- **Status.** **complete for the exported operand fragment (2026-08-02).**
+  `Domain.v` distinguishes `EvalThrow` from CRIS UB; `Semantics.v` and
+  validation-only `Exec.v` evaluate the admitted operand fragment
+  left-to-right, retain effects preceding a throw, and allocate the fresh empty
+  error list at the same boundary as ESMeta. `FVExport.scala` rejects any
+  future `EParse` operand outside that fragment, so unsupported syntax fails
+  closed instead of being approximated. Missing or ill-typed host-cache data
+  remains UB. `EParseRecoveryRegression.v` covers code/rule failure order,
+  retained allocation, invalid source, parser failure, and the negative cache
+  miss case; regenerating the current specification exports 2,950 of 2,951
+  functions with no `EParse` omission. The sole omitted function is the
+  independent `Math.random`/`ERandom` policy gate.
+
+### PA-002 — Bind worker snapshots to build provenance
+
+- **Finding.** Campaign source closure is now complete: the fingerprint covers
+  every file under `src/main/resources` (including `.ir`, `.algo`, and
+  extensionless data) and the explicit production Rocq/OCaml closure.  Changes
+  to validation-only `Exec.v`, `modular_driver.ml`, and
+  `gen-extract-shard.sh` do not invalidate a production campaign.
+- **Status.** **resource closure complete; stronger reproducibility gate still
+  open.** The extracted-core stamp and serialized specification snapshot do
+  not yet carry a worker-verified digest of compiler flags and Rocq/OCaml
+  toolchain versions.  Embed that build digest in the snapshot/worker
+  handshake and record it in `campaign.json` before treating a cached worker
+  as independently reproducible across toolchains.
+
+### PA-003 — Separate the production and validation closures
+
+- **Decision.** Production execution is the untraced
+  `Semantics.v`/`ITreeExec.v` tree. `Exec.v` remains the PO-011 validation
+  oracle and proof-computation aid; it is not the Test262 engine.
+- **Status.** **complete for closure separation (2026-08-02).** The production
+  record contains only the untraced verdict tree and lazy ITree trace;
+  `ExtractCore.v` therefore has no `Exec.v` dependency. The duplicate
+  monolithic `Extract.v`/`driver.ml` lane was retired. Keep `Exec.v` until
+  PO-013 or an equivalent ITree-direct validation bridge discharges its
+  independent-oracle role. `modular_driver.ml` now delegates execution,
+  verdict category, reason, and formatting to the same
+  `itree_test_runtime.ml` used by the persistent worker; the nonexistent
+  `exec_diagnostic` path was removed. All 40 runner tests and all 50 tests in
+  the complete `formal/tests` Python suite pass. A fresh
+  source build/link produced a representative T000 PASS in 32,440 steps, and
+  its shape was `Tau x 32440` followed by `Ret VUndef`.
+
+### PA-004 — Close real JavaScript witnesses over the generated ITree
+
+- **Statement.** For selected JavaScript source pairs, use ESMeta's real
+  Script parser and ordinary interpreter to export the effective source,
+  parsed AST, and typed host answers; construct
+  `script_prog source ast hosts`; and prove the two closed `exec_itree` trees
+  weakly equivalent.
+- **Status.** **one closed theorem compiled (Qed), 2026-08-02.** The generator
+  reads six real JavaScript fixtures. Four earlier constant-condition and
+  optional-chain/guard fixtures remain frontend-preservation checks only. For
+  the two ASI fixtures it requires distinct raw input bytes and verifies that
+  ESMeta's automatic-semicolon-insertion pass yields exactly equal effective
+  source, parsed AST, and typed host answers before emitting aliases.
+  `JSEquivProof.v` then proves `asi_optional_chain_closed_js_equiv` over the
+  exact `script_prog`/`exec_itree` trees by prepared-program equality and ITree
+  `eutt` reflexivity. `make js-equiv` compiles the theorem with ordinary
+  `coqc`; its assumption audit contains only imported Rocq primitive/classical
+  library assumptions and no project `Axiom` or admitted proof.
+
+  A stronger computational proof for the earlier optional-chain versus
+  handwritten-guard pair remains open. Monolithic `vm_compute` exhausted
+  roughly 124 GB of compressed memory/swap, and even tiny native/VM fuel values
+  made result reification impractical; those failed attempts produced no
+  theorem artifact.
+- **Claim boundary.** This establishes closed `eutt` equivalence for the two
+  byte-distinct inputs that ESMeta canonicalizes to one prepared program. It
+  is not arbitrary-context JavaScript equivalence, optional-chain/guard
+  equivalence, or a proof that the parser/exporter is correct. ESMeta parsing,
+  ASI, host capture, equality checking, and artifact generation are trusted.
+  The proof uses `ITreeExec.v`, not `Exec.v`.
+- **Relation to PO-012/PO-013.** PA-004 removes the hand-mirrored-IR gap for
+  this concrete ASI witness, but it does not prove
+  general ESMeta CFG faithfulness (PO-012) or general
+  `Exec.v`/denotation correspondence (PO-013).
+
+### PA-005 — Recheck the archived representability/unsupported failures
+
+- **Baseline.** The 2026-08-01 full 32,207-test campaign recorded 27,238 PASS,
+  4,359 `ESMETA_FAILED`, 436 `NOT_REPRESENTABLE`, 174 `UNSUPPORTED`, and zero
+  other terminal outcomes.
+- **Status.** **complete for the archived failure set, 2026-08-02.** The
+  recorded v7 payload and ITree worker reran the union of the old 436 + 174
+  cases: 609 PASS and one `UNSUPPORTED`, with no `NOT_REPRESENTABLE`, mismatch,
+  build error, crash, or timeout.  A separate 16-case residual run produced
+  15 PASS and the same one `UNSUPPORTED`.
+- **Remaining gate.** The sole case is `Math.random`, which reaches
+  `Take/UB`.  It remains fail-closed until a nondeterministic `Take`/`Choose`
+  execution or proof policy is selected.  Replaying one sampled random value
+  is not an acceptable substitute.
+- **Reporting limit.** No fresh full 32,207-test sweep was run after these
+  fixes.  The targeted 609/610 result must not be presented as a current
+  full-suite total. After later split/provenance and spec-normalization
+  hardening, the final native worker spot-checked one former decimal
+  `NOT_REPRESENTABLE` as PASS and the remaining `Math.random` as the same
+  `Take/UB` `UNSUPPORTED`; the entire 610-case set was not rerun again.
 
 ---
 

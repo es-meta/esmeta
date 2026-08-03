@@ -37,7 +37,7 @@ Eval vm_compute in (run 1000 (t2_prog t2v_rec)).   (* from Validation.v *)
 
 (* inspect a theorem or its assumptions *)
 Check t1_contextual_equivalence.
-Print Assumptions t2_contextual_equivalence.
+Print Assumptions t1_contextual_equivalence.
 ```
 
 `run fuel p : out (val * list val)` returns the termination value and the
@@ -55,29 +55,23 @@ For proof work, `rocq_step_to` + `rocq_goals` replace the batch
 goal-printing probes used during development (see the research log,
 "Failed Attempts", M4).
 
-## What can and cannot run in the model — the Test262 boundary
+## Interactive proofs and full Test262 execution
 
-**Test262 does NOT run on the ITree/CRIS model, by design.**
-The honest execution matrix:
+There are two deliberately separate execution lanes:
 
-| Program class | ESMeta interpreter | ITree model (this dir) |
+| Program class | Interactive/reference lane | Production ITree lane |
 |---|---|---|
-| Test262 / arbitrary JavaScript | ✔ (`sbt test262EvalTest`, `esmeta test262-test` — full spec-derived IR) | ✘ — out of fragment |
-| Fragment-compatible standalone IR (`tests/ir`, 19 programs) | ✔ | ✔ (`run` via vm_compute; differential harness `make validate`) |
-| Outputs of the verified transformations (`t1_prog`, `t2_prog`) | ✔ (post-desugar IR-Core, exportable) | ✔ |
-| Synthetic source forms (`EOptField`) | ✘ (not ESMeta syntax; ADR-9) | ✔ |
+| Fragment-compatible standalone IR | `Exec.run` via `vm_compute`; `make validate` | extracted `ITreeExec.exec_itree` |
+| Generated ECMA-262 algorithms | inspect/prove against `validation/Spec.v` | extracted `Semantics.v`/`ITreeExec.v` |
+| Test262 JavaScript | impractical to reduce interactively | `run-test262-full.py` using compact payloads and persistent native workers |
 
-Why: a Test262 test is JavaScript. ESMeta executes it by running the
-*entire spec-compiled IR* (thousands of functions) over the parsed AST as
-data — that machinery (AST values, `ISdoCall`/`EParse`, completion
-records at spec level, IEEE-754 Numbers, strings, …) is exactly what the
-IR-Core fragment excludes (architecture note, limitations L-1/L-4/L-5).
-Making Test262 run on the model would mean mechanizing the spec-derived
-IR itself — the [FW] JavaScript-level route (architecture note §1), not a
-configuration task. Claiming otherwise would violate the project's
-claim-classification rules, so we don't.
+The full runner parses each JavaScript test with ESMeta, executes ESMeta once
+to obtain the expected observable, exports the parsed AST plus host answers,
+and executes the generated ECMA-262 IR through the extracted ITree denotation.
+See [TEST262_FULL_RUNNER.md](TEST262_FULL_RUNNER.md) for the exact assertion,
+checkpoint, and verdict contract.
 
-What the model-side execution IS for: exercising the proven fragment,
-running transformation outputs before/while proving them equivalent, and
-regression-checking the semantics against ESMeta on the shared corpus
-(`sbt "runMain esmeta.fv.FVExport"` + `make validate`).
+`Exec.v` remains a small fuel-based validation oracle and is useful in proofs
+and differential regression tests. It is not the production Test262 engine.
+Likewise, Coqtail is the right tool for goals and bounded examples, but not for
+reducing the multi-megabyte generated specification test by test.

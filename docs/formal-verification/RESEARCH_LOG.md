@@ -7,6 +7,136 @@ Relevant Papers.
 
 ---
 
+## 2026-08-02 — v7 numeric/EParse closure, targeted Test262 rerun, and JavaScript-to-ITree witnesses
+
+**Objective.** Remove the representability and unsupported failures that can
+be fixed without changing ECMAScript nondeterminism policy, audit the resulting
+semantic boundary, and connect real JavaScript source files to closed ITree
+equivalence witnesses.
+
+**Current Status.** The archived pre-fix full campaign remains the only full
+32,207-test measurement:
+
+```
+PASS                 27238
+ESMETA_FAILED         4359
+NOT_REPRESENTABLE      436
+UNSUPPORTED            174
+MISMATCH/other           0
+```
+
+The recorded v7 implementation was run against the union of the old 436
+`NOT_REPRESENTABLE` and 174 `UNSUPPORTED` cases.  It completed all 610 with
+609 PASS and one `UNSUPPORTED`; a separate final 16-case residual run produced
+15 PASS and the same one `UNSUPPORTED`.  No fresh full 32,207-test sweep has
+been run, so these targeted results must not be reported as a new full-suite
+PASS count.
+
+**Observations.**
+
+1. The one remaining case is
+   `built-ins/Math/random/S15.8.2.14_A1.js`.  Its result is
+   `UNSUPPORTED-EFFECT Take/UB`: a nondeterminism-policy boundary, not a
+   decimal representation failure.  Replaying one sampled random value would
+   produce an unsound false PASS.
+2. `LVUndef` now preserves the Test262 `TV = undefined` value through the
+   Scala exporter, versioned compact payload, Rocq decoder, and extracted
+   worker.  The payload magic is `ESFVIT07`.
+3. Finite Number-to-BigInt conversion now truncates the exact Binary64 value
+   toward zero without a 2^53 bound.  Number/Math operations preserve
+   left-to-right fail-fast evaluation and use typed host queries where Scala
+   `BigDecimal` behavior cannot be reproduced by the integer-only `VMath`
+   domain: `HQNumberMathOp`, `HQNumberMathCompare`, and `HQNumberToMath`.
+   Forged NaN or infinity Number-to-Math cache entries fail closed.
+4. `EParse` now evaluates the admitted operand fragment left-to-right inside
+   the recoverable parse boundary.  Ordinary operand exceptions become parse
+   recovery; missing or ill-typed host data and model defects remain UB.
+   `EParseRecoveryRegression.v` fixes this distinction and its effect order.
+5. `FVInitState --js-equiv` reads six real `.js` fixtures, invokes ESMeta's
+   Script parser and ordinary interpreter, and emits the raw/effective source,
+   parsed AST, and typed host answers in `validation/JSEquivArtifacts.v`. For
+   the ASI pair it rejects equal raw bytes or any difference in effective
+   source, AST, or host answers before emitting aliases. `JSClosedEquiv.v`
+   constructs exactly `script_prog source ast hosts` and `JSEquivProof.v`
+   proves the equal prepared programs have `eutt` `exec_itree` denotations.
+6. The production campaign fingerprint now includes every file below
+   `src/main/resources`, including `.ir`, `.algo`, and extensionless semantic
+   data, plus every split TyModel/Spec source named by the generated
+   `_CoqProject` block and `SpecSources.mk`. It rejects missing, duplicate, or
+   non-contiguous shards and facade/import drift. Its Rocq/OCaml closure is
+   intentionally production-only: validation-only `Exec.v`,
+   `modular_driver.ml`, and `gen-extract-shard.sh` do not invalidate a
+   production campaign.
+7. `modular_driver.ml` and the persistent payload worker now share
+   `itree_test_runtime.ml` for execution, verdict category, reason, and output
+   formatting.  The old reference to a nonexistent `exec_diagnostic` was
+   removed.  A fresh source build and link ran representative T000 to PASS in
+   32,440 steps; its closed shape was `Tau x 32440` followed by `Ret VUndef`.
+8. The native snapshot path now respects extracted declaration ownership.
+   Snapshot-backed native clients receive thin `SpecFuncs`/`SpecGlobals`/
+   `SpecHeap` compatibility modules, while `spec_snapshot_writer.ml` opens the
+   three defining modules directly. Fresh snapshot generation, native worker
+   link, and two one-test campaigns all complete.
+
+**Proof Progress.** `JSEquivProof.v` now compiles the closed theorem
+`asi_optional_chain_closed_js_equiv`. The two inputs have different raw bytes
+but ESMeta's ASI pass makes their effective source, AST, and host-answer cache
+identical; the generated aliases make prepared-program equality definitional,
+and ITree reflexivity supplies `eutt`. `make js-equiv` completes with ordinary
+`coqc`. The Coqtail/`Print Assumptions` audit found no project `Axiom` or admit;
+only imported Rocq primitive/classical library assumptions remain.
+
+The earlier constant-condition and optional-chain/handwritten-guard pairs are
+still only frontend-preservation witnesses. A monolithic `vm_compute` attempt
+was interrupted after 25 minutes and roughly 124 GB of compressed memory/swap;
+native and VM experiments showed that result reification is already
+impractical at tiny fuel. No theorem is claimed for those pairs. In particular,
+the compiled ASI theorem is not arbitrary-context JavaScript equivalence,
+optional-chain/guard equivalence, or parser/exporter correctness. Parsing,
+ASI, host capture, equality checking, and artifact generation remain a trusted
+frontend boundary. The proof path does not use `Exec.v`; that file remains an
+independent executable oracle and regression layer for PO-011.
+
+**Design Decisions.** Keep `Math.random` unsupported until a `Take`/`Choose`
+handler or proof policy is selected.  Keep integer `VMath` and cross the exact
+Scala numeric boundary with typed, result-constrained host queries.  Retain
+`Exec.v` until PO-013 or an equivalent direct ITree-validation bridge makes
+the independent oracle redundant.
+
+**Validation Evidence.** The two targeted summaries are
+`formal/logs/test262-archived-failures-final-v2-20260802/summary.txt` and
+`formal/logs/test262-residual-final-v2-20260802/summary.txt`.  Numeric and
+transport checks include `NumberMathRegression.v`,
+`NumberToBigIntRegression.v`, `ITreeCoreRegression.v`, the FV Scala tests, and
+the extracted native-core build. `FVSpecScan` reports 2950/2951 exportable
+functions after the shape-checked `TimeClip` and `ToUint8Clamp` normalizations;
+the sole omitted function is `INTRINSICS.Math.random` (`ERandom`).
+`EParseRecoveryRegression.v` covers the parse boundary. The source-witness
+generator target is `make js-equiv-artifacts`; the compiled proof target is
+`make js-equiv`. A clean source rebuild/link plus the representative
+T000 run also checks that the shared runtime returns PASS at 32,440 steps and
+that the shape dumper reports `Tau x 32440` then `Ret VUndef`. Final-build
+spot checks are recorded in
+`formal/logs/test262-final-nr-smoke-v2-20260802/summary.txt` (one former
+decimal `NOT_REPRESENTABLE`, now PASS) and
+`formal/logs/test262-final-random-smoke-20260802/summary.txt` (the deliberate
+`Take/UB` `UNSUPPORTED`).
+
+**Research Debt.** Choose and justify the `Math.random` nondeterminism policy;
+mechanize the trusted JavaScript parser/export relation if source-level
+faithfulness rather than closed generated witnesses is required; complete
+PO-013 if `Exec.v` is to be retired; bind extracted snapshots to toolchain and
+compiler-flag provenance through a worker handshake (PA-002). Semantic source
+closure is covered by the campaign fingerprint; the serialized snapshot still
+needs its own provenance binding.
+
+**Next Steps.** Do not start another full Test262 campaign without an explicit
+request.  Use the 610 archived failures as the first regression set after any
+semantic change.  Treat `Math.random` as a design gate rather than another
+representability patch.
+
+---
+
 ## 2026-07-30 (G4) — the whole spec + initial state compiles; the model runs it and gets stuck, diagnosed
 
 **Objective.** Stage G4: export ESMeta's initial state and the spec itself,
@@ -687,7 +817,7 @@ then `ESValueParser`.
 in ESMeta, so was T-2's synthetic `EOptField` necessary?
 
 **Current Status.** Challenge upheld; correction implemented and proved.
-`t3_contextual_equivalence` (`formal/T3Proof.v`) — mutual contextual
+`t3_contextual_equivalence` (`formal/attic/T3Proof.v`) — mutual contextual
 refinement of the spec-shaped optional-access program and its `t1_prog`
 transform, **mirrored IR only, no synthetic construct**. All builds green
 (11 → 12 modules), validation extended, axiom base unchanged.
@@ -792,7 +922,7 @@ the [FW] JS-level route (spec-IR mechanization), not configuration.
 proved?" by proving one: the ADR-9 desugaring (PO-014).
 
 **Current Status.** **Done, all Qed.** `t2_contextual_equivalence`
-(`formal/T2Proof.v`): mutual contextual refinement of
+(`formal/attic/T2Proof.v`): mutual contextual refinement of
 `ir_mod mn t2ex_src` and `ir_mod mn (t2_prog t2ex_src)` over all linking
 contexts, where main receives an arbitrary value from an unknown context
 call, applies `EOptField`, prints. Fragment extended: `ERecord`
