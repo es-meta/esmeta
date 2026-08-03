@@ -160,6 +160,24 @@ object FVDirectExport {
   def compile(id: String, f: Func)(using CFG): DirectFuncDefs =
     compileNormalized(id, FVExport.normalizeForRocq(f))
 
+  /** Scope-safe negative literals.
+    *
+    * A direct shard has to import CRIS to elaborate its `crisG` context, and
+    * CRIS brings notations that claim the leading `-`: Rocq then reads
+    * `(-1.0)%float` as a unary minus applied to `1` and stops at the `.`.
+    * Generic shards import neither CRIS nor Semantics, so
+    * [[FVExport.zLit]] and [[FVExport.floatLit]] stay as they are and their
+    * output does not move.
+    */
+  private val negFloatLit = """\(-(.*)\)%float""".r
+
+  private def directFloatLit(d: Double): String = floatLit(d) match
+    case negFloatLit(magnitude) => s"(- ($magnitude)%float)%float"
+    case other                  => other
+
+  private def directZLit(n: scala.math.BigInt): String =
+    if (n < 0) s"(- (${-n}))%Z" else zLit(n)
+
   private final class Compiler(functionName: String)(using cfg: CFG) {
     private var serial = 0
     private def fresh(prefix: String): String = {
@@ -193,14 +211,14 @@ object FVDirectExport {
     private def parseOperand(e: Expr, rho: String): String = e match
       case EMath(n) =>
         if (!n.isWhole) fail("expr.EParse", s"non-integer Math literal $n")
-        s"eval_ret (VMath ${zLit(n.toBigInt)})"
+        s"eval_ret (VMath ${directZLit(n.toBigInt)})"
       case EBool(b)      => s"eval_ret (VBool $b)"
       case EStr(s)       => s"eval_ret (VStr ${cstrLit(s)})"
       case EUndef()      => "eval_ret VUndef"
       case ENull()       => "eval_ret VNull"
       case EEnum(n)      => s"eval_ret (VEnum ${strLit(n)})"
-      case ENumber(n)    => s"eval_ret (VNumber ${floatLit(n)})"
-      case EBigInt(n)    => s"eval_ret (VBigInt ${zLit(n)})"
+      case ENumber(n)    => s"eval_ret (VNumber ${directFloatLit(n)})"
+      case EBigInt(n)    => s"eval_ret (VBigInt ${directZLit(n)})"
       case EInfinity(p)  => s"eval_ret (VInfinity $p)"
       case ECodeUnit(c)  => s"eval_ret (VCodeUnit ${c.toInt})"
       case EGrammarSymbol(n, ps) =>
@@ -277,14 +295,14 @@ object FVDirectExport {
     def expr(e: Expr, rho: String): String = e match
       case EMath(n) =>
         if (!n.isWhole) fail("expr.EMath", s"non-integer Math literal $n")
-        s"Ret (VMath ${zLit(n.toBigInt)})"
+        s"Ret (VMath ${directZLit(n.toBigInt)})"
       case EBool(b)   => s"Ret (VBool $b)"
       case EStr(s)    => s"Ret (VStr ${cstrLit(s)})"
       case EUndef()   => "Ret VUndef"
       case ENull()    => "Ret VNull"
       case EEnum(n)   => s"Ret (VEnum ${strLit(n)})"
-      case ENumber(n) => s"Ret (VNumber ${floatLit(n)})"
-      case EBigInt(n) => s"Ret (VBigInt ${zLit(n)})"
+      case ENumber(n) => s"Ret (VNumber ${directFloatLit(n)})"
+      case EBigInt(n) => s"Ret (VBigInt ${directZLit(n)})"
       case EInfinity(p) => s"Ret (VInfinity $p)"
       case ECodeUnit(c) => s"Ret (VCodeUnit ${c.toInt})"
       case ERef(r) =>
@@ -481,7 +499,7 @@ object FVDirectExport {
           fail("expr.EParse", s"unsupported rule operand ${rule.getClass.getSimpleName}")
         val cv = fresh("code")
         val rv = fresh("rule")
-        bind(cv, parseOperand(code, rho), s"match $cv with | EvalThrow => alloc_parse_errors | EvalValue _ => " +
+        bind(cv, parseOperand(code, rho), s"match $cv with | EvalThrow => alloc_parse_errors mn | EvalValue _ => " +
           s"${bind(rv, parseOperand(rule, rho), s"direct_parse_outcomes mn $cv $rv")} end")
       case ESubstring(base, from, to) =>
         val sv = fresh("string")
@@ -502,9 +520,13 @@ object FVDirectExport {
           val rho1 = fresh("rho")
           val completion = fresh("completion")
           val rest = inst(ISeq(tail), fnames, rho1)
-          s"('( $rho1, $completion) <- ${inst(head, fnames, rho)};; " +
-            s"match $completion with | CNormal _ => $rest | CReturn v => Ret ($rho1, CReturn v) end)".replace("'( ", "'(")
-      case IExpr(e) => seq(expr(e, rho), s"Ret ($rho, CNormal VUndef)")
+          s"('($rho1, $completion) : env * completion <- ${inst(head, fnames, rho)};; " +
+            s"match $completion with | CNormal _ => $rest | CReturn v => Ret ($rho1, CReturn v) end)"
+      // The sequenced value is discarded, so its type has to be pinned here
+      // or elaboration leaves the ITree's return type unresolved (an [EYet]
+      // operand emits a bare [triggerUB], which constrains nothing).
+      case IExpr(e) =>
+        seq(s"(${expr(e, rho)} : itree crisE val)", s"Ret ($rho, CNormal VUndef)")
       case ILet(lhs, e) =>
         val v = fresh("value")
         bind(v, expr(e, rho), s"Ret (env_update (LName ${strLit(lhs.name)}) $v $rho, CNormal VUndef)")
@@ -522,7 +544,7 @@ object FVDirectExport {
         val rho1 = fresh("rho")
         val completion = fresh("completion")
         val bodyTerm = inst(body, fnames, loopRho)
-        s"ITree.iter (fun $loopRho : env => ${bind(cv, expr(cond, loopRho), s"match $cv with | VBool true => ('($rho1, $completion) <- $bodyTerm;; match $completion with | CNormal _ => Ret (inl $rho1) | CReturn v => Ret (inr ($rho1, CReturn v)) end) | VBool false => Ret (inr ($loopRho, CNormal VUndef)) | _ => triggerUB end")}) $rho"
+        s"ITree.iter (fun $loopRho : env => ${bind(cv, expr(cond, loopRho), s"match $cv with | VBool true => ('($rho1, $completion) : env * completion <- $bodyTerm;; match $completion with | CNormal _ => Ret (inl $rho1) | CReturn v => Ret (inr ($rho1, CReturn v)) end) | VBool false => Ret (inr ($loopRho, CNormal VUndef)) | _ => triggerUB end")}) $rho"
       case ICall(lhs, f, args) =>
         val fv = fresh("function")
         val vs = fresh("args")
