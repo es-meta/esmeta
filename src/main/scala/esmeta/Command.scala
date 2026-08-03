@@ -89,6 +89,14 @@ case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
   )
 }
 
+/** `rocq` command */
+case object CmdRocq extends Command("rocq", CmdCompile >> RocqGen) {
+  val help = "generates Rocq files for a specification."
+  val examples = List(
+    "esmeta rocq                        # generate Rocq files for spec.",
+  )
+}
+
 /** `build-cfg` command */
 case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
   val help = "builds a control-flow graph (CFG) from an IR program."
