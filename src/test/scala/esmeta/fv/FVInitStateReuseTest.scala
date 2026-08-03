@@ -16,8 +16,7 @@ class FVInitStateReuseTest extends AnyFunSuite {
     entries.foreach(entry => write(formal.resolve(entry)))
     for (prefix <- List("SpecFuncs", "SpecHeap")) {
       val modules = entries.collect {
-        case entry
-            if entry.matches(s"validation/spec/${prefix}_\\d{4}\\.v") =>
+        case entry if entry.matches(s"validation/spec/${prefix}_\\d{4}\\.v") =>
           entry.stripPrefix("validation/spec/").stripSuffix(".v")
       }
       write(
@@ -27,10 +26,10 @@ class FVInitStateReuseTest extends AnyFunSuite {
     }
     val manifest =
       "SPEC_GENERATED_SOURCES := \\\n" +
-        entries.zipWithIndex.map { (entry, index) =>
-          val continuation = if (index + 1 < entries.size) " \\" else ""
-          s"  $entry$continuation\n"
-        }.mkString
+      entries.zipWithIndex.map { (entry, index) =>
+        val continuation = if (index + 1 < entries.size) " \\" else ""
+        s"  $entry$continuation\n"
+      }.mkString
     write(formal.resolve("validation/SpecSources.mk"), manifest)
     formal
   }
@@ -53,7 +52,7 @@ class FVInitStateReuseTest extends AnyFunSuite {
       FVInitState
         .validateReusableSplitSpecBase(formal.toFile)
         .map(_.toPath.toAbsolutePath.normalize) ==
-        entries.map(formal.resolve(_).toAbsolutePath.normalize),
+      entries.map(formal.resolve(_).toAbsolutePath.normalize),
     )
   }
 
@@ -127,7 +126,7 @@ class FVInitStateReuseTest extends AnyFunSuite {
     write(
       unmanifestedImport.resolve("validation/spec/SpecFuncs.v"),
       "From ESMetaFV.validation.spec Require Export " +
-        "SpecFuncs_0000 SpecFuncs_0001.\n",
+      "SpecFuncs_0000 SpecFuncs_0001.\n",
     )
     val extraError = intercept[IllegalStateException] {
       FVInitState.validateReusableSplitSpecBase(unmanifestedImport.toFile)

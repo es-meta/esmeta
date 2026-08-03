@@ -13,12 +13,12 @@ import java.nio.file.{
 
 /** Versioned, compact input format for the extracted Test262 ITree runner.
   *
-  * The Rocq-extracted semantics remains the executable definition.  This
-  * format only replaces the former path that reified every test tuple as a
-  * large Rocq term and then typechecked, extracted, compiled and linked it.
+  * The Rocq-extracted semantics remains the executable definition. This format
+  * only replaces the former path that reified every test tuple as a large Rocq
+  * term and then typechecked, extracted, compiled and linked it.
   *
-  * Multi-byte integers are big-endian.  ECMAScript strings are encoded as
-  * their exact UTF-16 code units; metadata strings use strict UTF-8.
+  * Multi-byte integers are big-endian. ECMAScript strings are encoded as their
+  * exact UTF-16 code units; metadata strings use strict UTF-8.
   */
 private[fv] object FVPayload {
   val Magic: Array[Byte] = "ESFVIT07".getBytes(StandardCharsets.US_ASCII)
@@ -118,7 +118,8 @@ private[fv] object FVPayload {
   def writeAtomic(path: Path, bytes: Array[Byte]): Unit = {
     val parent = path.toAbsolutePath.getParent
     Files.createDirectories(parent)
-    val temporary = Files.createTempFile(parent, s".${path.getFileName}.", ".tmp")
+    val temporary =
+      Files.createTempFile(parent, s".${path.getFileName}.", ".tmp")
     try {
       Files.write(temporary, bytes)
       try

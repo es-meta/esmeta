@@ -3,7 +3,12 @@ package esmeta.fv
 import esmeta.BASE_DIR
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
-import esmeta.error.{InvalidBinaryOp, InvalidConversion, InvalidExit, InvalidMathOp}
+import esmeta.error.{
+  InvalidBinaryOp,
+  InvalidConversion,
+  InvalidExit,
+  InvalidMathOp,
+}
 import esmeta.es.Lexical
 import esmeta.extractor.Extractor
 import esmeta.ir.*
@@ -88,7 +93,7 @@ class FVTyModelTest extends AnyFunSuite {
 
     assert(
       rendered ==
-        """Fragment.v
+      """Fragment.v
           |# BEGIN GENERATED FVTyModel SHARDS
           |TyModelBase.v
           |TyModelParent00.v
@@ -109,11 +114,11 @@ class FVTyModelTest extends AnyFunSuite {
         assert(FVExport.floatLit(Double.NaN) == "PrimFloat.nan")
         assert(
           FVExport.floatLit(Double.PositiveInfinity) ==
-            "PrimFloat.infinity",
+          "PrimFloat.infinity",
         )
         assert(
           FVExport.floatLit(Double.NegativeInfinity) ==
-            "PrimFloat.neg_infinity",
+          "PrimFloat.neg_infinity",
         )
         assert(FVExport.floatLit(0.0) == "(0.0000000000000000)%float")
         assert(FVExport.floatLit(-0.0) == "(-0.0000000000000000)%float")
@@ -172,7 +177,7 @@ class FVTyModelTest extends AnyFunSuite {
   test("parse persistent Test262 exporter requests strictly") {
     assert(
       FVInitState.parseExporterRequest("EXPORT 12 34") ==
-        Right(Some((12, 34))),
+      Right(Some((12, 34))),
     )
     assert(FVInitState.parseExporterRequest("QUIT") == Right(None))
     assert(FVInitState.parseExporterRequest("EXPORT -1 2").isLeft)
@@ -244,7 +249,9 @@ class FVTyModelTest extends AnyFunSuite {
     assert(!FVInitState.needsMathToNumberCapture(-exactLimit))
     assert(FVInitState.needsMathToNumberCapture(exactLimit + 1))
     assert(FVInitState.needsMathToNumberCapture(-exactLimit - 1))
-    assert(!FVInitState.needsMathToNumberCapture(exactLimit + BigDecimal("0.5")))
+    assert(
+      !FVInitState.needsMathToNumberCapture(exactLimit + BigDecimal("0.5")),
+    )
   }
 
   test("ToNumber and ToApproxNumber share Math host-capture boundaries") {
@@ -282,19 +289,19 @@ class FVTyModelTest extends AnyFunSuite {
       )
       assert(
         interp.eval(EConvert(cop, ENumber(Double.PositiveInfinity))) ==
-          Number(Double.PositiveInfinity),
+        Number(Double.PositiveInfinity),
       )
       assert(
         interp.eval(EConvert(cop, ENumber(Double.NegativeInfinity))) ==
-          Number(Double.NegativeInfinity),
+        Number(Double.NegativeInfinity),
       )
       assert(
         interp.eval(EConvert(cop, EInfinity(true))) ==
-          Number(Double.PositiveInfinity),
+        Number(Double.PositiveInfinity),
       )
       assert(
         interp.eval(EConvert(cop, EInfinity(false))) ==
-          Number(Double.NegativeInfinity),
+        Number(Double.NegativeInfinity),
       )
     }
   }
@@ -368,12 +375,12 @@ class FVTyModelTest extends AnyFunSuite {
     )
     assert(
       FVInitState.representableLexicalSdos(entries) ==
-        List(
-          "NumericValue" -> number,
-          "SV" -> Str("kept"),
-          "TV" -> Undef,
-          "integer" -> Math(7),
-        ),
+      List(
+        "NumericValue" -> number,
+        "SV" -> Str("kept"),
+        "TV" -> Undef,
+        "integer" -> Math(7),
+      ),
     )
   }
 
@@ -404,19 +411,19 @@ class FVTyModelTest extends AnyFunSuite {
     assert(FVTyModel.mathConstraint(MathTy.Top) == "RFCMath")
     assert(
       FVTyModel.mathConstraint(MathTy.NonNeg) ==
-        "(RFCMathSign false true true)",
+      "(RFCMathSign false true true)",
     )
     assert(
       FVTyModel.mathConstraint(MathTy.NonNegInt) ==
-        "(RFCMathIntSign false true true)",
+      "(RFCMathIntSign false true true)",
     )
     assert(
       FVTyModel.fieldConstraint(NonNegIntT) ==
-        "(RFCMathIntSign false true true)",
+      "(RFCMathIntSign false true true)",
     )
     assert(
       FVTyModel.mathConstraint(MathIntTy(Set(-2, 0, 3).map(BigInt(_)))) ==
-        "(RFCMathIntSet ((-2) :: 0 :: 3 :: nil))",
+      "(RFCMathIntSet ((-2) :: 0 :: 3 :: nil))",
     )
     assert(
       FVTyModel.mathConstraint(
@@ -432,11 +439,11 @@ class FVTyModelTest extends AnyFunSuite {
     assert(FVExport.rocqTy(Type(IntT)) == "(TMathInt true true true)")
     assert(
       FVExport.rocqTy(Type(ConstructorT)) ==
-        "(TRecordFields \"Object\" (\"Call\" :: \"Construct\" :: nil))",
+      "(TRecordFields \"Object\" (\"Call\" :: \"Construct\" :: nil))",
     )
     assert(
       FVExport.rocqTy(Type(FunctionT)) ==
-        "(TRecordFields \"Object\" (\"Call\" :: nil))",
+      "(TRecordFields \"Object\" (\"Call\" :: nil))",
     )
     val heap = Heap()
     val descendant = RecordObj("BuiltinFunctionObject", MMap())
@@ -456,11 +463,11 @@ class FVTyModelTest extends AnyFunSuite {
     assert(!ConstructorT.record.contains(unrelated, heap))
     assert(
       FVExport.rocqTy(Type(EnumT("unset"))) ==
-        "(TEnumNames (\"unset\" :: nil))",
+      "(TEnumNames (\"unset\" :: nil))",
     )
     assert(
       FVExport.rocqTypeAnnotation(Type(CompT)) ==
-        "(mkTypeAnnotation \"Completion\" (Some TCompletion))",
+      "(mkTypeAnnotation \"Completion\" (Some TCompletion))",
     )
     val typedCompletion = Func(
       main = false,
@@ -477,43 +484,43 @@ class FVTyModelTest extends AnyFunSuite {
         .rocqFunc(typedCompletion)
         .startsWith(
           "mkTypedFunc false FKAbsOp \"Completion\" " +
-            "(\"completionRecord\" :: nil) " +
-            "((mkParamAnnotation " +
-            "(mkTypeAnnotation \"Completion\" (Some TCompletion)) false) " +
-            ":: nil) (mkTypeAnnotation \"Completion\" " +
-            "(Some TCompletion))",
+          "(\"completionRecord\" :: nil) " +
+          "((mkParamAnnotation " +
+          "(mkTypeAnnotation \"Completion\" (Some TCompletion)) false) " +
+          ":: nil) (mkTypeAnnotation \"Completion\" " +
+          "(Some TCompletion))",
         ),
     )
     assert(
       FVExport.rocqTy(Type(RecordT("", List("Value", "Key")))) ==
-        "(TRecordFields \"\" (\"Key\" :: \"Value\" :: nil))",
+      "(TRecordFields \"\" (\"Key\" :: \"Value\" :: nil))",
     )
     assert(
       FVExport.rocqTy(Type(NonNegIntT)) ==
-        "(TMathInt false true true)",
+      "(TMathInt false true true)",
     )
     assert(
       FVExport.rocqTy(Type(ListT(NonNegIntT))) ==
-        "(TListOf (TMathInt false true true))",
+      "(TListOf (TMathInt false true true))",
     )
     assert(
       FVExport.rocqTy(Type(IntT(Set(BigInt(3), BigInt(-2), BigInt(0))))) ==
-        "(TMathIntSet ((-2) :: 0 :: 3 :: nil))",
+      "(TMathIntSet ((-2) :: 0 :: 3 :: nil))",
     )
     assert(
       FVExport.rocqTy(Type(NegInfinityT)) ==
-        "(TInfinity true false)",
+      "(TInfinity true false)",
     )
     assert(
       FVExport.rocqTy(Type(PosInfinityT)) ==
-        "(TInfinity false true)",
+      "(TInfinity false true)",
     )
     assert(FVExport.rocqTy(Type(FalseT)) == "(TBoolSet true false)")
     assert(FVExport.rocqTy(Type(TrueT)) == "(TBoolSet false true)")
     assert(
       FVExport.rocqTy(Type(StrT("reject", "handle", "한😀"))) ==
-        "(TStrSet ((cu \"handle\") :: (cu \"reject\") :: " +
-          "(54620 :: 55357 :: 56832 :: nil) :: nil))",
+      "(TStrSet ((cu \"handle\") :: (cu \"reject\") :: " +
+      "(54620 :: 55357 :: 56832 :: nil) :: nil))",
     )
     assert(
       FVExport.rocqTy(
@@ -521,18 +528,18 @@ class FVTyModelTest extends AnyFunSuite {
           IntT(Set(BigInt(1))) || NegInfinityT || StrT("x") || FalseT,
         ),
       ) ==
-        "(TUnion ((TMathIntSet (1 :: nil)) :: (TInfinity true false) :: " +
-          "(TStrSet ((cu \"x\") :: nil)) :: (TBoolSet true false) :: nil))",
+      "(TUnion ((TMathIntSet (1 :: nil)) :: (TInfinity true false) :: " +
+      "(TStrSet ((cu \"x\") :: nil)) :: (TBoolSet true false) :: nil))",
     )
 
     val input = "\uFEFF x\u2029"
     assert(
       FVExport.rocqExpr(ETrim(EStr(input), true)) ==
-        s"(ETrim (EStr ${FVExport.cstrLit(input)}) true)",
+      s"(ETrim (EStr ${FVExport.cstrLit(input)}) true)",
     )
     assert(
       FVExport.rocqExpr(ETrim(EStr(input), false)) ==
-        s"(ETrim (EStr ${FVExport.cstrLit(input)}) false)",
+      s"(ETrim (EStr ${FVExport.cstrLit(input)}) false)",
     )
     assert(
       FVExport.rocqExpr(
@@ -569,16 +576,17 @@ class FVTyModelTest extends AnyFunSuite {
     )
     assert(
       new String(FVPayload.Magic, java.nio.charset.StandardCharsets.US_ASCII) ==
-        "ESFVIT07",
+      "ESFVIT07",
     )
     assert(FVInitState.mathToNumberHostTag == 7)
     assert(
       FVInitState.NumberMathOp.values.toList.map(FVInitState.numberMathOpTag) ==
-        List(0, 1, 2, 3),
+      List(0, 1, 2, 3),
     )
     assert(
-      FVInitState.NumberMathOp.values.toList.map(FVInitState.rocqNumberMathOp) ==
-        List("NMAdd", "NMMul", "NMDiv", "NMPow"),
+      FVInitState.NumberMathOp.values.toList
+        .map(FVInitState.rocqNumberMathOp) ==
+      List("NMAdd", "NMMul", "NMDiv", "NMPow"),
     )
     assert(FVInitState.numberMathHostTag == 8)
     assert(FVInitState.numberSinHostTag == 9)
@@ -645,11 +653,11 @@ class FVTyModelTest extends AnyFunSuite {
 
     assert(
       composite(COp.ToApproxNumber, BOp.Pow, 1.0e308, 1.5) ==
-        Number(Double.PositiveInfinity),
+      Number(Double.PositiveInfinity),
     )
     assert(
       composite(COp.ToApproxNumber, BOp.Pow, -1.0e308, 3.0) ==
-        Number(Double.NegativeInfinity),
+      Number(Double.NegativeInfinity),
     )
     assert(interp.capturedHostEntryCount == 7)
     assertThrows[InvalidBinaryOp] {
@@ -846,7 +854,9 @@ class FVTyModelTest extends AnyFunSuite {
     )
   }
 
-  test("capture Scala BigDecimal Number-to-Math results without approximation") {
+  test(
+    "capture Scala BigDecimal Number-to-Math results without approximation",
+  ) {
     import FVInitState.HostCapture
     val program = Program.from("@main def main() = { nop }")
     val interp =
@@ -859,7 +869,7 @@ class FVTyModelTest extends AnyFunSuite {
     )
     assert(
       interp.capturedHostEntries ==
-        List(HostCapture.NumberToMath(input, Math(decimal))),
+      List(HostCapture.NumberToMath(input, Math(decimal))),
     )
 
     val mixed =
@@ -878,17 +888,21 @@ class FVTyModelTest extends AnyFunSuite {
     )
     assert(
       mixed.capturedHostEntries ==
-        List(HostCapture.NumberToMath(2.0, Math(2))),
+      List(HostCapture.NumberToMath(2.0, Math(2))),
     )
   }
 
-  test("generated composite inventory stays at twelve Lt and two Equal shapes") {
+  test(
+    "generated composite inventory stays at twelve Lt and two Equal shapes",
+  ) {
     val cfg = CFGBuilder(Compiler(Extractor()))
     given esmeta.cfg.CFG = cfg
-    val rendered = cfg.program.funcs.flatMap { func =>
-      try Some(FVExport.rocqFunc(func))
-      catch case _: FVExport.Unsupported => None
-    }.mkString("\n")
+    val rendered = cfg.program.funcs
+      .flatMap { func =>
+        try Some(FVExport.rocqFunc(func))
+        catch case _: FVExport.Unsupported => None
+      }
+      .mkString("\n")
     def count(needle: String): Int =
       rendered.sliding(needle.length).count(_ == needle)
 
@@ -897,8 +911,10 @@ class FVTyModelTest extends AnyFunSuite {
     assert(count("(EBinary BLt (EConvert CToMath") == 10)
     assert(count("(EBinary BEqual (EConvert CToMath") == 2)
     assert(
-      count("(EConvert CToApproxNumber (EMathOp MSin " +
-        "((EConvert CToMath") == 1,
+      count(
+        "(EConvert CToApproxNumber (EMathOp MSin " +
+        "((EConvert CToMath",
+      ) == 1,
     )
   }
 
@@ -917,7 +933,7 @@ class FVTyModelTest extends AnyFunSuite {
     assert(result == Number(math.sin(0.5)))
     assert(
       numberInterp.capturedHostEntries ==
-        List(HostCapture.NumberSin(0.5, Number(math.sin(0.5)))),
+      List(HostCapture.NumberSin(0.5, Number(math.sin(0.5)))),
     )
     assert(
       numberInterp.sameQuery(
@@ -937,7 +953,7 @@ class FVTyModelTest extends AnyFunSuite {
     assert(mathInterp.eval(sinExpr(EMath(0))) == Number(0.0))
     assert(
       mathInterp.capturedHostEntries ==
-        List(HostCapture.MathOp(MOp.Sin, List(BigDecimal(0)), Math(0))),
+      List(HostCapture.MathOp(MOp.Sin, List(BigDecimal(0)), Math(0))),
     )
   }
 
@@ -960,7 +976,8 @@ class FVTyModelTest extends AnyFunSuite {
       }
       assert(missingError.msg.contains("terminal shape drift"))
       val wrong = target.copy(
-        body = ISeq(body.insts.updated(body.insts.length - 1, IReturn(EMath(0)))),
+        body =
+          ISeq(body.insts.updated(body.insts.length - 1, IReturn(EMath(0)))),
       )
       val wrongError = intercept[FVExport.Unsupported] {
         FVExport.normalizeForRocq(wrong)
@@ -1020,12 +1037,13 @@ class FVTyModelTest extends AnyFunSuite {
       val original = target.body.asInstanceOf[ISeq].insts
       val normalized = FVExport.normalizeForRocq(target)
       val changed = normalized.body.asInstanceOf[ISeq].insts
-      val differing = original.indices.filter(idx => original(idx) != changed(idx))
+      val differing =
+        original.indices.filter(idx => original(idx) != changed(idx))
       assert(differing.size == 1)
       val idx = differing.head
       val tmp = original(idx) match
         case IAssign(local: Local, _) => local
-        case other                   => fail(s"expected assignment, got $other")
+        case other => fail(s"expected assignment, got $other")
       assert(original(idx) == FVExport.truncOriginalAssign(tmp))
       assert(changed(idx) == FVExport.truncReplacementAssign(tmp))
       assert(original(idx + 1) == FVExport.truncTowardZero(tmp))
@@ -1035,14 +1053,14 @@ class FVTyModelTest extends AnyFunSuite {
         target.copy(main = true),
         target.copy(kind = FuncKind.NumMeth),
         target.copy(params = Nil),
-        target.copy(params =
-          target.params.map(_.copy(lhs = Name("drift"))),
+        target.copy(
+          params = target.params.map(_.copy(lhs = Name("drift"))),
         ),
-        target.copy(params =
-          target.params.map(_.copy(optional = true)),
+        target.copy(
+          params = target.params.map(_.copy(optional = true)),
         ),
-        target.copy(params =
-          target.params.map(_.copy(ty = Type(MathT))),
+        target.copy(
+          params = target.params.map(_.copy(ty = Type(MathT))),
         ),
         target.copy(retTy = Type(MathT)),
       )
@@ -1053,26 +1071,26 @@ class FVTyModelTest extends AnyFunSuite {
         assert(error.msg.contains("finite Number truncation shape drift"))
       }
 
-      val missingGuard = target.copy(body =
-        ISeq(original.updated(idx - 1, INop())),
+      val missingGuard = target.copy(
+        body = ISeq(original.updated(idx - 1, INop())),
       )
       assertThrows[FVExport.Unsupported] {
         FVExport.normalizeFiniteNumberTruncation(missingGuard)
       }
-      val mutatedProducer = target.copy(body =
-        ISeq(original.updated(0, INop())),
+      val mutatedProducer = target.copy(
+        body = ISeq(original.updated(0, INop())),
       )
       assertThrows[FVExport.Unsupported] {
         FVExport.normalizeFiniteNumberTruncation(mutatedProducer)
       }
-      val removedProducer = target.copy(body =
-        ISeq(original.drop(1)),
+      val removedProducer = target.copy(
+        body = ISeq(original.drop(1)),
       )
       assertThrows[FVExport.Unsupported] {
         FVExport.normalizeFiniteNumberTruncation(removedProducer)
       }
-      val separated = target.copy(body =
-        ISeq(original.patch(idx + 1, List(INop()), 0)),
+      val separated = target.copy(
+        body = ISeq(original.patch(idx + 1, List(INop()), 0)),
       )
       assertThrows[FVExport.Unsupported] {
         FVExport.normalizeFiniteNumberTruncation(separated)
@@ -1136,7 +1154,9 @@ class FVTyModelTest extends AnyFunSuite {
       val normalized = FVExport.normalizeForRocq(target)
       val normalizedInsts = normalized.body.asInstanceOf[ISeq].insts
       val differing =
-        originalInsts.indices.filter(idx => originalInsts(idx) != normalizedInsts(idx))
+        originalInsts.indices.filter(idx =>
+          originalInsts(idx) != normalizedInsts(idx),
+        )
       assert(differing.size == 1)
       val idx = differing.head
       assert(normalizedInsts.updated(idx, originalInsts(idx)) == originalInsts)
@@ -1172,14 +1192,14 @@ class FVTyModelTest extends AnyFunSuite {
         }
       }
 
-      val malformedPrerequisite = target.copy(body =
-        ISeq(originalInsts.updated(idx - 1, INop())),
+      val malformedPrerequisite = target.copy(
+        body = ISeq(originalInsts.updated(idx - 1, INop())),
       )
       assertThrows[FVExport.Unsupported] {
         FVExport.normalizeIntegralFloorDivision(malformedPrerequisite)
       }
-      val removedTarget = target.copy(body =
-        ISeq(originalInsts.updated(idx, INop())),
+      val removedTarget = target.copy(
+        body = ISeq(originalInsts.updated(idx, INop())),
       )
       assertThrows[FVExport.Unsupported] {
         FVExport.normalizeIntegralFloorDivision(removedTarget)
@@ -1187,11 +1207,11 @@ class FVTyModelTest extends AnyFunSuite {
 
       val originalExpr = originalInsts(idx) match
         case ILet(Name("middle"), expr) => expr
-        case IReturn(expr)               => expr
+        case IReturn(expr)              => expr
         case other                      => fail(s"unexpected target $other")
       val replacementExpr = normalizedInsts(idx) match
         case ILet(Name("middle"), expr) => expr
-        case IReturn(expr)               => expr
+        case IReturn(expr)              => expr
         case other                      => fail(s"unexpected target $other")
       val numerator =
         if (name.endsWith("prototype.reverse")) ERef(Name("len"))
@@ -1206,11 +1226,11 @@ class FVTyModelTest extends AnyFunSuite {
         else ERef(Name("elementSize"))
       assert(
         originalExpr ==
-          FVExport.integralFloorDivOriginal(numerator, denominator),
+        FVExport.integralFloorDivOriginal(numerator, denominator),
       )
       assert(
         replacementExpr ==
-          FVExport.integralFloorDivReplacement(numerator, denominator),
+        FVExport.integralFloorDivReplacement(numerator, denominator),
       )
       val nestedOriginal = IIf(
         EBool(true),
@@ -1266,14 +1286,14 @@ class FVTyModelTest extends AnyFunSuite {
     assert(FVExport.countDescKeys(normalized.body) == 0)
     assert(
       FVExport.propertyDescriptorFields ==
-        List(
-          "Value",
-          "Writable",
-          "Get",
-          "Set",
-          "Enumerable",
-          "Configurable",
-        ),
+      List(
+        "Value",
+        "Writable",
+        "Get",
+        "Set",
+        "Enumerable",
+        "Configurable",
+      ),
     )
     val copied = scala.collection.mutable.Map.empty[String, Int]
     val copyScan = new esmeta.ir.util.UnitWalker {
@@ -1295,7 +1315,7 @@ class FVTyModelTest extends AnyFunSuite {
     copyScan.walk(normalized.body)
     assert(
       copied.toMap ==
-        FVExport.propertyDescriptorFields.map(_ -> 4).toMap,
+      FVExport.propertyDescriptorFields.map(_ -> 4).toMap,
     )
     val emitted = FVExport.rocqFunc(target)
     assert(!emitted.contains("""EKeys (ERef (RVar (VLocal (LName "Desc"))))"""))
@@ -1329,7 +1349,9 @@ class FVTyModelTest extends AnyFunSuite {
     val originalSuffix = FVExport.numberRemainderOriginalSuffix
     val replacementSuffix = FVExport.numberRemainderNormalizedSuffix
 
-    assert(FVExport.countInstSuffixOccurrences(target.body, originalSuffix) == 1)
+    assert(
+      FVExport.countInstSuffixOccurrences(target.body, originalSuffix) == 1,
+    )
     assert(
       FVExport.countInstSuffixOccurrences(target.body, replacementSuffix) == 0,
     )
@@ -1345,9 +1367,14 @@ class FVTyModelTest extends AnyFunSuite {
       ),
     )
     assert(normalized == expected)
-    assert(FVExport.countInstSuffixOccurrences(normalized.body, originalSuffix) == 0)
     assert(
-      FVExport.countInstSuffixOccurrences(normalized.body, replacementSuffix) == 1,
+      FVExport.countInstSuffixOccurrences(normalized.body, originalSuffix) == 0,
+    )
+    assert(
+      FVExport.countInstSuffixOccurrences(
+        normalized.body,
+        replacementSuffix,
+      ) == 1,
     )
 
     val n = ERef(Name("n"))
@@ -1424,7 +1451,9 @@ class FVTyModelTest extends AnyFunSuite {
     })
 
     val drifted = target.copy(
-      body = ISeq(originalInsts.updated(originalInsts.length - 1, IReturn(EMath(0)))),
+      body = ISeq(
+        originalInsts.updated(originalInsts.length - 1, IReturn(EMath(0))),
+      ),
     )
     val error = intercept[FVExport.Unsupported] {
       FVExport.normalizeForRocq(drifted)
@@ -1485,16 +1514,20 @@ class FVTyModelTest extends AnyFunSuite {
       case other       => fail(s"expected top-level ISeq, got $other")
 
     val exactPairs =
-      originalInsts.sliding(2).zipWithIndex.collect {
-        case (
-              List(
-                ILet(Name("mod"), expr),
-                branch @ IIf(cond, _, _, _),
-              ),
-              idx,
-            ) if expr == expectedModulo && cond == expectedThreshold =>
-          idx -> branch
-      }.toList
+      originalInsts
+        .sliding(2)
+        .zipWithIndex
+        .collect {
+          case (
+                List(
+                  ILet(Name("mod"), expr),
+                  branch @ IIf(cond, _, _, _),
+                ),
+                idx,
+              ) if expr == expectedModulo && cond == expectedThreshold =>
+            idx -> branch
+        }
+        .toList
     assert(exactPairs.size == 1)
     val (pairIndex, originalBranch) = exactPairs.head
 
@@ -1502,13 +1535,15 @@ class FVTyModelTest extends AnyFunSuite {
       case (
             ICall(temp, EClo("ToIndex", Nil), List(arg)),
             idx,
-          ) if arg == bits => idx -> temp
+          ) if arg == bits =>
+        idx -> temp
     }
     val toBigIntCalls = originalInsts.zipWithIndex.collect {
       case (
             ICall(temp, EClo("ToBigInt", Nil), List(arg)),
             idx,
-          ) if arg == bigint => idx -> temp
+          ) if arg == bigint =>
+        idx -> temp
     }
     assert(toIndexCalls.size == 1)
     assert(toBigIntCalls.size == 1)
@@ -1569,7 +1604,8 @@ class FVTyModelTest extends AnyFunSuite {
     assert(targets.size == 1)
     val target = targets.head
     val originalInsts = target.body.asInstanceOf[ISeq].insts
-    val original = FVExport.timeClipLimitCondition(FVExport.timeClipOriginalLimit)
+    val original =
+      FVExport.timeClipLimitCondition(FVExport.timeClipOriginalLimit)
     val replacement = FVExport.timeClipOutOfRangeCondition
 
     assert(
@@ -1581,7 +1617,7 @@ class FVTyModelTest extends AnyFunSuite {
     )
     assert(
       FVExport.timeClipIntegralLimit ==
-        EMath(BigDecimal("8640000000000000")),
+      EMath(BigDecimal("8640000000000000")),
     )
     assert(FVExport.countExprOccurrences(target.body, original) == 1)
     val normalized = FVExport.normalizeForRocq(target)
@@ -1667,7 +1703,9 @@ class FVTyModelTest extends AnyFunSuite {
     val normalizedInsts = normalized.body.asInstanceOf[ISeq].insts
     assert(normalizedInsts.endsWith(replacement))
     assert(FVExport.countInstSuffixOccurrences(normalized.body, original) == 0)
-    assert(FVExport.countInstSuffixOccurrences(normalized.body, replacement) == 1)
+    assert(
+      FVExport.countInstSuffixOccurrences(normalized.body, replacement) == 1,
+    )
     assert(normalized.usefulYets.isEmpty)
     assert(!FVExport.rocqFunc(target).contains("EYet"))
 
@@ -1760,7 +1798,9 @@ class FVTyModelTest extends AnyFunSuite {
     ) assertThrows[FVExport.Unsupported](FVExport.normalizeToUint8Clamp(drift))
   }
 
-  test("Spec scan observes exporter normalization but keeps random unsupported") {
+  test(
+    "Spec scan observes exporter normalization but keeps random unsupported",
+  ) {
     val cfg = CFGBuilder(Compiler(Extractor()))
     given esmeta.cfg.CFG = cfg
 

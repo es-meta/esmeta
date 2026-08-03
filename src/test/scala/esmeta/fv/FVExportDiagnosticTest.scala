@@ -29,9 +29,11 @@ class FVExportDiagnosticTest extends AnyFunSuite {
 
   test("annotation fallback catches only an explicit unsupported type") {
     assert(
-      FVExport.unsupportedToNone[String](
-        throw FVExport.Unsupported("known boundary"),
-      ).isEmpty,
+      FVExport
+        .unsupportedToNone[String](
+          throw FVExport.Unsupported("known boundary"),
+        )
+        .isEmpty,
     )
 
     val defect = new IllegalStateException("unexpected exporter defect")
