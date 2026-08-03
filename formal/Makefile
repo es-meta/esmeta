@@ -210,6 +210,51 @@ direct-generated-shard-smoke: direct-manifest-ready
 	  $(DIRECT_REPRESENTATIVE_OBJECT)
 	@echo "compiled representative generated direct shard (opt-in)"
 
+# Whole generated direct backend, facade included.  Unlike the smoke target
+# this compiles every shard, so it is the gate the direct Test262 runner
+# depends on.
+.PHONY: direct-facade
+direct-facade: direct-manifest-ready $(DIRECT_FACADE_OBJECT)
+	@echo "compiled the complete generated direct backend (opt-in)"
+
+# Differential Test262 over both backends.  The payload set comes from the
+# generic pipeline, so the two runs share their inputs exactly and any
+# disagreement is attributable to the backend under test.
+DirectITreeCore.vo: DirectITreeCore.v ITreeCore.vo DirectITreeExec.vo \
+    $(DIRECT_FACADE_OBJECT)
+	$(COQC) $(COQFLAGS) $<
+
+DirectTest262.vo: DirectTest262.v DirectITreeCore.vo ITreeCore.vo \
+    validation/Tests.vo
+	$(COQC) $(COQFLAGS) $<
+
+build/direct-t262/.extracted: DirectTest262Extract.v DirectTest262.vo \
+    ExtractionConfig.vo
+	mkdir -p build/direct-t262
+	find build/direct-t262 -maxdepth 1 -type f -delete
+	$(COQC) $(COQFLAGS) DirectTest262Extract.v
+	touch $@
+
+build/direct-t262/.compiled: build/direct-t262/.extracted build-direct-t262.sh
+	./build-direct-t262.sh
+	touch $@
+
+fvitree-direct-t262: build/direct-t262/.compiled direct_t262_driver.ml
+	cp direct_t262_driver.ml build/direct-t262/
+	cd build/direct-t262 && \
+	  $(OCAMLFIND_CORE_ENV) ocamlfind ocamlc \
+	    -package $(OCAML_EXTRACT_PACKAGES) $(OCAML_GENERATED_FLAGS) \
+	    -I . -c direct_t262_driver.ml && \
+	  cmos=$$(sed 's/\.ml/.cmo/g' .ml-order) && \
+	  $(OCAMLFIND_CORE_ENV) ocamlfind ocamlc \
+	    -package $(OCAML_EXTRACT_PACKAGES) -linkpkg \
+	    $(OCAML_GENERATED_FLAGS) -I . $$cmos direct_t262_driver.cmo \
+	    -o ../../$@
+
+.PHONY: direct-t262
+direct-t262: fvitree-direct-t262
+	./fvitree-direct-t262
+
 # Small, specification-independent regression for the actual ITree call
 # machine.  It covers ordinary calls, print order, and nonlocal ECont
 # restore before the multi-megabyte generated Test262 specification is

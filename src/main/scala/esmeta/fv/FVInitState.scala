@@ -73,12 +73,21 @@ object FVInitState {
     manifest: String,
   )
 
+  /** Direct output covers the whole function domain minus a declared omission
+    * set. `omittedFunIds` is that declaration: a function may be absent only
+    * if it is named there, so nothing can disappear silently, and a name may
+    * not be both emitted and omitted. Omission matches what the generic
+    * exporter already does — the model simply has no such function, and
+    * calling one that is missing is UB — and `DirectITreeExec` needs no
+    * change, because the map it is handed is the executable map.
+    */
   private[fv] def validateDirectDomains(
     expectedFunIds: List[String],
     ordinaryFunIds: List[String],
     continuationFunIds: List[String],
     hasMain: Boolean,
     mainEntryCount: Int,
+    omittedFunIds: List[String] = Nil,
   ): Unit = {
     def duplicateKeys(label: String, keys: List[String]): Unit = {
       val duplicates = keys
@@ -93,21 +102,26 @@ object FVInitState {
           s"duplicate direct $label keys: ${duplicates.mkString(", ")}",
         )
     }
+    val omitted = omittedFunIds.toSet
     def requireDomain(label: String, actual: List[String]): Unit = {
       duplicateKeys(label, actual)
       val expected = expectedFunIds.toSet
       val got = actual.toSet
-      if (got != expected) {
-        val missing = (expected -- got).toList.sorted
-        val extra = (got -- expected).toList.sorted
+      val claimed = got | omitted
+      if (claimed != expected || (got & omitted).nonEmpty) {
+        val missing = (expected -- claimed).toList.sorted
+        val extra = (claimed -- expected).toList.sorted
+        val both = (got & omitted).toList.sorted
         throw new IllegalStateException(
           s"direct $label domain mismatch: " +
-          s"missing=${missing.mkString(",")}, extra=${extra.mkString(",")}",
+          s"missing=${missing.mkString(",")}, extra=${extra.mkString(",")}, " +
+          s"emitted-and-omitted=${both.mkString(",")}",
         )
       }
     }
 
     duplicateKeys("expected", expectedFunIds)
+    duplicateKeys("omitted", omittedFunIds)
     requireDomain("ordinary", ordinaryFunIds)
     requireDomain("continuation", continuationFunIds)
     val expectedEntries = if (hasMain) 1 else 0
@@ -125,6 +139,7 @@ object FVInitState {
     functions: List[DirectFunctionEmission],
     chunkSize: Int = 32,
     expectedFunIds: List[String] = Nil,
+    omittedFunIds: List[String] = Nil,
   ): DirectSplitArtifacts = {
     require(chunkSize > 0, "direct shard size must be positive")
     val expectedDomain =
@@ -135,6 +150,7 @@ object FVInitState {
       functions.map(_.funId),
       functions.exists(_.isMain),
       functions.count(_.mainEntry.nonEmpty),
+      omittedFunIds,
     )
 
     val header =
@@ -166,12 +182,19 @@ Definition direct_spec_fnames : list string :=
         if (!function.source.endsWith("\n")) out += '\n'
         out += '\n'
       }
+      // The entry lists mention [mn] and the CRIS instance, so they need a
+      // section that binds both.  Closing it turns each chunk into a function
+      // of [mn], which is why the facade applies it (see below).
+      out ++= s"Section direct_entries_$id.\n"
+      out ++= "Context `{!crisG Γ Σ α β τ _S _I}.\n"
+      out ++= "Variable mn : string.\n\n"
       out ++= s"Definition direct_ordinary_entries_chunk_$id :=\n  "
       out ++= coqList(chunk.map(_.ordinaryEntry))
       out ++= ".\n\n"
       out ++= s"Definition direct_continuation_entries_chunk_$id :=\n  "
       out ++= coqList(chunk.map(_.continuationEntry))
       out ++= ".\n"
+      out ++= s"End direct_entries_$id.\n"
       s"DirectFuncs_$id.v" -> out.toString
     }
 
@@ -182,6 +205,11 @@ Definition direct_spec_fnames : list string :=
         .map(index => s"DirectFuncs_${suffix(index)}")
         .mkString(" ")
       facade ++= ".\n\n"
+    }
+    facade ++= "Section direct_facade.\n"
+    facade ++= "Context `{!crisG Γ Σ α β τ _S _I}.\n"
+    facade ++= "Variable mn : string.\n\n"
+    if (chunks.nonEmpty) {
       for (index <- chunks.indices.reverse) {
         val id = suffix(index)
         val ordinaryTail =
@@ -192,12 +220,17 @@ Definition direct_spec_fnames : list string :=
           if (index + 1 < chunks.size)
             s"direct_continuation_entries_tail_${suffix(index + 1)}"
           else "nil"
+        // [mn] is applied because the chunk comes from another file, where its
+        // own section already closed over it; the tails are local to this
+        // section, so they stay unapplied.  The append is scoped explicitly:
+        // the header opens [string_scope], where `++` is string concatenation.
         facade ++=
           s"Definition direct_ordinary_entries_tail_$id :=\n" +
-          s"  direct_ordinary_entries_chunk_$id ++ $ordinaryTail.\n"
+          s"  (direct_ordinary_entries_chunk_$id mn ++ $ordinaryTail)%list.\n"
         facade ++=
           s"Definition direct_continuation_entries_tail_$id :=\n" +
-          s"  direct_continuation_entries_chunk_$id ++ $continuationTail.\n"
+          s"  (direct_continuation_entries_chunk_$id mn ++ " +
+          s"$continuationTail)%list.\n"
       }
     }
     val ordinaryEntries =
@@ -217,6 +250,7 @@ Definition direct_spec_fnames : list string :=
         facade ++= "Definition direct_ir_fnsems : fnsemmap :=\n" +
         "  direct_ir_funid_fnsems.\n"
       case _ => throw new IllegalStateException("multiple direct main entries")
+    facade ++= "End direct_facade.\n"
 
     val files = shardFiles ++ List(
       "DirectFuncs.v" -> facade.toString,
@@ -1782,6 +1816,7 @@ Definition direct_spec_fnames : list string :=
       val funcDefs = ListBuffer[(String, String)]()
       val exportedFuncNames = scala.collection.mutable.Set[String]()
       val directEmissions = ListBuffer[DirectFunctionEmission]()
+      val directOmitted = ListBuffer[String]()
       var skipped = 0
       val skipReasons = scala.collection.mutable.Map[String, Int]()
       val fnamesTerm = "direct_spec_fnames"
@@ -1806,10 +1841,12 @@ Definition direct_spec_fnames : list string :=
           exportedFuncNames += f.name
         } catch {
           case Unsupported(msg) =>
-            if (directOutput)
-              throw new IllegalStateException(
-                s"direct output requires every function; ${f.name}: $msg",
-              )
+            // Direct output used to require every function.  It now omits the
+            // same functions the generic exporter omits, declaring them so
+            // validateDirectDomains can still account for the whole domain.
+            // A call to an omitted function is UB in the model, which is
+            // honest: it is a function we do not have.
+            if (directOutput) directOmitted += f.name
             skipped += 1
             val k = msg.takeWhile(_ != ':')
             skipReasons(k) = skipReasons.getOrElse(k, 0) + 1
@@ -1818,6 +1855,11 @@ Definition direct_spec_fnames : list string :=
       println(
         s"[fv] spec functions: ${funcDefs.size} exported, $skipped omitted",
       )
+      if (directOutput && directOmitted.nonEmpty)
+        println(
+          s"[fv] direct omitted ${directOmitted.size}: " +
+          directOmitted.mkString(", "),
+        )
       val mainF = cfg.program.funcs.filter(_.main)
       println(
         s"[fv] main function(s): " + mainF
@@ -2026,6 +2068,7 @@ Local Open Scope Z_scope.
         val artifacts = renderDirectSplitArtifacts(
           directEmissions.toList,
           expectedFunIds = cfg.program.funcs.map(_.name),
+          omittedFunIds = directOmitted.toList,
         )
         val (changed, removed) =
           dumpDirectSpecFiles(directSpecDir, artifacts.files)
