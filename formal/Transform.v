@@ -55,7 +55,7 @@ Fixpoint temp_fresh_expr (k : nat) (e : expr) {struct e} : bool :=
   | ERef r => temp_fresh_ref k r
   | EUnary _ e1 => temp_fresh_expr k e1
   | EBinary _ e1 e2 => andb (temp_fresh_expr k e1) (temp_fresh_expr k e2)
-  | EClo _ _ => true    (* captured lists name only [LName]s *)
+  | EClo _ _ | ECont _ => true
   | EList es =>
       (fix go (l : list expr) : bool :=
          match l with
@@ -89,7 +89,7 @@ Fixpoint temp_fresh_expr (k : nat) (e : expr) {struct e} : bool :=
       andb (temp_fresh_expr k e1)
         (match r with Some e2 => temp_fresh_expr k e2 | None => true end)
   | EOptField recv _ => temp_fresh_expr k recv
-  | EVariadic _ es =>
+  | EVariadic _ es | EMathOp _ es =>
       (fix go (l : list expr) : bool :=
          match l with
          | nil => true
@@ -97,6 +97,14 @@ Fixpoint temp_fresh_expr (k : nat) (e : expr) {struct e} : bool :=
          end) es
   | EContains lst e1 =>
       andb (temp_fresh_expr k lst) (temp_fresh_expr k e1)
+  | ETrim e1 _ => temp_fresh_expr k e1
+  | ESyntactic _ _ _ _ children _ _ =>
+      (fix go (l : list (option expr)) : bool :=
+         match l with
+         | nil => true
+         | None :: tl => go tl
+         | Some e1 :: tl => andb (temp_fresh_expr k e1) (go tl)
+         end) children
   | EGrammarSymbol _ _ => true
   | EInstanceOf e1 t => andb (temp_fresh_expr k e1) (temp_fresh_expr k t)
   | ESubstring e1 f t =>
@@ -178,7 +186,7 @@ Fixpoint temp_bound_expr (e : expr) {struct e} : nat :=
   | ERef r => temp_bound_ref r
   | EUnary _ e1 => temp_bound_expr e1
   | EBinary _ e1 e2 => Nat.max (temp_bound_expr e1) (temp_bound_expr e2)
-  | EClo _ _ => 0
+  | EClo _ _ | ECont _ => 0
   | EList es =>
       (fix go (l : list expr) : nat :=
          match l with
@@ -212,7 +220,7 @@ Fixpoint temp_bound_expr (e : expr) {struct e} : nat :=
       Nat.max (temp_bound_expr e1)
         (match r with Some e2 => temp_bound_expr e2 | None => 0 end)
   | EOptField recv _ => temp_bound_expr recv
-  | EVariadic _ es =>
+  | EVariadic _ es | EMathOp _ es =>
       (fix go (l : list expr) : nat :=
          match l with
          | nil => 0
@@ -220,6 +228,14 @@ Fixpoint temp_bound_expr (e : expr) {struct e} : nat :=
          end) es
   | EContains lst e1 =>
       Nat.max (temp_bound_expr lst) (temp_bound_expr e1)
+  | ETrim e1 _ => temp_bound_expr e1
+  | ESyntactic _ _ _ _ children _ _ =>
+      (fix go (l : list (option expr)) : nat :=
+         match l with
+         | nil => 0
+         | None :: tl => go tl
+         | Some e1 :: tl => Nat.max (temp_bound_expr e1) (go tl)
+         end) children
   | EGrammarSymbol _ _ => 0
   | EInstanceOf e1 t => Nat.max (temp_bound_expr e1) (temp_bound_expr t)
   | ESubstring e1 f t =>
@@ -301,8 +317,7 @@ Fixpoint t1_inst (k : nat) (i : inst) {struct i} : inst :=
   end.
 
 Definition t1_func (f : func) : func :=
-  mkFunc (f_main f) (f_name f) (f_params f)
-    (t1_inst (fresh_temp (f_body f)) (f_body f)).
+  func_with_body f (t1_inst (fresh_temp (f_body f)) (f_body f)).
 
 Definition t1_prog (p : prog) : prog :=
   mkProg (List.map t1_func (p_funcs p)).
@@ -359,9 +374,19 @@ Proof.
       induction es as [|e1 tl IH]; simpl in *; [reflexivity|].
       apply andb_true_intro; split;
         [apply temp_fresh_expr_bound; lia | apply IH; lia].
+    + (* EMathOp: argument list *)
+      induction args as [|e1 tl IH]; simpl in *; [reflexivity|].
+      apply andb_true_intro; split;
+        [apply temp_fresh_expr_bound; lia | apply IH; lia].
     + (* EContains: list and element *)
       apply andb_true_intro; split;
         [apply temp_fresh_expr_bound | apply temp_fresh_expr_bound]; lia.
+    + (* ESyntactic: optional child expressions *)
+      induction children as [|oe tl IH]; simpl in *; [reflexivity|].
+      destruct oe as [e1|]; simpl in *.
+      * apply andb_true_intro; split;
+          [apply temp_fresh_expr_bound; lia | apply IH; lia].
+      * apply IH; lia.
     + (* EInstanceOf: value and grammar symbol *)
       apply andb_true_intro; split;
         [apply temp_fresh_expr_bound | apply temp_fresh_expr_bound]; lia.
@@ -480,8 +505,7 @@ Fixpoint t2_inst (k : nat) (i : inst) {struct i} : inst :=
   end.
 
 Definition t2_func (f : func) : func :=
-  mkFunc (f_main f) (f_name f) (f_params f)
-    (t2_inst (fresh_temp (f_body f)) (f_body f)).
+  func_with_body f (t2_inst (fresh_temp (f_body f)) (f_body f)).
 
 Definition t2_prog (p : prog) : prog :=
   mkProg (List.map t2_func (p_funcs p)).
@@ -490,7 +514,8 @@ Definition t2_prog (p : prog) : prog :=
 
 Fixpoint opt_free_expr (e : expr) {struct e} : bool :=
   match e with
-  | EMath _ | EBool _ | EStr _ | EUndef | ENull | EEnum _ | EClo _ _ => true
+  | EMath _ | EBool _ | EStr _ | EUndef | ENull | EEnum _
+  | EClo _ _ | ECont _ => true
   | ERef r => opt_free_ref r
   | EUnary _ e1 => opt_free_expr e1
   | EBinary _ e1 e2 => andb (opt_free_expr e1) (opt_free_expr e2)
@@ -525,13 +550,21 @@ Fixpoint opt_free_expr (e : expr) {struct e} : bool :=
   | EToStr e1 r =>
       andb (opt_free_expr e1)
         (match r with Some e2 => opt_free_expr e2 | None => true end)
-  | EVariadic _ es =>
+  | EVariadic _ es | EMathOp _ es =>
       (fix go (l : list expr) : bool :=
          match l with
          | nil => true
          | e1 :: tl => andb (opt_free_expr e1) (go tl)
          end) es
   | EContains lst e1 => andb (opt_free_expr lst) (opt_free_expr e1)
+  | ETrim e1 _ => opt_free_expr e1
+  | ESyntactic _ _ _ _ children _ _ =>
+      (fix go (l : list (option expr)) : bool :=
+         match l with
+         | nil => true
+         | None :: tl => go tl
+         | Some e1 :: tl => andb (opt_free_expr e1) (go tl)
+         end) children
   | EGrammarSymbol _ _ => true
   | EInstanceOf e1 t => andb (opt_free_expr e1) (opt_free_expr t)
   | ESubstring e1 f t =>

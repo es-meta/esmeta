@@ -90,13 +90,48 @@ sealed trait Obj extends StateElem {
     case m: MapObj if intSorted =>
       (for {
         case (Str(s), _) <- m.map.toVector
-        d = ESValueParser.str2number(s).double
-        if toStringHelper(d) == s
-        i = d.toLong // should handle unsigned integer
-        if d == i
+        classified = Obj.classifyIntegerKey(s)
+        i <- classified.index
       } yield (s, i)).sortBy(_._2).map { case (s, _) => Str(s) }
     case m: MapObj => m.map.keys.toVector
     case _         => throw InvalidObjOp(this, "keys")
+}
+
+object Obj {
+
+  /** All host-dependent intermediate values used by integer-sorted map keys.
+    *
+    * The outer option records whether the `Double.toLong` step was reached
+    * after the canonical-string check. The inner option is the exact JVM
+    * contract: `Some(d.toLong)` iff Scala's `d == d.toLong`, including its
+    * saturation and Double/Long widening behavior at the Long boundaries.
+    */
+  case class IntegerKeyClassification(
+    number: Number,
+    rendered: String,
+    checkedLong: Option[Option[Long]],
+  ) {
+    def index: Option[Long] = checkedLong.flatten
+  }
+
+  /** Convert a Double using exactly the check previously embedded in
+    * `Obj.keys`; do not replace this with range or finiteness predicates.
+    */
+  def doubleToLongChecked(d: Double): Option[Long] = {
+    val i = d.toLong
+    Option.when(d == i)(i)
+  }
+
+  /** Classify a String key while exposing the exact intermediate host
+    * computations to consumers such as the formal-validation exporter.
+    */
+  def classifyIntegerKey(s: String): IntegerKeyClassification = {
+    val number = ESValueParser.str2number(s)
+    val rendered = toStringHelper(number.double)
+    val checked =
+      Option.when(rendered == s)(doubleToLongChecked(number.double))
+    IntegerKeyClassification(number, rendered, checked)
+  }
 }
 
 /** record objects */

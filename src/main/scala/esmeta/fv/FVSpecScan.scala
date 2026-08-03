@@ -1,5 +1,6 @@
 package esmeta.fv
 
+import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.extractor.Extractor
@@ -7,32 +8,42 @@ import esmeta.ir.*
 import scala.collection.mutable.{Map => MMap}
 import scala.util.{Failure, Success, Try}
 
-/** Scan the compiled spec IR and report which IR constructors block
-  * translation into the Rocq model, ordered by how many functions each
-  * blocks.
+/** Scan the compiled spec IR and report which IR constructors block translation
+  * into the Rocq model, ordered by how many functions each blocks.
   *
   * SOURCE OF TRUTH. Every rejection below is decided by calling the real
-  * exporter (`FVExport.rocqExpr` / `rocqTy` / `rocqFunc`), never by a
-  * parallel list of "supported" constructors. An earlier version kept its
-  * own whitelist and drifted badly: it reported 2909/2951 translatable
-  * while `rocqFunc` actually rejected 1287 functions, because it never
-  * checked `rocqTy`'s type whitelist or optional parameters. The final
-  * cross-check at the end of `blockers` makes that class of drift
-  * impossible to hide — a function with no reported blocker that the
-  * exporter still refuses is reported as `UNCAUGHT`.
+  * exporter (`FVExport.rocqExpr` / `rocqTy` / `rocqFunc`), never by a parallel
+  * list of "supported" constructors. An earlier version kept its own whitelist
+  * and drifted badly: it reported 2909/2951 translatable while `rocqFunc`
+  * actually rejected 1287 functions, because it never checked `rocqTy`'s type
+  * whitelist or optional parameters. The final cross-check at the end of
+  * `blockers` makes that class of drift impossible to hide — a function with no
+  * reported blocker that the exporter still refuses is reported as `UNCAUGHT`.
   *
-  * Input: the spec CFG, built here (~30 s) rather than read from a dump,
-  * so parameters and types are visible and nothing can be stale.
+  * Input: the spec CFG, built here (~30 s) rather than read from a dump, so
+  * parameters and types are visible and nothing can be stale.
   *
-  * Usage:
-  *   sbt "runMain esmeta.fv.FVSpecScan"                 # whole spec
-  *   sbt "runMain esmeta.fv.FVSpecScan OrdinaryGet ..." # named closure
+  * Usage: sbt "runMain esmeta.fv.FVSpecScan" # whole spec sbt "runMain
+  * esmeta.fv.FVSpecScan OrdinaryGet ..." # named closure
   */
 object FVSpecScan {
 
   /** collect every reason the exporter would refuse this function */
-  def blockers(f: Func): Set[String] = {
+  def blockers(f: Func)(using CFG): Set[String] = {
     val found = scala.collection.mutable.Set[String]()
+
+    // Scan the same function body rocqFunc translates.  Function-specific,
+    // shape-checked normalizations are part of the exporter contract; walking
+    // the pre-normalized body reported their deliberately removed constructs
+    // as blockers and then mislabeled the successful export as PHANTOM.
+    val scanned = Try(FVExport.normalizeForRocq(f)) match
+      case Success(normalized) => normalized
+      case Failure(FVExport.Unsupported(msg)) =>
+        found += s"UNCAUGHT:$msg"
+        f
+      case Failure(err) =>
+        found += s"UNCAUGHT:${err.getClass.getSimpleName}"
+        f
 
     val walker = new esmeta.ir.util.UnitWalker {
       override def walk(e: Expr): Unit = {
@@ -53,7 +64,7 @@ object FVSpecScan {
         super.walk(e)
       }
     }
-    walker.walk(f.body)
+    walker.walk(scanned.body)
 
     // Cross-check in BOTH directions, so neither kind of drift can hide:
     // UNCAUGHT = the exporter refuses a function this scan called clean;
@@ -69,9 +80,10 @@ object FVSpecScan {
     found.toSet
   }
 
-  /** normalise an exporter message into a stable histogram key.  The
-    * message always names the offending node, so a rejection nested deep
-    * inside a probed parent is still attributed correctly. */
+  /** normalise an exporter message into a stable histogram key. The message
+    * always names the offending node, so a rejection nested deep inside a
+    * probed parent is still attributed correctly.
+    */
   private def reasonOf(msg: String): String =
     if (msg.startsWith("expr: ")) s"expr:${msg.drop(6)}"
     else if (msg.startsWith("ty: ")) s"ty:${msg.drop(4)}"
@@ -83,6 +95,7 @@ object FVSpecScan {
   def main(args: Array[String]): Unit = {
     println("[fv] extracting spec and building CFG (this takes a while)")
     val cfg = CFGBuilder(Compiler(Extractor()))
+    given CFG = cfg
     val funcs = cfg.program.funcs
     println(s"[fv] parsed ${funcs.size} spec functions")
 
@@ -118,7 +131,9 @@ object FVSpecScan {
       println(f"    +$c%-34s => $ok%5d / ${selected.size}%d functions")
     }
     if (clean.nonEmpty)
-      println("[fv] examples already translatable: " +
-        clean.take(8).map(_._1).mkString(", "))
+      println(
+        "[fv] examples already translatable: " +
+        clean.take(8).map(_._1).mkString(", "),
+      )
   }
 }

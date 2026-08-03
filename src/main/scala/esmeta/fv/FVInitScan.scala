@@ -1,5 +1,6 @@
 package esmeta.fv
 
+import esmeta.cfg.CFG
 import esmeta.cfgBuilder.CFGBuilder
 import esmeta.compiler.Compiler
 import esmeta.es.*
@@ -7,8 +8,8 @@ import esmeta.extractor.Extractor
 import esmeta.state.*
 
 /** Measure the initial state a Test262 run starts from, to decide whether
-  * exporting it into Rocq is feasible at all (stage G4 of the Test262
-  * goal explicitly says to stop and ask if it is too large to compile).
+  * exporting it into Rocq is feasible at all (stage G4 of the Test262 goal
+  * explicitly says to stop and ask if it is too large to compile).
   *
   * Reports object counts by kind, total field count, and the shape of the
   * cached AST for a trivial script. Measurement only — writes nothing.
@@ -30,6 +31,7 @@ object FVInitScan {
     val source = if (args.nonEmpty) args(0) else "var x = 1;"
     println("[fv] extracting spec and building CFG (this takes a while)")
     val cfg = CFGBuilder(Compiler(Extractor()))
+    given CFG = cfg
     println(s"[fv] spec functions in CFG: ${cfg.funcs.size}")
 
     val st = Initialize(cfg).from(source)
@@ -64,9 +66,12 @@ object FVInitScan {
       }
     }
     println(s"[fv] spec funcs translatable: $okFuncs, rejected: $badFuncs")
-    println(f"[fv] Rocq term size for the translatable ones: " +
-      f"${chars / 1024.0 / 1024.0}%.2f MiB")
-    for ((k, n) <- reasons.toList.sortBy(-_._2).take(25)) println(f"[fv]   $n%5d  $k")
+    println(
+      f"[fv] Rocq term size for the translatable ones: " +
+      f"${chars / 1024.0 / 1024.0}%.2f MiB",
+    )
+    for ((k, n) <- reasons.toList.sortBy(-_._2).take(25))
+      println(f"[fv]   $n%5d  $k")
     println(s"[fv] distinct rejection reasons: ${reasons.size}")
 
     // census of every type test in the spec (not just first-blocker)
@@ -83,7 +88,9 @@ object FVInitScan {
     }
     for (f <- cfg.program.funcs) w.walk(f.body)
     val tot = tyHist.values.sum
-    println(s"[fv] ETypeCheck occurrences: $tot over ${tyHist.size} distinct types")
+    println(
+      s"[fv] ETypeCheck occurrences: $tot over ${tyHist.size} distinct types",
+    )
     for ((k, n) <- tyHist.toList.sortBy(-_._2).take(20))
       println(f"[fv]   $n%5d  $k")
 
@@ -91,7 +98,8 @@ object FVInitScan {
     var named, dyn = 0
     val valKinds = scala.collection.mutable.Map[String, Int]()
     def note(v: Value): Unit =
-      valKinds(v.getClass.getSimpleName) = valKinds.getOrElse(v.getClass.getSimpleName, 0) + 1
+      valKinds(v.getClass.getSimpleName) =
+        valKinds.getOrElse(v.getClass.getSimpleName, 0) + 1
     for ((a, o) <- st.heap.map) {
       a match
         case _: NamedAddr   => named += 1
@@ -99,30 +107,47 @@ object FVInitScan {
       o match
         case r: RecordObj => r.map.values.foreach(note)
         case l: ListObj   => l.values.foreach(note)
-        case m: MapObj    => m.map.foreach { (k, v) => note(k); note(v) }
-        case _            => ()
+        case m: MapObj =>
+          m.map.foreach { (k, v) =>
+            note(k); note(v)
+          }
+        case _ => ()
     }
-    println(s"[fv] initial-heap addresses: named=$named dynamic=$dyn " +
-      s"heap.size counter=${st.heap.size}")
-    println(s"[fv] value kinds stored in the initial heap: " +
-      valKinds.toList.sortBy(-_._2).map((k, n) => s"$k=$n").mkString(", "))
+    println(
+      s"[fv] initial-heap addresses: named=$named dynamic=$dyn " +
+      s"heap.size counter=${st.heap.size}",
+    )
+    println(
+      s"[fv] value kinds stored in the initial heap: " +
+      valKinds.toList.sortBy(-_._2).map((k, n) => s"$k=$n").mkString(", "),
+    )
     val recTys = scala.collection.mutable.Set[String]()
     for (o <- st.heap.map.values) o match
       case r: RecordObj => recTys += r.tname
       case _            => ()
     println(s"[fv] distinct record tnames in the initial heap: ${recTys.size}")
-    println(s"[fv] globals: " + st.globals.keys.map(_.name).toList.sorted.mkString(", "))
+    println(
+      s"[fv] globals: " + st.globals.keys
+        .map(_.name)
+        .toList
+        .sorted
+        .mkString(", "),
+    )
 
     // exact field-map refinements ESMeta uses for the completion tests
     val tm = esmeta.util.ManualInfo.tyModel
     for (t <- List("AbruptCompletion", "NormalCompletion", "CompletionRecord"))
       println(s"[fv] ownFieldsOf($t) = ${tm.ownFieldsOf(t)}")
     for (r <- List("AbruptCompletion", "NormalCompletion"))
-      println(s"[fv] diffOf(CompletionRecord, $r) = " +
-        tm.diffOf(("CompletionRecord", r)))
+      println(
+        s"[fv] diffOf(CompletionRecord, $r) = " +
+        tm.diffOf(("CompletionRecord", r)),
+      )
     println(s"[fv] ESValueT = ${esmeta.ty.ESValueT}")
-    println(s"[fv] lcaOf(CompletionRecord, AbruptCompletion) = " +
-      tm.lcaOf(("CompletionRecord", "AbruptCompletion")))
+    println(
+      s"[fv] lcaOf(CompletionRecord, AbruptCompletion) = " +
+      tm.lcaOf(("CompletionRecord", "AbruptCompletion")),
+    )
 
     // which record type names does the spec actually ALLOCATE?
     val recHist = scala.collection.mutable.Map[String, Int]()
@@ -145,18 +170,22 @@ object FVInitScan {
       case r: RecordObj =>
         heapNames(r.tname) = heapNames.getOrElse(r.tname, 0) + 1
       case _ => ()
-    println("[fv] initial-heap record tnames containing Completion: " +
-      heapNames.filter(_._1.contains("Completion")).mkString(", "))
+    println(
+      "[fv] initial-heap record tnames containing Completion: " +
+      heapNames.filter(_._1.contains("Completion")).mkString(", "),
+    )
 
     // cached AST for the given source
     st.cachedAst match
       case Some(ast) =>
         val (n, s, l) = astStats(ast)
-        println(s"[fv] cached AST for ${'"'}$source${'"'}: " +
-          s"$n nodes ($s syntactic, $l lexical)")
+        println(
+          s"[fv] cached AST for ${'"'}$source${'"'}: " +
+          s"$n nodes ($s syntactic, $l lexical)",
+        )
         // which lexical SDOs are actually answerable on those leaves
         def leaves(a: Ast): List[Lexical] = a match
-          case lex: Lexical  => List(lex)
+          case lex: Lexical   => List(lex)
           case syn: Syntactic => syn.children.flatten.toList.flatMap(leaves)
         val methods =
           List("StringValue", "NumericValue", "MV", "SV", "TV", "TRV")
@@ -166,8 +195,10 @@ object FVInitScan {
               .optional(esmeta.interpreter.Interpreter.eval(lex, m))
               .map(v => s"$m=$v")
           }
-          println(s"[fv]   |${lex.name}|(${lex.str}) -> " +
-            (if (ok.isEmpty) "(no lexical SDO)" else ok.mkString(", ")))
+          println(
+            s"[fv]   |${lex.name}|(${lex.str}) -> " +
+            (if (ok.isEmpty) "(no lexical SDO)" else ok.mkString(", ")),
+          )
         }
       case None => println("[fv] no cached AST")
   }

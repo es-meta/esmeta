@@ -13,10 +13,10 @@ import esmeta.test262.Test262
   *
   * For each sampled test, run it with ESMeta while recording which spec
   * functions the run enters, then intersect that set with the functions
-  * `FVExport` cannot translate. The intersection is exactly what the
-  * model would get stuck on — a reachability-driven work list, as opposed
-  * to the whole-spec frequency histogram, which over-counts work that no
-  * real test ever reaches.
+  * `FVExport` cannot translate. The intersection is exactly what the model
+  * would get stuck on — a reachability-driven work list, as opposed to the
+  * whole-spec frequency histogram, which over-counts work that no real test
+  * ever reaches.
   *
   * Measurement only; writes nothing.
   *
@@ -41,10 +41,16 @@ object FVTest262Gap {
       .map(f => f.name -> FVSpecScan.blockers(f))
       .filter(_._2.nonEmpty)
       .toMap
-    println(s"[fv] spec functions the exporter cannot translate: ${omitted.size}")
+    println(
+      s"[fv] spec functions the exporter cannot translate: ${omitted.size}",
+    )
 
-    val sample = lang.sortBy(_.relName).grouped(math.max(1, lang.size / n))
-      .map(_.head).take(n).toList
+    val sample = lang
+      .sortBy(_.relName)
+      .grouped(math.max(1, lang.size / n))
+      .map(_.head)
+      .take(n)
+      .toList
     println(s"[fv] sampling ${sample.size} test(s)\n")
 
     var runnable = 0
@@ -72,17 +78,30 @@ object FVTest262Gap {
           if (miss.isEmpty) runnable += 1
           for (m <- miss) {
             missHist(m) = missHist.getOrElse(m, 0) + 1
-            for (b <- omitted(m)) blockerHist(b) = blockerHist.getOrElse(b, 0) + 1
+            for (b <- omitted(m))
+              blockerHist(b) = blockerHist.getOrElse(b, 0) + 1
           }
-          println(f"  ${t.relName}%-58s entered=${visited.size}%4d " +
-            f"missing=${miss.size}%3d")
+          println(
+            f"  ${t.relName}%-58s entered=${visited.size}%4d " +
+            f"missing=${miss.size}%3d",
+          )
+          if (miss.nonEmpty)
+            for (name <- miss.toList.sorted)
+              println(
+                s"      - $name <- " +
+                omitted(name).toList.sorted.mkString(", "),
+              )
     }
 
-    println(s"\n[fv] tests whose whole reachable set is already exported: " +
-      s"$runnable / ${sample.size}")
+    println(
+      s"\n[fv] tests whose whole reachable set is already exported: " +
+      s"$runnable / ${sample.size}",
+    )
     println("[fv] most-wanted missing functions (by tests blocked):")
     for ((f, c) <- missHist.toList.sortBy(-_._2).take(20))
-      println(f"[fv]   $c%3d  $f  <-  ${omitted(f).toList.sorted.mkString(", ")}")
+      println(
+        f"[fv]   $c%3d  $f  <-  ${omitted(f).toList.sorted.mkString(", ")}",
+      )
     println("[fv] blockers behind them (by test-function pairs):")
     for ((b, c) <- blockerHist.toList.sortBy(-_._2).take(15))
       println(f"[fv]   $c%4d  $b")

@@ -1,25 +1,30 @@
-(** * ESMetaFV.Fragment — IR-Core fragment syntax
+(** * ESMetaFV.Fragment — executable ESMeta IR syntax
 
-    A small, hand-mirrored fragment of the ESMeta IR
-    (ESMeta 0.7.3, ecma262 submodule 84b38ad8 / es2025).
+    This file began as a small IR-Core fragment and now contains the broad
+    executable mirror used by the generated ECMA-262 specification and the
+    Test262 ITree runner (ESMeta 0.7.3, ecma262 es2025).  The inductives below,
+    together with [FVSpecScan], are the source of truth for current coverage;
+    historical constructor counts in the original architecture plan are not.
 
     Mirrored from (Scala sources, repository facts):
-    - [src/main/scala/esmeta/ir/Inst.scala]  (16 constructors; we take 11)
-    - [src/main/scala/esmeta/ir/Expr.scala]  (39 constructors; we take 12)
-    - [src/main/scala/esmeta/ir/Ref.scala]   (4 constructors; we take all 4)
-    - [src/main/scala/esmeta/ir/Op.scala]    (52 operator cases; we take 9)
-    - [src/main/scala/esmeta/state/Value.scala] (16 constructors; we take 8)
+    - [src/main/scala/esmeta/ir/Inst.scala]
+    - [src/main/scala/esmeta/ir/Expr.scala]
+    - [src/main/scala/esmeta/ir/Ref.scala]
+    - [src/main/scala/esmeta/ir/Op.scala]
+    - [src/main/scala/esmeta/state/Value.scala]
 
     Deliberate deviations from ESMeta, each recorded as an ADR or
     limitation in [docs/formal-verification/itree-transpiler-plan.md]:
     - Mathematical values are restricted to integers ([Z]) — ADR-5.
       ESMeta's [Math] is an unbounded-precision decimal; on the included
       operators (+, -, *, <, =) integer arithmetic is exact in both.
-    - Parameter/return type annotations and [FuncKind] are dropped;
-      the fragment is untyped (limitation L-3).
-    - Excluded instruction/expression forms (continuations, AST values,
-      IEEE-754 numbers, maps, parsing, sdo-calls, push/pop, expand/delete)
-      are NOT claimed to be supported.
+    - Parameter/return annotations and [FuncKind] are retained as proof
+      metadata.  The executable semantics remains dynamically typed; an
+      annotation carries an executable [tyexp] only when the exporter can
+      translate it exactly, and otherwise keeps the original ESMeta text.
+    - Unsupported cases are rejected or represented explicitly as [EYet]; the
+      exporter and coverage scans report them rather than silently
+      approximating ESMeta behavior.
 
     This file is intentionally framework-agnostic: it depends only on the
     Coq standard library, so the syntax can be reused even if the proof
@@ -112,21 +117,50 @@ Inductive cop : Type :=
 
 Inductive vop : Type := VoMin | VoMax | VoConcat.
 
+(** Mathematical host operators ([EMathOp], ir/Op.scala:43-46).
+
+    Their transcendental behavior is deliberately not approximated in
+    Rocq.  The semantics evaluates and validates operands, then consults
+    the deterministic typed host cache. *)
+Inductive mop : Type :=
+| MExpm1 | MLog10 | MLog2 | MCos | MCbrt | MExp | MCosh | MSinh | MTanh
+| MAcos | MAcosh | MAsinh | MAtanh | MAsin | MAtan2 | MAtan | MLog1p
+| MLog | MSin | MSqrt | MTan.
+
+(** Closed operation tag for the generated Number -> Math -> Number
+    composites whose result is computed by ESMeta's current BigDecimal
+    path.  Keeping this distinct from [bop] prevents an accidental raw
+    binary64 fallback. *)
+Inductive number_math_op : Type :=
+| NMAdd | NMMul | NMDiv | NMPow.
+
+(** Closed tags for the generated [Lt]/[Equal] comparisons after [ToMath].
+    Mixed Number/integral-Math comparisons use ESMeta's
+    [BigDecimal(Double, UNLIMITED)] conversion at the typed host boundary. *)
+Inductive number_math_compare_op : Type :=
+| NMCLt | NMCEqual.
+
+Inductive number_math_compare_direction : Type :=
+| NMCNumberLeft | NMCNumberRight.
+
 (** ** ECMAScript parse trees as values (mirrors es/Ast.scala)
 
-    [ASyn name args rhsIdx subIdx children] mirrors
+    [ASyn name args rhsIdx subIdx children child_names src parse_src] mirrors
     [Syntactic(name, args, rhsIdx, children)]; [subIdx] is ESMeta's
     [Ast.subIdx], which is derived from the grammar (Ast.scala:116-128) and
     is therefore PRECOMPUTED BY THE EXPORTER rather than recomputed here —
-    the model does not carry the grammar.  [ALex] mirrors [Lexical].
+    the model does not carry the grammar.  [child_names] is the aligned list
+    of RHS nonterminal names used by [Ast.get] (Ast.scala:84-91); it too is
+    grammar-derived and precomputed.  [ALex] mirrors [Lexical].
 
-    [src] is the node's printed source text, i.e. ESMeta's
+    [src] is [ESourceText]'s result, i.e. ESMeta's
     [ast.toString(grammar = Some(grammar)).trim] (Interpreter.scala:227-230)
-    — again grammar-derived, so again PRECOMPUTED BY THE EXPORTER.  It is a
-    *derived* field: two nodes equal on the other fields have equal [src],
-    which is why [ast_eqb] ignores it (ESMeta compares case-class fields
-    only).  ASTs are immutable in ESMeta — [State.update] on an AST base
-    throws (State.scala:78-80) — so precomputing cannot go stale. *)
+    while [parse_src] is the untrimmed string passed to [EParse] when its
+    source is an AST (Interpreter.scala:216-221).  Both are grammar-derived
+    and PRECOMPUTED BY THE EXPORTER.  They are derived fields, so [ast_eqb]
+    ignores them (ESMeta compares case-class fields only).  ASTs are
+    immutable in ESMeta — [State.update] on an AST base throws
+    (State.scala:78-80) — so precomputing cannot go stale. *)
 
 (** Values a lexical SDO can produce.  ESMeta dispatches a lexical
     receiver straight to Scala (Interpreter.scala:192-193 returns
@@ -142,16 +176,22 @@ Inductive lexval : Type :=
 | LVStr (cs : cstr)
 | LVMath (z : Z)
 | LVNumber (f : float)
-| LVBigInt (z : Z).
+| LVBigInt (z : Z)
+| LVUndef.
 
 Inductive ast : Type :=
 | ASyn (name : string) (args : list bool) (rhsIdx subIdx : nat)
-       (children : list (option ast)) (src : cstr)
+       (children : list (option ast)) (child_names : list string)
+       (src parse_src : cstr)
 (** [sdos] maps a lexical SDO name ("StringValue", "NumericValue", "MV",
     "SV", "TV", "TRV" — the six of Interpreter.scala:525-536) to the value
-    ESMeta computes for THIS lexeme.  A method absent from the table is UB,
-    which is exactly ESMeta's [InvalidAstField]. *)
-| ALex (name : string) (str : string) (src : cstr)
+    ESMeta computes for THIS lexeme.  A method absent from the table is UB.
+    This covers both ESMeta's [InvalidAstField] and a fail-closed exporter
+    omission when the method's exact result lies outside [lexval] (currently a
+    fractional decimal Math value).  [LVUndef] is required by the [TV] of an
+    invalid escape in a tagged template.  Other representable methods on the
+    same AST remain usable; no decimal is rounded to binary64. *)
+| ALex (name : string) (str : string) (src parse_src : cstr)
        (sdos : list (string * lexval)).
 
 (** ** Restricted type expressions (for [ETypeCheck], ADR-11)
@@ -164,14 +204,31 @@ Inductive ast : Type :=
     are reported rather than silently mis-modelled. *)
 
 Inductive tyexp : Type :=
-| TRecord (tname : string)   (* record with this type name (exact) *)
+| TRecord (tname : string)   (* unrefined named record test *)
+(* A record target whose inline [FieldMap] consists only of required,
+   otherwise-unconstrained fields ([Binding.Exist]).  This is the exact IR
+   type generated for typed iteration over anonymous records such as
+   [Record[{ Key, Value }]]. *)
+| TRecordFields (tname : string) (fields : list string)
 | TCompletion                (* a CompletionRecord *)
 | TAbrupt                    (* CompletionRecord whose Type <> ~normal~ *)
 | TNormal                    (* CompletionRecord whose Type  = ~normal~ *)
 | TList                      (* list object *)
 | TMapTy                     (* map object *)
 | TStrTy | TBoolTy | TMathTy | TUndefTy | TNullTy | TEnumTy | TCloTy
+| TStrSet (values : list cstr)
+| TBoolSet (allow_false allow_true : bool)
+| TMathIntSet (values : list Z)
+| TInfinity (allow_neg allow_pos : bool)
+| TEnumNames (names : list string)
 | TNumberTy | TBigIntTy | TCodeUnitTy | TInfinityTy | TAstTy
+(* MathIntTy(IntSignTy sign).  Every [VMath] in this executable fragment is
+   integral (ADR-5); these bits retain the remaining sign refinement exactly. *)
+| TMathInt (neg zero pos : bool)
+(* NumberIntTy(IntSignTy(sign), hasNaN).  The three sign bits are ordered
+   [negative, zero, positive].  Keeping the NaN bit explicit mirrors
+   NumberTy.contains instead of baking in the currently common [false]. *)
+| TNumberInt (neg zero pos hasNaN : bool)
 (* AstTy.Simple / AstTy.Detail (ty/AstTy.scala:76-81).  [TAstNames] matches
    against the node's [types], the names down its single-child chain
    (es/Ast.scala:46-53), not just its own name. *)
@@ -181,9 +238,9 @@ Inductive tyexp : Type :=
    the value's kind (ty/ValueTy.scala:167-188), so a type with several
    non-bottom components is exactly a disjunction. *)
 | TUnion (ts : list tyexp)
-(* ListTy.Elem (ty/ListTy.scala:57-60): EVERY element satisfies [t].  The
-   exporter only emits this when [t] itself needs no heap resolution, so
-   one level of element lookup suffices; see [ty_addrs_needed]. *)
+(* ListTy.Elem (ty/ListTy.scala:57-60): EVERY element satisfies [t].
+   Address-valued elements are checked by the recursive lazy heap-query
+   checker, including nested list and structural record refinements. *)
 | TListOf (t : tyexp).
 
 (** ** Expressions and references (mutual)
@@ -201,6 +258,7 @@ Inductive expr : Type :=
 | EUnary (op : uop) (e : expr)                  (* EUnary *)
 | EBinary (op : bop) (e1 e2 : expr)             (* EBinary *)
 | EClo (fn : irname) (captured : list string)   (* EClo: clo<"f">(...) *)
+| ECont (fn : irname)                            (* ECont: cont<"f"> *)
 | EList (es : list expr)                        (* EList: list allocation *)
 | ESizeOf (e : expr)                            (* ESizeOf *)
 | ERecord (tname : string) (fields : list (string * expr))
@@ -222,7 +280,19 @@ Inductive expr : Type :=
 | EConvert (op : cop) (e : expr)                (* EConvert, flat cases *)
 | EToStr (e : expr) (radix : option expr)       (* EConvert with COp.ToStr *)
 | EVariadic (op : vop) (es : list expr)         (* EVariadic *)
+| EMathOp (op : mop) (args : list expr)         (* EMathOp *)
 | EContains (lst : expr) (e : expr)             (* EContains *)
+| ETrim (e : expr) (isStarting : bool)           (* ETrim *)
+| ESyntactic
+    (name : string) (args : list bool) (rhsIdx subIdx : nat)
+    (children : list (option expr))
+    (child_names : list string)
+    (source_layout : list (option cstr))
+    (* Runtime construction of a Syntactic AST.  [child_names] and
+       [subIdx] are grammar-derived metadata supplied by the exporter.
+       [source_layout] is the grammar RHS with terminals as [Some text]
+       and nonterminal slots as [None]; evaluating it against the runtime
+       children reproduces ESMeta's grammar-aware AST source printer. *)
 | EGrammarSymbol (name : string) (params : list bool)
 | EInstanceOf (e : expr) (target : expr)        (* EInstanceOf *)
 | ESubstring (e : expr) (from : expr) (to : option expr)
@@ -233,7 +303,7 @@ Inductive expr : Type :=
        evaluate the receiver once; if it is Null or Undef, yield Undef
        WITHOUT touching the heap; otherwise read the record field.
        Exists as the source form of the T-2 desugaring proof
-       (Transform.v, T2Proof.v).  The Scala exporter never produces it;
+       (Transform.v, attic/T2Proof.v).  The Scala exporter never produces it;
        ESMeta cannot execute it — its semantics is defined here and
        validated only inside the model (see ADR-9 for the honesty
        boundary). *)
@@ -270,15 +340,68 @@ Inductive inst : Type :=
 
 (** ** Functions and programs
 
-    Mirrors ir/Func.scala with [kind], [retTy], and per-parameter types
-    dropped (limitation L-3).  Parameters are Names, non-optional. *)
+    The runtime still binds parameters positionally by name, exactly as the
+    IR interpreter does.  In parallel we retain the source annotations for
+    proof work.  [ta_check = None] is explicit: the annotation is preserved
+    but lies outside the currently executable [tyexp] subset, so no theorem
+    may silently treat it as [Any]. *)
 
-Record func : Type := mkFunc {
+Inductive func_kind : Type :=
+| FKAbsOp | FKNumMeth | FKSynDirOp | FKConcMeth | FKInternalMeth
+| FKBuiltin | FKClo | FKCont | FKAux.
+
+Record type_annotation : Type := mkTypeAnnotation {
+  ta_source : string;
+  ta_check : option tyexp;
+}.
+
+Record param_annotation : Type := mkParamAnnotation {
+  pa_type : type_annotation;
+  pa_optional : bool;
+}.
+
+Definition unknown_type_annotation : type_annotation :=
+  mkTypeAnnotation "unknown" None.
+
+Fixpoint default_param_annotations
+  (params : list string) : list param_annotation :=
+  match params with
+  | nil => nil
+  | _ :: rest =>
+      mkParamAnnotation unknown_type_annotation false ::
+      default_param_annotations rest
+  end.
+
+Record func : Type := mkFuncData {
   f_main   : bool;
+  f_kind   : option func_kind;
   f_name   : irname;
   f_params : list string;
+  f_param_annotations : list param_annotation;
+  f_return_annotation : type_annotation;
   f_body   : inst;
 }.
+
+(** Compatibility constructor for handwritten regression programs. *)
+Definition mkFunc
+  (main : bool) (name : irname) (params : list string) (body : inst) : func :=
+  mkFuncData main None name params
+    (default_param_annotations params) unknown_type_annotation body.
+
+(** Constructor used by the ESMeta exporter. *)
+Definition mkTypedFunc
+  (main : bool) (kind : func_kind) (name : irname)
+  (params : list string) (param_types : list param_annotation)
+  (return_type : type_annotation) (body : inst) : func :=
+  mkFuncData main (Some kind) name params param_types return_type body.
+
+Definition func_with_body (f : func) (body : inst) : func :=
+  mkFuncData (f_main f) (f_kind f) (f_name f) (f_params f)
+    (f_param_annotations f) (f_return_annotation f) body.
+
+Definition func_annotations_aligned (f : func) : bool :=
+  Nat.eqb (List.length (f_params f))
+    (List.length (f_param_annotations f)).
 
 (** A program plus the two immutable *run parameters* ESMeta keeps on
     [State]: the source text being executed and the AST it was already
@@ -297,6 +420,19 @@ Record func : Type := mkFunc {
     [Clo(func, captured)] (state/Value.scala:73) with the function
     identified by name rather than by CFG reference. *)
 
+(** A continuation stores ESMeta's current call stack.  The executable
+    ITree call machine represents an immutable stack by a stable frame-table
+    identifier; [None] is the empty stack.  This stays data (rather than a
+    Rocq function) so continuations remain comparable and extractable. *)
+Definition cont_stack : Type := option nat.
+
+(** Stable AST reference identity.  Exported identities name roots already
+    present in the initial state; runtime identities come from a separate
+    deterministic counter, so the two namespaces cannot collide. *)
+Inductive ast_origin : Type :=
+| AstExported (id : nat)
+| AstRuntime (id : nat).
+
 Inductive val : Type :=
 | VMath (z : Z)
 | VBool (b : bool)
@@ -306,13 +442,35 @@ Inductive val : Type :=
 | VEnum (name : string)
 | VAddr (a : nat)
 | VClo (fn : irname) (captured : list (string * val))
-| VAst (a : ast)                 (* AstValue — state/Value.scala:83 *)
+| VCont (fn : irname) (captured : list (string * val))
+        (stack : cont_stack)
+| VAst (origin : ast_origin) (root : ast) (rev_path : list nat)
+    (* Parsed AstValue cursor.  [rev_path] stores child indices from the
+       focused node back toward [root].  [origin] is stable across cursor
+       movement and distinguishes separately allocated but structurally
+       equal trees. *)
 | VNumber (f : float)            (* Number   — state/Value.scala:143 *)
 | VBigInt (z : Z)                (* BigInt   — state/Value.scala:146 *)
 | VInfinity (pos : bool)         (* Infinity — state/Value.scala:123 *)
 | VCodeUnit (c : cunit)          (* CodeUnit — state/Value.scala:129 *)
 | VGrammarSymbol (name : string) (params : list bool).
                                  (* GrammarSymbol — state/Value.scala:86 *)
+
+(** Private call-effect ABI between [Semantics.v] and the closed Test262
+    executor.  These names are not IR functions: [ECont] asks the executor
+    for the current frame pointer, while invoking a [VCont] transfers
+    control to [cr_fn] with the saved pointer and never returns to the
+    invoking continuation.  Encoding the ABI in [callE] keeps CRIS
+    [Take]/[Choose] proof effects completely uninterpreted. *)
+Definition cont_capture_fn : string := "$ESMetaFV.control.capture".
+Definition cont_invoke_fn : string := "$ESMetaFV.control.invoke".
+
+Record cont_request : Type := mkContRequest {
+  cr_fn : irname;
+  cr_captured : list (string * val);
+  cr_args : list val;
+  cr_stack : cont_stack;
+}.
 
 (** [val] nests [list (string * val)]; the auto-generated induction
     principle is too weak for closure environments.  A proper mutual
@@ -330,10 +488,46 @@ Variant obj : Type :=
 | OMap (entries : list (val * val)).             (* MapObj — insertion-ordered
     (state/Obj.scala:129 uses a LinkedHashMap; EKeys depends on that order) *)
 
+(** Some IR operations deliberately cross into ESMeta's Scala host:
+    [EParse] calls the ECMAScript parser, string-to-Number/BigInt conversion
+    calls [ESValueParser], and Number exponentiation / [COp.ToStr] call JVM
+    numeric primitives.  They are not control effects and must not be
+    confused with CRIS [Take]/[Choose].
+
+    Test execution records only these primitive calls while obtaining the
+    ESMeta oracle result.  The Rocq model still evaluates every operand,
+    branch, call and heap operation itself, then performs an exact typed
+    query lookup.  A missing query is UB; no result is guessed and the
+    final Test262 verdict is never cached. *)
+Inductive host_query : Type :=
+| HQParseText (parse_text : cstr) (rule_name : string)
+    (effective_params : list bool)
+| HQToStr (input : val) (radix : Z)
+| HQStrToNumber (input : cstr)
+| HQNumberPow (left right : float)
+| HQDoubleToLongChecked (input : float)
+| HQStrToBigInt (input : cstr)
+| HQMathOp (op : mop) (args : list Z)
+| HQMathToNumber (input : Z)
+| HQNumberMathOp (op : number_math_op) (left right : float)
+| HQNumberSin (input : float)
+| HQNumberMathCompare
+    (op : number_math_compare_op)
+    (direction : number_math_compare_direction)
+    (number : float)
+    (integer : Z)
+| HQNumberToMath (input : float).
+
+Record host_cache_entry : Type := mkHostCacheEntry {
+  hc_query : host_query;
+  hc_result : val;
+}.
+
 Record prog : Type := mkProgFull {
   p_funcs  : list func;
   p_source : option cstr;
   p_cached : option ast;
+  p_hosts  : list host_cache_entry;
   (* Exported initial state (Initialize.scala:29-40).  [p_heap] is indexed
      by address; ESMeta's initial heap uses only NamedAddrs, which the
      exporter renumbers to list positions (ADR-16).  A slot is [None] when
@@ -346,7 +540,7 @@ Record prog : Type := mkProgFull {
 }.
 
 Definition mkProg (fs : list func) : prog :=
-  mkProgFull fs None None nil nil.
+  mkProgFull fs None None nil nil nil.
 
 (** ASCII convenience for hand-written programs and the exporter's ASCII
     fast path: turn a Coq byte string into code units.  Only sound for

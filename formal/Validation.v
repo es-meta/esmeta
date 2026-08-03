@@ -20,7 +20,7 @@
 From Stdlib Require Import String ZArith List.
 Import ListNotations.
 
-From ESMetaFV Require Import Fragment Domain Exec Programs Transform.
+From ESMetaFV Require Import TyModel Fragment Domain Exec Programs Transform.
 
 Local Open Scope string_scope.
 Local Open Scope Z_scope.
@@ -28,6 +28,61 @@ Local Open Scope Z_scope.
 (** ** Corpus runs (expected: normal termination, no prints) *)
 
 Example sum_ok : run 1000 sum_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example duplicate_literals_ok :
+  run 1000 duplicate_literals_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example initial_parse_priority_ok :
+  run 1000 initial_parse_priority_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example captured_param_priority_ok :
+  run 1000 captured_param_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example ast_parent_cursor_ok :
+  run 1000 ast_parent_exists_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example ast_sdo_descendant_cursor_ok :
+  run 1000 cursor_sdo_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example ast_reference_equality_same_cursor_ok :
+  run 1000 ast_eq_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example ast_reference_equality_distinct_roots_ok :
+  run 1000 ast_distinct_roots_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example ast_reference_equality_parent_roundtrip_ok :
+  run 1000 ast_cursor_roundtrip_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+(** [BOp.Eq] is reference equality for ASTs, while ordinary Scala value
+    equality used by list membership and map operations remains structural. *)
+Example ast_reference_and_structural_equality_are_distinct :
+  ast_ref_eqb
+      (AstExported 1) nil
+      (AstExported 2) nil = false /\
+  val_eqb
+      (VAst (AstExported 1) named_ast_root nil)
+      (VAst (AstExported 2) named_ast_root nil) = true.
+Proof. vm_compute. split; reflexivity. Qed.
+
+Example ast_host_parse_allocates_fresh_origin :
+  run 1000 host_parse_fresh_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example ast_runtime_leaf_allocates_fresh_origin :
+  run 1000 runtime_leaf_fresh_prog = Ok (VUndef, nil).
+Proof. vm_compute. reflexivity. Qed.
+
+Example child_bearing_runtime_syntactic_stays_unsupported :
+  run 1000 runtime_syn_prog = Stuck "ESyntactic(parent-alias)".
 Proof. vm_compute. reflexivity. Qed.
 
 Example gcd_ok : run 1000 gcd_prog = Ok (VUndef, nil).
@@ -216,3 +271,168 @@ Definition eff_bad_skip : prog := mkProg (eff_f :: eff_bad_skip_main :: nil).
 
 Example eff_skip_detected : run 1000 eff_src <> run 1000 eff_bad_skip.
 Proof. vm_compute. discriminate. Qed.
+
+(** ** Three-valued record-refinement regression checks
+
+    These are deliberately tiny pure computations.  They lock the cases
+    where a projected nested heap constraint is unknown without allowing
+    that unknown to override a definitive result. *)
+
+Example refinement_true_or_unknown :
+  decision_or (Some true) None = Some true.
+Proof. reflexivity. Qed.
+
+Definition refinement_unknown_binding : record_field_binding :=
+  mkRecordFieldBinding "nested" false RFCAddr.
+
+Definition refinement_false_binding : record_field_binding :=
+  mkRecordFieldBinding "required" false RFCMath.
+
+Example refinement_false_and_unknown :
+  record_bindings_decide
+    (("nested", VAddr 0) :: nil)
+    (refinement_unknown_binding :: refinement_false_binding :: nil)
+  = Some false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example exact_closure_refinement_accepts_named_function :
+  record_constraint_decide
+    (RFCCloNames ("Record[ECMAScriptFunctionObject].Call" :: nil))
+    (VClo "Record[ECMAScriptFunctionObject].Call" nil)
+  = Some true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example exact_closure_refinement_rejects_other_function :
+  record_constraint_decide
+    (RFCCloNames ("Record[ECMAScriptFunctionObject].Call" :: nil))
+    (VClo "Record[OrdinaryObject].Get" nil)
+  = Some false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example exact_ast_refinement_uses_focused_node :
+  record_constraint_decide
+    (RFCAstNames ("IdentifierName" :: nil))
+    (VAst (AstExported 1) named_ast_root (0%nat :: nil))
+  = Some true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example exact_string_refinement_uses_utf16_units :
+  record_constraint_decide
+    (RFCStrSet ((90%Z :: 87%Z :: nil) :: nil))
+    (VStr (90%Z :: 87%Z :: nil))
+  = Some true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example exact_math_sign_refinement_accepts_nonnegative :
+  record_constraint_decide
+    (RFCMathIntSign false true true) (VMath 0) = Some true /\
+  record_constraint_decide
+    (RFCMathIntSign false true true) (VMath 7) = Some true /\
+  record_constraint_decide
+    (RFCMathIntSign false true true) (VMath (-1)) = Some false.
+Proof. vm_compute. repeat split; reflexivity. Qed.
+
+Example exact_math_sign_refinement_rejects_non_math :
+  record_constraint_decide
+    (RFCMathSign true true true) (VBool false) = Some false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example exact_math_set_refinement_is_finite_membership :
+  record_constraint_decide
+    (RFCMathIntSet ((-2)%Z :: 0%Z :: 3%Z :: nil)) (VMath 3) = Some true /\
+  record_constraint_decide
+    (RFCMathSet ((-2)%Z :: 0%Z :: 3%Z :: nil)) (VMath 2) = Some false.
+Proof. vm_compute. split; reflexivity. Qed.
+
+(** T009's exact generated field is no longer [RFCUnsupported]. *)
+Example array_iterator_next_index_accepts_zero :
+  record_bindings_decide
+    (("ArrayLikeIterationKind", VEnum "value") ::
+     ("ArrayLikeNextIndex", VMath 0) ::
+     ("IteratedArrayLike", VUndef) :: nil)
+    (record_own_bindings "ArrayIteratorInstance")
+  = Some true.
+Proof. vm_compute. reflexivity. Qed.
+
+Example array_iterator_next_index_rejects_negative :
+  record_bindings_decide
+    (("ArrayLikeIterationKind", VEnum "value") ::
+     ("ArrayLikeNextIndex", VMath (-1)) ::
+     ("IteratedArrayLike", VUndef) :: nil)
+    (record_own_bindings "ArrayIteratorInstance")
+  = Some false.
+Proof. vm_compute. reflexivity. Qed.
+
+Example unencoded_precise_leaf_is_unknown :
+  record_constraint_decide RFCUnsupported (VMath 0) = None.
+Proof. reflexivity. Qed.
+
+Definition refinement_unknown_object : obj :=
+  ORecord "ExecutionContext" (("Generator", VAddr 1) :: nil).
+
+Example list_refinement_propagates_unknown :
+  ty_check_obj_decide
+    (TListOf (TRecord "GeneratorExecutionContext"))
+    (OList (VAddr 0 :: nil))
+    ((0%nat, refinement_unknown_object) :: nil)
+  = None.
+Proof. vm_compute. reflexivity. Qed.
+
+(** The shared lazy heap-query checker discharges the concrete nested
+    obligations that blocked [MakeConstructor] in every audited Test262
+    sample.  The runtime tag is only [OrdinaryObject]; satisfying
+    [ECMAScriptFunctionObject] therefore takes the structural descendant
+    branch and recursively checks its Environment/Realm/list fields. *)
+
+Definition function_object_fields : list (string * val) :=
+  ("Call", VClo "Record[ECMAScriptFunctionObject].Call" nil) ::
+  ("Environment", VAddr 1) ::
+  ("PrivateEnvironment", VNull) ::
+  ("FormalParameters", VAst (AstExported 1) named_ast_child nil) ::
+  ("ECMAScriptCode", VAst (AstExported 1) named_ast_child nil) ::
+  ("Realm", VAddr 2) ::
+  ("ScriptOrModule", VNull) ::
+  ("ThisMode", VEnum "global") ::
+  ("Strict", VBool false) ::
+  ("HomeObject", VUndef) ::
+  ("SourceText", VStr (cu "")) ::
+  ("Fields", VAddr 3) ::
+  ("PrivateMethods", VAddr 4) ::
+  ("ClassFieldInitializerName", VEnum "empty") ::
+  ("IsClassConstructor", VBool false) ::
+  nil.
+
+Definition function_object_heap : list (option obj) :=
+  Some (ORecord "OrdinaryObject" function_object_fields) ::
+  Some (ORecord "GlobalEnvironmentRecord" nil) ::
+  Some (ORecord "RealmRecord" nil) ::
+  Some (OList nil) ::
+  Some (OList nil) ::
+  nil.
+
+Definition function_object_state : xstate :=
+  mkXState function_object_heap nil nil None None nil 0.
+
+Example recursive_function_object_refinement_ok :
+  run_heap_query_x function_object_state
+    (ty_check_query type_check_fuel
+      (TRecord "ECMAScriptFunctionObject") (VAddr 0))
+  = Ok (Some true).
+Proof. vm_compute. reflexivity. Qed.
+
+Definition bad_function_object_state : xstate :=
+  mkXState
+    (Some (ORecord "OrdinaryObject" function_object_fields) ::
+     Some (ORecord "GlobalEnvironmentRecord" nil) ::
+     Some (ORecord "RealmRecord" nil) ::
+     Some (OMap nil) ::
+     Some (OList nil) ::
+     nil)
+    nil nil None None nil 0.
+
+Example recursive_function_object_wrong_list_rejected :
+  run_heap_query_x bad_function_object_state
+    (ty_check_query type_check_fuel
+      (TRecord "ECMAScriptFunctionObject") (VAddr 0))
+  = Ok (Some false).
+Proof. vm_compute. reflexivity. Qed.
