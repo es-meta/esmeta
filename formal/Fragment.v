@@ -14,7 +14,7 @@
     - [src/main/scala/esmeta/state/Value.scala]
 
     Deliberate deviations from ESMeta, each recorded as an ADR or
-    limitation in [docs/formal-verification/itree-transpiler-plan.md]:
+    limitation in [formal/docs/formal-verification/itree-transpiler-plan.md]:
     - Mathematical values are restricted to integers ([Z]) — ADR-5.
       ESMeta's [Math] is an unbounded-precision decimal; on the included
       operators (+, -, *, <, =) integer arithmetic is exact in both.

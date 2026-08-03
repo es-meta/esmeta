@@ -3,7 +3,7 @@
     This file fixes HOW the fragment's effects surface as CRIS events.
     It contains no denotation (Milestone 2) and no proofs; it exists so
     that the observable-behavior specification in
-    [docs/formal-verification/itree-transpiler-plan.md] has a checked,
+    [formal/docs/formal-verification/itree-transpiler-plan.md] has a checked,
     compilable counterpart.
 
     Event mapping (per the observable-behavior specification, which must

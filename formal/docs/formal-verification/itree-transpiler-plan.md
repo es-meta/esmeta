@@ -801,11 +801,11 @@ esmeta/
 ├── formal/                      # Rocq development (this project)
 │   ├── _CoqProject  Makefile  README.md
 │   ├── Fragment.v               # IR-Core syntax (stdlib-only)
-│   └── Events.v                 # observable-event interface (imports CRIS)
-├── docs/formal-verification/
-│   ├── itree-transpiler-plan.md # this document (incl. ADRs)
-│   ├── PROOF_OBLIGATIONS.md     # Rule 3 ledger
-│   └── RESEARCH_LOG.md          # Rule 5 log
+│   ├── Events.v                 # observable-event interface (imports CRIS)
+│   └── docs/formal-verification/
+│       ├── itree-transpiler-plan.md # this document (incl. ADRs)
+│       ├── PROOF_OBLIGATIONS.md     # Rule 3 ledger
+│       └── RESEARCH_LOG.md          # Rule 5 log
 └── src/…                        # untouched until M3's exporter/ir-eval phase
 ```
 

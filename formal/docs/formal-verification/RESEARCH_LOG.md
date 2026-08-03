@@ -1250,7 +1250,7 @@ architecture note with ADRs, PO ledger, this log, and a buildable minimal
 Rocq project defining the fragment syntax and event interface.
 
 **Current Status.** M0 complete (report delivered in-session, 2026-07-29).
-M1 artifacts written: `docs/formal-verification/{itree-transpiler-plan.md,
+M1 artifacts written: `formal/docs/formal-verification/{itree-transpiler-plan.md,
 PROOF_OBLIGATIONS.md, RESEARCH_LOG.md}`, `formal/{_CoqProject, Makefile,
 README.md, Fragment.v, Events.v}`; `formal` builds cleanly (`make` on
 Rocq 9.0.0, cris-workshop switch). Awaiting the Rule-4 review gate on the

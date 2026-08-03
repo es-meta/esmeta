@@ -6,7 +6,7 @@ trees and the CRIS refinement framework. The same denotation is extracted to
 OCaml for large generated-specification and Test262 runs.
 
 Architecture, design rationale (ADRs), proof-obligation ledger, and the
-research log live in [`../docs/formal-verification/`](../docs/formal-verification/).
+research log live in [`docs/formal-verification/`](docs/formal-verification/).
 
 ## What is (and is not) claimed
 
