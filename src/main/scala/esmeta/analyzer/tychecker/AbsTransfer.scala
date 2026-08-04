@@ -1412,6 +1412,27 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val ty = vs(1).ty
         AbsValue(ty.getProperty.fold(STy(retTy))(p => SProp(SSym(0), p)))
       },
+      "GetV" -> { (func, vs, retTy, st) =>
+        given AbsState = st
+        val ty = vs(1).ty
+        AbsValue(ty.getProperty.fold(STy(retTy))(p => SProp(SSym(0), p)))
+      },
+      "GetMethod" -> { (func, vs, retTy, st) =>
+        given AbsState = st
+        val guard = vs(1).ty.getProperty match
+          case Some(p) if vs(0).ty overlap (ObjectT || UndefT || NullT) =>
+            val nonCallableT =
+              ObjectNoFieldsT("Call") || (ESPrimT -- UndefT -- NullT)
+            val abruptT = ValueTy(
+              record = ObjectT.record
+                .update(p, Desc(getExc = true, ty = nonCallableT)),
+            ) || UndefT || NullT
+            TypeGuard(
+              TargetType(AbruptT) -> TypeConstr(0 -> abruptT),
+            )
+          case _ => TypeGuard()
+        AbsValue(STy(retTy), guard)
+      },
       "Set" -> { (func, vs, retTy, st) =>
         given AbsState = st
         val ty = vs(1).ty

@@ -228,6 +228,16 @@ class SymInterp(
     })(st)
   }
 
+  /** solver-side refiners */
+  private lazy val manualRefiners: Map[String, transfer.Refiner] =
+    transfer.manualRefiners + (
+      "GetMethod" -> { (func, vs, retTy, st) =>
+        given AbsState = st
+        val v = transfer.manualRefiners("GetMethod")(func, vs, retTy, st)
+        vs(1).ty.getProperty.fold(v)(p => AbsValue(SProp(SSym(0), p), v.guard))
+      },
+    )
+
   /** handle calls */
   def pushCall(
     callerNp: NodePoint[Call],
@@ -242,7 +252,7 @@ class SymInterp(
     val call = callerNp.node
     val retTy = callee.retTy.ty.toValue
     (for {
-      refiner <- transfer.manualRefiners.get(callee.name)
+      refiner <- manualRefiners.get(callee.name)
       v = refiner(callee, vs, retTy, callerSt)
       newV = instantiate(v, vs, callerNp, callerSt)
     } yield (newV, TypeConstr.Top)).getOrElse {
