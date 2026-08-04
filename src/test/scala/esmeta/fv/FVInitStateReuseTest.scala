@@ -139,6 +139,7 @@ class FVInitStateReuseTest extends AnyFunSuite {
   private def directEmission(index: Int, main: Boolean = false) =
     FVInitState.DirectFunctionEmission(
       funId = s"f$index",
+      gallinaId = s"ir_AbsOp_f$index",
       source = s"Definition df_$index := $index.",
       ordinaryEntry = s"ordinary_$index",
       continuationEntry = s"continuation_$index",
@@ -250,21 +251,25 @@ class FVInitStateReuseTest extends AnyFunSuite {
 
     val gap = Files.createTempDirectory("fv-direct-gap-")
     writeDirectArtifacts(gap, artifacts)
+    // Per-function shards have no numbering to be contiguous about, so a
+    // dropped entry surfaces as a shard the facade imports but the manifest
+    // does not list.
     val gapManifest = artifacts.manifest.linesIterator
-      .filterNot(_.contains("DirectFuncs_0001.v"))
+      .filterNot(_.contains("ir_AbsOp_f1.v"))
       .mkString("\n") + "\n"
     write(gap.resolve("validation/DirectSources.mk"), gapManifest)
     val gapError = intercept[IllegalStateException] {
       FVInitState.validateDirectSplitSpecBase(gap.toFile)
     }
-    assert(gapError.getMessage.contains("non-contiguous"))
+    assert(gapError.getMessage.contains("unmanifested imports=") &&
+      gapError.getMessage.contains("ir_AbsOp_f1.v"))
 
     val duplicate = Files.createTempDirectory("fv-direct-duplicate-")
     writeDirectArtifacts(duplicate, artifacts)
     val duplicatedManifest = artifacts.manifest.replace(
-      "  validation/spec_direct/DirectFuncs_0001.v \\",
-      "  validation/spec_direct/DirectFuncs_0001.v \\\n" +
-      "  validation/spec_direct/DirectFuncs_0001.v \\",
+      "  validation/spec_direct/ir_AbsOp_f1.v \\",
+      "  validation/spec_direct/ir_AbsOp_f1.v \\\n" +
+      "  validation/spec_direct/ir_AbsOp_f1.v \\",
     )
     write(duplicate.resolve("validation/DirectSources.mk"), duplicatedManifest)
     val duplicateError = intercept[IllegalStateException] {
@@ -274,7 +279,7 @@ class FVInitStateReuseTest extends AnyFunSuite {
 
     val extra = Files.createTempDirectory("fv-direct-extra-")
     writeDirectArtifacts(extra, artifacts)
-    write(extra.resolve("validation/spec_direct/DirectFuncs_0003.v"))
+    write(extra.resolve("validation/spec_direct/ir_AbsOp_f3.v"))
     val extraError = intercept[IllegalStateException] {
       FVInitState.validateDirectSplitSpecBase(extra.toFile)
     }
@@ -300,8 +305,8 @@ class FVInitStateReuseTest extends AnyFunSuite {
         .toSet ==
       Set(
         "DirectFuncs.v",
-        "DirectFuncs_0000.v",
-        "DirectFuncs_0001.v",
+        "ir_AbsOp_f0.v",
+        "ir_AbsOp_f1.v",
         "DirectNames.v",
       ),
     )

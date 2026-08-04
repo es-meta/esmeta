@@ -55,8 +55,15 @@ let () =
     (fun g d ->
       let name = g.tt_name in
       let expected = (g.tt_expected_result, g.tt_expected_prints) in
+      (* Extracted ITrees are lazy and memoise once forced, so a tree is only
+         ever timed on its first walk.  That is also how a full run uses it. *)
+      let t0 = Unix.gettimeofday () in
       let gr = run fuel [] g.tt_tree in
+      let t1 = Unix.gettimeofday () in
       let dr = run fuel [] d.tt_tree in
+      let t2 = Unix.gettimeofday () in
+      Printf.printf "TIME generic=%.3fs direct=%.3fs %s\n%!" (t1 -. t0)
+        (t2 -. t1) name;
       match gr, dr with
       | Done (gv, gp), Done (dv, dp) ->
           let generic_ok = observable_outcome_eqb (gv, gp) expected in

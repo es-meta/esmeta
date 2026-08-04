@@ -126,20 +126,23 @@ object FVDirectExport {
           throw Unsupported(
             s"direct function ${f.name}, clause export: ${error.getMessage}",
           )
+    // The margin marker is `#`, not `|`: the formatted body puts match
+    // branches at the start of a line, and stripMargin would eat their `|`.
     val source =
       s"""Section ${id}_section.
-         |Context `{!crisG Γ Σ α β τ _S _I}.
-         |
-         |Definition $instName (mn : string) : direct_inst_body :=
-         |  fun fnames ρ => $body.
-         |
-         |Definition $ordinaryName (mn : string) (fnames : list string) : ir_arg -> itree crisE val :=
-         |  direct_fbody fnames $params ${f.main} ($instName mn).
-         |
-         |Definition $continuationName (mn : string) (fnames : list string) : ir_arg -> itree crisE val :=
-         |  direct_cont_fbody fnames $params ${f.main} ($instName mn).
-         |End ${id}_section.
-         |""".stripMargin
+         #Context `{!crisG Γ Σ α β τ _S _I}.
+         #
+         #Definition $instName (mn : string) : direct_inst_body :=
+         #  fun fnames ρ =>
+         #    ${formatTerm(body, 4)}.
+         #
+         #Definition $ordinaryName (mn : string) (fnames : list string) : ir_arg -> itree crisE val :=
+         #  direct_fbody fnames $params ${f.main} ($instName mn).
+         #
+         #Definition $continuationName (mn : string) (fnames : list string) : ir_arg -> itree crisE val :=
+         #  direct_cont_fbody fnames $params ${f.main} ($instName mn).
+         #End ${id}_section.
+         #""".stripMargin('#')
     val forbidden = List("denote_expr", "denote_ref", "denote_inst", "denote_fbody")
     forbidden.find(source.contains).foreach { name =>
       throw Unsupported(s"direct function ${f.name}: forbidden fallback $name")
@@ -177,6 +180,74 @@ object FVDirectExport {
 
   private def directZLit(n: scala.math.BigInt): String =
     if (n < 0) s"(- (${-n}))%Z" else zLit(n)
+
+  /** Lay a generated term out over several lines.
+    *
+    * The compiler builds one flat string, which for a real spec function is a
+    * single line thousands of characters wide. Rocq does not care, but a
+    * reader opening one of these files does. Whitespace is the only thing
+    * this changes: a break after each `;;`/`;;;` and before each match
+    * branch, indented by parenthesis depth.
+    *
+    * Depth is capped because the terms nest far deeper than any indentation
+    * can usefully track; past the cap, the `;;` breaks alone carry the shape.
+    */
+  private def formatTerm(term: String, baseIndent: Int): String = {
+    val maxDepth = 12
+    val out = new StringBuilder
+    var depth = 0
+    var index = 0
+    def trimTrailingSpaces(): Unit =
+      while (out.nonEmpty && out.last == ' ') out.deleteCharAt(out.length - 1)
+    def onFreshLine: Boolean = {
+      var back = out.length - 1
+      while (back >= 0 && out(back) == ' ') back -= 1
+      back < 0 || out(back) == '\n'
+    }
+    def newline(level: Int = depth): Unit = {
+      trimTrailingSpaces()
+      out += '\n'
+      out ++= " " * (baseIndent + 2 * math.min(level, maxDepth))
+    }
+    def skipSpace(): Unit =
+      if (index < term.length && term(index) == ' ') index += 1
+    while (index < term.length) {
+      if (term(index) == '"') {
+        // Copy the literal verbatim; Gallina escapes a quote as "".
+        out += '"'
+        index += 1
+        var closed = false
+        while (index < term.length && !closed) {
+          if (term(index) != '"') { out += term(index); index += 1 }
+          else if (index + 1 < term.length && term(index + 1) == '"') {
+            out ++= "\"\""; index += 2
+          } else { out += '"'; index += 1; closed = true }
+        }
+      } else if (term.startsWith(";;;", index)) {
+        out ++= ";;;"; index += 3; skipSpace(); newline()
+      } else if (term.startsWith(";;", index)) {
+        out ++= ";;"; index += 2; skipSpace(); newline()
+      } else if (term.startsWith("<- (", index)) {
+        // A bind whose operand is itself a chain: start it one level in.
+        out ++= "<-"; index += 2; skipSpace(); newline(depth + 1)
+      } else if (term.startsWith("with ", index)) {
+        out ++= "with"; index += 5; newline()
+      } else if (term.startsWith("| ", index)) {
+        if (!onFreshLine) newline()
+        out ++= "| "; index += 2
+      } else if (term.startsWith("end", index) && !onFreshLine) {
+        newline(); out ++= "end"; index += 3
+      } else {
+        term(index) match
+          case '(' => depth += 1
+          case ')' => depth = math.max(0, depth - 1)
+          case _   => ()
+        out += term(index)
+        index += 1
+      }
+    }
+    out.toString
+  }
 
   private final class Compiler(functionName: String)(using cfg: CFG) {
     private var serial = 0

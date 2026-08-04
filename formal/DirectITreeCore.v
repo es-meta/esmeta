@@ -36,6 +36,17 @@ Definition direct_continuation_map : direct_fnsemmap :=
 Definition direct_entry_body : option direct_packed_body :=
   snd (@direct_ir_entry execΣ TEST262_MODULE).
 
+(** The program is consulted only through [ir_initial_st], which reads
+    [p_source], [p_cached], [p_hosts], [p_heap], and the globals — never
+    [p_funcs] (Semantics.v:1234).  The direct maps are supplied separately
+    and [DirectITreeExec] installs them without an [ir_fnsems] lookup, so
+    the IR function list is dead weight here and is left out: extraction
+    then never reaches the generated [spec_funcs] at all. *)
+Definition direct_script_prog
+  (src : cstr) (a : ast) (hosts : list host_cache_entry) : prog :=
+  mkProgFull nil (Some src) (Some a) hosts
+    (("SOURCE_TEXT", VStr src) :: base_globals) init_heap.
+
 Definition direct_production_exec (p : prog) : itree coreE val :=
   direct_exec_itree TEST262_MODULE p
     direct_ordinary_map direct_entry_body direct_continuation_map.
@@ -52,7 +63,7 @@ Definition direct_make_test_tree
        (val * list val)) : test_tree :=
   let '(name, src, a, hosts, expected) := t in
   let '(expected_result, expected_prints) := expected in
-  let program := script_prog src a hosts in
+  let program := direct_script_prog src a hosts in
   mkTestTree
     name
     (direct_production_exec program)

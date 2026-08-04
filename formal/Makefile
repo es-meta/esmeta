@@ -47,8 +47,12 @@ SPEC_FACADE_SOURCES := \
 	validation/spec/SpecGlobals.v \
 	validation/spec/SpecHeap.v
 SPEC_FACADE_OBJECTS := $(SPEC_FACADE_SOURCES:.v=.vo)
+# Every generated direct source except the two facades is a function shard.
+# Shards are named after the function they hold, so they cannot be matched by
+# a single pattern.
 DIRECT_FUNC_SHARD_SOURCES := \
-	$(filter validation/spec_direct/DirectFuncs_%.v,$(DIRECT_GENERATED_SOURCES))
+	$(filter-out validation/spec_direct/DirectFuncs.v \
+	  validation/spec_direct/DirectNames.v,$(DIRECT_GENERATED_SOURCES))
 DIRECT_FUNC_SHARD_OBJECTS := $(DIRECT_FUNC_SHARD_SOURCES:.v=.vo)
 DIRECT_NAMES_SOURCE := validation/spec_direct/DirectNames.v
 DIRECT_NAMES_OBJECT := $(DIRECT_NAMES_SOURCE:.v=.vo)
@@ -191,6 +195,10 @@ direct-manifest-ready:
 	}
 
 validation/spec_direct/DirectNames.vo: validation/spec_direct/DirectNames.v
+	$(COQC) $(COQFLAGS) $<
+
+validation/spec_direct/ir_%.vo: validation/spec_direct/ir_%.v \
+    DirectSemantics.vo $(DIRECT_NAMES_OBJECT)
 	$(COQC) $(COQFLAGS) $<
 
 validation/spec_direct/DirectFuncs_%.vo: validation/spec_direct/DirectFuncs_%.v \

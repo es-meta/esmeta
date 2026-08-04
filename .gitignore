@@ -71,6 +71,7 @@ formal/validation/SpecSources.mk
 formal/validation/DirectSources.mk
 formal/validation/spec_direct/
 formal/fvitree-direct-t262
+formal/fvitree-direct-worker
 formal/validation/ExtractShard.v
 formal/validation/Tests.v
 formal/validation/itree/

@@ -61,6 +61,8 @@ object FVInitState {
 
   private[fv] final case class DirectFunctionEmission(
     funId: String,
+    /** Gallina identifier, which also names this function's own file. */
+    gallinaId: String,
     source: String,
     ordinaryEntry: String,
     continuationEntry: String,
@@ -72,6 +74,50 @@ object FVInitState {
     files: List[(String, String)],
     manifest: String,
   )
+
+  /** Readable Gallina identifiers for the direct backend, one per function.
+    *
+    * Spec function names carry `::`, `.`, `[`, `]`, `,`, `%`, and backticks,
+    * none of which a Gallina identifier admits. `::` becomes `__` (so
+    * `BigInt::add` reads `BigInt__add`) and every other rejected character
+    * becomes `_`. Mangling alone is not injective — `a.b` and `a,b` would
+    * collide — so any name that is not unique after mangling keeps its
+    * index, and the result is checked to be one-to-one before it is used.
+    * Identifiers double as file names, so they must stay distinct.
+    */
+  private[fv] def directFunIds(funcs: List[IRFunc]): List[String] = {
+    def mangle(name: String): String =
+      name
+        .replace("::", "__")
+        .map(c => if (c.isLetterOrDigit || c == '_') c else '_')
+    // Not [f.kind.toString]: that is the IR stringifier, which renders kinds
+    // as `<NUM>:` and [AbsOp] as the empty string.
+    def kindName(kind: esmeta.ir.FuncKind): String = kind match
+      case esmeta.ir.FuncKind.AbsOp        => "AbsOp"
+      case esmeta.ir.FuncKind.NumMeth      => "NumMeth"
+      case esmeta.ir.FuncKind.SynDirOp     => "SynDirOp"
+      case esmeta.ir.FuncKind.ConcMeth     => "ConcMeth"
+      case esmeta.ir.FuncKind.InternalMeth => "InternalMeth"
+      case esmeta.ir.FuncKind.Builtin      => "Builtin"
+      case esmeta.ir.FuncKind.Clo          => "Clo"
+      case esmeta.ir.FuncKind.Cont         => "Cont"
+      case esmeta.ir.FuncKind.Aux          => "Aux"
+    val kinds = funcs.map(f => s"ir_${kindName(f.kind)}_${mangle(f.name)}")
+    val ambiguous = kinds.groupBy(identity).collect {
+      case (key, copies) if copies.size > 1 => key
+    }.toSet
+    val ids = kinds.zipWithIndex.map { (id, index) =>
+      if (ambiguous(id)) f"${id}_$index%04d" else id
+    }
+    val duplicates = ids.groupBy(identity).collect {
+      case (key, copies) if copies.size > 1 => key
+    }.toList.sorted
+    if (duplicates.nonEmpty)
+      throw new IllegalStateException(
+        s"direct identifiers are not injective: ${duplicates.mkString(", ")}",
+      )
+    ids
+  }
 
   /** Direct output covers the whole function domain minus a declared omission
     * set. `omittedFunIds` is that declaration: a function may be absent only
@@ -174,6 +220,13 @@ Definition direct_spec_fnames : list string :=
   """ + coqList(expectedDomain.map(strLit)) + ".\n"
     def suffix(index: Int): String = f"$index%04d"
     val chunks = functions.grouped(chunkSize).map(_.toList).toList
+    // One function per chunk is the normal layout: the file is then named
+    // after the function it holds, so a spec function can be opened directly.
+    // Definition names inside stay index-based; they are plumbing the facade
+    // chains, not something a reader looks up.
+    def moduleName(chunk: List[DirectFunctionEmission], index: Int): String =
+      if (chunkSize == 1) chunk.head.gallinaId
+      else s"DirectFuncs_${suffix(index)}"
     val shardFiles = chunks.zipWithIndex.map { (chunk, index) =>
       val id = suffix(index)
       val out = new StringBuilder(header)
@@ -195,15 +248,15 @@ Definition direct_spec_fnames : list string :=
       out ++= coqList(chunk.map(_.continuationEntry))
       out ++= ".\n"
       out ++= s"End direct_entries_$id.\n"
-      s"DirectFuncs_$id.v" -> out.toString
+      s"${moduleName(chunk, index)}.v" -> out.toString
     }
 
     val facade = new StringBuilder(header)
     if (chunks.nonEmpty) {
       facade ++= "From ESMetaFV.validation.spec_direct Require Export\n  "
-      facade ++= chunks.indices
-        .map(index => s"DirectFuncs_${suffix(index)}")
-        .mkString(" ")
+      facade ++= chunks.zipWithIndex
+        .map(moduleName)
+        .mkString("\n  ")
       facade ++= ".\n\n"
     }
     facade ++= "Section direct_facade.\n"
@@ -427,8 +480,11 @@ Definition direct_spec_fnames : list string :=
   private val splitSpecSourcePattern =
     raw"validation/spec/(SpecFuncs(?:_\d{4})?|SpecGlobals|SpecHeap(?:_\d{4})?)\.v".r
 
+  // Per-function shards are named after their Gallina identifier, so the
+  // pattern admits `ir_<Kind>_<mangled name>` alongside the two facades and
+  // the historical `DirectFuncs_NNNN` grouping.
   private val directSpecSourcePattern =
-    raw"validation/spec_direct/(?:DirectFuncs(?:_\d{4})?|DirectNames)\.v".r
+    raw"validation/spec_direct/(?:DirectFuncs(?:_\d{4})?|DirectNames|ir_[A-Za-z0-9_']+)\.v".r
 
   private[fv] def validateDirectSplitSpecBase(formalDir: File): List[File] = {
     def invalid(detail: String): Nothing =
@@ -475,14 +531,18 @@ Definition direct_spec_fnames : list string :=
     if (!entries.contains(facadeEntry)) invalid(s"manifest omits $facadeEntry")
     val namesEntry = "validation/spec_direct/DirectNames.v"
     if (!entries.contains(namesEntry)) invalid(s"manifest omits $namesEntry")
-    val shardPattern = raw"validation/spec_direct/DirectFuncs_(\d{4})\.v".r
-    val shards = entries.collect {
-      case entry @ shardPattern(index) => entry -> index.toInt
-    }
-    val indices = shards.map(_._2).sorted
-    if (indices.isEmpty)
-      invalid("manifest contains no DirectFuncs shard entries")
-    if (indices != (0 to indices.last).toList)
+    // Everything that is not one of the two facades is a function shard.
+    // Per-function shards carry no numbering, so contiguity only constrains
+    // the numbered layout; what rules out a gap in either layout is the
+    // facade/manifest set equality below.
+    val shards = entries.filterNot(entry =>
+      entry == facadeEntry || entry == namesEntry,
+    )
+    if (shards.isEmpty) invalid("manifest contains no shard entries")
+    val numberedShard = raw"validation/spec_direct/DirectFuncs_(\d{4})\.v".r
+    val indices = shards.collect { case numberedShard(index) => index.toInt }
+      .sorted
+    if (indices.nonEmpty && indices != (0 to indices.last).toList)
       invalid("non-contiguous DirectFuncs shard entries")
 
     val resolved = entries.map { entry =>
@@ -497,11 +557,17 @@ Definition direct_spec_fnames : list string :=
       path
     }
     val facade = formalRoot.resolve(facadeEntry)
-    val imported = raw"\bDirectFuncs_\d{4}\b".r
-      .findAllIn(Files.readString(facade, StandardCharsets.UTF_8))
+    // Read the export block itself rather than scanning the whole facade:
+    // per-function identifiers also appear in the entry definitions below it.
+    val imported = raw"(?s)Require Export\s+(.*?)\."
+      .r
+      .findFirstMatchIn(Files.readString(facade, StandardCharsets.UTF_8))
+      .toList
+      .flatMap(_.group(1).split("\\s+"))
+      .filter(_.nonEmpty)
       .map(module => s"validation/spec_direct/$module.v")
       .toSet
-    val manifested = shards.map(_._1).toSet
+    val manifested = shards.toSet
     if (imported != manifested)
       invalid(
         "facade/manifest shard mismatch: " +
@@ -1820,15 +1886,18 @@ Definition direct_spec_fnames : list string :=
       var skipped = 0
       val skipReasons = scala.collection.mutable.Map[String, Int]()
       val fnamesTerm = "direct_spec_fnames"
+      val directIds =
+        if (directOutput) directFunIds(cfg.program.funcs) else Nil
       for ((f, i) <- cfg.program.funcs.zipWithIndex) {
         try {
           if (directOutput) {
             val normalized = FVExport.normalizeForRocq(f)
             funcDefs += ((s"sf_$i", FVExport.rocqNormalizedFunc(normalized)))
             val direct =
-              FVDirectExport.compileNormalized(s"direct_sf_$i", normalized)
+              FVDirectExport.compileNormalized(directIds(i), normalized)
             directEmissions += DirectFunctionEmission(
               funId = direct.funId,
+              gallinaId = directIds(i),
               source = direct.source,
               ordinaryEntry = direct.ordinaryEntry(fnamesTerm),
               continuationEntry = direct.continuationEntry(fnamesTerm),
@@ -2067,6 +2136,7 @@ Local Open Scope Z_scope.
       if (directOutput) {
         val artifacts = renderDirectSplitArtifacts(
           directEmissions.toList,
+          chunkSize = 1,
           expectedFunIds = cfg.program.funcs.map(_.name),
           omittedFunIds = directOmitted.toList,
         )
