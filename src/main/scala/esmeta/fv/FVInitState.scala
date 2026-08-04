@@ -81,9 +81,9 @@ object FVInitState {
     * none of which a Gallina identifier admits. `::` becomes `__` (so
     * `BigInt::add` reads `BigInt__add`) and every other rejected character
     * becomes `_`. Mangling alone is not injective — `a.b` and `a,b` would
-    * collide — so any name that is not unique after mangling keeps its
-    * index, and the result is checked to be one-to-one before it is used.
-    * Identifiers double as file names, so they must stay distinct.
+    * collide — so any name that is not unique after mangling keeps its index,
+    * and the result is checked to be one-to-one before it is used. Identifiers
+    * double as file names, so they must stay distinct.
     */
   private[fv] def directFunIds(funcs: List[IRFunc]): List[String] = {
     def mangle(name: String): String =
@@ -103,15 +103,22 @@ object FVInitState {
       case esmeta.ir.FuncKind.Cont         => "Cont"
       case esmeta.ir.FuncKind.Aux          => "Aux"
     val kinds = funcs.map(f => s"ir_${kindName(f.kind)}_${mangle(f.name)}")
-    val ambiguous = kinds.groupBy(identity).collect {
-      case (key, copies) if copies.size > 1 => key
-    }.toSet
+    val ambiguous = kinds
+      .groupBy(identity)
+      .collect {
+        case (key, copies) if copies.size > 1 => key
+      }
+      .toSet
     val ids = kinds.zipWithIndex.map { (id, index) =>
       if (ambiguous(id)) f"${id}_$index%04d" else id
     }
-    val duplicates = ids.groupBy(identity).collect {
-      case (key, copies) if copies.size > 1 => key
-    }.toList.sorted
+    val duplicates = ids
+      .groupBy(identity)
+      .collect {
+        case (key, copies) if copies.size > 1 => key
+      }
+      .toList
+      .sorted
     if (duplicates.nonEmpty)
       throw new IllegalStateException(
         s"direct identifiers are not injective: ${duplicates.mkString(", ")}",
@@ -120,12 +127,12 @@ object FVInitState {
   }
 
   /** Direct output covers the whole function domain minus a declared omission
-    * set. `omittedFunIds` is that declaration: a function may be absent only
-    * if it is named there, so nothing can disappear silently, and a name may
-    * not be both emitted and omitted. Omission matches what the generic
-    * exporter already does — the model simply has no such function, and
-    * calling one that is missing is UB — and `DirectITreeExec` needs no
-    * change, because the map it is handed is the executable map.
+    * set. `omittedFunIds` is that declaration: a function may be absent only if
+    * it is named there, so nothing can disappear silently, and a name may not
+    * be both emitted and omitted. Omission matches what the generic exporter
+    * already does — the model simply has no such function, and calling one that
+    * is missing is UB — and `DirectITreeExec` needs no change, because the map
+    * it is handed is the executable map.
     */
   private[fv] def validateDirectDomains(
     expectedFunIds: List[String],
@@ -535,13 +542,13 @@ Definition direct_spec_fnames : list string :=
     // Per-function shards carry no numbering, so contiguity only constrains
     // the numbered layout; what rules out a gap in either layout is the
     // facade/manifest set equality below.
-    val shards = entries.filterNot(entry =>
-      entry == facadeEntry || entry == namesEntry,
-    )
+    val shards =
+      entries.filterNot(entry => entry == facadeEntry || entry == namesEntry)
     if (shards.isEmpty) invalid("manifest contains no shard entries")
     val numberedShard = raw"validation/spec_direct/DirectFuncs_(\d{4})\.v".r
-    val indices = shards.collect { case numberedShard(index) => index.toInt }
-      .sorted
+    val indices = shards.collect {
+      case numberedShard(index) => index.toInt
+    }.sorted
     if (indices.nonEmpty && indices != (0 to indices.last).toList)
       invalid("non-contiguous DirectFuncs shard entries")
 
@@ -559,8 +566,7 @@ Definition direct_spec_fnames : list string :=
     val facade = formalRoot.resolve(facadeEntry)
     // Read the export block itself rather than scanning the whole facade:
     // per-function identifiers also appear in the entry definitions below it.
-    val imported = raw"(?s)Require Export\s+(.*?)\."
-      .r
+    val imported = raw"(?s)Require Export\s+(.*?)\.".r
       .findFirstMatchIn(Files.readString(facade, StandardCharsets.UTF_8))
       .toList
       .flatMap(_.group(1).split("\\s+"))

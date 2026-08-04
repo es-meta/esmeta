@@ -261,8 +261,10 @@ class FVInitStateReuseTest extends AnyFunSuite {
     val gapError = intercept[IllegalStateException] {
       FVInitState.validateDirectSplitSpecBase(gap.toFile)
     }
-    assert(gapError.getMessage.contains("unmanifested imports=") &&
-      gapError.getMessage.contains("ir_AbsOp_f1.v"))
+    assert(
+      gapError.getMessage.contains("unmanifested imports=") &&
+      gapError.getMessage.contains("ir_AbsOp_f1.v"),
+    )
 
     val duplicate = Files.createTempDirectory("fv-direct-duplicate-")
     writeDirectArtifacts(duplicate, artifacts)

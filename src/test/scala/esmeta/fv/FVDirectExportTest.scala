@@ -42,7 +42,14 @@ class FVDirectExportTest extends AnyFunSuite {
         .mainEntry("all_names")
         .exists(_.contains("snd (direct_entry mn")),
     )
-    for (fallback <- List("denote_expr", "denote_ref", "denote_inst", "denote_fbody"))
+    for (
+      fallback <- List(
+        "denote_expr",
+        "denote_ref",
+        "denote_inst",
+        "denote_fbody",
+      )
+    )
       assert(!defs.source.contains(fallback), fallback)
   }
 
@@ -50,8 +57,16 @@ class FVDirectExportTest extends AnyFunSuite {
     val right = EList(List(EMath(1)))
     val andSource = emit(IReturn(EBinary(BOp.And, EBool(false), right)))
     val orSource = emit(IReturn(EBinary(BOp.Or, EBool(true), right)))
-    assert(andSource.indexOf("VBool false => Ret (VBool false)") < andSource.indexOf("alloc_obj"))
-    assert(orSource.indexOf("VBool true => Ret (VBool true)") < orSource.indexOf("alloc_obj"))
+    assert(
+      andSource.indexOf("VBool false => Ret (VBool false)") < andSource.indexOf(
+        "alloc_obj",
+      ),
+    )
+    assert(
+      orSource.indexOf("VBool true => Ret (VBool true)") < orSource.indexOf(
+        "alloc_obj",
+      ),
+    )
 
     val assignment = emit(IAssign(Field(Name("x"), EStr("p")), EList(Nil)))
     assert(assignment.indexOf("read_target") < assignment.indexOf("alloc_obj"))
@@ -68,11 +83,26 @@ class FVDirectExportTest extends AnyFunSuite {
     assert(!comparison.contains("direct_binary_value BLt"))
 
     val shapes = List(
-      EConvert(COp.ToNumber, EBinary(BOp.Add, math(left), math(right))) -> "NMAdd BAdd CToNumber",
-      EConvert(COp.ToNumber, EBinary(BOp.Mul, math(left), math(right))) -> "NMMul BMul CToNumber",
-      EConvert(COp.ToNumber, EBinary(BOp.Div, math(left), math(right))) -> "NMDiv BDiv CToNumber",
-      EConvert(COp.ToApproxNumber, EBinary(BOp.Pow, math(left), math(right))) -> "NMPow BPow CToApproxNumber",
-      EConvert(COp.ToApproxNumber, EMathOp(MOp.Sin, List(math(left)))) -> "denote_number_sin_value",
+      EConvert(
+        COp.ToNumber,
+        EBinary(BOp.Add, math(left), math(right)),
+      ) -> "NMAdd BAdd CToNumber",
+      EConvert(
+        COp.ToNumber,
+        EBinary(BOp.Mul, math(left), math(right)),
+      ) -> "NMMul BMul CToNumber",
+      EConvert(
+        COp.ToNumber,
+        EBinary(BOp.Div, math(left), math(right)),
+      ) -> "NMDiv BDiv CToNumber",
+      EConvert(
+        COp.ToApproxNumber,
+        EBinary(BOp.Pow, math(left), math(right)),
+      ) -> "NMPow BPow CToApproxNumber",
+      EConvert(
+        COp.ToApproxNumber,
+        EMathOp(MOp.Sin, List(math(left))),
+      ) -> "denote_number_sin_value",
     )
     for ((expression, expected) <- shapes) {
       val source = emit(IReturn(expression))
@@ -98,12 +128,15 @@ class FVDirectExportTest extends AnyFunSuite {
     val call = emit(ICall(Name("x"), ERef(Name("f")), List(EMath(1))))
     assert(call.contains("ccallU (ir_sig fn)"))
     assert(call.contains("ccallU cont_invoke_sig"))
-    val sdo = emit(ISdoCall(Name("x"), ERef(Name("ast")), "Evaluation", List(EMath(1))))
+    val sdo =
+      emit(ISdoCall(Name("x"), ERef(Name("ast")), "Evaluation", List(EMath(1))))
     assert(sdo.contains("direct_sdo_value fnames"))
     assert(sdo.contains("(fun _ =>"))
   }
 
-  test("parse operands are catchable and unsupported operands fail with context") {
+  test(
+    "parse operands are catchable and unsupported operands fail with context",
+  ) {
     val source = emit(
       IReturn(EParse(EYet("caught"), EGrammarSymbol("Script", Nil))),
     )
@@ -130,9 +163,21 @@ class FVDirectExportTest extends AnyFunSuite {
     val clauses = FVDirectExport.orderedClauseIds
     assert(clauses.distinct == clauses)
     assert(clauses.take(2) == List("ref.RVar", "ref.RField"))
-    assert(clauses.indexOf("expr.EBinary.BAnd") < clauses.indexOf("expr.EBinary.general"))
-    assert(clauses.indexOf("expr.EConvert.ToNumber.AddMath") < clauses.indexOf("expr.EConvert.general"))
-    assert(clauses.indexOf("inst.IAssert.EYet") < clauses.indexOf("inst.IAssert.general"))
+    assert(
+      clauses.indexOf("expr.EBinary.BAnd") < clauses.indexOf(
+        "expr.EBinary.general",
+      ),
+    )
+    assert(
+      clauses.indexOf("expr.EConvert.ToNumber.AddMath") < clauses.indexOf(
+        "expr.EConvert.general",
+      ),
+    )
+    assert(
+      clauses.indexOf("inst.IAssert.EYet") < clauses.indexOf(
+        "inst.IAssert.general",
+      ),
+    )
     assert(clauses.last == "inst.ISdoCall")
   }
 }

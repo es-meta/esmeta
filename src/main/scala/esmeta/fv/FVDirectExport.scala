@@ -13,7 +13,16 @@ import esmeta.spec.Terminal
   * here.
   */
 object FVDirectExport {
-  import FVExport.{Unsupported, coqList, cstrLit, floatLit, local, natLit, strLit, zLit}
+  import FVExport.{
+    Unsupported,
+    coqList,
+    cstrLit,
+    floatLit,
+    local,
+    natLit,
+    strLit,
+    zLit,
+  }
 
   final case class DirectFuncDefs(
     funId: String,
@@ -143,7 +152,8 @@ object FVDirectExport {
          #  direct_cont_fbody fnames $params ${f.main} ($instName mn).
          #End ${id}_section.
          #""".stripMargin('#')
-    val forbidden = List("denote_expr", "denote_ref", "denote_inst", "denote_fbody")
+    val forbidden =
+      List("denote_expr", "denote_ref", "denote_inst", "denote_fbody")
     forbidden.find(source.contains).foreach { name =>
       throw Unsupported(s"direct function ${f.name}: forbidden fallback $name")
     }
@@ -168,9 +178,8 @@ object FVDirectExport {
     * A direct shard has to import CRIS to elaborate its `crisG` context, and
     * CRIS brings notations that claim the leading `-`: Rocq then reads
     * `(-1.0)%float` as a unary minus applied to `1` and stops at the `.`.
-    * Generic shards import neither CRIS nor Semantics, so
-    * [[FVExport.zLit]] and [[FVExport.floatLit]] stay as they are and their
-    * output does not move.
+    * Generic shards import neither CRIS nor Semantics, so [[FVExport.zLit]] and
+    * [[FVExport.floatLit]] stay as they are and their output does not move.
     */
   private val negFloatLit = """\(-(.*)\)%float""".r
 
@@ -184,13 +193,13 @@ object FVDirectExport {
   /** Lay a generated term out over several lines.
     *
     * The compiler builds one flat string, which for a real spec function is a
-    * single line thousands of characters wide. Rocq does not care, but a
-    * reader opening one of these files does. Whitespace is the only thing
-    * this changes: a break after each `;;`/`;;;` and before each match
-    * branch, indented by parenthesis depth.
+    * single line thousands of characters wide. Rocq does not care, but a reader
+    * opening one of these files does. Whitespace is the only thing this
+    * changes: a break after each `;;`/`;;;` and before each match branch,
+    * indented by parenthesis depth.
     *
-    * Depth is capped because the terms nest far deeper than any indentation
-    * can usefully track; past the cap, the `;;` breaks alone carry the shape.
+    * Depth is capped because the terms nest far deeper than any indentation can
+    * usefully track; past the cap, the `;;` breaks alone carry the shape.
     */
   private def formatTerm(term: String, baseIndent: Int): String = {
     val maxDepth = 12
@@ -256,7 +265,9 @@ object FVDirectExport {
       s"${prefix}_$serial"
     }
     private def fail(clause: String, detail: String): Nothing =
-      throw Unsupported(s"direct function $functionName, clause $clause: $detail")
+      throw Unsupported(
+        s"direct function $functionName, clause $clause: $detail",
+      )
     private def bind(name: String, term: String, next: String): String =
       s"($name <- $term;; $next)"
     private def seq(first: String, next: String): String = s"($first;;; $next)"
@@ -266,7 +277,11 @@ object FVDirectExport {
       case head :: tail =>
         val v = fresh("v")
         val vs = fresh("vs")
-        bind(v, expr(head, rho), bind(vs, exprList(tail, rho), s"Ret ($v :: $vs)"))
+        bind(
+          v,
+          expr(head, rho),
+          bind(vs, exprList(tail, rho), s"Ret ($v :: $vs)"),
+        )
 
     private def parseRef(r: Ref, rho: String): String = r match
       case v: Var => s"eval_ret (TVar ${rocqVar(v)})"
@@ -275,26 +290,26 @@ object FVDirectExport {
         val baseValue = fresh("base")
         val fieldValue = fresh("field")
         s"eval_bind (${parseRef(base, rho)}) (fun $target => " +
-          s"eval_bind (eval_read_target mn $rho $target) (fun $baseValue => " +
-          s"eval_bind (${parseOperand(field, rho)}) (fun $fieldValue => " +
-          s"eval_ret (TField $baseValue $fieldValue))))"
+        s"eval_bind (eval_read_target mn $rho $target) (fun $baseValue => " +
+        s"eval_bind (${parseOperand(field, rho)}) (fun $fieldValue => " +
+        s"eval_ret (TField $baseValue $fieldValue))))"
 
     private def parseOperand(e: Expr, rho: String): String = e match
       case EMath(n) =>
         if (!n.isWhole) fail("expr.EParse", s"non-integer Math literal $n")
         s"eval_ret (VMath ${directZLit(n.toBigInt)})"
-      case EBool(b)      => s"eval_ret (VBool $b)"
-      case EStr(s)       => s"eval_ret (VStr ${cstrLit(s)})"
-      case EUndef()      => "eval_ret VUndef"
-      case ENull()       => "eval_ret VNull"
-      case EEnum(n)      => s"eval_ret (VEnum ${strLit(n)})"
-      case ENumber(n)    => s"eval_ret (VNumber ${directFloatLit(n)})"
-      case EBigInt(n)    => s"eval_ret (VBigInt ${directZLit(n)})"
-      case EInfinity(p)  => s"eval_ret (VInfinity $p)"
-      case ECodeUnit(c)  => s"eval_ret (VCodeUnit ${c.toInt})"
+      case EBool(b)     => s"eval_ret (VBool $b)"
+      case EStr(s)      => s"eval_ret (VStr ${cstrLit(s)})"
+      case EUndef()     => "eval_ret VUndef"
+      case ENull()      => "eval_ret VNull"
+      case EEnum(n)     => s"eval_ret (VEnum ${strLit(n)})"
+      case ENumber(n)   => s"eval_ret (VNumber ${directFloatLit(n)})"
+      case EBigInt(n)   => s"eval_ret (VBigInt ${directZLit(n)})"
+      case EInfinity(p) => s"eval_ret (VInfinity $p)"
+      case ECodeUnit(c) => s"eval_ret (VCodeUnit ${c.toInt})"
       case EGrammarSymbol(n, ps) =>
         s"eval_ret (VGrammarSymbol ${strLit(n)} ${coqList(ps.map(_.toString))})"
-      case EYet(_)   => "eval_throw"
+      case EYet(_) => "eval_throw"
       case ERef(ref) =>
         val target = fresh("target")
         s"eval_bind (${parseRef(ref, rho)}) (fun $target => eval_read_target mn $rho $target)"
@@ -305,18 +320,22 @@ object FVDirectExport {
             val v = fresh("v")
             val vs = fresh("vs")
             s"eval_bind (${parseOperand(head, rho)}) (fun $v => " +
-              s"eval_bind (${go(tail)}) (fun $vs => eval_ret ($v :: $vs)))"
+            s"eval_bind (${go(tail)}) (fun $vs => eval_ret ($v :: $vs)))"
         val values = fresh("values")
         val address = fresh("address")
         s"eval_bind (${go(es)}) (fun $values => " +
-          s"($address <- alloc_obj mn (OList $values);; eval_ret (VAddr $address)))"
+        s"($address <- alloc_obj mn (OList $values);; eval_ret (VAddr $address)))"
       case ESourceText(inner) =>
         val v = fresh("value")
         val ast = fresh("ast")
         s"eval_bind (${parseOperand(inner, rho)}) (fun $v => match $v with " +
-          s"| VAst _ root path => eval_bind (eval_of_option (ast_focus root path)) " +
-          s"(fun $ast => eval_ret (VStr (ast_src $ast))) | _ => eval_throw end)"
-      case other => fail("expr.EParse", s"unsupported operand ${other.getClass.getSimpleName}")
+        s"| VAst _ root path => eval_bind (eval_of_option (ast_focus root path)) " +
+        s"(fun $ast => eval_ret (VStr (ast_src $ast))) | _ => eval_throw end)"
+      case other =>
+        fail(
+          "expr.EParse",
+          s"unsupported operand ${other.getClass.getSimpleName}",
+        )
 
     private def rocqVar(v: Var): String = v match
       case local: Local => s"(VLocal ${FVExport.local(local)})"
@@ -334,7 +353,11 @@ object FVDirectExport {
           bind(
             baseValue,
             s"read_target mn $rho $target",
-            bind(fieldValue, expr(field, rho), s"Ret (TField $baseValue $fieldValue)"),
+            bind(
+              fieldValue,
+              expr(field, rho),
+              s"Ret (TField $baseValue $fieldValue)",
+            ),
           ),
         )
 
@@ -367,13 +390,13 @@ object FVDirectExport {
       case EMath(n) =>
         if (!n.isWhole) fail("expr.EMath", s"non-integer Math literal $n")
         s"Ret (VMath ${directZLit(n.toBigInt)})"
-      case EBool(b)   => s"Ret (VBool $b)"
-      case EStr(s)    => s"Ret (VStr ${cstrLit(s)})"
-      case EUndef()   => "Ret VUndef"
-      case ENull()    => "Ret VNull"
-      case EEnum(n)   => s"Ret (VEnum ${strLit(n)})"
-      case ENumber(n) => s"Ret (VNumber ${directFloatLit(n)})"
-      case EBigInt(n) => s"Ret (VBigInt ${directZLit(n)})"
+      case EBool(b)     => s"Ret (VBool $b)"
+      case EStr(s)      => s"Ret (VStr ${cstrLit(s)})"
+      case EUndef()     => "Ret VUndef"
+      case ENull()      => "Ret VNull"
+      case EEnum(n)     => s"Ret (VEnum ${strLit(n)})"
+      case ENumber(n)   => s"Ret (VNumber ${directFloatLit(n)})"
+      case EBigInt(n)   => s"Ret (VBigInt ${directZLit(n)})"
       case EInfinity(p) => s"Ret (VInfinity $p)"
       case ECodeUnit(c) => s"Ret (VCodeUnit ${c.toInt})"
       case ERef(r) =>
@@ -389,8 +412,8 @@ object FVDirectExport {
           lv,
           expr(left, rho),
           s"match $lv with | VBool false => Ret (VBool false) " +
-            s"| VBool true => ${bind(rv, expr(right, rho), s"match $rv with | VBool b => Ret (VBool b) | _ => triggerUB end")} " +
-            "| _ => triggerUB end",
+          s"| VBool true => ${bind(rv, expr(right, rho), s"match $rv with | VBool b => Ret (VBool b) | _ => triggerUB end")} " +
+          "| _ => triggerUB end",
         )
       case EBinary(BOp.Or, left, right) =>
         val lv = fresh("lv")
@@ -399,12 +422,20 @@ object FVDirectExport {
           lv,
           expr(left, rho),
           s"match $lv with | VBool true => Ret (VBool true) " +
-            s"| VBool false => ${bind(rv, expr(right, rho), s"match $rv with | VBool b => Ret (VBool b) | _ => triggerUB end")} " +
-            "| _ => triggerUB end",
+          s"| VBool false => ${bind(rv, expr(right, rho), s"match $rv with | VBool b => Ret (VBool b) | _ => triggerUB end")} " +
+          "| _ => triggerUB end",
         )
-      case EBinary(op @ (BOp.Lt | BOp.Equal), EConvert(COp.ToMath, l), EConvert(COp.ToMath, r)) =>
-        numberMath(l, r, rho, (lp, rp) =>
-          s"denote_number_math_comparison mn ${FVExport.rocqBOp(op)} $lp $rp",
+      case EBinary(
+            op @ (BOp.Lt | BOp.Equal),
+            EConvert(COp.ToMath, l),
+            EConvert(COp.ToMath, r),
+          ) =>
+        numberMath(
+          l,
+          r,
+          rho,
+          (lp, rp) =>
+            s"denote_number_math_comparison mn ${FVExport.rocqBOp(op)} $lp $rp",
         )
       case EBinary(op, left, right) =>
         val lv = fresh("lv")
@@ -416,22 +447,34 @@ object FVDirectExport {
             rv,
             expr(right, rho),
             s"match host_bop_query ${FVExport.rocqBOp(op)} $lv $rv with " +
-              "| Some query => (hosts <- cgetU (hosts_key mn);; " +
-              "match typed_host_cache_lookup query hosts with " +
-              "| Some result => Ret result | _ => triggerUB end) " +
-              s"| None => (eval_bop ${FVExport.rocqBOp(op)} $lv $rv)? end",
+            "| Some query => (hosts <- cgetU (hosts_key mn);; " +
+            "match typed_host_cache_lookup query hosts with " +
+            "| Some result => Ret result | _ => triggerUB end) " +
+            s"| None => (eval_bop ${FVExport.rocqBOp(op)} $lv $rv)? end",
           ),
         )
       case EClo(name, captured) =>
         val cs = fresh("captured")
-        bind(cs, s"capture $rho ${coqList(captured.map(n => strLit(n.name)))}", s"Ret (VClo ${strLit(name)} $cs)")
+        bind(
+          cs,
+          s"capture $rho ${coqList(captured.map(n => strLit(n.name)))}",
+          s"Ret (VClo ${strLit(name)} $cs)",
+        )
       case ECont(name) =>
         val stack = fresh("stack")
-        bind(stack, "ccallU cont_capture_sig tt", s"Ret (VCont ${strLit(name)} (capture_named_env_map $rho) $stack)")
+        bind(
+          stack,
+          "ccallU cont_capture_sig tt",
+          s"Ret (VCont ${strLit(name)} (capture_named_env_map $rho) $stack)",
+        )
       case EList(es) =>
         val vs = fresh("values")
         val address = fresh("address")
-        bind(vs, exprList(es, rho), bind(address, s"alloc_obj mn (OList $vs)", s"Ret (VAddr $address)"))
+        bind(
+          vs,
+          exprList(es, rho),
+          bind(address, s"alloc_obj mn (OList $vs)", s"Ret (VAddr $address)"),
+        )
       case ESizeOf(base) =>
         val v = fresh("value")
         bind(v, expr(base, rho), s"direct_sizeof_value mn $v")
@@ -440,19 +483,40 @@ object FVDirectExport {
           case Nil => s"Ret $acc"
           case (field, value) :: tail =>
             val v = fresh("value")
-            bind(v, expr(value, rho), go(tail, s"(fields_insert ${strLit(field)} $v $acc)"))
+            bind(
+              v,
+              expr(value, rho),
+              go(tail, s"(fields_insert ${strLit(field)} $v $acc)"),
+            )
         val fs = fresh("fields")
         val address = fresh("address")
-        bind(fs, go(fields, "nil"), bind(address, s"alloc_obj mn (ORecord ${strLit(name)} $fs)", s"Ret (VAddr $address)"))
+        bind(
+          fs,
+          go(fields, "nil"),
+          bind(
+            address,
+            s"alloc_obj mn (ORecord ${strLit(name)} $fs)",
+            s"Ret (VAddr $address)",
+          ),
+        )
       case EExists(reference) =>
         val target = fresh("target")
-        bind(target, ref(reference, rho), s"direct_exists_value mn $rho $target")
+        bind(
+          target,
+          ref(reference, rho),
+          s"direct_exists_value mn $rho $target",
+        )
       case ETypeOf(base) =>
         val v = fresh("value")
         bind(v, expr(base, rho), s"direct_typeof_value mn $v")
       case ETypeCheck(base, ty) =>
         val v = fresh("value")
-        bind(v, expr(base, rho), s"(decision <- run_heap_query mn (ty_check_query type_check_fuel ${FVExport.rocqTy(ty)} $v);; b <- decision?;; Ret (VBool b))")
+        bind(
+          v,
+          expr(base, rho),
+          s"(decision <- run_heap_query mn (ty_check_query type_check_fuel ${FVExport
+            .rocqTy(ty)} $v);; b <- decision?;; Ret (VBool b))",
+        )
       case EYet(_) => "triggerUB"
       case EMap(_, pairs) =>
         def go(rest: List[(Expr, Expr)], acc: String): String = rest match
@@ -461,25 +525,84 @@ object FVDirectExport {
             val kv = fresh("key")
             val vv = fresh("value")
             val next = fresh("entries")
-            bind(kv, expr(key, rho), bind(vv, expr(value, rho), bind(next, s"(map_insert_partial $kv $vv $acc)?", go(tail, next))))
+            bind(
+              kv,
+              expr(key, rho),
+              bind(
+                vv,
+                expr(value, rho),
+                bind(
+                  next,
+                  s"(map_insert_partial $kv $vv $acc)?",
+                  go(tail, next),
+                ),
+              ),
+            )
         val entries = fresh("entries")
         val address = fresh("address")
-        bind(entries, go(pairs, "nil"), bind(address, s"alloc_obj mn (OMap $entries)", s"Ret (VAddr $address)"))
+        bind(
+          entries,
+          go(pairs, "nil"),
+          bind(
+            address,
+            s"alloc_obj mn (OMap $entries)",
+            s"Ret (VAddr $address)",
+          ),
+        )
       case EKeys(base, intSorted) =>
         val v = fresh("value")
         bind(v, expr(base, rho), s"direct_keys_value mn $intSorted $v")
       case ECopy(base) =>
         val v = fresh("value")
         bind(v, expr(base, rho), s"direct_copy_value mn $v")
-      case EConvert(COp.ToNumber, EBinary(BOp.Add, EConvert(COp.ToMath, l), EConvert(COp.ToMath, r))) =>
-        numberMath(l, r, rho, (lp, rp) => s"denote_number_math_values mn NMAdd BAdd CToNumber $lp $rp")
-      case EConvert(COp.ToNumber, EBinary(BOp.Mul, EConvert(COp.ToMath, l), EConvert(COp.ToMath, r))) =>
-        numberMath(l, r, rho, (lp, rp) => s"denote_number_math_values mn NMMul BMul CToNumber $lp $rp")
-      case EConvert(COp.ToNumber, EBinary(BOp.Div, EConvert(COp.ToMath, l), EConvert(COp.ToMath, r))) =>
-        numberMath(l, r, rho, (lp, rp) => s"denote_number_math_values mn NMDiv BDiv CToNumber $lp $rp")
-      case EConvert(COp.ToApproxNumber, EBinary(BOp.Pow, EConvert(COp.ToMath, l), EConvert(COp.ToMath, r))) =>
-        numberMath(l, r, rho, (lp, rp) => s"denote_number_math_values mn NMPow BPow CToApproxNumber $lp $rp")
-      case EConvert(COp.ToApproxNumber, EMathOp(MOp.Sin, List(EConvert(COp.ToMath, inner)))) =>
+      case EConvert(
+            COp.ToNumber,
+            EBinary(BOp.Add, EConvert(COp.ToMath, l), EConvert(COp.ToMath, r)),
+          ) =>
+        numberMath(
+          l,
+          r,
+          rho,
+          (lp, rp) =>
+            s"denote_number_math_values mn NMAdd BAdd CToNumber $lp $rp",
+        )
+      case EConvert(
+            COp.ToNumber,
+            EBinary(BOp.Mul, EConvert(COp.ToMath, l), EConvert(COp.ToMath, r)),
+          ) =>
+        numberMath(
+          l,
+          r,
+          rho,
+          (lp, rp) =>
+            s"denote_number_math_values mn NMMul BMul CToNumber $lp $rp",
+        )
+      case EConvert(
+            COp.ToNumber,
+            EBinary(BOp.Div, EConvert(COp.ToMath, l), EConvert(COp.ToMath, r)),
+          ) =>
+        numberMath(
+          l,
+          r,
+          rho,
+          (lp, rp) =>
+            s"denote_number_math_values mn NMDiv BDiv CToNumber $lp $rp",
+        )
+      case EConvert(
+            COp.ToApproxNumber,
+            EBinary(BOp.Pow, EConvert(COp.ToMath, l), EConvert(COp.ToMath, r)),
+          ) =>
+        numberMath(
+          l,
+          r,
+          rho,
+          (lp, rp) =>
+            s"denote_number_math_values mn NMPow BPow CToApproxNumber $lp $rp",
+        )
+      case EConvert(
+            COp.ToApproxNumber,
+            EMathOp(MOp.Sin, List(EConvert(COp.ToMath, inner))),
+          ) =>
         val v = fresh("value")
         bind(v, expr(inner, rho), s"denote_number_sin_value mn $v")
       case EConvert(COp.ToStr(radix), inner) =>
@@ -488,12 +611,16 @@ object FVDirectExport {
           case None => s"direct_tostr_value mn $v None"
           case Some(radixExpr) =>
             val rv = fresh("radix")
-            bind(rv, expr(radixExpr, rho), s"direct_tostr_value mn $v (Some $rv)")
+            bind(
+              rv,
+              expr(radixExpr, rho),
+              s"direct_tostr_value mn $v (Some $rv)",
+            )
         bind(
           v,
           expr(inner, rho),
           s"match $v with | VStr cs => Ret (VStr cs) | VNumber _ | VBigInt _ => " +
-            s"$radixTerm | _ => triggerUB end",
+          s"$radixTerm | _ => triggerUB end",
         )
       case EConvert(op, inner) =>
         val cop = op match
@@ -502,7 +629,7 @@ object FVDirectExport {
           case COp.ToBigInt       => "CToBigInt"
           case COp.ToMath         => "CToMath"
           case COp.ToCodeUnit     => "CToCodeUnit"
-          case COp.ToStr(_)       => throw IllegalStateException("handled above")
+          case COp.ToStr(_) => throw IllegalStateException("handled above")
         val v = fresh("value")
         bind(v, expr(inner, rho), s"denote_cop_value mn $cop $v")
       case EVariadic(op, es) =>
@@ -514,11 +641,19 @@ object FVDirectExport {
         bind(vs, exprList(es, rho), s"(eval_vop $vop $vs)?")
       case EMathOp(op, args) =>
         val vs = fresh("values")
-        bind(vs, exprList(args, rho), s"direct_mathop_values mn ${FVExport.rocqMOp(op)} $vs")
+        bind(
+          vs,
+          exprList(args, rho),
+          s"direct_mathop_values mn ${FVExport.rocqMOp(op)} $vs",
+        )
       case EContains(list, element) =>
         val lv = fresh("list")
         val ev = fresh("elem")
-        bind(lv, expr(list, rho), bind(ev, expr(element, rho), s"direct_contains_values mn $lv $ev"))
+        bind(
+          lv,
+          expr(list, rho),
+          bind(ev, expr(element, rho), s"direct_contains_values mn $lv $ev"),
+        )
       case ETrim(inner, starting) =>
         val v = fresh("value")
         bind(v, expr(inner, rho), s"direct_trim_value $v $starting")
@@ -529,7 +664,10 @@ object FVDirectExport {
           .lift(rhsIdx)
           .getOrElse(fail("expr.ESyntactic", s"invalid RHS $name[$rhsIdx]"))
         if (children.length != rhs.nts.length)
-          fail("expr.ESyntactic", s"$name[$rhsIdx] has ${children.length} children, grammar expects ${rhs.nts.length}")
+          fail(
+            "expr.ESyntactic",
+            s"$name[$rhsIdx] has ${children.length} children, grammar expects ${rhs.nts.length}",
+          )
         val optionalPresent = (rhs.ntsWithOptional zip children).collect {
           case ((_, true), child) => child.nonEmpty
         }
@@ -551,27 +689,51 @@ object FVDirectExport {
           case Some(child) :: tail =>
             val v = fresh("child")
             val cs = fresh("children")
-            bind(v, expr(child, rho), s"match $v with | VAst _ a _ => ${bind(cs, evalChildren(tail), s"Ret (Some a :: $cs)")} | _ => triggerUB end")
+            bind(
+              v,
+              expr(child, rho),
+              s"match $v with | VAst _ a _ => ${bind(cs, evalChildren(tail), s"Ret (Some a :: $cs)")} | _ => triggerUB end",
+            )
         val cs = fresh("children")
-        bind(cs, evalChildren(children.toList), s"direct_syntactic_values mn ${strLit(name)} ${coqList(args.map(_.toString))} ${natLit(rhsIdx)} ${natLit(subIdx)} $cs $childNames $layout")
+        bind(
+          cs,
+          evalChildren(children.toList),
+          s"direct_syntactic_values mn ${strLit(name)} ${coqList(
+            args.map(_.toString),
+          )} ${natLit(rhsIdx)} ${natLit(subIdx)} $cs $childNames $layout",
+        )
       case EGrammarSymbol(name, params) =>
         s"Ret (VGrammarSymbol ${strLit(name)} ${coqList(params.map(_.toString))})"
       case EInstanceOf(base, target) =>
         val v = fresh("value")
         val t = fresh("target")
-        bind(v, expr(base, rho), bind(t, expr(target, rho), s"Ret (eval_instanceof $v $t)"))
+        bind(
+          v,
+          expr(base, rho),
+          bind(t, expr(target, rho), s"Ret (eval_instanceof $v $t)"),
+        )
       case ESourceText(inner) =>
         val v = fresh("value")
         bind(v, expr(inner, rho), s"direct_source_text_value $v")
       case EParse(code, rule) =>
         if (!FVExport.parseOperandSupported(code))
-          fail("expr.EParse", s"unsupported code operand ${code.getClass.getSimpleName}")
+          fail(
+            "expr.EParse",
+            s"unsupported code operand ${code.getClass.getSimpleName}",
+          )
         if (!FVExport.parseOperandSupported(rule))
-          fail("expr.EParse", s"unsupported rule operand ${rule.getClass.getSimpleName}")
+          fail(
+            "expr.EParse",
+            s"unsupported rule operand ${rule.getClass.getSimpleName}",
+          )
         val cv = fresh("code")
         val rv = fresh("rule")
-        bind(cv, parseOperand(code, rho), s"match $cv with | EvalThrow => alloc_parse_errors mn | EvalValue _ => " +
-          s"${bind(rv, parseOperand(rule, rho), s"direct_parse_outcomes mn $cv $rv")} end")
+        bind(
+          cv,
+          parseOperand(code, rho),
+          s"match $cv with | EvalThrow => alloc_parse_errors mn | EvalValue _ => " +
+          s"${bind(rv, parseOperand(rule, rho), s"direct_parse_outcomes mn $cv $rv")} end",
+        )
       case ESubstring(base, from, to) =>
         val sv = fresh("string")
         val fv = fresh("from")
@@ -579,84 +741,164 @@ object FVDirectExport {
           case None => s"direct_substring_values $sv $fv None"
           case Some(toExpr) =>
             val tv = fresh("to")
-            bind(tv, expr(toExpr, rho), s"direct_substring_values $sv $fv (Some $tv)")
+            bind(
+              tv,
+              expr(toExpr, rho),
+              s"direct_substring_values $sv $fv (Some $tv)",
+            )
         bind(sv, expr(base, rho), bind(fv, expr(from, rho), tail))
       case other => fail("expr.unhandled", other.getClass.getSimpleName)
 
     def inst(i: Inst, fnames: String, rho: String): String = i match
       case INop() => s"Ret ($rho, CNormal VUndef)"
-      case ISeq(insts) => insts match
-        case Nil => s"Ret ($rho, CNormal VUndef)"
-        case head :: tail =>
-          val rho1 = fresh("rho")
-          val completion = fresh("completion")
-          val rest = inst(ISeq(tail), fnames, rho1)
-          s"('($rho1, $completion) : env * completion <- ${inst(head, fnames, rho)};; " +
+      case ISeq(insts) =>
+        insts match
+          case Nil => s"Ret ($rho, CNormal VUndef)"
+          case head :: tail =>
+            val rho1 = fresh("rho")
+            val completion = fresh("completion")
+            val rest = inst(ISeq(tail), fnames, rho1)
+            s"('($rho1, $completion) : env * completion <- ${inst(head, fnames, rho)};; " +
             s"match $completion with | CNormal _ => $rest | CReturn v => Ret ($rho1, CReturn v) end)"
       // The sequenced value is discarded, so its type has to be pinned here
       // or elaboration leaves the ITree's return type unresolved (an [EYet]
       // operand emits a bare [triggerUB], which constrains nothing).
       case IExpr(e) =>
-        seq(s"(${expr(e, rho)} : itree crisE val)", s"Ret ($rho, CNormal VUndef)")
+        seq(
+          s"(${expr(e, rho)} : itree crisE val)",
+          s"Ret ($rho, CNormal VUndef)",
+        )
       case ILet(lhs, e) =>
         val v = fresh("value")
-        bind(v, expr(e, rho), s"Ret (env_update (LName ${strLit(lhs.name)}) $v $rho, CNormal VUndef)")
+        bind(
+          v,
+          expr(e, rho),
+          s"Ret (env_update (LName ${strLit(lhs.name)}) $v $rho, CNormal VUndef)",
+        )
       case IAssign(reference, e) =>
         val target = fresh("target")
         val value = fresh("value")
         val rho1 = fresh("rho")
-        bind(target, ref(reference, rho), bind(value, expr(e, rho), bind(rho1, s"write_target mn $rho $target $value", s"Ret ($rho1, CNormal VUndef)")))
+        bind(
+          target,
+          ref(reference, rho),
+          bind(
+            value,
+            expr(e, rho),
+            bind(
+              rho1,
+              s"write_target mn $rho $target $value",
+              s"Ret ($rho1, CNormal VUndef)",
+            ),
+          ),
+        )
       case IIf(cond, thenInst, elseInst, _) =>
         val cv = fresh("condition")
-        bind(cv, expr(cond, rho), s"match $cv with | VBool true => ${inst(thenInst, fnames, rho)} | VBool false => ${inst(elseInst, fnames, rho)} | _ => triggerUB end")
+        bind(
+          cv,
+          expr(cond, rho),
+          s"match $cv with | VBool true => ${inst(thenInst, fnames, rho)} | VBool false => ${inst(elseInst, fnames, rho)} | _ => triggerUB end",
+        )
       case IWhile(cond, body) =>
         val loopRho = fresh("rho")
         val cv = fresh("condition")
         val rho1 = fresh("rho")
         val completion = fresh("completion")
         val bodyTerm = inst(body, fnames, loopRho)
-        s"ITree.iter (fun $loopRho : env => ${bind(cv, expr(cond, loopRho), s"match $cv with | VBool true => ('($rho1, $completion) : env * completion <- $bodyTerm;; match $completion with | CNormal _ => Ret (inl $rho1) | CReturn v => Ret (inr ($rho1, CReturn v)) end) | VBool false => Ret (inr ($loopRho, CNormal VUndef)) | _ => triggerUB end")}) $rho"
+        s"ITree.iter (fun $loopRho : env => ${bind(
+          cv,
+          expr(cond, loopRho),
+          s"match $cv with | VBool true => ('($rho1, $completion) : env * completion <- $bodyTerm;; match $completion with | CNormal _ => Ret (inl $rho1) | CReturn v => Ret (inr ($rho1, CReturn v)) end) | VBool false => Ret (inr ($loopRho, CNormal VUndef)) | _ => triggerUB end",
+        )}) $rho"
       case ICall(lhs, f, args) =>
         val fv = fresh("function")
         val vs = fresh("args")
         val rv = fresh("result")
-        val closure = bind(vs, exprList(args, rho), bind(rv, s"ccallU (ir_sig fn) (captured, $vs)", s"Ret (env_update ${local(lhs)} $rv $rho, CNormal VUndef)"))
-        val continuation = bind(vs, exprList(args, rho), s"(impossible <- ccallU cont_invoke_sig (mkContRequest fn captured $vs stack);; match impossible with end)")
-        bind(fv, expr(f, rho), s"match $fv with | VClo fn captured => $closure | VCont fn captured stack => $continuation | _ => triggerUB end")
+        val closure = bind(
+          vs,
+          exprList(args, rho),
+          bind(
+            rv,
+            s"ccallU (ir_sig fn) (captured, $vs)",
+            s"Ret (env_update ${local(lhs)} $rv $rho, CNormal VUndef)",
+          ),
+        )
+        val continuation = bind(
+          vs,
+          exprList(args, rho),
+          s"(impossible <- ccallU cont_invoke_sig (mkContRequest fn captured $vs stack);; match impossible with end)",
+        )
+        bind(
+          fv,
+          expr(f, rho),
+          s"match $fv with | VClo fn captured => $closure | VCont fn captured stack => $continuation | _ => triggerUB end",
+        )
       case IReturn(e) =>
         val v = fresh("value")
         bind(v, expr(e, rho), s"Ret ($rho, CReturn $v)")
       case IAssert(EYet(_)) => s"Ret ($rho, CNormal VUndef)"
       case IAssert(e) =>
         val cv = fresh("condition")
-        bind(cv, expr(e, rho), s"match $cv with | VBool true => Ret ($rho, CNormal VUndef) | _ => triggerUB end")
+        bind(
+          cv,
+          expr(e, rho),
+          s"match $cv with | VBool true => Ret ($rho, CNormal VUndef) | _ => triggerUB end",
+        )
       case IPrint(e) =>
         val v = fresh("value")
         bind(v, expr(e, rho), seq(s"log_val $v", s"Ret ($rho, CNormal VUndef)"))
       case IPush(element, list, front) =>
         val ev = fresh("element")
         val lv = fresh("list")
-        bind(ev, expr(element, rho), bind(lv, expr(list, rho), s"direct_push_values mn $rho $ev $lv $front"))
+        bind(
+          ev,
+          expr(element, rho),
+          bind(
+            lv,
+            expr(list, rho),
+            s"direct_push_values mn $rho $ev $lv $front",
+          ),
+        )
       case IPop(lhs, list, front) =>
         val lv = fresh("list")
-        bind(lv, expr(list, rho), s"direct_pop_value mn $rho ${local(lhs)} $lv $front")
+        bind(
+          lv,
+          expr(list, rho),
+          s"direct_pop_value mn $rho ${local(lhs)} $lv $front",
+        )
       case IExpand(base, field) =>
         val target = fresh("target")
         val bv = fresh("base")
         val fv = fresh("field")
-        bind(target, ref(base, rho), bind(bv, s"read_target mn $rho $target", bind(fv, expr(field, rho), s"direct_expand_values mn $rho $bv $fv")))
+        bind(
+          target,
+          ref(base, rho),
+          bind(
+            bv,
+            s"read_target mn $rho $target",
+            bind(fv, expr(field, rho), s"direct_expand_values mn $rho $bv $fv"),
+          ),
+        )
       case IDelete(base, key) =>
         val target = fresh("target")
         val bv = fresh("base")
         val kv = fresh("key")
-        bind(target, ref(base, rho), bind(bv, s"read_target mn $rho $target", bind(kv, expr(key, rho), s"direct_delete_values mn $rho $bv $kv")))
+        bind(
+          target,
+          ref(base, rho),
+          bind(
+            bv,
+            s"read_target mn $rho $target",
+            bind(kv, expr(key, rho), s"direct_delete_values mn $rho $bv $kv"),
+          ),
+        )
       case ISdoCall(lhs, base, method, args) =>
         val bv = fresh("base")
         bind(
           bv,
           expr(base, rho),
           s"direct_sdo_value $fnames $rho ${local(lhs)} $bv ${strLit(method)} " +
-            s"(fun _ => ${exprList(args, rho)})",
+          s"(fun _ => ${exprList(args, rho)})",
         )
   }
 }
