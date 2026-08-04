@@ -122,6 +122,11 @@ object ESMeta extends Git(BASE_DIR) {
     ("silent", BoolOption(_.silent = _), "do not show final results."),
     ("error", BoolOption((_, b) => ERROR_MODE = b), "show error stack traces."),
     ("status", BoolOption((_, b) => STATUS_MODE = b), "exit with status."),
+    (
+      "fast-parse",
+      BoolOption((_, b) => FAST_PARSE = b),
+      "parse ECMAScript programs through ESTree (requires Node.js).",
+    ),
     ("time", BoolOption(_.time = _), "display the duration time."),
     (
       "test262dir",

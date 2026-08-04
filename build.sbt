@@ -123,6 +123,11 @@ lazy val esParseTest =
 lazy val esAnalyzeTest =
   taskKey[Unit]("Launch analyze tests for ECMAScript (small)")
 
+// parser
+lazy val parserTest = taskKey[Unit]("Launch parser tests")
+lazy val parserEsTreeTest =
+  taskKey[Unit]("Launch ESTree parser tests (small)")
+
 // injector
 lazy val injectorTest = taskKey[Unit]("Launch injector tests")
 lazy val injectorStringifyTest =
@@ -131,6 +136,12 @@ lazy val injectorStringifyTest =
 // test262
 lazy val test262ParseTest =
   taskKey[Unit]("Launch parse tests for Test262 (large)")
+lazy val test262EsTreeParseTest =
+  taskKey[Unit]("Launch ESTree parser tests for Test262 (large)")
+lazy val test262EsTreeEvalTest =
+  taskKey[Unit](
+    "Launch eval tests through the ESTree parser for Test262 (large)",
+  )
 lazy val test262EvalTest =
   taskKey[Unit]("Launch eval tests for Test262 (large)")
 
@@ -154,6 +165,10 @@ val CirceVersion = "0.14.7"
 val CirceYamlVersion = "0.16.0"
 val ZioHttpVersion = "3.3.2"
 val Http4sVersion = "0.23.30"
+val AcornVersion = "8.18.0"
+
+// unpack the acorn bundle used by the ESTree parsing script
+lazy val unpackAcorn = taskKey[Seq[File]]("unpack acorn from its WebJars jar")
 
 // project root
 lazy val root = project
@@ -178,7 +193,37 @@ lazy val root = project
         .cross(CrossVersion.for3Use2_13),
       "org.http4s" %% "http4s-ember-server" % Http4sVersion,
       "org.http4s" %% "http4s-dsl" % Http4sVersion,
+      // the ESTree parsing script runs this bundle in Node.js; it is unpacked
+      // into the resources by `unpackAcorn` and never used from the classpath
+      "org.webjars.npm" % "acorn" % AcornVersion % Provided,
     ),
+
+    // unpack the files the ESTree parsing script needs from the acorn jar, so
+    // that the generated bundle is a managed dependency instead of a vendored
+    // copy in the repository
+    unpackAcorn := {
+      val dir = (Compile / resourceManaged).value / "estree"
+      val jar = (Compile / dependencyClasspath).value
+        .map(_.data)
+        .find(_.getName == s"acorn-$AcornVersion.jar")
+        .getOrElse(
+          sys.error(s"acorn-$AcornVersion.jar is not on the classpath"),
+        )
+      val prefix = s"META-INF/resources/webjars/acorn/$AcornVersion/"
+      val entries =
+        Map("dist/acorn.mjs" -> "acorn.mjs", "LICENSE" -> "acorn-LICENSE")
+      val targets = entries.values.map(dir / _).toSeq
+      if (targets.exists(_.lastModified < jar.lastModified)) {
+        IO.createDirectory(dir)
+        IO.withTemporaryDirectory { tmp =>
+          IO.unzip(jar, tmp, new SimpleFilter(entries.keySet.map(prefix + _)))
+          for ((from, to) <- entries)
+            IO.copyFile(tmp / (prefix + from), dir / to)
+        }
+      }
+      targets
+    },
+    Compile / resourceGenerators += unpackAcorn.taskValue,
 
     // Copy all managed dependencies to <build-root>/lib_managed/ This is
     // essentially a project-local cache.  There is only one lib_managed/ in
@@ -284,6 +329,9 @@ lazy val root = project
     esEvalTest := (Test / testOnly).toTask(" *.es.Eval*Test").value,
     esParseTest := (Test / testOnly).toTask(" *.es.Parse*Test").value,
     esAnalyzeTest := (Test / testOnly).toTask(" *.es.Analyze*Test").value,
+    // parser
+    parserTest := (Test / testOnly).toTask(" *.parser.*Test").value,
+    parserEsTreeTest := (Test / testOnly).toTask(" *.parser.EsTree*Test").value,
     // ir
     injectorTest := (Test / testOnly).toTask(" *.injector.*Test").value,
     injectorStringifyTest := (Test / testOnly)
@@ -291,7 +339,15 @@ lazy val root = project
       .value,
     // test262
     test262ParseTest := (Test / testOnly).toTask(" *.test262.Parse*Test").value,
-    test262EvalTest := (Test / testOnly).toTask(" *.test262.Eval*Test").value,
+    test262EsTreeParseTest := (Test / testOnly)
+      .toTask(" *.test262.EsTreeParseLargeTest")
+      .value,
+    test262EsTreeEvalTest := (Test / testOnly)
+      .toTask(" *.test262.EsTreeEvalLargeTest")
+      .value,
+    test262EvalTest := (Test / testOnly)
+      .toTask(" *.test262.EvalLargeTest")
+      .value,
   )
 
 // create the `.completion` file for autocompletion in shell

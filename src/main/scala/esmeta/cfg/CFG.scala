@@ -34,8 +34,8 @@ case class CFG(
 
   /** an ECMAScript parser */
   lazy val esParser: ESParser = program.esParser
-  lazy val scriptParser: AstFrom = esParser("Script")
-  lazy val moduleParser: AstFrom = esParser("Module")
+  lazy val scriptParser: AstFrom = spec.scriptParser
+  lazy val moduleParser: AstFrom = spec.moduleParser
 
   /** initializer for initial states */
   lazy val init: Initialize = new Initialize(this)

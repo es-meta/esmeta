@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.es.*
 import esmeta.parser.ESParser
+import esmeta.parser.estree.FastParser
 import esmeta.spec.Spec
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
@@ -17,7 +18,11 @@ case object Parse extends Phase[Spec, Ast] {
     config: Config,
   ): Ast =
     val filename = getFirstFilename(cmdConfig, name)
-    ESParser(spec.grammar, config.debug)(config.goal).fromFile(filename)
+    // the debugging mode belongs to the parser over the grammar
+    val parser =
+      if (FAST_PARSE && !config.debug) FastParser(spec.grammar)(config.goal)
+      else ESParser(spec.grammar, config.debug)(config.goal)
+    parser.fromFile(filename)
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (

@@ -3,10 +3,13 @@ package esmeta.test262
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.error.{NotSupported, InvalidExit, UnexpectedParseResult}
+import esmeta.error.EsTreeError
 import esmeta.error.NotSupported.*
 import esmeta.es.*
 import esmeta.es.util.*
 import esmeta.interpreter.Interpreter
+import esmeta.parser.ESParser
+import esmeta.parser.estree.FastParser
 import esmeta.state.*
 import esmeta.ty.{*, given}
 import esmeta.ty.util.TypeErrorCollector
@@ -22,6 +25,7 @@ class Test262(
   val version: Test262.Version,
   val cfg: CFG,
   val withYet: Boolean = false,
+  val useEsTree: Boolean = false, // parse through ESTree instead of the grammar
 ) {
 
   type Filename = String
@@ -87,7 +91,8 @@ class Test262(
   // private helpers
   // ---------------------------------------------------------------------------
   // parse ECMAScript code
-  private lazy val scriptParser = cfg.scriptParser
+  private lazy val scriptParser =
+    if (useEsTree) cfg.spec.fastParser("Script") else cfg.scriptParser
   private def parse(code: String): Code =
     scriptParser.fromWithCode(code)
   private def parseFile(filename: String): Code =
@@ -134,7 +139,7 @@ object Test262 extends Git(TEST262_DIR) {
         targetTests.map(_.relName).zipWithIndex.map(_.swap).toMap,
         s"$TEST262TEST_LOG_DIR/test262IdToTest262.json",
       )
-    val name = "eval"
+    val name = if (test262.useEsTree) "estree-eval" else "eval"
     val logDir = s"$TEST262TEST_LOG_DIR/$name-$dateStr"
     val symlink = s"$TEST262TEST_LOG_DIR/recent"
 
@@ -228,6 +233,94 @@ object Test262 extends Git(TEST262_DIR) {
         if (tyCheck) collector.add(filename, st.typeErrors)
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
+      }
+    }.result
+  }
+
+  /** ESTree parser equivalence test
+    *
+    * Every test is parsed twice, once with the grammar of ECMA-262 and once
+    * through ESTree, and the two ASTs must be identical. Tests that the ESTree
+    * parser refuses are counted as not supported rather than failed: it also
+    * checks the early errors of the specification, which ESMeta evaluates on
+    * the AST, so [[esmeta.parser.estree.FastParser]] falls back to the
+    * reference parser for them.
+    */
+  def estreeTest(
+    log: Boolean = false,
+    concurrent: CP = CP.Single,
+    verbose: Boolean = false,
+  )(using test262: Test262): Summary = {
+    val tests: List[Test] = test262.getTests(None)
+    val (targetTests, removed) = test262.testFilter(tests, test262.withYet)
+    val logDir = s"$TEST262TEST_LOG_DIR/estree-$dateStr"
+
+    new Test262Runner(
+      msg = s"Compare the ESTree parser with the grammar of ECMA-262",
+      targets = targetTests,
+      notSupported = removed,
+      concurrent = concurrent,
+      showProgressBar = false,
+      detail = false,
+    ) {
+
+      override lazy val getName = (test, _) => test.relName
+
+      private lazy val grammar = test262.cfg.grammar
+      private lazy val slowParser = ESParser(grammar)("Script")
+      private lazy val fastParser =
+        FastParser(grammar, fallback = false)("Script")
+
+      def runTest(test: Test): Unit = {
+        val code = readFile(test.path)
+        val expect = slowParser.from(code)
+        val actual =
+          try fastParser.from(code)
+          catch {
+            case e: Throwable =>
+              throw NotSupported(List("estree", getMessage(e)))
+          }
+        for (reason <- AstDiff.parentLinks(actual)) throw EsTreeError(reason)
+        for (reason <- AstDiff(expect, actual))
+          // A program that needs a semicolon inserted is parsed again from a
+          // rewritten source, and the rewrite normalizes every line terminator
+          // of the file, which shows up in the text of a template token. The
+          // ESTree parser keeps the source as written instead, and `TRV` and
+          // `SV` normalize it where the specification says they do.
+          if (AstDiff(expect, actual, upToLineTerminators = true).isEmpty)
+            throw NotSupported(
+              List(
+                "estree",
+                "line terminators rewritten by the reference parser",
+              ),
+            )
+          else throw EsTreeError(reason)
+      }
+
+      override def errorHandler(
+        error: Throwable,
+        summary: Summary,
+        name: String,
+      ): Unit = error match
+        case NotSupported(reasons) => summary.notSupported.add(name, reasons)
+        case error                 => summary.fail.add(name, getMessage(error))
+
+      override def postJob: Summary = {
+        val summary = super.postJob
+        if (log)
+          mkdir(logDir)
+          summary.dumpTo(logDir)
+          dumpFile(
+            "Test262 ESTree parser test summary",
+            s"$summary",
+            s"$logDir/summary",
+          )
+          createSymLink(
+            s"$TEST262TEST_LOG_DIR/recent",
+            logDir,
+            overwrite = true,
+          )
+        summary
       }
     }.result
   }

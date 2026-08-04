@@ -12,7 +12,7 @@ _esmeta_completions() {
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
   cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject mutate dump-debugger dump-visualizer yet-check"
-  globalOpt="-silent -error -status -time -test262dir"
+  globalOpt="-silent -error -status -fast-parse -time -test262dir"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets"
   compileOpt="-compile:log -compile:log-with-loc -compile:opt"

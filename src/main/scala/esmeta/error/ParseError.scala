@@ -19,3 +19,9 @@ case class UnexpectedSymbol(symbol: Symbol)
 
 case object UnexpectedParseResult
   extends ParseError(s"unexpected parsing result")
+
+/** failures of the ESTree-based fast parser */
+case class EsTreeError(msg: String) extends ParseError(s"ESTree: $msg")
+
+case class EsTreeParseError(msg: String)
+  extends ParseError(s"ESTree parsing failed: $msg")

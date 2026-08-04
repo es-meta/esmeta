@@ -20,6 +20,7 @@ automatically generates language-based tools.
     + [Installation of ESMeta using `sbt`](#installation-of-esmeta-using--sbt-)
   * [Basic Commands](#basic-commands)
     + [Parsing and Executing ECMAScript files](#parsing-and-executing-ecmascript-files)
+    + [Faster Parsing through ESTree](#faster-parsing-through-estree)
     + [Executing Test262 tests](#executing-test262-tests)
   * [Supported Features](#supported-features)
     + [Specification Exemplified with ECMA Visualizer](#specification-exemplified-with-ecma-visualizer)
@@ -171,6 +172,56 @@ $ esmeta parse example.js
 
 # execute example.js
 $ esmeta eval example.js
+```
+
+### Faster Parsing through ESTree
+
+The default parser of ESMeta is a packrat parser generated from the grammar of
+ECMA-262, which makes it follow the specification exactly but also makes it the
+slowest part of running a program. The `-fast-parse` option instead parses a
+program with [acorn](https://github.com/acornjs/acorn) and rebuilds the concrete
+syntax tree of ECMA-262 from the resulting ESTree:
+```bash
+# parse example.js through ESTree (requires Node.js)
+$ esmeta parse -fast-parse example.js
+
+# run Test262 tests with the faster parser
+$ esmeta test262-test -fast-parse
+```
+The resulting ASTs are identical to the ones the default parser produces, which
+is checked against every applicable Test262 test:
+```bash
+# compare the two parsers on the ECMAScript test programs
+$ sbt parserEsTreeTest
+
+# compare the two parsers on all applicable Test262 tests
+$ sbt test262EsTreeTest
+```
+An ESTree parser also rejects programs that violate the *early errors* of the
+specification, which ESMeta evaluates on the AST instead and therefore has to
+parse first. For such a program, the option silently falls back to the default
+parser, so no program that ESMeta accepts today stops being accepted.
+
+Two differences are left on purpose. The default parser reports the source with
+the semicolons of automatic semicolon insertion written into it, whereas this
+one reports the source as given, so its locations refer to the real program. As
+a consequence, when a program both needs a semicolon inserted and contains a
+`<CR>`, the two parsers disagree on the text of a template token: the rewrite of
+the default parser normalizes the line terminators of the whole file, while this
+parser leaves them to `TRV` and `SV`, where the specification normalizes them.
+And a handful of programs that the default parser cannot parse at all -- a
+hashbang in a module, or one of the many real-world files that need more than a
+hundred semicolons inserted -- are parsed by this one.
+
+Because the AST is also read during execution, the two parsers are compared by
+running programs as well, not only by comparing trees:
+```bash
+# run any existing test suite through the ESTree parser
+$ ESMETA_FAST_PARSE=1 sbt basicTest
+
+# run Test262 tests both ways and compare the results
+$ esmeta test262-test tests/test262/test/language/statements
+$ esmeta test262-test -fast-parse tests/test262/test/language/statements
 ```
 
 ### Executing Test262 tests
