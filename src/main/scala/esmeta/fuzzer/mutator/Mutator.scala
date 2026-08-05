@@ -13,6 +13,8 @@ trait Mutator(using val cfg: CFG) {
   /** ECMAScript parser */
   lazy val esParser: ESParser = cfg.esParser
   lazy val scriptParser: AstFrom = esParser("Script")
+  lazy val assignExprParser: AstFrom =
+    esParser("AssignmentExpression", List(true, false, false))
 
   /** mutate code */
   def apply(code: String, target: Option[(CondView, Coverage)]): Result =
@@ -25,8 +27,19 @@ trait Mutator(using val cfg: CFG) {
     val ast = scriptParser.from(code)
     apply(ast, n, target).map { mutatedAst =>
       val s = mutatedAst.toString(grammar = Some(cfg.grammar))
-      Result(name, s)
+      Result(name, Code.Simple(s))
     }
+
+  /** mutate structured Code */
+  def apply(code: Code, target: Option[(CondView, Coverage)]): Result =
+    apply(code, 1, target).head
+  def apply(
+    code: Code,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Seq[Result] = code match
+    case Code.Simple(s)  => apply(s, n, target)
+    case Code.Builtin(f) => mutateBuiltinOperands(f, n, target)
 
   /** mutate AST */
   def apply(ast: Ast, target: Option[(CondView, Coverage)]): Ast =
@@ -43,12 +56,33 @@ trait Mutator(using val cfg: CFG) {
   /** Possible names of underlying mutators */
   val names: List[String]
   lazy val name: String = names.head
+
+  /** mutate a builtin call, leaving its path untouched */
+  private def mutateBuiltinOperands(
+    form: BuiltinForm,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Seq[Result] =
+    val ops = form.operands
+    if (ops.isEmpty) return Seq(Result(name, Code.Builtin(form)))
+    val perOp = math.max(1, (n + ops.size - 1) / ops.size)
+    val results = for {
+      (op, i) <- ops.zipWithIndex
+      // an unparsable operand has no assignment-expression mutants to offer
+      mutated <- optional(assignExprParser.from(op)).toList.flatMap { ast =>
+        apply(ast, perOp, target).map(_.toString(grammar = Some(cfg.grammar)))
+      }
+      newForm = form.withOperands(ops.updated(i, mutated))
+    } yield Result(name, Code.Builtin(newForm))
+    if (results.isEmpty) Seq(Result(name, Code.Builtin(form)))
+    else shuffle(results).take(n)
 }
 
 object Mutator {
 
   /** Result of mutation with mutator name and code */
-  case class Result(name: String, code: String)
+  case class Result(name: String, codeObj: Code):
+    def code: String = codeObj.toString
 
   /** Manually crafted expression strings for Syntactic node mutation */
   val manualExprs: List[String] =

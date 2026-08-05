@@ -205,7 +205,7 @@ case class Test262(
             )
           else {
             val (ast, sourceText) = loadTest(filename)
-            val script = Script(sourceText, filename, true)
+            val script = Script(Code.Simple(sourceText), filename, true)
             cov.runAndCheck(script, Some(ast))._1
           }
         if (tyCheck) collector.add(filename, st.typeErrors)

@@ -20,6 +20,13 @@ class WeightedMutator(using cfg: CFG)(pairs: (Mutator, Int)*) extends Mutator {
     target: Option[(CondView, Coverage)],
   ): Seq[Result] = weightedChoose(pairs)(code, n, target)
 
+  /** mutate structured Code */
+  override def apply(
+    code: Code,
+    n: Int,
+    target: Option[(CondView, Coverage)],
+  ): Seq[Result] = weightedChoose(pairs)(code, n, target)
+
   /** mutate ASTs */
   def apply(
     ast: Ast,

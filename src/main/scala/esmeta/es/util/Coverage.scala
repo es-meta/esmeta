@@ -86,7 +86,7 @@ case class Coverage(
     script: Script,
     ast: Option[Ast] = None,
   ): (State, Boolean, Boolean) =
-    val sourceText = script.code
+    val sourceText = script.code.toString
     val interp = run(
       sourceText,
       ast.getOrElse(scriptParser.from(sourceText)),
@@ -238,7 +238,7 @@ case class Coverage(
         iterable = _minimalScripts,
         dirname = s"$baseDir/minimal",
         getName = _.name,
-        getData = USE_STRICT + _.code + LINE_SEP,
+        getData = USE_STRICT + _.code.toString + LINE_SEP,
         remove = true,
       )
       log("Dumped scripts")

@@ -10,31 +10,39 @@ import esmeta.util.BaseUtils.*
 
 /** An ECMAScript AST synthesizer for built-in libraries */
 class BuiltinSynthesizer(algorithms: List[Algorithm]) extends Synthesizer {
-  import BuiltinPath.*
+  import BuiltinPath.*, BuiltinForm.*
 
   /** synthesizer name */
   def name: String = "BuiltinSynthesizer"
 
   /** get script */
-  def script: String = choose(initPool)
+  def script: String = choose(initPool).toString
 
   /** get initial pool */
-  lazy val initPool: Vector[String] = (for {
+  lazy val initPool: Vector[Code] = (for {
     case BuiltinHead(path, params, _) <- algorithms.map(_.head)
     raw <- path match
       case YetPath(_) => Nil
       case Getter(base) =>
-        getString(base) :: (base match
+        Code.Simple(getString(base)) :: (base match
           case Prototype(proto, prop) =>
             val args = List("x", proto).mkString(", ")
-            List(s"var x = {}; Object.setPrototypeOf($args); x$prop;")
+            List(
+              Code.Simple(
+                s"var x = {}; Object.setPrototypeOf($args); x$prop;",
+              ),
+            )
           case _ => Nil
         )
       case Setter(base) =>
-        getString(base) :: (base match
+        Code.Simple(getString(base)) :: (base match
           case Prototype(proto, prop) =>
             val args = List("x", proto).mkString(", ")
-            List(s"var x = {}; Object.setPrototypeOf($args); x$prop = 0;")
+            List(
+              Code.Simple(
+                s"var x = {}; Object.setPrototypeOf($args); x$prop = 0;",
+              ),
+            )
           case _ => Nil
         )
       case path =>
@@ -44,27 +52,29 @@ class BuiltinSynthesizer(algorithms: List[Algorithm]) extends Synthesizer {
         val thisCands = getBase(path) match
           case Some(base) => List("0", s"new $base")
           case None       => List("0")
-        // calls
         val calls = for {
           thisArg <- thisCands
           argsLen <- Range(MIN_ARGS, MAX_ARGS).toList
           args = List.fill(argsLen)("0")
-          argsStr = (thisArg :: args).mkString(", ")
-        } yield s"$pathStr.call($argsStr);"
-        // constructs
-        val constructs = s"new $pathStr;" :: (for {
+        } yield Code.Builtin(Call(pathStr, thisArg, args))
+        val constructs =
+          Code.Builtin(Construct(pathStr, Nil)) :: (for {
+            argsLen <- Range(MIN_ARGS, MAX_ARGS).toList
+            args = List.fill(argsLen)("0")
+          } yield Code.Builtin(Construct(pathStr, args)))
+        val constructsWithNewTarget = for {
           argsLen <- Range(MIN_ARGS, MAX_ARGS).toList
           args = List.fill(argsLen)("0")
-          argsStr = args.mkString(", ")
-        } yield s"new $pathStr($argsStr);")
-        // Reflect.construct calls
-        val reflectConstructs = for {
-          argsLen <- Range(MIN_ARGS, MAX_ARGS).toList
-          argsStr = List.fill(argsLen)("0").mkString(", ")
-        } yield s"Reflect.construct($pathStr, [$argsStr], 0);"
-        calls ++ constructs ++ reflectConstructs
-    // expand the %TypedArray% placeholder over the whole concrete family
-    code <- if (raw.contains(TA)) taCtors.map(raw.replace(TA, _)) else List(raw)
+        } yield Code.Builtin(Construct(pathStr, args, Some("0")))
+        calls ++ constructs ++ constructsWithNewTarget
+    code <- raw match
+      case Code.Builtin(Call(p, thisArg, args)) if p.contains(TA) =>
+        taCtors.map(ta => Code.Builtin(Call(p.replace(TA, ta), thisArg, args)))
+      case Code.Builtin(Construct(p, args, nt)) if p.contains(TA) =>
+        taCtors.map(ta => Code.Builtin(Construct(p.replace(TA, ta), args, nt)))
+      case Code.Simple(s) if s.contains(TA) =>
+        taCtors.map(ta => Code.Simple(s.replace(TA, ta)))
+      case other => List(other)
   } yield code).toVector
 
   // get prototype paths and properties

@@ -27,7 +27,7 @@ case object Mutate extends Phase[CFG, String] {
     val coveredCondView: Option[CondView] = config.targetBranchId.map { id =>
       val interp = cov.run(code)
       // update targetCondViews on the coverage object
-      cov.check(Script(code, "seed", true), interp)
+      cov.check(Script(Code.Simple(code), "seed", true), interp)
       interp.touchedCondViews.keySet
         .filter(_.cond.branch.id == id)
         .headOption

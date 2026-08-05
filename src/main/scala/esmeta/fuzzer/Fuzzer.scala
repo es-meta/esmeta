@@ -96,14 +96,15 @@ class Fuzzer(
       s"- initializing program pool with ${initPool.size} programs", {
         var i = 1
         for {
-          (synthesizer, rawCode) <- initPool
-          code <- optional(
-            scriptParser.from(rawCode).toString(grammar = Some(grammar)),
+          (synthesizer, initCode) <- initPool
+          rawStr = initCode.toString
+          normalized <- optional(
+            scriptParser.from(rawStr).toString(grammar = Some(grammar)),
           )
         } {
-          debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
+          debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $normalized")
           i += 1
-          add(code)
+          add(normalized, initCode)
         }
       },
     )
@@ -156,10 +157,10 @@ class Fuzzer(
       val results = mutator(code, 100, condView.map((_, cov))).par
       results.map(result => (result, getCandInfo(result.code))).toList
 
-    for ((Mutator.Result(mutatorName, mutant), info) <- mutants)
-      debugging(f"----- $mutatorName%-20s-----> $mutant")
+    for ((res @ Mutator.Result(mutatorName, mutantCode), info) <- mutants)
+      debugging(f"----- $mutatorName%-20s-----> ${res.code}")
 
-      val result = add(mutant, info)
+      val result = add(res.code, info, mutantCode)
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
@@ -181,26 +182,30 @@ class Fuzzer(
     else CandInfo(interp = Some(Try(cov.run(code))))
 
   /** add new program */
-  def add(code: String): Boolean = add(code, getCandInfo(code))
+  def add(code: String): Boolean =
+    add(code, getCandInfo(code), Code.Simple(code))
+  def add(code: String, codeObj: Code): Boolean =
+    add(code, getCandInfo(code), codeObj)
 
   /** add mutant with precomputed info */
-  def add(mutant: String, info: CandInfo): Boolean = handleResult(
-    mutant,
-    Try {
-      if (info.visited) fail("ALREADY VISITED")
-      if (info.invalid) fail("INVALID PROGRAM")
-      val interp = info.interp.get match
-        case Success(v) => v
-        case Failure(e) => throw e
-      val finalState = interp.result
-      val supported = interp.supported
-      val script = toScript(mutant, supported)
-      if (tyCheck) collector.add(mutant, finalState.typeErrors)
-      val (_, updated, covered) = cov.check(script, interp)
-      if (!updated) fail("NO UPDATE")
-      (covered, supported)
-    },
-  )
+  def add(mutant: String, info: CandInfo, codeObj: Code): Boolean =
+    handleResult(
+      mutant,
+      Try {
+        if (info.visited) fail("ALREADY VISITED")
+        if (info.invalid) fail("INVALID PROGRAM")
+        val interp = info.interp.get match
+          case Success(v) => v
+          case Failure(e) => throw e
+        val finalState = interp.result
+        val supported = interp.supported
+        val script = toScript(codeObj, supported)
+        if (tyCheck) collector.add(mutant, finalState.typeErrors)
+        val (_, updated, covered) = cov.check(script, interp)
+        if (!updated) fail("NO UPDATE")
+        (covered, supported)
+      },
+    )
 
   /** handle add result */
   def handleResult(code: String, result: Try[(Boolean, Boolean)]): Boolean = {
@@ -267,7 +272,7 @@ class Fuzzer(
       case Some(files) =>
         files.map { file =>
           val sourceText = readFile(file.getPath).replace(USE_STRICT, "")
-          "GivenByUser" -> sourceText
+          "GivenByUser" -> Code.Simple(sourceText)
         }
       case None =>
         // FIXME: use only builtin init pool for experiment
@@ -297,7 +302,7 @@ class Fuzzer(
   private def interval: Long = System.currentTimeMillis - startInterval
 
   // conversion from code string to `Script` object
-  private def toScript(code: String, supported: Boolean): Script =
+  private def toScript(code: Code, supported: Boolean): Script =
     Script(code, s"$nextId.js", supported)
 
   // check if the added code is visited (thread-safe)
