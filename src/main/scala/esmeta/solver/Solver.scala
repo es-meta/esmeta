@@ -4,6 +4,7 @@ import esmeta.cfg.Func
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.ty.*
+import esmeta.util.*
 import esmeta.util.BaseUtils.*
 
 trait Solver { self: SymInterp =>
@@ -47,25 +48,33 @@ trait Solver { self: SymInterp =>
 }
 object Solver {
 
-  // get a JavaScript expression representing the value type
-  def getJSExpr(ty: ValueTy): Option[String] = exprFor(ty)
-
-  // get a JavaScript expression representing the newTarget value type
-  def getNewTargetExpr(ty: ValueTy): Option[String] =
-    if (UndefT ⊑ ty) None else getJSExpr(ty)
-
   // ---------------------------------------------------------------------------
   // candidate enumeration
   // ---------------------------------------------------------------------------
-  def candidates(ty: ValueTy): LazyList[String] =
-    val base = exprFor(ty).iterator.to(LazyList)
-    val objects =
-      if (isBasePlainObject(ty)) objectCandidates(ty) else LazyList.empty
-    val fixedExprsForType = fixedExprsFor(ty).to(LazyList)
-    val extra = extraCands
-      .collect { case (isTy, expr) if isTy(ty) => expr }
-      .to(LazyList)
-    distinct(base #::: objects #::: fixedExprsForType #::: extra)
+  def candidates(ty: ValueTy): LazyList[String] = distinct(
+    exact(ty).to(LazyList) #::: fromShape(ty) #::: witnessesFor(ty).to(LazyList),
+  )
+
+  def exprFor(ty: ValueTy): Option[String] = candidates(ty).headOption
+
+  private def exact(ty: ValueTy): List[String] =
+    def one[T](flat: Flat[T])(f: T => String): List[String] =
+      flat match
+        case One(x) => List(f(x))
+        case _      => Nil
+    one(ty.number.getSingle)(numberLit) ++
+    one(ty.bigInt)(n => s"${n}n") ++
+    one(ty.str)(str => s"\"${normStr(str)}\"") ++
+    one(ty.bool.getSingle)(b => if (b) "true" else "false")
+
+  private def numberLit(n: Number): String =
+    val d = n.double
+    if (d.isNaN) "NaN"
+    else if (d.isPosInfinity) "Infinity"
+    else if (d.isNegInfinity) "-Infinity"
+    else if (d == 0 && 1 / d < 0) "-0"
+    else if (d.isWhole && d.abs <= 9007199254740991.0) d.toLong.toString
+    else d.toString
 
   def newTargetCandidates(ty: ValueTy): List[String] =
     if (UndefT ⊑ ty) List("")
@@ -75,103 +84,69 @@ object Solver {
     if (slots.exists(_.isEmpty)) LazyList.empty
     else
       val heads = slots.map(_.head)
-      val variants =
-        for {
-          (slot, i) <- slots.iterator.zipWithIndex
-          alt <- slot.tail
-        } yield heads.updated(i, alt)
+      val tails = slots.map(_.tail.toVector)
+      val rounds = tails.map(_.size).maxOption.getOrElse(0)
+      val variants = for {
+        k <- (0 until rounds).iterator
+        (alts, i) <- tails.iterator.zipWithIndex
+        if (k < alts.size)
+      } yield heads.updated(i, alts(k))
       heads #:: variants.to(LazyList)
 
   private def distinct(xs: LazyList[String]): LazyList[String] =
     val seen = scala.collection.mutable.Set[String]()
     xs.filter(seen.add)
 
-  private def fixedExprsFor(ty: ValueTy): List[String] =
+  // a witness applies where it satisfies the slot
+  private def witnessesFor(ty: ValueTy): List[String] =
     if (ty.isBottom) Nil
     else
-      val atoms = ty.toAtomicTys.filterNot(_.isBottom)
-      val applicable = fixedExprs.filter {
-        case (tyCase, _) => atoms.exists(atom => atom ⊑ tyCase)
-      }
-      applicable.zipWithIndex
-        .sortBy {
-          case ((tyCase, _), index) =>
-            val specificity = applicable.count {
-              case (otherTy, _) => tyCase ⊑ otherTy && !(otherTy ⊑ tyCase)
-            }
-            (-specificity, index)
-        }
-        .flatMap(_._1._2)
-        .distinct
+      val bound = unrefined(ty)
+      val rows = witnesses.collect { case (wty, es) if wty <= bound => es }
+      roundRobin(rows).distinct
+
+  // one from each row in turn, so a long row cannot take the whole budget
+  private def roundRobin(rows: List[List[String]]): List[String] =
+    val cols = rows.map(_.toVector)
+    val rounds = cols.map(_.size).maxOption.getOrElse(0)
+    (0 until rounds).toList.flatMap { i =>
+      cols.collect { case col if i < col.size => col(i) }
+    }
+
+  private def unrefined(ty: ValueTy): ValueTy = ty.record match
+    case RecordTy.Elem(map, obj) =>
+      ty.copied(record =
+        RecordTy.Elem(map.map((t, _) => t -> FieldMap.Top), obj),
+      )
+    case _ => ty
 
   private def throwingTrap(name: String): String =
-    val target = name match
-      case "apply" | "construct" => "function(){}"
-      case _                     => "{}"
-    s"new Proxy($target, { $name() { throw 0; } })"
+    s"new Proxy({}, { $name() { throw 0; } })"
 
-  private val extraCands: List[(ValueTy => Boolean, String)] =
-    def isNum(v: Double): ValueTy => Boolean = _.number.contains(Number(v))
-    def isAnyNum: ValueTy => Boolean = !_.number.isBottom
-    def isBig(v: BigInt): ValueTy => Boolean = _.bigInt.contains(v)
-    def isAnyBig: ValueTy => Boolean = !_.bigInt.isBottom
-    def isBool(b: Boolean): ValueTy => Boolean = _.bool.contains(b)
-    def isStr(s: String): ValueTy => Boolean = _.str.contains(s)
-    def isAnyStr: ValueTy => Boolean = !_.str.isBottom
-    def isUndef: ValueTy => Boolean = !_.undef.isBottom
-    def isNull: ValueTy => Boolean = !_.nullv.isBottom
-    def isSym: ValueTy => Boolean = ty => SymbolT ⊑ ty || (ty overlap SymbolT)
-    def isObj: ValueTy => Boolean = ty => ObjectT ⊑ ty
-    List(
-      (isUndef, "undefined"),
-      (isNull, "null"),
-      (isBool(true), "true"),
-      (isBool(false), "false"),
-      (isNum(0), "0"),
-      (isNum(1), "1"),
-      (isNum(-0.0), "-0"),
-      (isNum(-1), "-1"),
-      (isNum(0.1), "0.1"),
-      (isNum(-0.1), "-0.1"),
-      ((_: ValueTy).number.contains(Number.NaN), "NaN"),
-      ((_: ValueTy).number.contains(Number.Inf), "Infinity"),
-      ((_: ValueTy).number.contains(-Number.Inf), "-Infinity"),
-      (isAnyNum, "Number.MAX_SAFE_INTEGER"),
-      (isAnyNum, "Number.MIN_SAFE_INTEGER"),
-      (isAnyNum, "Number.MAX_VALUE"),
-      (isAnyNum, "-Number.MAX_VALUE"),
-      (isBig(BigInt(0)), "0n"),
-      (isBig(BigInt(1)), "1n"),
-      (isBig(BigInt(-1)), "-1n"),
-      (isAnyBig, "9223372036854775807n"),
-      (isAnyBig, "-9223372036854775808n"),
-      (isAnyBig, "18446744073709551615n"),
-      (isSym, "Symbol()"),
-      (isSym, "Symbol.iterator"),
-      (isStr(""), "\"\""),
-      (isStr("0"), "\"0\""),
-      (isAnyStr, "\"\""),
-      (isObj, "[]"),
-      (isObj, "{}"),
-      (isObj, "function(){}"),
-      (isObj, "Object.freeze({ x: 1 })"),
-      (isObj, "Object.seal({ x: 1 })"),
-      (isObj, "Object.preventExtensions({})"),
-      (isObj, "Object.create(null)"),
+  private val typedArrayEntries: List[(ValueTy, List[String])] =
+    val names = List(
+      "Int8Array",
+      "Uint8Array",
+      "Uint8ClampedArray",
+      "Int16Array",
+      "Uint16Array",
+      "Int32Array",
+      "Uint32Array",
+      "BigInt64Array",
+      "BigUint64Array",
+      "Float16Array",
+      "Float32Array",
+      "Float64Array",
     )
-
-  private def objectCandidates(ty: ValueTy): LazyList[String] =
-    ty.record match
-      case RecordTy.Elem(_, ObjShape(props, _, _)) if props.nonEmpty =>
-        val ordered = props.toList.sortBy { case (p, _) => propKey(p) }
-        val slots: List[List[String]] = ordered.map { (prop, desc) =>
-          val k = propKey(prop)
-          if (desc.getExc) List(s"get $k() { throw 0; }")
-          else if (desc.setExc) List(s"set $k(_) { throw 0; }")
-          else candidates(desc.ty).toList.map(v => s"$k: $v")
-        }
-        oneChange(slots).map(_.mkString("{ ", ", ", " }"))
-      case _ => LazyList.empty
+    for (name <- names) yield
+      val elem = if (name.startsWith("Big")) "0n" else "0"
+      RecordT(name) -> List(
+        s"new $name()",
+        s"new $name(2)",
+        s"new $name([$elem, $elem])",
+        s"new $name(new ArrayBuffer(8), 0, 1)",
+        s"new $name(new ArrayBuffer(8, { maxByteLength: 16 }))",
+      )
 
   private def buildJSProgram(
     path: BuiltinPath,
@@ -253,89 +228,106 @@ object Solver {
     "ThrowTypeError" -> """(function() { "use strict"; return Object.getOwnPropertyDescriptor(arguments, "callee").get })()""",
   )
 
-  def exprFor(ty: ValueTy): Option[String] =
-    if (ty.number.contains(Number(0))) Some("0")
-    else if (ty.number.contains(Number(-1))) Some("-1")
-    else if (ty.number.contains(Number(1))) Some("1")
-    else if (ty.number.contains(Number.NaN)) Some("NaN")
-    else if (ty.number.contains(Number.Inf)) Some("Infinity")
-    else if (ty.number.contains(-Number.Inf)) Some("-Infinity")
-    else if (!ty.undef.isBottom) Some("undefined")
-    else if (!ty.nullv.isBottom) Some("null")
-    else if (ty.str.contains("")) Some("\"\"")
-    else if (ty.bool.contains(false)) Some("false")
-    else if (ty.bool.contains(true)) Some("true")
-    else if (ty.bigInt.contains(BigInt(0))) Some("0n")
-    else if (ty.bigInt.contains(BigInt(1))) Some("1n")
-    else defaultFor(ty)
+  // values built from the object shape a type carries
+  private def fromShape(ty: ValueTy): LazyList[String] =
+    val objs = ty.record match
+      case RecordTy.Elem(map, ObjShape(props, _, _)) if props.nonEmpty =>
+        val ordered = props.toList.sortBy { case (p, _) => propKey(p) }
+        val slots = ordered.map { (prop, desc) =>
+          val k = propKey(prop)
+          if (desc.getExc) List(s"get $k() { throw 0; }")
+          else if (desc.setExc) List(s"set $k(_) { throw 0; }")
+          else candidates(desc.ty).toList.map(v => s"$k: $v")
+        }
+        val objs = oneChange(slots).map(_.mkString("{ ", ", ", " }"))
+        if (isPlainObject(ty)) objs
+        else
+          val base = exprFor(ty.copied(record = RecordTy.Elem(map)))
+          base.iterator.to(LazyList).flatMap { b =>
+            objs.map(o => s"Object.assign($b, $o)")
+          }
+      case _ => LazyList.empty
+    objs #::: fromConstruct(ty).iterator.to(LazyList) #:::
+    fromCall(ty).iterator.to(LazyList)
 
-  def defaultFor(ty: ValueTy): Option[String] =
-    if (ty.isBottom) None
-    else
-      objectWithProps(ty)
-        .orElse(constructDescExpr(ty))
-        .orElse(callDescExpr(ty))
-        .orElse(baseDefaultFor(ty))
-
-  private def constructDescExpr(ty: ValueTy): Option[String] =
+  private def fromConstruct(ty: ValueTy): Option[String] =
     ty.record.construct match
       case ConstructDesc.Elem(exc, ret) =>
         if (exc) Some("function() { throw 0; }")
         else exprFor(ret).map(v => s"function() { return $v; }")
       case ConstructDesc.Top => None
 
-  private def callDescExpr(ty: ValueTy): Option[String] =
+  private def fromCall(ty: ValueTy): Option[String] =
     ty.record.call match
       case CallDesc.Elem(exc, ret) =>
-        val isConstructor = ty <= ConstructorT
+        val isCtor = ty <= ConstructorT
         if (exc)
-          Some(
-            if (isConstructor) "function() { throw 0; }"
-            else "() => { throw 0; }",
-          )
+          Some(if (isCtor) "function() { throw 0; }" else "() => { throw 0; }")
         else
           exprFor(ret).map { v =>
-            if (isConstructor) s"function() { return $v; }"
-            else s"() => ($v)"
+            if (isCtor) s"function() { return $v; }" else s"() => ($v)"
           }
       case CallDesc.Top => None
 
-  private def baseDefaultFor(ty: ValueTy): Option[String] =
-    if (ty.isBottom) None
-    else if (ty == ObjectT) Some("{}")
-    else fixedExprsFor(ty).headOption
-
-  private def isBasePlainObject(ty: ValueTy): Boolean = ty.record match
+  private def isPlainObject(ty: ValueTy): Boolean = ty.record match
     case RecordTy.Elem(map, _) =>
       ObjectT ⊑ ty.copied(record = RecordTy.Elem(map))
     case _ => ObjectT ⊑ ty
-
-  private def objectWithProps(ty: ValueTy): Option[String] =
-    if (!isBasePlainObject(ty)) None
-    else
-      val props = properties(ty)
-      if (props.nonEmpty && props.forall(_.isDefined))
-        Some(props.flatten.mkString("{ ", ", ", " }"))
-      else None
-
-  private def properties(ty: ValueTy): List[Option[String]] =
-    ty.record match
-      case RecordTy.Elem(_, ObjShape(props, _, _)) =>
-        // TODO call/construct descriptors
-        props.toList.map { (prop, desc) =>
-          val k = propKey(prop)
-          if (desc.getExc) Some(s"get $k() { throw 0; }")
-          else if (desc.setExc) Some(s"set $k(_) { throw 0; }")
-          else if (!desc.ty.isBottom) exprFor(desc.ty).map(v => s"$k: $v")
-          else None
-        }
-      case _ => Nil
 
   private def propKey(prop: Property): String = prop match
     case Property.PStr(str) => str
     case Property.PSym(sym) => s"[Symbol.$sym]"
 
-  private val fixedExprs: List[(ValueTy, List[String])] = List(
+  // keyed by the witness's own type
+  private val witnesses: List[(ValueTy, List[String])] = List(
+    NumberT -> List(
+      "0",
+      "1",
+      "-0",
+      "-1",
+      "0.1",
+      "-0.1",
+      "NaN",
+      "Infinity",
+      "-Infinity",
+      "Number.MAX_SAFE_INTEGER",
+      "Number.MIN_SAFE_INTEGER",
+      "Number.MAX_VALUE",
+    ),
+    UndefT -> List("undefined"),
+    NullT -> List("null"),
+    StrT -> List("\"\"", "\"0\""),
+    BoolT -> List("true", "false"),
+    BigIntT -> List(
+      "0n",
+      "1n",
+      "9223372036854775807n",
+      "18446744073709551615n",
+    ),
+    SymbolT -> List(
+      "Symbol()",
+      "Symbol.iterator",
+      "Symbol.toPrimitive",
+      "Symbol.toStringTag",
+      "Symbol.hasInstance",
+      "Symbol.species",
+    ),
+    ArrayT -> List("[]", "[,]"),
+    ObjectT -> List(
+      "{}",
+      "{ length: 1 }",
+      "Object.freeze({ x: 1 })",
+      "Object.seal({ x: 1 })",
+      "Object.create(null)",
+    ),
+    FunctionT -> List(
+      "function(){}",
+      "() => {}",
+      "() => ({})",
+      "() => ({ done: true })",
+      "function*(){}",
+      "async function*(){}",
+    ),
     RecordT("ProxyExoticObject") -> List(
       "new Proxy({}, {})",
       throwingTrap("getPrototypeOf"),
@@ -349,18 +341,20 @@ object Solver {
       throwingTrap("set"),
       throwingTrap("deleteProperty"),
       throwingTrap("ownKeys"),
-      throwingTrap("apply"),
-      throwingTrap("construct"),
     ),
-    SymbolT -> List("Symbol()"),
-    ConstructorT -> List("function() {}"),
-    FunctionT -> List("() => {}"),
+    ConstructorT -> List("function() {}", "(class {})"),
     RecordT("BoundFunctionExoticObject") -> List("(function(){}).bind()"),
     RecordT("BuiltinFunctionObject") -> List("Math.max"),
-    ArrayT -> List("[]"),
-    TypedArrayT -> List("new Int8Array()"),
-    RecordT("BigInt64Array") -> List("new BigInt64Array()"),
-    RecordT("BigUint64Array") -> List("new BigUint64Array()"),
+    TypedArrayT -> List(
+      "new Int8Array()",
+      "new Int8Array(2)",
+      "new Int8Array([0, 0])",
+      "new Int8Array(new ArrayBuffer(8), 0, 1)",
+      "new Int8Array(new ArrayBuffer(8, { maxByteLength: 16 }))",
+      "(() => { const a = new Int8Array(2); a.buffer.transfer(); return a; })()",
+      "(() => { const b = new ArrayBuffer(16, { maxByteLength: 16 }); " +
+      "const a = new Int8Array(b, 0, 1); b.resize(0); return a; })()",
+    ),
     RecordT("ArrayIteratorInstance") -> List("[][Symbol.iterator]()"),
     RegExpT -> List("/./"),
     RecordT("BooleanObject") -> List("Object(true)"),
@@ -368,16 +362,21 @@ object Solver {
     RecordT("StringExoticObject") -> List("Object('')"),
     RecordT("SymbolObject") -> List("Object(Symbol())"),
     RecordT("BigIntObject") -> List("Object(0n)"),
-    RecordT("Map") -> List("new Map()"),
-    RecordT("Set") -> List("new Set()"),
+    RecordT("Map") -> List("new Map()", "new Map([[0, 0]])"),
+    RecordT("Set") -> List("new Set()", "new Set([0])"),
     RecordT("WeakMap") -> List("new WeakMap()"),
     RecordT("WeakSet") -> List("new WeakSet()"),
-    RecordT("ArrayBuffer") -> List("new ArrayBuffer(0)"),
+    RecordT("ArrayBuffer") -> List(
+      "new ArrayBuffer(0)",
+      "new ArrayBuffer(8)",
+      "new ArrayBuffer(8, { maxByteLength: 16 })",
+      "(() => { const b = new ArrayBuffer(8); b.transfer(); return b; })()",
+    ),
     RecordT("SharedArrayBuffer") -> List("new SharedArrayBuffer(0)"),
     RecordT("DataView") -> List("new DataView(new ArrayBuffer(0))"),
     RecordT("Date") -> List("new Date()"),
     RecordT("Promise") -> List("new Promise(() => {})"),
-    RecordT("ErrorObject") -> List("new Error()"),
+    RecordT("ErrorObject") -> List("new Error()", "new AggregateError([])"),
     RecordT("Generator") -> List("(function*(){})()"),
     RecordT("AsyncGenerator") -> List("(async function*(){})()"),
     RecordT("WeakRef") -> List("new WeakRef({})"),
@@ -387,6 +386,5 @@ object Solver {
     RecordT("ArgumentsExoticObject") -> List(
       "(function(){ return arguments; })()",
     ),
-    ObjectT -> List("{}"),
-  )
+  ) ++ typedArrayEntries
 }
