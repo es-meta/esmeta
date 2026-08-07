@@ -18,6 +18,9 @@ from typing import Iterable
 BranchSide = tuple[int, str]
 
 BRANCH_FILE_RE = re.compile(r"^branch-(\d+)-([TF])$")
+INCIDENTAL_DIR = "incidental-programs"
+INCIDENTAL_FILE_RE = re.compile(r"^(\d+)-([TF])\.js$")
+INCIDENTAL_STATUS = "incidental"
 SUMMARY_BRANCH_RE = re.compile(r"\bBranch\[(\d+)\]:(T|F)\b")
 SUMMARY_STATUS_RE = re.compile(r"^\s*\[([A-Za-z0-9_.-]+)\]\s+\d+\s*$")
 JS_LINE_RE = re.compile(r"^\s*js:\s*(.*\S)\s*$")
@@ -62,6 +65,20 @@ def load_solver_program(path: Path) -> str | None:
     return None
 
 
+def load_incidental(solver_log: Path) -> dict[BranchSide, str]:
+    programs: dict[BranchSide, str] = {}
+    directory = solver_log / INCIDENTAL_DIR
+    if not directory.is_dir():
+        return programs
+    for path in sorted(directory.iterdir()):
+        match = INCIDENTAL_FILE_RE.match(path.name)
+        if match is None or not path.is_file():
+            continue
+        side = (int(match.group(1)), match.group(2))
+        programs[side] = path.read_text(encoding="utf-8").strip()
+    return programs
+
+
 def load_solver_sets(
     solver_log: Path,
     solver_statuses: set[str],
@@ -95,6 +112,15 @@ def load_solver_sets(
         universe |= sides
         if child.name in solver_statuses:
             solver |= sides
+
+    incidental = load_incidental(solver_log)
+    if incidental:
+        status_counts[INCIDENTAL_STATUS] = len(incidental)
+        universe |= set(incidental)
+        if INCIDENTAL_STATUS in solver_statuses:
+            solver |= set(incidental)
+            for side, program in incidental.items():
+                solver_programs.setdefault(side, program)
 
     if universe:
         return universe, solver, status_counts, solver_programs
@@ -345,8 +371,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--solver-statuses",
-        default="pass",
-        help="comma-separated solver statuses counted as the Solver set",
+        default=f"pass,{INCIDENTAL_STATUS}",
+        help=(
+            "comma-separated solver statuses counted as the Solver set; "
+            f"'{INCIDENTAL_STATUS}' reads {INCIDENTAL_DIR}/"
+        ),
     )
     parser.add_argument(
         "--merge-nested",
