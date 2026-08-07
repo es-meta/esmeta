@@ -48,6 +48,9 @@ class CoverageMiddleTest extends SolverTest {
       data.expected.map(e => (e.branch, e.side == "T") -> e.js).toMap
   // -------------------------------------------------------------------------
 
+  // branch sides reached by another target's candidate
+  private val incidental = ConcurrentHashMap[(Int, Boolean), String]()
+
   /** coverage-style branch filter: exclude compiler boilerplate */
   private def isTargetBranch(b: Branch): Boolean =
     !b.isFiltered && (b.cond match
@@ -306,7 +309,7 @@ class CoverageMiddleTest extends SolverTest {
           def verifies(js: String): Boolean =
             checkTimeout()
             try {
-              val interp = new Coverage.Interp(
+              val interp = Coverage.Interp(
                 cfg.init.from(js),
                 cov.tyCheck,
                 cov.kFs,
@@ -314,18 +317,11 @@ class CoverageMiddleTest extends SolverTest {
                 cov.timeLimit,
                 cov.isTargetNode,
                 cov.isTargetBranch,
-              ) {
-                private var hitTarget = false
-                override def step: Boolean = !hitTarget && super.step
-                override def moveBranch(branch: Branch, side: Boolean): Unit =
-                  super.moveBranch(branch, side)
-                  if (branch.id == b.id && side == cond.cond)
-                    hitTarget = touchedCondViews.keys.exists { cv =>
-                      cv.cond.branch.id == b.id && cv.cond.cond == cond.cond
-                    }
-              }
+              )
               interp.result
               checkTimeout()
+              for (cv <- interp.touchedCondViews.keys)
+                incidental.putIfAbsent((cv.cond.branch.id, cv.cond.cond), js)
               interp.touchedCondViews.keys.exists { cv =>
                 cv.cond.branch.id == b.id && cv.cond.cond == cond.cond
               }
@@ -446,6 +442,9 @@ class CoverageMiddleTest extends SolverTest {
       val missedResults = results.filter(_.status == "fail-verify")
       val solved = verifiedResults.size + missedResults.size
       val verified = verifiedResults.size
+      val incidentalResults = results.filter(r =>
+        r.status != "pass" && incidental.containsKey((r.bid, r.side)),
+      )
       val timings =
         (verifiedResults ++ missedResults)
           .map(r => (r.fname, r.bid, r.side, r.elapsed, r.attempts))
@@ -476,6 +475,15 @@ class CoverageMiddleTest extends SolverTest {
             case None => ()
         }
 
+      val incidentalDir = s"$SOLVER_LOG_DIR/incidental-programs"
+      mkdir(incidentalDir, remove = true)
+      incidentalResults
+        .sortBy(r => (r.bid, if (r.side) 0 else 1))
+        .foreach { r =>
+          val filename = s"${r.bid}-${sideString(r.side)}.js"
+          dumpFile(incidental.get((r.bid, r.side)), s"$incidentalDir/$filename")
+        }
+
       // emit the run summary to an arbitrary sink (console and/or dump file)
       def writeReport(out: String => Unit): Unit = {
         // per-status breakdown: count, share, and elapsed time per status tag
@@ -501,6 +509,15 @@ class CoverageMiddleTest extends SolverTest {
           f"    ${"total"}%-12s $totalCount%5d (100.0%%)  " +
           f"(total $grandTotalS%8.1fs, avg attempts $avgAttempts%5.1f)",
         )
+        if (incidentalResults.nonEmpty) {
+          val reached = verified + incidentalResults.size
+          val pct = if (totalCount == 0) 0.0 else reached * 100.0 / totalCount
+          out(
+            f"\n  Covered incidentally by another target's candidate: " +
+            f"${incidentalResults.size}%d " +
+            f"(pass + incidental = $reached, ${pct}%.1f%% of $totalCount)",
+          )
+        }
         // timing summary
         if (timings.nonEmpty) {
           out("\n  Top 10 slowest:")
@@ -545,6 +562,23 @@ class CoverageMiddleTest extends SolverTest {
             )
           }
         }
+
+        section("COVERED INCIDENTALLY")
+        summaryFile.println(
+          s"\n  [incidental] ${incidentalResults.size}" +
+          "  (own status kept; program came from another target)",
+        )
+        incidentalResults
+          .sortBy(r => (r.status, r.bid, if (r.side) 0 else 1))
+          .foreach { r =>
+            summaryFile.println(
+              f"    Branch[${r.bid}]:${sideString(r.side)}  " +
+              f"${r.status}%-12s ${caseLabel(r)}",
+            )
+            summaryFile.println(
+              s"        ${incidental.get((r.bid, r.side))}",
+            )
+          }
 
         section("SOLVE TIME (slowest first)")
         summaryFile.println(s"\n  [all] ${results.size}")
