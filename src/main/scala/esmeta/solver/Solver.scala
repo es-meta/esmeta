@@ -97,13 +97,23 @@ object Solver {
     val seen = scala.collection.mutable.Set[String]()
     xs.filter(seen.add)
 
-  // a witness applies where it satisfies the slot
+  // the loose bound decides what applies, the strict one decides what comes first
   private def witnessesFor(ty: ValueTy): List[String] =
     if (ty.isBottom) Nil
     else
-      val bound = unrefined(ty)
-      val rows = witnesses.collect { case (wty, es) if wty <= bound => es }
-      roundRobin(rows).distinct
+      val strict = unrefined(ty)
+      val loose = erased(ty)
+      cachedWitnesses.getOrElseUpdate(
+        (strict, loose), {
+          val applies = witnesses.filter { case (wty, _) => wty <= loose }
+          val (fit, rest) = applies.partition { case (wty, _) => wty <= strict }
+          (roundRobin(fit.map(_._2)) ++ roundRobin(rest.map(_._2))).distinct
+        },
+      )
+
+  // the same bound recurs across every path of every entry
+  private val cachedWitnesses =
+    collection.concurrent.TrieMap[(ValueTy, ValueTy), List[String]]()
 
   // one from each row in turn, so a long row cannot take the whole budget
   private def roundRobin(rows: List[List[String]]): List[String] =
@@ -115,10 +125,20 @@ object Solver {
 
   private def unrefined(ty: ValueTy): ValueTy = ty.record match
     case RecordTy.Elem(map, obj) =>
+      ty.copied(record = RecordTy.Elem(map.map((t, fm) => t -> widen(fm)), obj))
+    case _ => ty
+
+  private def erased(ty: ValueTy): ValueTy = ty.record match
+    case RecordTy.Elem(map, obj) =>
       ty.copied(record =
         RecordTy.Elem(map.map((t, _) => t -> FieldMap.Top), obj),
       )
     case _ => ty
+
+  // keep whether a field is there, drop what its value is
+  private def widen(fm: FieldMap): FieldMap = FieldMap(fm.map.collect {
+    case (field, binding) if !binding.absent => field -> Binding(AnyT)
+  })
 
   private def throwingTrap(name: String): String =
     s"new Proxy({}, { $name() { throw 0; } })"
@@ -139,14 +159,18 @@ object Solver {
       "Float64Array",
     )
     for (name <- names) yield
-      val elem = if (name.startsWith("Big")) "0n" else "0"
-      RecordT(name) -> List(
+      val pair = if (name.startsWith("Big")) "[1n, 0n]" else "[1, 0]"
+      val odd = if (name.startsWith("Float")) s"new $name([NaN, -0])" else ""
+      RecordT(name) -> (List(
         s"new $name()",
         s"new $name(2)",
-        s"new $name([$elem, $elem])",
+        s"new $name($pair)",
         s"new $name(new ArrayBuffer(8), 0, 1)",
-        s"new $name(new ArrayBuffer(8, { maxByteLength: 16 }))",
-      )
+        s"new $name(new ArrayBuffer(16, { maxByteLength: 16 }))",
+        s"(() => { const a = new $name(2); a.buffer.transfer(); return a; })()",
+        s"(() => { const b = new ArrayBuffer(16, { maxByteLength: 16 }); " +
+        s"const a = new $name(b, 0, 1); b.resize(0); return a; })()",
+      ) ++ Option.when(odd.nonEmpty)(odd))
 
   private def buildJSProgram(
     path: BuiltinPath,
@@ -278,32 +302,61 @@ object Solver {
     case Property.PStr(str) => str
     case Property.PSym(sym) => s"[Symbol.$sym]"
 
-  // keyed by the witness's own type
   private val witnesses: List[(ValueTy, List[String])] = List(
-    NumberT -> List(
-      "0",
-      "1",
-      "-0",
-      "-1",
-      "0.1",
-      "-0.1",
-      "NaN",
-      "Infinity",
-      "-Infinity",
-      "Number.MAX_SAFE_INTEGER",
-      "Number.MIN_SAFE_INTEGER",
-      "Number.MAX_VALUE",
+    NumberT -> List("0"),
+    UndefT -> List("undefined"),
+    ObjectT -> List("{}"),
+    FunctionT -> List("() => {}"),
+    NaNT -> List("NaN"),
+    SymbolT -> List("Symbol()"),
+    StrT -> List("\"\""),
+    FunctionT -> List("function(){}"),
+    TypedArrayT -> List("new Int8Array()"),
+    RecordT("OrdinaryObject") -> List(
+      "{ [Symbol.iterator]: null, length: NaN }",
     ),
+    RecordT("OrdinaryObject") -> List(
+      "{ [Symbol.iterator]: function*() { yield 0; } }",
+    ),
+    RecordT("OrdinaryObject") -> List("{ next: () => ({ done: true }) }"),
+    FunctionT -> List("() => ({ done: true })"),
+    FunctionT -> List("() => ({})"),
+    StrT -> List("\"2\""),
+    RecordT("OrdinaryObject") -> List(
+      "{ get \"0\"() { throw 0; }, length: Infinity }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ get [Symbol.toPrimitive]() { throw 0; } }",
+    ),
+    BoolT -> List("true"),
+    NumberPosIntT -> List("1"),
+    NullT -> List("null"),
+    RecordT("OrdinaryObject") -> List("{ get length() { throw 0; } }"),
+    FunctionT -> List("() => { throw 0; }"),
+    ConstructorT -> List("function(f) { if (f?.call) f(_ => 0, _ => 0); }"),
+    RecordT("ProxyExoticObject", List("Call", "Construct")) -> List(
+      "new Proxy(function(){}, {})",
+    ),
+    RecordT("Set") -> List("new Set([Object.prototype])"),
+    RecordT("OrdinaryObject") -> List("{ value: 0 }"),
+    NumberT -> List("0"),
+    NumberPosIntT -> List("1", "2", "4294967295", "9007199254740991"),
+    NumberNegIntT -> List("-1", "-2", "-9007199254740991"),
+    NumberIntT -> List("4503599627370496", "9007199254740992", "1e21"),
+    PosNumberT -> List("0.5"),
+    NegNumberT -> List("-0.5", "-0.25", "-1.5", "-Number.MAX_VALUE"),
+    NumberT(0.0) -> List("-0"),
+    NaNT -> List("NaN"),
+    NumberT(Double.PositiveInfinity) -> List("Infinity"),
+    NumberT(Double.NegativeInfinity) -> List("-Infinity"),
+    StrT -> List("\"\"", "\"a\"", "\"ab\"", "\"A\"", "\" \"", "\"\\n\""),
+    StrT -> List("\"0\""),
+    StrT -> List("\"\\uD800\"", "\"%\"", "\"%41\""),
+    StrT -> List("\"length\"", "\"constructor\"", "\"__proto__\""),
     UndefT -> List("undefined"),
     NullT -> List("null"),
-    StrT -> List("\"\"", "\"0\""),
     BoolT -> List("true", "false"),
-    BigIntT -> List(
-      "0n",
-      "1n",
-      "9223372036854775807n",
-      "18446744073709551615n",
-    ),
+    BigIntT -> List("0n", "1n"),
     SymbolT -> List(
       "Symbol()",
       "Symbol.iterator",
@@ -311,80 +364,248 @@ object Solver {
       "Symbol.toStringTag",
       "Symbol.hasInstance",
       "Symbol.species",
+      "Symbol.isConcatSpreadable",
+      "Symbol.match",
+      "Symbol.replace",
+      "Symbol.split",
     ),
-    ArrayT -> List("[]", "[,]"),
-    ObjectT -> List(
-      "{}",
-      "{ length: 1 }",
-      "Object.freeze({ x: 1 })",
-      "Object.seal({ x: 1 })",
-      "Object.create(null)",
-    ),
+    ObjectT -> List("{}"),
+    ArrayT -> List("[]", "[,]", "[0, 1]", "Object.freeze([0])"),
     FunctionT -> List(
       "function(){}",
-      "() => {}",
-      "() => ({})",
-      "() => ({ done: true })",
       "function*(){}",
       "async function*(){}",
     ),
+    FunctionT -> List(
+      "() => {}",
+      "() => ({})",
+      "() => (true)",
+      "() => (0)",
+    ),
+    FunctionT -> List("() => { throw 0; }"),
+    FunctionT -> List("() => ({ done: true })"),
+    FunctionT -> List("() => ({ then: (res) => res(0) })"),
+    FunctionT -> List(
+      "Object.defineProperty(function(){}, \"length\", { value: Infinity })",
+      "Object.defineProperty(function(){}, \"length\", " +
+      "{ get: () => { throw 0; } })",
+    ),
+    RecordT("ECMAScriptFunctionObject", List("Call", "Construct")) -> List(
+      "(class {})",
+      "function(){}",
+      "() => {}",
+    ),
+    ConstructorT -> List(
+      "function(f) { if (f?.call) f(_ => 0, _ => 0); }",
+      "function() {}",
+      "Promise",
+      "(class {})",
+      "Array",
+      "Object",
+    ),
+    RecordT("ProxyExoticObject", List("Call", "Construct")) -> List(
+      "new Proxy(function(){}, {})",
+      "(() => { const r = Proxy.revocable(function(){}, {}); " +
+      "r.revoke(); return r.proxy; })()",
+    ),
     RecordT("ProxyExoticObject") -> List(
       "new Proxy({}, {})",
-      throwingTrap("getPrototypeOf"),
-      throwingTrap("setPrototypeOf"),
-      throwingTrap("isExtensible"),
-      throwingTrap("preventExtensions"),
-      throwingTrap("getOwnPropertyDescriptor"),
-      throwingTrap("defineProperty"),
+      "(() => { const r = Proxy.revocable(function(){}, {}); " +
+      "r.revoke(); return r.proxy; })()",
+    ),
+    RecordT("ProxyExoticObject") -> List(
       throwingTrap("has"),
       throwingTrap("get"),
       throwingTrap("set"),
       throwingTrap("deleteProperty"),
+    ),
+    RecordT("ProxyExoticObject") -> List(
+      throwingTrap("getOwnPropertyDescriptor"),
+      throwingTrap("defineProperty"),
       throwingTrap("ownKeys"),
     ),
-    ConstructorT -> List("function() {}", "(class {})"),
-    RecordT("BoundFunctionExoticObject") -> List("(function(){}).bind()"),
-    RecordT("BuiltinFunctionObject") -> List("Math.max"),
+    RecordT("ProxyExoticObject") -> List(
+      throwingTrap("getPrototypeOf"),
+      throwingTrap("setPrototypeOf"),
+      throwingTrap("isExtensible"),
+      throwingTrap("preventExtensions"),
+    ),
+    RecordT("ProxyExoticObject") -> List(
+      "new Proxy({}, { get(t, k) { if (k === \"length\") return Infinity; " +
+      "throw 0; }, has() { throw 0; }, set() { throw 0; } })",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ [Symbol.iterator]: null, length: NaN }",
+      "{ length: Symbol() }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ get length() { throw 0; } }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ get \"0\"() { throw 0; }, set \"0\"(v) { throw 0; }, length: Infinity }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ [Symbol.match]: true }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ get [Symbol.match]() { throw 0; } }",
+      "{ [Symbol.replace]: () => {} }",
+      "{ get [Symbol.replace]() { throw 0; } }",
+      "{ [Symbol.split]: () => {} }",
+      "{ [Symbol.search]: () => {} }",
+      "{ [Symbol.matchAll]: () => {} }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "Object.prototype",
+      "Array.prototype",
+      "Math",
+      "Function.prototype",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ [Symbol.isConcatSpreadable]: true }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ get [Symbol.toPrimitive]() { throw 0; } }",
+      "{ [Symbol.toPrimitive]: () => ({}) }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ [Symbol.toPrimitive]: undefined, valueOf: () => ({}) }",
+      "{ toString: () => { throw 0; } }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ value: 0 }",
+      "{ enumerable: undefined }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ get: () => {}, set: () => {} }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ [Symbol.iterator]: function*() { yield 0; } }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ [Symbol.iterator]: null }",
+      "{ [Symbol.iterator]: () => {} }",
+      "{ get [Symbol.iterator]() { throw 0; } }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ next: () => ({ done: true }) }",
+      "{ get next() { throw 0; } }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ next: (() => { let i = 0; " +
+      "return () => (i++ < 4 ? { done: undefined } : { done: true }); })() }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ size: 0, has: () => {}, keys: () => {} }",
+      "{ get size() { throw 0; } }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ then: (res) => res(0) }",
+    ),
+    RecordT("OrdinaryObject") -> List(
+      "{ cause: undefined }",
+      "{ constructor: undefined }",
+    ),
     TypedArrayT -> List(
       "new Int8Array()",
       "new Int8Array(2)",
-      "new Int8Array([0, 0])",
+      "new Int8Array([1, 0])",
       "new Int8Array(new ArrayBuffer(8), 0, 1)",
-      "new Int8Array(new ArrayBuffer(8, { maxByteLength: 16 }))",
+      "new Int8Array(new ArrayBuffer(16, { maxByteLength: 16 }))",
       "(() => { const a = new Int8Array(2); a.buffer.transfer(); return a; })()",
-      "(() => { const b = new ArrayBuffer(16, { maxByteLength: 16 }); " +
-      "const a = new Int8Array(b, 0, 1); b.resize(0); return a; })()",
     ),
-    RecordT("ArrayIteratorInstance") -> List("[][Symbol.iterator]()"),
-    RegExpT -> List("/./"),
-    RecordT("BooleanObject") -> List("Object(true)"),
-    RecordT("NumberObject") -> List("Object(0)"),
-    RecordT("StringExoticObject") -> List("Object('')"),
-    RecordT("SymbolObject") -> List("Object(Symbol())"),
-    RecordT("BigIntObject") -> List("Object(0n)"),
-    RecordT("Map") -> List("new Map()", "new Map([[0, 0]])"),
-    RecordT("Set") -> List("new Set()", "new Set([0])"),
-    RecordT("WeakMap") -> List("new WeakMap()"),
-    RecordT("WeakSet") -> List("new WeakSet()"),
+    RecordT("Set") -> List(
+      "new Set([Object.prototype])",
+      "new Set()",
+      "new Set([0])",
+    ),
     RecordT("ArrayBuffer") -> List(
       "new ArrayBuffer(0)",
       "new ArrayBuffer(8)",
       "new ArrayBuffer(8, { maxByteLength: 16 })",
       "(() => { const b = new ArrayBuffer(8); b.transfer(); return b; })()",
     ),
-    RecordT("SharedArrayBuffer") -> List("new SharedArrayBuffer(0)"),
-    RecordT("DataView") -> List("new DataView(new ArrayBuffer(0))"),
-    RecordT("Date") -> List("new Date()"),
+    RecordT("AsyncGenerator") -> List(
+      "(async function*(){})()",
+      "(() => { const g = (async function*(){})(); g.next(); return g; })()",
+      "(() => { const g = (async function*(){ yield 0; })(); " +
+      "g.next(); return g; })()",
+    ),
+    RecordT("WeakMap") -> List(
+      "new WeakMap([[Object.prototype, 0]])",
+    ),
+    RecordT("Map") -> List(
+      "new Map([[Object.prototype, 0]])",
+      "new Map()",
+      "new Map([[0, 0]])",
+    ),
+    RecordT("WeakSet") -> List(
+      "new WeakSet([Object.prototype])",
+    ),
+    RecordT("Generator") -> List(
+      "(function*(){})()",
+      "(() => { const g = (function*(){})(); g.next(); return g; })()",
+      "(() => { const g = (function*(){ yield 0; })(); g.next(); return g; })()",
+      "\"\"[Symbol.iterator]()",
+      "Iterator.from([]).drop(0)",
+    ),
+    RecordT("ArrayIteratorInstance") -> List(
+      "[][Symbol.iterator]()",
+      "new Int8Array()[Symbol.iterator]()",
+      "(() => { const it = [0].values(); it.next(); return it; })()",
+      "(() => { const a = new Int8Array(1); const it = a.values(); " +
+      "a.buffer.transfer(); return it; })()",
+    ),
+    RecordT("BoundFunctionExoticObject", List("Call", "Construct")) -> List(
+      "(function(){}).bind()",
+    ),
+    RecordT("SettledPromise") -> List(
+      "Promise.resolve(0)",
+    ),
+    RecordT("PendingPromise") -> List(
+      "new Promise(() => {})",
+    ),
     RecordT("Promise") -> List("new Promise(() => {})"),
-    RecordT("ErrorObject") -> List("new Error()", "new AggregateError([])"),
-    RecordT("Generator") -> List("(function*(){})()"),
-    RecordT("AsyncGenerator") -> List("(async function*(){})()"),
+    RecordT("ErrorObject") -> List(
+      "new Error()",
+    ),
+    RecordT("SharedArrayBuffer") -> List(
+      "new SharedArrayBuffer(0)",
+    ),
+    RecordT("DataView") -> List(
+      "new DataView(new ArrayBuffer(0))",
+    ),
+    RecordT("NumberObject") -> List(
+      "Object(0)",
+    ),
+    RecordT("StringExoticObject") -> List("Object('')", "Object('ab')"),
+    RecordT("BuiltinFunctionObject", List("Call", "Construct")) -> List(
+      "Array",
+      "Object",
+      "Promise",
+    ),
+    RecordT("BuiltinFunctionObject", List("Call")) -> List(
+      "Math.max",
+      "Array.prototype.push",
+      "Function.prototype.call",
+    ),
+    RegExpT -> List(
+      "/./",
+      "/./g",
+      "/./y",
+      "/(?<a>.)/",
+      "new RegExp(\"\", \"u\")",
+    ),
+    RecordT("BooleanObject") -> List("Object(true)", "Object(false)"),
+    RecordT("SymbolObject") -> List("Object(Symbol())"),
+    RecordT("BigIntObject") -> List("Object(0n)"),
+    RecordT("Date") -> List("new Date()", "new Date(0)", "new Date(NaN)"),
+    RecordT("ArgumentsExoticObject") -> List(
+      "(function(){ return arguments; })()",
+    ),
     RecordT("WeakRef") -> List("new WeakRef({})"),
     RecordT("FinalizationRegistry") -> List(
       "new FinalizationRegistry(() => {})",
-    ),
-    RecordT("ArgumentsExoticObject") -> List(
-      "(function(){ return arguments; })()",
     ),
   ) ++ typedArrayEntries
 }
