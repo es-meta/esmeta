@@ -111,7 +111,10 @@ trait AbsStateDecl { self: TyChecker =>
       case x: Global => base.getOrElse(x, AbsValue.Bot)
       case x: Local  => locals.getOrElse(x, AbsValue.Bot)
 
-    def get(sym: Sym): ValueTy = symEnv.getOrElse(sym, BotT)
+    // an unconstrained variadic argument is not in the environment
+    def get(sym: Sym): ValueTy =
+      val default = if (variadicIdxOf(sym).isDefined) ESValueT else BotT
+      symEnv.getOrElse(sym, default)
 
     def get(sty: SymTy): AbsValue = AbsValue(sty)
 
@@ -135,6 +138,8 @@ trait AbsStateDecl { self: TyChecker =>
           AbsValue(SField(ref, STy(StrT(f))), guard)
         case (SNormal(sty), One(Str("Value"))) =>
           AbsValue(sty, guard)
+        case (SArgs, One(Math(k))) if k.isValidInt && k.toInt >= 0 =>
+          AbsValue(SVariadicIdx(k.toInt), guard)
         case _ =>
           AbsValue(STy(get(base.ty, field.ty)), guard)
     }

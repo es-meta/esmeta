@@ -23,6 +23,10 @@ trait SymTyDecl { self: TyChecker =>
   lazy val SArgs: SSym = SSym(-2)
   lazy val SNewTarget: SSym = SSym(-3)
 
+  def SVariadicIdx(k: Int): SSym = SSym(-4 - k)
+  def variadicIdxOf(sym: Sym): Option[Int] =
+    if (sym <= -4) Some(-4 - sym) else None
+
   enum SymTy {
     case STy(ty: ValueTy)
     case SVar(x: Local)
@@ -202,7 +206,10 @@ trait SymTyDecl { self: TyChecker =>
         case -1       => app >> "#THIS"
         case -2       => app >> "#ARGS"
         case -3       => app >> "#NEW_TARGET"
-        case x: Sym   => app >> "#" >> x.toString
+        case x: Sym =>
+          variadicIdxOf(x) match
+            case Some(k) => app >> "#VAR[" >> k.toString >> "]"
+            case None    => app >> "#" >> x.toString
     given Ordering[Base] = Ordering.by(_.toString)
   }
 

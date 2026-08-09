@@ -23,13 +23,27 @@ trait Solver { self: SymInterp =>
   def reifyAll: LazyList[String] =
     given AbsState = st
     val thisValue = st.getConstr(SThis.sym)
-    val rest = st.getConstr(SArgs.sym) // TODO: handle variadic parameters
     val newTarget = st.getConstr(SNewTarget.sym)
-    val len = entryFunc.head match {
-      case Some(h: BuiltinHead) => h.arity._2
-      case _                    => 0
-    }
-    val args = (0 until len).toList.map(i => st.getConstr(i))
+    val args = entryFunc.head match
+      case Some(h: BuiltinHead) =>
+        val variadicAt = h.params.indexWhere(_.kind == ParamKind.Variadic)
+        if (variadicAt < 0) // no variadic argument
+          (0 until h.arity._2).toList.map(i => st.getConstr(i))
+        else // contains variadic argument
+          val fixed = h.params.indices
+            .filter(_ != variadicAt)
+            .map(i => st.getConstr(i))
+            .toList
+          val (before, after) = fixed.splitAt(variadicAt)
+          // only a refined argument is in the environment
+          st.symEnv.keysIterator.flatMap(variadicIdxOf).maxOption match
+            case None => before ++ after
+            case Some(i) =>
+              val variadic = (0 to i).toList.map { k =>
+                st.getConstr(SVariadicIdx(k).sym)
+              }
+              before ++ variadic ++ after
+      case _ => Nil
     getPath(entryFunc) match
       case None => LazyList.empty
       case Some(path) =>
