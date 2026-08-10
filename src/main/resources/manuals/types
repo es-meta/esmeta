@@ -423,7 +423,7 @@ type TypedArray extends ExoticObject {
   def GetPrototypeOf = Record[OrdinaryObject].GetPrototypeOf;
   def SetPrototypeOf = Record[OrdinaryObject].SetPrototypeOf;
   def IsExtensible = Record[OrdinaryObject].IsExtensible;
-  def PreventExtensions = Record[OrdinaryObject].PreventExtensions;
+  def PreventExtensions;
   def GetOwnProperty;
   def DefineOwnProperty;
   def HasProperty;
