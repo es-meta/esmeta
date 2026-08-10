@@ -230,14 +230,6 @@ class StringifyTinyTest extends LangTest {
         List(refExpr),
       ) -> "the subtracting 1 from the exponential function of _x_",
       MathOpExpression(
-        MathOpExpressionOperator.Log10,
-        List(refExpr),
-      ) -> "log10(_x_)",
-      MathOpExpression(
-        MathOpExpressionOperator.Log2,
-        List(refExpr),
-      ) -> "log2(_x_)",
-      MathOpExpression(
         MathOpExpressionOperator.Cos,
         List(refExpr),
       ) -> "the cosine of _x_",
@@ -290,10 +282,6 @@ class StringifyTinyTest extends LangTest {
         List(refExpr),
       ) -> "the inverse tangent of _x_",
       MathOpExpression(
-        MathOpExpressionOperator.Log,
-        List(refExpr),
-      ) -> "ln(_x_)",
-      MathOpExpression(
         MathOpExpressionOperator.Sin,
         List(refExpr),
       ) -> "the sine of _x_",
@@ -305,6 +293,44 @@ class StringifyTinyTest extends LangTest {
         MathOpExpressionOperator.Tan,
         List(refExpr),
       ) -> "the tangent of _x_",
+    )
+
+    // -------------------------------------------------------------------------
+    // algorithm mathematical function expressions
+    // -------------------------------------------------------------------------
+    checkParseAndStringify("MathFuncExpression", Expression)(
+      MathFuncExpression(
+        MathFuncExpressionOperator.Max,
+        List(refExpr, refExpr),
+      ) -> "max(_x_, _x_)",
+      MathFuncExpression(
+        MathFuncExpressionOperator.Min,
+        List(refExpr, refExpr),
+      ) -> "min(_x_, _x_)",
+      MathFuncExpression(
+        MathFuncExpressionOperator.Abs,
+        List(refExpr),
+      ) -> "abs(_x_)",
+      MathFuncExpression(
+        MathFuncExpressionOperator.Floor,
+        List(refExpr),
+      ) -> "floor(_x_)",
+      MathFuncExpression(
+        MathFuncExpressionOperator.Log10,
+        List(refExpr),
+      ) -> "log10(_x_)",
+      MathFuncExpression(
+        MathFuncExpressionOperator.Log2,
+        List(refExpr),
+      ) -> "log2(_x_)",
+      MathFuncExpression(
+        MathFuncExpressionOperator.Log,
+        List(refExpr),
+      ) -> "ln(_x_)",
+      MathFuncExpression(
+        MathFuncExpressionOperator.Truncate,
+        List(refExpr),
+      ) -> "truncate(_x_)",
     )
 
     // -------------------------------------------------------------------------

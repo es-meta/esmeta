@@ -176,8 +176,9 @@ case class MathFuncExpression(
   op: MathFuncExpressionOperator,
   args: List[CalcExpression],
 ) extends CalcExpression
+object MathFuncExpression extends Parser.From(Parser.mathFuncExpr)
 enum MathFuncExpressionOperator extends LangElem:
-  case Max, Min, Abs, Floor, Truncate
+  case Max, Min, Abs, Floor, Log10, Log2, Log, Truncate
 
 // exponentiation expressions
 case class ExponentiationExpression(
@@ -236,8 +237,8 @@ case class MathOpExpression(
 object MathOpExpression extends Parser.From(Parser.mathOpExpr)
 enum MathOpExpressionOperator extends LangElem:
   case Neg, Add, Sub, Mul, Pow
-  case Expm1, Log10, Log2, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
-  case Asinh, Atanh, Asin, Atan2, Atan, Log, Sin, Sqrt, Tan
+  case Expm1, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
+  case Asinh, Atanh, Asin, Atan2, Atan, Sin, Sqrt, Tan
 
 // -----------------------------------------------------------------------------
 // bitwise expressions

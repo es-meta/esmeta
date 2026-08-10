@@ -578,6 +578,7 @@ trait Parsers extends IndentParsers {
     (
       "max" ^^^ Max | "min" ^^^ Min |
       "abs" ^^^ Abs | "floor" ^^^ Floor |
+      "log10" ^^^ Log10 | "log2" ^^^ Log2 | "ln" ^^^ Log |
       "truncate" ^^^ Truncate
     ) ~ ("(" ~> repsep(calcExpr, ",") <~ ")") ^^ {
       case o ~ as =>
@@ -706,12 +707,6 @@ trait Parsers extends IndentParsers {
         case l ~ r => MathOpExpression(Pow, List(l, r))
       } | "subtracting 1 from the exponential function of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Expm1, List(e))
-      } | "ln(" ~> calcExpr <~ ")" ^^ {
-        case e => MathOpExpression(Log, List(e))
-      } | "log10(" ~> calcExpr <~ ")" ^^ {
-        case e => MathOpExpression(Log10, List(e))
-      } | "log2(" ~> calcExpr <~ ")" ^^ {
-        case e => MathOpExpression(Log2, List(e))
       } | "cosine of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Cos, List(e))
       } | "cube root of" ~> baseCalcExpr ^^ {
@@ -800,6 +795,9 @@ trait Parsers extends IndentParsers {
     "min",
     "abs",
     "floor",
+    "log10",
+    "log2",
+    "ln",
     "truncate",
   )
 
