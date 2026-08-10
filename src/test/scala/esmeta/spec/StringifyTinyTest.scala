@@ -163,7 +163,6 @@ class StringifyTinyTest extends SpecTest {
       Getter(NormalAccess(Base("A"), "B")) -> "get:A.B",
       Setter(NormalAccess(Base("A"), "B")) -> "set:A.B",
       SymbolAccess(Base("A"), "B") -> "A[%Symbol.B%]",
-      YetPath("A B C") -> "yet:ABC",
     )
   }
 

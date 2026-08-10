@@ -327,6 +327,7 @@ type BuiltinFunctionObject extends OrdinaryObject {
   def Construct?;
   Realm: Record[RealmRecord];
   InitialName: String | Null;
+  Async: Boolean;
   __CODE__: Clo[(ESValue, List[ESValue], Record[Constructor] | Undefined) => Normal[ESValue] | Throw];
 }
 
@@ -610,6 +611,7 @@ type AgentRecord {
   IsLockFree8: Boolean;
   CandidateExecution: Record[CandidateExecutionRecord];
   KeptAlive: List[Record[Object | Symbol]];
+  ModuleAsyncEvaluationCount: Int;
 }
 
 // https://tc39.es/ecma262/#sec-candidate-executions
@@ -710,7 +712,7 @@ type CyclicModuleRecord extends ModuleRecord {
   def Evaluate;
   abstract def InitializeEnvironment;
   abstract def ExecuteModule;
-  Status: Enum[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~unlinked~];
+  Status: Enum[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~new~, ~unlinked~];
   EvaluationError: Abrupt[throw] | Enum[~empty~];
   DFSIndex: Enum[~empty~] | Int;
   DFSAncestorIndex: Enum[~empty~] | Int;
@@ -718,7 +720,7 @@ type CyclicModuleRecord extends ModuleRecord {
   LoadedModules: List[Record[LoadedModuleRequestRecord]];
   CycleRoot: Record[CyclicModuleRecord] | Enum[~empty~];
   HasTLA: Boolean;
-  AsyncEvaluation: Boolean;
+  AsyncEvaluationOrder: Enum[~unset~, ~done~] | Int;
   TopLevelCapability: Record[PromiseCapabilityRecord] | Enum[~empty~];
   AsyncParentModules: List[Record[CyclicModuleRecord]];
   PendingAsyncDependencies: Enum[~empty~] | Int;
@@ -850,6 +852,15 @@ type DataView extends OrdinaryObject {
   ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
   ByteLength: Int[0+] | Enum[~auto~];
   ByteOffset: Int[0+];
+}
+
+// https://tc39.es/ecma262/#sec-json-parse-record
+type JSONParseRecord {
+  ParseNode: Ast;
+  Key: String;
+  Value: ESValue;
+  Elements: List[Record[JSONParseRecord]];
+  Entries: List[Record[JSONParseRecord]];
 }
 
 // TODO https://tc39.es/ecma262/#table-json-serialization-record

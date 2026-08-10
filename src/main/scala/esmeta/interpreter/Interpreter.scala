@@ -716,16 +716,14 @@ object Interpreter {
         throw NotSupported(Metalanguage)("asinh")
       case (MOp.Atanh, List(Math(x))) =>
         throw NotSupported(Metalanguage)("atanh")
-      case (MOp.Asin, List(Math(x))) => asin(x.toDouble)
-      case (MOp.Atan2, List(Math(x), Math(y))) =>
-        atan2(x.toDouble, y.toDouble)
-      case (MOp.Atan, List(Math(x)))  => atan(x.toDouble)
-      case (MOp.Log1p, List(Math(x))) => log1p(x.toDouble)
-      case (MOp.Log, List(Math(x)))   => log(x.toDouble)
-      case (MOp.Sin, List(Math(x)))   => sin(x.toDouble)
-      case (MOp.Sqrt, List(Math(x)))  => sqrt(x.toDouble)
-      case (MOp.Tan, List(Math(x)))   => tan(x.toDouble)
-      case _                          => throw InvalidMathOp(mop, vs)
+      case (MOp.Asin, List(Math(x)))           => asin(x.toDouble)
+      case (MOp.Atan2, List(Math(x), Math(y))) => atan2(x.toDouble, y.toDouble)
+      case (MOp.Atan, List(Math(x)))           => atan(x.toDouble)
+      case (MOp.Log, List(Math(x)))            => log(x.toDouble)
+      case (MOp.Sin, List(Math(x)))            => sin(x.toDouble)
+      case (MOp.Sqrt, List(Math(x)))           => sqrt(x.toDouble)
+      case (MOp.Tan, List(Math(x)))            => tan(x.toDouble)
+      case _                                   => throw InvalidMathOp(mop, vs)
     // an undefined result means that the operator is applied to an argument
     // out of its domain, which never happens in the specification
     ExtMath.from(result).getOrElse(throw InvalidMathOp(mop, vs))

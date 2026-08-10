@@ -30,18 +30,20 @@ trait Parsers extends IndentParsers {
     indent ~> (rep1(subStep) ^^ { StepBlock(_) }) <~ dedent
 
   // user-defined directives
-  lazy val directive: Parser[Directive] =
+  lazy val directives: Parser[List[Directive]] =
     lazy val name = "[-a-zA-Z0-9]+".r
-    ("[" ~> name <~ "=\"") ~ rep1sep(name, ",") <~ "\"]" ^^ {
-      case x ~ vs => Directive(x, vs)
+    lazy val attribute =
+      rep1sep(name ~ opt("=\"" ~> rep1sep(name, ",") <~ "\""), ",")
+    ("[" ~> attribute <~ "]") ^^ {
+      _.map { case n ~ v => Directive(n, v.getOrElse(Nil)) }
     }
 
   // sub-steps
-  lazy val subStepPrefix: Parser[Option[Directive]] =
-    next ~ "1." ~> opt(directive) <~ upper
+  lazy val subStepPrefix: Parser[Option[List[Directive]]] =
+    next ~ "1." ~> opt(directives) <~ upper
   lazy val subStep: Parser[SubStep] =
     subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ {
-      case d ~ s => SubStep(d, s)
+      case d ~ s => SubStep(d.getOrElse(Nil), s)
     }
 
   // figure string
@@ -576,6 +578,7 @@ trait Parsers extends IndentParsers {
     (
       "max" ^^^ Max | "min" ^^^ Min |
       "abs" ^^^ Abs | "floor" ^^^ Floor |
+      "log10" ^^^ Log10 | "log2" ^^^ Log2 | "ln" ^^^ Log |
       "truncate" ^^^ Truncate
     ) ~ ("(" ~> repsep(calcExpr, ",") <~ ")") ^^ {
       case o ~ as =>
@@ -646,8 +649,10 @@ trait Parsers extends IndentParsers {
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    exists("the") ~ opt(ordinal) ~ ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
-      case a ~ ord ~ x ~ fs => NonterminalLiteral(ord, x, fs, a)
+    exists("the") ~ opt(ordinal) ~ opt("derived") ~ ("|" ~> word <~ opt(
+      "?",
+    )) ~ flags <~ "|" ^^ {
+      case a ~ ord ~ _ ~ x ~ fs => NonterminalLiteral(ord, x, fs, a)
     }
 
   lazy val flags: P[List[String]] =
@@ -702,10 +707,6 @@ trait Parsers extends IndentParsers {
         case l ~ r => MathOpExpression(Pow, List(l, r))
       } | "subtracting 1 from the exponential function of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Expm1, List(e))
-      } | "base 10 logarithm of" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log10, List(e))
-      } | "base 2 logarithm of" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log2, List(e))
       } | "cosine of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Cos, List(e))
       } | "cube root of" ~> baseCalcExpr ^^ {
@@ -733,10 +734,6 @@ trait Parsers extends IndentParsers {
         case x ~ y => MathOpExpression(Atan2, List(x, y))
       } | "inverse tangent of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Atan, List(e))
-      } | "natural logarithm of 1 +" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log1p, List(e))
-      } | "natural logarithm of" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log, List(e))
       } | "sine of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Sin, List(e))
       } | "square root of" ~> baseCalcExpr ^^ {
@@ -798,6 +795,9 @@ trait Parsers extends IndentParsers {
     "min",
     "abs",
     "floor",
+    "log10",
+    "log2",
+    "ln",
     "truncate",
   )
 
@@ -1171,7 +1171,7 @@ trait Parsers extends IndentParsers {
       )
   } | {
     // InitializeHostDefinedRealm
-    "the host requires use of an exotic object to serve as _realm_'s global object" |
+    "the host requires use of a specific object to serve as _realm_'s global object" |
     "the host requires that the `this` binding in _realm_'s global scope return an object other than the global object"
   } ^^! getExprCond(
     FalseLiteral(),
@@ -1469,7 +1469,9 @@ trait Parsers extends IndentParsers {
       case x => (x, new StepUpdater { def apply[T <: Step](s: T) = s })
     }
 
-  private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
+  private def normRecordT(s: String): ValueTy = Type.normalizeName(s) match
+    case "Record" => RecordT
+    case name     => RecordT(name)
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
     val multiParser = (if (either) "either" else "") ~> {
