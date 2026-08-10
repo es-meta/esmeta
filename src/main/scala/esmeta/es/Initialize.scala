@@ -6,7 +6,6 @@ import esmeta.ir.{Func => IRFunc, *}
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.util.ManualInfo
 import esmeta.util.SystemUtils.*
 import scala.collection.mutable.{Map => MMap}
 
