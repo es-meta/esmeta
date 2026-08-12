@@ -59,4 +59,12 @@ trait DomainLikeDecl { self: Analyzer =>
     def value: AbsValue
   }
   val AbsRet: DomainLike[AbsRet]
+
+  /** effects */
+  trait EffectLike extends DomainElemLike[Effect] { self: Effect =>
+
+    /** abstract domain */
+    def domain = Effect
+  }
+  val Effect: DomainLike[Effect]
 }

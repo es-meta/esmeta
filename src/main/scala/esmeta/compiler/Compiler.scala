@@ -82,11 +82,9 @@ class Compiler(
       "FinishDynamicImport".r,
       "INTRINSICS\\.Object\\.fromEntries".r,
       "AsyncFromSyncIteratorContinuation".r,
-      // CreateResolvingFunctions
+      "CreateResolvingFunctions".r,
       "NewPromiseCapability".r,
-      // PerformPromiseAll
-      // PerformPromiseAllSettled
-      // PerformPromiseAny
+      "PerformPromise.*".r, // All|Any|Race|Then|AllSettled
       "INTRINSICS.Promise.prototype.finally".r,
       "AsyncGeneratorAwaitReturn".r,
       "INTRINSICS.Proxy.revocable".r,
@@ -692,6 +690,9 @@ class Compiler(
           case (Min, _)         => EVariadic(VOp.Min, args.map(compile(fb, _)))
           case (Abs, List(arg)) => EUnary(UOp.Abs, compile(fb, arg))
           case (Floor, List(arg)) => EUnary(UOp.Floor, compile(fb, arg))
+          case (Log10, List(arg)) => EMathOp(MOp.Log10, List(compile(fb, arg)))
+          case (Log2, List(arg))  => EMathOp(MOp.Log2, List(compile(fb, arg)))
+          case (Log, List(arg))   => EMathOp(MOp.Log, List(compile(fb, arg)))
           case (Truncate, List(arg)) =>
             val (x, xExpr) = fb.newTIdWithExpr
             fb.addInst(
@@ -782,8 +783,6 @@ class Compiler(
       case (Sub, List(l, r))   => EBinary(BOp.Sub, l, r)
       case (Pow, List(l, r))   => EBinary(BOp.Pow, l, r)
       case (Expm1, List(e))    => EMathOp(MOp.Expm1, List(e))
-      case (Log10, List(e))    => EMathOp(MOp.Log10, List(e))
-      case (Log2, List(e))     => EMathOp(MOp.Log2, List(e))
       case (Cos, List(e))      => EMathOp(MOp.Cos, List(e))
       case (Cbrt, List(e))     => EMathOp(MOp.Cbrt, List(e))
       case (Exp, List(e))      => EMathOp(MOp.Exp, List(e))
@@ -797,8 +796,6 @@ class Compiler(
       case (Asin, List(e))     => EMathOp(MOp.Asin, List(e))
       case (Atan2, List(x, y)) => EMathOp(MOp.Atan2, List(x, y))
       case (Atan, List(e))     => EMathOp(MOp.Atan, List(e))
-      case (Log1p, List(e))    => EMathOp(MOp.Log1p, List(e))
-      case (Log, List(e))      => EMathOp(MOp.Log, List(e))
       case (Sin, List(e))      => EMathOp(MOp.Sin, List(e))
       case (Sqrt, List(e))     => EMathOp(MOp.Sqrt, List(e))
       case (Tan, List(e))      => EMathOp(MOp.Tan, List(e))

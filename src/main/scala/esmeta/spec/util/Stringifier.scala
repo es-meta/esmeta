@@ -210,7 +210,6 @@ object Stringifier {
       case Setter(base)             => app >> "set:" >> base
       case SymbolAccess(base, symbol) =>
         app >> base >> "[%Symbol." >> symbol >> "%]"
-      case YetPath(name) => app >> "yet:" >> name.replace(" ", "")
 
   // for syntax-directed operation head targets
   given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>

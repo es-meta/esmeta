@@ -326,7 +326,6 @@ BitwiseXORExpression[1,0].AssignmentTargetType
 BitwiseXORExpression[1,0].Evaluation
 BitwiseXORExpression[1,0].HasCallInTailPosition
 BitwiseXORExpression[1,0].IsFunctionDefinition
-BlockDeclarationInstantiation
 Block[0,0].ContainsDuplicateLabels
 Block[0,0].ContainsUndefinedBreakTarget
 Block[0,0].ContainsUndefinedContinueTarget
@@ -347,15 +346,14 @@ BreakableStatement[0,0].LabelledEvaluation
 BreakableStatement[1,0].Evaluation
 BreakableStatement[1,0].LabelledEvaluation
 BuiltinCallOrConstruct
+BuiltinCallOrConstruct:clo0
 Call
-CallExpression[0,0].AssignmentTargetType
 CallExpression[0,0].Evaluation
 CallExpression[0,0].HasCallInTailPosition
 CallExpression[1,0].AssignmentTargetType
 CallExpression[1,0].HasCallInTailPosition
 CallExpression[2,0].AssignmentTargetType
 CallExpression[2,0].HasCallInTailPosition
-CallExpression[3,0].AssignmentTargetType
 CallExpression[3,0].Evaluation
 CallExpression[3,0].HasCallInTailPosition
 CallExpression[4,0].AssignmentTargetType
@@ -611,7 +609,6 @@ CoverCallExpressionAndAsyncArrowHead[0,0].IsSimpleParameterList
 CreateArrayFromList
 CreateArrayIterator
 CreateAsyncFromSyncIterator
-CreateAsyncIteratorFromClosure
 CreateBuiltinFunction
 CreateByteDataBlock
 CreateDataProperty
@@ -634,6 +631,8 @@ CreateNonEnumerableDataPropertyOrThrow
 CreatePerIterationEnvironment
 CreateRegExpStringIterator
 CreateResolvingFunctions
+CreateResolvingFunctions:clo0
+CreateResolvingFunctions:clo1
 CreateSetIterator
 CreateSetIterator:clo0
 CreateUnmappedArgumentsObject
@@ -648,6 +647,7 @@ DecimalBigIntegerLiteral[1,0].NumericValue
 DecimalEscape[0,0].CapturingGroupNumber
 Declaration[1,0].DeclarationPart
 Declaration[2,0].DeclarationPart
+DecodeFinalBase64Chunk
 DefaultClause[0,0].ContainsDuplicateLabels
 DefaultClause[0,0].ContainsUndefinedBreakTarget
 DefaultClause[0,0].ContainsUndefinedContinueTarget
@@ -679,11 +679,15 @@ DoWhileStatement[0,0].HasCallInTailPosition
 DoWhileStatement[0,0].VarDeclaredNames
 DoWhileStatement[0,0].VarScopedDeclarations
 ElementList[0,0].ArrayAccumulation
+ElementList[0,0].JSONArrayLiteralContentNodes
 ElementList[0,1].ArrayAccumulation
+ElementList[0,1].JSONArrayLiteralContentNodes
 ElementList[1,0].ArrayAccumulation
 ElementList[1,1].ArrayAccumulation
 ElementList[2,0].ArrayAccumulation
+ElementList[2,0].JSONArrayLiteralContentNodes
 ElementList[2,1].ArrayAccumulation
+ElementList[2,1].JSONArrayLiteralContentNodes
 ElementList[3,0].ArrayAccumulation
 ElementList[3,1].ArrayAccumulation
 Elision[0,0].ArrayAccumulation
@@ -712,6 +716,7 @@ EqualityExpression[4,0].Evaluation
 EqualityExpression[4,0].HasCallInTailPosition
 EqualityExpression[4,0].IsFunctionDefinition
 EvaluateCall
+EvaluateModuleSync
 EvaluateNew
 EvaluatePropertyAccessWithExpressionKey
 EvaluatePropertyAccessWithIdentifierKey
@@ -1015,7 +1020,6 @@ FormalParameters[4,0].IteratorBindingInitialization
 FulfillPromise
 FunctionBody[0,0].EvaluateBody
 FunctionBody[0,0].EvaluateFunctionBody
-FunctionDeclarationInstantiation
 FunctionDeclaration[0,0].BoundNames
 FunctionDeclaration[0,0].Contains
 FunctionDeclaration[0,0].ContainsArguments
@@ -1117,6 +1121,7 @@ GetModuleNamespace
 GetNamedTimeZoneEpochNanoseconds
 GetNamedTimeZoneOffsetNanoseconds
 GetNewTarget
+GetOptionsObject
 GetOwnPropertyKeys
 GetPromiseResolve
 GetSetRecord
@@ -1127,11 +1132,11 @@ GetTemplateObject
 GetThisEnvironment
 GetThisValue
 GetUTCEpochNanoseconds
+GetUint8ArrayBytes
 GetV
 GetValue
 GetViewByteLength
 GetViewValue
-GlobalDeclarationInstantiation
 GroupBy
 GroupName[0,0].CapturingGroupName
 HasEitherUnicodeFlag
@@ -1161,6 +1166,7 @@ HostPromiseRejectionTracker
 HostResizeArrayBuffer
 INTRINSICS.AggregateError
 INTRINSICS.Array.from
+INTRINSICS.Array.fromAsync
 INTRINSICS.Array.isArray
 INTRINSICS.Array.of
 INTRINSICS.Array.prototype.at
@@ -1296,6 +1302,7 @@ INTRINSICS.Date.prototype.toTimeString
 INTRINSICS.Date.prototype.valueOf
 INTRINSICS.Date.prototype[%Symbol.toPrimitive%]
 INTRINSICS.Error
+INTRINSICS.Error.isError
 INTRINSICS.Error.prototype.toString
 INTRINSICS.EvalError
 INTRINSICS.FinalizationRegistry
@@ -1313,6 +1320,8 @@ INTRINSICS.GeneratorPrototype.next
 INTRINSICS.GeneratorPrototype.return
 INTRINSICS.GeneratorPrototype.throw
 INTRINSICS.Iterator
+INTRINSICS.Iterator.concat
+INTRINSICS.Iterator.concat:clo0
 INTRINSICS.Iterator.from
 INTRINSICS.Iterator.prototype.drop
 INTRINSICS.Iterator.prototype.drop:clo0
@@ -1333,6 +1342,7 @@ INTRINSICS.Iterator.prototype.toArray
 INTRINSICS.Iterator.prototype[%Symbol.iterator%]
 INTRINSICS.IteratorHelperPrototype.next
 INTRINSICS.IteratorHelperPrototype.return
+INTRINSICS.JSON.isRawJSON
 INTRINSICS.JSON.parse
 INTRINSICS.Map
 INTRINSICS.Map.groupBy
@@ -1341,6 +1351,8 @@ INTRINSICS.Map.prototype.delete
 INTRINSICS.Map.prototype.entries
 INTRINSICS.Map.prototype.forEach
 INTRINSICS.Map.prototype.get
+INTRINSICS.Map.prototype.getOrInsert
+INTRINSICS.Map.prototype.getOrInsertComputed
 INTRINSICS.Map.prototype.has
 INTRINSICS.Map.prototype.keys
 INTRINSICS.Map.prototype.set
@@ -1371,6 +1383,7 @@ INTRINSICS.Math.sign
 INTRINSICS.Math.sin
 INTRINSICS.Math.sinh
 INTRINSICS.Math.sqrt
+INTRINSICS.Math.sumPrecise
 INTRINSICS.Math.tan
 INTRINSICS.Math.tanh
 INTRINSICS.Number
@@ -1544,9 +1557,13 @@ INTRINSICS.TypedArray.prototype.toSorted:clo0
 INTRINSICS.TypedArray.prototype.values
 INTRINSICS.TypedArray.prototype.with
 INTRINSICS.URIError
+INTRINSICS.Uint8Array.prototype.setFromBase64
+INTRINSICS.Uint8Array.prototype.setFromHex
 INTRINSICS.WeakMap
 INTRINSICS.WeakMap.prototype.delete
 INTRINSICS.WeakMap.prototype.get
+INTRINSICS.WeakMap.prototype.getOrInsert
+INTRINSICS.WeakMap.prototype.getOrInsertComputed
 INTRINSICS.WeakMap.prototype.has
 INTRINSICS.WeakMap.prototype.set
 INTRINSICS.WeakRef
@@ -1605,14 +1622,9 @@ INTRINSICS.print
 INTRINSICS.set:Iterator.prototype.constructor
 INTRINSICS.set:Iterator.prototype[%Symbol.toStringTag%]
 INTRINSICS.set:Object.prototype.__proto__
-INTRINSICS.yet:PromiseRejectFunction
-INTRINSICS.yet:PromiseResolveFunction
-INTRINSICS.yet:`Promise.allSettled`RejectElementFunction
-INTRINSICS.yet:`Promise.allSettled`ResolveElementFunction
-INTRINSICS.yet:`Promise.all`ResolveElementFunction
-INTRINSICS.yet:`Promise.any`RejectElementFunction
 IdentifierName[0,0].IdentifierCodePoints
 IdentifierName[0,0].StringValue
+IdentifierName[1,0].IdentifierCodePoints
 IdentifierName[1,0].StringValue
 IdentifierReference[0,0].AssignmentTargetType
 IdentifierReference[0,0].ContainsArguments
@@ -1677,7 +1689,6 @@ Initializer[0,0].EvaluateBody
 InnerModuleLoading
 InstallErrorCause
 InstanceofOperator
-InternalizeJSONProperty
 Invoke
 IsAccessorDescriptor
 IsAnonymousFunctionDefinition
@@ -1693,6 +1704,7 @@ IsDetachedBuffer
 IsExtensible
 IsFixedLengthArrayBuffer
 IsGenericDescriptor
+IsGrowableSharedArrayBuffer
 IsInTailPosition
 IsLabelledFunction
 IsLessThan
@@ -1709,15 +1721,18 @@ IsStringWellFormedUnicode
 IsSuperReference
 IsTimeZoneOffsetString
 IsTypedArrayFixedLength
+IsTypedArrayOutOfBounds
 IsUnclampedIntegerElementType
 IsUnresolvableReference
 IsUnsignedElementType
 IsValidIntegerIndex
+IsViewOutOfBounds
 IterationStatement[0,0].LoopEvaluation
 IterationStatement[1,0].LoopEvaluation
 IterationStatement[2,0].LoopEvaluation
 IterationStatement[3,0].LoopEvaluation
 IteratorClose
+IteratorCloseAll
 IteratorComplete
 IteratorNext
 IteratorStep
@@ -1997,6 +2012,7 @@ ObjectBindingPattern[3,1].BoundNames
 ObjectBindingPattern[3,1].ContainsExpression
 ObjectDefineProperties
 ObjectLiteral[0,0].Evaluation
+ObjectLiteral[0,0].PropertyDefinitionNodes
 ObjectLiteral[1,0].Evaluation
 ObjectLiteral[2,0].Evaluation
 OptionalChain[0,0].ChainEvaluation
@@ -2050,8 +2066,12 @@ ParseJSONModule
 ParseScript
 Pattern[0,0].CompilePattern
 PerformPromiseAll
+PerformPromiseAll:clo0
 PerformPromiseAllSettled
+PerformPromiseAllSettled:clo0
+PerformPromiseAllSettled:clo1
 PerformPromiseAny
+PerformPromiseAny:clo0
 PerformPromiseRace
 PerformPromiseThen
 PrepareForOrdinaryCall
@@ -2114,8 +2134,10 @@ PrivateIdentifier[0,0].StringValue
 PrivateMethodOrAccessorAdd
 PrivateSet
 PromiseResolve
+PropertyDefinitionList[0,0].PropertyDefinitionNodes
 PropertyDefinitionList[0,0].PropertyNameList
 PropertyDefinitionList[1,0].PropertyDefinitionEvaluation
+PropertyDefinitionList[1,0].PropertyDefinitionNodes
 PropertyDefinitionList[1,0].PropertyNameList
 PropertyDefinition[0,0].PropName
 PropertyDefinition[2,0].PropName
@@ -2237,6 +2259,7 @@ RegExpCreate
 RegExpExec
 RegExpHasFlag
 RegExpIdentifierName[0,0].RegExpIdentifierCodePoints
+RegExpIdentifierName[1,0].RegExpIdentifierCodePoints
 RegExpUnicodeEscapeSequence[0,0].CharacterValue
 RegExpUnicodeEscapeSequence[4,0].CharacterValue
 RegExpUnicodeEscapeSequence[5,0].CharacterValue
@@ -2311,6 +2334,7 @@ SetIntegrityLevel
 SetSyntheticModuleExport
 SetTypedArrayFromArrayLike
 SetTypedArrayFromTypedArray
+SetUint8ArrayBytes
 SetViewValue
 SetterThatIgnoresPrototypeProperties
 ShiftExpression[1,0].AssignmentTargetType
@@ -2337,6 +2361,7 @@ SingleNameBinding[0,1].HasInitializer
 SingleNameBinding[0,1].IsSimpleParameterList
 SingleNameBinding[0,1].IteratorBindingInitialization
 SingleNameBinding[0,1].KeyedBindingInitialization
+SkipAsciiWhitespace
 SpeciesConstructor
 SpreadElement[0,0].ArrayAccumulation
 StatementListItem[0,0].LexicallyDeclaredNames
@@ -2538,7 +2563,6 @@ TryStatement[2,0].VarDeclaredNames
 TryStatement[2,0].VarScopedDeclarations
 TypedArrayByteLength
 TypedArrayCreate
-TypedArrayCreateFromConstructor
 TypedArrayElementSize
 TypedArrayElementType
 TypedArrayGetElement
@@ -2599,6 +2623,7 @@ ValidateAtomicAccessOnIntegerTypedArray
 ValidateIntegerTypedArray
 ValidateNonRevokedProxy
 ValidateTypedArray
+ValidateUint8Array
 VariableDeclarationList[0,0].VarScopedDeclarations
 VariableDeclarationList[1,0].BoundNames
 VariableDeclarationList[1,0].Evaluation

@@ -61,13 +61,28 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given subStepRule: Rule[SubStep] = (app, subStep) =>
     given Rule[Step] = stepWithUpperRule(true)
     val SubStep(directive, step) = subStep
-    directive.map(app >> _ >> " ")
-    app >> step
+    app >> directive >> step
+
+  given directiveListRule: Rule[List[Directive]] = (app, directives) =>
+    directives match
+      case Nil => app
+      case _ =>
+        app >> "["
+        directives.zipWithIndex.foreach {
+          case (d, i) =>
+            app >> d
+            if (i < directives.length - 1) app >> ","
+        }
+        app >> "] "
 
   given directiveRule: Rule[Directive] = (app, directive) =>
-    given Rule[List[String]] = iterableRule(sep = ",")
+    given Rule[List[String]] = (app, values) => app >> values.mkString(",")
     val Directive(name, values) = directive
-    app >> "[" >> name >> "=\"" >> values >> "\"]"
+    app >> name
+    values match
+      case Nil =>
+      case _   => app >> "=\"" >> values >> "\""
+    app
 
   // steps
   given stepRule: Rule[Step] = stepWithUpperRule(false)
@@ -389,60 +404,31 @@ class Stringifier(detail: Boolean, location: Boolean) {
     import MathOpExpressionOperator.*
     val MathOpExpression(op, args) = expr
     app >> "the " >> op >> " "
-    (op, args) match
-      case (Neg, List(e)) =>
-        app >> e
-      case (Add, List(l, r)) =>
-        app >> l >> " and " >> r
-      case (Mul, List(l, r)) =>
-        app >> l >> " and " >> r
-      case (Sub, List(l, r)) =>
-        app >> l >> " minus " >> r
-      case (Pow, List(l, r)) =>
-        app >> l >> " to the " >> r >> " power"
-      case (Expm1, List(e)) =>
-        app >> e
-      case (Log10, List(e)) =>
-        app >> e
-      case (Log2, List(e)) =>
-        app >> e
-      case (Cos, List(e)) =>
-        app >> e
-      case (Cbrt, List(e)) =>
-        app >> e
-      case (Exp, List(e)) =>
-        app >> e
-      case (Cosh, List(e)) =>
-        app >> e
-      case (Sinh, List(e)) =>
-        app >> e
-      case (Tanh, List(e)) =>
-        app >> e
-      case (Acos, List(e)) =>
-        app >> e
-      case (Acosh, List(e)) =>
-        app >> e
-      case (Asinh, List(e)) =>
-        app >> e
-      case (Atanh, List(e)) =>
-        app >> e
-      case (Asin, List(e)) =>
-        app >> e
-      case (Atan2, List(x, y)) =>
-        app >> x >> " / " >> y
-      case (Atan, List(e)) =>
-        app >> e
-      case (Log1p, List(e)) =>
-        app >> e
-      case (Log, List(e)) =>
-        app >> e
-      case (Sin, List(e)) =>
-        app >> e
-      case (Sqrt, List(e)) =>
-        app >> e
-      case (Tan, List(e)) =>
-        app >> e
-      case _ => raise(s"invalid math operationr: $op with $args")
+    (op, args) match {
+      case (Neg, List(e))      => app >> e
+      case (Add, List(l, r))   => app >> l >> " and " >> r
+      case (Mul, List(l, r))   => app >> l >> " and " >> r
+      case (Sub, List(l, r))   => app >> l >> " minus " >> r
+      case (Pow, List(l, r))   => app >> l >> " to the " >> r >> " power"
+      case (Expm1, List(e))    => app >> e
+      case (Cos, List(e))      => app >> e
+      case (Cbrt, List(e))     => app >> e
+      case (Exp, List(e))      => app >> e
+      case (Cosh, List(e))     => app >> e
+      case (Sinh, List(e))     => app >> e
+      case (Tanh, List(e))     => app >> e
+      case (Acos, List(e))     => app >> e
+      case (Acosh, List(e))    => app >> e
+      case (Asinh, List(e))    => app >> e
+      case (Atanh, List(e))    => app >> e
+      case (Asin, List(e))     => app >> e
+      case (Atan2, List(x, y)) => app >> x >> " / " >> y
+      case (Atan, List(e))     => app >> e
+      case (Sin, List(e))      => app >> e
+      case (Sqrt, List(e))     => app >> e
+      case (Tan, List(e))      => app >> e
+      case _ => raise(s"invalid math operation: $op with $args")
+    }
 
   // multiline expressions
   given multilineExprRule: Rule[MultilineExpression] = (app, expr) =>
@@ -502,6 +488,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Min      => "min"
       case Abs      => "abs"
       case Floor    => "floor"
+      case Log10    => "log10"
+      case Log2     => "log2"
+      case Log      => "ln"
       case Truncate => "truncate"
     })
 
@@ -853,8 +842,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Sub   => "difference"
       case Pow   => "raising"
       case Expm1 => "subtracting 1 from the exponential function of"
-      case Log10 => "base 10 logarithm of"
-      case Log2  => "base 2 logarithm of"
       case Cos   => "cosine of"
       case Cbrt  => "cube root of"
       case Exp   => "exponential function of"
@@ -868,8 +855,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Asin  => "inverse sine of"
       case Atan2 => "inverse tangent of the quotient"
       case Atan  => "inverse tangent of"
-      case Log1p => "natural logarithm of 1 +"
-      case Log   => "natural logarithm of"
       case Sin   => "sine of"
       case Sqrt  => "square root of"
       case Tan   => "tangent of"

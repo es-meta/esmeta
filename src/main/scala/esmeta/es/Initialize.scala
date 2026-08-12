@@ -286,7 +286,7 @@ class Initialize(cfg: CFG) {
       case Some(r: RecordObj) => r
       case _                  => recordObj("PropertyDescriptor")
 
-    def updateRecord(obj: RecordObj)(
+    def updateRecordIfAbsent(obj: RecordObj)(
       pairs: (String, Value)*,
     ): obj.type =
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(Str(f), v)
@@ -299,12 +299,13 @@ class Initialize(cfg: CFG) {
 
     intrObj.map += Str(s"%$name%") -> baseAddr
 
-    map += baseAddr -> updateRecord(baseObj)(
+    map += baseAddr -> updateRecordIfAbsent(baseObj)(
       "Extensible" -> Bool(true),
       "ScriptOrModule" -> Null,
       "Realm" -> realmAddr,
       "Prototype" -> intrAddr("Function.prototype"),
       "InitialName" -> Str(defaultName),
+      "Async" -> Bool(false),
       INNER_CODE -> intrClo(name),
       INNER_MAP -> subAddr,
       PRIVATE_ELEMENTS -> listAddr,
@@ -317,14 +318,14 @@ class Initialize(cfg: CFG) {
 
     map += listAddr -> listObj
 
-    map += lengthAddr -> updateRecord(lengthrecordObj)(
+    map += lengthAddr -> updateRecordIfAbsent(lengthrecordObj)(
       "Value" -> Number(defaultLength),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),
       "Configurable" -> Bool(true),
     )
 
-    map += nameAddr -> updateRecord(namerecordObj)(
+    map += nameAddr -> updateRecordIfAbsent(namerecordObj)(
       "Value" -> Str(defaultName),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),

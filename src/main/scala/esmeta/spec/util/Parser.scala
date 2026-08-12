@@ -283,7 +283,7 @@ trait Parsers extends LangParsers {
       }
     pre ~ base ~ rep(access) <~ (guard("(") | not(".".r)) ^^ {
       case p ~ b ~ as => p(as.foldLeft(b) { case (b, a) => a(b) })
-    } | yet ^^ { YetPath(_) }
+    }
   }.named("spec.BuiltinPath")
 
   // ---------------------------------------------------------------------------
