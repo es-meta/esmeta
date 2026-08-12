@@ -935,14 +935,15 @@ class Compiler(
             val finiteNum = and(isNumberTy, not(nonFiniteNum))
             op match
               case Finite =>
-                // TODO: "finite" is currently used for both Numbers and
-                // extended mathematical values; once tc39/ecma262#3911 lands
-                // and reserves it for mathematical values, drop `finiteNum`
+                // TODO: "finite" is currently used for all three kinds of
+                // numeric values ; once tc39/ecma262#3911 lands and reserves it
+                // for extended mathematical values, keep only `finiteMath`.
+                val finiteBigInt = ETypeCheck(x, IRType(BigIntT))
                 val isExtendedMathTy = ETypeCheck(x, IRType(MathT || InfinityT))
                 val nonFiniteMath =
                   or(is(x, EInfinity(true)), is(x, EInfinity(false)))
                 val finiteMath = and(isExtendedMathTy, not(nonFiniteMath))
-                or(finiteNum, finiteMath)
+                or(finiteMath, or(finiteNum, finiteBigInt))
               case NonZeroFiniteNumber =>
                 val zeroNum = or(is(x, ENumber(0.0)), is(x, ENumber(-0.0)))
                 and(finiteNum, not(zeroNum))
