@@ -929,13 +929,24 @@ class Compiler(
               case Continue => EENUM_CONTINUE
             and(isCompletion(x), is(tv, expected))
           case Finite | FiniteNumber | NonZeroFiniteNumber =>
-            val finite = not(
-              or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
-            )
+            val isNumberTy = ETypeCheck(x, IRType(NumberT))
+            val nonFiniteNum =
+              or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))
+            val finiteNum = and(isNumberTy, not(nonFiniteNum))
             op match
+              case Finite =>
+                // TODO: "finite" is currently used for both Numbers and
+                // extended mathematical values; once tc39/ecma262#3911 lands
+                // and reserves it for mathematical values, drop `finiteNum`
+                val isExtendedMathTy = ETypeCheck(x, IRType(MathT || InfinityT))
+                val nonFiniteMath =
+                  or(is(x, EInfinity(true)), is(x, EInfinity(false)))
+                val finiteMath = and(isExtendedMathTy, not(nonFiniteMath))
+                or(finiteNum, finiteMath)
               case NonZeroFiniteNumber =>
-                and(finite, not(or(is(x, ENumber(0.0)), is(x, ENumber(-0.0)))))
-              case _ => finite
+                val zeroNum = or(is(x, ENumber(0.0)), is(x, ENumber(-0.0)))
+                and(finiteNum, not(zeroNum))
+              case _ => finiteNum
           case Duplicated =>
             val (b, bExpr) = fb.newTIdWithExpr
             fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
