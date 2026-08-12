@@ -64,8 +64,6 @@ object Unifier {
   ): Option[CaptureEnv] = (pattern, concrete) match {
     case (MetaStep(name, _, v), node) => Some(Map(CaptureKey(name, v) -> node))
     case (LetStep(pVar, pExpr), LetStep(cVar, cExpr)) =>
-      println("Pattern: " + pattern)
-      println("Concrete: " + concrete)
       for {
         varEnv <- unify(pVar, cVar, ctx, preds)
         exprEnv <- unify(pExpr, cExpr, ctx, preds)
@@ -199,20 +197,10 @@ object Unifier {
     preds: Map[String, LangElemPredicate],
   ): Option[CaptureEnv] = (pattern, concrete) match {
     case (MetaReference(name, variant), node) =>
-      val hasPred = preds.contains(name)
       val passes = preds.get(name).forall(pred => pred(node, ctx))
-      if (hasPred && !passes)
-        println(
-          s"  [PRED] MetaRef '$name'$variant failed on $node, paths=${ctx.symbolicPaths}",
-        )
       if (passes) Some(Map(CaptureKey(name, variant) -> node)) else None
     case (Variable(name, _, true, variant), node) =>
-      val hasPred = preds.contains(name)
       val passes = preds.get(name).forall(pred => pred(node, ctx))
-      if (hasPred)
-        println(
-          s"  [PRED] Var '$name' on $node, result=$passes, ctxKeys=${ctx.symbolicPaths.keys.mkString(",")}",
-        )
       if (passes) Some(Map(CaptureKey(name, variant) -> node)) else None
     case (Variable(p, _, _, _), Variable(c, _, _, _)) if p == c =>
       Some(Map.empty)

@@ -13,9 +13,6 @@ object Transformer {
     root: AStep,
     stats: Option[TransformStats] = None,
   ): Step =
-    println(
-      s"[TRANSFORM] applying rule '${rule.name}' (${rule.getClass.getSimpleName})",
-    )
     rule match {
       case sr: StepRule       => applyStepRule(sr, root, stats)
       case er: ExpressionRule => applyExpressionRule(er, root, stats)
@@ -31,14 +28,6 @@ object Transformer {
     ctx: DSLContext = DSLContext(),
   ): Unit = {
     stats.foreach(_.record(ruleName))
-    println(s"  [MATCH] $ruleName")
-    println(
-      s"    state: ${ctx.symbolicPaths
-        .map { case (k, v) => s"$k→${v.mkString(".")}" }
-        .mkString(", ")}",
-    )
-    println(s"    before: $before")
-    println(s"    after:  $after")
   }
 
   /** Apply sub-rules to a step, pre-substituting parent bindings. */
@@ -70,11 +59,7 @@ object Transformer {
       case Some(finalStep) =>
         onMatch(rule.name, before, finalStep, stats, ctx)
         Some(finalStep)
-      case None =>
-        println(
-          s"  [WARN] ${rule.name}: closure-lifted return has unsupported replacement shape; skipping match",
-        )
-        None
+      case None => None
     }
   }
 
@@ -180,10 +165,6 @@ object Transformer {
       if (remaining.length < window) {
         remaining
       } else {
-        println("=" * 80)
-        println(patternSteps)
-        println(aRemaining.take(window).map(_.prettyPrint()))
-
         Unifier
           .unify(patternSteps, aRemaining.take(window), rule.predicates)
           .flatMap(Unifier.validateVariants)
@@ -195,12 +176,6 @@ object Transformer {
                   DSLContext(symbolicPaths = aRemaining.head.state)
                 else
                   DSLContext()
-              println(
-                s"  [SLIDING-MATCH] ${rule.name} at window offset, matched ${window} steps",
-              )
-              println(
-                s"    matched: ${aRemaining.take(window).map(_.step).mkString("; ")}",
-              )
               finalizeStepRuleMatch(
                 rule,
                 rule.pattern,

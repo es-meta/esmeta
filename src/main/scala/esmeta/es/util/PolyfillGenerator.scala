@@ -33,6 +33,8 @@ object PolyfillGenerator {
   )
 
   val ignoreTargets = List(
+    // ES1
+    "INTRINSICS.String.fromCharCode",
     // ES3
     "INTRINSICS.String.prototype.charAt",
     "INTRINSICS.String.prototype.charCodeAt",
@@ -143,7 +145,6 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
                 XRefExpressionOperator.InternalMethod,
                 id,
               ) =>
-            println(id)
             val targetAlgo = spec.getAlgoById(id)
             // Elem is reference; It is deinitialized at Inspector stage;;;;;;;
             val capturedAlgo = targetAlgo.copy(head = targetAlgo.head match {
@@ -185,21 +186,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     val name = algo.name
     val params = algo.head.originalParams
     val prelude = compilePrelude(pb, algo.head, algo.body)
-    val body =
-      try {
-        // TODO remove this catch after implementing all steps
-        compileWithScope(pb, algo.body)
-      } catch {
-        case e: Throwable =>
-          println("-" * 80)
-          e.getStackTrace.take(10).foreach(println)
-          println("-" * 80)
-          println(algo)
-          println("-" * 80)
-          println(pb.currentResult)
-          println("-" * 80)
-          throw e
-      }
+    val body = compileWithScope(pb, algo.body)
     Polyfill(name, params, prelude ++ body)
 
   def compilePrelude(pb: PolyfillBuilder, head: Head, body: Step): Stmt =
@@ -455,12 +442,16 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
             ) =>
           s"${INTERNAL_HEADER}__IntRange(${compile(pb, from)}, $isFromInclusive, ${compile(pb, to)}, $isToInclusive, $isAscending)"
     case YetExpression(str, block) =>
-      s"throw new Error(\"YET: ${str.replace("\"", "\\\"")}\")"
+      s"(function () { throw new Error(\"YET: ${str
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")}\"); })()"
     case ReferenceExpression(ref)     => compile(pb, ref)
     case MathFuncExpression(op, args) => s"${compile(op)}(${compile(pb, args)})"
+    case ConversionExpression(ConversionExpressionOperator.ToCodeUnit, e, _) =>
+      s"String.fromCharCode(${compile(pb, e)})"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
-      s"${INTERNAL_HEADER}__pow(${compile(pb, base)}, ${compile(pb, power)})"
+      s"Math.pow(${compile(pb, base)}, ${compile(pb, power)})"
     case BinaryExpression(left, op, right) =>
       s"${compile(pb, left)} ${compile(op)} ${compile(pb, right)}"
     case UnaryExpression(op, expr) => s"${compile(op)}${compile(pb, expr)}"
@@ -474,7 +465,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case (Mul, List(l, r)) => s"${compile(pb, l)} * ${compile(pb, r)}"
         case (Sub, List(l, r)) => s"${compile(pb, l)} - ${compile(pb, r)}"
         case (Pow, List(l, r)) =>
-          s"${INTERNAL_HEADER}__pow(${compile(pb, l)}, ${compile(pb, r)})"
+          s"Math.pow(${compile(pb, l)}, ${compile(pb, r)})"
         case _ => ???
     case BitwiseExpression(l, op, r) =>
       s"${compile(pb, l)} ${compile(op)} ${compile(pb, r)}"
@@ -487,7 +478,6 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           XRefExpressionOperator.InternalMethod,
           id,
         ) =>
-      println(spec.getAlgoById(id).head.fname)
       val fname = spec
         .getAlgoById(id)
         .head
@@ -501,7 +491,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case XRefExpression(kind, id)    => ???
     case SoleElementExpression(list) => ???
     case CodeUnitAtExpression(base, index) =>
-      s"${compile(pb, base)}[\"${compile(pb, index)}\"]"
+      s"${compile(pb, base)}.charCodeAt(${compile(pb, index)})"
     case lit: Literal            => compile(lit)
     case MetaExpression(name, _) => ???
   }
@@ -539,36 +529,49 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
   def compile(op: MathFuncExpressionOperator): String =
     import MathFuncExpressionOperator.*
     op match {
-      case Max      => s"${INTERNAL_HEADER}__max"
-      case Min      => s"${INTERNAL_HEADER}__min"
-      case Abs      => s"${INTERNAL_HEADER}__abs"
-      case Floor    => s"${INTERNAL_HEADER}__floor"
-      case Truncate => s"${INTERNAL_HEADER}__truncate"
+      case Max      => s"Math.max"
+      case Min      => s"Math.min"
+      case Abs      => ???
+      case Floor    => s"Math.floor"
+      case Truncate => s"Math.trunc"
     }
+
+  def compileTypeCheck(expr: String, ty: String): String = ty match
+    case "record[object]" | "object" => s"${AO_HEADER}__IsObject($expr)"
+    case "record[symbol]"            => s"typeof $expr === \"symbol\""
+    case "numberint"     => s"${INTERNAL_HEADER}__IsIntegralNumber($expr)"
+    case "record[array]" => s"${AO_HEADER}__IsArray($expr)"
+    case _ if ty.startsWith("record[") => "false"
+    case _                             => s"typeof $expr === \"$ty\""
+
+  /* negation helper */
+  def negateIf(neg: Boolean)(cond: String): String =
+    if (neg) s"!($cond)" else s"($cond)"
 
   /** compile branch conditions */
   def compile(pb: PolyfillBuilder, cond: Condition): String = cond match {
     case ExpressionCondition(expr) => compile(pb, expr)
     case TypeCheckCondition(expr, neg, tys) =>
       val compiledExpr = compile(pb, expr)
-      (if (neg) s"!" else "") + tys
-        .map(_.normalizedName.toLowerCase())
-        .map(tyStr => if (tyStr == "record[object]") "object" else tyStr)
-        .map(tyStr =>
-          if (tyStr == "object") s"AO__IsObject($compiledExpr)"
-          else s"typeof $compiledExpr === \"$tyStr\"",
+      val tyNames = tys.map(_.normalizedName.toLowerCase())
+      if (tyNames.length == 1)
+        negateIf(neg)(compileTypeCheck(compiledExpr, tyNames.head))
+      else
+        val operand = pb.newTId
+        val checks =
+          tyNames.map(compileTypeCheck(operand, _)).mkString("(", "||", ")")
+        negateIf(neg)(
+          s"(function ($operand) { return $checks; })($compiledExpr)",
         )
-        .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
-      (if (neg) s"!" else "") + s"(${compile(pb, field)} in ${compile(pb, ref)})"
+      negateIf(neg)(s"${compile(pb, field)} in ${compile(pb, ref)}")
     case HasBindingCondition(ref, neg, binding)    => ???
     case ProductionCondition(nt, lhsName, rhsName) => ???
     case PredicateCondition(expr, neg, op) =>
       import PredicateConditionOperator.*
       op match {
-        case Finite =>
-          (if (neg) s"!" else "") + s"isFinite(${compile(pb, expr)})"
-        case Present => (if (neg) s"!" else "") + compile(pb, expr) + IS_PRESENT
+        case Finite  => negateIf(neg)(s"isFinite(${compile(pb, expr)})")
+        case Present => negateIf(neg)(compile(pb, expr) + IS_PRESENT)
         case x       => s"TODO: $x"
       }
     case IsAreCondition(left, neg, right) =>
@@ -577,11 +580,14 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         val e = right
           .map(rexpr =>
             rexpr match
-              case NumberLiteral(n) if n.isNaN => s"isNaN($l)"
-              case _ => s"($l === ${compile(pb, rexpr)})",
+              // The specification asks whether the value *is* NaN, whereas the
+              // global isNaN coerces first and would report every non-numeric
+              // string as NaN. Self-inequality holds for NaN and nothing else.
+              case NumberLiteral(n) if n.isNaN => s"$l !== $l"
+              case _ => s"$l === ${compile(pb, rexpr)}",
           )
-          .reduce((l, r) => s"($l || $r)")
-        (if (neg) s"!" else "") + e
+          .reduce((l, r) => s"$l || $r")
+        negateIf(neg)(e)
       }
       es.reduce((l, r) => s"($l && $r)")
     case BinaryCondition(left, op, right) =>
@@ -599,12 +605,11 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       }
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)
-      val e = s"($l >= ${compile(pb, from)} && $l <= ${compile(pb, to)})"
-      (if (neg) s"!" else "") + e
+      negateIf(neg)(s"$l >= ${compile(pb, from)} && $l <= ${compile(pb, to)}")
     case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
-      val c =
-        s"${INTERNAL_HEADER}__Contains(${compile(pb, list)}, ${compile(pb, target)})"
-      (if (neg) s"!" else "") + c
+      negateIf(neg)(
+        s"${INTERNAL_HEADER}__Contains(${compile(pb, list)}, ${compile(pb, target)})",
+      )
     case ContainsCondition(list, neg, _) => ???
     case CompoundCondition(left, op, right) =>
       import CompoundConditionOperator.*
@@ -619,12 +624,17 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   def compile(lit: Literal): String =
     lit match {
-      case _: ThisLiteral                    => "this"
-      case _: ThisParseNodeLiteral           => ???
-      case _: NewTargetLiteral               => "new.target"
-      case HexLiteral(hex, _, _, _)          => s"\"${hex.toChar.toString}\""
-      case CodeLiteral(code)                 => s"\"$code\""
-      case GrammarSymbolLiteral(name, flags) => ???
+      case _: ThisLiteral          => "this"
+      case _: ThisParseNodeLiteral => ???
+      case _: NewTargetLiteral     => "new.target"
+      // A hex literal is a bare code point where the specification compares
+      // numbers, and the character it names where the specification calls it a
+      // code unit -- "the code unit 0x0020 (SPACE)" means the string " ".
+      case HexLiteral(hex, hasCodeUnitDescription, _, _) =>
+        val value = s"0x${hex.toHexString.toUpperCase}"
+        if (hasCodeUnitDescription) s"String.fromCharCode($value)" else value
+      case CodeLiteral(code)                                    => s"\"$code\""
+      case GrammarSymbolLiteral(name, flags)                    => ???
       case NonterminalLiteral(ordinal, name, flags, hasArticle) => ???
       case EnumLiteral(name)                                    => s"\"$name\""
       case StringLiteral(str, _)                                => s"\"$str\""

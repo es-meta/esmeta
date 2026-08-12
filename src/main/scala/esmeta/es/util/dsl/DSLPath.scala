@@ -12,22 +12,10 @@ class DSLPath(dslDir: String) extends TransformPath {
 
   def apply(targets: List[Algorithm]) = {
     val rules = DSLRuleParser.parseDir(dslDir)
-    println(s"Using ${rules.length} internal rules")
-    rules.foreach { r =>
-      println(s"${r.name} (${r.getClass.getSimpleName})")
-      println(s"pattern: ${r.pattern}")
-      println(s"replace: ${r.replace}")
-      println("=" * 80)
-    }
-    println()
-
     val stats = new TransformStats()
 
     val result = targets.map { algo =>
-      println(algo.name)
-      val body = pass(algo.body.flatten, rules, stats)
-      println("=" * 80)
-      algo.copy(body = body)
+      algo.copy(body = pass(algo.body.flatten, rules, stats))
     }
 
     stats.printSummary()

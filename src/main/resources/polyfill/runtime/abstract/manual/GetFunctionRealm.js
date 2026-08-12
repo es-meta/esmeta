@@ -1,0 +1,1 @@
+module.exports = function AO_GetFunctionRealm(obj) { return globalThis };

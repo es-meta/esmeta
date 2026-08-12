@@ -67,12 +67,10 @@ object DSLRuleParser {
         case BlockStep(block) =>
           hasSingleStepBlock ||= block.rawSteps.length == 1
         case YetStep(expr) =>
-          println("YET: " + expr)
           yetFound = true
         case _ => super.walk(step)
       override def walk(expr: Expression): Unit = expr match
         case YetExpression(str, block) =>
-          println("YET: " + str)
           yetFound = true
         case _ => super.walk(expr)
     }.walk(body)
