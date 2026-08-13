@@ -261,7 +261,9 @@ class Extractor(
     case Some(pair) => List(pair)
     // XXX ECMA-262 defines SDOs for productions of other specifications (e.g. ECMA-404)
     case None if !LhsNames.contains(lhsName) =>
-      warn(s"ignore an SDO definition for production from external specification: $syntax")
+      warn(
+        s"ignore an SDO definition for production from external specification: $syntax",
+      )
       Nil
     case None => raise(s"unknown grammar production alternative: $syntax")
 
