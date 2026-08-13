@@ -1,6 +1,8 @@
 # ESMetaFV — Rocq development for IR-Core transpiler verification.
 #
 # Requires the `cris-workshop` opam switch (Rocq 9.0.0 + pinned rocq-cris);
+# UPD : now using `default` opam switch
+#
 # see README.md in this directory for one-time setup.
 #
 # Build:  make        (from this directory)
@@ -38,26 +40,14 @@ DIRECT_SOURCE_MANIFEST := validation/DirectSources.mk
 
 SPEC_FUNC_SHARD_SOURCES := \
 	$(filter validation/spec/SpecFuncs_%.v,$(SPEC_GENERATED_SOURCES))
-SPEC_HEAP_SHARD_SOURCES := \
-	$(filter validation/spec/SpecHeap_%.v,$(SPEC_GENERATED_SOURCES))
-SPEC_FUNC_SHARD_OBJECTS := $(SPEC_FUNC_SHARD_SOURCES:.v=.vo)
-SPEC_HEAP_SHARD_OBJECTS := $(SPEC_HEAP_SHARD_SOURCES:.v=.vo)
-SPEC_FACADE_SOURCES := \
-	validation/spec/SpecFuncs.v \
-	validation/spec/SpecGlobals.v \
-	validation/spec/SpecHeap.v
-SPEC_FACADE_OBJECTS := $(SPEC_FACADE_SOURCES:.v=.vo)
 # Every generated direct source except the two facades is a function shard.
 # Shards are named after the function they hold, so they cannot be matched by
 # a single pattern.
 DIRECT_FUNC_SHARD_SOURCES := \
 	$(filter-out validation/spec_direct/DirectFuncs.v \
 	  validation/spec_direct/DirectNames.v,$(DIRECT_GENERATED_SOURCES))
-DIRECT_FUNC_SHARD_OBJECTS := $(DIRECT_FUNC_SHARD_SOURCES:.v=.vo)
-DIRECT_NAMES_SOURCE := validation/spec_direct/DirectNames.v
-DIRECT_NAMES_OBJECT := $(DIRECT_NAMES_SOURCE:.v=.vo)
-DIRECT_FACADE_SOURCE := validation/spec_direct/DirectFuncs.v
-DIRECT_FACADE_OBJECT := $(DIRECT_FACADE_SOURCE:.v=.vo)
+DIRECT_NAMES_OBJECT := validation/spec_direct/DirectNames.vo
+DIRECT_FACADE_OBJECT := validation/spec_direct/DirectFuncs.vo
 DIRECT_REPRESENTATIVE_SOURCE := $(firstword $(DIRECT_FUNC_SHARD_SOURCES))
 DIRECT_REPRESENTATIVE_OBJECT := $(DIRECT_REPRESENTATIVE_SOURCE:.v=.vo)
 GENERIC_REPRESENTATIVE_SOURCE := $(firstword $(SPEC_FUNC_SHARD_SOURCES))
@@ -79,50 +69,53 @@ COQFLAGS := \
 # coqdep accepts only the load-path options, not -q/-require-import.
 COQDEPFLAGS := -Q . ESMetaFV
 
-TYMODEL_SHARD_SOURCES := \
-	TyModelBase.v \
-	$(sort $(wildcard TyModelParent*.v)) \
-	$(sort $(wildcard TyModelBindings*.v))
+# Compile every active Rocq source that is present, including probes,
+# regressions and generated specification shards.  Build-directory .v files
+# are generated extraction drivers rather than project sources; attic contains
+# proofs retained for reference that no longer compile against the current CRIS.
+DISCOVERED_COQ_SOURCES := $(sort $(patsubst ./%,%,\
+	$(shell find . -path './build' -prune -o -type f -name '*.v' -print)))
+ARCHIVED_COQ_SOURCES := attic/T2Proof.v attic/T3Proof.v
 
-SOURCES := \
-	Fragment.v \
-	$(TYMODEL_SHARD_SOURCES) \
-	TyModel.v \
-	TestEncoding.v \
-	Domain.v \
-	Events.v \
-	Semantics.v \
-	DirectSemantics.v \
-	ITreeExec.v \
-	DirectITreeExec.v \
-	DirectITreeTierA.v \
-	Programs.v \
-	Examples.v \
-	Exec.v \
-	Transform.v \
-	Validation.v \
-	T1Proof.v
-OBJECTS := $(SOURCES:.v=.vo)
+# These checked-in drivers depend on opt-in generated modules.  They join the
+# ordinary build automatically as soon as those modules exist; until then their
+# dedicated targets below retain the actionable generation errors.
+UNAVAILABLE_COQ_SOURCES :=
+ifeq ($(wildcard validation/spec_direct/DirectFuncs.v),)
+UNAVAILABLE_COQ_SOURCES += \
+	DirectITreeCore.v DirectITreeSpecRunProbe.v DirectTest262.v \
+	DirectTest262Extract.v DirectWorkerExtract.v
+endif
+ifeq ($(wildcard validation/Tests.v),)
+UNAVAILABLE_COQ_SOURCES += DirectTest262.v DirectTest262Extract.v
+endif
+ifeq ($(wildcard validation/JSEquivArtifacts.v),)
+UNAVAILABLE_COQ_SOURCES += JSEquivProof.v
+endif
+
+COQ_SOURCES := $(filter-out $(sort $(UNAVAILABLE_COQ_SOURCES)),\
+	$(filter-out $(ARCHIVED_COQ_SOURCES),$(DISCOVERED_COQ_SOURCES)))
+COQ_OBJECTS := $(COQ_SOURCES:.v=.vo)
 DEPS := .deps.mk
 
-all: $(OBJECTS)
+all: $(COQ_OBJECTS)
 
-# Compile the complete active proof/regression surface.  Extraction and the
-# generated Test262 specification remain explicit targets because they are
-# expensive and require generated inputs.
+# Compile the complete source tree; the regression target additionally refreshes
+# the Scala-generated JavaScript equivalence witness.
 check: all regressions
 
 # Differential validation (PO-011): compile the generated expectations.
 # Regenerate with:  sbt "runMain esmeta.fv.FVExport"   (from the repo root)
-validate: all validation/Generated.v
-	$(COQC) $(COQFLAGS) validation/Generated.v
+validate: validation/Generated.vo
+	@echo "compiled generated differential expectations"
 
 validation/Generated.v:
 	@echo "validation/Generated.v missing — run: sbt \"runMain esmeta.fv.FVExport\"" && exit 1
 
 # The ECMAScript specification plus its initial state (stage G4).
 # Regenerate with:  sbt "runMain esmeta.fv.FVInitState [source]"
-spec: all validation/Spec.vo
+spec: validation/Spec.vo
+	@echo "compiled the generated ECMAScript specification"
 
 validation/Spec.v:
 	@echo "validation/Spec.v missing — run: sbt \"runMain esmeta.fv.FVInitState\"" && exit 1
@@ -138,46 +131,11 @@ spec-manifest-ready:
 	  exit 1; \
 	}
 
-# Native execution of the actual ITree denotation in Semantics.v.
-# Needs validation/Spec.v and validation/Tests.v, from the repository root:
-#   sbt "runMain esmeta.fv.FVInitState"
-#   sbt "runMain esmeta.fv.FVInitState --test262 20"
-validation/spec/SpecFuncs_%.vo: validation/spec/SpecFuncs_%.v \
-    Fragment.vo Domain.vo TestEncoding.vo
-	$(COQC) $(COQFLAGS) $<
-
-validation/spec/SpecHeap_%.vo: validation/spec/SpecHeap_%.v \
-    Fragment.vo Domain.vo TestEncoding.vo
-	$(COQC) $(COQFLAGS) $<
-
-validation/spec/SpecFuncs.vo: validation/spec/SpecFuncs.v \
-    $(SPEC_FUNC_SHARD_OBJECTS) Fragment.vo Domain.vo TestEncoding.vo
-	$(COQC) $(COQFLAGS) $<
-
-validation/spec/SpecGlobals.vo: validation/spec/SpecGlobals.v \
-    Fragment.vo Domain.vo TestEncoding.vo
-	$(COQC) $(COQFLAGS) $<
-
-validation/spec/SpecHeap.vo: validation/spec/SpecHeap.v \
-    $(SPEC_HEAP_SHARD_OBJECTS) Fragment.vo Domain.vo TestEncoding.vo
-	$(COQC) $(COQFLAGS) $<
-
-validation/Spec.vo: validation/Spec.v $(SPEC_FACADE_OBJECTS) \
-    Fragment.vo Domain.vo TestEncoding.vo | spec-manifest-ready
-	$(COQC) $(COQFLAGS) validation/Spec.v
+validation/Spec.vo: | spec-manifest-ready
 
 ITREE_TEST_MODULES := $(shell sed -n \
 	's/^From ESMetaFV\.validation\.itree Require Import \(.*\)\.$$/\1/p' \
 	validation/Tests.v 2>/dev/null)
-ITREE_TEST_SOURCES := $(addprefix validation/itree/, \
-	$(addsuffix .v,$(ITREE_TEST_MODULES)))
-ITREE_TEST_OBJECTS := $(ITREE_TEST_SOURCES:.v=.vo)
-
-validation/Tests.vo: validation/Tests.v Fragment.vo $(ITREE_TEST_OBJECTS)
-	$(COQC) $(COQFLAGS) validation/Tests.v
-
-validation/itree/%.vo: validation/itree/%.v Fragment.vo Domain.vo TestEncoding.vo
-	$(COQC) $(COQFLAGS) $<
 
 # Direct generated artifacts are deliberately disjoint from the generic Spec
 # graph.  Full generation currently fails closed at the unsupported ERandom
@@ -193,21 +151,6 @@ direct-manifest-ready:
 	  echo "$(DIRECT_SOURCE_MANIFEST) contains no generated direct sources"; \
 	  exit 1; \
 	}
-
-validation/spec_direct/DirectNames.vo: validation/spec_direct/DirectNames.v
-	$(COQC) $(COQFLAGS) $<
-
-validation/spec_direct/ir_%.vo: validation/spec_direct/ir_%.v \
-    DirectSemantics.vo $(DIRECT_NAMES_OBJECT)
-	$(COQC) $(COQFLAGS) $<
-
-validation/spec_direct/DirectFuncs_%.vo: validation/spec_direct/DirectFuncs_%.v \
-    DirectSemantics.vo $(DIRECT_NAMES_OBJECT)
-	$(COQC) $(COQFLAGS) $<
-
-$(DIRECT_FACADE_OBJECT): $(DIRECT_FACADE_SOURCE) \
-    $(DIRECT_FUNC_SHARD_OBJECTS) $(DIRECT_NAMES_OBJECT)
-	$(COQC) $(COQFLAGS) $<
 
 .PHONY: direct-generated-shard-smoke
 direct-generated-shard-smoke: direct-manifest-ready
@@ -228,14 +171,6 @@ direct-facade: direct-manifest-ready $(DIRECT_FACADE_OBJECT)
 # Differential Test262 over both backends.  The payload set comes from the
 # generic pipeline, so the two runs share their inputs exactly and any
 # disagreement is attributable to the backend under test.
-DirectITreeCore.vo: DirectITreeCore.v ITreeCore.vo DirectITreeExec.vo \
-    $(DIRECT_FACADE_OBJECT)
-	$(COQC) $(COQFLAGS) $<
-
-DirectTest262.vo: DirectTest262.v DirectITreeCore.vo ITreeCore.vo \
-    validation/Tests.vo
-	$(COQC) $(COQFLAGS) $<
-
 build/direct-t262/.extracted: DirectTest262Extract.v DirectTest262.vo \
     ExtractionConfig.vo
 	mkdir -p build/direct-t262
@@ -294,59 +229,6 @@ itree-smoke: itree_smoke Int32OpsRegression.vo
 	./itree_smoke
 
 extract: itree-core
-
-# Modular extraction keeps the multi-megabyte specification and executable
-# ITree semantics stable while Test262 payload shards are regenerated.  The
-# native compact-payload worker is the production lane; Rocq tuple modules and
-# the bytecode worker remain independent audit/fallback lanes.
-ExtractionConfig.vo: ExtractionConfig.v TestEncoding.vo
-	$(COQC) $(COQFLAGS) $<
-
-ITreeCore.vo: ITreeCore.v ITreeExec.vo validation/Spec.vo
-	$(COQC) $(COQFLAGS) $<
-
-SpecAlgorithmITree.vo: SpecAlgorithmITree.v ITreeExec.vo validation/Spec.vo
-	$(COQC) $(COQFLAGS) $<
-
-ITreeCoreRegression.vo: ITreeCoreRegression.v ITreeCore.vo ITreeExec.vo \
-    validation/Spec.vo
-	$(COQC) $(COQFLAGS) $<
-
-ITreeExecRegression.vo: ITreeExecRegression.v ITreeExec.vo Exec.vo Programs.vo
-	$(COQC) $(COQFLAGS) $<
-
-Int32OpsRegression.vo: Int32OpsRegression.v Domain.vo
-	$(COQC) $(COQFLAGS) $<
-
-ContEqualityRegression.vo: ContEqualityRegression.v Domain.vo Semantics.vo Exec.vo
-	$(COQC) $(COQFLAGS) $<
-
-TypeTrimRegression.vo: TypeTrimRegression.v Domain.vo Exec.vo
-	$(COQC) $(COQFLAGS) $<
-
-NumberMathRegression.vo: NumberMathRegression.v Domain.vo Semantics.vo Exec.vo
-	$(COQC) $(COQFLAGS) $<
-
-NumberToBigIntRegression.vo: NumberToBigIntRegression.v Domain.vo Exec.vo
-	$(COQC) $(COQFLAGS) $<
-
-FloorDivisionNormalizationRegression.vo: FloorDivisionNormalizationRegression.v \
-    Domain.vo Exec.vo
-	$(COQC) $(COQFLAGS) $<
-
-ExtMathRegression.vo: ExtMathRegression.v Domain.vo Semantics.vo Exec.vo
-	$(COQC) $(COQFLAGS) $<
-
-TyExpSetRegression.vo: TyExpSetRegression.v Domain.vo Exec.vo
-	$(COQC) $(COQFLAGS) $<
-
-EParseRecoveryRegression.vo: EParseRecoveryRegression.v Domain.vo \
-    Semantics.vo Exec.vo
-	$(COQC) $(COQFLAGS) $<
-
-DirectSemanticsRegression.vo: DirectSemanticsRegression.v \
-    DirectSemantics.vo Semantics.vo Programs.vo
-	$(COQC) $(COQFLAGS) $<
 
 .PHONY: direct-regression
 direct-regression: DirectSemanticsRegression.vo
@@ -411,12 +293,6 @@ direct-resource-gate: direct-generated-shard-smoke \
 	  --output-dir $(ITREE_BUILD)/direct-resource \
 	  --coqc $(COQC) $(COQFLAGS)
 
-SpecAssertionProof.vo: SpecAssertionProof.v Exec.vo validation/Spec.vo
-	$(COQC) $(COQFLAGS) $<
-
-JSClosedEquiv.vo: JSClosedEquiv.v ITreeExec.vo validation/Spec.vo
-	$(COQC) $(COQFLAGS) $<
-
 # The JavaScript witnesses cross the complete trusted Scala frontend: the
 # ECMAScript source is parsed with the extracted grammar, compiled to IR,
 # initialized, interpreted, and finally exported.  Hash the conservative input
@@ -467,10 +343,6 @@ js-equiv-freshness:
 # could rewrite Spec shards while another coqc process is reading them.
 validation/JSEquivArtifacts.v:
 	@echo "$@ missing — run: make js-equiv-artifacts" && exit 1
-
-validation/JSEquivArtifacts.vo: validation/JSEquivArtifacts.v Fragment.vo \
-    Domain.vo TestEncoding.vo
-	$(COQC) $(COQFLAGS) $<
 
 JSEquivProof.vo: JSEquivProof.v JSClosedEquiv.vo \
     validation/JSEquivArtifacts.vo $(JS_EQUIV_INPUT_STAMP)
@@ -821,11 +693,21 @@ t262-full-dry:
 validation/Tests.v:
 	@echo "validation/Tests.v missing — run: sbt \"runMain esmeta.fv.FVInitState --test262 20\"" && exit 1
 
+# Extraction commands require their declared output directories to exist even
+# when the .v driver is compiled by the ordinary [all] target.
+ExtractCore.vo: | $(ITREE_CORE_BUILD)
+DirectTest262Extract.vo: | build/direct-t262
+DirectWorkerExtract.vo: | build/direct-worker
+
+$(ITREE_CORE_BUILD) build/direct-t262 build/direct-worker:
+	mkdir -p $@
+
 %.vo: %.v
 	$(COQC) $(COQFLAGS) $<
 
-$(DEPS): $(SOURCES)
-	$(COQDEP) $(COQDEPFLAGS) $(SOURCES) > $@
+$(DEPS): $(COQ_SOURCES) Makefile
+	$(COQDEP) $(COQDEPFLAGS) $(COQ_SOURCES) > $@.tmp
+	mv $@.tmp $@
 
 -include $(DEPS)
 
@@ -834,8 +716,9 @@ $(DEPS): $(SOURCES)
 # longer needed.
 clean-build:
 	rm -f fvrun fvitree itree_smoke *.cm* *.o
-	rm -f *.vo *.vos *.vok *.glob $(DEPS)
-	rm -f .*.aux *.aux
+	find . -type f \( -name '*.vo' -o -name '*.vos' -o -name '*.vok' \
+	  -o -name '*.glob' -o -name '*.aux' \) -delete
+	rm -f $(DEPS) $(DEPS).tmp
 	rm -rf build/itree
 	rm -f fvitree-modular modular_driver.cmo modular_driver.cmi
 	rm -f itree_test_runtime.cmo itree_test_runtime.cmi
@@ -845,19 +728,6 @@ clean-build:
 	rm -f fvitree-worker-native spec-snapshot-writer
 	rm -f payload-roundtrip payload_codec.cmo payload_codec.cmi
 	rm -f payload_roundtrip.cmo payload_roundtrip.cmi
-	rm -f ExtractionConfig.vo ExtractionConfig.vos ExtractionConfig.vok
-	rm -f ITreeCore.vo ITreeCore.vos ITreeCore.vok
-	rm -f ExtractCore.vo ExtractCore.vos ExtractCore.vok
-	rm -f validation/ExtractShard.v validation/ExtractShard.vo
-	rm -f validation/ExtractShard.vos validation/ExtractShard.vok
-	rm -f validation/*.vo validation/*.vos validation/*.vok validation/*.glob
-	rm -f validation/.*.aux
-	rm -f validation/spec/*.vo validation/spec/*.vos
-	rm -f validation/spec/*.vok validation/spec/*.glob
-	rm -f validation/spec/.*.aux
-	rm -f validation/itree/*.vo validation/itree/*.vos
-	rm -f validation/itree/*.vok validation/itree/*.glob
-	rm -f validation/itree/.*.aux
 
 # Remove only regenerable extraction/shard outputs.  Keep Spec.v, the Test262
 # inventory/base stamp, build caches, and all campaign logs for fast resume and
