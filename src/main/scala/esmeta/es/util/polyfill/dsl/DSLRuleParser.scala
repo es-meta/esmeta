@@ -1,7 +1,7 @@
-package esmeta.es.util.dsl
+package esmeta.es.util.polyfill.dsl
 
-import esmeta.es.util.dsl.AstExtensions.flatten
-import esmeta.es.util.dsl.AstExtensions.rawSteps
+import AstExtensions.flatten
+import AstExtensions.rawSteps
 import esmeta.lang.*
 import esmeta.lang.util.UnitWalker as LangUnitWalker
 import esmeta.lang.util.Walker as LangWalker

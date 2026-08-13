@@ -1,14 +1,13 @@
-package esmeta.es.util
+package esmeta.es.util.polyfill
 
 import esmeta.*
 import esmeta.es.Polyfill
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
-
 import io.circe.yaml.scalayaml.parser as yamlParser
 
 import java.io.File
-import scala.collection.mutable.{Map as MMap, Queue, Set as MSet}
+import scala.collection.mutable.{Queue, Map as MMap, Set as MSet}
 
 /** packager that turns generated polyfills into a usable CommonJS library
   *

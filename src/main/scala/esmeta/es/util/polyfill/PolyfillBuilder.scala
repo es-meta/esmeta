@@ -1,4 +1,4 @@
-package esmeta.es.util
+package esmeta.es.util.polyfill
 
 import esmeta.es.*
 import esmeta.spec.*

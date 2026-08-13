@@ -3,6 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.es.*
 import esmeta.es.util.*
+import esmeta.es.util.polyfill.{PolyfillGenerator, PolyfillPackager}
 import esmeta.spec.Spec
 import esmeta.util.*
 import esmeta.util.SystemUtils.*

@@ -1,5 +1,6 @@
 package esmeta.es.util
 
+import esmeta.es.util.polyfill.PolyfillInspector
 import esmeta.lang.*
 import esmeta.lang.util.UnitWalker as LangUnitWalker
 import esmeta.lang.util.Walker as LangWalker

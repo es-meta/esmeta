@@ -1,16 +1,13 @@
-package esmeta.es.util
+package esmeta.es.util.polyfill
 
+import esmeta.es.util.polyfill.CompletionType.*
 import esmeta.lang.*
 import esmeta.lang.BinaryConditionOperator.Eq
-import esmeta.lang.IfStep.ElseConfig
-import esmeta.lang.util.{UnitWalker as LangUnitWalker, Walker as LangWalker}
+import esmeta.lang.PredicateConditionOperator.*
+import esmeta.lang.util.Walker as LangWalker
 import esmeta.spec.*
+import esmeta.ty.ValueTy
 import esmeta.util.BaseUtils.*
-import esmeta.ty.{NumberTy, ValueTy}
-import org.jsoup.nodes.Element
-import scala.collection.mutable
-import CompletionType.*, PredicateConditionOperator.*
-import esmeta.es.util.dsl.PredicateExpr.matches
 
 enum CompletionType {
   case MayCompletion

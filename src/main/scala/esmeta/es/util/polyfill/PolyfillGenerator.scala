@@ -1,11 +1,12 @@
-package esmeta.es.util
+package esmeta.es.util.polyfill
 
 import esmeta.es.*
+import esmeta.es.util.polyfill.dsl.*
+import esmeta.es.util.{CompletionPath, ShorthandInlinePath, TransformPath}
 import esmeta.lang.*
-import esmeta.lang.util.{UnitWalker as LangUnitWalker}
+import esmeta.lang.util.UnitWalker as LangUnitWalker
 import esmeta.spec.*
 import esmeta.spec.BuiltinPath.YetPath
-import esmeta.util.BaseUtils.*
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -107,7 +108,8 @@ object PolyfillGenerator {
 /** extensible helper of polyfill generator */
 class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
-  import Polyfill.*, PolyfillGenerator.*
+  import Polyfill.*
+  import PolyfillGenerator.*
 
   /** generated polyfills */
   lazy val result: List[Polyfill] =
@@ -116,7 +118,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   /** list of optimization paths */
   val optPaths: List[TransformPath] =
-    List(ShorthandInlinePath(spec)) ++ (dslDir.map(dsl.DSLPath(_))) ++ List(
+    List(ShorthandInlinePath(spec)) ++ (dslDir.map(DSLPath(_))) ++ List(
       CompletionPath(),
     )
 

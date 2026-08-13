@@ -1,4 +1,4 @@
-package esmeta.es.util.dsl
+package esmeta.es.util.polyfill.dsl
 
 import esmeta.lang.*
 import esmeta.lang.util.UnitWalker as LangUnitWalker
