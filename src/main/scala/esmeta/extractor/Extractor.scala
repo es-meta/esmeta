@@ -8,6 +8,7 @@ import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.ty.TyModel
 import esmeta.util.ManualInfo
+import esmeta.util.BaseUtils.{raise, warn}
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
@@ -240,7 +241,7 @@ class Extractor(
         rhs <- prod.rhsVec
         rhsName <- rhs.allNames
         syntax = lhsName + ":" + rhsName
-        (idx, subIdx) = idxMap(syntax)
+        (idx, subIdx) <- getSyntaxIdx(syntax, lhsName)
         target = SyntaxDirectedOperationHead.Target(lhsName, idx, subIdx)
       } yield generator(Some(target))
     } else {
@@ -248,6 +249,21 @@ class Extractor(
       List(generator(None))
     }
   }
+
+  private lazy val LhsNames: Set[String] =
+    (for (prod <- grammar.prods ++ grammar.prodsForWeb)
+      yield prod.lhs.name).toSet
+
+  private def getSyntaxIdx(
+    syntax: String,
+    lhsName: String,
+  ): List[(Int, Int)] = idxMap.get(syntax) match
+    case Some(pair) => List(pair)
+    // XXX ECMA-262 defines SDOs for productions of other specifications (e.g. ECMA-404)
+    case None if !LhsNames.contains(lhsName) =>
+      warn(s"ignore an SDO definition for production from external specification: $syntax")
+      Nil
+    case None => raise(s"unknown grammar production alternative: $syntax")
 
   // get concrete method heads
   private def extractConcMethodHead(
