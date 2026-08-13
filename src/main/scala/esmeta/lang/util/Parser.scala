@@ -1037,11 +1037,17 @@ trait Parsers extends IndentParsers {
       "a fully populated Property Descriptor" ^^^ FullyPopulated |
       "an instance of a nonterminal" ^^^ Nonterminal
 
+    lazy val pluralOp: Parser[PredicateConditionOperator] =
+      "finite Numbers" ^^^ FiniteNumber |
+      "non-zero finite Numbers" ^^^ NonZeroFiniteNumber
+
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)
 
     expr ~ neg ~ op ^^ {
-      case r ~ n ~ o => PredicateCondition(r, n, o)
+      case r ~ n ~ o => PredicateCondition(List(r), n, o)
+    } | (opt("both") ~> expr) ~ ("and" ~> expr) ~ areNeg ~ pluralOp ^^ {
+      case l ~ r ~ n ~ o => PredicateCondition(List(l, r), n, o)
     }
 
   // `A is/are B` condition
@@ -1108,30 +1114,6 @@ trait Parsers extends IndentParsers {
   // rarely used conditions
   // TODO clean-up
   lazy val specialCond: PL[Condition] = {
-    // Number::add, Number::lessThan
-    expr ~ ("and" ~> expr) ~ areNeg <~ "finite Numbers"
-  } ^^ {
-    case l ~ r ~ n =>
-      CompoundCondition(
-        PredicateCondition(l, n, PredicateConditionOperator.FiniteNumber),
-        CompoundConditionOperator.And,
-        PredicateCondition(r, n, PredicateConditionOperator.FiniteNumber),
-      )
-  } | {
-    // Number::remainder
-    expr ~ ("and" ~> expr) ~ areNeg <~ "non-zero finite Numbers"
-  } ^^ {
-    case l ~ r ~ n =>
-      CompoundCondition(
-        PredicateCondition(
-          l,
-          n,
-          PredicateConditionOperator.NonZeroFiniteNumber,
-        ),
-        CompoundConditionOperator.And,
-        PredicateCondition(r, n, PredicateConditionOperator.NonZeroFiniteNumber),
-      )
-  } | {
     // ResolveBinding
     "the source text matched by the syntactic production" ~
     "that is being evaluated is contained in strict mode code"
@@ -1146,7 +1128,7 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(FalseLiteral()) | {
     // CreatePerIterationEnvironment
     expr <~ "has any elements"
-  } ^^ { PredicateCondition(_, true, PredicateConditionOperator.Empty) } | {
+  } ^^ { e => PredicateCondition(List(e), true, PredicateConditionOperator.Empty) } | {
     // %ForInIteratorPrototype%.next
     ("there does not exist an element" ~> variable) ~
     ("of" ~> expr) ~
@@ -1157,7 +1139,7 @@ trait Parsers extends IndentParsers {
   } | {
     // CallExpression[0,0].Evaluation
     expr <~ "has no elements"
-  } ^^ { PredicateCondition(_, false, PredicateConditionOperator.Empty) } | {
+  } ^^ { e => PredicateCondition(List(e), false, PredicateConditionOperator.Empty) } | {
     // ArraySpeciesCreate, SameValueNonNumeric
     expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(langType) ~ opt("value")
   } ^^ { case l ~ r ~ n => IsAreCondition(List(l), n, List(r)) } | {

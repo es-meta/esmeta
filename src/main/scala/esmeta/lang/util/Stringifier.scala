@@ -711,9 +711,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> nt >> " is " >> "<emu-grammar>"
         app >> lhs >> " : " >> rhs
         app >> "</emu-grammar>"
-      case PredicateCondition(x, neg, op) =>
+      case PredicateCondition(xs, neg, op) =>
         // TODO is/has
-        app >> x >> isStr(neg) >> op
+        xs match {
+          case x :: Nil => app >> x >> isStr(neg) >> op
+          case _ =>
+            given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+            app >> xs >> isStr(neg, single = false)
+            app >> pluralPredCondOpStr(op)
+        }
       case IsAreCondition(ls, neg, rs) =>
         val single = ls.length == 1
         if (single) app >> ls.head
@@ -793,6 +799,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case FullyPopulated      => "a fully populated Property Descriptor"
       case Nonterminal         => "an instance of a nonterminal"
     })
+
+  private def pluralPredCondOpStr(op: PredicateConditionOperator): String =
+    import PredicateConditionOperator.*
+    op match {
+      case FiniteNumber        => "finite Numbers"
+      case NonZeroFiniteNumber => "non-zero finite Numbers"
+      case _ => op.toString
+    }
 
   // operators for binary conditions
   given binCondOpRule: Rule[BinaryConditionOperator] = (app, op) =>

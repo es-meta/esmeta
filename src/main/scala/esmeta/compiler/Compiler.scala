@@ -909,8 +909,9 @@ class Compiler(
             fb.ntBindings ++= List((rhsName, base, Some(0)))
             ETypeCheck(base, IRType(AstT(lhsName, rhsIdx)))
           case None => EYet(cond.toString(true, false))
-      case PredicateCondition(expr, neg, op) =>
+      case PredicateCondition(exprs, neg, op) =>
         import PredicateConditionOperator.*
+        val es = for (expr <- exprs) yield {
         val x = compile(fb, expr)
         val cond = op match {
           case Abrupt =>
@@ -984,6 +985,8 @@ class Compiler(
             EInstanceOf(x, EGrammarSymbol("", Nil))
         }
         if (neg) not(cond) else cond
+        }
+        es.reduce(and(_, _))
       case IsAreCondition(left, neg, right) =>
         val es = for (lexpr <- left) yield {
           val l = compile(fb, lexpr)

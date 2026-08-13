@@ -51,7 +51,7 @@ case class ProductionCondition(
 
 // predicate condition
 case class PredicateCondition(
-  expr: Expression,
+  exprs: List[Expression],
   negation: Boolean,
   op: PredicateConditionOperator,
 ) extends Condition

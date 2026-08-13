@@ -413,9 +413,9 @@ class CaseCollector extends UnitWalker {
         s"{{ ref }} $h a binding for {{ binding }}"
       case ProductionCondition(nt, lhs, rhs) =>
         s"{{ expr }} is <emu-grammar>{{ str }} : {{ str }}</emu-grammar>"
-      case PredicateCondition(x, neg, op) =>
-        if (neg) s"{{ expr }} is not $op"
-        else s"{{ expr }} is $op"
+      case PredicateCondition(xs, neg, op) =>
+        if (neg) s"{{ expr }}* is/are not $op"
+        else s"{{ expr }}* is/are $op"
       case IsAreCondition(ls, neg, rs) =>
         if (neg) s"{{ expr }}* is/are not {{ expr }}*"
         else s"{{ expr }}* is/are {{ expr }}*"

@@ -403,39 +403,39 @@ object LangTest {
   lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
   lazy val finiteCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Finite)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Finite)
   lazy val finiteNumberCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.FiniteNumber)
-  lazy val finiteNumbersCond = CompoundCondition(
-    finiteNumberCond,
-    CompoundConditionOperator.And,
-    finiteNumberCond,
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.FiniteNumber)
+  lazy val finiteNumbersCond = PredicateCondition(
+    List(refExpr, refExpr),
+    F,
+    PredicateConditionOperator.FiniteNumber,
   )
   lazy val nonZeroFiniteNumberCond =
     PredicateCondition(
-      refExpr,
+      List(refExpr),
       F,
       PredicateConditionOperator.NonZeroFiniteNumber,
     )
-  lazy val nonZeroFiniteNumbersCond = CompoundCondition(
-    nonZeroFiniteNumberCond,
-    CompoundConditionOperator.And,
-    nonZeroFiniteNumberCond,
+  lazy val nonZeroFiniteNumbersCond = PredicateCondition(
+    List(refExpr, refExpr),
+    F,
+    PredicateConditionOperator.NonZeroFiniteNumber,
   )
   lazy val abruptCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Abrupt)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Abrupt)
   lazy val normalCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Normal)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Normal)
   lazy val dupCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Duplicated)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Duplicated)
   lazy val presentCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Present)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Present)
   lazy val emptyCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Empty)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Empty)
   lazy val strictCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.StrictMode)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.StrictMode)
   lazy val arrayIndexCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.ArrayIndex)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.ArrayIndex)
   lazy val isCond = IsAreCondition(List(refExpr), F, List(lengthExpr))
   lazy val areCond =
     IsAreCondition(List(refExpr, refExpr), T, List(TrueLiteral()))

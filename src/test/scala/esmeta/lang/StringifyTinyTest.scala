@@ -417,9 +417,11 @@ class StringifyTinyTest extends LangTest {
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
       finiteCond -> "_x_ is finite",
       finiteNumberCond -> "_x_ is a finite Number",
-      finiteNumbersCond -> "_x_ is a finite Number and _x_ is a finite Number",
+      finiteNumbersCond -> "_x_ and _x_ are finite Numbers",
+      finiteNumbersCond.copy(negation = T) -> "_x_ and _x_ are not finite Numbers",
       nonZeroFiniteNumberCond -> "_x_ is a non-zero finite Number",
-      nonZeroFiniteNumbersCond -> "_x_ is a non-zero finite Number and _x_ is a non-zero finite Number",
+      nonZeroFiniteNumbersCond -> "_x_ and _x_ are non-zero finite Numbers",
+      nonZeroFiniteNumbersCond.copy(negation = T) -> "_x_ and _x_ are not non-zero finite Numbers",
       abruptCond -> "_x_ is an abrupt completion",
       normalCond -> "_x_ is a normal completion",
       dupCond -> "_x_ is duplicate entries",
@@ -441,34 +443,6 @@ class StringifyTinyTest extends LangTest {
       containsSuchThatCond -> "_x_ contains a Base _x_ such that _x_ is the length of _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",
-    )
-
-    checkEqual("finite Numbers Condition parsing")(
-      Condition.from(
-        "_x_ and _x_ are finite Numbers",
-      ) -> finiteNumbersCond,
-      Condition.from("_x_ and _x_ are not finite Numbers") -> CompoundCondition(
-        PredicateCondition(refExpr, T, PredicateConditionOperator.FiniteNumber),
-        CompoundConditionOperator.And,
-        PredicateCondition(refExpr, T, PredicateConditionOperator.FiniteNumber),
-      ),
-      Condition.from(
-        "_x_ and _x_ are non-zero finite Numbers",
-      ) -> nonZeroFiniteNumbersCond,
-      Condition.from("_x_ and _x_ are not non-zero finite Numbers") ->
-      CompoundCondition(
-        PredicateCondition(
-          refExpr,
-          T,
-          PredicateConditionOperator.NonZeroFiniteNumber,
-        ),
-        CompoundConditionOperator.And,
-        PredicateCondition(
-          refExpr,
-          T,
-          PredicateConditionOperator.NonZeroFiniteNumber,
-        ),
-      ),
     )
 
     // -------------------------------------------------------------------------
