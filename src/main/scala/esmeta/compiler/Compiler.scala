@@ -912,79 +912,80 @@ class Compiler(
       case PredicateCondition(exprs, neg, op) =>
         import PredicateConditionOperator.*
         val es = for (expr <- exprs) yield {
-        val x = compile(fb, expr)
-        val cond = op match {
-          case Abrupt =>
-            val tv = toERef(fb, x, EStr("Type"))
-            and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
-          case NeverAbrupt =>
-            val tv = toERef(fb, x, EStr("Type"))
-            or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
-          case op @ (Normal | Throw | Return | Break | Continue) =>
-            val tv = toERef(fb, x, EStr("Type"))
-            val expected = op match
-              case Normal   => EENUM_NORMAL
-              case Throw    => EENUM_THROW
-              case Return   => EENUM_RETURN
-              case Break    => EENUM_BREAK
-              case Continue => EENUM_CONTINUE
-            and(isCompletion(x), is(tv, expected))
-          case Finite | FiniteNumber | NonZeroFiniteNumber =>
-            val isNumberTy = ETypeCheck(x, IRType(NumberT))
-            val nonFiniteNum =
-              or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))
-            val finiteNum = and(isNumberTy, not(nonFiniteNum))
-            op match
-              case Finite =>
-                // TODO: "finite" is currently used for all three kinds of
-                // numeric values ; once tc39/ecma262#3911 lands and reserves it
-                // for extended mathematical values, keep only `finiteMath`.
-                val finiteBigInt = ETypeCheck(x, IRType(BigIntT))
-                val isExtendedMathTy = ETypeCheck(x, IRType(MathT || InfinityT))
-                val nonFiniteMath =
-                  or(is(x, EInfinity(true)), is(x, EInfinity(false)))
-                val finiteMath = and(isExtendedMathTy, not(nonFiniteMath))
-                or(finiteMath, or(finiteNum, finiteBigInt))
-              case NonZeroFiniteNumber =>
-                val zeroNum = or(is(x, ENumber(0.0)), is(x, ENumber(-0.0)))
-                and(finiteNum, not(zeroNum))
-              case _ => finiteNum
-          case Duplicated =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
-            bExpr
-          case Present =>
-            x match
-              case ERef(Name(name))
-                  if fb.isBuiltin && fb.builtinBindings.contains(name) =>
-                exists(Field(NAME_ARGS, EStr(name)))
-              case _ => exists(x)
-          case Empty      => is(ESizeOf(x), zero)
-          case StrictMode => T // XXX assume strict mode
-          case ArrayIndex =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, AUX_IS_ARRAY_INDEX, List(x)))
-            bExpr
-          case FalseToken => is(ESourceText(x), EStr("false"))
-          case TrueToken  => is(ESourceText(x), EStr("true"))
-          case DataProperty =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, dataPropClo, List(x)))
-            bExpr
-          case AccessorProperty =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, accessorPropClo, List(x)))
-            bExpr
-          case FullyPopulated =>
-            val dataFields =
-              List("Value", "Writable", "Enumerable", "Configurable")
-            val accessorFields =
-              List("Get", "Set", "Enumerable", "Configurable")
-            or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
-          case Nonterminal =>
-            EInstanceOf(x, EGrammarSymbol("", Nil))
-        }
-        if (neg) not(cond) else cond
+          val x = compile(fb, expr)
+          val cond = op match {
+            case Abrupt =>
+              val tv = toERef(fb, x, EStr("Type"))
+              and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
+            case NeverAbrupt =>
+              val tv = toERef(fb, x, EStr("Type"))
+              or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
+            case op @ (Normal | Throw | Return | Break | Continue) =>
+              val tv = toERef(fb, x, EStr("Type"))
+              val expected = op match
+                case Normal   => EENUM_NORMAL
+                case Throw    => EENUM_THROW
+                case Return   => EENUM_RETURN
+                case Break    => EENUM_BREAK
+                case Continue => EENUM_CONTINUE
+              and(isCompletion(x), is(tv, expected))
+            case Finite | FiniteNumber | NonZeroFiniteNumber =>
+              val isNumberTy = ETypeCheck(x, IRType(NumberT))
+              val nonFiniteNum =
+                or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))
+              val finiteNum = and(isNumberTy, not(nonFiniteNum))
+              op match
+                case Finite =>
+                  // TODO: "finite" is currently used for all three kinds of
+                  // numeric values ; once tc39/ecma262#3911 lands and reserves it
+                  // for extended mathematical values, keep only `finiteMath`.
+                  val finiteBigInt = ETypeCheck(x, IRType(BigIntT))
+                  val isExtendedMathTy =
+                    ETypeCheck(x, IRType(MathT || InfinityT))
+                  val nonFiniteMath =
+                    or(is(x, EInfinity(true)), is(x, EInfinity(false)))
+                  val finiteMath = and(isExtendedMathTy, not(nonFiniteMath))
+                  or(finiteMath, or(finiteNum, finiteBigInt))
+                case NonZeroFiniteNumber =>
+                  val zeroNum = or(is(x, ENumber(0.0)), is(x, ENumber(-0.0)))
+                  and(finiteNum, not(zeroNum))
+                case _ => finiteNum
+            case Duplicated =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
+              bExpr
+            case Present =>
+              x match
+                case ERef(Name(name))
+                    if fb.isBuiltin && fb.builtinBindings.contains(name) =>
+                  exists(Field(NAME_ARGS, EStr(name)))
+                case _ => exists(x)
+            case Empty      => is(ESizeOf(x), zero)
+            case StrictMode => T // XXX assume strict mode
+            case ArrayIndex =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, AUX_IS_ARRAY_INDEX, List(x)))
+              bExpr
+            case FalseToken => is(ESourceText(x), EStr("false"))
+            case TrueToken  => is(ESourceText(x), EStr("true"))
+            case DataProperty =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, dataPropClo, List(x)))
+              bExpr
+            case AccessorProperty =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, accessorPropClo, List(x)))
+              bExpr
+            case FullyPopulated =>
+              val dataFields =
+                List("Value", "Writable", "Enumerable", "Configurable")
+              val accessorFields =
+                List("Get", "Set", "Enumerable", "Configurable")
+              or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
+            case Nonterminal =>
+              EInstanceOf(x, EGrammarSymbol("", Nil))
+          }
+          if (neg) not(cond) else cond
         }
         es.reduce(and(_, _))
       case IsAreCondition(left, neg, right) =>

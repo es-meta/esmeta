@@ -405,7 +405,11 @@ object LangTest {
   lazy val finiteCond =
     PredicateCondition(List(refExpr), F, PredicateConditionOperator.Finite)
   lazy val finiteNumberCond =
-    PredicateCondition(List(refExpr), F, PredicateConditionOperator.FiniteNumber)
+    PredicateCondition(
+      List(refExpr),
+      F,
+      PredicateConditionOperator.FiniteNumber,
+    )
   lazy val finiteNumbersCond = PredicateCondition(
     List(refExpr, refExpr),
     F,

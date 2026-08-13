@@ -1128,7 +1128,9 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(FalseLiteral()) | {
     // CreatePerIterationEnvironment
     expr <~ "has any elements"
-  } ^^ { e => PredicateCondition(List(e), true, PredicateConditionOperator.Empty) } | {
+  } ^^ { e =>
+    PredicateCondition(List(e), true, PredicateConditionOperator.Empty)
+  } | {
     // %ForInIteratorPrototype%.next
     ("there does not exist an element" ~> variable) ~
     ("of" ~> expr) ~
@@ -1139,7 +1141,9 @@ trait Parsers extends IndentParsers {
   } | {
     // CallExpression[0,0].Evaluation
     expr <~ "has no elements"
-  } ^^ { e => PredicateCondition(List(e), false, PredicateConditionOperator.Empty) } | {
+  } ^^ { e =>
+    PredicateCondition(List(e), false, PredicateConditionOperator.Empty)
+  } | {
     // ArraySpeciesCreate, SameValueNonNumeric
     expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(langType) ~ opt("value")
   } ^^ { case l ~ r ~ n => IsAreCondition(List(l), n, List(r)) } | {

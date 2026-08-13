@@ -805,7 +805,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     op match {
       case FiniteNumber        => "finite Numbers"
       case NonZeroFiniteNumber => "non-zero finite Numbers"
-      case _ => op.toString
+      case _                   => op.toString
     }
 
   // operators for binary conditions
