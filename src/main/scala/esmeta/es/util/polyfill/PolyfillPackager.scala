@@ -202,7 +202,9 @@ class PolyfillPackager(
   /** emit the whole library */
   def generate: Unit =
     if (selected.isEmpty)
-      raise(s"no built-in matches the requested target: ${targets.mkString(",")}")
+      raise(
+        s"no built-in matches the requested target: ${targets.mkString(",")}",
+      )
     mkdir(outDir, remove = true)
     val emitted = installerFiles ++ generatedFiles ++ runtimeFiles ++ stubFiles
     emitted.foreach(dump)
@@ -221,7 +223,8 @@ class PolyfillPackager(
         println(s"    ${nameOf(module)} (named by $referrer)")
     // A cycle is broken by deferring the edge that closes it, which this
     // packager can only do for the code it writes.
-    val handWritten = cyclicEdges.filter((from, _) => !aoByModule.contains(from))
+    val handWritten =
+      cyclicEdges.filter((from, _) => !aoByModule.contains(from))
     if (handWritten.nonEmpty)
       println(s"- WARNING: ${handWritten.size} require cycles pass through a")
       println("  hand-written module, where the cycle cannot be broken here:")
@@ -257,7 +260,8 @@ class PolyfillPackager(
     aos.map(entry => entry.module -> entry).toMap
 
   /** built-ins ESMeta constructs from scratch, e.g. `Map`, `Promise` */
-  private lazy val fromScratch: List[Entry] = builtins.filter(_.kind == Kind.Obj)
+  private lazy val fromScratch: List[Entry] =
+    builtins.filter(_.kind == Kind.Obj)
 
   /** a member belongs to a from-scratch built-in when its base object is rooted
     * at one -- `Map.prototype.get` belongs to `Map`, while `Array.prototype.at`
@@ -417,10 +421,11 @@ class PolyfillPackager(
   )
 
   /** one installer per selected built-in */
-  private lazy val installerFiles: List[Out] = for (entry <- selected)
-    yield entry.kind match
-      case Kind.Obj => fromScratchFile(entry)
-      case _        => standaloneFile(entry)
+  private lazy val installerFiles: List[Out] =
+    for (entry <- selected)
+      yield entry.kind match
+        case Kind.Obj => fromScratchFile(entry)
+        case _        => standaloneFile(entry)
 
   /** a member installed onto an object the host already provides */
   private def standaloneFile(entry: Entry): Out =
@@ -619,9 +624,9 @@ class PolyfillPackager(
     path
       .split("/")
       .foldLeft(List[String]()) {
-        case (acc, "" | ".")     => acc
-        case (acc, "..")         => acc.dropRight(1)
-        case (acc, segment)      => acc :+ segment
+        case (acc, "" | ".") => acc
+        case (acc, "..")     => acc.dropRight(1)
+        case (acc, segment)  => acc :+ segment
       }
       .mkString("/")
 
