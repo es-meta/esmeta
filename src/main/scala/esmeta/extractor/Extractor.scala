@@ -84,13 +84,18 @@ class Extractor(
 
   /** extracts a grammar */
   def extractGrammar: Grammar = {
-    val allProds = for {
+    val manualProds = for {
+      file <- ManualInfo.grammarFiles
+      prod <- parse[List[Production]](readFile(file).trim)
+    } yield (prod, false)
+    val specProds = for {
       elem <- document.getElems("emu-grammar[type=definition]:not([example])")
       content = elem.html.trim.unescapeHtml
       prods = parse[List[Production]](content)
       prod <- prods
       inAnnex = elem.isInAnnex
     } yield (prod, inAnnex)
+    val allProds = manualProds ++ specProds
     val prods =
       (for ((prod, inAnnex) <- allProds if !inAnnex) yield prod).sorted
     val prodsForWeb =

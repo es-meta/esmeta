@@ -1,0 +1,85 @@
+// JSON grammar from https://tc39.es/ecma404/
+
+JSONValue :
+  JSONObject
+  JSONArray
+  JSONNumber
+  JSONString
+  `true`
+  `false`
+  `null`
+
+JSONObject :
+  `{` `}`
+  `{` JSONMemberList `}`
+
+JSONMemberList :
+  JSONMember
+  JSONMemberList `,` JSONMember
+
+JSONMember :
+  JSONString `:` JSONValue
+
+JSONArray :
+  `[` `]`
+  `[` JSONElementList `]`
+
+JSONElementList :
+  JSONValue
+  JSONElementList `,` JSONValue
+
+JSONString :
+  `"` JSONStringCharacters? `"`
+
+// skipping |NonZeroDigit|, it is defined in ECMA-262.
+
+JSONNumber ::
+  `-`? JSONInteger JSONFraction? JSONExponent?
+
+JSONInteger ::
+  `0`
+  NonZeroDigit JSONDigits?
+
+JSONFraction ::
+  `.` JSONDigits
+
+JSONExponent ::
+  JSONExponentIndicator JSONSign? JSONDigits
+
+JSONExponentIndicator :: one of
+  `e` `E`
+
+JSONSign :: one of
+  `+` `-`
+
+JSONDigits ::
+  JSONDigit
+  JSONDigits JSONDigit
+
+JSONDigit :: one of
+  `0` `1` `2` `3` `4` `5` `6` `7` `8` `9`
+
+JSONStringCharacters ::
+  JSONStringCharacter JSONStringCharacters?
+
+JSONStringCharacter ::
+  JSONSourceCharacter but not one of `"` or `\` or JSONControlCharacter
+  `\` JSONEscapeSequence
+
+JSONEscapeSequence ::
+  JSONEscapeCharacter
+  `u` JSONHexDigit JSONHexDigit JSONHexDigit JSONHexDigit
+
+JSONEscapeCharacter :: one of
+  `"` `\` `/` `b` `f` `n` `r` `t`
+
+JSONHexDigit :: one of
+  `0` `1` `2` `3` `4` `5` `6` `7` `8` `9` `a` `b` `c` `d` `e` `f` `A` `B` `C` `D` `E` `F`
+
+JSONSourceCharacter ::
+  > any Unicode code point
+
+// XXX originally `U+0000 through U+001F`, which cannot be written directly
+JSONControlCharacter :: one of
+  <U+0000> <U+0001> <U+0002> <U+0003> <U+0004> <U+0005> <U+0006> <U+0007> <U+0008> <U+0009> <U+000A> <U+000B> <U+000C> <U+000D> <U+000E> <U+000F>
+  <U+0010> <U+0011> <U+0012> <U+0013> <U+0014> <U+0015> <U+0016> <U+0017> <U+0018> <U+0019> <U+001A> <U+001B> <U+001C> <U+001D> <U+001E> <U+001F>
