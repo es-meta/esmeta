@@ -631,13 +631,13 @@ Definition initial_state (globals : GlobalEnv) : State :=
     state_next_loc := O;
   |}.
 
+(* Recursion goes through CRIS [Call] events and loops through [ITree.iter], so
+ * a generated computation never runs out of steps; there is no fuel case. *)
 Inductive Exec_Result (A : Type) : Type :=
   | RESULT (state : State) (value : A)
-  | OUT_OF_FUEL
   | FAIL.
 
 Arguments RESULT {A} _ _.
-Arguments OUT_OF_FUEL {A}.
 Arguments FAIL {A}.
 
 (* This is the result of a stateful Rocq computation, not an ECMAScript
@@ -648,9 +648,6 @@ Definition State_Completion (A : Type) : Type :=
 
 Definition state_return {A : Type} (value : A) : State_Completion A :=
   fun state => RESULT state value.
-
-Definition out_of_fuel {A : Type} : State_Completion A :=
-  fun _ => OUT_OF_FUEL.
 
 Definition get_globals : State_Completion GlobalEnv :=
   fun state => RESULT state state.(state_globals).
@@ -703,7 +700,6 @@ Definition state_bind {A B : Type}
   fun state =>
     match computation state with
     | RESULT next value => continuation value next
-    | OUT_OF_FUEL => OUT_OF_FUEL
     | FAIL => FAIL
     end.
 
@@ -860,4 +856,89 @@ Definition record_has_type
         | _ => RESULT state false
         end
     | _ => RESULT state false
+    end.
+
+(* ------------------------------------------------------------------------- *)
+(* List cells                                                                *)
+(* ------------------------------------------------------------------------- *)
+
+(* ESMeta lists are heap objects reached through an address, exactly like
+ * records, so [EList] allocates and [IPush]/[IPop] mutate in place. *)
+Definition allocate_list (values : list IRValue) : State_Completion IRValue :=
+  state_bind
+    (allocate_cell (HC_List values))
+    (fun address => state_return (IR_Address address)).
+
+Definition read_list (base : IRValue) : State_Completion (loc * list IRValue) :=
+  fun state =>
+    match base with
+    | IR_Address address =>
+        match lookup_cell address state.(state_heap) with
+        | Some (HC_List values) => RESULT state (address, values)
+        | _ => FAIL
+        end
+    | _ => FAIL
+    end.
+
+Definition write_list (address : loc) (values : list IRValue)
+    : State_Completion unit :=
+  fun state =>
+    RESULT
+      {|
+        state_globals := state.(state_globals);
+        state_object_heap := state.(state_object_heap);
+        state_heap := modify_heap address (HC_List values) state.(state_heap);
+        state_next_loc := state.(state_next_loc);
+      |}
+      tt.
+
+(* [front] selects which end, matching the flag ESMeta's IR carries. *)
+Definition list_push (base : IRValue) (value : IRValue) (front : bool)
+    : State_Completion unit :=
+  state_bind (read_list base) (fun found =>
+    let (address, values) := found in
+    write_list address (if front then value :: values else values ++ [value])).
+
+(* ESMeta's [Obj.pop] rejects an empty list and a non-list object alike, so both
+ * are [FAIL] rather than a specification behaviour. *)
+Definition list_pop (base : IRValue) (front : bool)
+    : State_Completion IRValue :=
+  state_bind (read_list base) (fun found =>
+    let (address, values) := found in
+    match (if front then values else List.rev values) with
+    | [] => fun _ => FAIL
+    | value :: remaining =>
+        state_bind
+          (write_list address (if front then remaining else List.rev remaining))
+          (fun _ => state_return value)
+    end).
+
+(* ESMeta's [Obj.expand] adds an absent field as undefined and leaves a present
+ * one alone; anything but a record with a string field name is an error. *)
+Definition expand_record_field (base : IRValue) (field : IRValue)
+    : State_Completion unit :=
+  fun state =>
+    match base, field with
+    | IR_Address address, IR_ESValue (StrV name) =>
+        match lookup_cell address state.(state_heap) with
+        | Some (HC_Record record) =>
+            match spec_record_lookup record name with
+            | Some _ => RESULT state tt
+            | None =>
+                RESULT
+                  {|
+                    state_globals := state.(state_globals);
+                    state_object_heap := state.(state_object_heap);
+                    state_heap :=
+                      modify_heap
+                        address
+                        (HC_Record (spec_record_set record name IR_undefined))
+                        state.(state_heap);
+                    state_next_loc := state.(state_next_loc);
+                  |}
+                  tt
+            end
+        | _ => FAIL
+        end
+    | _, _ => FAIL
     end.

@@ -53,59 +53,126 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
         )
     }
 
-  /** Translate a body using only the lexical names contained in the IR. */
-  private def translateBody(func: Func): String = translateInst(func.body)
+  /** Translate a function body: a block that has to reach an `IReturn`. */
+  private def translateBody(func: Func): String =
+    s"itree_block_body (${translateBlock(List(func.body), 0)})"
 
-  /** Translate an instruction and the sequence rooted at it. */
-  private def translateInst(inst: Inst): String = inst match {
-    case ISeq(insts) => translateInsts(insts)
-    case inst        => translateInsts(List(inst))
-  }
+  /** Translate an instruction sequence into an `ITree_Block`.
+    *
+    * `branch` counts the branches already opened along this path. It exists
+    * only to keep generated binder names distinct: shadowing would be harmless,
+    * since every binder is consumed by the application that immediately
+    * encloses it, but distinct names keep the generated Rocq readable once a
+    * proof unfolds it. Sibling blocks may reuse a number because their scopes
+    * are disjoint.
+    */
+  private def translateBlock(insts: List[Inst], branch: Int): String =
+    insts match {
+      case Nil =>
+        "itree_block_fallthrough"
+      case ISeq(nested) :: rest =>
+        translateBlock(nested ::: rest, branch)
+      case IReturn(expr) :: _ =>
+        s"itree_block_return (${translateExpr(expr)})"
+      case ILet(lhs, expr) :: rest =>
+        stateBind(
+          RocqNaming.local(lhs),
+          translateExpr(expr),
+          translateBlock(rest, branch),
+        )
+      case IExpr(expr) :: rest =>
+        stateThen(translateExpr(expr), translateBlock(rest, branch))
+      case INop() :: rest =>
+        translateBlock(rest, branch)
+      // `isAbruptInst` only records why the extractor emitted this branch, so it
+      // carries no semantics to translate.
+      case IIf(cond, thenInst, elseInst, _) :: rest =>
+        translateIf(cond, thenInst, elseInst, rest, branch)
+      case IAssign(_, _) :: _ =>
+        unsupported("instruction IAssign")
+      // The base reference reuses the `ERef` translation, so an unsupported
+      // reference kind falls out with the same reason it would in an expression.
+      case IExpand(base, field) :: rest =>
+        stateBind(
+          "expand_base'",
+          translateExpr(ERef(base)),
+          stateBind(
+            "expand_field'",
+            translateExpr(field),
+            stateThen(
+              liftState("expand_record_field expand_base' expand_field'"),
+              translateBlock(rest, branch),
+            ),
+          ),
+        )
+      case IDelete(_, _) :: _ =>
+        unsupported("instruction IDelete")
+      // The interpreter evaluates the pushed element before the list.
+      case IPush(elem, list, front) :: rest =>
+        stateBind(
+          "push_value'",
+          translateExpr(elem),
+          stateBind(
+            "push_list'",
+            translateExpr(list),
+            stateThen(
+              liftState(s"list_push push_list' push_value' ${rocqBool(front)}"),
+              translateBlock(rest, branch),
+            ),
+          ),
+        )
+      case IPop(lhs, list, front) :: rest =>
+        stateBind(
+          "pop_list'",
+          translateExpr(list),
+          stateBind(
+            RocqNaming.local(lhs),
+            liftState(s"list_pop pop_list' ${rocqBool(front)}"),
+            translateBlock(rest, branch),
+          ),
+        )
+      case IAssert(_) :: _ =>
+        unsupported("instruction IAssert")
+      case IPrint(_) :: _ =>
+        unsupported("instruction IPrint")
+      case IWhile(_, _) :: _ =>
+        unsupported("instruction IWhile")
+      case ICall(lhs, EClo(fname, Nil), args) :: rest =>
+        translateCall(lhs, fname, args, rest, branch)
+      case ICall(_, EClo(_, _), _) :: _ =>
+        unsupported("instruction ICall with captured closure")
+      case ICall(_, _, _) :: _ =>
+        unsupported("instruction ICall with dynamic callee")
+      case ISdoCall(_, _, _, _) :: _ =>
+        unsupported("instruction ISdoCall")
+    }
 
-  /** Translate a sequence while extending Rocq's lexical binder scope. */
-  private def translateInsts(insts: List[Inst]): String = insts match {
-    case ISeq(nested) :: rest =>
-      translateInsts(nested ::: rest)
-    case IReturn(expr) :: _ =>
-      translateExpr(expr)
-    case ILet(lhs, expr) :: rest =>
-      stateBind(
-        RocqNaming.local(lhs),
-        translateExpr(expr),
-        translateInsts(rest),
-      )
-    case IExpr(expr) :: rest =>
-      stateThen(translateExpr(expr), translateInsts(rest))
-    case INop() :: rest =>
-      translateInsts(rest)
-    case IAssign(_, _) :: _ =>
-      unsupported("instruction IAssign")
-    case IExpand(_, _) :: _ =>
-      unsupported("instruction IExpand")
-    case IDelete(_, _) :: _ =>
-      unsupported("instruction IDelete")
-    case IPush(_, _, _) :: _ =>
-      unsupported("instruction IPush")
-    case IPop(_, _, _) :: _ =>
-      unsupported("instruction IPop")
-    case IAssert(_) :: _ =>
-      unsupported("instruction IAssert")
-    case IPrint(_) :: _ =>
-      unsupported("instruction IPrint")
-    case IIf(_, _, _, _) :: _ =>
-      unsupported("instruction IIf")
-    case IWhile(_, _) :: _ =>
-      unsupported("instruction IWhile")
-    case ICall(lhs, EClo(fname, Nil), args) :: rest =>
-      translateCall(lhs, fname, args, rest)
-    case ICall(_, EClo(_, _), _) :: _ =>
-      unsupported("instruction ICall with captured closure")
-    case ICall(_, _, _) :: _ =>
-      unsupported("instruction ICall with dynamic callee")
-    case ISdoCall(_, _, _, _) :: _ =>
-      unsupported("instruction ISdoCall")
-    case Nil =>
-      unsupported("instruction sequence falls through without IReturn")
+  /** Translate a branch, then continue with whatever follows it.
+    *
+    * The continuation is emitted once after the branch instead of being copied
+    * into both arms: `itree_block_seq` runs it only when the taken arm falls
+    * through. Copying would be exponential in the nesting depth, and ECMA-262
+    * abstract operations nest branches freely.
+    */
+  private def translateIf(
+    cond: Expr,
+    thenInst: Inst,
+    elseInst: Inst,
+    rest: List[Inst],
+    branch: Int,
+  ): String = {
+    val binder = s"branch_condition_$branch'"
+    val branched =
+      s"itree_block_if $binder" + LINE_SEP +
+      indent(s"(${translateBlock(List(thenInst), branch + 1)})") + LINE_SEP +
+      indent(s"(${translateBlock(List(elseInst), branch + 1)})")
+    val continued =
+      if (rest.isEmpty) branched
+      else
+        "itree_block_seq" + LINE_SEP +
+        indent(s"($branched)") + LINE_SEP +
+        indent(s"(${translateBlock(rest, branch + 1)})")
+    stateBind(binder, translateExpr(cond), continued)
   }
 
   /** Evaluate call arguments from left to right, then emit a typed CRIS call
@@ -117,6 +184,7 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
     fname: String,
     args: List[Expr],
     rest: List[Inst],
+    branch: Int,
   ): String = {
     def loop(
       remaining: List[Expr],
@@ -130,7 +198,7 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
         stateBind(
           RocqNaming.local(lhs),
           s"itree_state_call ${signature(fname)} ($arguments)",
-          translateInsts(rest),
+          translateBlock(rest, branch),
         )
       case expr :: tail =>
         val binder = s"call_argument_$index'"
@@ -225,8 +293,8 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
       unsupported("expression ELexical")
     case EMap(_, _) =>
       unsupported("expression EMap")
-    case EList(_) =>
-      unsupported("expression EList")
+    case EList(exprs) =>
+      translateList(exprs)
     case ECopy(_) =>
       unsupported("expression ECopy")
     case EKeys(_, _) =>
@@ -333,6 +401,37 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
         liftState(s"$operation left_value right_value"),
       ),
     )
+
+  /** Render a Rocq `bool` literal for an IR flag. */
+  private def rocqBool(value: Boolean): String = if (value) "true" else "false"
+
+  /** Allocate an ESMeta list in the generic IR heap.
+    *
+    * Elements are evaluated left to right before the cell is allocated, so the
+    * allocation order matches the interpreter's.
+    */
+  private def translateList(exprs: List[Expr]): String = {
+    def loop(
+      remaining: List[Expr],
+      index: Int,
+      values: List[String],
+    ): String = remaining match {
+      case Nil =>
+        val elements = values.foldRight("nil") { (value, tail) =>
+          s"cons $value ($tail)"
+        }
+        liftState(s"allocate_list ($elements)")
+      case expr :: tail =>
+        val binder = s"list_element_$index'"
+        stateBind(
+          binder,
+          translateExpr(expr),
+          loop(tail, index + 1, values :+ binder),
+        )
+    }
+
+    loop(exprs, 0, Nil)
+  }
 
   /** Allocate an ESMeta record in the generic IR heap.
     *

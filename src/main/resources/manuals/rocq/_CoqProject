@@ -1,0 +1,9 @@
+-arg -w -arg -deprecated-hint-without-locality
+-arg -w -arg -deprecated-instance-without-locality
+-arg -w -arg -notation-incompatible-prefix
+-arg -w -arg -notation-overriden
+-arg -w -arg -ambiguous-paths
+-arg -w -arg -redundant-canonical-projection
+-arg -w -arg -cannot-define-projection
+-arg -require-import -arg ExtLib.Structures.Monad
+-Q . ""

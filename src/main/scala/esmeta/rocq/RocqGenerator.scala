@@ -30,7 +30,21 @@ class RocqGenerator(
   def this(program: Program) = this(program, new RocqStringifier(program.funcs))
 
   private val supportFiles =
-    List("type.v", "manual_type.v", "op.v", "itree_state.v")
+    List(
+      "type.v",
+      "manual_type.v",
+      "op.v",
+      "itree_state.v",
+      "_CoqProject",
+      "Makefile",
+    )
+
+  /** Hand-written proofs about the generated functions. */
+  private val proofFiles =
+    List(
+      "Equiv_IsCompatiblePropertyDescriptor.v",
+      "Proto_HeapState.v",
+    )
   private val obsoleteRegistryFiles = List("Functypes.v", "f_run.v")
 
   def apply(func: Func): String = stringifier(func)
@@ -71,12 +85,12 @@ class RocqGenerator(
         translation.source
       },
     )
-    for (filename <- supportFiles)
+    for (filename <- supportFiles ++ proofFiles)
       copyFile(
         s"$MANUALS_DIR/rocq/$filename",
         s"$dirname/$filename",
       )
-    println(s"- Copied Rocq support files into `$dirname`.")
+    println(s"- Copied Rocq support and proof files into `$dirname`.")
     for (filename <- obsoleteRegistryFiles)
       deleteFile(s"$dirname/$filename")
     for {
