@@ -20,6 +20,9 @@ object ManualInfo {
   /** manual algorithm files */
   lazy val algoFiles: List[String] = getFileNames(algoFilter)
 
+  /** manual grammar files */
+  lazy val grammarFiles: List[String] = getFileNames(grammarFilter)
+
   /** manual IR function files */
   lazy val funcFiles: List[String] = getFileNames(irFilter)
 
