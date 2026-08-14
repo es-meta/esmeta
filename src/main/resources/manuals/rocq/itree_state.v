@@ -25,6 +25,36 @@ Definition itree_state_fail `{Σ : GRA} {A : Type}
     : ITree_State_Completion A :=
   fun _ => Ret FAIL.
 
+(** An IR assertion.  ESMeta's interpreter throws on every condition that is
+    not [true], a non-boolean one included, so this matches only [trueB].
+
+    The violation is UB rather than [FAIL], which is the choice that gives the
+    generated code a provable statement: [FAIL] is an ordinary observable return
+    value, so "returns no [FAIL]" is discharged by anything that returns [FAIL]
+    on both sides of a refinement, whereas UB has no refinement above it.
+    "This program exhibits no UB" therefore says exactly "every assertion in it
+    held" -- with the program on the refining side, since UB admits every
+    behaviour and so is only a contradiction there. *)
+Definition itree_state_assert `{Σ : GRA} (condition : IRValue)
+    : ITree_State_Completion unit :=
+  match condition with
+  | IR_ESValue (BoolV trueB) => itree_state_return tt
+  | _ => fun _ => triggerUB
+  end.
+
+(** The assertion-free reading of the same instruction, used as the
+    specification an assertion-carrying program is proven to refine.
+
+    It takes the condition it ignores as an argument on purpose.  The condition
+    is still evaluated by the surrounding bind -- evaluating it can allocate --
+    so the two generated bodies stay structurally identical, differing at
+    exactly the assertion sites and nowhere else.  That is what makes
+    [ctx_refines program assertion_free_program] mean "no assertion in this
+    program is ever violated" and nothing besides. *)
+Definition itree_state_assert_skip `{Σ : GRA} (condition : IRValue)
+    : ITree_State_Completion unit :=
+  itree_state_return tt.
+
 Definition itree_state_bind `{Σ : GRA} {A B : Type}
     (computation : ITree_State_Completion A)
     (continuation : A -> ITree_State_Completion B)

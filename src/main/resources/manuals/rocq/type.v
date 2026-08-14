@@ -2,6 +2,20 @@ From Stdlib Require Import PeanoNat List ZArith String Ascii.
 From Stdlib Require Export ListDef.
 Import ListNotations.
 
+(* [QArith] is deliberately imported and *not* exported, and every file that
+ * needs rationals imports it for itself.  Its `a # b` notation for [Qmake] adds
+ * a parsing rule for `#`, and a parsing rule is global even when its scope is
+ * closed: exporting it here makes CRIS's `{[ k # v ]}` notation unparseable in
+ * every downstream file, program.v and the hand-written proofs included.  The
+ * smart constructor [ir_math] below is what keeps generated code out of that
+ * trap -- nothing generated has to name [Qmake]. *)
+From Stdlib Require Import QArith.
+
+(* [QArith] also opens [Q_scope], which rebinds [+], [*], and [<] for the rest
+ * of this file.  Rational operations are written as applications ([Qplus],
+ * [Qeq_bool]) instead, so close it again. *)
+Close Scope Q_scope.
+
 Set Implicit Arguments.
 Open Scope string_scope.
 
@@ -127,9 +141,17 @@ Inductive IRVariable : Type :=
   | IR_Local (local : IRLocal)
   | IR_Global (global : IRGlobal).
 
-(* These are ESMeta mathematical values, distinct from ECMAScript Numbers. *)
-Inductive MathematicalValue : Type :=
-  | math_value (sign mantissa exponent : Z).
+(* These are ESMeta mathematical values, distinct from ECMAScript Numbers.
+ *
+ * ESMeta represents them as `BigDecimal`, i.e. an exact rational whose
+ * denominator is a power of ten, so [Q] represents every one of them exactly.
+ *
+ * [Q] is deliberately *not* canonical: [2 # 4] and [1 # 2] denote the same
+ * value but are distinct terms.  Comparisons therefore have to go through
+ * [Qeq_bool]/[Qle_bool] rather than structural equality -- see op.v.  A
+ * canonical representation would instead have to normalize on every operation,
+ * which puts a [Z.gcd] into every arithmetic proof obligation. *)
+Definition MathematicalValue : Type := Q.
 
 Inductive MathematicalInfinity : Type :=
   | math_pos_inf
@@ -177,3 +199,9 @@ Inductive IRValue : Type :=
 
 Definition IR_undefined : IRValue := IR_ESValue (UndefV undefined).
 Definition IR_null : IRValue := IR_ESValue (NullV null).
+
+(* The mathematical-value literal generated code emits.  It exists so that no
+ * generated or hand-written file downstream has to import [QArith] just to name
+ * [Qmake] -- see the note on the import above. *)
+Definition ir_math (numerator : Z) (denominator : positive) : IRValue :=
+  IR_Math (Qmake numerator denominator).

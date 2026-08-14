@@ -25,7 +25,7 @@ COQ_MAKEFILE := Makefile.coq
 CORE := type.v manual_type.v op.v itree_state.v Signatures.v
 
 # Hand-written proofs, and the generated modules they require.
-PROOFS := $(wildcard Equiv_*.v) $(wildcard Proto_*.v)
+PROOFS := $(wildcard Equiv_*.v) $(wildcard Proto_*.v) $(wildcard Assert_*.v)
 PROOF_DEPS := $(sort $(foreach p,$(PROOFS),\
   $(addsuffix .v,$(shell sed -n 's/^Require Import \(AbsOp_[A-Za-z0-9_]*\)\..*/\1/p' $(p)))))
 

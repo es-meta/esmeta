@@ -39,8 +39,12 @@ class RocqGenerator(
       "Makefile",
     )
 
-  /** Hand-written proofs about the generated functions. */
-  private val proofFiles =
+  /** Hand-written proofs about functions generated from ECMA-262.
+    *
+    * These name `AbsOp_*` modules that only a whole-specification dump
+    * contains, so a dump of a standalone IR program leaves them out.
+    */
+  private val specProofFiles =
     List(
       "Equiv_IsCompatiblePropertyDescriptor.v",
       "Proto_HeapState.v",
@@ -51,7 +55,7 @@ class RocqGenerator(
   def translate(func: Func): RocqTranslation = stringifier.translate(func)
 
   /** Dump one `.v` file per IR function and an aggregate `program.v` file. */
-  def dumpTo(baseDir: String): RocqDumpSummary = {
+  def dumpTo(baseDir: String, specProofs: Boolean = true): RocqDumpSummary = {
     val dirname = s"$baseDir/func"
     val translationSucceeded = AtomicInteger()
     val fallout = AtomicInteger()
@@ -85,7 +89,8 @@ class RocqGenerator(
         translation.source
       },
     )
-    for (filename <- supportFiles ++ proofFiles)
+    val copied = supportFiles ++ (if (specProofs) specProofFiles else Nil)
+    for (filename <- copied)
       copyFile(
         s"$MANUALS_DIR/rocq/$filename",
         s"$dirname/$filename",

@@ -33,11 +33,23 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
 
   def apply(func: Func): String = translate(func).source
 
+  /** The two readings of `IAssert`, differing only at a violated assertion:
+    * `itree_state_assert` makes it UB, `itree_state_assert_skip` lets it pass.
+    * Generating a body under both yields the refinement pair whose existence
+    * states that no assertion in the function is ever violated.
+    */
+  private val assertChecked = "itree_state_assert"
+  private val assertSkipped = "itree_state_assert_skip"
+
   /** Translate one IR function, falling back only for unsupported syntax. */
   def translate(func: Func): RocqTranslation =
     try
+      val body = translateBody(func, assertChecked)
+      val assertFree = translateBody(func, assertSkipped)
       RocqTranslation(
-        stringify(func, translateBody(func)),
+        // A function with no assertion has nothing to state, and the two bodies
+        // coincide; emitting the second one would only duplicate it.
+        stringify(func, body, Option.when(assertFree != body)(assertFree)),
         RocqTranslationStatus.Succeeded,
       )
     catch {
@@ -54,8 +66,8 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
     }
 
   /** Translate a function body: a block that has to reach an `IReturn`. */
-  private def translateBody(func: Func): String =
-    s"itree_block_body (${translateBlock(List(func.body), 0)})"
+  private def translateBody(func: Func, assertOp: String): String =
+    s"itree_block_body (${translateBlock(List(func.body), 0, assertOp)})"
 
   /** Translate an instruction sequence into an `ITree_Block`.
     *
@@ -66,28 +78,32 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
     * proof unfolds it. Sibling blocks may reuse a number because their scopes
     * are disjoint.
     */
-  private def translateBlock(insts: List[Inst], branch: Int): String =
+  private def translateBlock(
+    insts: List[Inst],
+    branch: Int,
+    assertOp: String,
+  ): String =
     insts match {
       case Nil =>
         "itree_block_fallthrough"
       case ISeq(nested) :: rest =>
-        translateBlock(nested ::: rest, branch)
+        translateBlock(nested ::: rest, branch, assertOp)
       case IReturn(expr) :: _ =>
         s"itree_block_return (${translateExpr(expr)})"
       case ILet(lhs, expr) :: rest =>
         stateBind(
           RocqNaming.local(lhs),
           translateExpr(expr),
-          translateBlock(rest, branch),
+          translateBlock(rest, branch, assertOp),
         )
       case IExpr(expr) :: rest =>
-        stateThen(translateExpr(expr), translateBlock(rest, branch))
+        stateThen(translateExpr(expr), translateBlock(rest, branch, assertOp))
       case INop() :: rest =>
-        translateBlock(rest, branch)
+        translateBlock(rest, branch, assertOp)
       // `isAbruptInst` only records why the extractor emitted this branch, so it
       // carries no semantics to translate.
       case IIf(cond, thenInst, elseInst, _) :: rest =>
-        translateIf(cond, thenInst, elseInst, rest, branch)
+        translateIf(cond, thenInst, elseInst, rest, branch, assertOp)
       case IAssign(_, _) :: _ =>
         unsupported("instruction IAssign")
       // The base reference reuses the `ERef` translation, so an unsupported
@@ -101,7 +117,7 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
             translateExpr(field),
             stateThen(
               liftState("expand_record_field expand_base' expand_field'"),
-              translateBlock(rest, branch),
+              translateBlock(rest, branch, assertOp),
             ),
           ),
         )
@@ -117,7 +133,7 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
             translateExpr(list),
             stateThen(
               liftState(s"list_push push_list' push_value' ${rocqBool(front)}"),
-              translateBlock(rest, branch),
+              translateBlock(rest, branch, assertOp),
             ),
           ),
         )
@@ -128,17 +144,24 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
           stateBind(
             RocqNaming.local(lhs),
             liftState(s"list_pop pop_list' ${rocqBool(front)}"),
-            translateBlock(rest, branch),
+            translateBlock(rest, branch, assertOp),
           ),
         )
-      case IAssert(_) :: _ =>
-        unsupported("instruction IAssert")
+      case IAssert(cond) :: rest =>
+        stateBind(
+          "assert_condition'",
+          translateExpr(cond),
+          stateThen(
+            s"$assertOp assert_condition'",
+            translateBlock(rest, branch, assertOp),
+          ),
+        )
       case IPrint(_) :: _ =>
         unsupported("instruction IPrint")
       case IWhile(_, _) :: _ =>
         unsupported("instruction IWhile")
       case ICall(lhs, EClo(fname, Nil), args) :: rest =>
-        translateCall(lhs, fname, args, rest, branch)
+        translateCall(lhs, fname, args, rest, branch, assertOp)
       case ICall(_, EClo(_, _), _) :: _ =>
         unsupported("instruction ICall with captured closure")
       case ICall(_, _, _) :: _ =>
@@ -160,18 +183,21 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
     elseInst: Inst,
     rest: List[Inst],
     branch: Int,
+    assertOp: String,
   ): String = {
     val binder = s"branch_condition_$branch'"
     val branched =
       s"itree_block_if $binder" + LINE_SEP +
-      indent(s"(${translateBlock(List(thenInst), branch + 1)})") + LINE_SEP +
-      indent(s"(${translateBlock(List(elseInst), branch + 1)})")
+      indent(
+        s"(${translateBlock(List(thenInst), branch + 1, assertOp)})",
+      ) + LINE_SEP +
+      indent(s"(${translateBlock(List(elseInst), branch + 1, assertOp)})")
     val continued =
       if (rest.isEmpty) branched
       else
         "itree_block_seq" + LINE_SEP +
         indent(s"($branched)") + LINE_SEP +
-        indent(s"(${translateBlock(rest, branch + 1)})")
+        indent(s"(${translateBlock(rest, branch + 1, assertOp)})")
     stateBind(binder, translateExpr(cond), continued)
   }
 
@@ -185,6 +211,7 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
     args: List[Expr],
     rest: List[Inst],
     branch: Int,
+    assertOp: String,
   ): String = {
     def loop(
       remaining: List[Expr],
@@ -198,7 +225,7 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
         stateBind(
           RocqNaming.local(lhs),
           s"itree_state_call ${signature(fname)} ($arguments)",
-          translateBlock(rest, branch),
+          translateBlock(rest, branch, assertOp),
         )
       case expr :: tail =>
         val binder = s"call_argument_$index'"
@@ -299,8 +326,8 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
       unsupported("expression ECopy")
     case EKeys(_, _) =>
       unsupported("expression EKeys")
-    case EMath(_) =>
-      unsupported("expression EMath")
+    case EMath(value) =>
+      stateReturn(translateMath(value))
     case EInfinity(_) =>
       unsupported("expression EInfinity")
     case ENumber(_) =>
@@ -467,6 +494,29 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
     loop(fields, 0, Nil)
   }
 
+  /** Encode an ESMeta mathematical value as an exact Rocq rational.
+    *
+    * A `BigDecimal` is `unscaled * 10^-scale`, which `Q` represents exactly.
+    * `Q` stores its denominator as a `positive`, so a non-positive scale is
+    * folded into the numerator instead of inverted. Trailing zeros are dropped
+    * first, keeping `55` out of the `5500 # 100` form a proof would have to
+    * read past; `Qeq_bool` makes the choice of representative immaterial to the
+    * semantics either way.
+    */
+  private def translateMath(value: BigDecimal): String = {
+    val decimal = value.underlying.stripTrailingZeros
+    val unscaled = BigInt(decimal.unscaledValue)
+    val scale = decimal.scale
+    val ten = BigInt(10)
+    val (numerator, denominator) =
+      if (scale > 0) (unscaled, ten.pow(scale))
+      else (unscaled * ten.pow(-scale), BigInt(1))
+    // `ir_math`, not `Qmake`: naming `Qmake` would force QArith's `#` notation
+    // into every generated file, and that notation makes CRIS's `{[ k # v ]}`
+    // unparseable.  See the note on the QArith import in type.v.
+    s"ir_math ($numerator)%Z ($denominator)%positive"
+  }
+
   /** Encode an 8-bit Rocq string without relying on literal escaping. */
   private def translateString(value: String): String =
     value.reverseIterator.foldLeft("EmptyString") { (tail, char) =>
@@ -510,10 +560,41 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
   protected final def unsupported(feature: String): Nothing =
     throw UnsupportedRocqTranslation(feature)
 
+  /** Emit `Definition <name> ... : ITree_State_Completion IRValue := <body>.`
+    */
+  private def definition(
+    func: Func,
+    name: String,
+    body: String,
+    comment: List[String],
+  ): String = {
+    val builder = StringBuilder()
+    builder.append("Definition ").append(name).append(" `{Σ : GRA}")
+    for ((param, index) <- func.params.zipWithIndex)
+      builder
+        .append(LINE_SEP)
+        .append("    (")
+        .append(RocqNaming.parameter(param, index))
+        .append(" : IRValue)")
+    builder
+      .append(LINE_SEP)
+      .append("    : ITree_State_Completion IRValue :=")
+      .append(LINE_SEP)
+    for ((line, index) <- comment.zipWithIndex)
+      builder
+        .append(if (index == 0) "  (* " else "     ")
+        .append(line)
+        .append(if (index == comment.size - 1) " *)" else "")
+        .append(LINE_SEP)
+    builder.append("  ").append(body).append(".").append(LINE_SEP)
+    builder.toString
+  }
+
   /** Emit one complete, universally typed function definition. */
   private def stringify(
     func: Func,
     body: String,
+    assertFreeBody: Option[String] = None,
     falloutReasons: List[String] = Nil,
   ): String = {
     val parameters = func.params.zipWithIndex.map { (param, index) =>
@@ -534,25 +615,37 @@ class RocqStringifier(funcs: Iterable[Func] = Nil) {
       .append(LINE_SEP)
     builder.append("From CRIS Require Import CRIS.").append(LINE_SEP)
     builder.append(LINE_SEP)
-    builder.append("Definition ").append(RocqNaming.function(func))
-    builder.append(" `{Σ : GRA}")
-    for ((param, index) <- func.params.zipWithIndex)
+    builder.append(
+      definition(
+        func,
+        RocqNaming.function(func),
+        body,
+        comment = Option
+          .when(falloutReasons.nonEmpty)(
+            s"Unsupported Rocq translation: ${falloutReasons.mkString("; ")}." +
+            "  Use the fallback computation.",
+          )
+          .toList,
+      ),
+    )
+    // The same body with every assertion passed instead of checked.  Only the
+    // assertion sites differ, so `ctx_refines` between the two says exactly
+    // that no assertion in this function is ever violated.
+    for (assertFree <- assertFreeBody)
       builder
         .append(LINE_SEP)
-        .append("    (")
-        .append(RocqNaming.parameter(param, index))
-        .append(" : IRValue)")
-    builder
-      .append(LINE_SEP)
-      .append("    : ITree_State_Completion IRValue :=")
-      .append(LINE_SEP)
-    if (falloutReasons.nonEmpty)
-      builder
-        .append("  (* Unsupported Rocq translation: ")
-        .append(falloutReasons.mkString("; "))
-        .append(".  Use the fallback computation. *)")
-        .append(LINE_SEP)
-    builder.append("  ").append(body).append(".").append(LINE_SEP)
+        .append(
+          definition(
+            func,
+            RocqNaming.assertFree(func),
+            assertFree,
+            comment = List(
+              s"The specification ${RocqNaming.function(func)} is proven to",
+              "refine: identical except that a violated assertion passes here",
+              "and is UB there.",
+            ),
+          ),
+        )
     builder.append(LINE_SEP)
     builder
       .append("Definition ")

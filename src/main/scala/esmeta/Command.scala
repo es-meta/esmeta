@@ -97,6 +97,16 @@ case object CmdRocq extends Command("rocq", CmdCompile >> RocqGen) {
   )
 }
 
+/** `rocq-ir` command */
+case object CmdRocqIR extends Command("rocq-ir", CmdBase >> RocqGenIR) {
+  val help = "generates Rocq files for standalone IR programs."
+  val examples = List(
+    "esmeta rocq-ir tests/ir/branch.ir  # generate Rocq files for branch.ir.",
+    "esmeta rocq-ir tests/ir/*.ir       # generate Rocq files for each program.",
+  )
+  override val targetName = "<ir>+"
+}
+
 /** `build-cfg` command */
 case object CmdBuildCFG extends Command("build-cfg", CmdCompile >> BuildCFG) {
   val help = "builds a control-flow graph (CFG) from an IR program."

@@ -36,6 +36,9 @@ private[rocq] object RocqNaming {
 
   def semantic(func: Func): String = s"${function(func)}_sem"
 
+  /** The same body with assertions passed rather than checked. */
+  def assertFree(func: Func): String = s"${function(func)}_assert_free"
+
   def signature(func: Func): String = s"sig_${functionPart(func)}"
 
   /** CRIS call-event key, using the same normalization as Rocq names. */
