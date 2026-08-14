@@ -177,7 +177,6 @@ object Solver {
       val odd = if (name.startsWith("Float")) s"new $name([NaN, -0])" else ""
       RecordT(name) -> (List(
         s"new $name()",
-        s"new $name(2)",
         s"new $name($pair)",
         s"new $name(new ArrayBuffer(8), 0, 1)",
         s"new $name(new ArrayBuffer(16, { maxByteLength: 16 }))",
@@ -329,43 +328,31 @@ object Solver {
     RecordT("OrdinaryObject") -> List(
       "{ [Symbol.iterator]: null, length: NaN }",
     ),
-    RecordT("OrdinaryObject") -> List(
-      "{ [Symbol.iterator]: function*() { yield 0; } }",
-    ),
     RecordT("OrdinaryObject") -> List("{ next: () => ({ done: true }) }"),
     FunctionT -> List("() => ({ done: true })"),
     FunctionT -> List("() => ({})"),
-    StrT -> List("\"2\""),
-    RecordT("OrdinaryObject") -> List(
-      "{ get \"0\"() { throw 0; }, length: Infinity }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ get [Symbol.toPrimitive]() { throw 0; } }",
-    ),
     BoolT -> List("true"),
     NumberPosIntT -> List("1"),
     NullT -> List("null"),
-    RecordT("OrdinaryObject") -> List("{ get length() { throw 0; } }"),
     FunctionT -> List("() => { throw 0; }"),
     ConstructorT -> List("function(f) { if (f?.call) f(_ => 0, _ => 0); }"),
     RecordT("ProxyExoticObject", List("Call", "Construct")) -> List(
       "new Proxy(function(){}, {})",
     ),
-    RecordT("Set") -> List("new Set([Object.prototype])"),
     RecordT("OrdinaryObject") -> List("{ value: 0 }"),
     NumberT -> List("0"),
     NumberPosIntT -> List("1", "2", "4294967295", "9007199254740991"),
-    NumberNegIntT -> List("-1", "-2", "-9007199254740991"),
+    NumberNegIntT -> List("-1", "-2"),
     NumberIntT -> List("4503599627370496", "9007199254740992", "1e21"),
     PosNumberT -> List("0.5"),
-    NegNumberT -> List("-0.5", "-0.25", "-1.5", "-Number.MAX_VALUE"),
+    NegNumberT -> List("-0.5"),
     NumberT(0.0) -> List("-0"),
     NaNT -> List("NaN"),
     NumberT(Double.PositiveInfinity) -> List("Infinity"),
     NumberT(Double.NegativeInfinity) -> List("-Infinity"),
-    StrT -> List("\"\"", "\"a\"", "\"ab\"", "\"A\"", "\" \"", "\"\\n\""),
+    StrT -> List("\"\""),
     StrT -> List("\"0\""),
-    StrT -> List("\"\\uD800\"", "\"%\"", "\"%41\""),
+    StrT -> List("\"%\"", "\"%41\""),
     StrT -> List("\"length\"", "\"constructor\"", "\"__proto__\""),
     UndefT -> List("undefined"),
     NullT -> List("null"),
@@ -384,21 +371,11 @@ object Solver {
       "Symbol.split",
     ),
     ObjectT -> List("{}"),
-    ArrayT -> List("[]", "[,]", "[0, 1]", "Object.freeze([0])"),
-    FunctionT -> List(
-      "function(){}",
-      "function*(){}",
-      "async function*(){}",
-    ),
-    FunctionT -> List(
-      "() => {}",
-      "() => ({})",
-      "() => (true)",
-      "() => (0)",
-    ),
+    ArrayT -> List("[]"),
+    FunctionT -> List("function(){}", "function*(){}", "async function*(){}"),
+    FunctionT -> List("() => {}", "() => ({})", "() => (true)", "() => (0)"),
     FunctionT -> List("() => { throw 0; }"),
     FunctionT -> List("() => ({ done: true })"),
-    FunctionT -> List("() => ({ then: (res) => res(0) })"),
     FunctionT -> List(
       "Object.defineProperty(function(){}, \"length\", { value: Infinity })",
       "Object.defineProperty(function(){}, \"length\", " +
@@ -423,7 +400,6 @@ object Solver {
       "r.revoke(); return r.proxy; })()",
     ),
     RecordT("ProxyExoticObject") -> List(
-      "new Proxy({}, {})",
       "(() => { const r = Proxy.revocable(function(){}, {}); " +
       "r.revoke(); return r.proxy; })()",
     ),
@@ -450,21 +426,9 @@ object Solver {
     ),
     RecordT("OrdinaryObject") -> List(
       "{ [Symbol.iterator]: null, length: NaN }",
-      "{ length: Symbol() }",
     ),
     RecordT("OrdinaryObject") -> List(
-      "{ get length() { throw 0; } }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ get \"0\"() { throw 0; }, set \"0\"(v) { throw 0; }, length: Infinity }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ [Symbol.match]: true }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ get [Symbol.match]() { throw 0; } }",
       "{ [Symbol.replace]: () => {} }",
-      "{ get [Symbol.replace]() { throw 0; } }",
       "{ [Symbol.split]: () => {} }",
       "{ [Symbol.search]: () => {} }",
       "{ [Symbol.matchAll]: () => {} }",
@@ -475,64 +439,19 @@ object Solver {
       "Math",
       "Function.prototype",
     ),
-    RecordT("OrdinaryObject") -> List(
-      "{ [Symbol.isConcatSpreadable]: true }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ get [Symbol.toPrimitive]() { throw 0; } }",
-      "{ [Symbol.toPrimitive]: () => ({}) }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ [Symbol.toPrimitive]: undefined, valueOf: () => ({}) }",
-      "{ toString: () => { throw 0; } }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ value: 0 }",
-      "{ enumerable: undefined }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ get: () => {}, set: () => {} }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ [Symbol.iterator]: function*() { yield 0; } }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ [Symbol.iterator]: null }",
-      "{ [Symbol.iterator]: () => {} }",
-      "{ get [Symbol.iterator]() { throw 0; } }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ next: () => ({ done: true }) }",
-      "{ get next() { throw 0; } }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ next: (() => { let i = 0; " +
-      "return () => (i++ < 4 ? { done: undefined } : { done: true }); })() }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ size: 0, has: () => {}, keys: () => {} }",
-      "{ get size() { throw 0; } }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ then: (res) => res(0) }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ cause: undefined }",
-      "{ constructor: undefined }",
-    ),
+    RecordT("OrdinaryObject") -> List("{ [Symbol.isConcatSpreadable]: true }"),
+    RecordT("OrdinaryObject") -> List("{ [Symbol.toPrimitive]: () => ({}) }"),
+    RecordT("OrdinaryObject") -> List("{ toString: () => { throw 0; } }"),
+    RecordT("OrdinaryObject") -> List("{ enumerable: undefined }"),
+    RecordT("OrdinaryObject") -> List("{ [Symbol.iterator]: () => {} }"),
+    RecordT("OrdinaryObject") -> List("{ next: () => ({ done: true }) }"),
+    RecordT("OrdinaryObject") -> List("{ constructor: undefined }"),
     TypedArrayT -> List(
       "new Int8Array()",
-      "new Int8Array(2)",
-      "new Int8Array([1, 0])",
-      "new Int8Array(new ArrayBuffer(8), 0, 1)",
       "new Int8Array(new ArrayBuffer(16, { maxByteLength: 16 }))",
       "(() => { const a = new Int8Array(2); a.buffer.transfer(); return a; })()",
     ),
-    RecordT("Set") -> List(
-      "new Set([Object.prototype])",
-      "new Set()",
-      "new Set([0])",
-    ),
+    RecordT("Set") -> List("new Set()", "new Set([0])"),
     RecordT("ArrayBuffer") -> List(
       "new ArrayBuffer(0)",
       "new ArrayBuffer(8)",
@@ -545,17 +464,13 @@ object Solver {
       "(() => { const g = (async function*(){ yield 0; })(); " +
       "g.next(); return g; })()",
     ),
-    RecordT("WeakMap") -> List(
-      "new WeakMap([[Object.prototype, 0]])",
-    ),
+    RecordT("WeakMap") -> List("new WeakMap([[Object.prototype, 0]])"),
     RecordT("Map") -> List(
       "new Map([[Object.prototype, 0]])",
       "new Map()",
       "new Map([[0, 0]])",
     ),
-    RecordT("WeakSet") -> List(
-      "new WeakSet([Object.prototype])",
-    ),
+    RecordT("WeakSet") -> List("new WeakSet([Object.prototype])"),
     RecordT("Generator") -> List(
       "(function*(){})()",
       "(() => { const g = (function*(){})(); g.next(); return g; })()",
@@ -573,26 +488,14 @@ object Solver {
     RecordT("BoundFunctionExoticObject", List("Call", "Construct")) -> List(
       "(function(){}).bind()",
     ),
-    RecordT("SettledPromise") -> List(
-      "Promise.resolve(0)",
-    ),
-    RecordT("PendingPromise") -> List(
-      "new Promise(() => {})",
-    ),
+    RecordT("SettledPromise") -> List("Promise.resolve(0)"),
+    RecordT("PendingPromise") -> List("new Promise(() => {})"),
     RecordT("Promise") -> List("new Promise(() => {})"),
-    RecordT("ErrorObject") -> List(
-      "new Error()",
-    ),
-    RecordT("SharedArrayBuffer") -> List(
-      "new SharedArrayBuffer(0)",
-    ),
-    RecordT("DataView") -> List(
-      "new DataView(new ArrayBuffer(0))",
-    ),
-    RecordT("NumberObject") -> List(
-      "Object(0)",
-    ),
-    RecordT("StringExoticObject") -> List("Object('')", "Object('ab')"),
+    RecordT("ErrorObject") -> List("new Error()"),
+    RecordT("SharedArrayBuffer") -> List("new SharedArrayBuffer(0)"),
+    RecordT("DataView") -> List("new DataView(new ArrayBuffer(0))"),
+    RecordT("NumberObject") -> List("Object(0)"),
+    RecordT("StringExoticObject") -> List("Object('')"),
     RecordT("BuiltinFunctionObject", List("Call", "Construct")) -> List(
       "Array",
       "Object",
@@ -603,17 +506,11 @@ object Solver {
       "Array.prototype.push",
       "Function.prototype.call",
     ),
-    RegExpT -> List(
-      "/./",
-      "/./g",
-      "/./y",
-      "/(?<a>.)/",
-      "new RegExp(\"\", \"u\")",
-    ),
-    RecordT("BooleanObject") -> List("Object(true)", "Object(false)"),
+    RegExpT -> List("/./"),
+    RecordT("BooleanObject") -> List("Object(true)"),
     RecordT("SymbolObject") -> List("Object(Symbol())"),
     RecordT("BigIntObject") -> List("Object(0n)"),
-    RecordT("Date") -> List("new Date()", "new Date(0)", "new Date(NaN)"),
+    RecordT("Date") -> List("new Date()"),
     RecordT("ArgumentsExoticObject") -> List(
       "(function(){ return arguments; })()",
     ),
