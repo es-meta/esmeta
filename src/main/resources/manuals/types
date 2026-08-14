@@ -431,7 +431,7 @@ type TypedArray extends ExoticObject {
   def Set;
   def Delete;
   def OwnPropertyKeys;
-  ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
+  ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer] | Undefined; // TODO: PR - Undefined
   ArrayLength: Int[0+] | Enum[~auto~];
   ByteOffset: Int[0+];
   ContentType: Enum[~bigint~, ~number~];
