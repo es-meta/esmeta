@@ -159,7 +159,7 @@ class CoverageMiddleTest extends SolverTest {
         Future {
           val isSupported = Solver.funcAccessExpr(f).exists { js =>
             try { cov.run(js + ".call();").supported }
-            catch { case _: Throwable => false }
+            catch { case _: esmeta.error.NotSupported => false }
           }
           if (isSupported) Some(f) else None
         }
