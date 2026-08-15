@@ -109,9 +109,38 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
       case (NumberSetTy(lset), NumberSetTy(rset)) =>
         NumberSetTy(lset -- rset)
       case (NumberIntTy(lint, lnan), NumberSetTy(rset)) =>
-        integrate(lint, rset, lnan)(_ -- _, _ -- _)
+        val ints = rset.collect {
+          case n if !n.double.isNaN && n.double.isWhole =>
+            scala.math.BigInt(n.double.toLong)
+        }
+        NumberIntTy(
+          lint -- IntSetTy(ints),
+          lnan && !rset.exists(_.double.isNaN),
+        )
       case (NumberSetTy(lset), NumberIntTy(rint, rnan)) =>
-        integrate(rint, lset, rnan)(_ -- _, _ -- _)
+        NumberSetTy(lset.filter { n =>
+          if (n.double.isNaN) !rnan
+          else
+            !(n.double.isWhole && rint.contains(
+              scala.math.BigInt(n.double.toLong),
+            ))
+        })
+      case (NumberSignTy(lsign, lnan), NumberIntTy(rint, rnan)) =>
+        val zero = rint.canon match
+          case IntSignTy(s)  => s.zero
+          case IntSetTy(set) => set.exists(_ == 0)
+        NumberSignTy(lsign -- Sign(false, zero, false), lnan && !rnan)
+      case (NumberIntTy(lint, lnan), NumberSignTy(rsign, rnan)) =>
+        NumberIntTy(lint -- IntSignTy(rsign), lnan && !rnan)
+      case (NumberSignTy(lsign, lnan), NumberSetTy(rset)) =>
+        NumberSignTy(
+          lsign -- Sign(false, rset.exists(_.double == 0.0), false),
+          lnan && !rset.exists(_.double.isNaN),
+        )
+      case (NumberSetTy(lset), NumberSignTy(rsign, rnan)) =>
+        NumberSetTy(lset.filter { n =>
+          if (n.double.isNaN) !rnan else !rsign.contains(n.double)
+        })
       case _ =>
         val thisSign = this.toSignTy
         val thatSign = that.toSignTy

@@ -855,26 +855,49 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                     case (false, true)  => /* x > P */ MathTy.PosInt
                     case (false, false) => /* x <= P */ MathTy.Int
                 case _ =>
-              if (lty.number <= NumberTy.Int) rty.getSingle match
-                case One(Number(0)) =>
-                  number = (isLt, pos) match
-                    case (true, true)   => /* x < 0 */ NumberTy.NegInt
-                    case (true, false)  => /* x >= 0 */ NumberTy.NonNegInt
-                    case (false, true)  => /* x > 0 */ NumberTy.PosInt
-                    case (false, false) => /* x <= 0 */ NumberTy.NonPosInt
-                case One(Number(v)) if v < 0 =>
-                  number = (isLt, pos) match
-                    case (true, true)   => /* x < N */ NumberTy.NegInt
-                    case (true, false)  => /* x >= N */ NumberTy.Int
-                    case (false, true)  => /* x > N */ NumberTy.Int
-                    case (false, false) => /* x <= N */ NumberTy.NegInt
-                case One(Number(v)) if v > 0 =>
-                  number = (isLt, pos) match
-                    case (true, true)   => /* x < P */ NumberTy.Int
-                    case (true, false)  => /* x >= P */ NumberTy.PosInt
-                    case (false, true)  => /* x > P */ NumberTy.PosInt
-                    case (false, false) => /* x <= P */ NumberTy.Int
-                case _ =>
+              if (lty.number <= NumberTy.Int)
+                rty.getSingle match
+                  case One(Number(0)) =>
+                    number = (isLt, pos) match
+                      case (true, true)   => /* x < 0 */ NumberTy.NegInt
+                      case (true, false)  => /* x >= 0 */ NumberTy.NonNegInt
+                      case (false, true)  => /* x > 0 */ NumberTy.PosInt
+                      case (false, false) => /* x <= 0 */ NumberTy.NonPosInt
+                  case One(Number(v)) if v < 0 =>
+                    number = (isLt, pos) match
+                      case (true, true)   => /* x < N */ NumberTy.NegInt
+                      case (true, false)  => /* x >= N */ NumberTy.Int
+                      case (false, true)  => /* x > N */ NumberTy.Int
+                      case (false, false) => /* x <= N */ NumberTy.NegInt
+                  case One(Number(v)) if v > 0 =>
+                    number = (isLt, pos) match
+                      case (true, true)   => /* x < P */ NumberTy.Int
+                      case (true, false)  => /* x >= P */ NumberTy.PosInt
+                      case (false, true)  => /* x > P */ NumberTy.PosInt
+                      case (false, false) => /* x <= P */ NumberTy.Int
+                  case _ =>
+              else
+                def sign(s: NumberTy): NumberTy =
+                  val kept = lty.number && s
+                  if (pos) kept else kept || (lty.number && NumberTy.NaN)
+                rty.getSingle match
+                  case One(Number(0)) =>
+                    number = (isLt, pos) match
+                      case (true, true)   => /* x < 0 */ sign(NumberTy.Neg)
+                      case (true, false)  => /* x >= 0 */ sign(NumberTy.NonNeg)
+                      case (false, true)  => /* x > 0 */ sign(NumberTy.Pos)
+                      case (false, false) => /* x <= 0 */ sign(NumberTy.NonPos)
+                  case One(Number(v)) if v < 0 =>
+                    number = (isLt, pos) match
+                      case (true, true)   => /* x < N */ sign(NumberTy.Neg)
+                      case (false, false) => /* x <= N */ sign(NumberTy.Neg)
+                      case _              => number
+                  case One(Number(v)) if v > 0 =>
+                    number = (isLt, pos) match
+                      case (true, false) => /* x >= P */ sign(NumberTy.Pos)
+                      case (false, true) => /* x > P */ sign(NumberTy.Pos)
+                      case _             => number
+                  case _ =>
               val refinedTy = ValueTy(
                 math = math,
                 infinity = infinity,

@@ -39,7 +39,10 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case _ if this eq that                    => Bot
     case (IntSetTy(lset), IntSetTy(rset))     => IntSetTy(lset -- rset)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign -- rsign)
-    case (l, r)                               => IntSignTy(l.toSign -- r.toSign)
+    case (IntSignTy(lsign), IntSetTy(rset)) =>
+      IntSignTy(lsign -- Sign(false, rset.exists(_ == 0), false))
+    case (IntSetTy(lset), IntSignTy(rsign)) =>
+      IntSetTy(lset.filter(n => !rsign.contains(n)))
 
   def +(that: => IntTy): IntTy = (this, that) match
     case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ + _) != Top =>

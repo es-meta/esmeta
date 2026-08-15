@@ -79,11 +79,26 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     case (MathIntTy(l), MathIntTy(r))       => MathIntTy(l -- r)
     case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset -- rset)
     // comparison with set
-    case (MathIntTy(int), MathSetTy(set)) => integrate(int, set)(_ -- _)
-    case (MathSetTy(set), MathIntTy(int)) => integrate(int, set)(_ -- _)
+    case (MathIntTy(int), MathSetTy(set)) =>
+      MathIntTy(int -- IntSetTy(set.collect {
+        case m if m.decimal.isWhole => m.decimal.toBigInt
+      }))
+    case (MathSetTy(set), MathIntTy(int)) =>
+      MathSetTy(
+        set.filter(m =>
+          !(m.decimal.isWhole && int.contains(m.decimal.toBigInt)),
+        ),
+      )
     case (MathSetTy(set), MathSignTy(sign)) =>
-      MathSetTy(set.filter(n => sign.contains(n.decimal)))
-    case (l, r) => MathSignTy(l.toSign -- r.toSign)
+      MathSetTy(set.filter(n => !sign.contains(n.decimal)))
+    case (MathSignTy(sign), MathSetTy(set)) =>
+      MathSignTy(sign -- Sign(false, set.exists(_.decimal == 0), false))
+    case (MathSignTy(sign), MathIntTy(int)) =>
+      val zero = int.canon match
+        case IntSignTy(s)  => s.zero
+        case IntSetTy(set) => set.exists(_ == 0)
+      MathSignTy(sign -- Sign(false, zero, false))
+    case (MathIntTy(int), MathSignTy(sign)) => MathIntTy(int -- IntSignTy(sign))
 
   /** addition */
   def +(that: MathTy): MathTy = (this.canon, that.canon) match
