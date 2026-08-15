@@ -3,7 +3,7 @@ package esmeta.solver
 import esmeta.cfg.{Branch, CFG, Call, Func}
 import esmeta.es.util.Coverage
 import esmeta.es.util.Coverage.Cond
-import esmeta.ir.{EBool, EClo, ICall}
+import esmeta.ir.*
 import esmeta.phase.Solve
 import esmeta.ty.ValueTy
 import esmeta.util.Appender.*
@@ -51,9 +51,58 @@ class CoverageMiddleTest extends SolverTest {
   // branch sides reached by another target's candidate
   private val incidental = ConcurrentHashMap[(Int, Boolean), String]()
 
+  // a condition the compiler could not translate: no program decides it
+  private def isYetBranch(b: Branch): Boolean = b.cond match
+    case _: EYet => true
+    case _       => false
+
+  // nodes reachable from the entry without crossing a `yet` branch. only the
+  // caller context is approximated away, so this errs toward keeping targets
+  private val liveCache = collection.concurrent.TrieMap[Int, Set[Int]]()
+  private def liveNodes(f: Func): Set[Int] = liveCache.getOrElseUpdate(
+    f.id, {
+      val seen = MSet(f.entry.id)
+      val stack = collection.mutable.Stack[esmeta.cfg.Node](f.entry)
+      while (stack.nonEmpty)
+        stack.pop() match
+          case b: Branch if isYetBranch(b) => ()
+          case n => for (m <- n.succs if seen.add(m.id)) stack.push(m)
+      seen.toSet
+    },
+  )
+
+  // functions a dynamic dispatch on a method name could reach
+  private lazy val byMethodName: Map[String, Set[Func]] =
+    cfg.funcs.groupBy(_.name.split('.').last).view.mapValues(_.toSet).toMap
+
+  // callees of live nodes; dispatch is resolved permissively so a function is
+  // dropped only when every way of reaching it is dead
+  private def liveCallees(f: Func): Set[Func] =
+    val live = liveNodes(f)
+    f.nodes
+      .collect { case c: Call if live(c.id) => c.callInst }
+      .flatMap {
+        case ICall(_, EClo(name, _), _) => cfg.fnameMap.get(name).toSet
+        case ICall(_, ERef(Field(_, EStr(m))), _) =>
+          byMethodName.getOrElse(m, Set())
+        case _ => Set.empty[Func]
+      }
+      .toSet
+
+  // nodes some program can actually execute
+  private lazy val executable: Set[Int] = {
+    val roots = cfg.funcs.filter(_.isBuiltin).toList
+    val visited = MSet.from(roots.map(_.id))
+    val queue = Queue.from(roots)
+    while (queue.nonEmpty)
+      for (g <- liveCallees(queue.dequeue()); if visited.add(g.id))
+        queue.enqueue(g)
+    visited.flatMap(cfg.funcMap.get).flatMap(f => liveNodes(f)).toSet
+  }
+
   /** coverage-style branch filter: exclude compiler boilerplate */
   private def isTargetBranch(b: Branch): Boolean =
-    !b.isFiltered && (b.cond match
+    !b.isFiltered && !isYetBranch(b) && (b.cond match
       case EBool(_) => false
       case _        => true
     )
@@ -77,8 +126,9 @@ class CoverageMiddleTest extends SolverTest {
     visited.flatMap(cfg.funcMap.get).toSet
 
   private def targetBranches(fs: Iterable[Func]): List[Branch] =
-    fs.flatMap(_.nodes.collect { case b: Branch if isTargetBranch(b) => b })
-      .toList
+    fs.flatMap(_.nodes.collect {
+      case b: Branch if executable(b.id) && isTargetBranch(b) => b
+    }).toList
 
   def init: Unit = {
     given CFG = cfg
