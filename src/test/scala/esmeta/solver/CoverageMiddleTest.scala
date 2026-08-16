@@ -1,6 +1,6 @@
 package esmeta.solver
 
-import esmeta.cfg.{Branch, CFG, Call, Func}
+import esmeta.cfg.{Block, Branch, CFG, Call, Func}
 import esmeta.es.util.Coverage
 import esmeta.es.util.Coverage.Cond
 import esmeta.ir.*
@@ -56,8 +56,22 @@ class CoverageMiddleTest extends SolverTest {
     case _: EYet => true
     case _       => false
 
-  // nodes reachable from the entry without crossing a `yet` branch. only the
-  // caller context is approximated away, so this errs toward keeping targets
+  // a `yet` evaluates to bottom and so kills the state, leaving everything
+  // after it unreachable. assertions are skipped rather than evaluated
+  private def hasYet(inst: Inst): Boolean = inst match
+    case IAssert(_) => false
+    case _ =>
+      var found = false
+      val walker = new esmeta.ir.util.UnitWalker {
+        override def walk(expr: Expr): Unit = expr match
+          case _: EYet => found = true
+          case _       => super.walk(expr)
+      }
+      walker.walk(inst)
+      found
+
+  // nodes reachable from the entry without crossing a `yet`. only the caller
+  // context is approximated away, so this errs toward keeping targets
   private val liveCache = collection.concurrent.TrieMap[Int, Set[Int]]()
   private def liveNodes(f: Func): Set[Int] = liveCache.getOrElseUpdate(
     f.id, {
@@ -65,7 +79,8 @@ class CoverageMiddleTest extends SolverTest {
       val stack = collection.mutable.Stack[esmeta.cfg.Node](f.entry)
       while (stack.nonEmpty)
         stack.pop() match
-          case b: Branch if isYetBranch(b) => ()
+          case b: Branch if isYetBranch(b)        => ()
+          case b: Block if b.insts.exists(hasYet) => ()
           case n => for (m <- n.succs if seen.add(m.id)) stack.push(m)
       seen.toSet
     },
