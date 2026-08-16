@@ -3,6 +3,7 @@ package esmeta.ty
 import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
 
 /** number types */
 sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
@@ -18,21 +19,21 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
   def <=(that: => NumberTy): Boolean = (this.canon, that.canon) match
     case _ if (this eq that) || (this == Bot) => true
     // same types
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      (lsign <= rsign) && (!lnan || rnan)
+    case (NumberSignTy(lsign, lnan, lnz), NumberSignTy(rsign, rnan, rnz)) =>
+      (lsign <= rsign) && (!lnan || rnan) && (!lnz || rnz)
     case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
       (lint <= rint) && (!lnan || rnan)
     case (NumberSetTy(lset), NumberSetTy(rset)) => lset subsetOf rset
     // subset
-    case (NumberIntTy(l, lnan), NumberSignTy(r, rnan)) =>
+    case (NumberIntTy(l, lnan), NumberSignTy(r, rnan, _)) =>
       l.toSignTy.sign <= r && (!lnan || rnan)
     // comparsion with set
     case (NumberIntTy(int, nan), s @ NumberSetTy(set)) =>
       int.toNumberSet.fold(false) {
         case mset => mset subsetOf set
       } && (!nan || s.hasNaN)
-    case (l @ NumberSetTy(lset), NumberSignTy(r, nan)) =>
-      l.toSignTy.sign <= r && (!l.hasNaN || nan)
+    case (l @ NumberSetTy(lset), NumberSignTy(r, nan, rnz)) =>
+      l.toSignTy.sign <= r && (!l.hasNaN || nan) && (!l.hasNegZero || rnz)
     case (l @ NumberSetTy(lset), r) =>
       lset.forall(x => r.contains(x))
     case _ => false
@@ -43,8 +44,8 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     case (l, r) if l.isTop || r.isTop => Top
     case (l, r) if l.isBottom         => r
     case (l, r) if r.isBottom         => l
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign || rsign, lnan || rnan)
+    case (NumberSignTy(lsign, lnan, lnz), NumberSignTy(rsign, rnan, rnz)) =>
+      NumberSignTy(lsign || rsign, lnan || rnan, lnz || rnz)
     case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
       NumberIntTy(lint || rint, lnan || rnan)
     case (NumberSetTy(lset), NumberSetTy(rset)) =>
@@ -59,6 +60,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
       NumberSignTy(
         thisSign.sign || thatSign.sign,
         thisSign.hasNaN || thatSign.hasNaN,
+        thisSign.negZero || thatSign.negZero,
       )
 
   /** intersection type */
@@ -67,8 +69,8 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     case (l, r) if l.isBottom || r.isBottom => Bot
     case (l, r) if l.isTop                  => r
     case (l, r) if r.isTop                  => l
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign && rsign, lnan && rnan)
+    case (NumberSignTy(lsign, lnan, lnz), NumberSignTy(rsign, rnan, rnz)) =>
+      NumberSignTy(lsign && rsign, lnan && rnan, lnz && rnz)
     case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
       NumberIntTy(lint && rint, lnan && rnan)
     case (NumberSetTy(lset), NumberSetTy(rset)) =>
@@ -77,17 +79,21 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
       integrate(rint, lset, rnan)(_ intersect _, _ && _)
     case (NumberIntTy(lint, lnan), NumberSetTy(rset)) =>
       integrate(lint, rset, lnan)(_ intersect _, _ && _)
-    case (NumberSetTy(set), NumberSignTy(sign, nan)) =>
+    case (NumberSetTy(set), NumberSignTy(sign, nan, nz)) =>
       NumberSetTy(
         (if nan && set.hasNaN then Set(Number(Double.NaN))
          else Set()) ++
-        set.filter(x => sign.contains(x.double)),
+        set.filter(x =>
+          if (isNegZero(x.double)) nz else sign.contains(x.double),
+        ),
       )
-    case (NumberSignTy(sign, nan), NumberSetTy(set)) =>
+    case (NumberSignTy(sign, nan, nz), NumberSetTy(set)) =>
       NumberSetTy(
         (if nan && set.hasNaN then Set(Number(Double.NaN))
          else Set()) ++
-        set.filter(x => sign.contains(x.double)),
+        set.filter(x =>
+          if (isNegZero(x.double)) nz else sign.contains(x.double),
+        ),
       )
     case _ =>
       val thisSign = this.toSignTy
@@ -95,6 +101,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
       NumberSignTy(
         thisSign.sign && thatSign.sign,
         thisSign.hasNaN && thatSign.hasNaN,
+        thisSign.negZero && thatSign.negZero,
       )
 
   /** prune type */
@@ -102,8 +109,8 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     (this.canon, that.canon) match
       case _ if this eq that               => Bot
       case _ if this == Bot || that == Top => Bot
-      case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-        NumberSignTy(lsign -- rsign, lnan && !rnan)
+      case (NumberSignTy(lsign, lnan, lnz), NumberSignTy(rsign, rnan, rnz)) =>
+        NumberSignTy(lsign -- rsign, lnan && !rnan, lnz && !rnz)
       case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
         NumberIntTy(lint -- rint, lnan && !rnan)
       case (NumberSetTy(lset), NumberSetTy(rset)) =>
@@ -125,21 +132,28 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
               scala.math.BigInt(n.double.toLong),
             ))
         })
-      case (NumberSignTy(lsign, lnan), NumberIntTy(rint, rnan)) =>
+      case (NumberSignTy(lsign, lnan, lnz), NumberIntTy(rint, rnan)) =>
         val zero = rint.canon match
           case IntSignTy(s)  => s.zero
           case IntSetTy(set) => set.exists(_ == 0)
-        NumberSignTy(lsign -- Sign(false, zero, false), lnan && !rnan)
-      case (NumberIntTy(lint, lnan), NumberSignTy(rsign, rnan)) =>
+        NumberSignTy(lsign -- Sign(false, zero, false), lnan && !rnan, lnz)
+      case (NumberIntTy(lint, lnan), NumberSignTy(rsign, rnan, _)) =>
         NumberIntTy(lint -- IntSignTy(rsign), lnan && !rnan)
-      case (NumberSignTy(lsign, lnan), NumberSetTy(rset)) =>
+      case (NumberSignTy(lsign, lnan, lnz), r @ NumberSetTy(rset)) =>
         NumberSignTy(
-          lsign -- Sign(false, rset.exists(_.double == 0.0), false),
+          lsign -- Sign(
+            false,
+            rset.exists(x => x.double == 0.0 && !isNegZero(x.double)),
+            false,
+          ),
           lnan && !rset.exists(_.double.isNaN),
+          lnz && !r.hasNegZero,
         )
-      case (NumberSetTy(lset), NumberSignTy(rsign, rnan)) =>
+      case (NumberSetTy(lset), NumberSignTy(rsign, rnan, rnz)) =>
         NumberSetTy(lset.filter { n =>
-          if (n.double.isNaN) !rnan else !rsign.contains(n.double)
+          if (n.double.isNaN) !rnan
+          else if (isNegZero(n.double)) !rnz
+          else !rsign.contains(n.double)
         })
       case _ =>
         val thisSign = this.toSignTy
@@ -147,12 +161,14 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
         NumberSignTy(
           thisSign.sign -- thatSign.sign,
           thisSign.hasNaN && !thatSign.hasNaN,
+          thisSign.negZero && !thatSign.negZero,
         )
 
   /** inclusion check */
   def contains(number: Number): Boolean = this.canon match
-    case NumberSignTy(sign, hasNaN) =>
+    case NumberSignTy(sign, hasNaN, negZero) =>
       if number.isNaN then hasNaN
+      else if isNegZero(number.double) then negZero
       else sign.contains(number.double)
     case NumberIntTy(int, hasNaN) =>
       if number.isNaN then hasNaN
@@ -166,9 +182,10 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     case NumberIntTy(int, nan) =>
       if nan && int.isBottom then Flat(Number(Double.NaN))
       else int.getSingle.map(x => Number(x.toDouble))
-    case NumberSignTy(sign, nan) =>
-      if nan && sign.isBottom then Flat(Number(Double.NaN))
-      else if sign.isZero then Flat(Number(0))
+    case NumberSignTy(sign, nan, nz) =>
+      if nan && sign.isBottom && !nz then Flat(Number(Double.NaN))
+      else if sign.isBottom && !nan && nz then Flat(Number(-0.0))
+      else if sign.isZero && !nan && !nz then Flat(Number(0))
       else Many
 
   /** addition */
@@ -176,33 +193,33 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     (this.canon, that.canon) match
       case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
         NumberIntTy(lint + rint, lnan || rnan)
-      case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-        NumberSignTy(lsign + rsign, lnan || rnan)
-      case (l, r) => NumberSignTy(l.toSign + r.toSign, false)
+      case (l, r) =>
+        val s = l.toSign + r.toSign
+        NumberSignTy(s, l.toSignTy.hasNaN || r.toSignTy.hasNaN, s.zero)
 
   /** subtraction */
   def -(that: NumberTy): NumberTy = (this.canon, that.canon) match
     case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
       NumberIntTy(lint - rint, lnan || rnan)
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign - rsign, lnan || rnan)
-    case (l, r) => NumberSignTy(l.toSign - r.toSign, false)
+    case (l, r) =>
+      val s = l.toSign - r.toSign
+      NumberSignTy(s, l.toSignTy.hasNaN || r.toSignTy.hasNaN, s.zero)
 
   /** multiplication */
   def *(that: NumberTy): NumberTy = (this.canon, that.canon) match
     case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
       NumberIntTy(lint * rint, lnan || rnan)
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign * rsign, lnan || rnan)
-    case (l, r) => NumberSignTy(l.toSign * r.toSign, false)
+    case (l, r) =>
+      val s = l.toSign * r.toSign
+      NumberSignTy(s, l.toSignTy.hasNaN || r.toSignTy.hasNaN, s.zero)
 
   /** division */
   def /(that: NumberTy): NumberTy = (this.canon, that.canon) match
     case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
       NumberIntTy(lint / rint, lnan || rnan)
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign / rsign, lnan || rnan)
-    case (l, r) => NumberSignTy(l.toSign / r.toSign, false)
+    case (l, r) =>
+      val s = l.toSign / r.toSign
+      NumberSignTy(s, l.toSignTy.hasNaN || r.toSignTy.hasNaN, s.zero)
 
   /** non-negative integral check */
   def isNonNegInt: Boolean = this.canon match
@@ -235,14 +252,22 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     *   canonical form of the number type
     */
   def canon: NumberTy = this match
-    case NumberSignTy(sign, hasNaN) =>
+    case NumberSignTy(sign, hasNaN, negZero) =>
+      // a shape holding only zeros is finite, so the set form is canonical
+      lazy val nan = if (hasNaN) Set(Number(Double.NaN)) else Set[Number]()
       sign match
+        case s if negZero && s.isBottom => NumberSetTy(Set(Number(-0.0)) ++ nan)
+        case s if negZero && s.isZero =>
+          NumberSetTy(Set(Number(-0.0), Number(0.0)) ++ nan)
+        case _ if negZero       => this
         case s if sign.isZero   => NumberIntTy(IntTy.Zero, hasNaN)
         case s if sign.isBottom => if hasNaN then NumberTy.NaN else NumberTy.Bot
         case _                  => this
     case NumberIntTy(int, hasNaN) => NumberIntTy(int.canon, hasNaN)
     case s @ NumberSetTy(set) =>
-      if (set.forall(x => x.double.isWhole || x.isNaN))
+      if (
+        set.forall(x => (x.double.isWhole && !isNegZero(x.double)) || x.isNaN)
+      )
         NumberIntTy(
           IntSetTy((set - Number.NaN).map(x => x.double.toLong)),
           set.hasNaN,
@@ -255,8 +280,8 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     *   the sign of the number type
     */
   def toSign: Sign = this.canon match
-    case NumberSignTy(sign, _) => sign
-    case NumberIntTy(int, _)   => int.toSign
+    case NumberSignTy(sign, _, nz) => Sign(sign.neg, sign.zero || nz, sign.pos)
+    case NumberIntTy(int, _)       => int.toSign
     case NumberSetTy(set) =>
       Sign.alpha(
         set.map(_.double),
@@ -273,19 +298,25 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     *   the sign type
     */
   def toSignTy: NumberSignTy = this.canon match
-    case s @ NumberSignTy(sign, hasNaN) => s
-    case NumberIntTy(int, hasNaN)       => NumberSignTy(int.toSign, hasNaN)
-    case s @ NumberSetTy(set)           => NumberSignTy(s.toSign, s.hasNaN)
+    case s @ NumberSignTy(_, _, _) => s
+    case NumberIntTy(int, hasNaN)  => NumberSignTy(int.toSign, hasNaN)
+    case s @ NumberSetTy(set) =>
+      val rest = set.filterNot(n => isNegZero(n.double))
+      NumberSignTy(NumberSetTy(rest).toSign, s.hasNaN, s.hasNegZero)
+
 }
 
-/** number sign domain */
-case class NumberSignTy(sign: Sign, hasNaN: Boolean) extends NumberTy
+/** number sign domain, where `sign.zero` covers +0 only */
+case class NumberSignTy(sign: Sign, hasNaN: Boolean, negZero: Boolean = false)
+  extends NumberTy
 
 /** integral number types */
 case class NumberIntTy(int: IntTy, hasNaN: Boolean) extends NumberTy
 
 /** types for set of numbers */
 case class NumberSetTy(set: Set[Number]) extends NumberTy {
+  def hasNegZero: Boolean = set.exists(n => isNegZero(n.double))
+
   private def toInt: Option[IntSetTy] =
     val setWithoutNaN = set.filterNot(_.isNaN)
     if (setWithoutNaN.forall(_.double.isWhole))
@@ -301,14 +332,14 @@ object NumberTy extends Parser.From(Parser.numberTy) {
     */
 
   // Top & Bot
-  lazy val Top: NumberTy = NumberSignTy(Sign.Top, true)
+  lazy val Top: NumberTy = NumberSignTy(Sign.Top, true, true)
   lazy val Bot: NumberTy = NumberIntTy(IntTy.Bot, false)
 
   // Signs
   lazy val Pos: NumberTy = NumberSignTy(Sign.Pos, false)
-  lazy val Neg: NumberTy = NumberSignTy(Sign.Neg, false)
-  lazy val NonNeg: NumberTy = NumberSignTy(Sign.NonNeg, false)
-  lazy val NonPos: NumberTy = NumberSignTy(Sign.NonPos, false)
+  lazy val Neg: NumberTy = NumberSignTy(Sign.Neg, false, true)
+  lazy val NonNeg: NumberTy = NumberSignTy(Sign.NonNeg, false, false)
+  lazy val NonPos: NumberTy = NumberSignTy(Sign.NonPos, false, true)
 
   // Integers
   lazy val Int: NumberTy = NumberIntTy(IntTy.Top, false)
@@ -325,7 +356,7 @@ object NumberTy extends Parser.From(Parser.numberTy) {
   // abstraction of a concrete number value
   def apply(d: Double): NumberTy =
     if d.isNaN then NaN
-    else if d.isWhole then NumberIntTy(IntTy(d.toInt), false)
+    else if d.isWhole && !isNegZero(d) then NumberIntTy(IntTy(d.toInt), false)
     else NumberSetTy(Set(Number(d)))
 
   /** This helper is for applying f between the given set and the given integer

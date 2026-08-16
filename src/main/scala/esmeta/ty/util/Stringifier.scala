@@ -346,11 +346,17 @@ class Stringifier(
     ty.canon match
       case t if t.isTop                 => app >> "Number"
       case t if t == NumberTy.NaN.canon => app >> "NaN"
-      case NumberSignTy(sign, false) if sign.isTop =>
-        app >> "(Number \\ NaN)"
-      case NumberSignTy(sign, hasNaN) =>
-        app >> "Number" >> sign
-        app >> (if (hasNaN) " | NaN" else "")
+      case NumberSignTy(sign, hasNaN, negZero) =>
+        var strs = Vector[String]()
+        if (!sign.isBottom)
+          strs :+= (
+            if (sign.isTop) "Number[-0+]"
+            else (new Appender >> "Number" >> sign).toString
+          )
+        // NOTE: Number[-0] is non-positive, Number[-0.0] is negative zero
+        if (negZero) strs :+= "Number[-0.0]"
+        if (hasNaN) strs :+= "NaN"
+        app >> strs.mkString(" | ")
       case NumberIntTy(int, hasNaN) =>
         int match
           case IntSetTy(set)   => app >> "NumberInt" >> set

@@ -857,12 +857,18 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 case _ =>
               if (lty.number <= NumberTy.Int)
                 rty.getSingle match
-                  case One(Number(0)) =>
+                  case One(Number(v)) if v == 0 && !isNegZero(v) =>
                     number = (isLt, pos) match
                       case (true, true)   => /* x < 0 */ NumberTy.NegInt
                       case (true, false)  => /* x >= 0 */ NumberTy.NonNegInt
                       case (false, true)  => /* x > 0 */ NumberTy.PosInt
                       case (false, false) => /* x <= 0 */ NumberTy.NonPosInt
+                  case One(Number(v)) if isNegZero(v) =>
+                    number = (isLt, pos) match
+                      case (true, true)   => /* x < -0 */ NumberTy.NegInt
+                      case (true, false)  => /* x >= -0 */ NumberTy.NonNegInt
+                      case (false, true)  => /* x > -0 */ NumberTy.NonNegInt
+                      case (false, false) => /* x <= -0 */ NumberTy.NegInt
                   case One(Number(v)) if v < 0 =>
                     number = (isLt, pos) match
                       case (true, true)   => /* x < N */ NumberTy.NegInt
@@ -881,12 +887,20 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   val kept = lty.number && s
                   if (pos) kept else kept || (lty.number && NumberTy.NaN)
                 rty.getSingle match
-                  case One(Number(0)) =>
+                  case One(Number(v)) if v == 0 && !isNegZero(v) =>
                     number = (isLt, pos) match
                       case (true, true)   => /* x < 0 */ sign(NumberTy.Neg)
                       case (true, false)  => /* x >= 0 */ sign(NumberTy.NonNeg)
                       case (false, true)  => /* x > 0 */ sign(NumberTy.Pos)
                       case (false, false) => /* x <= 0 */ sign(NumberTy.NonPos)
+                  case One(Number(v)) if isNegZero(v) =>
+                    val ltNegZero = NumberSignTy(Sign.Neg, false)
+                    val geNegZero = NumberSignTy(Sign.NonNeg, false, true)
+                    number = (isLt, pos) match
+                      case (true, true)   => /* x < -0 */ sign(ltNegZero)
+                      case (true, false)  => /* x >= -0 */ sign(geNegZero)
+                      case (false, true)  => /* x > -0 */ sign(NumberTy.NonNeg)
+                      case (false, false) => /* x <= -0 */ sign(NumberTy.Neg)
                   case One(Number(v)) if v < 0 =>
                     number = (isLt, pos) match
                       case (true, true)   => /* x < N */ sign(NumberTy.Neg)

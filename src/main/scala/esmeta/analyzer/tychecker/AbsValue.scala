@@ -180,8 +180,9 @@ trait AbsValueDecl { self: TyChecker =>
           else BigIntT
         case COp.ToMath =>
           val fromNumber = ty.number match
-            case NumberSignTy(sign, _) => MathSignTy(sign)
-            case NumberIntTy(int, _)   => MathIntTy(int)
+            case NumberSignTy(sign, _, nz) =>
+              MathSignTy(Sign(sign.neg, sign.zero || nz, sign.pos))
+            case NumberIntTy(int, _) => MathIntTy(int)
             // ToMath (ℝ) is defined only on finite numbers; ±∞ and NaN have
             // no mathematical value (and cannot be held by BigDecimal-backed
             // Math), so drop them from the resulting set.
@@ -254,9 +255,14 @@ trait AbsValueDecl { self: TyChecker =>
         case MathIntTy(x)   => MathIntTy(-x)
         case MathSetTy(set) => MathSetTy(set.map(m => Math(-m.decimal)))
       val numberTy = ty.number match
-        case NumberSignTy(s, _) => NumberSignTy(-s, false)
-        case NumberIntTy(x, _)  => NumberIntTy(-x, false)
-        case NumberSetTy(set)   => NumberSetTy(set.map(n => Number(-n.double)))
+        case NumberSignTy(s, nan, nz) =>
+          NumberSignTy(Sign(s.pos, nz, s.neg), nan, s.zero)
+        case NumberIntTy(x, nan) =>
+          val negated: NumberTy = NumberIntTy(-x, nan)
+          if (x.contains(0))
+            negated || NumberSignTy(Sign.Bot, false, true)
+          else negated
+        case NumberSetTy(set) => NumberSetTy(set.map(n => Number(-n.double)))
       AbsValue(
         ValueTy(math = mathTy, number = numberTy, bigInt = this.ty.bigInt),
       )
