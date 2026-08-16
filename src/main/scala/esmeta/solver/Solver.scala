@@ -447,18 +447,8 @@ object Solver {
       throwingTrap("isExtensible"),
       throwingTrap("preventExtensions"),
     ),
-    RecordT("ProxyExoticObject") -> List(
-      "new Proxy({}, { get(t, k) { if (k === \"length\") return Infinity; " +
-      "throw 0; }, has() { throw 0; }, set() { throw 0; } })",
-    ),
     RecordT("OrdinaryObject") -> List(
       "{ [Symbol.iterator]: null, length: NaN }",
-    ),
-    RecordT("OrdinaryObject") -> List(
-      "{ [Symbol.replace]: () => {} }",
-      "{ [Symbol.split]: () => {} }",
-      "{ [Symbol.search]: () => {} }",
-      "{ [Symbol.matchAll]: () => {} }",
     ),
     RecordT("OrdinaryObject") -> List(
       "Object.prototype",
@@ -466,11 +456,7 @@ object Solver {
       "Math",
       "Function.prototype",
     ),
-    RecordT("OrdinaryObject") -> List("{ [Symbol.isConcatSpreadable]: true }"),
-    RecordT("OrdinaryObject") -> List("{ [Symbol.toPrimitive]: () => ({}) }"),
-    RecordT("OrdinaryObject") -> List("{ toString: () => { throw 0; } }"),
     RecordT("OrdinaryObject") -> List("{ enumerable: undefined }"),
-    RecordT("OrdinaryObject") -> List("{ [Symbol.iterator]: () => {} }"),
     RecordT("OrdinaryObject") -> List("{ next: () => ({ done: true }) }"),
     RecordT("OrdinaryObject") -> List("{ constructor: undefined }"),
     TypedArrayT -> List(
