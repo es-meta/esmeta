@@ -268,7 +268,8 @@ object Solver {
   // values built from the object shape a type carries
   private def fromShape(ty: ValueTy): LazyList[String] =
     val objs = ty.record match
-      case RecordTy.Elem(map, ObjShape(props, _, _)) if props.nonEmpty =>
+      case RecordTy.Elem(map, ObjShape(props, call, construct))
+          if props.nonEmpty =>
         val ordered = props.toList.sortBy { case (p, _) => propKey(p) }
         val slots = ordered.map { (prop, desc) =>
           val k = propKey(prop)
@@ -279,10 +280,34 @@ object Solver {
         val objs = oneChange(slots).map(_.mkString("{ ", ", ", " }"))
         if (isPlainObject(ty)) objs
         else
-          val base = exprFor(ty.copied(record = RecordTy.Elem(map)))
-          base.iterator.to(LazyList).flatMap { b =>
-            objs.map(o => s"Object.assign($b, $o)")
-          }
+          val traps = ordered match
+            case (prop, desc) :: Nil =>
+              val key = propExpr(prop)
+              val fwd = "return Reflect.get(t, p, r); }"
+              if (desc.getExc)
+                List(s"get(t, p, r) { if (p === $key) throw 0; $fwd")
+              else if (desc.setExc)
+                List(
+                  s"set(t, p, v, r) { if (p === $key) throw 0; " +
+                  "return Reflect.set(t, p, v, r); }",
+                )
+              else
+                candidates(desc.ty).toList
+                  .map(v => s"get(t, p, r) { if (p === $key) return $v; $fwd")
+            case _ => Nil
+          val base = exprFor(
+            ty.copied(record =
+              RecordTy.Elem(map, ObjShape(Map.empty, call, construct)),
+            ),
+          )
+          base match
+            case None => LazyList.empty
+            case Some(b) =>
+              traps.to(LazyList).map(h => s"new Proxy($b, { $h })") #:::
+              objs.map(o =>
+                s"Object.defineProperties($b, " +
+                s"Object.getOwnPropertyDescriptors($o))",
+              )
       case _ => LazyList.empty
     objs #::: fromConstruct(ty).iterator.to(LazyList) #:::
     fromCall(ty).iterator.to(LazyList)
@@ -311,9 +336,11 @@ object Solver {
       ObjectT ⊑ ty.copied(record = RecordTy.Elem(map))
     case _ => ObjectT ⊑ ty
 
-  private def propKey(prop: Property): String = prop match
-    case Property.PStr(str) => str
-    case Property.PSym(sym) => s"[Symbol.$sym]"
+  private def propExpr(prop: Property): String = prop match
+    case Property.PStr(str) => s"\"${normStr(str)}\""
+    case Property.PSym(sym) => s"Symbol.$sym"
+
+  private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
 
   private val witnesses: List[(ValueTy, List[String])] = List(
     NumberT -> List("0"),
