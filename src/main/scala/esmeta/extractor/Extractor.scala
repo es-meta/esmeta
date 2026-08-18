@@ -8,6 +8,7 @@ import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.ty.TyModel
 import esmeta.util.ManualInfo
+import esmeta.util.BaseUtils.{raise, warn}
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
@@ -83,13 +84,18 @@ class Extractor(
 
   /** extracts a grammar */
   def extractGrammar: Grammar = {
-    val allProds = for {
+    val manualProds = for {
+      file <- ManualInfo.grammarFiles
+      prod <- parse[List[Production]](readFile(file).trim)
+    } yield (prod, false)
+    val specProds = for {
       elem <- document.getElems("emu-grammar[type=definition]:not([example])")
       content = elem.html.trim.unescapeHtml
       prods = parse[List[Production]](content)
       prod <- prods
       inAnnex = elem.isInAnnex
     } yield (prod, inAnnex)
+    val allProds = manualProds ++ specProds
     val prods =
       (for ((prod, inAnnex) <- allProds if !inAnnex) yield prod).sorted
     val prodsForWeb =
@@ -240,7 +246,7 @@ class Extractor(
         rhs <- prod.rhsVec
         rhsName <- rhs.allNames
         syntax = lhsName + ":" + rhsName
-        (idx, subIdx) = idxMap(syntax)
+        (idx, subIdx) <- getSyntaxIdx(syntax, lhsName)
         target = SyntaxDirectedOperationHead.Target(lhsName, idx, subIdx)
       } yield generator(Some(target))
     } else {
@@ -248,6 +254,23 @@ class Extractor(
       List(generator(None))
     }
   }
+
+  private lazy val LhsNames: Set[String] =
+    (for (prod <- grammar.prods ++ grammar.prodsForWeb)
+      yield prod.lhs.name).toSet
+
+  private def getSyntaxIdx(
+    syntax: String,
+    lhsName: String,
+  ): List[(Int, Int)] = idxMap.get(syntax) match
+    case Some(pair) => List(pair)
+    // XXX ECMA-262 defines SDOs for productions of other specifications (e.g. ECMA-404)
+    case None if !LhsNames.contains(lhsName) =>
+      warn(
+        s"ignore an SDO definition for production from external specification: $syntax",
+      )
+      Nil
+    case None => raise(s"unknown grammar production alternative: $syntax")
 
   // get concrete method heads
   private def extractConcMethodHead(

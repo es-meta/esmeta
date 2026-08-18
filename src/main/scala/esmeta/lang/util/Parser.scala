@@ -1425,6 +1425,7 @@ trait Parsers extends IndentParsers {
     "*NaN*" ^^! NaNT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
+    "property name" ^^^ StrT |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }
   } <~ opt("s")
 
