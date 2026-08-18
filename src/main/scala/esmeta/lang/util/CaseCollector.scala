@@ -290,6 +290,8 @@ class CaseCollector extends UnitWalker {
         s"{{ decimal }}"
       case MathConstantLiteral(pre, name) =>
         s"{{ const }}"
+      case ConstantLiteral(name) =>
+        s"{{ const }}"
       case NumberLiteral(n) =>
         s"{{ number }}"
       case BigIntLiteral(n) =>

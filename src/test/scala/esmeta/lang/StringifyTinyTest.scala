@@ -202,6 +202,18 @@ class StringifyTinyTest extends LangTest {
       convToMathExpr -> "ℝ(_x_)",
     )
     // -------------------------------------------------------------------------
+    // constants defined by `emu-eqn` elements
+    // -------------------------------------------------------------------------
+    checkParseAndStringify("ConstantLiteral", ConstExpression)(
+      msPerDay -> "msPerDay",
+      hoursPerDay -> "HoursPerDay",
+      BinaryExpression(
+        msPerDay,
+        BinaryExpressionOperator.Mul,
+        refExpr,
+      ) -> "msPerDay × _x_",
+    )
+    // -------------------------------------------------------------------------
     // algorithm mathematical operation expressions
     // -------------------------------------------------------------------------
     checkParseAndStringify("MathOpExpression", Expression)(

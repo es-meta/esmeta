@@ -26,6 +26,7 @@ class StringifyTinyTest extends SpecTest {
         AlgorithmSummary(2623, 2258, 0),
         StepSummary(19061, 18307),
         TypeSummary(5908, 5469, 439),
+        7,
         89,
         58,
         101,
@@ -45,6 +46,7 @@ class StringifyTinyTest extends SpecTest {
          |- types: 5908
          |  - known: 5469 (92.57%)
          |  - yet: 439 (7.43%)
+         |- constants: 7
          |- tables: 89
          |- type model: 58
          |- intrinsics: 101""".stripMargin,
@@ -163,6 +165,18 @@ class StringifyTinyTest extends SpecTest {
       Getter(NormalAccess(Base("A"), "B")) -> "get:A.B",
       Setter(NormalAccess(Base("A"), "B")) -> "set:A.B",
       SymbolAccess(Base("A"), "B") -> "A[%Symbol.B%]",
+    )
+
+    // -------------------------------------------------------------------------
+    // Constants
+    // -------------------------------------------------------------------------
+    checkParse("Constant", ConstantDef)(
+      "HoursPerDay = 24" ->
+      mathConst("HoursPerDay", "24"),
+      "msPerDay = *86400000*<sub>𝔽</sub> = msPerHour × 𝔽(HoursPerDay)" ->
+      numberConst("msPerDay", 86400000),
+      "nsPerDay = 10<sup>6</sup> × ℝ(msPerDay) = 8.64 × 10<sup>13</sup>" ->
+      mathConst("nsPerDay", "8.64e13"),
     )
   }
 

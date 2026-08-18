@@ -287,6 +287,33 @@ trait Parsers extends LangParsers {
   }.named("spec.BuiltinPath")
 
   // ---------------------------------------------------------------------------
+  // Constants
+  // ---------------------------------------------------------------------------
+  // definitions by `emu-eqn` elements, as a name with its value
+  lazy val constDef: Parser[(String, NumericLiteral)] =
+    (word <~ "=") ~ rep1sep(constForm, "=") ^? {
+      case name ~ forms if forms.exists(_.isDefined) =>
+        name -> forms.flatten.head
+    }
+
+  // forms of the value of a constant, as its value if written as a number
+  private lazy val constForm: Parser[Option[NumericLiteral]] =
+    constValue <~ guard("=" | EOL) ^^ { Some(_) } | "[^=]+".r ^^^ None
+
+  // values of constants written as numbers
+  private lazy val constValue: Parser[NumericLiteral] =
+    "*" ~> double <~ "*<sub>𝔽</sub>" ^^ { NumberLiteral(_) } |
+    constFactor ~ opt("×" ~> constFactor) ^^ {
+      case n ~ rest => DecimalMathValueLiteral(rest.foldLeft(n)(_ * _))
+    }
+
+  // factors in the values of constants (e.g., `10<sup>9</sup>`)
+  private lazy val constFactor: Parser[BigDecimal] =
+    decimal ~ opt("<sup>" ~> "[0-9]+".r <~ "</sup>") ^^ {
+      case n ~ exp => exp.foldLeft(n)((n, e) => n.pow(e.toInt))
+    }
+
+  // ---------------------------------------------------------------------------
   // Types
   // ---------------------------------------------------------------------------
   // optional metalanguage types with colon
@@ -327,11 +354,14 @@ trait Parsers extends LangParsers {
       (empty ~ "- known:" ~> int <~ ".*".r) ~
       (empty ~ "- yet:" ~> int <~ ".*".r)
     } ^^ { case t ~ k ~ y => TypeSummary(t, k, y) }
+    val constants = empty ~ "- constants:" ~> int
     val tables = empty ~ "- tables:" ~> int
     val tyModel = empty ~ "- type model:" ~> int <~ empty
     val intr = empty ~ "- intrinsics:" ~> int <~ empty
-    version ~ grammar ~ algos ~ steps ~ types ~ tables ~ tyModel ~ intr ^^ {
-      case v ~ g ~ a ~ s ~ ty ~ t ~ m ~ i => Summary(v, g, a, s, ty, t, m, i)
+    version ~ grammar ~ algos ~ steps ~ types ~
+    constants ~ tables ~ tyModel ~ intr ^^ {
+      case v ~ g ~ a ~ s ~ ty ~ c ~ t ~ m ~ i =>
+        Summary(v, g, a, s, ty, c, t, m, i)
     }
   }.named("spec.Summary")
 

@@ -640,6 +640,7 @@ DEFAULT:AllPrivateIdentifiersValid
 DEFAULT:Contains
 DEFAULT:ContainsArguments
 DateFromTime
+Day
 DayFromYear
 DaysInYear
 DecimalBigIntegerLiteral[0,0].NumericValue
@@ -1164,6 +1165,7 @@ HostLoadImportedModule
 HostMakeJobCallback
 HostPromiseRejectionTracker
 HostResizeArrayBuffer
+HourFromTime
 INTRINSICS.AggregateError
 INTRINSICS.Array.from
 INTRINSICS.Array.fromAsync
@@ -1815,10 +1817,12 @@ MakeArgSetter:clo0
 MakeClassConstructor
 MakeConstructor
 MakeDataViewWithBufferWitnessRecord
+MakeDate
 MakeFullYear
 MakeMethod
 MakePrivateReference
 MakeSuperPropertyReference
+MakeTime
 MakeTypedArrayWithBufferWitnessRecord
 MemberExpression[0,0].IsDestructuring
 MemberExpression[1,0].AssignmentTargetType
@@ -1887,6 +1891,7 @@ MethodDefinition[5,0].MethodDefinitionEvaluation
 MethodDefinition[5,0].PrivateBoundIdentifiers
 MethodDefinition[5,0].PropName
 MethodDefinition[5,0].SpecialMethod
+MinFromTime
 ModuleBody[0,0].Evaluation
 ModuleExportName[0,0].ReferencedBindings
 ModuleExportName[1,0].ReferencedBindings
@@ -2322,6 +2327,7 @@ Script[0,0].ScriptIsStrict
 Script[0,0].VarDeclaredNames
 Script[0,0].VarScopedDeclarations
 Script[0,1].ScriptIsStrict
+SecFromTime
 SerializeJSONProperty
 Set
 SetDataHas
@@ -2517,6 +2523,7 @@ ThrowCompletion
 ThrowStatement[0,0].Evaluation
 TimeClip
 TimeString
+TimeWithinDay
 ToBigInt
 ToBigInt64
 ToBigUint64
@@ -2668,3 +2675,4 @@ __IS_ARRAY_INDEX__
 __NEW_ERROR_OBJ__
 __NEW_OBJ__
 __REMOVE_ELEM__
+msFromTime

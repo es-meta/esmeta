@@ -356,6 +356,8 @@ object LangTest {
   lazy val mathVal = DecimalMathValueLiteral(BigDecimal("0.5"))
   lazy val mathPi = MathConstantLiteral(1, "π")
   lazy val mathPiWithPre = MathConstantLiteral(2, "π")
+  lazy val msPerDay = ConstantLiteral("msPerDay")
+  lazy val hoursPerDay = ConstantLiteral("HoursPerDay")
   lazy val posZero = NumberLiteral(+0.0)
   lazy val negZero = NumberLiteral(-0.0)
   lazy val posInf = NumberLiteral(Double.PositiveInfinity)
@@ -520,4 +522,15 @@ object LangTest {
 
   lazy val two = DecimalMathValueLiteral(BigDecimal(2))
   lazy val six = DecimalMathValueLiteral(BigDecimal(6))
+
+  // ---------------------------------------------------------------------------
+  // constants defined by `emu-eqn` elements
+  // ---------------------------------------------------------------------------
+  val ConstParser = esmeta.lang.util.Parser.withConstNames(
+    Set(
+      "HoursPerDay",
+      "msPerDay",
+    ),
+  )
+  object ConstExpression extends ConstParser.From(ConstParser.expr)
 }

@@ -128,6 +128,23 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
         assert(stringified == string)
     })
 
+  // check parse only, for parsers that do not keep everything they parse
+  def checkParse[T](desc: String, parser: BasicParsers#From[T])(
+    cases: (String, T)*,
+  ): Unit =
+    check(desc)(cases.foreach {
+      case (string, obj) =>
+        val parsed = optional(parser.from(string))
+        if (parsed != Some(obj)) {
+          println(s"[FAILED] $desc (parsing)")
+          val parsedStr = parsed.fold("<parsing failed>")(origToString)
+          println(s"- raw string: $string")
+          println(s"- parsed  : ${parsedStr}")
+          println(s"- expected: ${origToString(obj)}")
+        }
+        assert(parsed == Some(obj))
+    })
+
   // check JSON encoder/decoder
   def checkJson[T](desc: String)(
     cases: (T, Json)*,

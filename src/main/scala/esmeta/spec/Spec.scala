@@ -17,6 +17,7 @@ case class Spec(
   version: Option[Spec.Version] = None, // git version
   grammar: Grammar = Grammar(), // lexical/syntactic grammar productions
   algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
+  constants: List[Constant] = Nil, // constants defined by `emu-eqn` elements
   tables: Map[String, Table] = Map(), // tables
   tyModel: TyModel = TyModel(), // type models
   intrinsics: Intrinsics = Intrinsics(), // intrinsics
@@ -96,6 +97,10 @@ case class Spec(
   lazy val fnameMap: Map[String, Algorithm] =
     (for (algo <- algorithms) yield algo.head.fname -> algo).toMap
 
+  /** mapping from constant names to constants */
+  lazy val constantMap: Map[String, Constant] =
+    (for (const <- constants) yield const.name -> const).toMap
+
   /** get stats */
   lazy val stats: Stats = new Stats(this)
 
@@ -113,6 +118,7 @@ case class Spec(
     version == None &&
     grammar == Grammar() &&
     algorithms.isEmpty &&
+    constants.isEmpty &&
     tables.isEmpty &&
     tyModel == TyModel() &&
     intrinsics == Intrinsics()

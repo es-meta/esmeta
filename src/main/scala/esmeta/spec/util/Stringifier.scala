@@ -39,6 +39,7 @@ object Stringifier {
       case elem: Param          => paramRule(app, elem)
       case elem: ParamKind      => paramKindRule(app, elem)
       case elem: Table          => tableRule(app, elem)
+      case elem: Constant       => constantRule(app, elem)
 
   // for specifications
   given specRule: Rule[Spec] = (app, spec) =>
@@ -53,6 +54,7 @@ object Stringifier {
       algos,
       steps,
       types,
+      constants,
       tables,
       tyModel,
       intr,
@@ -72,6 +74,7 @@ object Stringifier {
     app :> "- types: " >> types.total
     app :> "  - known: " >> types.known >> " " >> types.completeRatio
     app :> "  - yet: " >> types.yet >> " " >> types.yetRatio
+    app :> "- constants: " >> constants
     app :> "- tables: " >> tables
     app :> "- type model: " >> tyModel
     app :> "- intrinsics: " >> intr
@@ -239,4 +242,8 @@ object Stringifier {
 
   // TODO: for tables
   given tableRule: Rule[Table] = (app, table) => ???
+
+  // for constants defined by `emu-eqn` elements
+  given constantRule: Rule[Constant] = (app, constant) =>
+    app >> constant.name >> " = " >> constant.value
 }

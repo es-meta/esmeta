@@ -855,6 +855,10 @@ class Compiler(
         case "π" => EGLOBAL_MATH_PI
         case _   => EYet(s"<mathematical constant: $name>")
       if (pre == 1) expr else EBinary(BOp.Mul, EMath(pre), expr)
+    case ConstantLiteral(name) =>
+      spec.constantMap.get(name) match
+        case Some(const) => compile(fb, const.value)
+        case None        => EYet(s"<constant: $name>")
     case NumberLiteral(n)       => ENumber(n)
     case BigIntLiteral(n)       => EBigInt(n)
     case TrueLiteral()          => EBool(true)

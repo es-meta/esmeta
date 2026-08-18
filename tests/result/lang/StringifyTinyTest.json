@@ -4,6 +4,7 @@
   "CalcExpression" : true,
   "ClampExpression" : true,
   "Condition" : true,
+  "ConstantLiteral" : true,
   "Expression" : true,
   "Intrinsic" : true,
   "Literal" : true,
