@@ -450,12 +450,22 @@ class CoverageMiddleTest extends SolverTest {
               errorResult(f, cond, e)
           }
 
-        // try entries until pass from closest
+        def rankOf(status: String): Int = status match
+          case "pass"        => 0
+          case "fail-verify" => 1
+          case "fail-reify"  => 2
+          case "timeout"     => 3
+          case "unsolved"    => 4
+          case _             => 5
+
+        // report the best outcome any entry reached
         def solveTarget(entries: List[Func], cond: Cond): BranchResult = {
           val results = entries.iterator.map(safeSolveEntry(_, cond))
-          val first = results.next() // keep the closest entry's result for dump
-          if (first.status == "pass") first
-          else results.find(_.status == "pass").getOrElse(first)
+          var best = results.next()
+          while (best.status != "pass" && results.hasNext)
+            val next = results.next()
+            if (rankOf(next.status) < rankOf(best.status)) best = next
+          best
         }
 
         val completion = ExecutorCompletionService[BranchResult](pool)
