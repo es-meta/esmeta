@@ -213,7 +213,7 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
     case s @ NumberSetTy(set) =>
       if (set.forall(x => x.double.isWhole || x.isNaN))
         NumberIntTy(
-          IntSetTy(set.map(x => x.double.toLong)),
+          IntSetTy(set.filterNot(_.isNaN).map(_.double.toLong)),
           set.hasNaN,
         )
       else this
@@ -278,6 +278,7 @@ object NumberTy extends Parser.From(Parser.numberTy) {
   lazy val Neg: NumberTy = NumberSignTy(Sign.Neg, false)
   lazy val NonNeg: NumberTy = NumberSignTy(Sign.NonNeg, false)
   lazy val NonPos: NumberTy = NumberSignTy(Sign.NonPos, false)
+  lazy val NonZero: NumberTy = NumberSignTy(Sign.NonZero, true)
 
   // Integers
   lazy val Int: NumberTy = NumberIntTy(IntTy.Top, false)
@@ -290,6 +291,12 @@ object NumberTy extends Parser.From(Parser.numberTy) {
   lazy val Zero: NumberTy = NumberIntTy(IntTy.Zero, false)
   lazy val One: NumberTy = NumberIntTy(IntTy.One, false)
   lazy val NaN: NumberTy = NumberSetTy(Set(Number(Double.NaN)))
+  lazy val Infinite: NumberTy = NumberSetTy(
+    Set(
+      Number(Double.PositiveInfinity),
+      Number(Double.NegativeInfinity),
+    ),
+  )
 
   /** This helper is for applying f between the given set and the given integer
     * domain. If the integer domain is not finite, this returns Top.

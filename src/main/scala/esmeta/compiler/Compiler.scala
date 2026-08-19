@@ -930,25 +930,15 @@ class Compiler(
                 case Continue => EENUM_CONTINUE
               and(isCompletion(x), is(tv, expected))
             case Finite | FiniteNumber | NonZeroFiniteNumber =>
-              val isNumberTy = ETypeCheck(x, IRType(NumberT))
-              val nonFiniteNum =
-                or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf)))
-              val finiteNum = and(isNumberTy, not(nonFiniteNum))
+              def isTy(ty: ValueTy): Expr = ETypeCheck(x, IRType(ty))
+              val finiteNum =
+                and(isTy(NumberT), not(isTy(InfiniteNumberT || NaNT)))
               op match
-                case Finite =>
-                  // TODO: "finite" is currently used for all three kinds of
-                  // numeric values ; once tc39/ecma262#3911 lands and reserves it
-                  // for extended mathematical values, keep only `finiteMath`.
-                  val finiteBigInt = ETypeCheck(x, IRType(BigIntT))
-                  val isExtendedMathTy =
-                    ETypeCheck(x, IRType(MathT || InfinityT))
-                  val nonFiniteMath =
-                    or(is(x, EInfinity(true)), is(x, EInfinity(false)))
-                  val finiteMath = and(isExtendedMathTy, not(nonFiniteMath))
-                  or(finiteMath, or(finiteNum, finiteBigInt))
-                case NonZeroFiniteNumber =>
-                  val zeroNum = or(is(x, ENumber(0.0)), is(x, ENumber(-0.0)))
-                  and(finiteNum, not(zeroNum))
+                // TODO: "finite" is currently used for all three kinds of
+                // numeric values ; once tc39/ecma262#3911 lands and reserves it
+                // for mathematical values, keep only `MathT`.
+                case Finite => or(finiteNum, isTy(MathT || BigIntT))
+                case NonZeroFiniteNumber => and(finiteNum, isTy(NonZeroNumberT))
                 case _ => finiteNum
             case Duplicated =>
               val (b, bExpr) = fb.newTIdWithExpr

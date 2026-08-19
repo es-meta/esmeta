@@ -144,6 +144,8 @@ lazy val PosNumberT = ValueTy(number = NumberTy.Pos)
 lazy val NegNumberT = ValueTy(number = NumberTy.Neg)
 lazy val NonPosNumberT = ValueTy(number = NumberTy.NonPos)
 lazy val NonNegNumberT = ValueTy(number = NumberTy.NonNeg)
+lazy val InfiniteNumberT: ValueTy = ValueTy(number = NumberTy.Infinite)
+lazy val NonZeroNumberT: ValueTy = ValueTy(number = NumberTy.NonZero)
 lazy val BigIntT: ValueTy = ValueTy(bigInt = true)
 lazy val StrT: ValueTy = ValueTy(str = Inf)
 def StrT(set: Set[String]): ValueTy =
