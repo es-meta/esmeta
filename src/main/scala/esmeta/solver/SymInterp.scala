@@ -54,37 +54,13 @@ class SymInterp(
   // symbolic execution state
   // ---------------------------------------------------------------------------
   // candidate functions
-  inline def isCandidate(f: Func): Boolean =
-    candidateFuncs.contains(f) || stepInFuncs.contains(f)
+  inline def isCandidate(f: Func): Boolean = candidateFuncs.contains(f)
   private lazy val candidateFuncs: Set[Func] =
     SymInterp.candidateFuncs(entryFunc, targetFunc)(using cfg)
   // candidate nodes
-  inline def isCandidate(n: Node): Boolean =
-    candidateNodes.contains(n) || stepInNodes.contains(n)
+  inline def isCandidate(n: Node): Boolean = candidateNodes.contains(n)
   private lazy val candidateNodes: Set[Node] =
     SymInterp.candidateNodes(entryFunc, target.branch)(using cfg)
-
-  /** step into the callees the target condition depends on */
-  private lazy val stepInFuncs: Set[Func] =
-    // seed: calls in the target function feeding the target condition
-    def calleesOf(f: Func, vars: Set[Local]): Set[Func] = for {
-      c <- f.nodes.collect { case c: Call if vars.contains(c.lhs) => c }
-      name <- SymInterp.calleeNameOf(c).toSet
-      g <- cfg.fnameMap.get(name).toSet
-    } yield g
-    // a manual refiner is more precise than the body it stands for, so such a
-    // callee is opaque: neither stepped into nor expanded through
-    def opaque(f: Func): Boolean = manualRefiners.contains(f.name)
-    // one more hop: the seed alone does not always reach the target
-    def testedVars(f: Func): Set[Local] = f.nodes.collect {
-      case b: Branch => SymInterp.varsOf(b.cond)
-    }.flatten
-    val seed =
-      calleesOf(targetFunc, SymInterp.varsOf(target.branch.cond))
-        .filterNot(opaque)
-    seed ++ seed.flatMap(f => calleesOf(f, testedVars(f))).filterNot(opaque)
-  private lazy val stepInNodes: Set[Node] =
-    stepInFuncs.flatMap(_.nodes)
 
   def timeout: Boolean = timeLimit.exists { limit =>
     val duration = System.currentTimeMillis - startTime
@@ -100,8 +76,8 @@ class SymInterp(
   var st: AbsState = AbsState.Bot
   // side of the branch condition (true for then, false for else)
   var conds: List[Cond] = Nil
-  // call continuations
-  var konts: List[Kont] = Nil
+  // call stack
+  var calls: List[Call] = Nil
   // visited functions to avoid infinite exploration
   var funcs: Set[Func] = Set(entryFunc)
   // visited loops to avoid infinite exploration
@@ -131,24 +107,20 @@ class SymInterp(
     if (!isCandidate(node) || st.isBottom) return unwrap(pop)
     node match
       case Block(_, insts, next) =>
-        executeBlock(insts) match
-          case Some(value) => returnFromCall(value)
-          case None =>
-            next match
-              case Some(next) => node = next
-              case None       => returnFromCall(AbsValue.Bot)
+        st = insts.foldLeft(st) {
+          case (nextSt, _) if nextSt.isBottom => nextSt
+          case (nextSt, inst)                 => transfer.transfer(inst)(nextSt)
+        }
+        next match
+          case Some(next) => node = next
+          case None       => unwrap(pop)
       case call: Call =>
         call.callInst match
           case ICall(_, fexpr @ EClo(f, Nil), args) =>
-            // keep the summary so the call stays passable if stepping in fails
             pushCall(call, fexpr, args)
             val callee = cfg.fnameMap(f)
             // enter a candidate function
             if (isCandidate(callee) && !funcs.contains(callee)) {
-              val callerSt = st
-              val callerConds = conds
-              val callerFuncs = funcs
-              val callerLoops = loops
               (for {
                 vs <- join(args.map(transfer.transfer))
               } yield {
@@ -165,15 +137,7 @@ class SymInterp(
               })(st)
               node = callee.entry
               funcs += callee
-              for (next <- call.next)
-                konts ::= Kont(
-                  call,
-                  next,
-                  callerSt,
-                  callerConds,
-                  callerFuncs,
-                  callerLoops,
-                )
+              calls ::= call
             } else unwrap(pop)
           // use a summary
           case ICall(_, fexpr, args) =>
@@ -219,50 +183,6 @@ class SymInterp(
   }
 
   private var _configs: List[Config] = Nil
-  private def executeBlock(
-    insts: Iterable[NormalInst],
-  )(using np: NodePoint[?]): Option[AbsValue] = {
-    // detect returns whenever there is a caller to return to
-    if (konts.isEmpty) {
-      st = insts.foldLeft(st) {
-        case (nextSt, _) if nextSt.isBottom => nextSt
-        case (nextSt, inst)                 => transfer.transfer(inst)(nextSt)
-      }
-      None
-    } else {
-      var retOpt: Option[AbsValue] = None
-      val iter = insts.iterator
-      while (iter.hasNext && retOpt.isEmpty && !st.isBottom)
-        iter.next match
-          case IReturn(expr) =>
-            val (value, nextSt) = transfer.transfer(expr)(st)
-            st = nextSt
-            retOpt = Some(value)
-          case inst => st = transfer.transfer(inst)(st)
-      retOpt
-    }
-  }
-
-  private def returnFromCall(value: AbsValue): Unit = konts match
-    case kont :: rest if !value.isBottom =>
-      given AbsState = st
-      // a value mentioning the callee's locals cannot cross the return
-      val retV =
-        if (value.hasLocal) AbsValue(cfg.funcOf(node).retTy.ty.toValue)
-        else value.onlySym
-      val callerBase =
-        kont.state.copy(symEnv = st.symEnv, constr = st.constr.onlySym)
-      val callerSt = callerBase.copy(
-        locals = callerBase.locals + (kont.call.lhs -> retV),
-      )
-      node = kont.next
-      st = callerSt
-      conds = kont.conds
-      funcs = kont.funcs
-      loops = kont.loops
-      konts = rest
-    case _ => unwrap(pop)
-
   def pushCall(
     call: Call,
     fexpr: Expr,
@@ -420,13 +340,13 @@ class SymInterp(
   }
 
   // get the current configuration
-  def wrap: Config = Config(node, st, conds, funcs, konts, loops)
+  def wrap: Config = Config(node, st, conds, funcs, calls, loops)
   def unwrap(config: Config): Unit = {
     node = config.node
     st = config.state
     conds = config.conds
     funcs = config.funcs
-    konts = config.konts
+    calls = config.calls
     loops = config.loops
   }
 
@@ -465,11 +385,10 @@ class SymInterp(
     state: AbsState,
     conds: List[Cond],
     funcs: Set[Func],
-    konts: List[Kont],
+    calls: List[Call],
     loops: Set[Branch],
   ) {
     def push(cond: Cond): Config = copy(conds = cond :: conds)
-    def calls: List[Call] = konts.map(_.call)
     override def toString: String = stringify(this)
   }
 
@@ -490,15 +409,6 @@ class SymInterp(
       app :> s"Loops: ${config.loops.toList.map(_.id).sorted.mkString(", ")}"
     }
   }
-
-  case class Kont(
-    call: Call,
-    next: Node,
-    state: AbsState,
-    conds: List[Cond],
-    funcs: Set[Func],
-    loops: Set[Branch],
-  )
 
   // found valid path and formula
   enum Result extends Exception:
@@ -563,26 +473,6 @@ object SymInterp {
   /** functions that may lie on a call path from `entry` to `target` (always
     * including `entry` itself)
     */
-  /** local variables occurring in an expression */
-
-  def varsOf(expr: Expr): Set[Local] =
-    import esmeta.ir.util.UnitWalker
-    val acc = collection.mutable.Set[Local]()
-    val walker = new UnitWalker {
-      override def walk(x: Var): Unit =
-        x match
-          case l: Local => acc += l
-          case _        => ()
-        super.walk(x)
-    }
-    walker.walk(expr)
-    acc.toSet
-
-  /** statically known callee name of a call, if any */
-  def calleeNameOf(call: Call): Option[String] = call.callInst match
-    case ICall(_, EClo(f, Nil), _) => Some(f)
-    case _                         => None
-
   def candidateFuncs(entry: Func, target: Func)(using cfg: CFG): Set[Func] =
     if (target == entry) Set(target)
     else reachingDists(target, stopAt = Set(entry)).keySet + entry
