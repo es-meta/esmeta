@@ -76,7 +76,10 @@ object Solver {
       flat match
         case One(x) => List(f(x))
         case _      => Nil
-    one(ty.number.getSingle)(numberLit) ++
+    val numbers = ty.number.toNumberSet.fold(Nil) { set =>
+      set.toList.sortBy(n => (n.isNaN, n.double)).map(numberLit)
+    }
+    numbers ++
     one(ty.bigInt)(n => s"${n}n") ++
     one(ty.str)(str => s"\"${normStr(str)}\"") ++
     one(ty.bool.getSingle)(b => if (b) "true" else "false")
@@ -359,10 +362,7 @@ object Solver {
     RecordT("WeakSet") -> List("new WeakSet()"),
     RecordT("Generator") -> List("(function*(){})()"),
     RecordT("ArrayIteratorInstance") -> List("[][Symbol.iterator]()"),
-    RecordT(
-      "BoundFunctionExoticObjecBoundFunctionExoticObjectt",
-      List("Call", "Construct"),
-    ) -> List(
+    RecordT("BoundFunctionExoticObject", List("Call", "Construct")) -> List(
       "(function(){}).bind()",
     ),
     RecordT("SettledPromise") -> List("Promise.resolve(0)"),

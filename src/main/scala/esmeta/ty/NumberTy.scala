@@ -175,6 +175,13 @@ sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
       else number.double.isWhole && int.contains(number.double.toInt)
     case NumberSetTy(set) => set contains number
 
+  /** get the finite set of numbers */
+  def toNumberSet: Option[Set[Number]] = this.canon match
+    case NumberSetTy(set) => Some(set)
+    case NumberIntTy(int, nan) =>
+      int.toNumberSet.map(set => if (nan) set + Number(Double.NaN) else set)
+    case _ => None // None if the type is infinite
+
   /** get single value */
   def getSingle: Flat[Number] = this.canon match
     case s if s.isBottom  => esmeta.util.Zero
