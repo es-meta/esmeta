@@ -209,7 +209,23 @@ class TyChecker(
         filename = s"$ANALYZE_LOG_DIR/guards",
         silent = silent,
       )
+      dumpFile(
+        name = "return point summaries",
+        data = returnSummaries
+          .map { (f, ret) => s"[${f.id}] ${f.name}$ret" }
+          .mkString(LINE_SEP),
+        filename = s"$ANALYZE_LOG_DIR/returns",
+        silent = silent,
+      )
   }
+
+  /** what each return point tells its callers, before and after the merge */
+  def returnSummaries: List[(Func, AbsRet)] =
+    for {
+      func <- cfg.funcs.sortBy(_.id)
+      ret = getResult(ReturnPoint(func, emptyView))
+      if !ret.isBottom
+    } yield func -> ret
 
   /** inferred type guards */
   def getTypeGuards: List[(Func, AbsValue)] =
