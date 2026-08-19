@@ -939,7 +939,7 @@ class Compiler(
                 // for mathematical values, keep only `MathT`.
                 case Finite => or(finiteNum, isTy(MathT || BigIntT))
                 case NonZeroFiniteNumber => and(finiteNum, isTy(NonZeroNumberT))
-                case _ => finiteNum
+                case _                   => finiteNum
             case Duplicated =>
               val (b, bExpr) = fb.newTIdWithExpr
               fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
