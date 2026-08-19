@@ -15,11 +15,12 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case IntSetTy(set)   => set.isEmpty
     case IntSignTy(sign) => sign.isBottom
 
-  def <=(that: => IntTy): Boolean = (this, that) match
+  def <=(that: => IntTy): Boolean = (this.canon, that.canon) match
     case _ if (this == that) || (this == Bot) || (that eq Top) => true
     case (IntSetTy(lset), IntSetTy(rset))     => lset subsetOf rset
     case (IntSignTy(lsign), IntSignTy(rsign)) => lsign <= rsign
-    case (l, r)                               => l.toSign <= r.toSign
+    case (IntSetTy(lset), IntSignTy(rsign))   => lset.forall(rsign.contains)
+    case (IntSignTy(_), IntSetTy(_))          => false
 
   def ||(that: => IntTy): IntTy =
     (this.canon, that.canon) match
