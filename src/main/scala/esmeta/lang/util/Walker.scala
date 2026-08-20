@@ -251,8 +251,8 @@ trait Walker extends BasicWalker {
       ConversionExpression(walk(op), walk(expr), form)
     case ExponentiationExpression(base, power) =>
       ExponentiationExpression(walk(base), walk(power))
-    case BinaryExpression(left, op, right) =>
-      BinaryExpression(walk(left), walk(op), walk(right))
+    case BinaryExpression(left, op, right, form) =>
+      BinaryExpression(walk(left), walk(op), walk(right), form)
     case UnaryExpression(op, expr) =>
       UnaryExpression(walk(op), walk(expr))
     case invoke: InvokeExpression =>

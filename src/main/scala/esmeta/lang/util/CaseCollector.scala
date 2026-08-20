@@ -237,8 +237,13 @@ class CaseCollector extends UnitWalker {
         s"$a $opStr value $pre {{expr}}"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"
-      case BinaryExpression(left, op, right) =>
-        s"{{ expr }} $op {{ expr }}"
+      case BinaryExpression(left, op, right, form) =>
+        import BinaryExpressionForm.*, BinaryExpressionOperator.*
+        val o = (op, form) match
+          case (Add, Textual) => "plus"
+          case (Mul, Textual) => "times"
+          case _              => op.toString
+        s"{{ expr }} $o {{ expr }}"
       case UnaryExpression(op, expr) =>
         s"$op {{ expr }}"
       case ThisLiteral(article) =>

@@ -6,10 +6,10 @@
     - syntactic: 205
   - extended productions for web: 29
 - algorithms: 2909
-  - complete: 2527 (86.87%)
-  - equals: 2692 (92.54%)
+  - complete: 2535 (87.14%)
+  - equals: 2689 (92.44%)
 - algorithm steps: 22857
-  - complete: 22109 (96.73%)
+  - complete: 22121 (96.78%)
 - types: 8381
   - known: 7486 (89.32%)
   - yet: 208 (2.48%)

@@ -205,7 +205,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(op); walk(expr)
     case ExponentiationExpression(base, power) =>
       walk(base); walk(power)
-    case BinaryExpression(left, op, right) =>
+    case BinaryExpression(left, op, right, _) =>
       walk(left); walk(op); walk(right)
     case UnaryExpression(op, expr) =>
       walk(op); walk(expr)

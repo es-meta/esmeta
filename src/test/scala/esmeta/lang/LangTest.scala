@@ -290,6 +290,22 @@ object LangTest {
     BinaryExpression(invokeAOExpr, BinaryExpressionOperator.Add, refExpr)
   lazy val mulInvokeExpr =
     BinaryExpression(expExpr, BinaryExpressionOperator.Mul, invokeAOExpr)
+  lazy val plusExpr =
+    BinaryExpression(
+      refExpr,
+      BinaryExpressionOperator.Add,
+      refExpr,
+      BinaryExpressionForm.Textual,
+    )
+  lazy val timesExpr =
+    BinaryExpression(
+      refExpr,
+      BinaryExpressionOperator.Mul,
+      refExpr,
+      BinaryExpressionForm.Textual,
+    )
+  lazy val mulSDOExpr =
+    BinaryExpression(invokeSDOExprZero, BinaryExpressionOperator.Mul, refExpr)
   lazy val convInvokeExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToMath,

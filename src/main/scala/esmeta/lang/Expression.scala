@@ -155,10 +155,10 @@ sealed trait CalcExpression extends Expression {
 
   /** level of calculation expressions */
   def level: Int = this match
-    case BinaryExpression(_, Add | Sub, _)       => 0
-    case BinaryExpression(_, Mul | Div | Mod, _) => 1
-    case UnaryExpression(_, _)                   => 2
-    case _                                       => 3
+    case BinaryExpression(_, Add | Sub, _, _)       => 0
+    case BinaryExpression(_, Mul | Div | Mod, _, _) => 1
+    case UnaryExpression(_, _)                      => 2
+    case _                                          => 3
 }
 object CalcExpression extends Parser.From(Parser.calcExpr)
 
@@ -191,9 +191,13 @@ case class BinaryExpression(
   left: CalcExpression,
   op: BinaryExpressionOperator,
   right: CalcExpression,
+  form: BinaryExpressionForm = BinaryExpressionForm.Symbolic,
 ) extends CalcExpression
 enum BinaryExpressionOperator extends LangElem:
   case Add, Sub, Mul, Div, Mod
+enum BinaryExpressionForm:
+  case Symbolic // `+`, `-`, `×`, `/`, `modulo`
+  case Textual // `plus`, `times`
 
 // unary expressions
 case class UnaryExpression(

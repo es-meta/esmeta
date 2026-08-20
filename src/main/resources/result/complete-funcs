@@ -646,7 +646,10 @@ DayWithinYear
 DaysInYear
 DecimalBigIntegerLiteral[0,0].NumericValue
 DecimalBigIntegerLiteral[1,0].NumericValue
+DecimalBigIntegerLiteral[1,1].NumericValue
+DecimalBigIntegerLiteral[2,0].NumericValue
 DecimalEscape[0,0].CapturingGroupNumber
+DecimalEscape[0,1].CapturingGroupNumber
 Declaration[1,0].DeclarationPart
 Declaration[2,0].DeclarationPart
 DecodeFinalBase64Chunk
@@ -1275,6 +1278,7 @@ INTRINSICS.Date.prototype.getMinutes
 INTRINSICS.Date.prototype.getMonth
 INTRINSICS.Date.prototype.getSeconds
 INTRINSICS.Date.prototype.getTime
+INTRINSICS.Date.prototype.getTimezoneOffset
 INTRINSICS.Date.prototype.getUTCDate
 INTRINSICS.Date.prototype.getUTCDay
 INTRINSICS.Date.prototype.getUTCFullYear
@@ -2524,6 +2528,7 @@ ThisSymbolValue
 ThrowCompletion
 ThrowStatement[0,0].Evaluation
 TimeClip
+TimeFromYear
 TimeString
 TimeWithinDay
 ToBigInt
