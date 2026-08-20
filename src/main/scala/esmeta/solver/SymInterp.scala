@@ -10,6 +10,7 @@ import esmeta.util.*
 import esmeta.util.Appender.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.{Map => MMap, PriorityQueue, Queue}
 
 class SymInterp(
@@ -58,7 +59,12 @@ class SymInterp(
   private lazy val candidateFuncs: Set[Func] =
     SymInterp.candidateFuncs(entryFunc, targetFunc)(using cfg)
   // candidate nodes
-  inline def isCandidate(n: Node): Boolean = candidateNodes.contains(n)
+  inline def isCandidate(n: Node): Boolean =
+    val f = cfg.funcOf(n)
+    (candidateNodes.contains(n) ||
+    (!isCandidate(f) && funcs.contains(f) &&
+    SymInterp.returnableNodes(f)(using cfg)(n))) &&
+    !getResult(NodePoint(f, n, emptyView)).isBottom
   private lazy val candidateNodes: Set[Node] =
     SymInterp.candidateNodes(entryFunc, target.branch)(using cfg)
 
@@ -76,8 +82,8 @@ class SymInterp(
   var st: AbsState = AbsState.Bot
   // side of the branch condition (true for then, false for else)
   var conds: List[Cond] = Nil
-  // call stack
-  var calls: List[Call] = Nil
+  // call continuations
+  var konts: List[Kont] = Nil
   // visited functions to avoid infinite exploration
   var funcs: Set[Func] = Set(entryFunc)
   // visited loops to avoid infinite exploration
@@ -107,20 +113,25 @@ class SymInterp(
     if (!isCandidate(node) || st.isBottom) return unwrap(pop)
     node match
       case Block(_, insts, next) =>
-        st = insts.foldLeft(st) {
-          case (nextSt, _) if nextSt.isBottom => nextSt
-          case (nextSt, inst)                 => transfer.transfer(inst)(nextSt)
-        }
-        next match
-          case Some(next) => node = next
-          case None       => unwrap(pop)
+        executeBlock(insts) match
+          case Some(value) => returnFromCall(value)
+          case None =>
+            next match
+              case Some(next) => node = next
+              case None       => returnFromCall(AbsValue.Bot)
       case call: Call =>
         call.callInst match
           case ICall(_, fexpr @ EClo(f, Nil), args) =>
+            // keep the summary so the call stays passable if stepping in fails
             pushCall(call, fexpr, args)
             val callee = cfg.fnameMap(f)
-            // enter a candidate function
-            if (isCandidate(callee) && !funcs.contains(callee)) {
+            // enter on-path callees freely; others only when marked lossy
+            val stepIn = !isCandidate(callee) && lossFuncs.contains(callee)
+            if ((isCandidate(callee) || stepIn) && !funcs.contains(callee)) {
+              val callerSt = st
+              val callerConds = conds
+              val callerFuncs = funcs
+              val callerLoops = loops
               (for {
                 vs <- join(args.map(transfer.transfer))
               } yield {
@@ -137,7 +148,15 @@ class SymInterp(
               })(st)
               node = callee.entry
               funcs += callee
-              calls ::= call
+              for (next <- call.next)
+                konts ::= Kont(
+                  call,
+                  next,
+                  callerSt,
+                  callerConds,
+                  callerFuncs,
+                  callerLoops,
+                )
             } else unwrap(pop)
           // use a summary
           case ICall(_, fexpr, args) =>
@@ -183,6 +202,50 @@ class SymInterp(
   }
 
   private var _configs: List[Config] = Nil
+  private def executeBlock(
+    insts: Iterable[NormalInst],
+  )(using np: NodePoint[?]): Option[AbsValue] = {
+    // detect returns whenever there is a caller to return to
+    if (konts.isEmpty) {
+      st = insts.foldLeft(st) {
+        case (nextSt, _) if nextSt.isBottom => nextSt
+        case (nextSt, inst)                 => transfer.transfer(inst)(nextSt)
+      }
+      None
+    } else {
+      var retOpt: Option[AbsValue] = None
+      val iter = insts.iterator
+      while (iter.hasNext && retOpt.isEmpty && !st.isBottom)
+        iter.next match
+          case IReturn(expr) =>
+            val (value, nextSt) = transfer.transfer(expr)(st)
+            st = nextSt
+            retOpt = Some(value)
+          case inst => st = transfer.transfer(inst)(st)
+      retOpt
+    }
+  }
+
+  private def returnFromCall(value: AbsValue): Unit = konts match
+    case kont :: rest if !value.isBottom =>
+      given AbsState = st
+      // a value mentioning the callee's locals cannot cross the return
+      val retV =
+        if (value.hasLocal) AbsValue(cfg.funcOf(node).retTy.ty.toValue)
+        else value.onlySym
+      val callerBase =
+        kont.state.copy(symEnv = st.symEnv, constr = st.constr.onlySym)
+      val callerSt = callerBase.copy(
+        locals = callerBase.locals + (kont.call.lhs -> retV),
+      )
+      node = kont.next
+      st = callerSt
+      conds = kont.conds
+      funcs = kont.funcs
+      loops = kont.loops
+      konts = rest
+    case _ => unwrap(pop)
+
   def pushCall(
     call: Call,
     fexpr: Expr,
@@ -237,6 +300,12 @@ class SymInterp(
         vs(1).ty.getProperty.fold(v)(p => AbsValue(SProp(SSym(0), p), v.guard))
       },
     )
+
+  // step-in targets: summaries proven to lose object shape, no manual refiner
+  private lazy val lossFuncs: Set[Func] =
+    SymInterp
+      .shapeLossFuncs(tychecker)
+      .filterNot(f => manualRefiners.contains(f.name))
 
   /** handle calls */
   def pushCall(
@@ -340,21 +409,20 @@ class SymInterp(
   }
 
   // get the current configuration
-  def wrap: Config = Config(node, st, conds, funcs, calls, loops)
+  def wrap: Config = Config(node, st, conds, funcs, konts, loops)
   def unwrap(config: Config): Unit = {
     node = config.node
     st = config.state
     conds = config.conds
     funcs = config.funcs
-    calls = config.calls
+    konts = config.konts
     loops = config.loops
   }
 
   // push the current config and refine it using the branch condition and side
   def push(config: Config): Unit =
-    val next = config
-    if (isCandidate(next.node) && !next.state.isBottom)
-      configs.enqueue(next -> configScore(next))
+    if (!config.state.isBottom)
+      configs.enqueue(config -> configScore(config))
   def push(configs: List[Config]): Unit = configs.foreach(push)
 
   // pop the previous config and backtrack
@@ -385,10 +453,11 @@ class SymInterp(
     state: AbsState,
     conds: List[Cond],
     funcs: Set[Func],
-    calls: List[Call],
+    konts: List[Kont],
     loops: Set[Branch],
   ) {
     def push(cond: Cond): Config = copy(conds = cond :: conds)
+    def calls: List[Call] = konts.map(_.call)
     override def toString: String = stringify(this)
   }
 
@@ -409,6 +478,15 @@ class SymInterp(
       app :> s"Loops: ${config.loops.toList.map(_.id).sorted.mkString(", ")}"
     }
   }
+
+  case class Kont(
+    call: Call,
+    next: Node,
+    state: AbsState,
+    conds: List[Cond],
+    funcs: Set[Func],
+    loops: Set[Branch],
+  )
 
   // found valid path and formula
   enum Result extends Exception:
@@ -469,6 +547,78 @@ object SymInterp {
     */
   def sortedEntries(branch: Branch)(using cfg: CFG): List[Func] =
     findEntries(branch).toList.sortBy((f, d) => (d, f.id)).map(_._1)
+
+  // functions whose summaries lose behavioral object shape, read off the
+  // converged analysis: what a return knows vs what its channel exports
+  private val shapeLossCache = TrieMap[TyChecker, Set[Func]]()
+  def shapeLossFuncs(tychecker: TyChecker): Set[Func] =
+    shapeLossCache.getOrElseUpdate(tychecker, computeShapeLoss(tychecker))
+
+  // behavioral object shape the reifier can assemble into a witness
+  private def hasShape(ty: ValueTy): Boolean = ty.record match
+    case RecordTy.Elem(_, obj) =>
+      obj.props.nonEmpty ||
+      obj.call != CallDesc.Top ||
+      obj.construct != ConstructDesc.Top
+    case _ => false
+
+  private def computeShapeLoss(tychecker: TyChecker): Set[Func] =
+    import tychecker.*
+    given CFG = cfg
+    var marked = Set[Func]()
+    for (func <- cfg.funcs) {
+      val AbsRet(retV, (_, noSymConstr), syms) =
+        getResult(ReturnPoint(func, emptyView))
+      if (!retV.isBottom) for (node <- func.nodes) node match
+        case block: Block if block.insts.exists(_.isInstanceOf[IReturn]) =>
+          given np: NodePoint[Node] = NodePoint(func, block, emptyView)
+          var st = getResult(np)
+          var done = false
+          val iter = block.insts.iterator
+          while (iter.hasNext && !done && !st.isBottom)
+            iter.next match
+              case IReturn(expr) =>
+                val (v, retSt) = transfer.transfer(expr)(st)
+                given AbsState = retSt
+                // only info the caller could satisfy: bases whose value
+                // still refers to the inputs
+                def lostIn(known: TypeConstr, exported: TypeConstr): Boolean =
+                  known.exists {
+                    _.exists { (x, ty) =>
+                      hasShape(ty) && !hasShape(exported.get(x)) && (x match
+                        case _: Sym   => true
+                        case l: Local => retSt.get(l).symty.hasSym
+                      )
+                    }
+                  }
+                // the caller consumes this return via its row or the fold
+                val exported =
+                  if (v.symty.hasSym)
+                    syms.get(np).map(_._2).getOrElse(noSymConstr)
+                  else noSymConstr
+                // guards join into the summary value, class by class
+                val lost = lostIn(retSt.constr, exported) ||
+                  v.guard.map.exists { (dty, known) =>
+                    lostIn(known, retV.guard(dty))
+                  }
+                if (lost) marked += func
+                done = true
+              case inst => st = transfer.transfer(inst)(st)
+        case _ =>
+    }
+    marked
+
+  // nodes from which a return is still reachable within the function
+  private val returnableCache = TrieMap[Func, Set[Node]]()
+  def returnableNodes(f: Func)(using cfg: CFG): Set[Node] =
+    returnableCache.getOrElseUpdate(
+      f, {
+        val returns = f.nodes.collect {
+          case b: Block if b.insts.exists(_.isInstanceOf[IReturn]) => b
+        }
+        returns.flatMap(f.reachingTo)
+      },
+    )
 
   /** functions that may lie on a call path from `entry` to `target` (always
     * including `entry` itself)
