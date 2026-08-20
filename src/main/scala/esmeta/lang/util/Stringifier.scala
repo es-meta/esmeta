@@ -361,8 +361,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case BitwiseExpression(left, op, right) =>
         app >> "the result of applying the " >> op >> " to " >> left
         app >> " and " >> right
-      case expr: InvokeExpression =>
-        invokeExprRule(app, expr)
       case ListExpression(form) =>
         import ListExpressionForm.*
         form match
@@ -474,6 +472,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> left >> " " >> op >> " " >> right
       case UnaryExpression(op, expr) =>
         app >> op >> expr
+      case invoke: InvokeExpression =>
+        invokeExprRule(app, invoke)
       case lit: Literal =>
         litRule(app, lit)
     }

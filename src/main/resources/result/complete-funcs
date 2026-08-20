@@ -642,6 +642,7 @@ DEFAULT:ContainsArguments
 DateFromTime
 Day
 DayFromYear
+DayWithinYear
 DaysInYear
 DecimalBigIntegerLiteral[0,0].NumericValue
 DecimalBigIntegerLiteral[1,0].NumericValue
@@ -1549,6 +1550,7 @@ INTRINSICS.TypedArray.prototype.map
 INTRINSICS.TypedArray.prototype.reduce
 INTRINSICS.TypedArray.prototype.reduceRight
 INTRINSICS.TypedArray.prototype.reverse
+INTRINSICS.TypedArray.prototype.slice
 INTRINSICS.TypedArray.prototype.some
 INTRINSICS.TypedArray.prototype.sort
 INTRINSICS.TypedArray.prototype.sort:clo0
@@ -2644,6 +2646,7 @@ VariableDeclaration[1,0].Evaluation
 VariableStatement[0,0].Evaluation
 VariableStatement[0,0].VarDeclaredNames
 WeakRefDeref
+WeekDay
 WhileStatement[0,0].ContainsDuplicateLabels
 WhileStatement[0,0].ContainsUndefinedBreakTarget
 WhileStatement[0,0].ContainsUndefinedContinueTarget

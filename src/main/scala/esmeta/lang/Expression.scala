@@ -104,7 +104,7 @@ case class YetExpression(str: String, block: Option[Block]) extends Expression
 // -----------------------------------------------------------------------------
 // metalanguage invocation expressions
 // -----------------------------------------------------------------------------
-sealed trait InvokeExpression extends Expression
+sealed trait InvokeExpression extends CalcExpression
 
 enum HtmlTag:
   case None

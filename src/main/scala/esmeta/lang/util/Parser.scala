@@ -378,7 +378,6 @@ trait Parsers extends IndentParsers {
     soleExpr |
     codeUnitAtExpr |
     stringExpr |
-    invokeExpr |
     calcExpr |
     specialExpr
   }.named("lang.Expression")
@@ -509,6 +508,7 @@ trait Parsers extends IndentParsers {
     convExpr |
     mathFuncExpr |
     "(" ~> calcExpr <~ ")" |
+    invokeExpr |
     refExpr |
     literal
 
