@@ -114,23 +114,31 @@ object Solver {
     val seen = scala.collection.mutable.Set[String]()
     xs.filter(seen.add)
 
-  // the loose bound decides what applies, the strict one decides what comes first
+  // a row proving the refinement wins outright; otherwise the loose bound
+  // decides what applies and the strict one decides what comes first
   private def witnessesFor(ty: ValueTy): List[String] =
     if (ty.isBottom) Nil
     else
       val strict = unrefined(ty)
       val loose = erased(ty)
       cachedWitnesses.getOrElseUpdate(
-        (strict, loose), {
-          val applies = witnesses.filter { case (wty, _) => wty <= loose }
-          val (fit, rest) = applies.partition { case (wty, _) => wty <= strict }
-          (roundRobin(fit.map(_._2)) ++ roundRobin(rest.map(_._2))).distinct
+        (ty, strict, loose), {
+          // a row whose own field values prove the refinement needs no fallback
+          val proven = witnesses.filter { case (wty, _) => wty <= ty }
+          if (ty != loose && proven.nonEmpty)
+            roundRobin(proven.map(_._2)).distinct
+          else
+            val applies = witnesses.filter { case (wty, _) => wty <= loose }
+            val (fit, rest) = applies.partition {
+              case (wty, _) => wty <= strict
+            }
+            (roundRobin(fit.map(_._2)) ++ roundRobin(rest.map(_._2))).distinct
         },
       )
 
   // the same bound recurs across every path of every entry
   private val cachedWitnesses =
-    collection.concurrent.TrieMap[(ValueTy, ValueTy), List[String]]()
+    collection.concurrent.TrieMap[(ValueTy, ValueTy, ValueTy), List[String]]()
 
   // one from each row in turn, so a long row cannot take the whole budget
   private def roundRobin(rows: List[List[String]]): List[String] =
@@ -331,6 +339,11 @@ object Solver {
 
   private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
 
+  // revoking nulls both slots but keeps the internal methods the target gave
+  private def revokedProxy(target: String): String =
+    s"(() => { const r = Proxy.revocable($target, {}); " +
+    "r.revoke(); return r.proxy; })()"
+
   private val witnesses: List[(ValueTy, List[String])] = List(
     NumberT -> List("0"),
     UndefT -> List("undefined"),
@@ -350,6 +363,19 @@ object Solver {
     RecordT("ECMAScriptFunctionObject", List("Call", "Construct")) -> List(
       "function(){}",
     ),
+    RecordT(
+      "ProxyExoticObject",
+      Map(
+        "Call" -> AnyT,
+        "Construct" -> AnyT,
+        "ProxyTarget" -> NullT,
+        "ProxyHandler" -> NullT,
+      ),
+    ) -> List(revokedProxy("function(){}")),
+    RecordT(
+      "ProxyExoticObject",
+      Map("ProxyTarget" -> NullT, "ProxyHandler" -> NullT),
+    ) -> List(revokedProxy("{}")),
     RecordT("ProxyExoticObject", List("Call", "Construct")) -> List(
       "new Proxy(function(){}, {})",
     ),
