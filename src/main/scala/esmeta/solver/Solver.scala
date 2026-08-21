@@ -390,6 +390,9 @@ object Solver {
     RecordT("ArrayBuffer", Map("ArrayBufferData" -> NullT)) -> List(
       detachedBuffer,
     ),
+    RecordT("ArrayBuffer", Map("ArrayBufferMaxByteLength" -> AnyT)) -> List(
+      "new ArrayBuffer(0, { maxByteLength: 0 })",
+    ),
     RecordT("AsyncGenerator") -> List("(async function*(){})()"),
     RecordT("WeakMap") -> List("new WeakMap()"),
     RecordT("Map") -> List("new Map()"),
