@@ -114,8 +114,8 @@ object Solver {
     val seen = scala.collection.mutable.Set[String]()
     xs.filter(seen.add)
 
-  // a row proving the refinement wins outright; otherwise the loose bound
-  // decides what applies and the strict one decides what comes first
+  // a row proving the refined field values comes first, then the loose bound
+  // decides what applies and the strict one decides what comes next
   private def witnessesFor(ty: ValueTy): List[String] =
     if (ty.isBottom) Nil
     else
@@ -123,16 +123,17 @@ object Solver {
       val loose = erased(ty)
       cachedWitnesses.getOrElseUpdate(
         (ty, strict, loose), {
-          // a row whose own field values prove the refinement needs no fallback
-          val proven = witnesses.filter { case (wty, _) => wty <= ty }
-          if (ty != loose && proven.nonEmpty)
-            roundRobin(proven.map(_._2)).distinct
-          else
-            val applies = witnesses.filter { case (wty, _) => wty <= loose }
-            val (fit, rest) = applies.partition {
-              case (wty, _) => wty <= strict
-            }
-            (roundRobin(fit.map(_._2)) ++ roundRobin(rest.map(_._2))).distinct
+          // a field value, unlike its mere presence, needs this tier
+          val proven =
+            if (ty == strict) Nil
+            else witnesses.filter { case (wty, _) => wty <= ty }
+          val applies = witnesses.filter { case (wty, _) => wty <= loose }
+          val (fit, rest) = applies.partition {
+            case (wty, _) => wty <= strict
+          }
+          (roundRobin(proven.map(_._2)) ++
+          roundRobin(fit.map(_._2)) ++
+          roundRobin(rest.map(_._2))).distinct
         },
       )
 
@@ -344,6 +345,10 @@ object Solver {
     s"(() => { const r = Proxy.revocable($target, {}); " +
     "r.revoke(); return r.proxy; })()"
 
+  // transferring hands the data to a fresh buffer and detaches the receiver
+  private val detachedBuffer: String =
+    "(() => { const b = new ArrayBuffer(8); b.transfer(); return b; })()"
+
   private val witnesses: List[(ValueTy, List[String])] = List(
     NumberT -> List("0"),
     UndefT -> List("undefined"),
@@ -363,6 +368,10 @@ object Solver {
     RecordT("ECMAScriptFunctionObject", List("Call", "Construct")) -> List(
       "function(){}",
     ),
+    RecordT("ProxyExoticObject", List("Call", "Construct")) -> List(
+      "new Proxy(function(){}, {})",
+    ),
+    RecordT("ProxyExoticObject") -> List("new Proxy({}, {})"),
     RecordT(
       "ProxyExoticObject",
       Map(
@@ -376,12 +385,11 @@ object Solver {
       "ProxyExoticObject",
       Map("ProxyTarget" -> NullT, "ProxyHandler" -> NullT),
     ) -> List(revokedProxy("{}")),
-    RecordT("ProxyExoticObject", List("Call", "Construct")) -> List(
-      "new Proxy(function(){}, {})",
-    ),
-    RecordT("ProxyExoticObject") -> List("new Proxy({}, {})"),
     RecordT("Set") -> List("new Set()"),
     RecordT("ArrayBuffer") -> List("new ArrayBuffer(0)"),
+    RecordT("ArrayBuffer", Map("ArrayBufferData" -> NullT)) -> List(
+      detachedBuffer,
+    ),
     RecordT("AsyncGenerator") -> List("(async function*(){})()"),
     RecordT("WeakMap") -> List("new WeakMap()"),
     RecordT("Map") -> List("new Map()"),
