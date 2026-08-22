@@ -166,22 +166,59 @@ object Solver {
     case (field, binding) if !binding.absent => field -> Binding(AnyT)
   })
 
-  private val typedArrayEntries: List[(ValueTy, List[String])] =
-    val names = List(
-      "Int8Array",
-      "Uint8Array",
-      "Uint8ClampedArray",
-      "Int16Array",
-      "Uint16Array",
-      "Int32Array",
-      "Uint32Array",
-      "BigInt64Array",
-      "BigUint64Array",
-      "Float16Array",
-      "Float32Array",
-      "Float64Array",
-    )
-    for (name <- names) yield RecordT(name) -> List(s"new $name()")
+  private val typedArrayNames: List[String] = List(
+    "Int8Array",
+    "Uint8Array",
+    "Uint8ClampedArray",
+    "Int16Array",
+    "Uint16Array",
+    "Int32Array",
+    "Uint32Array",
+    "BigInt64Array",
+    "BigUint64Array",
+    "Float16Array",
+    "Float32Array",
+    "Float64Array",
+  )
+
+  private val sizedEntries: List[(ValueTy, List[String])] =
+    def each(at: Int => String): List[String] = (0 to 2).toList.map(at)
+    def rep(n: Int, elem: String): String = List.fill(n)(elem).mkString(", ")
+    def tuples(order: List[String], n: Int): List[List[String]] =
+      if (n == 0) List(Nil)
+      else for { e <- order; rest <- tuples(order, n - 1) } yield e :: rest
+    def contents(order: List[String]): List[List[String]] =
+      (0 to 2).toList.flatMap(tuples(order, _))
+    val num = List("0", "1")
+    val bigInt = List("0n", "1n")
+    List(
+      StrT -> each(n => "\"" + "a" * n + "\""),
+      ArrayT -> contents(num).map(_.mkString("[", ", ", "]")),
+      RecordT("Map") -> each(n => s"new Map([${rep(n, "[0, 0]")}])"),
+      RecordT("Set") -> each(n => s"new Set([${rep(n, "0")}])"),
+      RecordT("WeakMap") -> each(n => s"new WeakMap([${rep(n, "[{}, 0]")}])"),
+      RecordT("WeakSet") -> each(n => s"new WeakSet([${rep(n, "{}")}])"),
+      RecordT("ArrayBuffer") -> each(n => s"new ArrayBuffer(${8 * n})"),
+      RecordT("ArrayBuffer", Map("ArrayBufferMaxByteLength" -> AnyT)) -> each(
+        n => s"new ArrayBuffer(${8 * n}, { maxByteLength: ${8 * n} })",
+      ),
+      RecordT("SharedArrayBuffer") -> each(
+        n => s"new SharedArrayBuffer(${8 * n})",
+      ),
+      RecordT("DataView") -> each(
+        n => s"new DataView(new ArrayBuffer(${8 * n}))",
+      ),
+      TypedArrayT -> contents(num).map(es =>
+        s"new Int8Array([${es.mkString(", ")}])",
+      ),
+    ) ++ (for (name <- typedArrayNames) yield {
+      val order =
+        if (name.startsWith("BigInt64") || name.startsWith("BigUint64")) bigInt
+        else num
+      RecordT(name) -> contents(order).map(es =>
+        s"new $name([${es.mkString(", ")}])",
+      )
+    })
 
   private def buildJSProgram(
     path: BuiltinPath,
@@ -356,15 +393,12 @@ object Solver {
     FunctionT -> List("() => {}"),
     NaNT -> List("NaN"),
     SymbolT -> List("Symbol()"),
-    StrT -> List("\"\""),
-    TypedArrayT -> List("new Int8Array()"),
     RecordT("OrdinaryObject") -> List("{}"),
     BoolT -> List("true", "false"),
     NumberPosIntT -> List("1"),
     NullT -> List("null"),
     NumberNegIntT -> List("-1"),
     BigIntT -> List("0n"),
-    ArrayT -> List("[]"),
     RecordT("ECMAScriptFunctionObject", List("Call", "Construct")) -> List(
       "function(){}",
     ),
@@ -385,18 +419,10 @@ object Solver {
       "ProxyExoticObject",
       Map("ProxyTarget" -> NullT, "ProxyHandler" -> NullT),
     ) -> List(revokedProxy("{}")),
-    RecordT("Set") -> List("new Set()"),
-    RecordT("ArrayBuffer") -> List("new ArrayBuffer(0)"),
     RecordT("ArrayBuffer", Map("ArrayBufferData" -> NullT)) -> List(
       detachedBuffer,
     ),
-    RecordT("ArrayBuffer", Map("ArrayBufferMaxByteLength" -> AnyT)) -> List(
-      "new ArrayBuffer(0, { maxByteLength: 0 })",
-    ),
     RecordT("AsyncGenerator") -> List("(async function*(){})()"),
-    RecordT("WeakMap") -> List("new WeakMap()"),
-    RecordT("Map") -> List("new Map()"),
-    RecordT("WeakSet") -> List("new WeakSet()"),
     RecordT("Generator") -> List("(function*(){})()"),
     RecordT("ArrayIteratorInstance") -> List("[][Symbol.iterator]()"),
     RecordT("BoundFunctionExoticObject", List("Call", "Construct")) -> List(
@@ -406,8 +432,6 @@ object Solver {
     RecordT("PendingPromise") -> List("new Promise(() => {})"),
     RecordT("Promise") -> List("new Promise(() => {})"),
     RecordT("ErrorObject") -> List("new Error()"),
-    RecordT("SharedArrayBuffer") -> List("new SharedArrayBuffer(0)"),
-    RecordT("DataView") -> List("new DataView(new ArrayBuffer(0))"),
     RecordT("NumberObject") -> List("Object(0)"),
     RecordT("StringExoticObject") -> List("Object('')"),
     RecordT("BuiltinFunctionObject", List("Call", "Construct")) -> List(
@@ -426,5 +450,5 @@ object Solver {
     RecordT("FinalizationRegistry") -> List(
       "new FinalizationRegistry(() => {})",
     ),
-  ) ++ typedArrayEntries
+  ) ++ sizedEntries
 }
