@@ -650,6 +650,11 @@ type ForInIterator extends OrdinaryObject {
   RemainingKeys: List[String];
 }
 
+// https://tc39.es/ecma262/#sec-%wrapforvaliditeratorprototype%-object
+type WrapForValidIterator extends OrdinaryObject {
+  Iterated: Record[IteratorRecord];
+}
+
 // https://tc39.es/ecma262/#sec-iterator-interface
 type Iterator extends Object
 
@@ -902,6 +907,11 @@ type Generator extends OrdinaryObject {
   GeneratorState: Enum[~completed~, ~executing~, ~suspended-start~, ~suspended-yield~];
   GeneratorContext: Record[ExecutionContext];
   GeneratorBrand: String | Enum[~empty~];
+}
+
+// https://tc39.es/ecma262/#sec-iterator-helper-objects
+type IteratorHelper extends Generator {
+  UnderlyingIterator: Record[IteratorRecord];
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-asyncgenerator-intances
