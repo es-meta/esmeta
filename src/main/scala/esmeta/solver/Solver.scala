@@ -131,11 +131,44 @@ object Solver {
           val (fit, rest) = applies.partition {
             case (wty, _) => wty <= strict
           }
-          (roundRobin(proven.map(_._2)) ++
-          roundRobin(fit.map(_._2)) ++
-          roundRobin(rest.map(_._2))).distinct
+          val ordered =
+            roundRobin(proven.map(_._2)) ++
+            roundRobin(fit.map(_._2)) ++
+            roundRobin(rest.map(_._2))
+          val (templates, plain) =
+            ordered.partition(slotRef.findFirstIn(_).isDefined)
+          (templates.flatMap(fill(_, ty)) ++ plain).distinct
         },
       )
+
+  // a slot named in a row is filled from what the type binds it to
+  private val slotRef = "\\$([A-Z]\\w*)".r
+
+  private val maxSlotCands = 4
+
+  private def fill(template: String, ty: ValueTy): List[String] =
+    val refs = slotRef.findAllMatchIn(template).map(_.group(1)).toList.distinct
+    if (refs.exists(!binds(ty, _))) Nil
+    else
+      // longest first, so one slot name cannot clobber another's prefix
+      val fields = refs.sortBy(-_.length)
+      val slots = fields.map { field =>
+        candidates(ty.record(field).value).take(maxSlotCands).toList
+      }
+      oneChange(slots)
+        .map(chosen =>
+          fields
+            .zip(chosen)
+            .foldLeft(template) {
+              case (acc, (field, e)) => acc.replace("$" + field, e)
+            },
+        )
+        .toList
+
+  // only a stated constraint, not a type model default, may drive an assembly
+  private def binds(ty: ValueTy, field: String): Boolean = ty.record match
+    case RecordTy.Elem(map, _) => map.exists((_, fm) => !fm(field).isTop)
+    case _                     => false
 
   // the same bound recurs across every path of every entry
   private val cachedWitnesses =
@@ -202,11 +235,11 @@ object Solver {
       RecordT("ArrayBuffer", Map("ArrayBufferMaxByteLength" -> AnyT)) -> each(
         n => s"new ArrayBuffer(${8 * n}, { maxByteLength: ${8 * n} })",
       ),
-      RecordT("SharedArrayBuffer") -> each(
-        n => s"new SharedArrayBuffer(${8 * n})",
+      RecordT("SharedArrayBuffer") -> each(n =>
+        s"new SharedArrayBuffer(${8 * n})",
       ),
-      RecordT("DataView") -> each(
-        n => s"new DataView(new ArrayBuffer(${8 * n}))",
+      RecordT("DataView") -> each(n =>
+        s"new DataView(new ArrayBuffer(${8 * n}))",
       ),
       TypedArrayT -> contents(num).map(es =>
         s"new Int8Array([${es.mkString(", ")}])",
@@ -219,6 +252,26 @@ object Solver {
         s"new $name([${es.mkString(", ")}])",
       )
     })
+
+  private val typedArrayEntries: List[(ValueTy, List[String])] =
+    val names = typedArrayNames
+    // InitializeTypedArrayFromArrayBuffer stores its buffer parameter here
+    (for (name <- names)
+      yield RecordT(name, Map("ViewedArrayBuffer" -> AnyT)) -> List(
+        s"new $name($$ViewedArrayBuffer)",
+      )) ++
+    // the constructor rejects a detached buffer, so detach after building
+    (for (name <- names)
+      yield RecordT(
+        name,
+        Map(
+          "ViewedArrayBuffer" ->
+          RecordT("ArrayBuffer", Map("ArrayBufferData" -> NullT)),
+        ),
+      ) -> List(
+        s"(() => { const b = new ArrayBuffer(8); const t = new $name(b); " +
+        "b.transfer(); return t; })()",
+      ))
 
   private def buildJSProgram(
     path: BuiltinPath,
@@ -447,8 +500,44 @@ object Solver {
       "(function(){ return arguments; })()",
     ),
     RecordT("WeakRef") -> List("new WeakRef({})"),
+    RecordT(
+      "ProxyExoticObject",
+      Map("ProxyTarget" -> AnyT, "ProxyHandler" -> AnyT),
+    ) -> List("new Proxy($ProxyTarget, $ProxyHandler)"),
+    RecordT("ProxyExoticObject", Map("ProxyTarget" -> AnyT)) -> List(
+      "new Proxy($ProxyTarget, {})",
+    ),
+    RecordT("BoundFunctionExoticObject", Map("BoundTargetFunction" -> AnyT)) ->
+    List("($BoundTargetFunction).bind()"),
+    RecordT(
+      "ArrayIteratorInstance",
+      Map(
+        "IteratedArrayLike" -> AnyT,
+        "ArrayLikeIterationKind" -> EnumT("key+value"),
+      ),
+    ) -> List("Array.prototype.entries.call($IteratedArrayLike)"),
+    RecordT(
+      "ArrayIteratorInstance",
+      Map(
+        "IteratedArrayLike" -> AnyT,
+        "ArrayLikeIterationKind" -> EnumT("key"),
+      ),
+    ) -> List("Array.prototype.keys.call($IteratedArrayLike)"),
+    RecordT(
+      "ArrayIteratorInstance",
+      Map(
+        "IteratedArrayLike" -> AnyT,
+        "ArrayLikeIterationKind" -> EnumT("value"),
+      ),
+    ) -> List("Array.prototype.values.call($IteratedArrayLike)"),
+    // an unconstrained kind admits any of the three, so enumerate them
+    RecordT("ArrayIteratorInstance", Map("IteratedArrayLike" -> AnyT)) -> List(
+      "Array.prototype.values.call($IteratedArrayLike)",
+      "Array.prototype.keys.call($IteratedArrayLike)",
+      "Array.prototype.entries.call($IteratedArrayLike)",
+    ),
     RecordT("FinalizationRegistry") -> List(
       "new FinalizationRegistry(() => {})",
     ),
-  ) ++ sizedEntries
+  ) ++ sizedEntries ++ typedArrayEntries
 }
