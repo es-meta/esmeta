@@ -32,7 +32,7 @@ case object Solve extends Phase[CFG, String] {
 
     given SymInterpRunner =
       SymInterp(cfg, timeLimit = Some(10), detail = config.detail)
-    given Coverage = Coverage(cfg, timeLimit = Some(10))
+    given Coverage = Coverage(cfg, timeLimit = Some(2))
 
     conds
       .map { cond =>

@@ -147,7 +147,7 @@ class CoverageMiddleTest extends SolverTest {
 
   def init: Unit = {
     given CFG = cfg
-    val cov = Coverage(cfg, timeLimit = Some(10))
+    val cov = Coverage(cfg, timeLimit = Some(2))
     val solveTimeLimit = 10
     val solveTimeout = Duration(solveTimeLimit, "seconds")
     val allBuiltins = cfg.funcs.filter(_.isBuiltin).sortBy(_.name)
