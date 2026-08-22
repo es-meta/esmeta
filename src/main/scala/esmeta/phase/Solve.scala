@@ -30,7 +30,8 @@ case object Solve extends Phase[CFG, String] {
 
     val entries = SymInterp.sortedEntries(branch)
 
-    given SymInterpRunner = SymInterp(cfg, detail = config.detail)
+    given SymInterpRunner =
+      SymInterp(cfg, timeLimit = Some(10), detail = config.detail)
     given Coverage = Coverage(cfg, timeLimit = Some(10))
 
     conds
@@ -51,12 +52,17 @@ case object Solve extends Phase[CFG, String] {
     cond: Cond,
   )(using runner: SymInterpRunner, cov: Coverage): Option[String] =
     println(s"=== Entry: ${func.name} ===")
-    val interp = runner(func, cond)
-    val result = LazyList
-      .continually(interp.nextCandidate)
-      .takeWhile(_.isDefined)
-      .flatMap(_ => interp.reifyAll.take(maxCandsPerPath).toList)
-      .find(js => covers(js, cond))
+    val result =
+      try {
+        val interp = runner(func, cond)
+        LazyList
+          .continually(interp.nextCandidate)
+          .takeWhile(_.isDefined)
+          .flatMap(_ => interp.reifyAll.take(maxCandsPerPath).toList)
+          .find(js => covers(js, cond))
+      } catch {
+        case e: Throwable => println(s"[error] ${func.name}: $e"); None
+      }
     result match
       case Some(js) => println(s"[Solution] $js")
       case None     => println(s"[No solution]")
