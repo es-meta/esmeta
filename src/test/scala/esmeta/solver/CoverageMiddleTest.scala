@@ -396,7 +396,7 @@ class CoverageMiddleTest extends SolverTest {
             }
 
           var attempts = 0 // execution attempts
-          val maxCandsPerPath = 64
+          val maxCandsPerPath = 100
           try {
             @scala.annotation.tailrec
             def retry(rejected: Option[Rejected]): BranchResult = {

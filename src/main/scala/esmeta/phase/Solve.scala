@@ -101,5 +101,5 @@ case object Solve extends Phase[CFG, String] {
     var detail: Boolean = false,
   )
 
-  private val maxCandsPerPath = 64
+  private val maxCandsPerPath = 100
 }
