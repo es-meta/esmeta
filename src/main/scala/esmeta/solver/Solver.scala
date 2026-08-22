@@ -174,12 +174,14 @@ object Solver {
   private val cachedWitnesses =
     collection.concurrent.TrieMap[(ValueTy, ValueTy, ValueTy), List[String]]()
 
-  // one from each row in turn, so a long row cannot take the whole budget
+  // rows and depth advance together, so depth costs less than the row count
   private def roundRobin(rows: List[List[String]]): List[String] =
     val cols = rows.map(_.toVector)
-    val rounds = cols.map(_.size).maxOption.getOrElse(0)
-    (0 until rounds).toList.flatMap { i =>
-      cols.collect { case col if i < col.size => col(i) }
+    val maxIdx = cols.map(_.size).maxOption.getOrElse(0)
+    (0 until cols.size + maxIdx).toList.flatMap { d =>
+      cols.iterator.zipWithIndex.collect {
+        case (col, r) if d >= r && d - r < col.size => col(d - r)
+      }.toList
     }
 
   private def unrefined(ty: ValueTy): ValueTy = ty.record match
