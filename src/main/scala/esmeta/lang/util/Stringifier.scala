@@ -685,7 +685,28 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // conditions
-  given condRule: Rule[Condition] = withLoc { (app, cond) =>
+  given condRule: Rule[Condition] = condRuleWithPrecedence(Int.MinValue)
+
+  // keep in sync with Parser.cond: primary > and > or > implication
+  private def condPrecedence(cond: Condition): Int = cond match
+    case CompoundCondition(_, op, _) =>
+      import CompoundConditionOperator.*
+      op match
+        case Imply => 0
+        case Or    => 1
+        case And   => 2
+    case _ => 3
+
+  private def condRuleWithPrecedence(
+    parentPrecedence: Int,
+    parenthesizeOnEqual: Boolean = false,
+  ): Rule[Condition] = withLoc { (app, cond) =>
+    val precedence = condPrecedence(cond)
+    val parenthesized =
+      precedence < parentPrecedence ||
+      parenthesizeOnEqual && precedence == parentPrecedence
+    if (parenthesized) app >> "("
+
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
@@ -762,9 +783,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else app >> from >> " ≤ " >> left >> " ≤ " >> to
       case ContainsCondition(list, neg, expr) =>
         app >> list >> (if (neg) " does not contain " else " contains ") >> expr
-      case CompoundCondition(left, CompoundConditionOperator.Imply, right) =>
-        app >> "If " >> left >> ", then " >> right
-      case CompoundCondition(left, op, right) =>
+      case CompoundCondition(_, op, _) =>
+        import CompoundConditionOperator.*
+
         // collect sub conditions of same level in a single list
         def flatten(cond: Condition): List[Condition] = {
           cond match {
@@ -773,14 +794,24 @@ class Stringifier(detail: Boolean, location: Boolean) {
           }
         }
         val conds = flatten(cond)
-        val sep = op match {
-          case CompoundConditionOperator.And   => "and"
-          case CompoundConditionOperator.Or    => "or"
-          case CompoundConditionOperator.Imply => "then" // not used
-        }
-        given Rule[List[Condition]] = listNamedSepRule(namedSep = sep)
-        app >> conds
+        given Rule[Condition] = condRuleWithPrecedence(
+          precedence,
+          parenthesizeOnEqual = true,
+        )
+        op match
+          case And =>
+            given Rule[List[Condition]] = listNamedSepRule(namedSep = "and")
+            app >> conds
+          case Or =>
+            given Rule[List[Condition]] = listNamedSepRule(namedSep = "or")
+            app >> conds
+          case Imply =>
+            app >> "If " >> conds.head
+            for (cond <- conds.tail) app >> ", then " >> cond
     }
+
+    if (parenthesized) app >> ")"
+    app
   }
 
   // operators for predicate conditions
