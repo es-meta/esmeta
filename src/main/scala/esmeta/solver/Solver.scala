@@ -432,7 +432,9 @@ object Solver {
 
   private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
 
-  // revoking nulls both slots but keeps the internal methods the target gave
+  private def started(gen: String): String =
+    s"(() => { const g = ($gen)(); g.next(); return g; })()"
+
   private def revokedProxy(target: String): String =
     s"(() => { const r = Proxy.revocable($target, {}); " +
     "r.revoke(); return r.proxy; })()"
@@ -502,6 +504,19 @@ object Solver {
       "(function(){ return arguments; })()",
     ),
     RecordT("WeakRef") -> List("new WeakRef({})"),
+    RecordT("Generator", Map("GeneratorState" -> EnumT("completed"))) -> List(
+      started("function*(){}"),
+    ),
+    RecordT("Generator", Map("GeneratorState" -> EnumT("suspended-yield"))) ->
+    List(started("function*(){ yield 0; }")),
+    RecordT(
+      "AsyncGenerator",
+      Map("AsyncGeneratorState" -> EnumT("completed")),
+    ) -> List(started("async function*(){}")),
+    RecordT(
+      "AsyncGenerator",
+      Map("AsyncGeneratorState" -> EnumT("draining-queue")),
+    ) -> List(started("async function*(){ yield 0; }")),
     RecordT(
       "ProxyExoticObject",
       Map("ProxyTarget" -> AnyT, "ProxyHandler" -> AnyT),
