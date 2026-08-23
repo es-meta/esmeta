@@ -92,9 +92,8 @@ class SymInterp(
   private def step: Unit = {
     // abort symbolic execution once the per-side time limit is exceeded
     if (timeout) throw Result.Timeout
-    // -------------------------------------------------------------------------
-    // XXX: remove
-    // -------------------------------------------------------------------------
+
+    // log current configuration
     log("=" * 80)
     log(s"Executing node ${node.name}: $wrap")
     log(
@@ -102,7 +101,7 @@ class SymInterp(
     )
     log("-" * 80)
     log(s"$node @ ${cfg.funcOf(node).name}")
-    // -------------------------------------------------------------------------
+
     given np: NodePoint[?] = NodePoint(cfg.funcOf(node), node, emptyView)
     if (!isCandidate(node) || st.isBottom) return unwrap(pop)
     node match
@@ -148,15 +147,12 @@ class SymInterp(
         // reached the target branch, check the constraint
         st = refine(branch, target.cond)(st)
         if (check)
-          // -------------------------------------------------------------------
-          // XXX: remove
-          // -------------------------------------------------------------------
+          // log found constraints
           import AbsState.constrMapRule
           log("=" * 80)
           log(s"FOUND: ${stringify(st.constrForSyms)(using constrMapRule)}")
           log("-" * 80)
           log(node)
-          // -------------------------------------------------------------------
           throw Found(wrap)
         else unwrap(pop)
       case branch @ Branch(_, kind, cond, _, thenNode, elseNode, _) =>
