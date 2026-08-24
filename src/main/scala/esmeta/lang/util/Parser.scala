@@ -1016,6 +1016,8 @@ trait Parsers extends IndentParsers {
     import PredicateConditionOperator.*
     lazy val op: Parser[PredicateConditionOperator] =
       "finite" ^^^ Finite |
+      "a finite Number" ^^^ FiniteNumber |
+      "a non-zero finite Number" ^^^ NonZeroFiniteNumber |
       "a normal completion" ^^^ Normal |
       "an abrupt completion" ^^^ Abrupt |
       "a throw completion" ^^^ Throw |
@@ -1035,11 +1037,17 @@ trait Parsers extends IndentParsers {
       "a fully populated Property Descriptor" ^^^ FullyPopulated |
       "an instance of a nonterminal" ^^^ Nonterminal
 
+    lazy val pluralOp: Parser[PredicateConditionOperator] =
+      "finite Numbers" ^^^ FiniteNumber |
+      "non-zero finite Numbers" ^^^ NonZeroFiniteNumber
+
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)
 
     expr ~ neg ~ op ^^ {
-      case r ~ n ~ o => PredicateCondition(r, n, o)
+      case r ~ n ~ o => PredicateCondition(List(r), n, o)
+    } | (opt("both") ~> expr) ~ ("and" ~> expr) ~ areNeg ~ pluralOp ^^ {
+      case l ~ r ~ n ~ o => PredicateCondition(List(l, r), n, o)
     }
 
   // `A is/are B` condition
@@ -1120,7 +1128,9 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(FalseLiteral()) | {
     // CreatePerIterationEnvironment
     expr <~ "has any elements"
-  } ^^ { PredicateCondition(_, true, PredicateConditionOperator.Empty) } | {
+  } ^^ { e =>
+    PredicateCondition(List(e), true, PredicateConditionOperator.Empty)
+  } | {
     // %ForInIteratorPrototype%.next
     ("there does not exist an element" ~> variable) ~
     ("of" ~> expr) ~
@@ -1131,7 +1141,9 @@ trait Parsers extends IndentParsers {
   } | {
     // CallExpression[0,0].Evaluation
     expr <~ "has no elements"
-  } ^^ { PredicateCondition(_, false, PredicateConditionOperator.Empty) } | {
+  } ^^ { e =>
+    PredicateCondition(List(e), false, PredicateConditionOperator.Empty)
+  } | {
     // ArraySpeciesCreate, SameValueNonNumeric
     expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(langType) ~ opt("value")
   } ^^ { case l ~ r ~ n => IsAreCondition(List(l), n, List(r)) } | {

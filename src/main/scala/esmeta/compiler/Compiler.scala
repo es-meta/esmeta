@@ -909,65 +909,75 @@ class Compiler(
             fb.ntBindings ++= List((rhsName, base, Some(0)))
             ETypeCheck(base, IRType(AstT(lhsName, rhsIdx)))
           case None => EYet(cond.toString(true, false))
-      case PredicateCondition(expr, neg, op) =>
+      case PredicateCondition(exprs, neg, op) =>
         import PredicateConditionOperator.*
-        val x = compile(fb, expr)
-        val cond = op match {
-          case Abrupt =>
-            val tv = toERef(fb, x, EStr("Type"))
-            and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
-          case NeverAbrupt =>
-            val tv = toERef(fb, x, EStr("Type"))
-            or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
-          case op @ (Normal | Throw | Return | Break | Continue) =>
-            val tv = toERef(fb, x, EStr("Type"))
-            val expected = op match
-              case Normal   => EENUM_NORMAL
-              case Throw    => EENUM_THROW
-              case Return   => EENUM_RETURN
-              case Break    => EENUM_BREAK
-              case Continue => EENUM_CONTINUE
-            and(isCompletion(x), is(tv, expected))
-          case Finite =>
-            not(
-              or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
-            )
-          case Duplicated =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
-            bExpr
-          case Present =>
-            x match
-              case ERef(Name(name))
-                  if fb.isBuiltin && fb.builtinBindings.contains(name) =>
-                exists(Field(NAME_ARGS, EStr(name)))
-              case _ => exists(x)
-          case Empty      => is(ESizeOf(x), zero)
-          case StrictMode => T // XXX assume strict mode
-          case ArrayIndex =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, AUX_IS_ARRAY_INDEX, List(x)))
-            bExpr
-          case FalseToken => is(ESourceText(x), EStr("false"))
-          case TrueToken  => is(ESourceText(x), EStr("true"))
-          case DataProperty =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, dataPropClo, List(x)))
-            bExpr
-          case AccessorProperty =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, accessorPropClo, List(x)))
-            bExpr
-          case FullyPopulated =>
-            val dataFields =
-              List("Value", "Writable", "Enumerable", "Configurable")
-            val accessorFields =
-              List("Get", "Set", "Enumerable", "Configurable")
-            or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
-          case Nonterminal =>
-            EInstanceOf(x, EGrammarSymbol("", Nil))
+        val es = for (expr <- exprs) yield {
+          val x = compile(fb, expr)
+          val cond = op match {
+            case Abrupt =>
+              val tv = toERef(fb, x, EStr("Type"))
+              and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
+            case NeverAbrupt =>
+              val tv = toERef(fb, x, EStr("Type"))
+              or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
+            case op @ (Normal | Throw | Return | Break | Continue) =>
+              val tv = toERef(fb, x, EStr("Type"))
+              val expected = op match
+                case Normal   => EENUM_NORMAL
+                case Throw    => EENUM_THROW
+                case Return   => EENUM_RETURN
+                case Break    => EENUM_BREAK
+                case Continue => EENUM_CONTINUE
+              and(isCompletion(x), is(tv, expected))
+            case Finite | FiniteNumber | NonZeroFiniteNumber =>
+              def isTy(ty: ValueTy): Expr = ETypeCheck(x, IRType(ty))
+              val finiteNum =
+                and(isTy(NumberT), not(isTy(InfiniteNumberT || NaNT)))
+              op match
+                // TODO: "finite" is currently used for all three kinds of
+                // numeric values ; once tc39/ecma262#3911 lands and reserves it
+                // for mathematical values, keep only `MathT`.
+                case Finite => or(finiteNum, isTy(MathT || BigIntT))
+                case NonZeroFiniteNumber => and(finiteNum, isTy(NonZeroNumberT))
+                case _                   => finiteNum
+            case Duplicated =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
+              bExpr
+            case Present =>
+              x match
+                case ERef(Name(name))
+                    if fb.isBuiltin && fb.builtinBindings.contains(name) =>
+                  exists(Field(NAME_ARGS, EStr(name)))
+                case _ => exists(x)
+            case Empty      => is(ESizeOf(x), zero)
+            case StrictMode => T // XXX assume strict mode
+            case ArrayIndex =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, AUX_IS_ARRAY_INDEX, List(x)))
+              bExpr
+            case FalseToken => is(ESourceText(x), EStr("false"))
+            case TrueToken  => is(ESourceText(x), EStr("true"))
+            case DataProperty =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, dataPropClo, List(x)))
+              bExpr
+            case AccessorProperty =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, accessorPropClo, List(x)))
+              bExpr
+            case FullyPopulated =>
+              val dataFields =
+                List("Value", "Writable", "Enumerable", "Configurable")
+              val accessorFields =
+                List("Get", "Set", "Enumerable", "Configurable")
+              or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
+            case Nonterminal =>
+              EInstanceOf(x, EGrammarSymbol("", Nil))
+          }
+          if (neg) not(cond) else cond
         }
-        if (neg) not(cond) else cond
+        es.reduce(and(_, _))
       case IsAreCondition(left, neg, right) =>
         val es = for (lexpr <- left) yield {
           val l = compile(fb, lexpr)

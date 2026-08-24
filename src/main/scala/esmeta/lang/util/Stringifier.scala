@@ -711,9 +711,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> nt >> " is " >> "<emu-grammar>"
         app >> lhs >> " : " >> rhs
         app >> "</emu-grammar>"
-      case PredicateCondition(x, neg, op) =>
+      case PredicateCondition(xs, neg, op) =>
         // TODO is/has
-        app >> x >> isStr(neg) >> op
+        xs match {
+          case x :: Nil => app >> x >> isStr(neg) >> op
+          case _ =>
+            given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+            app >> xs >> isStr(neg, single = false)
+            app >> pluralPredCondOpStr(op)
+        }
       case IsAreCondition(ls, neg, rs) =>
         val single = ls.length == 1
         if (single) app >> ls.head
@@ -771,26 +777,36 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given predCondOpRule: Rule[PredicateConditionOperator] = (app, op) =>
     import PredicateConditionOperator.*
     app >> (op match {
-      case Finite           => "finite"
-      case Abrupt           => "an abrupt completion"
-      case Throw            => "a throw completion"
-      case Return           => "a return completion"
-      case Break            => "a break completion"
-      case Continue         => "a continue completion"
-      case NeverAbrupt      => "never an abrupt completion"
-      case Normal           => "a normal completion"
-      case Duplicated       => "duplicate entries"
-      case Present          => "present"
-      case Empty            => "empty"
-      case StrictMode       => "strict mode code"
-      case ArrayIndex       => "an array index"
-      case FalseToken       => "the token `false`"
-      case TrueToken        => "the token `true`"
-      case DataProperty     => "a data property"
-      case AccessorProperty => "an accessor property"
-      case FullyPopulated   => "a fully populated Property Descriptor"
-      case Nonterminal      => "an instance of a nonterminal"
+      case Finite              => "finite"
+      case FiniteNumber        => "a finite Number"
+      case NonZeroFiniteNumber => "a non-zero finite Number"
+      case Abrupt              => "an abrupt completion"
+      case Throw               => "a throw completion"
+      case Return              => "a return completion"
+      case Break               => "a break completion"
+      case Continue            => "a continue completion"
+      case NeverAbrupt         => "never an abrupt completion"
+      case Normal              => "a normal completion"
+      case Duplicated          => "duplicate entries"
+      case Present             => "present"
+      case Empty               => "empty"
+      case StrictMode          => "strict mode code"
+      case ArrayIndex          => "an array index"
+      case FalseToken          => "the token `false`"
+      case TrueToken           => "the token `true`"
+      case DataProperty        => "a data property"
+      case AccessorProperty    => "an accessor property"
+      case FullyPopulated      => "a fully populated Property Descriptor"
+      case Nonterminal         => "an instance of a nonterminal"
     })
+
+  private def pluralPredCondOpStr(op: PredicateConditionOperator): String =
+    import PredicateConditionOperator.*
+    op match {
+      case FiniteNumber        => "finite Numbers"
+      case NonZeroFiniteNumber => "non-zero finite Numbers"
+      case _                   => op.toString
+    }
 
   // operators for binary conditions
   given binCondOpRule: Rule[BinaryConditionOperator] = (app, op) =>

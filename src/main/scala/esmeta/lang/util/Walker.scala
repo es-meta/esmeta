@@ -322,8 +322,8 @@ trait Walker extends BasicWalker {
       HasBindingCondition(walk(ref), walk(has), walk(binding))
     case ProductionCondition(nt, lhs, rhs) =>
       ProductionCondition(walk(nt), lhs, rhs)
-    case PredicateCondition(expr, neg, op) =>
-      PredicateCondition(walk(expr), neg, walk(op))
+    case PredicateCondition(exprs, neg, op) =>
+      PredicateCondition(walkList(exprs, walk), neg, walk(op))
     case IsAreCondition(ls, neg, rs) =>
       IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>

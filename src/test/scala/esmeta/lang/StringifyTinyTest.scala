@@ -416,6 +416,16 @@ class StringifyTinyTest extends LangTest {
       noHasBindingCond -> "_x_ does not have a binding for _x_",
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
       finiteCond -> "_x_ is finite",
+      finiteNumberCond -> "_x_ is a finite Number",
+      finiteNumbersCond -> "_x_ and _x_ are finite Numbers",
+      finiteNumbersCond.copy(negation =
+        T,
+      ) -> "_x_ and _x_ are not finite Numbers",
+      nonZeroFiniteNumberCond -> "_x_ is a non-zero finite Number",
+      nonZeroFiniteNumbersCond -> "_x_ and _x_ are non-zero finite Numbers",
+      nonZeroFiniteNumbersCond.copy(negation =
+        T,
+      ) -> "_x_ and _x_ are not non-zero finite Numbers",
       abruptCond -> "_x_ is an abrupt completion",
       normalCond -> "_x_ is a normal completion",
       dupCond -> "_x_ is duplicate entries",
