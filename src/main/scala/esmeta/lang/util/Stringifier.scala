@@ -361,8 +361,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case BitwiseExpression(left, op, right) =>
         app >> "the result of applying the " >> op >> " to " >> left
         app >> " and " >> right
-      case expr: InvokeExpression =>
-        invokeExprRule(app, expr)
       case ListExpression(form) =>
         import ListExpressionForm.*
         form match
@@ -470,10 +468,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> a >> " " >> op >> " value " >> pre >> " " >> expr
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
-      case BinaryExpression(left, op, right) =>
+      case BinaryExpression(left, op, right, form) =>
+        given Rule[BinaryExpressionOperator] = binExprOpRuleWithForm(form)
         app >> left >> " " >> op >> " " >> right
       case UnaryExpression(op, expr) =>
         app >> op >> expr
+      case invoke: InvokeExpression =>
+        invokeExprRule(app, invoke)
       case lit: Literal =>
         litRule(app, lit)
     }
@@ -507,14 +508,22 @@ class Stringifier(detail: Boolean, location: Boolean) {
       })
 
   // operators for binary expressions
-  given binExprOpRule: Rule[BinaryExpressionOperator] = (app, op) =>
+  given binExprOpRule: Rule[BinaryExpressionOperator] =
+    binExprOpRuleWithForm(BinaryExpressionForm.Symbolic)
+
+  def binExprOpRuleWithForm(
+    form: BinaryExpressionForm,
+  ): Rule[BinaryExpressionOperator] = (app, op) =>
     import BinaryExpressionOperator.*
-    app >> (op match {
-      case Add => "+"
-      case Sub => "-"
-      case Mul => "×"
-      case Div => "/"
-      case Mod => "modulo"
+    import BinaryExpressionForm.*
+    app >> ((op, form) match {
+      case (Add, Textual) => "plus"
+      case (Mul, Textual) => "times"
+      case (Add, _)       => "+"
+      case (Sub, _)       => "-"
+      case (Mul, _)       => "×"
+      case (Div, _)       => "/"
+      case (Mod, _)       => "modulo"
     })
 
   // operators for unary expressions

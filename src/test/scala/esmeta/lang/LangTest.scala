@@ -286,6 +286,32 @@ object LangTest {
     UnaryExpression(UnaryExpressionOperator.Neg, mulExpr)
   lazy val parenUnExpr =
     ExponentiationExpression(unExpr, refExpr)
+  lazy val addInvokeExpr =
+    BinaryExpression(invokeAOExpr, BinaryExpressionOperator.Add, refExpr)
+  lazy val mulInvokeExpr =
+    BinaryExpression(expExpr, BinaryExpressionOperator.Mul, invokeAOExpr)
+  lazy val plusExpr =
+    BinaryExpression(
+      refExpr,
+      BinaryExpressionOperator.Add,
+      refExpr,
+      BinaryExpressionForm.Textual,
+    )
+  lazy val timesExpr =
+    BinaryExpression(
+      refExpr,
+      BinaryExpressionOperator.Mul,
+      refExpr,
+      BinaryExpressionForm.Textual,
+    )
+  lazy val mulSDOExpr =
+    BinaryExpression(invokeSDOExprZero, BinaryExpressionOperator.Mul, refExpr)
+  lazy val convInvokeExpr =
+    ConversionExpression(
+      ConversionExpressionOperator.ToMath,
+      addInvokeExpr,
+      ConversionExpressionForm.SyntaxLiteral,
+    )
   lazy val convToApproxNumberExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToApproxNumber,

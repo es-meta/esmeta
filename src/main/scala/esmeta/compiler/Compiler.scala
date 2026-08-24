@@ -715,7 +715,7 @@ class Compiler(
           case ToCodeUnit     => EConvert(COp.ToCodeUnit, compile(fb, expr))
       case ExponentiationExpression(base, power) =>
         EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
-      case BinaryExpression(left, op, right) =>
+      case BinaryExpression(left, op, right, _) =>
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case UnaryExpression(op, expr) =>
         EUnary(compile(op), compile(fb, expr))

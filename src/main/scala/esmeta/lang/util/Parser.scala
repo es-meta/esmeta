@@ -131,7 +131,7 @@ trait Parsers extends IndentParsers {
 
   // invoke shorthand steps
   lazy val invokeShorthandStep: PL[InvokeShorthandStep] =
-    opName ~ invokeArgs ~ end ^^ {
+    shorthandName ~ invokeArgs ~ end ^^ {
       case x ~ as ~ f => f(InvokeShorthandStep(x, as))
     }
 
@@ -378,7 +378,6 @@ trait Parsers extends IndentParsers {
     soleExpr |
     codeUnitAtExpr |
     stringExpr |
-    invokeExpr |
     calcExpr |
     specialExpr
   }.named("lang.Expression")
@@ -509,12 +508,14 @@ trait Parsers extends IndentParsers {
     convExpr |
     mathFuncExpr |
     "(" ~> calcExpr <~ ")" |
+    invokeExpr |
     refExpr |
     literal
 
   // calculation expressions
   lazy val calcExpr: PL[CalcExpression] = {
     import BinaryExpressionOperator.*
+    import BinaryExpressionForm.*
     import UnaryExpressionOperator.*
 
     lazy val unary: PL[CalcExpression] =
@@ -522,18 +523,26 @@ trait Parsers extends IndentParsers {
       baseCalcExpr ^^ { case o ~ e => UnaryExpression(o, e) } |
       baseCalcExpr
 
-    lazy val term: PL[CalcExpression] = unary ~ rep(
-      ("×" ^^^ Mul | "/" ^^^ Div | "modulo" ^^^ Mod) ~ unary,
-    ) ^^ {
+    lazy val mulOp: P[(BinaryExpressionOperator, BinaryExpressionForm)] =
+      "×" ^^^ (Mul -> Symbolic) | "times\\b".r ^^^ (Mul -> Textual) |
+      "/" ^^^ (Div -> Symbolic) | "modulo\\b".r ^^^ (Mod -> Symbolic)
+
+    lazy val addOp: P[(BinaryExpressionOperator, BinaryExpressionForm)] =
+      "+" ^^^ (Add -> Symbolic) | "plus\\b".r ^^^ (Add -> Textual) |
+      "-" ^^^ (Sub -> Symbolic)
+
+    lazy val term: PL[CalcExpression] = unary ~ rep(mulOp ~ unary) ^^ {
       case l ~ rs =>
-        rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
+        rs.foldLeft(l) {
+          case (l, (op, f) ~ r) => BinaryExpression(l, op, r, f)
+        }
     }
 
-    lazy val calc: PL[CalcExpression] = term ~ rep(
-      ("+" ^^^ Add | "-" ^^^ Sub) ~ term,
-    ) ^^ {
+    lazy val calc: PL[CalcExpression] = term ~ rep(addOp ~ term) ^^ {
       case l ~ rs =>
-        rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
+        rs.foldLeft(l) {
+          case (l, (op, f) ~ r) => BinaryExpression(l, op, r, f)
+        }
     }
 
     calc
@@ -601,7 +610,7 @@ trait Parsers extends IndentParsers {
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
     exists("the") <~ "*this* value" ^^ { ThisLiteral(_) } |
     "this Parse Node" ^^! ThisParseNodeLiteral(None) |
-    "this" ~> ntLiteral ^^ { case nt => ThisParseNodeLiteral(Some(nt)) } |
+    thisParseNodeNtLiteral |
     "NewTarget" ^^! NewTargetLiteral() |
     hexLiteral |
     "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |
@@ -672,6 +681,10 @@ trait Parsers extends IndentParsers {
     )) ~ flags <~ "|" ^^ {
       case a ~ ord ~ _ ~ x ~ fs => NonterminalLiteral(ord, x, fs, a)
     }
+
+  // `this` parse node literals with nonterminals
+  lazy val thisParseNodeNtLiteral: PL[ThisParseNodeLiteral] =
+    "this" ~> ntLiteral ^^ { nt => ThisParseNodeLiteral(Some(nt)) }
 
   lazy val flags: P[List[String]] =
     "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ Nil
@@ -808,6 +821,10 @@ trait Parsers extends IndentParsers {
   // names for operations
   lazy val opName: Parser[String] =
     "[a-zA-Z][a-zA-Z0-9/]*".r.filter(!mathFuncNames.contains(_))
+
+  lazy val shorthandName: Parser[String] =
+    opName <~ guard(elem('('))
+
   lazy val mathFuncNames: Set[String] = Set(
     "max",
     "min",
@@ -844,7 +861,7 @@ trait Parsers extends IndentParsers {
     lazy val invalid =
       Set("LexicalEnvironment", "VariableEnvironment", "PrivateEnvironment")
     lazy val name = opt("the result of" | "the") ~ camel.filter(!invalid(_))
-    lazy val base = "of" ~> expr
+    lazy val base = "of" ~> (thisParseNodeNtLiteral | refExpr | ntLiteral)
 
     // normal SDO
     lazy val normalSDOExpr =
@@ -885,7 +902,7 @@ trait Parsers extends IndentParsers {
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
-    ("?" ^^^ true | "!" ^^^ false) ~ expr ^^ {
+    ("?" ^^^ true | "!" ^^^ false) ~ baseCalcExpr ^^ {
       case c ~ e => ReturnIfAbruptExpression(e, c)
     }
 

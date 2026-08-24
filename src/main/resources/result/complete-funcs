@@ -642,10 +642,14 @@ DEFAULT:ContainsArguments
 DateFromTime
 Day
 DayFromYear
+DayWithinYear
 DaysInYear
 DecimalBigIntegerLiteral[0,0].NumericValue
 DecimalBigIntegerLiteral[1,0].NumericValue
+DecimalBigIntegerLiteral[1,1].NumericValue
+DecimalBigIntegerLiteral[2,0].NumericValue
 DecimalEscape[0,0].CapturingGroupNumber
+DecimalEscape[0,1].CapturingGroupNumber
 Declaration[1,0].DeclarationPart
 Declaration[2,0].DeclarationPart
 DecodeFinalBase64Chunk
@@ -1274,6 +1278,7 @@ INTRINSICS.Date.prototype.getMinutes
 INTRINSICS.Date.prototype.getMonth
 INTRINSICS.Date.prototype.getSeconds
 INTRINSICS.Date.prototype.getTime
+INTRINSICS.Date.prototype.getTimezoneOffset
 INTRINSICS.Date.prototype.getUTCDate
 INTRINSICS.Date.prototype.getUTCDay
 INTRINSICS.Date.prototype.getUTCFullYear
@@ -1549,6 +1554,7 @@ INTRINSICS.TypedArray.prototype.map
 INTRINSICS.TypedArray.prototype.reduce
 INTRINSICS.TypedArray.prototype.reduceRight
 INTRINSICS.TypedArray.prototype.reverse
+INTRINSICS.TypedArray.prototype.slice
 INTRINSICS.TypedArray.prototype.some
 INTRINSICS.TypedArray.prototype.sort
 INTRINSICS.TypedArray.prototype.sort:clo0
@@ -2522,6 +2528,7 @@ ThisSymbolValue
 ThrowCompletion
 ThrowStatement[0,0].Evaluation
 TimeClip
+TimeFromYear
 TimeString
 TimeWithinDay
 ToBigInt
@@ -2644,6 +2651,7 @@ VariableDeclaration[1,0].Evaluation
 VariableStatement[0,0].Evaluation
 VariableStatement[0,0].VarDeclaredNames
 WeakRefDeref
+WeekDay
 WhileStatement[0,0].ContainsDuplicateLabels
 WhileStatement[0,0].ContainsUndefinedBreakTarget
 WhileStatement[0,0].ContainsUndefinedContinueTarget

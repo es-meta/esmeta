@@ -160,8 +160,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(op); walkList(args, walk)
     case BitwiseExpression(left, op, right) =>
       walk(left); walk(op); walk(right)
-    case invoke: InvokeExpression =>
-      walk(invoke)
     case ListExpression(form) =>
       import ListExpressionForm.*
       form match
@@ -207,10 +205,12 @@ trait UnitWalker extends BasicUnitWalker {
       walk(op); walk(expr)
     case ExponentiationExpression(base, power) =>
       walk(base); walk(power)
-    case BinaryExpression(left, op, right) =>
+    case BinaryExpression(left, op, right, _) =>
       walk(left); walk(op); walk(right)
     case UnaryExpression(op, expr) =>
       walk(op); walk(expr)
+    case invoke: InvokeExpression =>
+      walk(invoke)
     case lit: Literal =>
       walk(lit)
   }

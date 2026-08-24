@@ -128,6 +128,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[BinaryExpression] = deriveEncoderWithType
   given Decoder[BinaryExpressionOperator] = deriveDecoderWithType
   given Encoder[BinaryExpressionOperator] = deriveEncoderWithType
+  given Decoder[BinaryExpressionForm] = deriveDecoderWithType
+  given Encoder[BinaryExpressionForm] = deriveEncoderWithType
   given Decoder[UnaryExpression] = deriveDecoderWithType
   given Encoder[UnaryExpression] = deriveEncoderWithType
   given Decoder[UnaryExpressionOperator] = deriveDecoderWithType
