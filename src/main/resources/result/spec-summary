@@ -6,13 +6,14 @@
     - syntactic: 205
   - extended productions for web: 29
 - algorithms: 2909
-  - complete: 2519 (86.59%)
-  - equals: 2693 (92.57%)
+  - complete: 2527 (86.87%)
+  - equals: 2692 (92.54%)
 - algorithm steps: 22857
-  - complete: 22101 (96.69%)
+  - complete: 22109 (96.73%)
 - types: 8381
   - known: 7486 (89.32%)
   - yet: 208 (2.48%)
+- constants: 7
 - tables: 95
 - type model: 113
 - intrinsics: 102

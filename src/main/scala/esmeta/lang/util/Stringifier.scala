@@ -595,6 +595,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case MathConstantLiteral(pre, name) =>
         if (pre != 1) app >> pre
         app >> name
+      case ConstantLiteral(name) => app >> name
       case NumberLiteral(n) =>
         if (n.isNaN) app >> "*NaN*"
         else

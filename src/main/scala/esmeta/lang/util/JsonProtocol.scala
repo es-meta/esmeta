@@ -190,6 +190,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[ErrorObjectLiteral] = deriveEncoderWithType
   given Decoder[SymbolLiteral] = deriveDecoderWithType
   given Encoder[SymbolLiteral] = deriveEncoderWithType
+  given Decoder[NumericLiteral] = deriveDecoderWithType
+  given Encoder[NumericLiteral] = deriveEncoderWithType
   given Decoder[PositiveInfinityMathValueLiteral] = deriveDecoderWithType
   given Encoder[PositiveInfinityMathValueLiteral] = deriveEncoderWithType
   given Decoder[NegativeInfinityMathValueLiteral] = deriveDecoderWithType
@@ -202,6 +204,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[NumberLiteral] = deriveEncoderWithType
   given Decoder[BigIntLiteral] = deriveDecoderWithType
   given Encoder[BigIntLiteral] = deriveEncoderWithType
+  given Decoder[ConstantLiteral] = deriveDecoderWithType
+  given Encoder[ConstantLiteral] = deriveEncoderWithType
   given Decoder[TrueLiteral] = deriveDecoderWithType
   given Encoder[TrueLiteral] = deriveEncoderWithType
   given Decoder[FalseLiteral] = deriveDecoderWithType

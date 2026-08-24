@@ -344,6 +344,9 @@ case class NumberLiteral(double: Double)
   with DoubleEquals
 case class BigIntLiteral(bigInt: BigInt) extends NumericLiteral
 
+/** references to constants defined by `emu-eqn` elements */
+case class ConstantLiteral(name: String) extends Literal
+
 // boolean literals
 sealed trait BooleanLiteral extends Literal
 case class TrueLiteral() extends BooleanLiteral

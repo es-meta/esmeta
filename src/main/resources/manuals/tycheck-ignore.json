@@ -10,5 +10,7 @@
   "GetViewByteLength",
   "INTRINSICS.Function.prototype.bind",
   "Record[SourceTextModuleRecord].ExecuteModule",
+  "TimeString",
+  "TimeZoneString",
   "TypedArrayLength"
 ]

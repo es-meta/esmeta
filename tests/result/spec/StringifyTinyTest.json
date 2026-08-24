@@ -1,5 +1,6 @@
 {
   "BuiltinPath" : true,
+  "Constant" : true,
   "Grammar" : true,
   "Head" : true,
   "Lhs" : true,

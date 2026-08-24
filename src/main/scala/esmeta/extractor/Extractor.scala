@@ -8,7 +8,7 @@ import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.ty.TyModel
 import esmeta.util.ManualInfo
-import esmeta.util.BaseUtils.{raise, warn}
+import esmeta.util.BaseUtils.*
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
@@ -24,6 +24,16 @@ object Extractor:
 
   /** extracts a specification with a target version of ECMA-262 */
   def apply(targetOpt: Option[String] = None, eval: Boolean = false): Spec =
+    from(targetOpt, eval).result
+
+  /** extracts a specification with a target version of ECMA-262 */
+  def apply(target: String): Spec = apply(Some(target))
+
+  /** creates an extractor with a target version of ECMA-262 */
+  def from(
+    targetOpt: Option[String] = None,
+    eval: Boolean = false,
+  ): Extractor =
     val (version, document) = Spec.getVersionWith(targetOpt) {
       case version =>
         // if bugfix patch exists, apply it to spec.html
@@ -37,10 +47,7 @@ object Extractor:
         }
         document
     }
-    apply(document, Some(version), eval)
-
-  /** extracts a specification with a target version of ECMA-262 */
-  def apply(target: String): Spec = apply(Some(target))
+    new Extractor(document, Some(version), eval)
 
 /** extensible helper of specification extractor from ECMA-262 */
 class Extractor(
@@ -49,7 +56,8 @@ class Extractor(
   eval: Boolean = false,
 ) extends SpecParsers {
   lazy val parser: LangUtil.Parsers =
-    if (eval) LangUtil.ParserForEval else LangUtil.Parser
+    val parser = if (eval) LangUtil.ParserForEval else LangUtil.Parser
+    parser.withConstNames(constants.map(_.name).toSet)
 
   /** final result */
   lazy val result =
@@ -57,6 +65,7 @@ class Extractor(
       version = version,
       grammar = grammar,
       algorithms = algorithms,
+      constants = constants,
       tables = tables,
       tyModel = tyModel,
       intrinsics = intrinsics,
@@ -72,6 +81,9 @@ class Extractor(
 
   /** abstract algorithms in ECMA-262 */
   lazy val algorithms = extractAlgorithms
+
+  /** constants in ECMA-262 */
+  lazy val constants = extractConstants
 
   /** tables in ECMA-262 */
   lazy val tables = extractTables
@@ -187,6 +199,13 @@ class Extractor(
     }
     heads.map(_ -> parent)
   }
+
+  /** extracts constants defined by `emu-eqn` elements */
+  def extractConstants: List[Constant] = for {
+    elem <- document.getElems("emu-eqn[aoid]")
+    content = elem.html.unescapeHtml.split("\\s+").mkString(" ").trim
+    (name, value) <- optional(parseBy(constDef)(content))
+  } yield Constant(name, value)
 
   /** extracts tables */
   def extractTables: Map[String, Table] = (for {

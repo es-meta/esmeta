@@ -14,6 +14,17 @@ trait Parsers extends IndentParsers {
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
 
+  /** names of constants defined by `emu-eqn` elements in ECMA-262 */
+  def constNames: Set[String] = Set()
+
+  /** the same parser but aware of the given names of constants */
+  def withConstNames(names: Set[String]): Parsers =
+    val forEval = eval
+    new Parsers {
+      override def constNames = names
+      override def eval = forEval
+    }
+
   // ---------------------------------------------------------------------------
   // metalanguage blocks
   // ---------------------------------------------------------------------------
@@ -610,6 +621,7 @@ trait Parsers extends IndentParsers {
     opt(int) ~ "π" ^^ {
       case p ~ n => MathConstantLiteral(p.getOrElse(1), n)
     } |
+    constLiteral |
     decimal ^^ { DecimalMathValueLiteral(_) } |
     "*+∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.PositiveInfinity) |
     "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |
@@ -629,6 +641,12 @@ trait Parsers extends IndentParsers {
     "BigInt" ^^! BigIntTypeLiteral() |
     "Object" ^^! ObjectTypeLiteral()
   )
+
+  // constant literals (e.g., `msPerDay`)
+  lazy val constLiteral: PL[ConstantLiteral] =
+    word.filter(name => constNames.contains(name)) ^^ {
+      ConstantLiteral(_)
+    }
 
   // field literal
   lazy val fieldLiteral: PL[FieldLiteral] =

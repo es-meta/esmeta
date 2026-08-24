@@ -3,6 +3,7 @@ package spec
 
 import esmeta.lang.*
 import esmeta.spec.*
+import esmeta.spec.util.Parser
 import esmeta.ty.*
 
 /** test for ECMAScript specification (ECMA-262) */
@@ -101,4 +102,18 @@ object SpecTest {
     List(Param("value", UnknownType)),
     UnknownType,
   )
+
+  // constants defined by `emu-eqn` elements
+  object ConstantDef
+    extends Parser.From(Parser.constDef ^^ {
+      case (name, value) => Constant(name, value)
+    })
+
+  /** a constant whose value is a mathematical value */
+  def mathConst(name: String, value: String): Constant =
+    Constant(name, DecimalMathValueLiteral(BigDecimal(value)))
+
+  /** a constant whose value is a Number */
+  def numberConst(name: String, value: Double): Constant =
+    Constant(name, NumberLiteral(value))
 }
