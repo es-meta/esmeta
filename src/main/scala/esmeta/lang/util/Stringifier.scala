@@ -292,8 +292,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ListConcatExpression(exprs) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         app >> "the list-concatenation of " >> exprs
-      case ListCopyExpression(expr) =>
-        app >> "a List whose elements are the elements of " >> expr
+      case CopyExpression(expr, form) =>
+        import CopyExpressionForm.*
+        form match
+          case Plain =>
+            app >> "a copy of " >> expr
+          case TheList =>
+            app >> "a copy of the List " >> expr
+          case ListElements =>
+            app >> "a List whose elements are the elements of " >> expr
       case RecordExpression(ty, fields, form) =>
         import RecordExpressionForm.*
         form match {

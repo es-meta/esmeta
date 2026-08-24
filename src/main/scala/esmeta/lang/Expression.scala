@@ -13,8 +13,13 @@ case class StringConcatExpression(exprs: List[Expression]) extends Expression
 // list concatenation expressions
 case class ListConcatExpression(exprs: List[Expression]) extends Expression
 
-// list copy expressions
-case class ListCopyExpression(expr: Expression) extends Expression
+// shallow copy expressions
+case class CopyExpression(
+  expr: Expression,
+  form: CopyExpressionForm = CopyExpressionForm.Plain,
+) extends Expression
+enum CopyExpressionForm:
+  case Plain, TheList, ListElements
 
 // record expressions
 case class RecordExpression(

@@ -1,4 +1,4 @@
-- version: 0248456c758431e4bb8e5d26333ff1865123c9cd (es2026)
+- version: 0248456c758431e4bb8e5d26333ff1865123c9cd (es2026-candidate-2026-03-31)
 - grammar:
   - productions: 400
     - lexical: 179
@@ -6,10 +6,10 @@
     - syntactic: 205
   - extended productions for web: 29
 - algorithms: 2909
-  - complete: 2537 (87.21%)
+  - complete: 2542 (87.38%)
   - equals: 2689 (92.44%)
 - algorithm steps: 22858
-  - complete: 22124 (96.79%)
+  - complete: 22134 (96.83%)
 - types: 8381
   - known: 7486 (89.32%)
   - yet: 208 (2.48%)

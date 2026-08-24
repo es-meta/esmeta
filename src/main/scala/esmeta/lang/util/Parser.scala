@@ -360,7 +360,7 @@ trait Parsers extends IndentParsers {
   given expr: PL[Expression] = {
     stringConcatExpr |
     listConcatExpr |
-    listCopyExpr |
+    copyExpr |
     recordExpr |
     lengthExpr |
     substrExpr |
@@ -397,10 +397,18 @@ trait Parsers extends IndentParsers {
       ListConcatExpression(_)
     }
 
-  // list copy expressions
-  lazy val listCopyExpr: PL[ListCopyExpression] =
-    "a List whose elements are the elements of" ~> expr ^^ {
-      ListCopyExpression(_)
+  // shallow copy expressions
+  lazy val copyExpr: PL[CopyExpression] =
+    import CopyExpressionForm.*
+    {
+      ("a copy of" ~> exists("the List")) ~ expr ^^ {
+        case isList ~ expr =>
+          CopyExpression(expr, if (isList) TheList else Plain)
+      }
+    } | {
+      "a List whose elements are the elements of" ~> expr ^^ {
+        CopyExpression(_, ListElements)
+      }
     }
 
   // record expressions

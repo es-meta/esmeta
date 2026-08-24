@@ -165,8 +165,13 @@ class CaseCollector extends UnitWalker {
         "the string-concatenation of {{ expr }}*"
       case ListConcatExpression(exprs) =>
         "the list-concatenation of {{ expr }}*"
-      case ListCopyExpression(expr) =>
-        "a List whose elements are the elements of {{ expr }}"
+      case CopyExpression(expr, form) =>
+        import CopyExpressionForm.*
+        form match
+          case Plain   => "a copy of {{ expr }}"
+          case TheList => "a copy of the List {{ expr }}"
+          case ListElements =>
+            "a List whose elements are the elements of {{ expr }}"
       case RecordExpression(ty, fields, form) =>
         import RecordExpressionForm.*
         form match {

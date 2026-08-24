@@ -39,10 +39,12 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     checkParseAndStringify("Step", Step)(
       letStep -> "let _x_ be _x_.",
+      letCopyStep -> "let _x_ be a copy of _x_.",
       toBlockStep(letStepClosure) -> """
       |  1. Let _x_ be a new Abstract Closure with parameters (_x_, _x_) that captures _x_ and performs the following steps when called:
       |    1. Let _x_ be _x_.""".stripMargin,
       setStep -> "set _x_ to _x_ + _x_.",
+      setCopyStep -> "set _x_ to a copy of _x_.",
       setAsStep -> "set _x_ as specified in <emu-xref href=\"#id\"></emu-xref>.",
       setEvalStateStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with no arguments.",
       setEvalStateArgStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with argument _x_.",
@@ -144,7 +146,11 @@ class StringifyTinyTest extends LangTest {
       listConcatExprOne -> "the list-concatenation of _x_",
       listConcatExprTwo -> "the list-concatenation of _x_ and _x_",
       listConcatExprThree -> "the list-concatenation of _x_, _x_, and _x_",
-      listCopyExpr -> "a List whose elements are the elements of _x_",
+      listElementsCopyExpr -> "a List whose elements are the elements of _x_",
+      copyExpr -> "a copy of _x_",
+      copyOfListExpr -> "a copy of the List _x_",
+      copyAccessExpr -> "a copy of _x_.[[Captures]]",
+      copyRunningContextExpr -> "a copy of the running execution context",
       recordEmptyExpr -> "Object { }",
       recordExpr -> "Object { [[Value]]: _x_ }",
       lengthExpr -> "the length of _x_",

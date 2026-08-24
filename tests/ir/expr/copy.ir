@@ -1,8 +1,23 @@
 @main def main() = {
-  let obj1 = (record { "x": 1, "y": 2 })[#1]
+  let nested = (record { "z": 3 })[#1]
+  let obj1 = (record { "x": 1, "nested": nested })[#1]
   let obj2 = (copy obj1)[#1]
 
   assert (! (= obj1 obj2))
   assert (= obj2.x 1)
-  assert (= obj2.y 2)
+
+  // the outer record is independent
+  obj2.x = 2
+  assert (= obj1.x 1)
+  assert (= obj2.x 2)
+
+  // nested values are shared by a shallow copy
+  let copiedNested = obj2.nested
+  assert (= nested copiedNested)
+  copiedNested.z = 4
+  assert (= nested.z 4)
+
+  // copying an immutable value preserves the value
+  let primitive = (copy 42)[#1]
+  assert (= primitive 42)
 }

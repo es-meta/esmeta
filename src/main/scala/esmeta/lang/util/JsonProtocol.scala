@@ -58,8 +58,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[StringConcatExpression] = deriveEncoderWithType
   given Decoder[ListConcatExpression] = deriveDecoderWithType
   given Encoder[ListConcatExpression] = deriveEncoderWithType
-  given Decoder[ListCopyExpression] = deriveDecoderWithType
-  given Encoder[ListCopyExpression] = deriveEncoderWithType
+  given Decoder[CopyExpression] = deriveDecoderWithType
+  given Encoder[CopyExpression] = deriveEncoderWithType
+  given Decoder[CopyExpressionForm] = deriveDecoderWithType
+  given Encoder[CopyExpressionForm] = deriveEncoderWithType
   given Decoder[RecordExpression] = deriveDecoderWithType
   given Encoder[RecordExpression] = deriveEncoderWithType
   given Decoder[RecordExpressionForm] = deriveDecoderWithType
