@@ -4,6 +4,7 @@ import esmeta.*
 import esmeta.cfg.*
 import esmeta.error.ESMetaError
 import esmeta.ir.{Type as IRType, Func as IrFunc, *}
+import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 import scala.collection.mutable.{ListBuffer, Map as MMap, Set as MSet}
@@ -25,6 +26,11 @@ object DumpSecIdToFuncInfo {
         if (func.isSDO && func.sdoInfo.isDefined)
           s"$sectionId|${extractSDO(func.sdoInfo.get, cfg)}"
         else sectionId
+      val visualName = algo.headElem.getText match
+        case templatePattern(name)
+            if cfg.intrinsics.templateMap.contains(name) =>
+          s"_${name}_"
+        case _ => convertFuncName(func)
 
       val prev = secIdToFuncInfo.get(secId)
       val curr = prev
@@ -32,10 +38,10 @@ object DumpSecIdToFuncInfo {
           case (prevId, prevName, fallbackIds) =>
             if (func.isClo || func.isCont) then
               (prevId, prevName, fallbackIds :+ func.id)
-            else (func.id, convertFuncName(func), fallbackIds :+ prevId)
+            else (func.id, visualName, fallbackIds :+ prevId)
         }
         .getOrElse(
-          (func.id, convertFuncName(func), Nil),
+          (func.id, visualName, Nil),
         )
 
       secIdToFuncInfo += (secId -> curr)
@@ -70,6 +76,8 @@ object DumpSecIdToFuncInfo {
           }
           buffer.mkString(" ")
     } else func.name
+
+  private val templatePattern = "_(\\w+)_.*".r
 
   def parseMethodName(func: Func): String =
     JsonParser.parseAll(JsonParser.methodName, func.name) match {
