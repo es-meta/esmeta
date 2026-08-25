@@ -15,7 +15,7 @@ import esmeta.util.Loc
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import java.io.PrintWriter
-import java.math.MathContext.DECIMAL128
+import java.math.MathContext.{DECIMAL128, UNLIMITED}
 import java.util.concurrent.TimeoutException
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap}
@@ -584,9 +584,16 @@ object Interpreter {
       case (Sub, Math(l), Math(r)) => Math(l - r)
       case (Mul, Math(l), Math(r)) => Math(l * r)
       case (Div, Math(l), Math(r)) =>
-        // XXX rounded by DECIMAL128 to handle non-terminating decimal
-        // expansion. For example, 1 / 3 = 1.3333...
-        Math(l(DECIMAL128) / r(DECIMAL128))
+        // XXX rounded by DECIMAL128 only when the exact quotient has a
+        // non-terminating decimal expansion. For example, 1 / 3 = 0.3333...
+        // The rounded result is put back into UNLIMITED not to propagate the
+        // reduced precision into the later operations.
+        Math(
+          try l(UNLIMITED) / r(UNLIMITED)
+          catch
+            case _: ArithmeticException =>
+              (l(DECIMAL128) / r(DECIMAL128))(UNLIMITED),
+        )
       case (Mod, Math(l), Math(r)) => Math(l %% r)
       case (Pow, Math(l), Math(r)) if r.isValidInt && r >= 0 =>
         Math(l.pow(r.toInt))
