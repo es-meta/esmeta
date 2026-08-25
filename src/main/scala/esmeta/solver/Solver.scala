@@ -6,6 +6,7 @@ import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
+import scala.collection.mutable.{Set => MSet}
 
 trait Solver { self: SymInterp =>
 
@@ -22,6 +23,7 @@ trait Solver { self: SymInterp =>
 
   def reifyAll: LazyList[String] =
     given AbsState = st
+    // get constraints for each symbolic input
     val thisValue = st.getConstr(SThis.sym)
     val newTarget = st.getConstr(SNewTarget.sym)
     val args = entryFunc.head match
@@ -44,248 +46,81 @@ trait Solver { self: SymInterp =>
               }
               before ++ variadic ++ after
       case _ => Nil
+    // reify into a JS program
     getPath(entryFunc) match
-      case None => LazyList.empty
+      case None       => LazyList.empty
       case Some(path) =>
-        val thisCands = candidates(thisValue).toList
-        val argCands = args.map(candidates(_).toList)
-        val ntCands = newTargetCandidates(newTarget)
-        val slots = (thisCands :: argCands) :+ ntCands
-        oneChange(slots).flatMap {
-          case thisV :: rest =>
-            rest.splitAt(args.length) match
-              case (vs, nt :: Nil) =>
-                buildJSProgram(path, thisV, vs, Option.when(nt.nonEmpty)(nt))
-              case _ => None
-          case _ => None
+        // get candidates from analyzed type
+        val thisCands = synthesizer.candidates(thisValue)
+        val argCands = args.map(synthesizer.candidates)
+        val ntCands = newTargetForms(newTarget, synthesizer)
+        // enumerate programs by varying one position at a time
+        val slots = (thisCands +: argCands) :+ ntCands
+        oneChange(slots).flatMap { chosen =>
+          val thisV = chosen.head
+          val vs = chosen.slice(1, 1 + args.length)
+          val newTarget = chosen.last
+          invoke(path, thisV, vs, newTarget)
         }
 }
+
 object Solver {
 
-  // ---------------------------------------------------------------------------
-  // candidate enumeration
-  // ---------------------------------------------------------------------------
-  def candidates(ty: ValueTy): LazyList[String] = distinct(
-    exact(ty).to(LazyList) #::: fromShape(ty) #::: witnessesFor(ty).to(LazyList),
-  )
-
-  def exprFor(ty: ValueTy): Option[String] = candidates(ty).headOption
-
-  private def exact(ty: ValueTy): List[String] =
-    def one[T](flat: Flat[T])(f: T => String): List[String] =
-      flat match
-        case One(x) => List(f(x))
-        case _      => Nil
-    val numbers = ty.number.toNumberSet.fold(Nil) { set =>
-      set.toList.sortBy(n => (n.isNaN, n.double)).map(numberLit)
-    }
-    numbers ++
-    one(ty.bigInt)(n => s"${n}n") ++
-    one(ty.str)(str => s"\"${normStr(str)}\"") ++
-    one(ty.bool.getSingle)(b => if (b) "true" else "false")
-
-  private def numberLit(n: Number): String =
-    val d = n.double
-    if (d.isNaN) "NaN"
-    else if (d.isPosInfinity) "Infinity"
-    else if (d.isNegInfinity) "-Infinity"
-    else if (d == 0 && 1 / d < 0) "-0"
-    else if (d.isWhole && d.abs <= 9007199254740991.0) d.toLong.toString
-    else d.toString
-
-  def newTargetCandidates(ty: ValueTy): List[String] =
-    if (UndefT ⊑ ty) List("")
-    else candidates(ty).toList
-
-  def oneChange(slots: List[List[String]]): LazyList[List[String]] =
+  def oneChange(slots: List[LazyList[String]]): LazyList[List[String]] =
     if (slots.exists(_.isEmpty)) LazyList.empty
-    else
+    else {
       val heads = slots.map(_.head)
-      val tails = slots.map(_.tail.toVector)
-      val rounds = tails.map(_.size).maxOption.getOrElse(0)
-      val variants = for {
-        k <- (0 until rounds).iterator
-        (alts, i) <- tails.iterator.zipWithIndex
-        if (k < alts.size)
-      } yield heads.updated(i, alts(k))
-      heads #:: variants.to(LazyList)
+      def rounds(tails: List[LazyList[String]]): LazyList[List[String]] =
+        if (tails.forall(_.isEmpty)) LazyList.empty
+        else
+          val round = for {
+            (alts, i) <- LazyList.from(tails).zipWithIndex
+            if alts.nonEmpty
+          } yield heads.updated(i, alts.head)
+          round #::: rounds(tails.map(_.drop(1)))
+      heads #:: rounds(slots.map(_.drop(1)))
+    }
 
-  private def distinct(xs: LazyList[String]): LazyList[String] =
-    val seen = scala.collection.mutable.Set[String]()
+  // lazy distinct
+  def distinct(xs: LazyList[String]): LazyList[String] =
+    val seen = MSet[String]()
     xs.filter(seen.add)
 
-  // a row proving the refined field values comes first, then the loose bound
-  // decides what applies and the strict one decides what comes next
-  private def witnessesFor(ty: ValueTy): List[String] =
-    if (ty.isBottom) Nil
-    else
-      val strict = unrefined(ty)
-      val loose = erased(ty)
-      cachedWitnesses.getOrElseUpdate(
-        (ty, strict, loose), {
-          // a field value, unlike its mere presence, needs this tier
-          val proven =
-            if (ty == strict) Nil
-            else witnesses.filter { case (wty, _) => wty <= ty }
-          val applies = witnesses.filter { case (wty, _) => wty <= loose }
-          val (fit, rest) = applies.partition {
-            case (wty, _) => wty <= strict
-          }
-          val ordered =
-            roundRobin(proven.map(_._2)) ++
-            roundRobin(fit.map(_._2)) ++
-            roundRobin(rest.map(_._2))
-          val (templates, plain) =
-            ordered.partition(slotRef.findFirstIn(_).isDefined)
-          (templates.flatMap(fill(_, ty)) ++ plain).distinct
-        },
-      )
+  def prioritize(
+    rows: List[(ValueTy, List[String])],
+    ty: ValueTy,
+    synthesizer: TySynthesizer,
+  ): LazyList[String] =
+    distinct(rows.to(LazyList).flatMap(_._2).flatMap(fill(_, ty, synthesizer)))
 
-  // a slot named in a row is filled from what the type binds it to
-  private val slotRef = "\\$([A-Z]\\w*)".r
-
-  private val maxSlotCands = 4
-
-  private def fill(template: String, ty: ValueTy): List[String] =
-    val refs = slotRef.findAllMatchIn(template).map(_.group(1)).toList.distinct
-    if (refs.exists(!binds(ty, _))) Nil
-    else
-      // longest first, so one slot name cannot clobber another's prefix
-      val fields = refs.sortBy(-_.length)
-      val slots = fields.map { field =>
-        candidates(ty.record(field).value).take(maxSlotCands).toList
+  private def fill(
+    template: String,
+    ty: ValueTy,
+    synthesizer: TySynthesizer,
+  ): LazyList[String] =
+    synthesizer.slotChoices(template, ty).fold(LazyList.empty) { choices =>
+      val (fields, alts) = choices.unzip
+      oneChange(alts).map { chosen =>
+        fields.zip(chosen).foldLeft(template) {
+          case (acc, (field, e)) => acc.replace("$" + field, e)
+        }
       }
-      oneChange(slots)
-        .map(chosen =>
-          fields
-            .zip(chosen)
-            .foldLeft(template) {
-              case (acc, (field, e)) => acc.replace("$" + field, e)
-            },
-        )
-        .toList
-
-  // only a stated constraint, not a type model default, may drive an assembly
-  private def binds(ty: ValueTy, field: String): Boolean = ty.record match
-    case RecordTy.Elem(map, _) => map.exists((_, fm) => !fm(field).isTop)
-    case _                     => false
-
-  // the same bound recurs across every path of every entry
-  private val cachedWitnesses =
-    collection.concurrent.TrieMap[(ValueTy, ValueTy, ValueTy), List[String]]()
-
-  // rows and depth advance together, so depth costs less than the row count
-  private def roundRobin(rows: List[List[String]]): List[String] =
-    val cols = rows.map(_.toVector)
-    val maxIdx = cols.map(_.size).maxOption.getOrElse(0)
-    (0 until cols.size + maxIdx).toList.flatMap { d =>
-      cols.iterator.zipWithIndex.collect {
-        case (col, r) if d >= r && d - r < col.size => col(d - r)
-      }.toList
     }
 
-  private def unrefined(ty: ValueTy): ValueTy = ty.record match
-    case RecordTy.Elem(map, obj) =>
-      ty.copied(record = RecordTy.Elem(map.map((t, fm) => t -> widen(fm)), obj))
-    case _ => ty
+  private def newTargetForms(
+    ty: ValueTy,
+    synthesizer: TySynthesizer,
+  ): LazyList[String] =
+    val ctor = synthesizer.candidates(ty && ConstructorT)
+    if (UndefT ⊑ ty) "" #:: ctor else ctor // empty stands for no newTarget
 
-  private def erased(ty: ValueTy): ValueTy = ty.record match
-    case RecordTy.Elem(map, obj) =>
-      ty.copied(record =
-        RecordTy.Elem(map.map((t, _) => t -> FieldMap.Top), obj),
-      )
-    case _ => ty
-
-  // keep whether a field is there, drop what its value is
-  private def widen(fm: FieldMap): FieldMap = FieldMap(fm.map.collect {
-    case (field, binding) if !binding.absent => field -> Binding(AnyT)
-  })
-
-  private val typedArrayNames: List[String] = List(
-    "Int8Array",
-    "Uint8Array",
-    "Uint8ClampedArray",
-    "Int16Array",
-    "Uint16Array",
-    "Int32Array",
-    "Uint32Array",
-    "BigInt64Array",
-    "BigUint64Array",
-    "Float16Array",
-    "Float32Array",
-    "Float64Array",
-  )
-
-  private val sizedEntries: List[(ValueTy, List[String])] =
-    def each(at: Int => String): List[String] = (0 to 2).toList.map(at)
-    def rep(n: Int, elem: String): String = List.fill(n)(elem).mkString(", ")
-    def tuples(order: List[String], n: Int): List[List[String]] =
-      if (n == 0) List(Nil)
-      else for { e <- order; rest <- tuples(order, n - 1) } yield e :: rest
-    def contents(order: List[String]): List[List[String]] =
-      (0 to 2).toList.flatMap(tuples(order, _))
-    val num = List("0", "1")
-    val bigInt = List("0n", "1n")
-    List(
-      StrT -> each(n => "\"" + "a" * n + "\""),
-      ArrayT -> contents(num).map(_.mkString("[", ", ", "]")),
-      RecordT("Map") -> each(n => s"new Map([${rep(n, "[0, 0]")}])"),
-      RecordT("Set") -> each(n => s"new Set([${rep(n, "0")}])"),
-      RecordT("WeakMap") -> each(n => s"new WeakMap([${rep(n, "[{}, 0]")}])"),
-      RecordT("WeakSet") -> each(n => s"new WeakSet([${rep(n, "{}")}])"),
-      RecordT("ArrayBuffer") -> each(n => s"new ArrayBuffer(${8 * n})"),
-      RecordT("ArrayBuffer", Map("ArrayBufferMaxByteLength" -> AnyT)) -> each(
-        n => s"new ArrayBuffer(${8 * n}, { maxByteLength: ${8 * n} })",
-      ),
-      RecordT("SharedArrayBuffer") -> each(n =>
-        s"new SharedArrayBuffer(${8 * n})",
-      ),
-      RecordT("DataView") -> each(n =>
-        s"new DataView(new ArrayBuffer(${8 * n}))",
-      ),
-      TypedArrayT -> contents(num).map(es =>
-        s"new Int8Array([${es.mkString(", ")}])",
-      ),
-    ) ++ (for (name <- typedArrayNames) yield {
-      val order =
-        if (name.startsWith("BigInt64") || name.startsWith("BigUint64")) bigInt
-        else num
-      RecordT(name) -> contents(order).map(es =>
-        s"new $name([${es.mkString(", ")}])",
-      )
-    })
-
-  private val typedArrayEntries: List[(ValueTy, List[String])] =
-    val names = typedArrayNames
-    // InitializeTypedArrayFromArrayBuffer stores its buffer parameter here
-    (for (name <- names)
-      yield RecordT(name, Map("ViewedArrayBuffer" -> AnyT)) -> List(
-        s"new $name($$ViewedArrayBuffer)",
-      )) ++
-    // the constructor rejects a detached buffer, so detach after building
-    (for (name <- names)
-      yield RecordT(
-        name,
-        Map(
-          "ViewedArrayBuffer" ->
-          RecordT("ArrayBuffer", Map("ArrayBufferData" -> NullT)),
-        ),
-      ) -> List(
-        s"(() => { const b = new ArrayBuffer(8); const t = new $name(b); " +
-        "b.transfer(); return t; })()",
-      ))
-
-  private def buildJSProgram(
+  private def invoke(
     path: BuiltinPath,
     thisV: String,
     vs: List[String],
-    newTarget: Option[String],
-  ): Option[String] = newTarget match
-    case Some(nt) =>
-      access(path).map(target =>
-        s"Reflect.construct($target, [${vs.mkString(", ")}], $nt);",
-      )
-    case None =>
+    newTarget: String,
+  ): Option[String] =
+    if (newTarget.isEmpty) { // without newTarget: XXX.call
       path match
         case BuiltinPath.YetPath(_) => None
         case BuiltinPath.Getter(base) =>
@@ -296,6 +131,11 @@ object Solver {
         case _ =>
           val args = (thisV :: vs).mkString(", ")
           access(path).map(fn => s"$fn.call($args);")
+    } else { // with newTarget: Reflect.construct
+      access(path).map { fn =>
+        s"Reflect.construct($fn, [${vs.mkString(", ")}], $newTarget);"
+      }
+    }
 
   def getPath(func: Func): Option[BuiltinPath] = func.head match {
     case Some(h: BuiltinHead) => Some(h.path)
@@ -354,207 +194,4 @@ object Solver {
     "WrapForValidIteratorPrototype" -> "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } }))",
     "ThrowTypeError" -> """(function() { "use strict"; return Object.getOwnPropertyDescriptor(arguments, "callee").get })()""",
   )
-
-  // values built from the object shape a type carries
-  private def fromShape(ty: ValueTy): LazyList[String] =
-    val objs = ty.record match
-      case RecordTy.Elem(map, ObjShape(props, call, construct))
-          if props.nonEmpty =>
-        val ordered = props.toList.sortBy { case (p, _) => propKey(p) }
-        val slots = ordered.map { (prop, desc) =>
-          val k = propKey(prop)
-          if (desc.getExc) List(s"get $k() { throw 0; }")
-          else if (desc.setExc) List(s"set $k(_) { throw 0; }")
-          else candidates(desc.ty).toList.map(v => s"$k: $v")
-        }
-        val objs = oneChange(slots).map(_.mkString("{ ", ", ", " }"))
-        if (isPlainObject(ty)) objs
-        else
-          val traps = ordered match
-            case (prop, desc) :: Nil =>
-              val key = propExpr(prop)
-              val fwd = "return Reflect.get(t, p, r); }"
-              if (desc.getExc)
-                List(s"get(t, p, r) { if (p === $key) throw 0; $fwd")
-              else if (desc.setExc)
-                List(
-                  s"set(t, p, v, r) { if (p === $key) throw 0; " +
-                  "return Reflect.set(t, p, v, r); }",
-                )
-              else
-                candidates(desc.ty).toList
-                  .map(v => s"get(t, p, r) { if (p === $key) return $v; $fwd")
-            case _ => Nil
-          val base = exprFor(
-            ty.copied(record =
-              RecordTy.Elem(map, ObjShape(Map.empty, call, construct)),
-            ),
-          )
-          base match
-            case None => LazyList.empty
-            case Some(b) =>
-              traps.to(LazyList).map(h => s"new Proxy($b, { $h })") #:::
-              objs.map(o =>
-                s"Object.defineProperties($b, " +
-                s"Object.getOwnPropertyDescriptors($o))",
-              )
-      case _ => LazyList.empty
-    objs #::: fromConstruct(ty).iterator.to(LazyList) #:::
-    fromCall(ty).iterator.to(LazyList)
-
-  private def fromConstruct(ty: ValueTy): Option[String] =
-    ty.record.construct match
-      case ConstructDesc.Elem(exc, ret) =>
-        if (exc) Some("function() { throw 0; }")
-        else exprFor(ret).map(v => s"function() { return $v; }")
-      case ConstructDesc.Top => None
-
-  private def fromCall(ty: ValueTy): Option[String] =
-    ty.record.call match
-      case CallDesc.Elem(exc, ret) =>
-        val isCtor = ty <= ConstructorT
-        if (exc)
-          Some(if (isCtor) "function() { throw 0; }" else "() => { throw 0; }")
-        else
-          exprFor(ret).map { v =>
-            if (isCtor) s"function() { return $v; }" else s"() => ($v)"
-          }
-      case CallDesc.Top => None
-
-  private def isPlainObject(ty: ValueTy): Boolean = ty.record match
-    case RecordTy.Elem(map, _) =>
-      ObjectT ⊑ ty.copied(record = RecordTy.Elem(map))
-    case _ => ObjectT ⊑ ty
-
-  private def propExpr(prop: Property): String = prop match
-    case Property.PStr(str) => s"\"${normStr(str)}\""
-    case Property.PSym(sym) => s"Symbol.$sym"
-
-  private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
-
-  private def started(gen: String): String =
-    s"(() => { const g = ($gen)(); g.next(); return g; })()"
-
-  private def revokedProxy(target: String): String =
-    s"(() => { const r = Proxy.revocable($target, {}); " +
-    "r.revoke(); return r.proxy; })()"
-
-  // transferring hands the data to a fresh buffer and detaches the receiver
-  private val detachedBuffer: String =
-    "(() => { const b = new ArrayBuffer(8); b.transfer(); return b; })()"
-
-  private val witnesses: List[(ValueTy, List[String])] = List(
-    NumberT -> List("0"),
-    UndefT -> List("undefined"),
-    ObjectT -> List("{}"),
-    FunctionT -> List("() => {}"),
-    NaNT -> List("NaN"),
-    SymbolT -> List("Symbol()"),
-    RecordT("OrdinaryObject") -> List("{}"),
-    BoolT -> List("true", "false"),
-    NumberPosIntT -> List("1"),
-    NullT -> List("null"),
-    NumberNegIntT -> List("-1"),
-    BigIntT -> List("0n"),
-    RecordT("ECMAScriptFunctionObject", List("Call", "Construct")) -> List(
-      "function(){}",
-    ),
-    RecordT("ProxyExoticObject", List("Call", "Construct")) -> List(
-      "new Proxy(function(){}, {})",
-    ),
-    RecordT("ProxyExoticObject") -> List("new Proxy({}, {})"),
-    RecordT(
-      "ProxyExoticObject",
-      Map(
-        "Call" -> AnyT,
-        "Construct" -> AnyT,
-        "ProxyTarget" -> NullT,
-        "ProxyHandler" -> NullT,
-      ),
-    ) -> List(revokedProxy("function(){}")),
-    RecordT(
-      "ProxyExoticObject",
-      Map("ProxyTarget" -> NullT, "ProxyHandler" -> NullT),
-    ) -> List(revokedProxy("{}")),
-    RecordT("ArrayBuffer", Map("ArrayBufferData" -> NullT)) -> List(
-      detachedBuffer,
-    ),
-    RecordT("AsyncGenerator") -> List("(async function*(){})()"),
-    RecordT("Generator") -> List("(function*(){})()"),
-    RecordT("ArrayIteratorInstance") -> List("[][Symbol.iterator]()"),
-    RecordT("BoundFunctionExoticObject", List("Call", "Construct")) -> List(
-      "(function(){}).bind()",
-    ),
-    RecordT("SettledPromise") -> List("Promise.resolve(0)"),
-    RecordT("PendingPromise") -> List("new Promise(() => {})"),
-    RecordT("Promise") -> List("new Promise(() => {})"),
-    RecordT("ErrorObject") -> List("new Error()"),
-    RecordT("NumberObject") -> List("Object(0)"),
-    RecordT("StringExoticObject") -> List("Object('')"),
-    RecordT("BuiltinFunctionObject", List("Call", "Construct")) -> List(
-      "Object",
-    ),
-    RecordT("BuiltinFunctionObject", List("Call")) -> List("Math.max"),
-    RegExpT -> List("/./"),
-    RecordT("BooleanObject") -> List("Object(true)"),
-    RecordT("SymbolObject") -> List("Object(Symbol())"),
-    RecordT("BigIntObject") -> List("Object(0n)"),
-    RecordT("Date") -> List("new Date()"),
-    RecordT("ArgumentsExoticObject") -> List(
-      "(function(){ return arguments; })()",
-    ),
-    RecordT("WeakRef") -> List("new WeakRef({})"),
-    RecordT("Generator", Map("GeneratorState" -> EnumT("completed"))) -> List(
-      started("function*(){}"),
-    ),
-    RecordT("Generator", Map("GeneratorState" -> EnumT("suspended-yield"))) ->
-    List(started("function*(){ yield 0; }")),
-    RecordT(
-      "AsyncGenerator",
-      Map("AsyncGeneratorState" -> EnumT("completed")),
-    ) -> List(started("async function*(){}")),
-    RecordT(
-      "AsyncGenerator",
-      Map("AsyncGeneratorState" -> EnumT("draining-queue")),
-    ) -> List(started("async function*(){ yield 0; }")),
-    RecordT(
-      "ProxyExoticObject",
-      Map("ProxyTarget" -> AnyT, "ProxyHandler" -> AnyT),
-    ) -> List("new Proxy($ProxyTarget, $ProxyHandler)"),
-    RecordT("ProxyExoticObject", Map("ProxyTarget" -> AnyT)) -> List(
-      "new Proxy($ProxyTarget, {})",
-    ),
-    RecordT("BoundFunctionExoticObject", Map("BoundTargetFunction" -> AnyT)) ->
-    List("($BoundTargetFunction).bind()"),
-    RecordT(
-      "ArrayIteratorInstance",
-      Map(
-        "IteratedArrayLike" -> AnyT,
-        "ArrayLikeIterationKind" -> EnumT("key+value"),
-      ),
-    ) -> List("Array.prototype.entries.call($IteratedArrayLike)"),
-    RecordT(
-      "ArrayIteratorInstance",
-      Map(
-        "IteratedArrayLike" -> AnyT,
-        "ArrayLikeIterationKind" -> EnumT("key"),
-      ),
-    ) -> List("Array.prototype.keys.call($IteratedArrayLike)"),
-    RecordT(
-      "ArrayIteratorInstance",
-      Map(
-        "IteratedArrayLike" -> AnyT,
-        "ArrayLikeIterationKind" -> EnumT("value"),
-      ),
-    ) -> List("Array.prototype.values.call($IteratedArrayLike)"),
-    // an unconstrained kind admits any of the three, so enumerate them
-    RecordT("ArrayIteratorInstance", Map("IteratedArrayLike" -> AnyT)) -> List(
-      "Array.prototype.values.call($IteratedArrayLike)",
-      "Array.prototype.keys.call($IteratedArrayLike)",
-      "Array.prototype.entries.call($IteratedArrayLike)",
-    ),
-    RecordT("FinalizationRegistry") -> List(
-      "new FinalizationRegistry(() => {})",
-    ),
-  ) ++ sizedEntries ++ typedArrayEntries
 }

@@ -14,6 +14,7 @@ import scala.collection.mutable.{Map => MMap, PriorityQueue, Queue}
 
 class SymInterp(
   val tychecker: TyChecker,
+  val synthesizer: TySynthesizer,
   val entryFunc: Func,
   val target: Cond,
   val timeLimit: Option[Int] = None,
@@ -424,7 +425,8 @@ object SymInterp {
   ): SymInterpRunner = {
     val tyChecker = TyChecker(cfg, silent = true)
     tyChecker.analyze
-    SymInterpRunner(tyChecker, timeLimit, detail)
+    val synthesizer = TySynthesizer(cfg)
+    SymInterpRunner(tyChecker, synthesizer, timeLimit, detail)
   }
 
   /** BFS from `func` over the reverse call graph, mapping each reached function
@@ -505,9 +507,10 @@ object SymInterp {
 }
 case class SymInterpRunner(
   tyChecker: TyChecker,
+  synthesizer: TySynthesizer,
   timeLimit: Option[Int] = None,
   detail: Boolean = false,
 ) {
   def apply(func: Func, cond: Cond): SymInterp =
-    new SymInterp(tyChecker, func, cond, timeLimit, detail)
+    new SymInterp(tyChecker, synthesizer, func, cond, timeLimit, detail)
 }
