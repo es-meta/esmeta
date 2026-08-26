@@ -264,6 +264,7 @@ BigInt::subtract
 BigInt::toString
 BigInt::unaryMinus
 BigInt::unsignedRightShift
+BigIntBitwiseOp
 BinaryAnd
 BinaryOr
 BinaryXor
@@ -822,6 +823,7 @@ FieldDefinition[0,1].PrivateBoundIdentifiers
 FieldDefinition[0,1].PropName
 FindViaPredicate
 FinishLoadingImportedModule
+FlattenIntoArray
 ForBinding[0,0].IsDestructuring
 ForBinding[1,0].IsDestructuring
 ForBodyEvaluation

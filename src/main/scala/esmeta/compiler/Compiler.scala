@@ -295,22 +295,32 @@ class Compiler(
     case RemoveContextStep(_, _) =>
       fb.addInst(IPop(fb.newTId, EGLOBAL_EXECUTION_STACK, true))
     case AssertStep(cond) =>
-      fb.addInst(IAssert(compile(fb, cond)))
+      if needsShortCircuit(cond) then
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(
+          compileShortCircuit(fb, x, cond),
+          IAssert(xExpr),
+        )
+      else fb.addInst(IAssert(compile(fb, cond)))
     case IfStep(cond, thenStep, elseStep, _) =>
-      import CompoundConditionOperator.*
-      // apply shortcircuit for invoke expression
-      val condExpr = cond match
-        case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
-          val (x, _) = fb.newTIdWithExpr
-          fb.addInst(compileShortCircuit(fb, x, cond, thenStep, elseStep))
-        case _ =>
-          fb.addInst(
-            IIf(
-              compile(fb, cond),
-              compileWithScope(fb, thenStep),
-              elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-            ),
-          )
+      if needsShortCircuit(cond) then
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(
+          compileShortCircuit(fb, x, cond),
+          IIf(
+            xExpr,
+            compileWithScope(fb, thenStep),
+            elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+          ),
+        )
+      else
+        fb.addInst(
+          IIf(
+            compile(fb, cond),
+            compileWithScope(fb, thenStep),
+            elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+          ),
+        )
     case RepeatStep(cond, body) =>
       import RepeatStep.LoopCondition.*
       val expr = cond match
@@ -1103,50 +1113,53 @@ class Compiler(
     fb.addInst(renamed)
     EUndef() // NOTE: unused expression
 
-  /** handle short circuiting */
+  /** evaluate a condition with short-circuit semantics and store it in `x` */
   def compileShortCircuit(
     fb: FuncBuilder,
     x: Ref,
     cond: Condition,
-    thenStep: Step,
-    elseStep: Option[Step],
   ): Inst = fb.withLang(cond) {
     val xExpr = toERef(x)
     import CompoundConditionOperator.*
     fb.newScope {
-      fb.addInst(
-        cond match
-          case CompoundCondition(left, And, right) =>
-            ISeq(
-              IAssign(x, compile(fb, left)) ::
-              IIf(
-                xExpr,
-                compileShortCircuit(fb, x, right, thenStep, elseStep),
-                elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-              ) :: Nil,
-            )
-          case CompoundCondition(left, Or, right) =>
-            ISeq(
-              IAssign(x, compile(fb, left)) ::
-              IIf(
-                xExpr,
-                // thenStep is "copied". maybe bad
-                compileWithScope(fb, thenStep),
-                compileShortCircuit(fb, x, right, thenStep, elseStep),
-              ) :: Nil,
-            )
-          case _ =>
-            ISeq(
-              IAssign(x, compile(fb, cond)) ::
-              IIf(
-                xExpr,
-                compileWithScope(fb, thenStep),
-                elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-              ) :: Nil,
+      cond match
+        case CompoundCondition(left, And, right) =>
+          fb.addInst(
+            compileShortCircuit(fb, x, left),
+            IIf(
+              xExpr,
+              compileShortCircuit(fb, x, right),
+              emptyInst,
             ),
-      )
+          )
+        case CompoundCondition(left, Or, right) =>
+          fb.addInst(
+            compileShortCircuit(fb, x, left),
+            IIf(
+              xExpr,
+              emptyInst,
+              compileShortCircuit(fb, x, right),
+            ),
+          )
+        case CompoundCondition(left, Imply, right) =>
+          fb.addInst(
+            compileShortCircuit(fb, x, left),
+            IIf(
+              xExpr,
+              compileShortCircuit(fb, x, right),
+              // the implication vacuously holds when the premise is false
+              IAssign(x, EBool(true)),
+            ),
+          )
+        case _ => fb.addInst(IAssign(x, compile(fb, cond)))
     }
   }
+
+  /** check whether an invoke expression is conditionally evaluated */
+  def needsShortCircuit(cond: Condition): Boolean = cond match
+    case CompoundCondition(left, _, right) =>
+      hasInvokeExpr(right) || needsShortCircuit(left)
+    case _ => false
 
   /** check if condition contains invoke expression */
   def hasInvokeExpr(cond: Condition): Boolean = {

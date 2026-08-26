@@ -421,6 +421,75 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm conditions
     // -------------------------------------------------------------------------
+    import CompoundConditionOperator.{And, Imply, Or}
+    val disjunction = CompoundCondition(exprCond, Or, isCond)
+    val otherDisjunction = CompoundCondition(finiteCond, Or, binaryCondLt)
+    val conjunction = CompoundCondition(exprCond, And, isCond)
+    val conjunctionOfDisjunctions =
+      CompoundCondition(disjunction, And, otherDisjunction)
+    val disjunctionOfConjunction =
+      CompoundCondition(conjunction, Or, finiteCond)
+    val leftAssociatedConjunction =
+      CompoundCondition(conjunction, And, finiteCond)
+    val rightAssociatedConjunction =
+      CompoundCondition(
+        exprCond,
+        And,
+        CompoundCondition(isCond, And, finiteCond),
+      )
+    val implicationWithLogicalOperands =
+      CompoundCondition(disjunction, Imply, conjunction)
+    val chainedImplication = CompoundCondition(
+      exprCond,
+      Imply,
+      CompoundCondition(isCond, Imply, finiteCond),
+    )
+    val conjunctionWithImplication = CompoundCondition(
+      CompoundCondition(exprCond, Imply, isCond),
+      And,
+      finiteCond,
+    )
+    val leftAssociatedImplication = CompoundCondition(
+      CompoundCondition(exprCond, Imply, isCond),
+      Imply,
+      finiteCond,
+    )
+    def makeAnd(left: Condition, right: Condition): Condition =
+      CompoundCondition(left, And, right)
+    def makeOr(left: Condition, right: Condition): Condition =
+      CompoundCondition(left, Or, right)
+    def makeImply(left: Condition, right: Condition): Condition =
+      CompoundCondition(left, Imply, right)
+
+    val xZero = Condition.from("_x_ = 0")
+    val xNegOne = Condition.from("_x_ = -1")
+    val yZero = Condition.from("_y_ = 0")
+    val yNegOne = Condition.from("_y_ = -1")
+    val xDisjunction = makeOr(xZero, xNegOne)
+    val yDisjunction = makeOr(yZero, yNegOne)
+    val groupedDisjunctions = makeAnd(xDisjunction, yDisjunction)
+
+    checkEqual("Condition precedence")(
+      Condition.from("_x_ = 0 or _x_ = -1 and _y_ = 0") ->
+      makeOr(xZero, makeAnd(xNegOne, yZero)),
+      Condition.from("_x_ = 0 and _x_ = -1 or _y_ = 0") ->
+      makeOr(makeAnd(xZero, xNegOne), yZero),
+      Condition.from("(_x_ = 0 or _x_ = -1) and _y_ = 0") ->
+      makeAnd(xDisjunction, yZero),
+      Condition.from("_x_ = 0 and (_x_ = -1 or _y_ = 0)") ->
+      makeAnd(xZero, makeOr(xNegOne, yZero)),
+      Condition.from(
+        "(_x_ = 0 or _x_ = -1) and (_y_ = 0 or _y_ = -1)",
+      ) -> groupedDisjunctions,
+      Condition.from("_x_ = 0 or _x_ = -1 or _y_ = 0") ->
+      makeOr(xZero, makeOr(xNegOne, yZero)),
+      Condition.from("_x_ = 0, _x_ = -1, and _y_ = 0") ->
+      makeAnd(xZero, makeAnd(xNegOne, yZero)),
+      Condition.from(
+        "If _x_ = 0 or _x_ = -1, then _y_ = 0 and _y_ = -1",
+      ) -> makeImply(xDisjunction, makeAnd(yZero, yNegOne)),
+    )
+
     checkParseAndStringify("Condition", Condition)(
       exprCond -> "_x_",
       typeCheckCond -> "_x_ is a Base",
@@ -465,6 +534,15 @@ class StringifyTinyTest extends LangTest {
       containsSuchThatCond -> "_x_ contains a Base _x_ such that _x_ is the length of _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",
+      conjunctionOfDisjunctions -> "(_x_ or _x_ is the length of _x_) and (_x_ is finite or _x_ < _x_ + _x_)",
+      disjunctionOfConjunction -> "_x_ and _x_ is the length of _x_ or _x_ is finite",
+      leftAssociatedConjunction -> "(_x_ and _x_ is the length of _x_) and _x_ is finite",
+      rightAssociatedConjunction -> "_x_, _x_ is the length of _x_, and _x_ is finite",
+      implicationWithLogicalOperands -> "If _x_ or _x_ is the length of _x_, then _x_ and _x_ is the length of _x_",
+      chainedImplication -> "If _x_, then _x_ is the length of _x_, then _x_ is finite",
+      conjunctionWithImplication -> "(If _x_, then _x_ is the length of _x_) and _x_ is finite",
+      leftAssociatedImplication -> "If (If _x_, then _x_ is the length of _x_), then _x_ is finite",
+      groupedDisjunctions -> "(_x_ = 0 or _x_ = -1) and (_y_ = 0 or _y_ = -1)",
     )
 
     // -------------------------------------------------------------------------

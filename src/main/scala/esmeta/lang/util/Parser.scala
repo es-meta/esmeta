@@ -964,31 +964,47 @@ trait Parsers extends IndentParsers {
   given cond: PL[Condition] = {
     import CompoundConditionOperator.*
 
-    // get compound condition from base and operation
+    // build a right-associative compound condition at one precedence level
     def compound(
       base: P[Condition],
       op: Parser[CompoundConditionOperator],
-    ): Parser[Condition] =
-      opt("(") ~> rep(base <~ opt(",")) ~ op ~ (opt("if") ~> base) <~ opt(
-        ")",
-      ) ^^ {
-        case ls ~ op ~ r =>
+    ): Parser[Condition] = {
+      lazy val next = op ~ (opt("if") ~> base)
+      lazy val listed = rep1(base <~ opt(",")) ~ next
+      lazy val chained = base ~ rep1(opt(",") ~> next)
+
+      listed ^^ {
+        case ls ~ (op ~ r) =>
           ls.foldRight(r) {
             case (l, r) => CompoundCondition(l, op, r)
           }
+      } ||| chained ^^ {
+        case l ~ rs =>
+          def loop(
+            left: Condition,
+            rest: List[CompoundConditionOperator ~ Condition],
+          ): Condition = rest match
+            case Nil            => left
+            case (op ~ r) :: rs => CompoundCondition(left, op, loop(r, rs))
+          loop(l, rs)
       }
+    }
 
-    lazy val simpleAnd: P[Condition] = compound(baseCond, "and" ^^^ And)
-    lazy val simpleOr: P[Condition] = compound(baseCond, "or" ^^^ Or)
-    lazy val simpleImply: P[Condition] =
-      "If" ~> compound(baseCond, "then" ^^^ Imply)
-    lazy val compOr: P[Condition] = compound(simpleAnd, "or" ^^^ Or)
+    // precedence (high to low): primary > and > or > implication
+    lazy val primary: P[Condition] =
+      ("(" ~> cond <~ ")") ||| baseCond
 
-    compOr |||
-    simpleImply |||
-    simpleOr |||
-    simpleAnd |||
-    baseCond
+    def level(
+      base: P[Condition],
+      op: Parser[CompoundConditionOperator],
+    ): P[Condition] = compound(base, op) ||| base
+
+    lazy val andCond: P[Condition] = level(primary, "and" ^^^ And)
+    lazy val orCond: P[Condition] = level(andCond, "or" ^^^ Or)
+    lazy val implyCond: P[Condition] =
+      "If" ~> compound(orCond, "then" ^^^ Imply)
+
+    implyCond ||| orCond
   }.named("lang.Condition")
 
   // base conditions
