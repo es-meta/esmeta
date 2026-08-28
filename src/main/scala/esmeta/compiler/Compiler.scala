@@ -565,7 +565,7 @@ class Compiler(
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, AUX_FLAT_LIST, List(EList(es.map(compile(fb, _))))))
         xExpr
-      case ListCopyExpression(expr) => ECopy(compile(fb, expr))
+      case CopyExpression(expr, _) => ECopy(compile(fb, expr))
       case RecordExpression(rawName, fields, _) =>
         val tname = Type.normalizeName(rawName)
         var props = (for {

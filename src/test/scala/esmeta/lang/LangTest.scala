@@ -42,10 +42,12 @@ object LangTest {
   lazy val semicolon = genStepEnder(";")
 
   lazy val letStep = dot(LetStep(x, refExpr))
+  lazy val letCopyStep = dot(LetStep(x, copyExpr))
   lazy val letStepSemicolon = semicolon(LetStep(x, refExpr))
   lazy val letStepClosure =
     LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
   lazy val setStep = dot(SetStep(x, addExpr))
+  lazy val setCopyStep = dot(SetStep(x, copyExpr))
   lazy val setAsStep = dot(SetAsStep(x, "specified", "id"))
   lazy val setEvalStateStep = SetEvaluationStateStep(x, x, Nil)
   lazy val setEvalStateArgStep = SetEvaluationStateStep(x, x, List(refExpr))
@@ -165,7 +167,15 @@ object LangTest {
     ListConcatExpression(List(refExpr, refExpr))
   lazy val listConcatExprThree =
     ListConcatExpression(List(refExpr, refExpr, refExpr))
-  lazy val listCopyExpr = ListCopyExpression(refExpr)
+  lazy val listElementsCopyExpr =
+    CopyExpression(refExpr, CopyExpressionForm.ListElements)
+  lazy val copyExpr = CopyExpression(refExpr)
+  lazy val copyOfListExpr =
+    CopyExpression(refExpr, CopyExpressionForm.TheList)
+  lazy val copyAccessExpr =
+    CopyExpression(ReferenceExpression(Access(x, "Captures")))
+  lazy val copyRunningContextExpr =
+    CopyExpression(ReferenceExpression(runningExecCtx))
   lazy val recordEmptyExpr =
     RecordExpression(
       "Object",
