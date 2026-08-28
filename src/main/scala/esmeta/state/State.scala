@@ -110,9 +110,7 @@ case class State(
   def pop(addr: Addr, front: Boolean): Value = heap.pop(addr, front)
 
   /** shallow copy a value */
-  def copy(value: Value): Value = value match
-    case addr: Addr => heap.copy(addr)
-    case _          => value
+  def copy(addr: Addr): Addr = heap.copy(addr)
 
   /** get keys of a record/map object as a list */
   def keys(addr: Addr, intSorted: Boolean): Addr = heap.keys(addr, intSorted)

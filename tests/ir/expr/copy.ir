@@ -16,8 +16,4 @@
   assert (= nested copiedNested)
   copiedNested.z = 4
   assert (= nested.z 4)
-
-  // copying an immutable value preserves the value
-  let primitive = (copy 42)[#1]
-  assert (= primitive 42)
 }
