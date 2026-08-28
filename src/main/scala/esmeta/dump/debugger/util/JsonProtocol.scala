@@ -42,6 +42,9 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Spec.Version] = summon
   given Encoder[Spec.Version] = summon
 
+  given Decoder[Constant] = summon
+  given Encoder[Constant] = summon
+
   given Decoder[Table] = summon
   given Encoder[Table] = summon
 
