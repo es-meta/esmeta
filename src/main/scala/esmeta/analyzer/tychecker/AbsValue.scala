@@ -462,6 +462,8 @@ trait AbsValueDecl { self: TyChecker =>
     /** TODO AST type names whose MV returns a non-negative integer */
     lazy val nonNegIntMVTyNames: Set[String] = Set(
       "CodePoint",
+      "DecimalDigit",
+      "DecimalDigits",
       "Hex4Digits",
       "HexEscapeSequence",
     ) ++ posIntMVTyNames

@@ -611,7 +611,7 @@ type AgentRecord {
   IsLockFree8: Boolean;
   CandidateExecution: Record[CandidateExecutionRecord];
   KeptAlive: List[Record[Object | Symbol]];
-  ModuleAsyncEvaluationCount: Int;
+  ModuleAsyncEvaluationCount: Int[0+];
 }
 
 // https://tc39.es/ecma262/#sec-candidate-executions
@@ -714,7 +714,6 @@ type CyclicModuleRecord extends ModuleRecord {
   abstract def ExecuteModule;
   Status: Enum[~evaluated~, ~evaluating-async~, ~evaluating~, ~linked~, ~linking~, ~new~, ~unlinked~];
   EvaluationError: Abrupt[throw] | Enum[~empty~];
-  DFSIndex: Enum[~empty~] | Int;
   DFSAncestorIndex: Enum[~empty~] | Int;
   RequestedModules: List[Record[ModuleRequestRecord]];
   LoadedModules: List[Record[LoadedModuleRequestRecord]];
