@@ -15,11 +15,13 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case IntSetTy(set)   => set.isEmpty
     case IntSignTy(sign) => sign.isBottom
 
-  def <=(that: => IntTy): Boolean = (this, that) match
-    case _ if (this == that) || (this == Bot) || (that eq Top) => true
-    case (IntSetTy(lset), IntSetTy(rset))     => lset subsetOf rset
+  def <=(that: => IntTy): Boolean = (this.canon, that.canon) match
+    case (l, r) if (l == r) || l.isBottom || r.isTop => true
+    case (IntSetTy(lset), IntSetTy(rset))            => lset subsetOf rset
+    case (IntSetTy(lset), IntSignTy(rsign))   => lset.forall(rsign.contains)
     case (IntSignTy(lsign), IntSignTy(rsign)) => lsign <= rsign
-    case (l, r)                               => l.toSign <= r.toSign
+    // a finite set never covers an infinite negative or positive component
+    case (IntSignTy(lsign), IntSetTy(_)) => lsign.isBottom
 
   def ||(that: => IntTy): IntTy =
     (this.canon, that.canon) match
@@ -35,11 +37,15 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case (IntSetTy(set), IntSignTy(sign)) => IntSetTy(set.filter(sign.contains))
     case (IntSignTy(sign), IntSetTy(set)) => IntSetTy(set.filter(sign.contains))
 
-  def --(that: => IntTy): IntTy = (this, that) match
-    case _ if this eq that                    => Bot
-    case (IntSetTy(lset), IntSetTy(rset))     => IntSetTy(lset -- rset)
+  def --(that: => IntTy): IntTy = (this.canon, that.canon) match
+    case _ if this eq that                => Bot
+    case (IntSetTy(lset), IntSetTy(rset)) => IntSetTy(lset -- rset)
+    case (IntSetTy(lset), IntSignTy(rsign)) =>
+      IntSetTy(lset.filterNot(rsign.contains))
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign -- rsign)
-    case (l, r)                               => IntSignTy(l.toSign -- r.toSign)
+    // a finite set cannot cover the infinite negative or positive component
+    case (IntSignTy(lsign), IntSetTy(rset)) =>
+      IntSignTy(Sign(lsign.neg, lsign.zero && !rset(BigInt(0)), lsign.pos))
 
   def +(that: => IntTy): IntTy = (this, that) match
     case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ + _) != Top =>
@@ -65,32 +71,36 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign / rsign)
     case (l, r)                               => l.toSignTy / r.toSignTy
 
-  def %(that: => IntTy): IntTy =
-    import esmeta.util.*
-    (this, that) match
-      case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ / _) != Top =>
-        single(l, r, _ % _)
-      case (l, IntSetTy(rset)) if rset.size == 1 =>
-        val r = rset.head
-        l match
-          case IntSetTy(lset) => IntSetTy(lset.map(l => l %% r))
-          case IntSignTy(_) =>
-            if (r > 8) NonNeg
-            else if (r < -8) NonPos
-            else if (r > 0) IntSetTy((0 until r.toInt).toSet.map(BigInt(_)))
-            else IntSetTy((r.toInt + 1 to 0).toSet.map(BigInt(_)))
-      case _ => Top
+  def %(that: => IntTy): IntTy = (this.canon, that.canon) match
+    case (l, r) if l.isBottom || r.isBottom => Bot
+    // a zero divisor traps, so it contributes nothing to the result
+    case (IntSetTy(lset), IntSetTy(rset)) =>
+      IntSetTy(for { l <- lset; r <- rset if r != 0 } yield l %% r)
+    case (IntSignTy(_), IntSetTy(rset)) if rset.size == 1 =>
+      val r = rset.head
+      // this is the Euclidean modulo, so the result lies between 0 and r
+      if (r > 8) NonNeg
+      else if (r < -8) NonPos
+      else if (r > 0) IntSetTy((0 until r.toInt).toSet.map(BigInt(_)))
+      else if (r < 0) IntSetTy((r.toInt + 1 to 0).toSet.map(BigInt(_)))
+      else Bot
+    case _ => Top
 
   def **(that: => IntTy): IntTy =
+    import esmeta.util.{One => Single}
     if (this.isBottom || that.isBottom) Bot
     // a negative exponent does not yield an integer
     else if (!that.toSign.isNonNeg) Top
     else
-      single(this, that, (l, r) => l.pow(r.toInt)) match
-        case res if res != Top         => res
-        case _ if this.toSign.isPos    => Pos
-        case _ if this.toSign.isNonNeg => NonNeg
-        case _                         => Top
+      val exact = (this.getSingle, that.getSingle) match
+        // a huge exponent would not fit in memory
+        case (Single(l), Single(r)) if r.isValidInt && r <= 1024 =>
+          IntSetTy(Set(l.pow(r.toInt)))
+        case _ => Top
+      if (exact != Top) exact
+      else if (this.toSign.isPos) Pos
+      else if (this.toSign.isNonNeg) NonNeg
+      else Top
 
   def &(that: => IntTy): IntTy = single(this, that, _ & _)
 
@@ -98,9 +108,17 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
 
   def ^(that: => IntTy): IntTy = single(this, that, _ ^ _)
 
-  def <<(that: => IntTy): IntTy = single(this, that, _ << _.toInt)
+  def <<(that: => IntTy): IntTy = shift(that, _ << _)
 
-  def >>(that: => IntTy): IntTy = single(this, that, _ >> _.toInt)
+  def >>(that: => IntTy): IntTy = shift(that, _ >> _)
+
+  /** a shift by a huge amount would not fit in memory, so give up on it */
+  private def shift(that: => IntTy, f: (BigInt, Int) => BigInt): IntTy =
+    import esmeta.util.{One => Single}
+    (this.getSingle, that.getSingle) match
+      case (Single(l), Single(r)) if r.isValidInt && r.abs <= 1024 =>
+        IntSetTy(Set(f(l, r.toInt)))
+      case _ => Top
 
   def >>>(that: => IntTy): IntTy = Top
 
@@ -120,10 +138,8 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case IntSetTy(set)   => IntSetTy(set.map(_.abs))
     case IntSignTy(sign) => IntSignTy(sign.abs)
 
-  def floor: IntTy = this.canon match
-    case IntSetTy(set) =>
-      IntSetTy(set.map(x => Interpreter.floor(Math(x)).toInt))
-    case IntSignTy(sign) => IntSignTy(sign)
+  // every integer is its own floor
+  def floor: IntTy = this.canon
 
   def min(that: => IntTy): IntTy = (this.canon, that.canon) match
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign min rsign)
@@ -150,11 +166,11 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case s               => s.toSignTy.isNonNeg
 
   def isPos: Boolean = this.canon match
-    case IntSignTy(sign) => sign.pos
+    case IntSignTy(sign) => sign.isPos
     case s               => s.toSignTy.isPos
 
   def isNeg: Boolean = this.canon match
-    case IntSignTy(sign) => sign.neg
+    case IntSignTy(sign) => sign.isNeg
     case s               => s.toSignTy.isNeg
 
   def toSign: Sign = this.canon match
@@ -186,17 +202,23 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
         else Many
 
   def canon: IntTy = this match
-    case s @ IntSetTy(set)              => s
-    case IntSignTy(sign) if sign.isZero => IntSetTy(Set(0))
-    case IntSignTy(_)                   => this
+    case s @ IntSetTy(set)                => s
+    case IntSignTy(sign) if sign.isBottom => IntSetTy(Set())
+    case IntSignTy(sign) if sign.isZero   => IntSetTy(Set(0))
+    case IntSignTy(_)                     => this
 
   def toMathSet: Option[Set[Math]] = this.canon match
     case IntSetTy(set) => Some(set.map(Math(_)))
     case _             => None
 
   def toNumberSet: Option[Set[Number]] = this.canon match
-    case IntSetTy(set) => Some(set.map(x => Number(x.toDouble)))
-    case _             => None
+    // the integral number 0 stands for both *+0* and *-0*
+    case IntSetTy(set) =>
+      Some(set.flatMap {
+        case x if x == 0 => Set(Number(0.0), Number(-0.0))
+        case x           => Set(Number(x.toDouble))
+      })
+    case _ => None
 }
 
 case class IntSetTy(set: Set[BigInt]) extends IntTy

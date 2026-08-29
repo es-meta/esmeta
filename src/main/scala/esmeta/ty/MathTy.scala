@@ -20,26 +20,24 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
 
   /** partial order */
   def <=(that: => MathTy): Boolean = (this.canon, that.canon) match
-    case _ if (this eq that) || (this == Bot) => true
-    // same types
-    case (MathSignTy(l), MathSignTy(r))     => l <= r
-    case (MathIntTy(l), MathIntTy(r))       => l <= r
-    case (MathSetTy(lset), MathSetTy(rset)) => lset subsetOf rset
-    // subset
+    case (l, r) if (l == r) || l.isBottom || r.isTop => true
+    // a finite left-hand side is checked element-wise
+    case (MathSetTy(lset), r) => lset.forall(r.contains)
+    // an integral left-hand side is covered by any superset of its integers
+    case (MathIntTy(l), MathIntTy(r))  => l <= r
     case (MathIntTy(l), MathSignTy(r)) => l.toSign <= r
-    // comparsion with set
-    case (MathIntTy(int), MathSetTy(set)) =>
-      int.toMathSet.fold(false) {
-        case mset => mset subsetOf set
-      }
-    case (MathSetTy(set), MathIntTy(int))     => false
-    case (l @ MathSetTy(lset), MathSignTy(r)) => l.toSign <= r
-    case _                                    => false
+    case (MathIntTy(l), MathSetTy(rset)) =>
+      l.toMathSet.fold(false)(_ subsetOf rset)
+    // only a sign type covers a whole sign class of the reals
+    case (MathSignTy(l), MathSignTy(r)) => l <= r
+    case (MathSignTy(l), _)             => l.isBottom
 
   /** union type */
   def ||(that: => MathTy): MathTy = (this.canon, that.canon) match
     case _ if this eq that            => this
     case (l, r) if l.isTop || r.isTop => Top
+    case (l, r) if l.isBottom         => r
+    case (l, r) if r.isBottom         => l
     // same types
     case (MathSignTy(l), MathSignTy(r))     => MathSignTy(l || r)
     case (MathIntTy(l), MathIntTy(r))       => MathIntTy(l || r)
@@ -47,45 +45,39 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     // comparison with set
     case (MathIntTy(int), MathSetTy(set)) => integrate(int, set)(_ union _)
     case (MathSetTy(set), MathIntTy(int)) => integrate(int, set)(_ union _)
-    case (MathSignTy(sign), MathSetTy(set)) =>
-      MathSetTy(set ++ set.filter(n => sign.contains(n.decimal)))
-    case (MathSetTy(set), MathSignTy(sign)) =>
-      MathSetTy(set ++ set.filter(n => sign.contains(n.decimal)))
+    // a sign type cannot enumerate values, so widen both sides to signs
     case (l, r) => MathSignTy(l.toSign || r.toSign)
 
   /** intersection type */
   def &&(that: => MathTy): MathTy = (this.canon, that.canon) match
-    case _ if this eq that                  => this
     case (l, r) if l.isBottom || r.isBottom => Bot
-    // same types
-    case (MathSignTy(l), MathSignTy(r))     => MathSignTy(l && r)
-    case (MathIntTy(l), MathIntTy(r))       => MathIntTy(l && r)
-    case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset intersect rset)
-    // comparison with set
-    case (MathIntTy(int), MathSetTy(set)) => integrate(int, set)(_ intersect _)
-    case (MathSetTy(set), MathIntTy(int)) => integrate(int, set)(_ intersect _)
-    case (MathSignTy(sign), MathSetTy(set)) =>
-      MathSetTy(set.filter(n => sign.contains(n.decimal)))
-    case (MathSetTy(set), MathSignTy(sign)) =>
-      MathSetTy(set.filter(n => sign.contains(n.decimal)))
-    // comparison with integer domain
-    case (MathIntTy(int), MathSignTy(sign)) => MathIntTy(int && IntSignTy(sign))
-    case (MathSignTy(sign), MathIntTy(int)) => MathIntTy(IntSignTy(sign) && int)
+    case (l, r) if l.isTop                  => r
+    case (l, r) if r.isTop                  => l
+    // a finite side bounds the result, so filter it element-wise
+    case (MathSetTy(lset), r) => MathSetTy(lset.filter(r.contains))
+    case (l, MathSetTy(rset)) => MathSetTy(rset.filter(l.contains))
+    // otherwise meet the finite domains
+    case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l && r)
+    case (MathIntTy(l), MathSignTy(r))  => MathIntTy(l && IntSignTy(r))
+    case (MathSignTy(l), MathIntTy(r))  => MathIntTy(IntSignTy(l) && r)
+    case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l && r)
 
   /** prune type */
   def --(that: => MathTy): MathTy = (this.canon, that.canon) match
     case _ if this eq that               => Bot
     case (l, r) if l.isBottom || r.isTop => Bot
-    // same types
-    case (MathSignTy(l), MathSignTy(r))     => MathSignTy(l -- r)
-    case (MathIntTy(l), MathIntTy(r))       => MathIntTy(l -- r)
-    case (MathSetTy(lset), MathSetTy(rset)) => MathSetTy(lset -- rset)
-    // comparison with set
-    case (MathIntTy(int), MathSetTy(set)) => integrate(int, set)(_ -- _)
-    case (MathSetTy(set), MathIntTy(int)) => integrate(int, set)(_ -- _)
-    case (MathSetTy(set), MathSignTy(sign)) =>
-      MathSetTy(set.filter(n => sign.contains(n.decimal)))
-    case (l, r) => MathSignTy(l.toSign -- r.toSign)
+    // a finite left-hand side is pruned element-wise
+    case (MathSetTy(lset), r) => MathSetTy(lset.filterNot(r.contains))
+    // an integral left-hand side only loses the integers of the right-hand side
+    case (MathIntTy(l), MathIntTy(r))    => MathIntTy(l -- r)
+    case (MathIntTy(l), MathSignTy(r))   => MathIntTy(l -- IntSignTy(r))
+    case (MathIntTy(l), MathSetTy(rset)) => MathIntTy(l -- rset.toIntTy)
+    // both sides cover whole sign classes
+    case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l -- r)
+    // neither a set nor an integral domain covers a sign class of the reals, so
+    // only the zero component can be ruled out
+    case (MathSignTy(l), r) =>
+      MathSignTy(Sign(l.neg, l.zero && !r.contains(Math(0)), l.pos))
 
   /** addition */
   def +(that: MathTy): MathTy = (this.canon, that.canon) match
@@ -112,8 +104,9 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
 
   /** exponentiation */
   def **(that: MathTy): MathTy = (this.canon, that.canon) match
-    case (MathIntTy(l), MathIntTy(r)) => MathIntTy(l ** r)
-    case _                            => Top
+    // a negative exponent does not yield an integer
+    case (MathIntTy(l), MathIntTy(r)) if r.toSign.isNonNeg => MathIntTy(l ** r)
+    case _                                                 => Top
 
   /** bitwise operation (&) */
   def &(that: MathTy): MathTy = (this.canon, that.canon) match
@@ -355,4 +348,10 @@ object MathTy extends Parser.From(Parser.mathTy) {
     int.toMathSet.fold(Top) {
       case mset => MathSetTy(f(mset, set))
     }
+
+  extension (set: Set[Math]) {
+
+    /** exactly the integral values of the set */
+    def toIntTy: IntTy = IntSetTy(set.flatMap(_.decimal.toBigIntExact))
+  }
 }
