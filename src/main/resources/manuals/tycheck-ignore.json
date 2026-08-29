@@ -4,14 +4,11 @@
   "BigIntBitwiseOp",
   "ClassStaticBlockBody[0,0].EvaluateClassStaticBlockBody",
   "CompareTypedArrayElements",
-  "DecimalEscape[0,1].CapturingGroupNumber",
   "DoWait",
   "EvaluateImportCall",
   "FunctionBody[0,0].EvaluateFunctionBody",
   "FunctionDeclarationInstantiation",
   "GetViewByteLength",
   "Record[SourceTextModuleRecord].ExecuteModule",
-  "TimeString",
-  "TimeZoneString",
   "TypedArrayLength"
 ]

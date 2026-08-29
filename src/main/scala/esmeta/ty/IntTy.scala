@@ -74,20 +74,23 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
         val r = rset.head
         l match
           case IntSetTy(lset) => IntSetTy(lset.map(l => l %% r))
-          case IntSignTy(lsign) =>
-            val zero = lsign.zero
-            if (r.abs > 8) Top
-            else if (r > 0) {
-              if (zero) IntSetTy((0 until r.toInt).toSet.map(BigInt(_)))
-              else IntSetTy((1 until r.toInt).toSet.map(BigInt(_)))
-            } else {
-              if (zero) IntSetTy((r.toInt + 1 to 0).toSet.map(BigInt(_)))
-              else IntSetTy((r.toInt + 1 until 0).toSet.map(BigInt(_)))
-            }
+          case IntSignTy(_) =>
+            if (r > 8) NonNeg
+            else if (r < -8) NonPos
+            else if (r > 0) IntSetTy((0 until r.toInt).toSet.map(BigInt(_)))
+            else IntSetTy((r.toInt + 1 to 0).toSet.map(BigInt(_)))
       case _ => Top
 
   def **(that: => IntTy): IntTy =
-    single(this, that, (l, r) => l.pow(r.toInt))
+    if (this.isBottom || that.isBottom) Bot
+    // a negative exponent does not yield an integer
+    else if (!that.toSign.isNonNeg) Top
+    else
+      single(this, that, (l, r) => l.pow(r.toInt)) match
+        case res if res != Top         => res
+        case _ if this.toSign.isPos    => Pos
+        case _ if this.toSign.isNonNeg => NonNeg
+        case _                         => Top
 
   def &(that: => IntTy): IntTy = single(this, that, _ & _)
 
