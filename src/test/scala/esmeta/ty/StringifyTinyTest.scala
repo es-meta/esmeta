@@ -2,7 +2,7 @@ package esmeta.ty
 
 import esmeta.cfg.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.{GrammarSymbol, Number}
+import esmeta.state.{GrammarSymbol, Math, Number}
 import scala.collection.mutable.ListBuffer
 
 /** stringify test */
@@ -123,11 +123,32 @@ class StringifyTinyTest extends TyTest {
       NegIntT -> "Int[Neg]",
       PosIntT -> "Int[Pos]",
       IntT(0, 1) -> "Int[0, 1]",
+      ValueTy(math = MathIntTy(IntSignTy(Sign.NonZero))) -> "Int[NonZero]",
+      ValueTy(math = MathTy.Zero) -> "Int[0]",
       InfinityT -> "INF",
       NegInfinityT -> "-INF",
       PosInfinityT -> "+INF",
+      ValueTy(math = MathTy.NonNeg) -> "Math[NonNeg]",
+      ValueTy(math = MathTy.NonPos) -> "Math[NonPos]",
+      ValueTy(math = MathTy.Neg) -> "Math[Neg]",
+      ValueTy(math = MathTy.Pos) -> "Math[Pos]",
+      ValueTy(math = MathSignTy(Sign.NonZero)) -> "Math[NonZero]",
+      ValueTy(math =
+        MathSetTy(Set(Math(-1.5), Math(0.5))),
+      ) -> "Math[-1.5, 0.5]",
       NumberT -> "Number",
       ValueTy(number = NumberTy.Finite) -> "Number[Finite]",
+      ValueTy(number =
+        NumberTy.Finite || NumberTy.NaN,
+      ) -> "Number[Finite, NaN]",
+      ValueTy(number = NumberTy.finite(FinNumberSignTy(Sign.Pos))) ->
+      "Number[Pos]",
+      ValueTy(number = NumberTy.finite(FinNumberSignTy(Sign.NonZero))) ->
+      "Number[NonZero]",
+      ValueTy(number = NumberTy.int(IntSignTy(Sign.NonZero))) ->
+      "Number[Int[NonZero]]",
+      ValueTy(number = NumberTy.Int || NumberTy.PosInf) -> "Number[Int, +INF]",
+      ValueTy(number = NumberTy.NegInf || NumberTy.NaN) -> "Number[-INF, NaN]",
       NumberIntT -> "Number[Int]",
       NumberNonPosIntT -> "Number[Int[NonPos]]",
       NumberNonNegIntT -> "Number[Int[NonNeg]]",

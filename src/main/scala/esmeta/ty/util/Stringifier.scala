@@ -277,7 +277,7 @@ class Stringifier(
     ty.canon match
       case ty if ty.isTop => app >> "Math"
       // case ty if ty.isBottom => app >> "Math[Bot]"
-      case MathSignTy(sign) => app >> "Math[" >> sign >> "]"
+      case MathSignTy(sign) => app >> "Math" >> sign
       case MathIntTy(int) =>
         given Rule[IntTy] = intRule
         app >> int
