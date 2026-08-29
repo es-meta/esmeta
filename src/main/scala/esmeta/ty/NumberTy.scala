@@ -288,15 +288,26 @@ object NumberTy extends Parser.From(Parser.numberTy) {
     * while an integral Number is finite by definition.
     */
 
+  // one axis at a time
+  lazy val Finite: NumberTy = finite(FinNumberTy.Top)
+  lazy val PosInf: NumberTy = inf(InfinityTy.Pos)
+  lazy val NegInf: NumberTy = inf(InfinityTy.Neg)
+  lazy val Infinite: NumberTy = inf(InfinityTy.Top)
+  lazy val NaN: NumberTy = NumberTy(FinNumberTy.Bot, InfinityTy.Bot, true)
+
   // Top & Bot
   lazy val Top: NumberTy = NumberTy(FinNumberTy.Top, InfinityTy.Top, true)
   lazy val Bot: NumberTy = NumberTy(FinNumberTy.Bot, InfinityTy.Bot, false)
 
   // Signs
-  lazy val Pos: NumberTy = sign(Sign.Pos, InfinityTy.Pos)
-  lazy val Neg: NumberTy = sign(Sign.Neg, InfinityTy.Neg)
-  lazy val NonNeg: NumberTy = sign(Sign.NonNeg, InfinityTy.Pos)
-  lazy val NonPos: NumberTy = sign(Sign.NonPos, InfinityTy.Neg)
+  lazy val Pos: NumberTy =
+    NumberTy(FinNumberSignTy(Sign.Pos), InfinityTy.Pos, false)
+  lazy val Neg: NumberTy =
+    NumberTy(FinNumberSignTy(Sign.Neg), InfinityTy.Neg, false)
+  lazy val NonNeg: NumberTy =
+    NumberTy(FinNumberSignTy(Sign.NonNeg), InfinityTy.Pos, false)
+  lazy val NonPos: NumberTy =
+    NumberTy(FinNumberSignTy(Sign.NonPos), InfinityTy.Neg, false)
   lazy val NonZero: NumberTy =
     NumberTy(FinNumberSignTy(Sign.NonZero), InfinityTy.Top, true)
 
@@ -310,16 +321,16 @@ object NumberTy extends Parser.From(Parser.numberTy) {
   // Constants
   lazy val Zero: NumberTy = int(IntTy.Zero)
   lazy val One: NumberTy = int(IntTy.One)
-  lazy val NaN: NumberTy = NumberTy(FinNumberTy.Bot, InfinityTy.Bot, true)
-  lazy val Infinite: NumberTy = NumberTy(FinNumberTy.Bot, InfinityTy.Top, false)
 
-  /** a type described by the sign of its finite part */
-  def sign(sign: Sign, inf: InfinityTy = InfinityTy.Bot): NumberTy =
-    NumberTy(FinNumberSignTy(sign), inf, false)
+  /** a type of finite Numbers */
+  def finite(finite: FinNumberTy): NumberTy =
+    NumberTy(finite, InfinityTy.Bot, false)
+
+  /** a type of infinities alone */
+  def inf(inf: InfinityTy): NumberTy = NumberTy(FinNumberTy.Bot, inf, false)
 
   /** a type of integral Numbers, which are finite by definition */
-  def int(int: IntTy): NumberTy =
-    NumberTy(FinNumberIntTy(int), InfinityTy.Bot, false)
+  def int(int: IntTy): NumberTy = finite(FinNumberIntTy(int))
 
   /** split a set of numbers into its finite, infinite, and NaN parts */
   def apply(set: Set[Number]): NumberTy = NumberTy(

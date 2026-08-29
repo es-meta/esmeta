@@ -333,7 +333,7 @@ type BuiltinFunctionObject extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-promise.all-resolve-element-functions
 type PromiseAllResolveElementFunction extends BuiltinFunctionObject {
-  Index: Int[0+];
+  Index: Int[NonNeg];
   Values: List[ESValue];
   Capability: Record[PromiseCapabilityRecord];
   RemainingElements: Record[{ Value: Int }];
@@ -415,7 +415,7 @@ type ArgumentsExoticObject extends ExoticObject {
 // https://tc39.es/ecma262/#sec-properties-of-array-iterator-instances
 type ArrayIteratorInstance extends OrdinaryObject {
   IteratedArrayLike: Record[Object] | Undefined;
-  ArrayLikeNextIndex: Int[0+];
+  ArrayLikeNextIndex: Int[NonNeg];
   ArrayLikeIterationKind: Enum[~key+value~] | Enum[~key~] | Enum[~value~];
 }
 
@@ -433,11 +433,11 @@ type TypedArray extends ExoticObject {
   def Delete;
   def OwnPropertyKeys;
   ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
-  ArrayLength: Int[0+] | Enum[~auto~];
-  ByteOffset: Int[0+];
+  ArrayLength: Int[NonNeg] | Enum[~auto~];
+  ByteOffset: Int[NonNeg];
   ContentType: Enum[~bigint~, ~number~];
   TypedArrayName: String;
-  ByteLength: Int[0+] | Enum[~auto~];
+  ByteLength: Int[NonNeg] | Enum[~auto~];
 }
 
 // https://tc39.es/ecma262/#table-the-typedarray-constructors
@@ -611,7 +611,7 @@ type AgentRecord {
   IsLockFree8: Boolean;
   CandidateExecution: Record[CandidateExecutionRecord];
   KeptAlive: List[Record[Object | Symbol]];
-  ModuleAsyncEvaluationCount: Int[0+];
+  ModuleAsyncEvaluationCount: Int[NonNeg];
 }
 
 // https://tc39.es/ecma262/#sec-candidate-executions
@@ -729,7 +729,7 @@ type CyclicModuleRecord extends ModuleRecord {
 type GraphLoadingStateRecord {
   PromiseCapability: Record[PromiseCapabilityRecord];
   IsLoading: Boolean;
-  PendingModulesCount: Int[0+];
+  PendingModulesCount: Int[NonNeg];
   Visited: List[Record[CyclicModuleRecord]];
   HostDefined: Enum[~empty~];
 }
@@ -801,7 +801,7 @@ type BigIntObject extends OrdinaryObject {
 
 // https://tc39.es/ecma262/#sec-properties-of-date-instances
 type Date extends OrdinaryObject {
-  DateValue: NumberInt | NaN;
+  DateValue: Number[Int, NaN];
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-regexp-instances
@@ -832,25 +832,25 @@ type WeakSet extends OrdinaryObject {
 // https://tc39.es/ecma262/#sec-properties-of-the-arraybuffer-instances
 type ArrayBuffer extends Object {
   ArrayBufferData: DataBlock | Null;
-  ArrayBufferByteLength: Int[0+];
+  ArrayBufferByteLength: Int[NonNeg];
   ArrayBufferDetachKey: ESValue;
-  ArrayBufferMaxByteLength?: Int[0+];
+  ArrayBufferMaxByteLength?: Int[NonNeg];
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-the-sharedarraybuffer-instances
 type SharedArrayBuffer extends Object {
   ArrayBufferData: Record[SharedDataBlock] | Null;
-  ArrayBufferByteLength?: Int[0+];
+  ArrayBufferByteLength?: Int[NonNeg];
   ArrayBufferByteLengthData?: Record[SharedDataBlock];
-  ArrayBufferMaxByteLength?: Int[0+];
+  ArrayBufferMaxByteLength?: Int[NonNeg];
 }
 
 // https://tc39.es/ecma262/#sec-properties-of-dataview-instances
 type DataView extends OrdinaryObject {
   DataView: Undefined;
   ViewedArrayBuffer: Record[ArrayBuffer | SharedArrayBuffer];
-  ByteLength: Int[0+] | Enum[~auto~];
-  ByteOffset: Int[0+];
+  ByteLength: Int[NonNeg] | Enum[~auto~];
+  ByteOffset: Int[NonNeg];
 }
 
 // https://tc39.es/ecma262/#sec-json-parse-record
@@ -952,8 +952,8 @@ type AsyncGeneratorRequest {
 
 // https://tc39.es/ecma262/#sec-match-records
 type MatchRecord {
-  StartIndex: Int[0+];
-  EndIndex: Int[0+];
+  StartIndex: Int[NonNeg];
+  EndIndex: Int[NonNeg];
 }
 
 // -----------------------------------------------------------------------------
@@ -963,11 +963,11 @@ type MatchRecord {
 // https://tc39.es/ecma262/#sec-typedarray-with-buffer-witness-records
 type TypedArrayWithBufferWitnessRecord {
   Object: Record[TypedArray];
-  CachedBufferByteLength: Int[0+] | Enum[~detached~];
+  CachedBufferByteLength: Int[NonNeg] | Enum[~detached~];
 }
 
 // https://tc39.es/ecma262/#sec-dataview-with-buffer-witness-records
 type DataViewWithBufferWitnessRecord {
   Object: Record[DataView];
-  CachedBufferByteLength: Int[0+] | Enum[~detached~];
+  CachedBufferByteLength: Int[NonNeg] | Enum[~detached~];
 }

@@ -180,8 +180,7 @@ trait AbsValueDecl { self: TyChecker =>
     def convertTo(cop: COp, radix: AbsValue)(using AbsState): AbsValue = {
       val ty = this.ty
       // infinities are converted to the infinite numbers
-      lazy val fromInfinity: NumberTy =
-        NumberTy(FinNumberTy.Bot, ty.infinity, false)
+      lazy val fromInfinity: NumberTy = NumberTy.inf(ty.infinity)
       AbsValue(cop match
         case COp.ToApproxNumber =>
           // an approximated number of a mathematical value is unknown
@@ -273,15 +272,14 @@ trait AbsValueDecl { self: TyChecker =>
         case MathSignTy(s)  => MathSignTy(-s)
         case MathIntTy(x)   => MathIntTy(-x)
         case MathSetTy(set) => MathSetTy(set.map(m => Math(-m.decimal)))
-      val numberTy = NumberTy(
-        ty.number.finite match
+      val numberTy = ty.number.copy(
+        finite = ty.number.finite match
           case FinNumberSignTy(s) => FinNumberSignTy(-s)
           case FinNumberIntTy(x)  => FinNumberIntTy(-x)
           case FinNumberSetTy(set) =>
             FinNumberSetTy(set.map(n => Number(-n.double)))
         ,
-        InfinityTy(ty.number.inf.pos.map(!_)),
-        ty.number.nan,
+        inf = InfinityTy(ty.number.inf.pos.map(!_)),
       )
       val infinityTy = InfinityTy(ty.infinity.pos.map(!_))
       AbsValue(

@@ -252,14 +252,16 @@ class Stringifier(
 
   /** sign domain */
   given signRule: Rule[Sign] = (app, sign) =>
-    val Sign(neg, zero, pos) = sign
-    if sign.isTop then app
-    else
-      app >> "["
-      if (neg) app >> "-"
-      if (zero) app >> "0"
-      if (pos) app >> "+"
-      app >> "]"
+    if (sign.isTop) app else app >> "[" >> signName(sign) >> "]"
+
+  private def signName(sign: Sign): String = sign match
+    case Sign.Neg     => "Neg"
+    case Sign.Zero    => "Zero"
+    case Sign.Pos     => "Pos"
+    case Sign.NonPos  => "NonPos"
+    case Sign.NonNeg  => "NonNeg"
+    case Sign.NonZero => "NonZero"
+    case _            => ""
 
   /** integer types */
   given intRule: Rule[IntTy] = (app, ty) =>
@@ -281,31 +283,26 @@ class Stringifier(
         app >> int
       case MathSetTy(set) => app >> "Math" >> set
 
-  /** number types */
+  /** number types, whose every part goes inside one `Number[...]` */
   given numberTyRule: Rule[NumberTy] = (app, ty) =>
     val NumberTy(finite, inf, nan) = ty.canon
-    lazy val specials =
-      inf.pos.toList.sorted.map(p => if (p) "+INF" else "-INF")
     if (ty.isTop) app >> "Number"
-    // a type of special values alone is printed as a set of them
-    else if (finite.isBottom)
-      (specials ++ (if (nan) List("NaN") else Nil)) match
-        case Nil         => app >> "Number[]"
-        case List("NaN") => app >> "NaN"
-        case ss          => app >> "Number[" >> ss.mkString(", ") >> "]"
     else
-      finite match
-        // a bare `Number` is the top type, so spell out a full sign here
-        case FinNumberSignTy(sign) =>
-          if (sign.isTop) app >> "Number[-0+]" else app >> "Number" >> sign
-        case FinNumberIntTy(int) =>
-          int match
-            case IntSetTy(set)   => app >> "NumberInt" >> set
-            case IntSignTy(sign) => app >> "NumberInt" >> sign
-        case FinNumberSetTy(set) => app >> "Number" >> set
-      if (specials.nonEmpty)
-        app >> " | Number[" >> specials.mkString(", ") >> "]"
-      if (nan) app >> " | NaN" else app
+      var rest = false
+      def sep: Unit = { if (rest) app >> ", "; rest = true }
+      app >> "Number["
+      finite.canon match
+        case f if f.isBottom     => ()
+        case FinNumberIntTy(int) => sep; app >> int
+        case FinNumberSignTy(s) =>
+          sep; app >> (if (s.isTop) "Finite" else signName(s))
+        case FinNumberSetTy(set) =>
+          for (n <- set.toList.sorted) { sep; app >> n }
+      for (p <- inf.pos.toList.sorted) {
+        sep; app >> (if (p) "+INF" else "-INF")
+      }
+      if (nan) { sep; app >> "NaN" }
+      app >> "]"
 
   /** infinity types */
   given infinityTyRule: Rule[InfinityTy] = (app, ty) =>
