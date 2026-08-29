@@ -20,6 +20,7 @@ object SystemUtils {
   private val ENC = "utf8"
 
   /** file reader */
+  @deprecated("Not Supported in Scala.Js, may result in runtime error")
   def fileReader(filename: String): Reader =
     Source.fromFile(filename, ENC).bufferedReader
 
@@ -45,6 +46,7 @@ object SystemUtils {
   lazy val patchFilter = extFilter("patch")
 
   /** print writer */
+  @deprecated("Not Supported in Scala.Js, may result in runtime error")
   def getPrintWriter(filename: String, append: Boolean = false): PrintWriter =
     val file = File(filename)
     val parent = file.getParent
@@ -57,10 +59,7 @@ object SystemUtils {
     dumpFile(data, filename, false)
 
   /** dump given data to a file */
-  def dumpFile(data: Any, filename: String, append: Boolean): Unit =
-    val nf = getPrintWriter(filename, append)
-    nf.print(data)
-    nf.close()
+  def dumpFile(data: Any, filename: String, append: Boolean): Unit = ()
 
   /** dump given data collection into a directory and show message */
   def dumpDir[T](
@@ -72,10 +71,7 @@ object SystemUtils {
     remove: Boolean = false,
     append: Boolean = false,
     silent: Boolean = false,
-  ): Unit =
-    mkdir(dirname, remove)
-    for (x <- iterable) dumpFile(getData(x), s"$dirname/${getName(x)}", append)
-    println(s"- Dumped $name into `$dirname` .")
+  ): Unit = ()
 
   /** dump given data into a file and show message */
   def dumpFile(
@@ -85,7 +81,6 @@ object SystemUtils {
     append: Boolean = false,
     silent: Boolean = false,
   ): Unit =
-    dumpFile(data, filename, append)
     if (!silent) println(s"- Dumped $name into `$filename`.")
 
   /** dump given data in a JSON format */
@@ -161,6 +156,8 @@ object SystemUtils {
       case _              => throw NoSingleFileError(msg)
 
   /** read file */
+  // @deprecated("Not Supported in Scala.Js, may result in runtime error")
+  // commented out because of too many warnings
   def readFile(filename: String): String =
     try {
       val source = Source.fromFile(filename, ENC)
@@ -171,6 +168,17 @@ object SystemUtils {
       case e: Exception =>
         println(s"Error reading file: ${e.getMessage}")
         ""
+    }
+
+  /** read JSON */
+  def readJsonContent[T](content: String)(implicit decoder: Decoder[T]): T =
+    parse(content) match {
+      case Left(err) => throw err
+      case Right(json) =>
+        json.as[T] match {
+          case Left(err) => throw err
+          case Right(v)  => v
+        }
     }
 
   /** read JSON */

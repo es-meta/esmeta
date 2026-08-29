@@ -16,37 +16,6 @@ object DumpSecIdToFuncInfo {
     // secId to funcid, visual funcName, fallback id (closures)
     val secIdToFuncInfo: MMap[String, (Int, String, List[Int])] = MMap.empty
 
-    for {
-      func <- cfg.funcs
-      irFunc = func.irFunc
-      algo <- func.irFunc.algo
-      sectionId = algo.elem.parent.id
-    } {
-      val secId =
-        if (func.isSDO && func.sdoInfo.isDefined)
-          s"$sectionId|${extractSDO(func.sdoInfo.get, cfg)}"
-        else sectionId
-      val visualName = algo.headElem.getText match
-        case templatePattern(name)
-            if cfg.intrinsics.templateMap.contains(name) =>
-          s"_${name}_"
-        case _ => convertFuncName(func)
-
-      val prev = secIdToFuncInfo.get(secId)
-      val curr = prev
-        .map {
-          case (prevId, prevName, fallbackIds) =>
-            if (func.isClo || func.isCont) then
-              (prevId, prevName, fallbackIds :+ func.id)
-            else (func.id, visualName, fallbackIds :+ prevId)
-        }
-        .getOrElse(
-          (func.id, visualName, Nil),
-        )
-
-      secIdToFuncInfo += (secId -> curr)
-    }
-
     dumpJson(
       name = "secIdToFunc",
       data = secIdToFuncInfo,

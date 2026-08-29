@@ -91,8 +91,8 @@ class Fuzzer(
       dumpFile(ESMeta.currentVersion, s"$logDir/version")
       dumpFile(getSeed, s"$logDir/seed")
       genSummaryHeader
-      genStatHeader(selector.names, selStatTsv)
-      genStatHeader(mutator.names, mutStatTsv)
+      genStatHeader(selector.names)
+      genStatHeader(mutator.names)
     }
     time(
       s"- initializing program pool with ${initPool.size} programs", {
@@ -126,9 +126,6 @@ class Fuzzer(
     // finish logging
     if (log) {
       logging
-      summaryTsv.close
-      selStatTsv.close
-      mutStatTsv.close
     }
 
     cov
@@ -346,21 +343,20 @@ class Fuzzer(
     header ++= Vector("target-conds(#)")
     if (kFs > 0) header ++= Vector(s"sens-target-conds(#)")
     addRow(header)
-  private def genStatHeader(keys: List[String], nf: PrintWriter) =
+  private def genStatHeader(keys: List[String]) =
     var header1 = Vector("iter(#)")
     var header2 = Vector("-")
     keys.foreach(k => {
       header1 ++= Vector(k, "-", "-", "-")
       header2 ++= Vector("pass", "fail", "total", "ratio")
     })
-    addRow(header1, nf)
-    addRow(header2, nf)
+    addRow(header1)
+    addRow(header2)
 
   // dump selector and mutator stat
   private def dumpStat(
     keys: List[String],
     stat: MMap[String, Counter],
-    tsv: PrintWriter,
   ): Unit =
     var row = Vector[Any](iter)
     keys.foreach(k => {
@@ -369,7 +365,7 @@ class Fuzzer(
       val ratio = optional((pass * 10000) / total / 100.0).getOrElse(0.0)
       row ++= Vector(pass, fail, total, s"$ratio%")
     })
-    addRow(row, tsv)
+    addRow(row)
 
   // logging
   private def logging: Unit =
@@ -388,21 +384,12 @@ class Fuzzer(
     addRow(row)
     // dump coverage
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
-    dumpStat(selector.names, selectorStat, selStatTsv)
-    dumpStat(mutator.names, mutatorStat, mutStatTsv)
+    dumpStat(selector.names, selectorStat)
+    dumpStat(mutator.names, mutatorStat)
     // dump spec type error
     if (tyCheck) collector.dumpTo(logDir)
 
-  private def addRow(data: Iterable[Any], nf: PrintWriter = summaryTsv): Unit =
+  private def addRow(data: Iterable[Any]): Unit =
     val row = data.mkString("\t")
     if (stdOut) println(row)
-    nf.println(row)
-    nf.flush
-
-  private lazy val summaryTsv: PrintWriter =
-    getPrintWriter(s"$logDir/summary.tsv")
-  private lazy val selStatTsv: PrintWriter =
-    getPrintWriter(s"$logDir/selector-stat.tsv")
-  private lazy val mutStatTsv: PrintWriter =
-    getPrintWriter(s"$logDir/mutation-stat.tsv")
 }

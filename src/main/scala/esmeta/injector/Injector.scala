@@ -62,7 +62,6 @@ class Injector(
       handleVariable // inject assertions from variables
       handleLet // inject assertions from lexical variables
     if (log)
-      pw.close
       println("[Injector] Logging finished")
     _assertions.toVector
 
@@ -96,11 +95,11 @@ class Injector(
   // private helpers
   // ---------------------------------------------------------------------------
   // logging
-  private lazy val pw: PrintWriter =
+  private lazy val pw: Unit =
     println(s"[Injector] Logging into $INJECT_LOG_DIR...")
     mkdir(INJECT_LOG_DIR)
-    getPrintWriter(s"$INJECT_LOG_DIR/log")
-  private def log(data: Any): Unit = if (log) { pw.println(data); pw.flush() }
+    ()
+  private def log(data: Any): Unit = if (log) {}
   private def warning(msg: String): Unit = log(s"[Warning] $msg")
 
   // internal assertions
