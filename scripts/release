@@ -1,223 +1,450 @@
 #!/bin/bash
-# ------------------------------------------------------------------------------
-# PLEASE CAREFULLY USE IT.
-# IT WILL AUTOMATICALLY COMMIT/PUSH AND EVEN PUBLISH DOC PAGES.
-# ------------------------------------------------------------------------------
+# ==============================================================================
+# ESMeta release driver
+#
+# Walks through steps 1-7 of the release process described in the wiki:
+#   https://github.com/es-meta/esmeta/wiki/How-to-Release
+# Every step explains itself and waits for your confirmation ([Y/n/q]).
+# Steps 8-11 need forks and pull requests, so they are printed as manual
+# instructions once step 7 finishes.
+#
+# If any step fails, the script stops WITHOUT rolling anything back, and tells
+# you what has been done and what is left to do by hand.
+#
+# NOTE ON ORDERING: the wiki lists "merge main with dev" (3) before "update the
+# version files" (5), but every released commit shows the opposite: the version
+# bump is committed on `dev` and `main` is then fast-forwarded onto it, so the
+# tip of `main` is always the "Update version" commit. This script follows the
+# actual history and labels each step with its wiki number.
+#
+# Usage: scripts/release <semver>          e.g. scripts/release 0.9.0
+# ==============================================================================
 
-# colors
+set -u
+
+# Never hand output to a pager: this script is a prompt-driven flow and a pager
+# would swallow the terminal while waiting for input.
+export GIT_PAGER=cat
+export PAGER=cat
+
+# ------------------------------------------------------------------------------
+# output helpers
+# ------------------------------------------------------------------------------
 RED='\033[0;31m'
-LRED='\033[1;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+BOLD='\033[1m'
+NC='\033[0m'
 
-# log file
+mkdir -p logs
 LOG=logs/release
-rm -f $LOG
+: >"$LOG"
 
-function log {
-  color=$CYAN
-  if ! [ -z $2 ]; then color=$2; fi
-  dateStr=`date '+%Y-%m-%d %H:%M:%S'`
-  echo -e -n "${color}[$dateStr]${NC} $1... " | tee -a $LOG
+say()  { echo -e "$1" | tee -a "$LOG"; }
+ok()   { say "${GREEN}✓${NC} $1"; }
+warn() { say "${YELLOW}!${NC} $1"; }
+err()  { say "${RED}✗${NC} $1"; }
+rule() { say "${CYAN}------------------------------------------------------------${NC}"; }
+
+# ------------------------------------------------------------------------------
+# step bookkeeping
+# ------------------------------------------------------------------------------
+declare -a COMPLETED=()
+declare -a SKIPPED=()
+STEP_NO=0
+STEP_TITLE=""
+STEP_WIKI=""
+TOTAL=7
+
+begin() { # begin <no> <wiki-no> <title>
+  STEP_NO="$1"; STEP_WIKI="$2"; STEP_TITLE="$3"
+  say ""
+  rule
+  say "${BOLD}[$STEP_NO/$TOTAL] $STEP_TITLE${NC}  ${CYAN}(wiki step $STEP_WIKI)${NC}"
+  rule
 }
 
-function msg {
-  color=$NC
-  if ! [ -z $2 ]; then color=$2; fi
-  echo -e "${color}$1${NC}" | tee -a $LOG
+finish() { COMPLETED+=("$STEP_NO. $STEP_TITLE"); ok "done"; }
+
+skip() { SKIPPED+=("$STEP_NO. $STEP_TITLE"); warn "skipped"; }
+
+# confirm: Enter or y -> run, n -> skip the step, q -> quit early
+confirm() {
+  if [ ! -t 0 ]; then
+    err "This script is interactive; run it from a terminal."
+    exit 1
+  fi
+  local ans
+  while true; do
+    printf "${CYAN}Proceed? [Y/n/q] ${NC}"
+    read -r ans
+    case "$ans" in
+      "" | y | Y) return 0 ;;
+      n | N) skip; return 1 ;;
+      q | Q) say ""; warn "Stopped at your request."; summary; manual_from "$STEP_NO"; exit 0 ;;
+      *) echo "Please answer y (or Enter), n, or q." ;;
+    esac
+  done
 }
 
-function pass {
-  msg "PASS" $GREEN
+summary() {
+  say ""
+  rule
+  say "${BOLD}What has been done${NC}"
+  rule
+  if [ ${#COMPLETED[@]} -eq 0 ]; then
+    say "  (nothing)"
+  else
+    for s in "${COMPLETED[@]}"; do say "  ${GREEN}✓${NC} $s"; done
+  fi
+  if [ ${#SKIPPED[@]} -gt 0 ]; then
+    say ""
+    say "${BOLD}Skipped${NC}"
+    for s in "${SKIPPED[@]}"; do say "  ${YELLOW}-${NC} $s"; done
+  fi
 }
 
-function fail {
-  msg "FAIL" $RED
-}
-
-function error {
-  fail && msg && msg "$1" $RED
-}
-
-function warn {
-  msg "$1" $LRED
-}
-
-function clean {
-  fail
-  (
-    git checkout -- . &&
-    git switch dev
-  ) >/dev/null 2>&1
+# abort <reason>: never rolls back; reports state and what is left
+abort() {
+  say ""
+  err "${BOLD}[$STEP_NO/$TOTAL] $STEP_TITLE failed.${NC}"
+  say "  Reason: $1"
+  summary
+  say ""
+  warn "Nothing was rolled back. The repository is left exactly as it is now,"
+  warn "so you can inspect it, fix the problem, and redo the remaining steps."
+  say "  Current branch : $(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+  say "  Working tree   : $(git status --porcelain | wc -l | tr -d ' ') changed file(s)"
+  manual_from "$STEP_NO"
+  say ""
+  say "Full log: $LOG"
   exit 1
 }
 
-function help {
-  log "Usage: $0 <semver>"
-  log
-  log "We use Semantic Versioning 2.0 without pre-release names."
-  log "(Please see https://semver.org.)"
-  exit 1
+# run <description> <command...>
+run() {
+  local desc="$1"; shift
+  say "  \$ $*"
+  if ! "$@" >>"$LOG" 2>&1; then
+    abort "$desc failed. See $LOG for the output."
+  fi
 }
 
+# ------------------------------------------------------------------------------
+# manual instructions (used both on success and on failure)
+# ------------------------------------------------------------------------------
+manual_from() { # manual_from <first-step-still-to-do>
+  local from="$1"
+  say ""
+  rule
+  say "${BOLD}Remaining work${NC}"
+  rule
+  [ "$from" -le 1 ] && say "  1. Rebase \`dev\` onto \`main\`:  git switch dev && git rebase main"
+  [ "$from" -le 2 ] && say "  2. Check that CI is green: https://github.com/es-meta/esmeta/actions"
+  [ "$from" -le 3 ] && say "  3. Update .mailmap for new contributors, then commit it."
+  [ "$from" -le 4 ] && say "  4. Set the version to $VERSION in build.sbt and src/main/scala/esmeta/package.scala, run \`sbt release\` and \`sbt test\`, then commit."
+  [ "$from" -le 5 ] && say "  5. Merge into main:  git switch main && git merge --ff-only dev"
+  [ "$from" -le 6 ] && say "  6. Push and tag:  git push origin dev && git push origin main && git tag $TAG_NAME && git push origin $TAG_NAME"
+  [ "$from" -le 7 ] && say "  7. Publish the ScalaDoc:  sbt ghpagesPushSite"
+  manual_tail
+}
+
+manual_tail() {
+  say ""
+  rule
+  say "${BOLD}Steps 8-11 and the downstream CI updates are always manual${NC}"
+  rule
+  say ""
+  say "${BOLD} 8-10. Create the GitHub release${NC}"
+  say "    https://github.com/es-meta/esmeta/releases/new?tag=$TAG_NAME"
+  say "     8. Choose the new tag $TAG_NAME."
+  say "     9. Click \"Generate release notes\"."
+  say "    10. Append the contributor list:"
+  say ""
+  say "        ## Contributors"
+  say ""
+  say "        The following list is automatically generated by \`git shortlog -sn --no-merges $PREV_TAG..$TAG_NAME\`:"
+  say "        \`\`\`"
+  if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+    git --no-pager shortlog -sn --no-merges "$PREV_TAG..$TAG_NAME" 2>/dev/null |
+      sed 's/^/        /' | tee -a "$LOG"
+  else
+    say "        (run the command above once the tag $TAG_NAME exists)"
+  fi
+  say "        \`\`\`"
+  say ""
+  say "${BOLD}11. Update the website${NC}"
+  say "    Copy README.md into index.md of es-meta/es-meta.github.io."
+  say ""
+  say "${BOLD}Update CI in tc39/ecma262${NC}"
+  say "    In your fork, on a new branch:"
+  say "    - .github/workflows/esmeta-installer/action.yml"
+  say "        # $TAG_NAME"
+  say "        echo \"ESMETA_VERSION=$TAG_COMMIT\" >> \$GITHUB_ENV"
+  say "    - regenerate the ignore file:"
+  say "        esmeta tycheck -tycheck:log -tycheck:ignore=esmeta-ignore.json -tycheck:update-ignore"
+  say "    - commit, push, and open a pull request."
+  say ""
+  say "${BOLD}Update CI in tc39/test262${NC}"
+  say "    In your fork, on a new branch:"
+  say "    - .github/workflows/esmeta-test262.yml"
+  say "        git clone --branch $TAG_NAME --depth 1 https://github.com/es-meta/esmeta.git \"\${ESMETA_HOME}\""
+  say "    - commit, push, and open a pull request."
+}
+
+# ------------------------------------------------------------------------------
+# argument and pre-flight checks
+# ------------------------------------------------------------------------------
 if [ "$#" -ne 1 ]; then
-  help
+  echo "Usage: $0 <semver>"
+  echo ""
+  echo "We use Semantic Versioning 2.0 without pre-release names (https://semver.org)."
+  echo "Example: $0 0.9.0"
+  exit 1
 fi
 
-VERSION=$1
+VERSION="$1"
 TAG_NAME="v$VERSION"
-SEM_VER_PATTERN='^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$'
-REGEX='^(0|[1-9]\d*)\.(0|[1-9]\d*).(0|[1-9]\d*)$'
+# NOTE: bash uses POSIX ERE, which has no \d. Use [0-9] so that versions with
+# multi-digit components (0.10.0) are accepted.
+SEM_VER='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+TAG_COMMIT="<commit of $TAG_NAME>"
 
-log "Checking version name"
-if ! [[ "$VERSION" =~ $REGEX ]]; then
-  error "Invalid version name: ${LRED}$VERSION"
+say "${BOLD}ESMeta release $TAG_NAME${NC}"
+say ""
+say "This walks through steps 1-7 of the release wiki, asking before each one."
+say "Answer Enter or y to run a step, n to skip it, q to stop."
+say ""
+
+rule
+say "${BOLD}[0/$TOTAL] Pre-flight checks${NC}"
+rule
+
+if ! [[ "$VERSION" =~ $SEM_VER ]]; then
+  err "Invalid version name: $VERSION"
   exit 1
 fi
-pass
+ok "version name $VERSION"
 
-log "Fetching git"
-git fetch >/dev/null 2>&1 && pass || clean
+for tool in git sbt java; do
+  command -v "$tool" >/dev/null 2>&1 || { err "\`$tool\` is not installed."; exit 1; }
+done
+ok "git, sbt, and java are available"
 
-log "Checking tag name"
-if git rev-parse $TAG_NAME >/dev/null 2>&1; then
-  error "Already existed tag/branch name: ${LRED}$TAG_NAME"
+[ -n "${ESMETA_HOME:-}" ] || { err "ESMETA_HOME is not set."; exit 1; }
+ok "ESMETA_HOME=$ESMETA_HOME"
+
+if ! git fetch --tags origin >/dev/null 2>&1; then
+  err "Failed to fetch from origin."
   exit 1
 fi
-pass
+ok "fetched origin"
 
-log "Checking git status"
+if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+  err "Tag or branch $TAG_NAME already exists."
+  exit 1
+fi
+ok "$TAG_NAME does not exist yet"
+
 git update-index --refresh >/dev/null 2>&1
-if ! git diff-index --quiet HEAD -- >/dev/null 2>&1; then
-  error "Please remove all staged (M/D) or untracked(??) files:"
-  warn
-  warn "`git status --porcelain=v1 >/dev/null 2>&1`"
-  warn
+if [ -n "$(git status --porcelain)" ]; then
+  err "The working tree is not clean. Please commit or stash these first:"
+  git status --short | sed 's/^/    /' | tee -a "$LOG"
   exit 1
 fi
-pass
+ok "working tree is clean"
 
-log "Updating \`dev\` branch"
-(
-  git switch dev &&
-  git pull origin dev
-) >/dev/null 2>&1 && pass || clean
-
-log "Checking \`dev\` branch"
-DEV_HASH=`git rev-parse dev`
-ORIGIN_DEV_HASH=`git rev-parse origin/dev`
-if [ "$DEV_HASH" != "$ORIGIN_DEV_HASH" ]; then
-  error "The \`dev\` branch is not same with \`origin/dev\`:"
-  warn
-  warn "- dev       : $DEV_HASH"
-  warn "- origin/dev: $ORIGIN_DEV_HASH"
-  warn
-  exit 1
+PREV_TAG="$(git describe --tags --abbrev=0 2>/dev/null || echo '')"
+if [ -n "$PREV_TAG" ]; then
+  ok "previous release: $PREV_TAG"
+else
+  PREV_TAG="<previous tag>"
+  warn "no previous tag found"
 fi
-pass
 
-log "Checking whether \`main\` is an ancestor of \`dev\`"
-if ! git merge-base --is-ancestor origin/main dev; then
-  error "Please rebase \`dev\` into \`main\`:"
-  warn
-  warn "    $ git rebase main" $LRED
-  warn
-  exit 1
+# ------------------------------------------------------------------------------
+# 1. (wiki 1) rebase dev onto main
+# ------------------------------------------------------------------------------
+begin 1 1 "Rebase \`dev\` onto \`main\`"
+say "The release is cut from \`dev\`, so \`main\` must be an ancestor of it."
+say "Switches to \`dev\`, pulls it, and rebases onto \`main\` if needed."
+if confirm; then
+  run "switching to dev" git switch dev
+  run "pulling dev" git pull --ff-only origin dev
+  run "pulling main" git fetch origin main:main
+  if git merge-base --is-ancestor main dev; then
+    ok "\`main\` is already an ancestor of \`dev\`; nothing to rebase"
+  else
+    warn "\`main\` is not an ancestor of \`dev\`; rebasing"
+    run "rebasing dev onto main" git rebase main
+  fi
+  finish
 fi
-pass
 
-log "Updating \`build.sbt\`"
-(
-  sed -i '' -r -e 's/version := "[^ ]+"/version := "'$VERSION'"/' build.sbt
-) >/dev/null 2>&1 && pass || clean
-
-log "Updating \`package.json\`"
-(
-  sed -i '' -r -e 's/VERSION = "[^ ]+"/VERSION = "'$VERSION'"/' src/main/scala/esmeta/package.scala &&
-  pass
-) >/dev/null 2>&1 && pass || clean
-
-log "Updating \`README.md\`"
-(
-  sed -i '' -r -e 's/ESMeta v[^ ]+/ESMeta '$TAG_NAME'/' README.md &&
-  pass
-) >/dev/null 2>&1 && pass || clean
-
-log "Updating binary file using \`sbt release\`"
-(
-  sbt release
-) >/dev/null 2>&1 && pass || clean
-
-log "Testing using \`sbt test\`"
-(
-  sbt test
-) >/dev/null 2>&1 && pass || clean
-
-log "Adding commit to \`dev\`"
-(
-  git add build.sbt src/main/scala/esmeta/package.scala README.md &&
-  git commit -m 'Updated version'
-) >/dev/null 2>&1 && pass || clean
-
-log "Checking \`main\` branch"
-(
-  git switch main &&
-  git pull origin main
-) >/dev/null 2>&1 || clean
-MAIN_HASH=`git rev-parse main`
-ORIGIN_MAIN_HASH=`git rev-parse origin/main`
-if [ "$MAIN_HASH" != "$ORIGIN_MAIN_HASH" ]; then
-  error "The \`main\` branch is not same with \`origin/main\`:"
-  warn
-  warn "- main       : $MAIN_HASH"
-  warn "- origin/main: $ORIGIN_MAIN_HASH"
-  warn
-  exit 1
+# ------------------------------------------------------------------------------
+# 2. (wiki 2) check CI
+# ------------------------------------------------------------------------------
+begin 2 2 "Check that the CI is green"
+say "All GitHub Actions runs for \`dev\` must pass before releasing."
+say "Also make sure \`esmeta test262-test\` passed on the full suite."
+if confirm; then
+  if command -v gh >/dev/null 2>&1; then
+    say ""
+    if ci_runs="$(gh run list --repo es-meta/esmeta --branch dev --limit 5 2>&1)"; then
+      say "$ci_runs"
+    else
+      warn "Could not query GitHub Actions; check the page manually."
+    fi
+    say ""
+  fi
+  say "  https://github.com/es-meta/esmeta/actions"
+  printf "${CYAN}Is everything green (including test262-test)? [Y/n] ${NC}"
+  read -r ci_ans
+  case "$ci_ans" in
+    "" | y | Y) finish ;;
+    *) abort "CI is not green yet. Fix the failures and start again." ;;
+  esac
 fi
-pass
 
-log "Merging \`main\` to \`dev\`"
-(
-  git switch main &&
-  git pull origin main &&
-  git merge dev
-) >/dev/null 2>&1 && pass || clean
-
-echo
-echo -n "Do you want to publish ESMeta $TAG_NAME to the remote server? (y/n) "
-read PUBLISH
-if [ "$PUBLISH" != "y" ] && [ "$PUBLISH" != "" ]; then
-  log "Rollback \`dev\` and \`main\` branches "
-  (
-    git switch main &&
-    git reset --hard origin/main &&
-    git switch dev &&
-    git reset --hard origin/dev
-  ) >/dev/null 2>&1 && pass || clean
-  exit 1
+# ------------------------------------------------------------------------------
+# 3. (wiki 4) update .mailmap
+# ------------------------------------------------------------------------------
+begin 3 4 "Update \`.mailmap\` for new contributors"
+say "Contributors since $PREV_TAG:"
+say ""
+git --no-pager shortlog -sne "$PREV_TAG..dev" 2>/dev/null | sed 's/^/    /' | tee -a "$LOG"
+say ""
+say "If any name or address above is missing from .mailmap, edit it now in"
+say "another terminal. This step commits .mailmap if you changed it."
+if confirm; then
+  if [ -n "$(git status --porcelain .mailmap)" ]; then
+    run "staging .mailmap" git add .mailmap
+    run "committing .mailmap" git commit -m "Update .mailmap"
+    ok ".mailmap committed"
+  else
+    ok ".mailmap unchanged; nothing to commit"
+  fi
+  finish
 fi
-msg
 
-log "Pushing \`dev\` to \`origin/dev\`"
-(
-  git switch dev &&
-  git push origin dev
-) >/dev/null 2>&1 && pass || clean
+# ------------------------------------------------------------------------------
+# 4. (wiki 5) bump the version, rebuild, test, and commit
+# ------------------------------------------------------------------------------
+begin 4 5 "Set the version to $VERSION, rebuild, and test"
+say "Updates:"
+say "  - build.sbt                          version := \"$VERSION\""
+say "  - src/main/scala/esmeta/package.scala VERSION = \"$VERSION\""
+say "Then runs \`sbt release\` (format, assembly, and .completion) and \`sbt test\`."
+say "\`sbt release\` regenerates .completion, which is tracked, so it is committed too."
+say "This takes several minutes."
+if confirm; then
+  if [ "$(uname)" = "Darwin" ]; then SED_INPLACE=(-i '') ; else SED_INPLACE=(-i) ; fi
 
-log "Pushing \`main\` to \`origin/main\`"
-(
-  git switch main &&
-  git push origin main
-) >/dev/null 2>&1 && pass || clean
+  run "updating build.sbt" \
+    sed "${SED_INPLACE[@]}" -E "s/version := \"[^\"]+\"/version := \"$VERSION\"/" build.sbt
+  grep -q "version := \"$VERSION\"" build.sbt || abort "build.sbt was not updated."
+  ok "build.sbt"
 
-log "Creating tag \`$TAG_NAME\`"
-(
-  git tag $TAG_NAME &&
-  git push --tag origin $TAG_NAME
-) >/dev/null 2>&1 && pass || clean
+  run "updating package.scala" \
+    sed "${SED_INPLACE[@]}" -E "s/VERSION = \"[^\"]+\"/VERSION = \"$VERSION\"/" \
+    src/main/scala/esmeta/package.scala
+  grep -q "VERSION = \"$VERSION\"" src/main/scala/esmeta/package.scala || \
+    abort "package.scala was not updated."
+  ok "package.scala"
 
-log "Updating \`gh-pages\`"
-(
-  sbt ghpagesPushSite
-) >/dev/null 2>&1 && pass || clean
+  # The README no longer prints a version string; update it only if it does.
+  if grep -q "ESMeta v[0-9]" README.md; then
+    run "updating README.md" \
+      sed "${SED_INPLACE[@]}" -E "s/ESMeta v[0-9][^ ]*/ESMeta $TAG_NAME/" README.md
+    ok "README.md"
+  else
+    ok "README.md carries no version string; left untouched"
+  fi
+
+  say "  running \`sbt release\` (this takes a while)..."
+  run "sbt release" sbt release
+  ok "sbt release"
+
+  say "  running \`sbt test\`..."
+  run "sbt test" sbt test
+  ok "sbt test"
+
+  say ""
+  say "Files to be committed:"
+  git status --short | sed 's/^/    /' | tee -a "$LOG"
+  say ""
+  printf "${CYAN}Commit these as \"Update version\"? [Y/n] ${NC}"
+  read -r commit_ans
+  case "$commit_ans" in
+    "" | y | Y)
+      run "staging the version bump" git add -A
+      run "committing the version bump" git commit -m "Update version"
+      finish
+      ;;
+    *) abort "You declined the commit. The files above are still modified." ;;
+  esac
+fi
+
+# ------------------------------------------------------------------------------
+# 5. (wiki 3) merge dev into main
+# ------------------------------------------------------------------------------
+begin 5 3 "Fast-forward \`main\` to \`dev\`"
+say "\`main\` always points at the \"Update version\" commit of the latest release,"
+say "so this must be a fast-forward. If it is not, \`dev\` was not rebased properly."
+if confirm; then
+  run "switching to main" git switch main
+  run "pulling main" git pull --ff-only origin main
+  if ! git merge --ff-only dev >>"$LOG" 2>&1; then
+    run "switching back to dev" git switch dev
+    abort "\`main\` cannot be fast-forwarded to \`dev\`. Rebase \`dev\` onto \`main\` and retry from step 1."
+  fi
+  ok "main is now at $(git rev-parse --short main)"
+  finish
+fi
+
+# ------------------------------------------------------------------------------
+# 6. (wiki 6) push and tag
+# ------------------------------------------------------------------------------
+begin 6 6 "Push \`dev\` and \`main\`, then create the tag $TAG_NAME"
+say "${YELLOW}This is the first step that changes the remote repository.${NC}"
+say "It pushes:"
+say "  dev  -> origin/dev   ($(git rev-parse --short dev))"
+say "  main -> origin/main  ($(git rev-parse --short main))"
+say "and creates the tag $TAG_NAME on \`main\`."
+if confirm; then
+  run "pushing dev" git push origin dev
+  ok "pushed dev"
+  run "pushing main" git push origin main
+  ok "pushed main"
+  run "creating the tag" git tag "$TAG_NAME" main
+  run "pushing the tag" git push origin "$TAG_NAME"
+  ok "pushed $TAG_NAME"
+  TAG_COMMIT="$(git rev-parse "$TAG_NAME")"
+  finish
+fi
+
+# ------------------------------------------------------------------------------
+# 7. (wiki 7) publish the ScalaDoc
+# ------------------------------------------------------------------------------
+begin 7 7 "Publish the ScalaDoc to gh-pages"
+say "Runs \`sbt ghpagesPushSite\`, which pushes to the gh-pages branch."
+if confirm; then
+  run "sbt ghpagesPushSite" sbt ghpagesPushSite
+  finish
+fi
+
+# ------------------------------------------------------------------------------
+# done
+# ------------------------------------------------------------------------------
+[ "$TAG_COMMIT" = "<commit of $TAG_NAME>" ] && \
+  TAG_COMMIT="$(git rev-parse "$TAG_NAME" 2>/dev/null || echo "<commit of $TAG_NAME>")"
+
+say ""
+rule
+say "${GREEN}${BOLD}Steps 1-7 finished for $TAG_NAME.${NC}"
+rule
+summary
+manual_tail
+say ""
+say "Full log: $LOG"

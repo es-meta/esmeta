@@ -2,7 +2,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
 // ESMeta version
 // NOTE: please update VERSION together in top-level package.scala
-// NOTE: please update version info in the README.md file
+// NOTE: `scripts/release` updates this together with package.scala
 ThisBuild / version := "0.8.1"
 
 // Scala version
