@@ -68,7 +68,9 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
       MathSetTy(set.filter(n => sign.contains(n.decimal)))
     case (MathSetTy(set), MathSignTy(sign)) =>
       MathSetTy(set.filter(n => sign.contains(n.decimal)))
-    case (l, r) => MathSignTy(l.toSign && r.toSign)
+    // comparison with integer domain
+    case (MathIntTy(int), MathSignTy(sign)) => MathIntTy(int && IntSignTy(sign))
+    case (MathSignTy(sign), MathIntTy(int)) => MathIntTy(IntSignTy(sign) && int)
 
   /** prune type */
   def --(that: => MathTy): MathTy = (this.canon, that.canon) match

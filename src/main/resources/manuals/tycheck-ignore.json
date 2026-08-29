@@ -10,7 +10,6 @@
   "FunctionBody[0,0].EvaluateFunctionBody",
   "FunctionDeclarationInstantiation",
   "GetViewByteLength",
-  "INTRINSICS.Function.prototype.bind",
   "Record[SourceTextModuleRecord].ExecuteModule",
   "TimeString",
   "TimeZoneString",
