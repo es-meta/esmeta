@@ -142,7 +142,9 @@ class StringifyTinyTest extends TyTest {
         Number(Double.NaN),
         Number(-0.0),
         Number(0.0),
-      ) -> "Number[-INF, -0.0, 0.0, +INF, NaN]",
+        // the signed zeros stay apart from the integral Numbers, which
+        // cannot tell them apart, and so do the other special values
+      ) -> "Number[-0.0, 0.0] | Number[-INF, +INF] | NaN",
       BigIntT -> "BigInt",
       StrT -> "String",
       StrT("a") -> "String[\"a\"]",

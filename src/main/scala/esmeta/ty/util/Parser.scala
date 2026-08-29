@@ -243,30 +243,24 @@ trait Parsers extends BasicParsers {
     }
   }.named("ty.NumberTy")
 
-  private lazy val numberIntTy: Parser[(IntTy, Boolean)] = {
-    lazy val nan: Parser[Boolean] = "|" ~ "NaN" ^^^ true | "" ^^^ false
-    lazy val intSignTy =
-      ("NumberInt" ~> "[" ~> sign <~ "]") ~ nan ^^ {
-        case s ~ n => (IntSignTy(s), n)
-      }
+  private lazy val numberIntTy: Parser[IntTy] = {
+    lazy val intSignTy = "NumberInt" ~> "[" ~> sign <~ "]" ^^ { IntSignTy(_) }
     lazy val intSetTy =
-      ("NumberInt" ~> "[" ~> rep1sep(bigInt, ",") <~ "]") ~ nan ^^ {
-        case ds ~ n => (IntSetTy(ds.toSet), n)
+      "NumberInt" ~> "[" ~> rep1sep(bigInt, ",") <~ "]" ^^ {
+        case ds => IntSetTy(ds.toSet)
       }
-    lazy val intTop = "NumberInt" ~> nan ^^ {
-      case n => (IntSignTy(Sign.Top), n)
-    }
+    lazy val intTop = "NumberInt" ^^^ IntSignTy(Sign.Top)
     intSignTy | intSetTy | intTop
   }.named("ty.NumberIntTy")
 
+  // the special values are separate alternatives, joined by the `|` above
   private lazy val singleNumberTy: Parser[NumberTy] =
-    lazy val nan: Parser[Boolean] = "|" ~ "NaN" ^^^ true | "" ^^^ false
     lazy val numSignTy =
-      ("Number[" ~> sign <~ "]") ~ nan ^^ { case s ~ n => NumberSignTy(s, n) }
-    lazy val numIntTy = numberIntTy.map(NumberIntTy(_, _))
+      "Number[" ~> sign <~ "]" ^^ { NumberTy.sign(_) }
+    lazy val numIntTy = numberIntTy ^^ { NumberTy.int(_) }
     lazy val numSetTy =
       "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
-        case ns => NumberSetTy(ns.toSet)
+        case ns => NumberTy(ns.toSet)
       }
     lazy val numTop = "Number" ^^^ NumberTy.Top
     numSignTy | numIntTy | numSetTy | numTop | "NaN" ^^^ NumberTy.NaN

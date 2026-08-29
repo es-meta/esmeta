@@ -4,335 +4,329 @@ import esmeta.state.*
 import esmeta.ty.util.Parser
 import esmeta.util.*
 
-/** number types */
-sealed trait NumberTy extends TyElem with Lattice[NumberTy] {
+/** number types
+  *
+  * A Number is either a finite value, an infinity, or *NaN*, and the three are
+  * tracked apart so that one can never be mistaken for another. In particular
+  * *+∞*<sub>𝔽</sub> is a Number but not a finite one, so it is never covered
+  * by a sign of the finite part.
+  */
+case class NumberTy(finite: FinNumberTy, inf: InfinityTy, nan: Boolean)
+  extends TyElem
+  with Lattice[NumberTy] {
   import NumberTy.*
 
   /** top check */
   def isTop: Boolean = this.canon == Top
 
   /** bottom check */
-  def isBottom: Boolean = this.canon == Bot
+  def isBottom: Boolean = finite.isBottom && inf.isBottom && !nan
 
   /** partial order/subset operator */
-  def <=(that: => NumberTy): Boolean = (this.canon, that.canon) match
-    case _ if (this eq that) || (this == Bot) => true
-    // same types
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      (lsign <= rsign) && (!lnan || rnan)
-    case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
-      (lint <= rint) && (!lnan || rnan)
-    case (NumberSetTy(lset), NumberSetTy(rset)) => lset subsetOf rset
-    // subset
-    case (NumberIntTy(l, lnan), NumberSignTy(r, rnan)) =>
-      l.toSignTy.sign <= r && (!lnan || rnan)
-    // comparsion with set
-    case (NumberIntTy(int, nan), s @ NumberSetTy(set)) =>
-      int.toNumberSet.fold(false) {
-        case mset => mset subsetOf set
-      } && (!nan || s.hasNaN)
-    case (l @ NumberSetTy(lset), NumberSignTy(r, nan)) =>
-      l.toSignTy.sign <= r && (!l.hasNaN || nan)
-    case _ => false
+  def <=(that: => NumberTy): Boolean =
+    (this.finite <= that.finite) && (this.inf <= that.inf) &&
+    (!this.nan || that.nan)
 
   /** union type */
-  def ||(that: => NumberTy): NumberTy = (this.canon, that.canon) match
-    case _ if this eq that            => this
-    case (l, r) if l.isTop || r.isTop => Top
-    case (l, r) if l.isBottom         => r
-    case (l, r) if r.isBottom         => l
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign || rsign, lnan || rnan)
-    case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
-      NumberIntTy(lint || rint, lnan || rnan)
-    case (NumberSetTy(lset), NumberSetTy(rset)) =>
-      NumberSetTy(lset union rset)
-    case (NumberSetTy(lset), NumberIntTy(rint, rnan)) =>
-      integrate(rint, lset, rnan)(_ union _)
-    case (NumberIntTy(lint, lnan), NumberSetTy(rset)) =>
-      integrate(lint, rset, lnan)(_ union _)
-    case _ =>
-      val thisSign = this.toSignTy
-      val thatSign = that.toSignTy
-      NumberSignTy(
-        thisSign.sign || thatSign.sign,
-        thisSign.hasNaN || thatSign.hasNaN,
-      )
+  def ||(that: => NumberTy): NumberTy =
+    NumberTy(finite || that.finite, inf || that.inf, nan || that.nan)
 
   /** intersection type */
-  def &&(that: => NumberTy): NumberTy = (this.canon, that.canon) match
-    case _ if this eq that                  => this
-    case (l, r) if l.isBottom || r.isBottom => Bot
-    case (l, r) if l.isTop                  => r
-    case (l, r) if r.isTop                  => l
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign && rsign, lnan && rnan)
-    case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
-      NumberIntTy(lint && rint, lnan && rnan)
-    case (NumberSetTy(lset), NumberSetTy(rset)) =>
-      NumberSetTy(lset intersect rset)
-    case (NumberSetTy(lset), NumberIntTy(rint, rnan)) =>
-      integrate(rint, lset, rnan)(_ intersect _)
-    case (NumberIntTy(lint, lnan), NumberSetTy(rset)) =>
-      integrate(lint, rset, lnan)(_ intersect _)
-    case (NumberSetTy(set), NumberSignTy(sign, nan)) =>
-      NumberSetTy(
-        (if nan && set.hasNaN then Set(Number(Double.NaN))
-         else Set()) ++
-        set.filter(x => sign.contains(x.double)),
-      )
-    case (NumberSignTy(sign, nan), NumberSetTy(set)) =>
-      NumberSetTy(
-        (if nan && set.hasNaN then Set(Number(Double.NaN))
-         else Set()) ++
-        set.filter(x => sign.contains(x.double)),
-      )
-    case _ =>
-      val thisSign = this.toSignTy
-      val thatSign = that.toSignTy
-      NumberSignTy(
-        thisSign.sign && thatSign.sign,
-        thisSign.hasNaN && thatSign.hasNaN,
-      )
+  def &&(that: => NumberTy): NumberTy =
+    NumberTy(finite && that.finite, inf && that.inf, nan && that.nan)
 
   /** prune type */
   def --(that: => NumberTy): NumberTy =
-    (this.canon, that.canon) match
-      case _ if this eq that               => Bot
-      case _ if this == Bot || that == Top => Bot
-      case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-        NumberSignTy(lsign -- rsign, lnan && !rnan)
-      case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
-        NumberIntTy(lint -- rint, lnan && !rnan)
-      case (NumberSetTy(lset), NumberSetTy(rset)) =>
-        NumberSetTy(lset -- rset)
-      case (NumberIntTy(lint, lnan), NumberSetTy(rset)) =>
-        integrate(lint, rset, lnan)(_ -- _)
-      case (NumberSetTy(lset), NumberIntTy(rint, rnan)) =>
-        integrate(rint, lset, rnan)(_ -- _)
-      case _ =>
-        val thisSign = this.toSignTy
-        val thatSign = that.toSignTy
-        NumberSignTy(
-          thisSign.sign -- thatSign.sign,
-          thisSign.hasNaN && !thatSign.hasNaN,
-        )
+    NumberTy(finite -- that.finite, inf -- that.inf, nan && !that.nan)
 
   /** inclusion check */
+  def contains(number: Number): Boolean =
+    if (number.isNaN) nan
+    else if (number.double.isInfinite) inf.contains(number.double > 0)
+    else finite.contains(number)
+
+  /** NaN check */
+  def hasNaN: Boolean = nan
+
+  /** exactly the integral values of the type */
+  def toIntTy: IntTy = finite.toIntTy
+
+  /** get single value */
+  def getSingle: Flat[Number] =
+    val specials =
+      (if (nan) List(Number(Double.NaN)) else Nil) ++
+      inf.pos.toList.map(p =>
+        Number(if (p) Double.PositiveInfinity else Double.NegativeInfinity),
+      )
+    if (specials.isEmpty) finite.getSingle
+    else if (specials.sizeIs > 1 || !finite.isBottom) Many
+    else Flat(specials.head)
+
+  /** addition */
+  def +(that: NumberTy): NumberTy = arith(that, _ + _, _ + _)
+
+  /** subtraction */
+  def -(that: NumberTy): NumberTy = arith(that, _ - _, _ - _)
+
+  /** multiplication */
+  def *(that: NumberTy): NumberTy = arith(that, _ * _, _ * _)
+
+  /** division */
+  def /(that: NumberTy): NumberTy = arith(that, _ / _, _ / _)
+
+  /** An operand that may be an infinity makes any infinity possible, and an
+    * indeterminate form such as `∞ - ∞` produces *NaN*.
+    *
+    * TODO this does not model an overflow of the finite part to an infinity.
+    */
+  private def arith(
+    that: NumberTy,
+    intOp: (IntTy, IntTy) => IntTy,
+    signOp: (Sign, Sign) => Sign,
+  ): NumberTy =
+    if (this.isBottom || that.isBottom) Bot
+    else
+      val bothFinite = this.inf.isBottom && that.inf.isBottom
+      val resInf = if (bothFinite) InfinityTy.Bot else InfinityTy.Top
+      val resNaN =
+        nan || that.nan || (!this.inf.isBottom && !that.inf.isBottom)
+      (this.finite.canon, that.finite.canon) match
+        case (FinNumberIntTy(l), FinNumberIntTy(r)) =>
+          NumberTy(FinNumberIntTy(intOp(l, r)), resInf, resNaN)
+        case (l, r) =>
+          NumberTy(FinNumberSignTy(signOp(l.toSign, r.toSign)), resInf, resNaN)
+
+  /** non-negative integral check */
+  def isNonNegInt: Boolean = isInt && finite.toIntTy.isNonNeg
+
+  /** positive integral check */
+  def isPosInt: Boolean = isInt && finite.toIntTy.isPos
+
+  /** non-positive integral check */
+  def isNonPosInt: Boolean = isInt && finite.toIntTy.isNonPos
+
+  /** negative integral check */
+  def isNegInt: Boolean = isInt && finite.toIntTy.isNeg
+
+  private def isInt: Boolean = !nan && inf.isBottom && finite.isInt
+
+  /** canonical form, which normalizes only the finite part */
+  def canon: NumberTy = NumberTy(finite.canon, inf, nan)
+
+  /** the sign of the finite part, ignoring infinities and *NaN* */
+  def toSign: Sign = finite.toSign
+}
+
+/** finite number types */
+sealed trait FinNumberTy extends TyElem with Lattice[FinNumberTy] {
+  import FinNumberTy.*
+
+  /** top check */
+  def isTop: Boolean = this.canon == Top
+
+  /** bottom check */
+  def isBottom: Boolean = this.canon match
+    case FinNumberSetTy(set)   => set.isEmpty
+    case FinNumberIntTy(int)   => int.isBottom
+    case FinNumberSignTy(sign) => sign.isBottom
+
+  /** partial order/subset operator */
+  def <=(that: => FinNumberTy): Boolean = (this.canon, that.canon) match
+    case (l, r) if (l == r) || l.isBottom || r.isTop => true
+    // a finite left-hand side is checked element-wise
+    case (FinNumberSetTy(lset), r) => lset.forall(r.contains)
+    // an integral left-hand side is covered by any superset of its integers
+    case (FinNumberIntTy(l), FinNumberIntTy(r))  => l <= r
+    case (FinNumberIntTy(l), FinNumberSignTy(r)) => l.toSign <= r
+    case (FinNumberIntTy(l), FinNumberSetTy(rset)) =>
+      l.toNumberSet.fold(false)(_ subsetOf rset)
+    // only a sign type covers a whole sign class
+    case (FinNumberSignTy(l), FinNumberSignTy(r)) => l <= r
+    case (FinNumberSignTy(l), _)                  => l.isBottom
+
+  /** union type */
+  def ||(that: => FinNumberTy): FinNumberTy = (this.canon, that.canon) match
+    case (l, r) if l.isTop || r.isTop           => Top
+    case (l, r) if l.isBottom                   => r
+    case (l, r) if r.isBottom                   => l
+    case (FinNumberSetTy(l), FinNumberSetTy(r)) => FinNumberSetTy(l union r)
+    case (FinNumberIntTy(l), FinNumberIntTy(r)) => FinNumberIntTy(l || r)
+    // an integral domain joins a set only when it is finite itself
+    case (FinNumberSetTy(l), FinNumberIntTy(r)) if r.toNumberSet.isDefined =>
+      FinNumberSetTy(l ++ r.toNumberSet.get)
+    case (FinNumberIntTy(l), FinNumberSetTy(r)) if l.toNumberSet.isDefined =>
+      FinNumberSetTy(l.toNumberSet.get ++ r)
+    // a set of integral values joins the integral domain, which keeps the
+    // integrality at the cost of telling *+0* from *-0*
+    case (FinNumberSetTy(l), FinNumberIntTy(r)) if l.forall(isIntegral) =>
+      FinNumberIntTy(IntSetTy(l.flatMap(_.toBigIntExact)) || r)
+    case (FinNumberIntTy(l), FinNumberSetTy(r)) if r.forall(isIntegral) =>
+      FinNumberIntTy(l || IntSetTy(r.flatMap(_.toBigIntExact)))
+    // otherwise widen both sides to signs
+    case (l, r) => FinNumberSignTy(l.toSign || r.toSign)
+
+  /** intersection type */
+  def &&(that: => FinNumberTy): FinNumberTy = (this.canon, that.canon) match
+    case (l, r) if l.isBottom || r.isBottom => Bot
+    case (l, r) if l.isTop                  => r
+    case (l, r) if r.isTop                  => l
+    // a finite side bounds the result, so filter it element-wise
+    case (FinNumberSetTy(lset), r) => FinNumberSetTy(lset.filter(r.contains))
+    case (l, FinNumberSetTy(rset)) => FinNumberSetTy(rset.filter(l.contains))
+    // otherwise meet the integral domains
+    case (FinNumberIntTy(l), r) => FinNumberIntTy(l && r.toIntTy)
+    case (FinNumberSignTy(l), FinNumberIntTy(r)) =>
+      FinNumberIntTy(IntSignTy(l) && r)
+    case (FinNumberSignTy(l), FinNumberSignTy(r)) => FinNumberSignTy(l && r)
+
+  /** prune type */
+  def --(that: => FinNumberTy): FinNumberTy = (this.canon, that.canon) match
+    case (l, r) if l.isBottom || r.isTop => Bot
+    // a finite left-hand side is pruned element-wise
+    case (FinNumberSetTy(lset), r) => FinNumberSetTy(lset.filterNot(r.contains))
+    // an integral left-hand side only loses the integers of the right side,
+    // and its 0 stands for both signed zeros, so both must be covered
+    case (FinNumberIntTy(l), r) =>
+      val bothZeros = r.contains(Number(0.0)) && r.contains(Number(-0.0))
+      FinNumberIntTy(
+        l -- (if (bothZeros) r.toIntTy else r.toIntTy -- IntTy.Zero),
+      )
+    // both sides cover whole sign classes
+    case (FinNumberSignTy(l), FinNumberSignTy(r)) => FinNumberSignTy(l -- r)
+    // neither a set nor an integral domain covers a sign class of the reals,
+    // so only the zero component can be ruled out
+    case (FinNumberSignTy(l), r) =>
+      val zero =
+        l.zero && !(r.contains(Number(0.0)) && r.contains(Number(-0.0)))
+      FinNumberSignTy(Sign(l.neg, zero, l.pos))
+
+  /** inclusion check, for a finite number */
   def contains(number: Number): Boolean = this.canon match
-    case NumberSignTy(sign, hasNaN) =>
-      if number.isNaN then hasNaN
-      else sign.contains(number.double)
-    case NumberIntTy(int, hasNaN) =>
-      if number.isNaN then hasNaN
-      else number.double.isWhole && int.contains(number.double.toInt)
-    case NumberSetTy(set) => set contains number
+    case FinNumberSignTy(sign) => sign.contains(number.double)
+    case FinNumberIntTy(int)   => number.toBigIntExact.fold(false)(int.contains)
+    case FinNumberSetTy(set)   => set contains number
+
+  /** exactly the integral values of the type */
+  def toIntTy: IntTy = this.canon match
+    case FinNumberSignTy(sign) => IntSignTy(sign)
+    case FinNumberIntTy(int)   => int
+    case FinNumberSetTy(set)   => IntSetTy(set.flatMap(_.toBigIntExact))
+
+  /** integral check */
+  def isInt: Boolean = this.canon match
+    case FinNumberIntTy(_) => true
+    case _                 => false
 
   /** get single value */
   def getSingle: Flat[Number] = this.canon match
-    case s if s.isBottom  => esmeta.util.Zero
-    case NumberSetTy(set) => Flat(set)
-    case NumberIntTy(int, nan) =>
-      if nan && int.isBottom then Flat(Number(Double.NaN))
-      else int.getSingle.map(x => Number(x.toDouble))
-    case NumberSignTy(sign, nan) =>
-      if nan && sign.isBottom then Flat(Number(Double.NaN))
-      else if sign.isZero then Flat(Number(0))
-      else Many
+    case FinNumberSetTy(set) => Flat(set)
+    case FinNumberIntTy(int) =>
+      int.getSingle match
+        // the integral number 0 stands for both *+0* and *-0*
+        case One(x) if x == 0 => Many
+        case flat             => flat.map(x => Number(x.toDouble))
+    case FinNumberSignTy(sign) => if (sign.isBottom) Zero else Many
 
-  /** addition */
-  def +(that: NumberTy): NumberTy =
-    (this.canon, that.canon) match
-      case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
-        NumberIntTy(lint + rint, lnan || rnan)
-      case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-        NumberSignTy(lsign + rsign, lnan || rnan)
-      case (l, r) => NumberSignTy(l.toSign + r.toSign, false)
-
-  /** subtraction */
-  def -(that: NumberTy): NumberTy = (this.canon, that.canon) match
-    case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
-      NumberIntTy(lint - rint, lnan || rnan)
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign - rsign, lnan || rnan)
-    case (l, r) => NumberSignTy(l.toSign - r.toSign, false)
-
-  /** multiplication */
-  def *(that: NumberTy): NumberTy = (this.canon, that.canon) match
-    case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
-      NumberIntTy(lint * rint, lnan || rnan)
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign * rsign, lnan || rnan)
-    case (l, r) => NumberSignTy(l.toSign * r.toSign, false)
-
-  /** division */
-  def /(that: NumberTy): NumberTy = (this.canon, that.canon) match
-    case (NumberIntTy(lint, lnan), NumberIntTy(rint, rnan)) =>
-      NumberIntTy(lint / rint, lnan || rnan)
-    case (NumberSignTy(lsign, lnan), NumberSignTy(rsign, rnan)) =>
-      NumberSignTy(lsign / rsign, lnan || rnan)
-    case (l, r) => NumberSignTy(l.toSign / r.toSign, false)
-
-  /** non-negative integral check */
-  def isNonNegInt: Boolean = this.canon match
-    case NumberIntTy(int, false) => int.isNonNeg
-    case _                       => false
-
-  /** positive integral check */
-  def isPosInt: Boolean = this.canon match
-    case NumberIntTy(int, false) => int.isPos
-    case _                       => false
-
-  /** non-positive integral check */
-  def isNonPosInt: Boolean = this.canon match
-    case NumberIntTy(int, false) => int.isNonPos
-    case _                       => false
-
-  /** negative integral check */
-  def isNegInt: Boolean = this.canon match
-    case NumberIntTy(int, false) => int.isNeg
-    case _                       => false
-
-  /** This returns an canonical form of the number type. 1) If the type is a set
-    * of integers, this must return NumberIntTy. 2) Else if the gamma(type) is
-    * finite, then this must return NumberSetTy. 3) Otherwise, this must return
-    * NumberSignTy.
-    *
-    * IMPORTANT: NaN value should be considered as NumberSetTy (Temporal).
-    *
-    * @return
-    *   canonical form of the number type
+  /** This returns a canonical form of the finite number type. 1) If the type is
+    * a set of integral numbers, this must return FinNumberIntTy. 2) Else if the
+    * gamma(type) is finite, this must return FinNumberSetTy. 3) Otherwise, this
+    * must return FinNumberSignTy.
     */
-  def canon: NumberTy = this match
-    case NumberSignTy(sign, hasNaN) =>
-      sign match
-        case s if sign.isZero   => NumberIntTy(IntTy.Zero, hasNaN)
-        case s if sign.isBottom => if hasNaN then NumberTy.NaN else NumberTy.Bot
-        case _                  => this
-    case NumberIntTy(int, hasNaN) => NumberIntTy(int.canon, hasNaN)
-    case s @ NumberSetTy(set) =>
-      if (set.forall(x => x.double.isWhole || x.isNaN))
-        NumberIntTy(
-          IntSetTy(set.filterNot(_.isNaN).map(_.double.toLong)),
-          set.hasNaN,
-        )
-      else this
+  def canon: FinNumberTy = this match
+    case FinNumberSignTy(sign) if sign.isBottom => Bot
+    case FinNumberSignTy(sign) if sign.isZero   => FinNumberIntTy(IntTy.Zero)
+    case s @ FinNumberSignTy(_)                 => s
+    case FinNumberIntTy(int)                    => FinNumberIntTy(int.canon)
+    case s @ FinNumberSetTy(set) =>
+      val ints = set.map(_.toBigIntExact)
+      if (ints.forall(_.isDefined) && !set.exists(_.double == 0))
+        FinNumberIntTy(IntSetTy(ints.flatten))
+      else s
 
-  /** Get the sign of the number type. Ignores NaN values.
-    *
-    * @return
-    *   the sign of the number type
-    */
+  /** sign of the type */
   def toSign: Sign = this.canon match
-    case NumberSignTy(sign, _) => sign
-    case NumberIntTy(int, _)   => int.toSign
-    case NumberSetTy(set) =>
+    case FinNumberSignTy(sign) => sign
+    case FinNumberIntTy(int)   => int.toSign
+    case FinNumberSetTy(set) =>
       Sign.alpha(
         set.map(_.double),
         x =>
-          if x.isNaN then Sign.Bot
-          else if x < 0 then Sign.Neg
-          else if x > 0 then Sign.Pos
+          if (x < 0) Sign.Neg
+          else if (x > 0) Sign.Pos
           else Sign.Zero,
       )
-
-  /** Overapproximate a number type to a sign type. Also considers NaN values.
-    *
-    * @return
-    *   the sign type
-    */
-  def toSignTy: NumberSignTy = this.canon match
-    case s @ NumberSignTy(sign, hasNaN) => s
-    case NumberIntTy(int, hasNaN)       => NumberSignTy(int.toSign, hasNaN)
-    case s @ NumberSetTy(set)           => NumberSignTy(s.toSign, s.hasNaN)
 }
 
-/** number sign domain */
-case class NumberSignTy(sign: Sign, hasNaN: Boolean) extends NumberTy
+/** types for set of finite numbers */
+case class FinNumberSetTy(set: Set[Number]) extends FinNumberTy
 
 /** integral number types */
-case class NumberIntTy(int: IntTy, hasNaN: Boolean) extends NumberTy
+case class FinNumberIntTy(int: IntTy) extends FinNumberTy
 
-/** types for set of numbers */
-case class NumberSetTy(set: Set[Number]) extends NumberTy {
-  private def toInt: Option[IntSetTy] =
-    val setWithoutNaN = set.filterNot(_.isNaN)
-    if (setWithoutNaN.forall(_.double.isWhole))
-      Some(IntSetTy(set.map(_.double.toInt)))
-    else None
+/** finite number sign domain */
+case class FinNumberSignTy(sign: Sign) extends FinNumberTy
 
-  def hasNaN: Boolean = set.exists(_.isNaN)
+object FinNumberTy {
+  private def isIntegral(n: Number): Boolean = n.toBigIntExact.isDefined
+
+  lazy val Top: FinNumberTy = FinNumberSignTy(Sign.Top)
+  lazy val Bot: FinNumberTy = FinNumberIntTy(IntTy.Bot)
+
+  extension (n: Number) {
+
+    /** the exact integral value of the number, if any */
+    def toBigIntExact: Option[scala.math.BigInt] =
+      if (n.isNaN || n.double.isInfinite) None
+      else scala.math.BigDecimal(n.double).toBigIntExact
+  }
 }
 
 object NumberTy extends Parser.From(Parser.numberTy) {
 
-  /** Constants do not includes NaN as default except Top
+  /** Constants do not include NaN as default except Top. An infinity is a
+    * Number, so a type described by a sign includes the infinity of that sign,
+    * while an integral Number is finite by definition.
     */
 
   // Top & Bot
-  lazy val Top: NumberTy = NumberSignTy(Sign.Top, true)
-  lazy val Bot: NumberTy = NumberIntTy(IntTy.Bot, false)
+  lazy val Top: NumberTy = NumberTy(FinNumberTy.Top, InfinityTy.Top, true)
+  lazy val Bot: NumberTy = NumberTy(FinNumberTy.Bot, InfinityTy.Bot, false)
 
   // Signs
-  lazy val Pos: NumberTy = NumberSignTy(Sign.Pos, false)
-  lazy val Neg: NumberTy = NumberSignTy(Sign.Neg, false)
-  lazy val NonNeg: NumberTy = NumberSignTy(Sign.NonNeg, false)
-  lazy val NonPos: NumberTy = NumberSignTy(Sign.NonPos, false)
-  lazy val NonZero: NumberTy = NumberSignTy(Sign.NonZero, true)
+  lazy val Pos: NumberTy = sign(Sign.Pos, InfinityTy.Pos)
+  lazy val Neg: NumberTy = sign(Sign.Neg, InfinityTy.Neg)
+  lazy val NonNeg: NumberTy = sign(Sign.NonNeg, InfinityTy.Pos)
+  lazy val NonPos: NumberTy = sign(Sign.NonPos, InfinityTy.Neg)
+  lazy val NonZero: NumberTy =
+    NumberTy(FinNumberSignTy(Sign.NonZero), InfinityTy.Top, true)
 
   // Integers
-  lazy val Int: NumberTy = NumberIntTy(IntTy.Top, false)
-  lazy val NonPosInt: NumberTy = NumberIntTy(IntTy.NonPos, false)
-  lazy val NonNegInt: NumberTy = NumberIntTy(IntTy.NonNeg, false)
-  lazy val NegInt: NumberTy = NumberIntTy(IntTy.Neg, false)
-  lazy val PosInt: NumberTy = NumberIntTy(IntTy.Pos, false)
+  lazy val Int: NumberTy = int(IntTy.Top)
+  lazy val NonPosInt: NumberTy = int(IntTy.NonPos)
+  lazy val NonNegInt: NumberTy = int(IntTy.NonNeg)
+  lazy val NegInt: NumberTy = int(IntTy.Neg)
+  lazy val PosInt: NumberTy = int(IntTy.Pos)
 
   // Constants
-  lazy val Zero: NumberTy = NumberIntTy(IntTy.Zero, false)
-  lazy val One: NumberTy = NumberIntTy(IntTy.One, false)
-  lazy val NaN: NumberTy = NumberSetTy(Set(Number(Double.NaN)))
-  lazy val Infinite: NumberTy = NumberSetTy(
-    Set(
-      Number(Double.PositiveInfinity),
-      Number(Double.NegativeInfinity),
-    ),
-  )
+  lazy val Zero: NumberTy = int(IntTy.Zero)
+  lazy val One: NumberTy = int(IntTy.One)
+  lazy val NaN: NumberTy = NumberTy(FinNumberTy.Bot, InfinityTy.Bot, true)
+  lazy val Infinite: NumberTy = NumberTy(FinNumberTy.Bot, InfinityTy.Top, false)
 
-  /** This helper is for applying f between the given set and the given integer
-    * domain. If the integer domain is not finite, this returns Top.
-    *
-    * @param int
-    *   integer domain
-    * @param set
-    *   set of number values
-    * @param hasNan
-    *   whether integer domain contains NaN
-    * @param f
-    *   function to apply between the given set and the given integer domain
-    * @return
-    *   result of applying f between the given set and the given integer domain,
-    *   or Top if fails
-    */
-  private def integrate(int: IntTy, set: Set[Number], hasNan: Boolean)(
-    f: (Set[Number], Set[Number]) => Set[Number],
-  ): NumberTy =
-    int match
-      case i @ IntSetTy(iset) =>
-        val nset = iset.map(x => Number(x.toDouble))
-        val s =
-          if hasNan then nset + Number(Double.NaN)
-          else nset
-        NumberSetTy(f(s, set)).canon
-      case IntSignTy(sign) =>
-        val s = Sign.alpha(
-          set.map(_.double),
-          x =>
-            if x.isNaN then Sign.Bot
-            else if x < 0 then Sign.Neg
-            else if x > 0 then Sign.Pos
-            else Sign.Zero,
-        )
-        NumberIntTy(IntSignTy(sign), hasNan || set.hasNaN).canon
+  /** a type described by the sign of its finite part */
+  def sign(sign: Sign, inf: InfinityTy = InfinityTy.Bot): NumberTy =
+    NumberTy(FinNumberSignTy(sign), inf, false)
+
+  /** a type of integral Numbers, which are finite by definition */
+  def int(int: IntTy): NumberTy =
+    NumberTy(FinNumberIntTy(int), InfinityTy.Bot, false)
+
+  /** split a set of numbers into its finite, infinite, and NaN parts */
+  def apply(set: Set[Number]): NumberTy = NumberTy(
+    FinNumberSetTy(set.filter(n => !n.isNaN && !n.double.isInfinite)),
+    InfinityTy(set.collect { case n if n.double.isInfinite => n.double > 0 }),
+    set.exists(_.isNaN),
+  ).canon
 
   extension (x: Set[Number]) {
     def hasNaN: Boolean = x.exists(_.isNaN)

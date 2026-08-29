@@ -283,19 +283,29 @@ class Stringifier(
 
   /** number types */
   given numberTyRule: Rule[NumberTy] = (app, ty) =>
-    ty.canon match
-      case t if t.isTop                 => app >> "Number"
-      case t if t == NumberTy.NaN.canon => app >> "NaN"
-      // case ty if ty.isBottom => app >> "Number[Bot]"
-      case NumberSignTy(sign, hasNaN) =>
-        app >> "Number" >> sign
-        app >> (if (hasNaN) " | NaN" else "")
-      case NumberIntTy(int, hasNaN) =>
-        int match
-          case IntSetTy(set)   => app >> "NumberInt" >> set
-          case IntSignTy(sign) => app >> "NumberInt" >> sign
-        app >> (if (hasNaN) " | NaN" else "")
-      case NumberSetTy(set) => app >> "Number" >> set
+    val NumberTy(finite, inf, nan) = ty.canon
+    lazy val specials =
+      inf.pos.toList.sorted.map(p => if (p) "+INF" else "-INF")
+    if (ty.isTop) app >> "Number"
+    // a type of special values alone is printed as a set of them
+    else if (finite.isBottom)
+      (specials ++ (if (nan) List("NaN") else Nil)) match
+        case Nil         => app >> "Number[]"
+        case List("NaN") => app >> "NaN"
+        case ss          => app >> "Number[" >> ss.mkString(", ") >> "]"
+    else
+      finite match
+        // a bare `Number` is the top type, so spell out a full sign here
+        case FinNumberSignTy(sign) =>
+          if (sign.isTop) app >> "Number[-0+]" else app >> "Number" >> sign
+        case FinNumberIntTy(int) =>
+          int match
+            case IntSetTy(set)   => app >> "NumberInt" >> set
+            case IntSignTy(sign) => app >> "NumberInt" >> sign
+        case FinNumberSetTy(set) => app >> "Number" >> set
+      if (specials.nonEmpty)
+        app >> " | Number[" >> specials.mkString(", ") >> "]"
+      if (nan) app >> " | NaN" else app
 
   /** infinity types */
   given infinityTyRule: Rule[InfinityTy] = (app, ty) =>
