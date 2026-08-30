@@ -99,6 +99,7 @@
   "for-of",
   "generators",
   "globalThis",
+  "hashbang",
   "import.meta",
   "iterator-helpers",
   "iterator-sequencing",
