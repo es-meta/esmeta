@@ -22,26 +22,28 @@ trait TypeGuardDecl { self: TyChecker =>
     def apply(ty: ValueTy): TypeProp = lookup(ty)
 
     def lookup(ty: ValueTy): TypeProp =
-      val lst = for {
-        (dty, p) <- map
-        if ty <= dty.ty // maybe need cache?
-      } yield p
-      if lst.isEmpty then TypeProp()
-      else lst.reduce(_ && _)
+      if (map.isEmpty) TypeProp()
+      else
+        var acc: TypeProp = null
+        for ((dty, p) <- map if ty <= dty.ty)
+          acc = if (acc eq null) p else acc && p
+        if (acc eq null) TypeProp() else acc
 
     def update(ty: ValueTy, prop: TypeProp): TypeGuard =
-      val r = for dty <- DemandType.set yield DemandType(dty) -> {
-        val p = map.getOrElse(DemandType(dty), TypeProp())
-        if ty <= dty then prop && p
+      val r = for dty <- DemandType.all yield dty -> {
+        val p = map.getOrElse(dty, TypeProp())
+        if ty <= dty.ty then prop && p
         else p
       }
       TypeGuard(r.toMap)
 
     def refine(ty: ValueTy): TypeGuard =
-      TypeGuard(for {
-        (dty, p) <- map
-        if !(ty && dty.ty).isBottom
-      } yield dty -> this.lookup(dty.ty))
+      if (map.isEmpty) this
+      else
+        TypeGuard(for {
+          (dty, p) <- map
+          if ty overlaps dty.ty
+        } yield dty -> this.lookup(dty.ty))
 
     def fieldLookup(fld: String): TypeGuard =
       val m = for
@@ -91,11 +93,10 @@ trait TypeGuardDecl { self: TyChecker =>
     } yield dty -> newProp)
 
     def bind(ty: ValueTy = ValueTy.Top)(using st: AbsState): TypeGuard =
-      this && TypeGuard((for {
-        kind <- DemandType.from(ty).toList
-        prop = TypeProp().bind
-        if prop.nonTop
-      } yield kind -> prop).toMap)
+      // the bound property does not depend on the demand type
+      val prop = TypeProp().bind
+      if (prop.isTop) this
+      else this && TypeGuard(DemandType.from(ty).map(_ -> prop).toMap)
 
     def has(x: Base): Boolean = map.values.exists(_.has(x))
 
@@ -108,8 +109,8 @@ trait TypeGuardDecl { self: TyChecker =>
     def ||(that: TypeGuard)(lty: ValueTy, rty: ValueTy): TypeGuard =
       val (ldtys, rdtys) = (this.dtys, that.dtys)
       val dtys =
-        ldtys.filter(k => (k.ty && rty).isBottom || rdtys.contains(k)) ++
-        rdtys.filter(k => (k.ty && lty).isBottom || ldtys.contains(k))
+        ldtys.filter(k => !(k.ty overlaps rty) || rdtys.contains(k)) ++
+        rdtys.filter(k => !(k.ty overlaps lty) || ldtys.contains(k))
       TypeGuard((for {
         dty <- dtys.toList
         ty = lty || rty
@@ -120,11 +121,15 @@ trait TypeGuardDecl { self: TyChecker =>
         if !prop.isTop
       } yield dty -> prop).toMap)
 
-    def &&(that: TypeGuard): TypeGuard = TypeGuard((for {
-      dty <- (this.dtys ++ that.dtys).toList
-      prop = this(dty) && that(dty)
-      if !prop.isTop
-    } yield dty -> prop).toMap)
+    def &&(that: TypeGuard): TypeGuard =
+      if (this.map.isEmpty) that
+      else if (that.map.isEmpty) this
+      else
+        TypeGuard((for {
+          dty <- (this.dtys ++ that.dtys).toList
+          prop = this(dty) && that(dty)
+          if !prop.isTop
+        } yield dty -> prop).toMap)
 
     override def toString: String = stringify(this)
   }
@@ -172,10 +177,11 @@ trait TypeGuardDecl { self: TyChecker =>
         throw notSupported(s"Unsupported DemandType: $ty")
       }
 
+    /** the demand types, built once, since `set` is fixed */
+    val all: Set[DemandType] = set.map(new DemandType(_))
+
     def from(givenTy: ValueTy): Set[DemandType] =
-      DemandType.set
-        .filter(ty => !(givenTy && ty).isBottom)
-        .map(DemandType(_))
+      all.filter(dty => givenTy overlaps dty.ty)
   }
 
   case class TypeProp(
@@ -238,16 +244,26 @@ trait TypeGuardDecl { self: TyChecker =>
       } yield x -> pair).toMap
 
     private def andEnv[A](left: Binding[A], right: Binding[A]): Binding[A] =
-      (for {
-        x <- (left.keySet ++ right.keySet).toList
-        (lty, lprov) = left.getOrElse(x, (ValueTy.Top, Provenance.Top))
-        (rty, rprov) = right.getOrElse(x, (ValueTy.Top, Provenance.Top))
-        pair = {
-          if (lty <= rty) (lty, lprov)
-          else if (rty <= lty) (rty, rprov)
-          else (lty && rty, lprov && rprov)
+      // an absent binding stands for the top type, which the meet keeps, so an
+      // empty side leaves the other one alone
+      if (right.isEmpty) left
+      else if (left.isEmpty)
+        right.map {
+          case (x, (rty, rprov)) =>
+            x -> (if (rty.isTop) (ValueTy.Top, Provenance.Top)
+                  else (rty, rprov))
         }
-      } yield x -> pair).toMap
+      else
+        (for {
+          x <- (left.keySet ++ right.keySet).toList
+          (lty, lprov) = left.getOrElse(x, (ValueTy.Top, Provenance.Top))
+          (rty, rprov) = right.getOrElse(x, (ValueTy.Top, Provenance.Top))
+          pair = {
+            if (lty <= rty) (lty, lprov)
+            else if (rty <= lty) (rty, rprov)
+            else (lty && rty, lprov && rprov)
+          }
+        } yield x -> pair).toMap
 
     def has(x: Base): Boolean =
       map.contains(x) || sexpr.fold(false)(_.has(x))

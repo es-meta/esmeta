@@ -283,7 +283,7 @@ trait AbsStateDecl { self: TyChecker =>
     def typeCheck(value: AbsValue, givenTy: ValueTy): ValueTy =
       val ty = value.ty
       if (ty <= givenTy) TrueT
-      else if ((ty && givenTy).isBottom) FalseT
+      else if (!(ty overlaps givenTy)) FalseT
       else BoolT
 
     /** variable existence check */
