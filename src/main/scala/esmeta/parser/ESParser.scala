@@ -63,8 +63,22 @@ case class ESParser(
         if (name == "CoalesceExpressionHead") handleLR
         else getParser(prod)
       else (args: List[Boolean]) => nt(name, lexers(name, 0 /* TODO args */ ))
-    name -> parser
+    // `InputElementHashbangOrRegExp` is the goal symbol only for the first
+    // token of a Script or a Module; other goals must keep rejecting `#!`.
+    val goalParser =
+      if (name == "Script" || name == "Module")
+        (args: List[Boolean]) => hashbang ~> parser(args)
+      else parser
+    name -> goalParser
   }).toMap
+
+  /** optional `HashbangComment`, matched before `Skip` so that anything in
+    * front of `#!` fails
+    */
+  private lazy val hashbang: LAParser[String] = new LAParser(
+    _ => getLexer("HashbangComment", Nil) | success(""),
+    emptyFirst,
+  )
 
   /** recursively update the filename in the location information of the AST */
   def updateFilename(ast: Ast, name: String): Unit =
