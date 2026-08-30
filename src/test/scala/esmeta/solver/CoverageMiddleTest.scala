@@ -9,6 +9,8 @@ import esmeta.ty.ValueTy
 import esmeta.util.Appender.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
+import esmeta.util.ProgressBar
+import esmeta.util.{ConcurrentPolicy => CP}
 import esmeta.util.SystemUtils.*
 import esmeta.{ESMetaTest, SOLVER_LOG_DIR, BASE_DIR}
 import scala.collection.mutable.{Set => MSet, Queue}
@@ -132,10 +134,8 @@ class CoverageMiddleTest extends SolverTest {
     val pool = Executors.newFixedThreadPool(
       nThreads,
       new ThreadFactory {
-        private var nextId = 0
         def newThread(r: Runnable): Thread = {
-          nextId += 1
-          val t = new Thread(r, s"coverage-middle-test-$nextId")
+          val t = new Thread(r)
           t.setDaemon(true)
           t
         }
@@ -213,12 +213,6 @@ class CoverageMiddleTest extends SolverTest {
       def caseLabel(r: BranchResult): String =
         if (r.fname == r.targetName) r.fname
         else s"${r.fname} -> ${r.targetName}"
-
-      println(
-        s"  Solving ${targets.size} branch sides from " +
-        s"${targetBranchEntries.size} branches with $nThreads threads " +
-        s"(time limit: $solveTimeout per target)...",
-      )
 
       // per-case detail, written into one file per (branch, taken side)
       def dumpCase(out: String => Unit, r: BranchResult): Unit =
@@ -338,10 +332,6 @@ class CoverageMiddleTest extends SolverTest {
           ): BranchResult = rejected
             .map(r => normalResult(r.status, r.js, Some(r.conf), attempts))
             .getOrElse(normalResult("unsolved", None, None, attempts))
-          Thread.currentThread().setName {
-            s"coverage-middle-test ${f.name} " +
-            s"Branch[${b.id}]:${sideString(cond.cond)}"
-          }
 
           def verifies(js: String): Boolean =
             checkTimeout()
@@ -448,46 +438,19 @@ class CoverageMiddleTest extends SolverTest {
           best
         }
 
-        val completion = ExecutorCompletionService[BranchResult](pool)
-        val targetIter = targets.iterator
         val resultBuilder = List.newBuilder[BranchResult]
-        var submitted = 0
-        var completed = 0
-
-        def submitNext(): Unit =
-          if (targetIter.hasNext) {
-            val (fs, cond) = targetIter.next()
-            completion.submit(new Callable[BranchResult] {
-              def call(): BranchResult = solveTarget(fs, cond)
-            })
-            submitted += 1
-          }
-
-        for (_ <- 0 until math.min(nThreads, targets.size)) submitNext()
-
-        while (completed < targets.size) {
-          val done = completion.poll(30, TimeUnit.SECONDS)
-          if (done == null) {
-            println(
-              s"  progress: $completed / ${targets.size} completed " +
-              s"($submitted submitted)",
-            )
-            // diagnostic: dump where the in-flight worker threads are stuck
-            import scala.jdk.CollectionConverters.*
-            for {
-              (t, stack) <- Thread.getAllStackTraces.asScala.toList
-              if t.getName.startsWith("coverage-middle-test")
-            } {
-              println(s"  [stuck] ${t.getName}")
-              for (frame <- stack.take(20))
-                println(s"      at $frame")
-            }
-          } else {
-            val r = done.get()
+        val logLock = new Object
+        ProgressBar(
+          msg = s"solving branch sides from ${targetBranchEntries.size} " +
+            s"branches with $nThreads threads ($solveTimeout per target)",
+          iterable = targets,
+          detail = false,
+          concurrent = CP.Fixed(nThreads),
+        ).foreach { (entries, cond) =>
+          val r = solveTarget(entries, cond)
+          logLock.synchronized {
             resultBuilder += r
             writeCaseLog(r)
-            completed += 1
-            submitNext()
           }
         }
         resultBuilder.result().sortBy(r => (r.bid, if (r.side) 0 else 1))
