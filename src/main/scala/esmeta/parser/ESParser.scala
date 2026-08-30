@@ -76,7 +76,7 @@ case class ESParser(
     * front of `#!` fails
     */
   private lazy val hashbang: LAParser[String] = new LAParser(
-    _ => getLexer("HashbangComment", Nil) | success(""),
+    _ => opt(getLexer("HashbangComment", Nil)) ^^ { _.getOrElse("") },
     emptyFirst,
   )
 
