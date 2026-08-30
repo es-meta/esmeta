@@ -163,6 +163,31 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         this.nullv -- that.nullv,
       )
 
+  /** overlap check, which avoids building the meet */
+  def overlaps(that: ValueTy): Boolean =
+    if (this eq that) !this.isBottom
+    else if ((this eq Bot) || (that eq Bot)) false
+    else if (this eq Top) !that.isBottom
+    else if (that eq Top) !this.isBottom
+    else
+      !(this.clo && that.clo).isBottom ||
+      !(this.cont && that.cont).isBottom ||
+      !(this.record && that.record).isBottom ||
+      !(this.map && that.map).isBottom ||
+      !(this.list && that.list).isBottom ||
+      !(this.ast && that.ast).isBottom ||
+      !(this.grammarSymbol && that.grammarSymbol).isBottom ||
+      (this.codeUnit && that.codeUnit) ||
+      !(this.enumv && that.enumv).isBottom ||
+      !(this.math && that.math).isBottom ||
+      !(this.infinity && that.infinity).isBottom ||
+      !(this.number && that.number).isBottom ||
+      (this.bigInt && that.bigInt) ||
+      !(this.str && that.str).isBottom ||
+      !(this.bool && that.bool).isBottom ||
+      (this.undef && that.undef) ||
+      (this.nullv && that.nullv)
+
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean = value match
     case _ if this eq Top => true
