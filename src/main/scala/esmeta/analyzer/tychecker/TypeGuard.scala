@@ -39,10 +39,11 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def refine(ty: ValueTy): TypeGuard =
       if (map.isEmpty) this
-      else TypeGuard(for {
-        (dty, p) <- map
-        if !(ty && dty.ty).isBottom
-      } yield dty -> this.lookup(dty.ty))
+      else
+        TypeGuard(for {
+          (dty, p) <- map
+          if !(ty && dty.ty).isBottom
+        } yield dty -> this.lookup(dty.ty))
 
     def fieldLookup(fld: String): TypeGuard =
       val m = for
@@ -123,11 +124,12 @@ trait TypeGuardDecl { self: TyChecker =>
     def &&(that: TypeGuard): TypeGuard =
       if (this.map.isEmpty) that
       else if (that.map.isEmpty) this
-      else TypeGuard((for {
-      dty <- (this.dtys ++ that.dtys).toList
-      prop = this(dty) && that(dty)
-      if !prop.isTop
-    } yield dty -> prop).toMap)
+      else
+        TypeGuard((for {
+          dty <- (this.dtys ++ that.dtys).toList
+          prop = this(dty) && that(dty)
+          if !prop.isTop
+        } yield dty -> prop).toMap)
 
     override def toString: String = stringify(this)
   }
@@ -242,16 +244,26 @@ trait TypeGuardDecl { self: TyChecker =>
       } yield x -> pair).toMap
 
     private def andEnv[A](left: Binding[A], right: Binding[A]): Binding[A] =
-      (for {
-        x <- (left.keySet ++ right.keySet).toList
-        (lty, lprov) = left.getOrElse(x, (ValueTy.Top, Provenance.Top))
-        (rty, rprov) = right.getOrElse(x, (ValueTy.Top, Provenance.Top))
-        pair = {
-          if (lty <= rty) (lty, lprov)
-          else if (rty <= lty) (rty, rprov)
-          else (lty && rty, lprov && rprov)
+      // an absent binding stands for the top type, which the meet keeps, so an
+      // empty side leaves the other one alone
+      if (right.isEmpty) left
+      else if (left.isEmpty)
+        right.map {
+          case (x, (rty, rprov)) =>
+            x -> (if (rty.isTop) (ValueTy.Top, Provenance.Top)
+                  else (rty, rprov))
         }
-      } yield x -> pair).toMap
+      else
+        (for {
+          x <- (left.keySet ++ right.keySet).toList
+          (lty, lprov) = left.getOrElse(x, (ValueTy.Top, Provenance.Top))
+          (rty, rprov) = right.getOrElse(x, (ValueTy.Top, Provenance.Top))
+          pair = {
+            if (lty <= rty) (lty, lprov)
+            else if (rty <= lty) (rty, rprov)
+            else (lty && rty, lprov && rprov)
+          }
+        } yield x -> pair).toMap
 
     def has(x: Base): Boolean =
       map.contains(x) || sexpr.fold(false)(_.has(x))
