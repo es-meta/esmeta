@@ -374,7 +374,7 @@ case object ValueTopTy extends ValueTy {
   def cont: BSet[Int] = Inf
   def record: RecordTy = RecordTy.Top
   def map: MapTy = MapTy.Top
-  def list: ListTy = ListTy.Bot // unsound but need to remove cycle
+  def list: ListTy = ListTy.Top
   def ast: AstTy = AstTy.Top
   def grammarSymbol: BSet[GrammarSymbol] = Inf
   def codeUnit: Boolean = true

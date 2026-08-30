@@ -69,32 +69,83 @@ case class NumberTy(finite: FinNumberTy, inf: InfinityTy, nan: Boolean)
   def -(that: NumberTy): NumberTy = arith(that, _ - _, _ - _)
 
   /** multiplication */
-  def *(that: NumberTy): NumberTy = arith(that, _ * _, _ * _)
+  def *(that: NumberTy): NumberTy = arith(that, _ * _, _ * _, true)
 
-  /** division */
-  def /(that: NumberTy): NumberTy = arith(that, _ / _, _ / _)
+  /** the sign of the type, counting its infinities */
+  private def extSign: Sign =
+    finite.canon.toSign || Sign(inf.contains(false), false, inf.contains(true))
 
-  /** An operand that may be an infinity makes any infinity possible, and an
-    * indeterminate form such as `∞ - ∞` produces *NaN*.
-    *
-    * TODO this does not model an overflow of the finite part to an infinity.
+  /** division, which does not preserve integrality */
+  def /(that: NumberTy): NumberTy =
+    if (this.isBottom || that.isBottom) Bot
+    else
+      val l = this.finite.canon
+      val r = that.finite.canon
+      val lSign = l.toSign
+      val rSign = r.toSign
+      val lInf = !this.inf.isBottom
+      val rInf = !that.inf.isBottom
+      val resNaN =
+        this.nan || that.nan || (lInf && rInf) || (lSign.zero && rSign.zero)
+      // a nonzero integral divisor never makes the quotient larger
+      val mayOverflow = r match
+        case FinNumberIntTy(_) => rSign.zero
+        case _                 => !r.isBottom
+      val nonZeroDividend = lSign.neg || lSign.pos || lInf
+      val resInf =
+        // a zero divisor gives both infinities, since *+0* and *-0* are one sign
+        if (rSign.zero && nonZeroDividend) InfinityTy.Top
+        else if (lInf || (!l.isBottom && mayOverflow))
+          NumberTy.infOfSign(this.extSign / that.extSign)
+        else InfinityTy.Bot
+      // a dividend over an infinity, and a quotient that underflows, give zero
+      val quotient =
+        if (!l.isBottom && (rInf || !r.isBottom)) (lSign / rSign) || Sign.Zero
+        else lSign / rSign
+      NumberTy(FinNumberSignTy(quotient), resInf, resNaN)
+
+  /** An infinite operand makes an infinity possible, an indeterminate form such
+    * as `inf - inf` gives *NaN*, and two finite operands can still overflow.
     */
   private def arith(
     that: NumberTy,
     intOp: (IntTy, IntTy) => IntTy,
     signOp: (Sign, Sign) => Sign,
+    zeroTimesInf: Boolean = false,
   ): NumberTy =
     if (this.isBottom || that.isBottom) Bot
     else
-      val bothFinite = this.inf.isBottom && that.inf.isBottom
-      val resInf = if (bothFinite) InfinityTy.Bot else InfinityTy.Top
+      val lSign = this.finite.canon.toSign
+      val rSign = that.finite.canon.toSign
+      // an infinity survives a multiplication only against a nonzero factor
+      val fromInf =
+        if (!zeroTimesInf) !this.inf.isBottom || !that.inf.isBottom
+        else
+          (!this.inf.isBottom && (!that.inf.isBottom || rSign.neg || rSign.pos)) ||
+          (!that.inf.isBottom && (!this.inf.isBottom || lSign.neg || lSign.pos))
       val resNaN =
-        nan || that.nan || (!this.inf.isBottom && !that.inf.isBottom)
+        nan || that.nan || (!this.inf.isBottom && !that.inf.isBottom) ||
+        (zeroTimesInf && ((!this.inf.isBottom && rSign.zero) ||
+        (!that.inf.isBottom && lSign.zero)))
+      lazy val resInf = NumberTy.infOfSign(signOp(this.extSign, that.extSign))
+      def infOf(overflow: Boolean): InfinityTy =
+        if (fromInf || overflow) resInf else InfinityTy.Bot
       (this.finite.canon, that.finite.canon) match
-        case (FinNumberIntTy(l), FinNumberIntTy(r)) =>
-          NumberTy(FinNumberIntTy(intOp(l, r)), resInf, resNaN)
+        // a double represents an integer exactly only up to 2^53
+        case (FinNumberIntTy(l), FinNumberIntTy(r)) if exactInts(intOp(l, r)) =>
+          NumberTy(FinNumberIntTy(intOp(l, r)), infOf(false), resNaN)
         case (l, r) =>
-          NumberTy(FinNumberSignTy(signOp(l.toSign, r.toSign)), resInf, resNaN)
+          val bothFin = !l.isBottom && !r.isBottom
+          // a product of two finite values can underflow to a zero
+          val sign = signOp(l.toSign, r.toSign)
+          NumberTy(
+            FinNumberSignTy(
+              if (zeroTimesInf && bothFin) sign || Sign.Zero
+              else sign,
+            ),
+            infOf(bothFin),
+            resNaN,
+          )
 
   /** non-negative integral check */
   def isNonNegInt: Boolean = isInt && finite.toIntTy.isNonNeg
@@ -282,6 +333,17 @@ object FinNumberTy {
 }
 
 object NumberTy extends Parser.From(Parser.numberTy) {
+
+  def exactInts(ty: IntTy): Boolean = ty.canon match
+    case IntSetTy(set) => set.forall(_.abs <= maxExactInt)
+    case _             => false
+
+  def infOfSign(sign: Sign): InfinityTy = InfinityTy(
+    (if (sign.pos) Set(true) else Set()) ++ (if (sign.neg) Set(false)
+                                             else Set()),
+  )
+
+  lazy val maxExactInt: scala.math.BigInt = scala.math.BigInt(2).pow(53)
 
   /** Constants do not include NaN as default except Top. An infinity is a
     * Number, so a type described by a sign includes the infinity of that sign,
