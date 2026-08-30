@@ -60,6 +60,16 @@ case class InsertStep(elem: Expression, ref: Reference) extends Step
 // add steps
 case class AddStep(elem: Expression, ref: Reference) extends Step
 
+// replace steps
+case class ReplaceStep(
+  oldElem: Expression,
+  newElem: Expression,
+  ref: Reference,
+  form: ReplaceStepForm = ReplaceStepForm.Simple,
+) extends Step
+enum ReplaceStepForm:
+  case Simple, Element
+
 // remove element steps
 case class RemoveStep(
   target: RemoveStep.Target,

@@ -257,6 +257,30 @@ class Compiler(
       // AddStep represents an element addition to a set.
       // We need to refactor this later.
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
+    case ReplaceStep(oldElem, newElem, ref, _) =>
+      val (list, listExpr) = fb.newTIdWithExpr
+      val (oldE, oldEExpr) = fb.newTIdWithExpr
+      val (newE, newEExpr) = fb.newTIdWithExpr
+      val (i, iExpr) = fb.newTIdWithExpr
+      fb.addInst(
+        IAssign(list, ERef(compile(fb, ref))),
+        IAssign(oldE, compile(fb, oldElem)),
+        IAssign(newE, compile(fb, newElem)),
+        IAssign(i, zero),
+        IWhile(
+          lessThan(iExpr, ESizeOf(listExpr)),
+          fb.newScope {
+            fb.addInst(
+              IIf(
+                is(toERef(list, iExpr), oldEExpr),
+                IAssign(Field(list, iExpr), newEExpr),
+                emptyInst,
+              ),
+              IAssign(i, inc(iExpr)),
+            )
+          },
+        ),
+      )
     case RemoveStep(target, prep, list) =>
       import RemoveStep.Target.*
       lazy val x = fb.newTId

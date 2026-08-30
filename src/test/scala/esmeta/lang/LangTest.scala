@@ -64,6 +64,10 @@ object LangTest {
   lazy val prependStep = dot(PrependStep(refExpr, access))
   lazy val insertStep = dot(InsertStep(refExpr, access))
   lazy val addStep = dot(AddStep(refExpr, access))
+  lazy val replaceStep = dot(ReplaceStep(refExpr, refExpr, access))
+  lazy val replaceElementStep = dot(
+    ReplaceStep(refExpr, refExpr, access, ReplaceStepForm.Element),
+  )
   import RemoveStep.Target.*
   lazy val removeStep = dot(RemoveStep(Element(refExpr), "from", refExpr))
   lazy val removeFirstStep = dot(

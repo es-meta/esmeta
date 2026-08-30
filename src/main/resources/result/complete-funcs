@@ -1481,6 +1481,8 @@ INTRINSICS.RegExp.prototype[%Symbol.search%]
 INTRINSICS.RegExp.prototype[%Symbol.split%]
 INTRINSICS.Set
 INTRINSICS.Set.prototype.add
+INTRINSICS.Set.prototype.clear
+INTRINSICS.Set.prototype.delete
 INTRINSICS.Set.prototype.difference
 INTRINSICS.Set.prototype.entries
 INTRINSICS.Set.prototype.forEach
@@ -1583,6 +1585,7 @@ INTRINSICS.WeakRef
 INTRINSICS.WeakRef.prototype.deref
 INTRINSICS.WeakSet
 INTRINSICS.WeakSet.prototype.add
+INTRINSICS.WeakSet.prototype.delete
 INTRINSICS.WeakSet.prototype.has
 INTRINSICS.WrapForValidIteratorPrototype.next
 INTRINSICS.WrapForValidIteratorPrototype.return
