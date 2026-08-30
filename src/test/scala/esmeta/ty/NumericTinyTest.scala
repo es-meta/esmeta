@@ -25,6 +25,9 @@ class NumericTinyTest extends TyTest {
     2.5,
     3.0,
     3.0e9, // beyond Int range
+    9007199254740992.0, // 2^53, the last exactly represented integer
+    Double.MinPositiveValue, // a product that underflows to a zero
+    Double.MaxValue, // a sum that overflows to an infinity
     Double.PositiveInfinity,
     Double.NaN,
   ).map(Number(_))
@@ -87,6 +90,9 @@ class NumericTinyTest extends TyTest {
     numSet(Double.PositiveInfinity, 0.0, -0.0),
     // non-integral and out-of-Int-range values
     numSet(2.5),
+    // the boundary of exact integer representation, and beyond it
+    NumberTy.int(intSet(BigInt(2).pow(53))),
+    numSet(Double.MaxValue),
     numSet(1.0, 2.5),
     numSet(Double.NaN, 2.5),
     numSet(3.0e9),
@@ -143,67 +149,6 @@ class NumericTinyTest extends TyTest {
     intSet(huge),
     intSet(-huge, huge),
   )
-
-  /** a domain to check the lattice laws of */
-  private case class Domain[T, V](
-    tys: List[T],
-    values: List[V],
-    contains: (T, V) => Boolean,
-    le: (T, T) => Boolean,
-    prune: (T, T) => T,
-    join: (T, T) => T,
-    meet: (T, T) => T,
-    canon: T => T,
-    isBottom: T => Boolean,
-  )
-
-  /** Check that each abstract operation over-approximates its concrete
-    * counterpart: no value that belongs in the result may be missing from it. A
-    * violation means the analyzer may drop a reachable value, which is exactly
-    * the class of bug these operations have had.
-    */
-  private def checkLaws[T, V](desc: String)(d: Domain[T, V]): Unit =
-    import d.*
-    def has(t: T, v: V) = contains(t, v)
-    val violations = (for {
-      l <- tys
-      // canon must not change the meaning of a type
-      v <- values
-      if has(l, v) != has(canon(l), v)
-    } yield s"canon changes membership of $v in $l") ++ (for {
-      l <- tys
-      r <- tys
-      v <- values
-      (op, ty, expected) <- List(
-        ("--", prune(l, r), has(l, v) && !has(r, v)),
-        ("||", join(l, r), has(l, v) || has(r, v)),
-        ("&&", meet(l, r), has(l, v) && has(r, v)),
-      )
-      if expected && !has(ty, v)
-    } yield s"$v is missing from ($l $op $r) = $ty") ++ (for {
-      l <- tys
-      r <- tys
-      // the order must agree with containment, and bound each result
-      msg <-
-        (if (le(l, r) && values.exists(v => has(l, v) && !has(r, v)))
-           List(s"$l <= $r but they differ on a concrete value")
-         else Nil) ++
-        (if (!le(l, join(l, r))) List(s"$l is not below ($l || $r)")
-         else Nil) ++
-        (if (!le(meet(l, r), l)) List(s"($l && $r) is not below $l")
-         else Nil) ++
-        (if (!le(prune(l, r), l)) List(s"($l -- $r) is not below $l") else Nil)
-    } yield msg) ++ (for {
-      l <- tys
-      if !isBottom(prune(l, l))
-    } yield s"($l -- $l) is not bottom")
-    check(desc) {
-      if (violations.nonEmpty) {
-        println(s"[FAILED] $desc: ${violations.size} violation(s)")
-        violations.distinct.take(10).foreach(v => println(s"- $v"))
-        assert(violations.isEmpty)
-      }
-    }
 
   /** Check that each arithmetic operation over-approximates the concrete one
     * that the interpreter performs.
@@ -297,6 +242,34 @@ class NumericTinyTest extends TyTest {
         v <- con(x.decimal, y.decimal)
         if !r.contains(Math(v))
       } yield s"$x $name $y = $v is missing from ($a $name $b) = $r")
+    val numberViolations = for {
+      (name, abs, con) <- List[
+        (String, (NumberTy, NumberTy) => NumberTy, (Double, Double) => Double),
+      ](
+        ("+", _ + _, _ + _),
+        ("-", _ - _, _ - _),
+        ("*", _ * _, _ * _),
+        ("/", _ / _, _ / _),
+      )
+      a <- numberTys
+      b <- numberTys
+      r = abs(a, b)
+      x <- numbers if a.contains(x)
+      y <- numbers if b.contains(y)
+      v = Number(con(x.double, y.double))
+      if !r.contains(v)
+    } yield s"$x $name $y = $v is missing from ($a $name $b) = $r"
+
+    check("number arithmetic laws") {
+      if (numberViolations.nonEmpty) {
+        println(
+          s"[FAILED] number arithmetic laws: ${numberViolations.size} violation(s)",
+        )
+        numberViolations.distinct.take(10).foreach(v => println(s"- $v"))
+        assert(numberViolations.isEmpty)
+      }
+    }
+
     check("arithmetic laws") {
       if (violations.nonEmpty) {
         println(s"[FAILED] arithmetic laws: ${violations.size} violation(s)")

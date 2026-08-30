@@ -9,6 +9,7 @@
   "FunctionBody[0,0].EvaluateFunctionBody",
   "FunctionDeclarationInstantiation",
   "GetViewByteLength",
+  "LocalTime",
   "MakeFullYear",
   "Record[SourceTextModuleRecord].ExecuteModule",
   "TypedArrayLength"

@@ -65,9 +65,10 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign * rsign)
     case (l, r)                               => l.toSignTy * r.toSignTy
 
-  def /(that: => IntTy): IntTy = (this, that) match
-    case (l @ IntSetTy(_), r @ IntSetTy(_)) if single(l, r, _ / _) != Top =>
-      single(l, r, _ / _)
+  def /(that: => IntTy): IntTy = (this.canon, that.canon) match
+    case (l, r) if l.isBottom || r.isBottom => Bot
+    case (IntSetTy(lset), IntSetTy(rset)) =>
+      IntSetTy(for { l <- lset; r <- rset if r != 0 } yield l / r)
     case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign / rsign)
     case (l, r)                               => l.toSignTy / r.toSignTy
 

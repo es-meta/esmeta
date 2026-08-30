@@ -52,10 +52,10 @@ enum AstTy extends TyElem with Lattice[AstTy] {
     else if (this <= that) this
     else if (that <= this) that
     else
-      (this.names, that.names) match
-        case (Inf, _)           => that
-        case (_, Inf)           => this
-        case (Fin(ls), Fin(rs)) => Simple(ls intersect rs)
+      (this, that) match
+        case (_: Detail, _: Detail) => Bot
+        // a chain production has several types, so an AST can be in both
+        case _ => this
 
   /** prune type */
   def --(that: => AstTy): AstTy =
