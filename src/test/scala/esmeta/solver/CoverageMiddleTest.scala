@@ -135,7 +135,7 @@ class CoverageMiddleTest extends SolverTest {
         private var nextId = 0
         def newThread(r: Runnable): Thread = {
           nextId += 1
-          val t = new Thread(r, s"builtin-branch-test-$nextId")
+          val t = new Thread(r, s"coverage-middle-test-$nextId")
           t.setDaemon(true)
           t
         }
@@ -217,7 +217,7 @@ class CoverageMiddleTest extends SolverTest {
       println(
         s"  Solving ${targets.size} branch sides from " +
         s"${targetBranchEntries.size} branches with $nThreads threads " +
-        s"(time limit: $solveTimeout per entry)...",
+        s"(time limit: $solveTimeout per target)...",
       )
 
       // per-case detail, written into one file per (branch, taken side)
@@ -286,19 +286,24 @@ class CoverageMiddleTest extends SolverTest {
           )
         }
 
-        def timeoutResult(f: Func, cond: Cond, attempts: Int): BranchResult =
-          val elapsed = solveTimeout.toNanos
+        def timeoutResult(
+          f: Func,
+          cond: Cond,
+          attempts: Int,
+          elapsed: Long,
+        ): BranchResult =
           result(f, cond, "timeout", attempts = attempts, elapsed = elapsed)
 
         def errorResult(f: Func, cond: Cond, e: Throwable): BranchResult =
           result(f, cond, "error", js = Some(e.toString))
 
-        def solveEntry(f: Func, cond: Cond): BranchResult = {
+        def solveEntry(f: Func, cond: Cond, deadline: Long): BranchResult = {
           val t0 = System.nanoTime()
           val interp = runner(f, cond)
-          def checkTimeout(): Unit =
-            if (interp.timeout) throw TimeoutException("solver")
           def elapsedNanos: Long = System.nanoTime() - t0
+          def expired: Boolean = System.nanoTime() > deadline
+          def checkTimeout(): Unit =
+            if (expired) throw TimeoutException("solver")
           val b = cond.branch
           val targetFunc = cfg.funcOf(b)
           def normalResult(
@@ -334,7 +339,7 @@ class CoverageMiddleTest extends SolverTest {
             .map(r => normalResult(r.status, r.js, Some(r.conf), attempts))
             .getOrElse(normalResult("unsolved", None, None, attempts))
           Thread.currentThread().setName {
-            s"builtin-branch-test ${f.name} " +
+            s"coverage-middle-test ${f.name} " +
             s"Branch[${b.id}]:${sideString(cond.cond)}"
           }
 
@@ -394,21 +399,21 @@ class CoverageMiddleTest extends SolverTest {
                       }
                   }
                 case None =>
-                  // symbolic execution returned no model: distinguish a genuine
-                  // "unsolved" from one aborted by the per-side time limit
-                  if (interp.timeout) timeoutResult(f, cond, attempts)
+                  // no model: a genuine "unsolved", or one out of its share
+                  if (expired) timeoutResult(f, cond, attempts, elapsedNanos)
                   else rejectedResult(rejected, attempts)
               }
             }
             retry(None)
           } catch {
-            case _: TimeoutException => timeoutResult(f, cond, attempts)
+            case _: TimeoutException =>
+              timeoutResult(f, cond, attempts, elapsedNanos)
           }
         }
 
         // isolate fatal failures so one entry cannot abort the whole run
-        def safeSolveEntry(f: Func, cond: Cond): BranchResult =
-          try { solveEntry(f, cond) }
+        def safeSolveEntry(f: Func, cond: Cond, deadline: Long): BranchResult =
+          try { solveEntry(f, cond, deadline) }
           catch {
             case e: Throwable =>
               val b = cond.branch
@@ -427,11 +432,19 @@ class CoverageMiddleTest extends SolverTest {
 
         // report the best outcome any entry reached
         def solveTarget(entries: List[Func], cond: Cond): BranchResult = {
-          val results = entries.iterator.map(safeSolveEntry(_, cond))
-          var best = results.next()
-          while (best.status != "pass" && results.hasNext)
-            val next = results.next()
-            if (rankOf(next.status) < rankOf(best.status)) best = next
+          // a target deep in the call graph must not cost one limit per entry
+          val deadlineAll = System.nanoTime() + solveTimeout.toNanos
+          // an equal share: redistributing would tie a budget to scheduling
+          val perEntry = solveTimeout.toNanos / entries.size.max(1)
+          val rest = entries.iterator
+          def more: Boolean = rest.hasNext && System.nanoTime() < deadlineAll
+          def solveNext(): BranchResult =
+            val deadline = (System.nanoTime() + perEntry).min(deadlineAll)
+            safeSolveEntry(rest.next(), cond, deadline)
+          var best = solveNext()
+          while (best.status != "pass" && more)
+            val other = solveNext()
+            if (rankOf(other.status) < rankOf(best.status)) best = other
           best
         }
 
@@ -463,7 +476,7 @@ class CoverageMiddleTest extends SolverTest {
             import scala.jdk.CollectionConverters.*
             for {
               (t, stack) <- Thread.getAllStackTraces.asScala.toList
-              if t.getName.startsWith("builtin-branch-test")
+              if t.getName.startsWith("coverage-middle-test")
             } {
               println(s"  [stuck] ${t.getName}")
               for (frame <- stack.take(20))
