@@ -90,11 +90,15 @@ case object CmdCompile extends Command("compile", CmdExtract >> Compile) {
 }
 
 /** `rocq` command */
-case object CmdRocq extends Command("rocq", CmdCompile >> RocqGen) {
-  val help = "generates Rocq files for a specification."
+case object CmdRocq extends Command("rocq", CmdBase >> RocqGen) {
+  val help = "generates shallow Rocq ITrees from ESMeta IR files."
   val examples = List(
-    "esmeta rocq                        # generate Rocq files for spec.",
+    "esmeta rocq                       # translate every tests/ir file.",
+    "esmeta rocq tests/ir/gcd.ir       # translate one IR program.",
+    "esmeta rocq tests/ir/expr         # translate an IR directory.",
   )
+  override val targetName = "[<ir|dir>+]"
+  override val needTarget = false
 }
 
 /** `rocq-ir` command */

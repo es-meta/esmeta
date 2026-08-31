@@ -1,0 +1,13 @@
+COQ_MAKEFILE := Makefile.coq
+
+.PHONY: all configure clean
+
+all: configure
+	$(MAKE) -f $(COQ_MAKEFILE) all
+
+configure:
+	coq_makefile -f _CoqProject -o $(COQ_MAKEFILE)
+
+clean:
+	-test ! -f $(COQ_MAKEFILE) || $(MAKE) -f $(COQ_MAKEFILE) cleanall
+	$(RM) $(COQ_MAKEFILE) $(COQ_MAKEFILE).conf
