@@ -14,8 +14,7 @@ def findWhole(): Unit = {
         if (n.isWhole) {
           whole += 1
           if (!strictlyWhole) { println(s"Non-strictly whole number: $n") }
-        }
-        else {  
+        } else {
           non += 1
           println(s"Non-whole number: $n")
         }
