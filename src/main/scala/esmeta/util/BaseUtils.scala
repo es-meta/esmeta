@@ -120,6 +120,22 @@ object BaseUtils {
     }
   }
 
+  /** every first choice, plus each single-position change from it */
+  def oneChange[T](slots: List[LazyList[T]]): LazyList[List[T]] =
+    if (slots.exists(_.isEmpty)) LazyList.empty
+    else {
+      val heads = slots.map(_.head)
+      def rounds(tails: List[LazyList[T]]): LazyList[List[T]] =
+        if (tails.forall(_.isEmpty)) LazyList.empty
+        else
+          val round = for {
+            (alts, i) <- LazyList.from(tails).zipWithIndex
+            if alts.nonEmpty
+          } yield heads.updated(i, alts.head)
+          round #::: rounds(tails.map(_.drop(1)))
+      heads #:: rounds(slots.map(_.drop(1)))
+    }
+
   /** trim only right */
   def trimRight(str: String): String =
     str.reverse.span(_ == ' ')._2.reverse

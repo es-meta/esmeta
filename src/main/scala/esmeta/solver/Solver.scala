@@ -6,20 +6,20 @@ import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.{Set => MSet}
 
 trait Solver { self: SymInterp =>
 
   import tychecker.*, SymTy.*, Solver.*
 
   /** check the satisfiability of the given abstract state */
-  def check: Boolean =
-    val AbsState(reachable, locals, symEnv, constr) = st
-    reachable &&
-    symEnv.forall { case (sym, ty) => !ty.isBottom }
+  def check: Boolean = st.reachable && st.symEnv.forall((_, ty) => !ty.isBottom)
 
   /** reify a satisfiable path into an ECMAScript program */
   def reify: Option[String] = reifyAll.headOption
+
+  private def newTargetForms(ty: ValueTy): LazyList[String] =
+    val ctor = synthesizer.candidates(ty && ConstructorT)
+    if (UndefT ⊑ ty) "" #:: ctor else ctor // empty stands for no newTarget
 
   def reifyAll: LazyList[String] =
     given AbsState = st
@@ -53,7 +53,7 @@ trait Solver { self: SymInterp =>
         // get candidates from analyzed type
         val thisCands = synthesizer.candidates(thisValue)
         val argCands = args.map(synthesizer.candidates)
-        val ntCands = newTargetForms(newTarget, synthesizer)
+        val ntCands = newTargetForms(newTarget)
         // enumerate programs by varying one position at a time
         val slots = (thisCands +: argCands) :+ ntCands
         oneChange(slots).flatMap { chosen =>
@@ -65,54 +65,6 @@ trait Solver { self: SymInterp =>
 }
 
 object Solver {
-
-  def oneChange(slots: List[LazyList[String]]): LazyList[List[String]] =
-    if (slots.exists(_.isEmpty)) LazyList.empty
-    else {
-      val heads = slots.map(_.head)
-      def rounds(tails: List[LazyList[String]]): LazyList[List[String]] =
-        if (tails.forall(_.isEmpty)) LazyList.empty
-        else
-          val round = for {
-            (alts, i) <- LazyList.from(tails).zipWithIndex
-            if alts.nonEmpty
-          } yield heads.updated(i, alts.head)
-          round #::: rounds(tails.map(_.drop(1)))
-      heads #:: rounds(slots.map(_.drop(1)))
-    }
-
-  // lazy distinct
-  def distinct(xs: LazyList[String]): LazyList[String] =
-    val seen = MSet[String]()
-    xs.filter(seen.add)
-
-  def prioritize(
-    rows: List[(ValueTy, List[String])],
-    ty: ValueTy,
-    synthesizer: TySynthesizer,
-  ): LazyList[String] =
-    distinct(rows.to(LazyList).flatMap(_._2).flatMap(fill(_, ty, synthesizer)))
-
-  private def fill(
-    template: String,
-    ty: ValueTy,
-    synthesizer: TySynthesizer,
-  ): LazyList[String] =
-    synthesizer.slotChoices(template, ty).fold(LazyList.empty) { choices =>
-      val (fields, alts) = choices.unzip
-      oneChange(alts).map { chosen =>
-        fields.zip(chosen).foldLeft(template) {
-          case (acc, (field, e)) => acc.replace("$" + field, e)
-        }
-      }
-    }
-
-  private def newTargetForms(
-    ty: ValueTy,
-    synthesizer: TySynthesizer,
-  ): LazyList[String] =
-    val ctor = synthesizer.candidates(ty && ConstructorT)
-    if (UndefT ⊑ ty) "" #:: ctor else ctor // empty stands for no newTarget
 
   private def invoke(
     path: BuiltinPath,
@@ -142,11 +94,13 @@ object Solver {
     case _                    => None
   }
 
+  def newExpr(surface: String, args: List[String]): String =
+    s"new $surface(${args.mkString(", ")})"
+
   // JS expression to access a builtin function (None if unreachable)
   def funcAccessExpr(f: Func): Option[String] =
     f.head.collectFirst { case h: BuiltinHead => h.path }.flatMap(access)
 
-  // JS expression accessing the builtin at path
   private def access(path: BuiltinPath): Option[String] = path match
     case BuiltinPath.Base(name) =>
       globalAlias.get(name) match
