@@ -1,4 +1,5 @@
 {
+  "assert-yet.ir" : true,
   "assert.ir" : true,
   "assign.ir" : true,
   "binary-arith.ir" : true,
