@@ -179,6 +179,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
+  // TODO use extracted tyModel instead of ManualInfo.tyModel
   import ManualInfo.tyModel.*
 
   lazy val Bot: RecordTy = Elem(Map.empty)
