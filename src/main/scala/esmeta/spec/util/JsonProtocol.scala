@@ -31,6 +31,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Constant] = deriveDecoder
   given Encoder[Constant] = deriveEncoder
 
+  // glossary definitions defined by `dfn` elements
+  given Decoder[Dfn] = deriveDecoder
+  given Encoder[Dfn] = deriveEncoder
+
   // ---------------------------------------------------------------------------
   // Grammar
   // ---------------------------------------------------------------------------
