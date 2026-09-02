@@ -57,6 +57,7 @@ trait EffectDecl { self: TyChecker =>
       case RecordTy.Top => rec // unsound here
       case RecordTy.Elem(rmap) => {
         RecordTy(rmap.map((nty, fm) => {
+          // TODO use extracted tyModel instead of manual tyModel
           val base = ManualInfo.tyModel.baseOf(nty)
           val kfield = map.getOrElse(base, Set.empty)
           nty -> fm.weaken(kfield)
