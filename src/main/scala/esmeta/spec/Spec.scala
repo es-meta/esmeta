@@ -19,7 +19,7 @@ case class Spec(
   algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
   constants: List[Constant] = Nil, // constants defined by `emu-eqn` elements
   tables: Map[String, Table] = Map(), // tables
-  dfns: List[Dfn] = Nil, // glossary definitions
+  dfns: List[Dfn] = Nil, // glossaries
   tyModel: TyModel = TyModel(), // type models
   intrinsics: Intrinsics = Intrinsics(), // intrinsics
 ) extends SpecElem {

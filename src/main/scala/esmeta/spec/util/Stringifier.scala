@@ -250,7 +250,7 @@ object Stringifier {
   given constantRule: Rule[Constant] = (app, constant) =>
     app >> constant.name >> " = " >> constant.value
 
-  // for glossary definitions defined by `dfn` elements
+  // for glossaries defined by `dfn` elements
   given dfnRule: Rule[Dfn] = (app, dfn) =>
     app >> dfn.name
     if (dfn.variants.nonEmpty)

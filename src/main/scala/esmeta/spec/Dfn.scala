@@ -1,6 +1,6 @@
 package esmeta.spec
 
-/** glossary definition defined by `dfn` elements */
+/** glossaries defined by `dfn` elements */
 case class Dfn(
   name: String,
   variants: List[String] = Nil,
