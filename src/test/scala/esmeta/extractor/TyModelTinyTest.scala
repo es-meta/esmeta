@@ -105,15 +105,27 @@ class TyModelTinyTest extends ExtractorTest {
             Field("Value", false, "Any"),
           ),
         ),
-        TyDecl("ForInIteratorRecord", None, List(Field("Done", false, "Boolean"))),
-        TyDecl("Promise", None, List(Field("PromiseIsHandled", false, "Boolean"))),
+        TyDecl(
+          "ForInIteratorRecord",
+          None,
+          List(Field("Done", false, "Boolean")),
+        ),
+        TyDecl(
+          "Promise",
+          None,
+          List(Field("PromiseIsHandled", false, "Boolean")),
+        ),
         TyDecl("PrivateElement", None, List(Field("Key", false, "String"))),
         TyDecl(
           "AsyncGeneratorRequest",
           None,
           List(Field("Completion", false, "Completion")),
         ),
-        TyDecl("WriteSharedMemory", None, List(Field("NoTear", false, "Boolean"))),
+        TyDecl(
+          "WriteSharedMemory",
+          None,
+          List(Field("NoTear", false, "Boolean")),
+        ),
         TyDecl(
           "CandidateExecutionRecord",
           None,
