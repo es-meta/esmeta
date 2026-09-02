@@ -145,10 +145,14 @@ class Interpreter(
       if (tyCheck) typeChecker.returnTyCheck(ret, retVal)
       st.context.retVal = Some(ret, retVal)
     case IAssert(expr) =>
-      optional(eval(expr)) match
-        case None             => /* skip not yet compiled assertions */
-        case Some(Bool(true)) =>
-        case v                => throw AssertionFail(expr)
+      try {
+        eval(expr) match {
+          case Bool(true) =>
+          case _ => throw AssertionFail(expr)
+        }
+      } catch {
+        case _: NotSupported => /* skip not yet compiled assertions */
+      }
     case IPrint(expr) =>
       val v = eval(expr)
       if (!TEST_MODE) println(st.getString(v))
