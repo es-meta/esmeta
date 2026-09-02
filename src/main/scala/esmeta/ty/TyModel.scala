@@ -14,6 +14,15 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     decl <- decls
   } yield decl.name -> decl).toMap
 
+  infix def merge(that: TyModel): TyModel = that.decls.foldLeft(this) {
+    case (model, decl) =>
+      if (model.declMap contains decl.name)
+        TyModel(
+          model.decls.map(d => if (d.name == decl.name) (d merge decl) else d),
+        )
+      else TyModel(decl :: model.decls)
+  }
+
   /** get method map */
   lazy val methodOf: String => Map[String, String] = cached { tname =>
     for {
