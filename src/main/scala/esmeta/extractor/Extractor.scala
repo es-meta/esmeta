@@ -67,6 +67,7 @@ class Extractor(
       algorithms = algorithms,
       constants = constants,
       tables = tables,
+      dfns = dfns,
       tyModel = tyModel,
       intrinsics = intrinsics,
     )
@@ -87,6 +88,9 @@ class Extractor(
 
   /** tables in ECMA-262 */
   lazy val tables = extractTables
+
+  /** glossaries defined by `dfn` elements in ECMA-262 */
+  lazy val dfns = extractDfns
 
   /** type model */
   lazy val tyModel = extractTyModel
@@ -211,14 +215,27 @@ class Extractor(
   def extractTables: Map[String, Table] = (for {
     elem <- document.getElems("emu-table")
     id = elem.getId
+    caption = elem.attr("caption").trim.split("\\s+").mkString(" ")
     datas = (for {
       row <- elem.getElems("tr")
-    } yield row.getChildren.map(_.text)).toList
-  } yield id -> Table(id, datas.head, datas.tail)).toMap
+    } yield row.getChildren.map(_.text.trim)).toList
+  } yield id -> Table(id, caption, datas.head, datas.tail)).toMap
 
-  // TODO automatic extraction
+  /** extracts glossaries defined by `dfn` elements */
+  def extractDfns: List[Dfn] = for {
+    elem <- document.getElems("dfn")
+    name = elem.text.trim.split("\\s+").mkString(" ")
+    if name.nonEmpty
+    variants = elem
+      .attr("variants")
+      .split(",")
+      .map(_.trim)
+      .filter(_.nonEmpty)
+      .toList
+  } yield Dfn(name, variants)
+
   /** extracts a type model */
-  def extractTyModel: TyModel = ManualInfo.tyModel
+  def extractTyModel: TyModel = TyModelExtractor(tables, dfns, parser).result
 
   // TODO automatic extraction
   /** extracts intrinsics */
