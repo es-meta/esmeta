@@ -4,717 +4,488 @@ import esmeta.LINE_SEP
 import esmeta.ir.{Func, FuncKind, IIf, Inst, Param => IRParam, Type => IRType}
 import esmeta.ir.util.{Walker => IRWalker}
 import esmeta.lang.*
-import esmeta.lang.util.{
-  Parser => LangParser,
-  Parsers,
-  UnitWalker => LangUnitWalker,
+import esmeta.lang.LangTest.*
+import esmeta.spec
+import esmeta.spec.{
+  AbstractOperationHead,
+  Algorithm,
+  Constant,
+  Grammar,
+  Production,
+  Spec,
+  SyntaxDirectedOperationHead,
+  Table,
 }
-import esmeta.spec.*
 import esmeta.spec.SyntaxDirectedOperationHead.Target
 import org.jsoup.nodes.Element
 import scala.collection.mutable.{Set => MSet}
-import scala.compiletime.{constValue, erasedValue, summonFrom}
-import scala.deriving.Mirror
 
-/** compilation test for metalanguage snippets
-  *
-  * Each case compiles a single metalanguage step in a minimal algorithm and
-  * compares the compiled IR with the IR parsed from the expected text. The
-  * comparison is structural; see `normalizer` for the details.
-  */
-class CompileTinyTest extends CompilerTest {
+/** compilation test for the metalanguage */
+class CompileTinyTest extends CompilerTest with SyntaxCoverage {
   val name: String = "compilerCompileTest"
 
   // registration
   def init: Unit = {
     // -------------------------------------------------------------------------
-    // assignment steps
+    // steps
     // -------------------------------------------------------------------------
-    checkCompile("assignment steps")(
-      "Let _x_ be _y_." -> "let x = y",
+    checkCompileStep("steps")(
+      letStep -> "let x = x",
+      letCopyStep -> "let x = (copy x)",
+      letStepSemicolon -> "let x = x",
+      letStepClosure -> """let x = clo<"Test:clo0", [x]>""",
+      setStep -> "x = (+ x x)",
+      setCopyStep -> "x = (copy x)",
+      setAsStep -> """x = clo<"Bar">""",
+      setEvalStateStep -> """x.__RESUME_CONT__ = cont<"Test:cont0">""",
+      setEvalStateArgStep -> """x.__RESUME_CONT__ = cont<"Test:cont0">""",
+      setEvalStateArgsStep -> """x.__RESUME_CONT__ = cont<"Test:cont0">""",
+      performStep -> """call %0 = clo<"ToObject">((+ x x), (- x))""",
+      invokeShorthandStep ->
+      "assert (&& (? x: Completion) (! (= x.Type ~normal~)))",
+      appendStep -> "push x.Value < x",
+      prependStep -> "push x > x.Value",
+      insertStep -> "push x > x.Value",
+      addStep -> "push x.Value < x",
+      removeStep -> """call %0 = clo<"__REMOVE_ELEM__">(x, x)""",
       // -----------------------------------------------------------------------
-      "Let _x_ be a copy of _y_." -> "let x = (copy y)",
-      // -----------------------------------------------------------------------
-      "Set _x_ to _y_ + 1." -> "x = (+ y 1)",
-      // -----------------------------------------------------------------------
-      "Set _x_.[[Value]] to _y_." -> "x.Value = y",
-      // -----------------------------------------------------------------------
-      """Set _x_ as specified in <emu-xref href="#sec-foo"></emu-xref>.""" ->
-      """x = clo<"Foo">""",
-      // -----------------------------------------------------------------------
-      "Set the code evaluation state of _x_ such that when evaluation " +
-      "is resumed for that execution context, _y_ will be called with " +
-      "no arguments." ->
-      """x.__RESUME_CONT__ = cont<"Test:cont0">""",
-      // -----------------------------------------------------------------------
-      "Set fields of _x_ with the values listed in " +
-      """<emu-xref href="#table-well-known-intrinsic-objects"></emu-xref>. """ +
-      "More description." ->
-      "x = @INTRINSICS",
-    )
-
-    // -------------------------------------------------------------------------
-    // invocation steps
-    // -------------------------------------------------------------------------
-    checkCompile("invocation steps")(
-      "Perform ToObject(_x_)." -> """call %0 = clo<"ToObject">(x)""",
-      // -----------------------------------------------------------------------
-      "Perform ! ToObject(_x_)." ->
-      """call %0 = clo<"ToObject">(x)
-      |assert (? %0: Normal)
-      |%0 = %0.Value""".stripMargin,
-      // -----------------------------------------------------------------------
-      "IfAbruptCloseIterator(_x_, _y_)." ->
-      """if (&& (? x: Completion) (! (= x.Type ~normal~))) {
-      |  return y
-      |}""".stripMargin,
-    )
-
-    // -------------------------------------------------------------------------
-    // list mutation steps
-    // -------------------------------------------------------------------------
-    checkCompile("list mutation steps")(
-      "Append _x_ to _y_." -> "push y < x",
-      // -----------------------------------------------------------------------
-      "Prepend _x_ to _y_." -> "push x > y",
-      // -----------------------------------------------------------------------
-      "Insert _x_ as the first element of _y_." -> "push x > y",
-      // -----------------------------------------------------------------------
-      "Add _x_ to _y_." -> "push y < x",
-      // -----------------------------------------------------------------------
-      "Remove _x_ from _y_." -> """call %0 = clo<"__REMOVE_ELEM__">(x, y)""",
-      // -----------------------------------------------------------------------
-      "Remove the first element of _x_." -> "pop %0 < x",
-      // -----------------------------------------------------------------------
-      "Remove the last element of _x_." -> "pop x > %0",
-      // -----------------------------------------------------------------------
-      "Remove the first _y_ elements from _x_." ->
+      removeFirstStep ->
       """%0 = 0
-      |%1 = y
+      |%1 = x
       |while (< %0 %1) {
       |  pop %2 < x
       |  %0 = (+ %0 1)
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "Remove the last _y_ elements from _x_." ->
-      """%0 = 0
-      |%1 = y
-      |while (< %0 %1) {
-      |  pop x > %2
-      |  %0 = (+ %0 1)
-      |}""".stripMargin,
-    )
-
-    // -------------------------------------------------------------------------
-    // execution context steps
-    // -------------------------------------------------------------------------
-    checkCompile("execution context steps")(
-      "Push _x_ onto the execution context stack; _x_ is now the " +
-      "running execution context." ->
-      "push x > @EXECUTION_STACK",
+      removeLastStep -> "pop x > %0",
+      pushCtxtStep -> "push x > @EXECUTION_STACK",
+      suspendStep -> "nop",
+      suspendRefStep -> "nop",
+      suspendAndRemoveStep -> "pop %0 < @EXECUTION_STACK",
+      removeCtxtStep -> "pop %0 < @EXECUTION_STACK",
+      removeCtxtRestoreTopStep -> "pop %0 < @EXECUTION_STACK",
+      removeCtxtRestoreStep -> "pop %0 < @EXECUTION_STACK",
+      assertStep -> "assert (&& x x)",
       // -----------------------------------------------------------------------
-      "Suspend the running execution context." -> "nop",
-      // -----------------------------------------------------------------------
-      "Suspend _x_." -> "nop",
-      // -----------------------------------------------------------------------
-      "Suspend _x_ and remove it from the execution context stack." ->
-      "pop %0 < @EXECUTION_STACK",
-      // -----------------------------------------------------------------------
-      "Remove _x_ from the execution context stack." ->
-      "pop %0 < @EXECUTION_STACK",
-      // -----------------------------------------------------------------------
-      "Remove _x_ from the execution context stack and restore _y_ as " +
-      "the running execution context." ->
-      "pop %0 < @EXECUTION_STACK",
-      // -----------------------------------------------------------------------
-      "Resume the context that is now on the top of the execution " +
-      "context stack as the running execution context." ->
-      "nop",
-    )
-
-    // -------------------------------------------------------------------------
-    // conditional steps
-    // -------------------------------------------------------------------------
-    checkCompile("conditional steps")(
-      "Assert: _x_ is a String." -> "assert (? x: String)",
-      // -----------------------------------------------------------------------
-      "Assert: _x_ is *true* and Foo(_y_) is *true*." ->
-      """%0 = (= x true)
-      |if %0 {
-      |  call %1 = clo<"Foo">(y)
-      |  %0 = (= %1 true)
-      |}
-      |assert %0""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_, let _y_ be _x_." ->
+      ifStep ->
       """if x {
-      |  let y = x
+      |  let x = x
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "If _x_, let _y_ be _x_. Else, let _y_ be *undefined*." ->
+      ifElseInlineStep ->
       """if x {
-      |  let y = x
+      |  let x = x
       |} else {
-      |  let y = undefined
+      |  let x = x
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      """
-      |  1. If _x_, then
-      |    1. Let _y_ be _x_.
-      |  1. Else,
-      |    1. Let _y_ be *undefined*.""".stripMargin ->
+      ifElseInlineSemicolonStep ->
       """if x {
-      |  let y = x
+      |  let x = x
       |} else {
-      |  let y = undefined
+      |  let x = x
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "If _x_ is *true* and Foo(_y_) is *true*, throw a *TypeError* " +
-      "exception." ->
-      """%0 = (= x true)
-      |if %0 {
-      |  call %1 = clo<"Foo">(y)
-      |  %0 = (= %1 true)
-      |}
-      |if %0 {
-      |  call %2 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
-      |  call %3 = clo<"ThrowCompletion">(%2)
-      |  return %3
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is *true* or _y_ is *true*, return *false*." ->
-      """if (|| (= x true) (= y true)) {
-      |  return false
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is *true* and Foo(_y_) is *true*, let _z_ be *true*. " +
-      "Else, let _z_ be *false*." ->
-      """%0 = (= x true)
-      |if %0 {
-      |  call %1 = clo<"Foo">(y)
-      |  %0 = (= %1 true)
-      |}
-      |if %0 {
-      |  let z = true
+      ifOtherwiseInlineStep ->
+      """if x {
+      |  let x = x
       |} else {
-      |  let z = false
+      |  let x = x
       |}""".stripMargin,
-    )
-
-    // -------------------------------------------------------------------------
-    // loop steps
-    // -------------------------------------------------------------------------
-    checkCompile("loop steps")(
-      "Repeat, let _x_ be _y_." ->
+      // -----------------------------------------------------------------------
+      ifOtherwiseInlineNoCommaStep ->
+      """if x {
+      |  let x = x
+      |} else {
+      |  let x = x
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      ifBlockStep ->
+      """if x {
+      |  let x = x
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      ifElseStep ->
+      """if x {
+      |  let x = x
+      |} else {
+      |  let x = x
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      ifElseIfStep ->
+      """if x {
+      |  let x = x
+      |} else {
+      |  if x {
+      |    let x = x
+      |  }
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      ifElseIfElseStep ->
+      """if x {
+      |  let x = x
+      |} else {
+      |  if x {
+      |    let x = x
+      |  } else {
+      |    let x = x
+      |  }
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      repeatStep ->
       """while true {
-      |  let x = y
+      |  let x = x
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "Repeat, while _x_ is *true*, set _y_ to _y_ + 1." ->
-      """while (= x true) {
-      |  y = (+ y 1)
+      repeatWhileStep ->
+      """while (&& x x) {
+      |  let x = x
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "Repeat, until _x_ is *true*, set _y_ to _y_ + 1." ->
-      """while (! (= x true)) {
-      |  y = (+ y 1)
+      repeatUntilStep ->
+      """while (! (&& x x)) {
+      |  let x = x
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "For each element _x_ of _y_, append _x_ to _z_." ->
-      """%1 = y
+      forEachStep ->
+      """%1 = x
       |%0 = 0
       |while (< %0 (sizeof %1)) {
       |  let x = %1[%0]
-      |  push z < x
-      |  %0 = (+ %0 1)
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "For each String _x_ of _y_, append _x_ to _z_." ->
-      """%1 = y
-      |%0 = 0
-      |while (< %0 (sizeof %1)) {
-      |  let x = %1[%0]
-      |  if (? x: String) {
-      |    push z < x
+      |  if (? x: Record[Base]) {
+      |    let x = x
       |  }
       |  %0 = (+ %0 1)
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "For each element _x_ of _y_, in reverse List order, append _x_ " +
-      "to _z_." ->
-      """%1 = y
+      forEachReverseStep ->
+      """%1 = x
       |%0 = (- (sizeof %1) 1)
       |while (! (< %0 0)) {
       |  let x = %1[%0]
-      |  push z < x
+      |  if (? x: Record[Base]) {
+      |    let x = x
+      |  }
       |  %0 = (- %0 1)
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "For each integer _x_ such that 0 ≤ _x_ ≤ 5, in ascending order, " +
-      "append _x_ to _z_." ->
-      """let x = 0
-      |%0 = 5
-      |while (! (< %0 x)) {
-      |  push z < x
-      |  x = (+ x 1)
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "For each integer _x_ such that 0 " +
-      "< _x_ < 5, in descending order, append _x_ to _z_." ->
-      """let x = (+ 5 1)
-      |%0 = 0
-      |while (< %0 x) {
-      |  push z < x
-      |  x = (- x 1)
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "For each own property key _x_ of _y_ such that _x_ is an array " +
-      "index, in ascending numeric index order, append _x_ to _z_." ->
-      """%1 = (keys-int y.__MAP__)
+      forEachStepNoType ->
+      """%1 = x
       |%0 = 0
       |while (< %0 (sizeof %1)) {
       |  let x = %1[%0]
-      |  call %2 = clo<"__IS_ARRAY_INDEX__">(x)
-      |  if %2 {
-      |    push z < x
+      |  let x = x
+      |  %0 = (+ %0 1)
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      forEachIntStep ->
+      """let x = 2
+      |%0 = 6
+      |while (! (< %0 x)) {
+      |  let x = x
+      |  x = (+ x 1)
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      forEachIntNotIncStep ->
+      """let x = (- 2 1)
+      |%0 = 6
+      |while (< x %0) {
+      |  let x = x
+      |  x = (+ x 1)
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      forEachIntDescStep ->
+      """let x = 6
+      |%0 = 2
+      |while (! (< x %0)) {
+      |  let x = x
+      |  x = (- x 1)
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      forEachAscOPKStep ->
+      """%1 = (keys-int x.__MAP__)
+      |%0 = 0
+      |while (< %0 (sizeof %1)) {
+      |  let x = %1[%0]
+      |  if (&& x x) {
+      |    let x = x
       |  }
       |  %0 = (+ %0 1)
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "For each own property key _x_ of _y_ such that _x_ is a String, " +
-      "in descending chronological order of property creation, append " +
-      "_x_ to _z_." ->
-      """%1 = (keys y.__MAP__)
+      forEachDscOPKStep ->
+      """%1 = (keys x.__MAP__)
       |%0 = (sizeof %1)
       |while (< 0 %0) {
       |  %0 = (- %0 1)
       |  let x = %1[%0]
-      |  if (? x: String) {
-      |    push z < x
+      |  if (&& x x) {
+      |    let x = x
       |  }
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      "For each child node _x_ of _y_, do append _x_ to _z_." ->
-      """%1 = y
+      forEachParseNodeStep ->
+      """%1 = x
       |%0 = 0
       |%2 = (sizeof %1)
       |while (< %0 %2) {
       |  if (exists %1[%0]) {
       |    let x = %1[%0]
-      |    push z < x
+      |    let x = x
       |  }
       |  %0 = (+ %0 1)
       |}""".stripMargin,
-    )
-
-    // -------------------------------------------------------------------------
-    // return steps
-    // -------------------------------------------------------------------------
-    checkCompile("return steps")(
-      "Return _x_." -> "return x",
       // -----------------------------------------------------------------------
-      "Return ? Foo(_x_)." ->
-      """call %0 = clo<"Foo">(x)
-      |assert (? %0: Completion)
-      |if (? %0: Abrupt) return %0
-      |else %0 = %0.Value
-      |return %0""".stripMargin,
+      returnStep -> "return x",
       // -----------------------------------------------------------------------
-      "Return ! Foo(_x_)." ->
-      """call %0 = clo<"Foo">(x)
-      |assert (? %0: Normal)
-      |%0 = %0.Value
-      |return %0""".stripMargin,
-    )
-
-    // -------------------------------------------------------------------------
-    // return steps of completion-returning algorithms
-    // -------------------------------------------------------------------------
-    checkCompile(
-      "return steps of completion-returning algorithms",
-      needRetComp = true,
-    )(
-      "Return _x_." ->
-      """if (? x: Completion) return x
-      |call %0 = clo<"NormalCompletion">(x)
-      |return %0""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Return *undefined*." ->
-      """call %0 = clo<"NormalCompletion">(undefined)
-      |return %0""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Return Foo(_x_)." ->
-      """call %0 = clo<"Foo">(x)
-      |if (? %0: Completion) return %0
-      |call %1 = clo<"NormalCompletion">(%0)
-      |return %1""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Return ? Foo(_x_)." ->
-      """call %0 = clo<"Foo">(x)
-      |assert (? %0: Completion)
-      |if (? %0: Abrupt) return %0
-      |else return %0""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Return ! Foo(_x_)." ->
-      """call %0 = clo<"Foo">(x)
-      |assert (? %0: Normal)
-      |return %0""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Return NormalCompletion(_x_)." ->
-      """call %0 = clo<"NormalCompletion">(x)
-      |if (? %0: Completion) return %0
-      |call %1 = clo<"NormalCompletion">(%0)
-      |return %1""".stripMargin,
-    )
-
-    // -------------------------------------------------------------------------
-    // other steps
-    // -------------------------------------------------------------------------
-    checkCompile("other steps")(
-      "Throw a *TypeError* exception." ->
-      """call %0 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      throwStep ->
+      """call %0 = clo<"__NEW_ERROR_OBJ__">("%ReferenceError.prototype%")
       |call %1 = clo<"ThrowCompletion">(%0)
       |return %1""".stripMargin,
       // -----------------------------------------------------------------------
-      """
-      |  1. Resume _x_ passing _y_. If _x_ is ever resumed again, let _z_ be the Completion Record with which it is resumed.
-      |  1. Return _z_.""".stripMargin ->
+      resumeStep ->
       """x.__RESUME_CONT__ = cont<"Test:cont0">
       |pop %0 < x.__RETURN_CONT__
-      |call %1 = %0(y)""".stripMargin,
+      |call %1 = %0(x)""".stripMargin,
       // -----------------------------------------------------------------------
-      """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta> using _y_ as the result of the operation that suspended it.
-      |  1. Return _x_.""".stripMargin ->
-      """if (! (exists x.__RETURN_CONT__)) x.__RETURN_CONT__ = (list [])
-      |push cont<"Test:cont0"> > x.__RETURN_CONT__
-      |call %0 = x.__RESUME_CONT__(y)""".stripMargin,
-      // -----------------------------------------------------------------------
-      """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>. Let _y_ be the value returned by the resumed computation.
-      |  1. Return _y_.""".stripMargin ->
+      resumeEvalStep ->
       """if (! (exists x.__RETURN_CONT__)) x.__RETURN_CONT__ = (list [])
       |push cont<"Test:cont0"> > x.__RETURN_CONT__
       |call %0 = x.__RESUME_CONT__()""".stripMargin,
       // -----------------------------------------------------------------------
-      "NOTE: This step is just a note." -> "nop",
+      resumeEvalArgStep ->
+      """if (! (exists x.__RETURN_CONT__)) x.__RETURN_CONT__ = (list [])
+      |push cont<"Test:cont0"> > x.__RETURN_CONT__
+      |call %0 = x.__RESUME_CONT__(x)""".stripMargin,
       // -----------------------------------------------------------------------
-      """
-      |  1. Let _x_ be _y_.
-      |  1. Return _x_.""".stripMargin ->
-      """let x = y
-      |return x""".stripMargin,
+      resumeEvalParamStep ->
+      """if (! (exists x.__RETURN_CONT__)) x.__RETURN_CONT__ = (list [])
+      |push cont<"Test:cont0"> > x.__RETURN_CONT__
+      |call %0 = x.__RESUME_CONT__()""".stripMargin,
       // -----------------------------------------------------------------------
-      """Perform the following substeps in an implementation-defined order, possibly interleaving parsing and error detection:
-      |  1. Let _x_ be _y_.""".stripMargin ->
-      "let x = y",
-      // -----------------------------------------------------------------------
-      "Do something that is not yet supported." ->
-      """(yet "Do something that is not yet supported.")""",
-      // -----------------------------------------------------------------------
-      "Let _x_ be something not yet supported." ->
-      """(yet "Let _x_ be something not yet supported.")""",
+      resumeTopCtxtStep -> "nop",
+      noteStep -> "nop",
+      blockStep -> "let x = x",
+      yetStep ->
+      """(yet "Not yet supported:\n  1. Let _x_ be _x_.\n  1. [id=\"x,y,z\",some-name] Let _x_ be _x_.\n  1. Let _x_ be _x_.")""",
     )
 
     // -------------------------------------------------------------------------
-    // manual compile rules
+    // special steps
     // -------------------------------------------------------------------------
-    checkCompile("manual compile rules")(
-      "Change its bound value to _V_." ->
-      "envRec.__MAP__[N].__BOUND_VALUE__ = V",
+    checkCompileStep("special steps")(
+      setFieldsWithIntrinsicsStep -> "x = @INTRINSICS",
       // -----------------------------------------------------------------------
-      "Assert: The execution context stack is not empty." ->
-      "assert (! (= (sizeof @EXECUTION_STACK) 0))",
+      performBlockStep ->
+      """let x = x
+      |x = (+ x x)""".stripMargin,
     )
 
     // -------------------------------------------------------------------------
     // expressions
     // -------------------------------------------------------------------------
-    checkCompile("expressions")(
-      "Let _x_ be the string-concatenation of _y_ and _z_." ->
-      "let x = (concat y z)",
+    checkCompileExpr("expressions")(
+      refExpr -> "let x = x",
+      stringConcatExprOne -> "let x = (concat x)",
+      stringConcatExprTwo -> "let x = (concat x x)",
+      stringConcatExprThree -> "let x = (concat x x x)",
       // -----------------------------------------------------------------------
-      "Let _x_ be the list-concatenation of _y_ and _z_." ->
-      """call %0 = clo<"__FLAT_LIST__">((list [y, z]))
+      listConcatExprOne ->
+      """call %0 = clo<"__FLAT_LIST__">((list [x]))
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be a List whose elements are the elements of _y_." ->
-      "let x = (copy y)",
+      listConcatExprTwo ->
+      """call %0 = clo<"__FLAT_LIST__">((list [x, x]))
+      |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be a copy of the List _y_." -> "let x = (copy y)",
+      listConcatExprThree ->
+      """call %0 = clo<"__FLAT_LIST__">((list [x, x, x]))
+      |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be a copy of the running execution context." ->
-      "let x = (copy @EXECUTION_STACK[0])",
+      listElementsCopyExpr -> "let x = (copy x)",
+      copyExpr -> "let x = (copy x)",
+      copyOfListExpr -> "let x = (copy x)",
+      copyAccessExpr -> "let x = (copy x.Captures)",
+      copyRunningContextExpr -> "let x = (copy @EXECUTION_STACK[0])",
       // -----------------------------------------------------------------------
-      "Let _x_ be Object { }." ->
+      recordEmptyExpr ->
       """let x = (record [Object] {
       |  "__MAP__" : (map[Record[Symbol] | String, Record[PropertyDescriptor]]),
       |  "PrivateElements" : (list []),
       |})""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be Object { [[Value]]: _y_ }." ->
+      recordExpr ->
       """let x = (record [Object] {
-      |  "Value" : y,
+      |  "Value" : x,
       |  "__MAP__" : (map[Record[Symbol] | String, Record[PropertyDescriptor]]),
       |  "PrivateElements" : (list []),
       |})""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be PropertyDescriptor { [[Value]]: _y_ }." ->
-      """let x = (record [PropertyDescriptor] {
-      |  "Value" : y,
-      |})""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Let _x_ be the length of _y_." -> "let x = (sizeof y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the length of the string-concatenation of _y_ and _z_." ->
-      """%0 = (concat y z)
-      |let x = (sizeof %0)""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Let _x_ be the substring of _y_ from _z_." -> "let x = (substring y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the substring of _y_ from _z_ to _w_." ->
-      "let x = (substring y z w)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the String value that is a copy of _y_ with both " +
-      "leading and trailing white space removed." ->
-      "let x = (trim (trim > y) <)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the String value that is a copy of _y_ with leading " +
-      "white space removed." ->
-      "let x = (trim > y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the number of elements in _y_." -> "let x = (sizeof y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be %Array%." ->
-      """let x = @EXECUTION_STACK[0].Realm.Intrinsics["%Array%"]""",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the source text matched by |Identifier|." ->
-      "let x = (source-text (grammar-symbol |Identifier|))",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the |Identifier| that is covered by |Identifier|." ->
+      lengthExpr -> "let x = (sizeof x)",
+      substrExpr -> "let x = (substring x x)",
+      substrExprTo -> "let x = (substring x x x)",
+      trim -> "let x = (trim (trim > x) <)",
+      trimStart -> "let x = (trim > x)",
+      trimEnd -> "let x = (trim x <)",
+      numberOfExpr -> "let x = (sizeof x)",
+      numberOfBytesExpr -> "let x = (sizeof x)",
+      numberOfListExpr -> "let x = (sizeof x)",
+      sourceTextExpr -> "let x = (source-text (grammar-symbol |Identifier|))",
+      coveredByExpr ->
       "let x = (parse (grammar-symbol |Identifier|) (grammar-symbol |Identifier|))",
+      getItemsExpr ->
+      """let x = (yet "the List of |Identifier| items in _x_, in source text order")""",
+      intrExpr -> """let x = @EXECUTION_STACK[0].Realm.Intrinsics["%Array%"]""",
       // -----------------------------------------------------------------------
-      "Let _x_ be the List of |Identifier| items in _y_, in source text " +
-      "order." ->
-      """let x = (yet "the List of |Identifier| items in _y_, in source text order")""",
-      // -----------------------------------------------------------------------
-      "Let _x_ be ToObject(_y_, _z_)." ->
-      """call %0 = clo<"ToObject">(y, z)
+      invokeAOExpr ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be Number::add(_y_, _z_)." ->
-      """call %0 = clo<"Number::add">(y, z)
+      invokeNumericExpr ->
+      """call %0 = clo<"Number::add">(x, x)
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be _y_(_z_)." ->
-      """call %0 = y(z)
+      invokeClosureExpr ->
+      """call %0 = x(x)
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be _y_.[[Value]](_z_)." ->
-      """call %0 = y.Value(y, z)
+      invokeMethodExpr ->
+      """call %0 = x.Value(x, (+ x x), (- x))
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be StringValue of |Identifier|." ->
+      invokeSDOExprZero ->
       """sdo-call %0 = (grammar-symbol |Identifier|)->StringValue()
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be StringValue of |Identifier| with argument _y_." ->
-      """sdo-call %0 = (grammar-symbol |Identifier|)->StringValue(y)
+      invokeSDOExprSingle ->
+      """sdo-call %0 = (grammar-symbol |Identifier|)->StringValue((grammar-symbol |Identifier|))
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be ? ToObject(_y_)." ->
-      """call %0 = clo<"ToObject">(y)
+      invokeSDOExprMulti ->
+      """sdo-call %0 = (grammar-symbol |Identifier|)->StringValue((grammar-symbol |Identifier|), x)
+      |let x = %0""".stripMargin,
+      // -----------------------------------------------------------------------
+      invokeSDOExprEval ->
+      """sdo-call %0 = (grammar-symbol |Identifier|)->Evaluation()
+      |let x = %0""".stripMargin,
+      // -----------------------------------------------------------------------
+      invokeSDOExprContains ->
+      """sdo-call %0 = (grammar-symbol |Identifier|)->Contains(x)
+      |let x = %0""".stripMargin,
+      // -----------------------------------------------------------------------
+      riaCheckExpr ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
       |assert (? %0: Completion)
       |if (? %0: Abrupt) return %0
       |else %0 = %0.Value
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be ! ToObject(_y_)." ->
-      """call %0 = clo<"ToObject">(y)
+      riaNoCheckExpr ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
       |assert (? %0: Normal)
       |%0 = %0.Value
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be « »." -> "let x = (list [])",
+      emptyListExpr -> "let x = (list [])",
+      listExpr -> "let x = (list [x, x])",
+      xrefAlgoExpr -> """let x = clo<"Foo">""",
+      xrefSlotsExpr -> """let x = (list ["Value"])""",
+      xrefLenExpr -> "let x = 1",
       // -----------------------------------------------------------------------
-      "Let _x_ be « _y_, _z_ »." -> "let x = (list [y, z])",
-      // -----------------------------------------------------------------------
-      "Let _x_ be a new empty List." -> "let x = (list [])",
-      // -----------------------------------------------------------------------
-      "Let _x_ be a List whose sole element is _y_." -> "let x = (list [y])",
-      // -----------------------------------------------------------------------
-      "Let _x_ be a List of the integers in the interval from 0 " +
-      "(inclusive) to _y_ (exclusive), in ascending order." ->
-      """%0 = 0
-      |%1 = y
-      |%2 = %0
-      |%3 = (list [])
-      |while (< %2 %1) {
-      |  push %3 < %2
-      |  %2 = (+ %2 1)
-      |}
-      |let x = %3""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Let _x_ be the definition specified in " +
-      """<emu-xref href="#sec-foo"></emu-xref>.""" ->
-      """let x = clo<"Foo">""",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the number of non-optional parameters of the function " +
-      """definition in <emu-xref href="#sec-foo"></emu-xref>.""" ->
-      "let x = 1",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the internal slots listed in " +
-      """<emu-xref href="#table-x"></emu-xref>.""" ->
-      """let x = (list ["Value"])""",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the sole element of « _y_ »." ->
-      """%0 = (list [y])
+      soleExpr ->
+      """%0 = (list [x, x])
       |let x = %0[0]""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be the code unit at index _z_ within _y_." -> "let x = y[z]",
-      // -----------------------------------------------------------------------
-      """Let _x_ be a new Abstract Closure with parameters (_a_, _b_) that captures _y_ and performs the following steps when called:
-      |  1. Return _a_.""".stripMargin ->
-      """let x = clo<"Test:clo0", [y]>""",
+      codeUnitAtExpr -> "let x = x[x]",
+      strValueExpr -> "let x = x",
+      yetExpr ->
+      """let x = (yet "Not yet supported:\n  1. Let _x_ be _x_.\n  1. [id=\"x,y,z\",some-name] Let _x_ be _x_.\n  1. Let _x_ be _x_.")""",
     )
 
     // -------------------------------------------------------------------------
     // calculation expressions
     // -------------------------------------------------------------------------
-    checkCompile("calculation expressions")(
-      "Let _x_ be _y_ + _z_." -> "let x = (+ y z)",
+    checkCompileExpr("calculation expressions")(
+      minExpr -> "let x = (min x)",
+      addExpr -> "let x = (+ x x)",
+      subExpr -> "let x = (- x x)",
+      mulExpr -> "let x = (* x x)",
+      expExpr -> "let x = (** x x)",
+      unExpr -> "let x = (- x)",
+      parenAddExpr -> "let x = (* x (+ x x))",
+      parenMulExpr -> "let x = (- (* x x))",
+      parenUnExpr -> "let x = (** (- x) x)",
       // -----------------------------------------------------------------------
-      "Let _x_ be _y_ - _z_." -> "let x = (- y z)",
+      addInvokeExpr ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
+      |let x = (+ %0 x)""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be _y_ × _z_." -> "let x = (* y z)",
+      mulInvokeExpr ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
+      |let x = (* (** x x) %0)""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be _y_ / _z_." -> "let x = (/ y z)",
+      plusExpr -> "let x = (+ x x)",
+      timesExpr -> "let x = (* x x)",
       // -----------------------------------------------------------------------
-      "Let _x_ be _y_ modulo _z_." -> "let x = (% y z)",
+      mulSDOExpr ->
+      """sdo-call %0 = (grammar-symbol |Identifier|)->StringValue()
+      |let x = (* %0 x)""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be _y_<sup>_z_</sup>." -> "let x = (** y z)",
+      convInvokeExpr ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
+      |let x = ([math] (+ %0 x))""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be -_y_." -> "let x = (- y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be _y_ × (_z_ + _w_)." -> "let x = (* y (+ z w))",
-      // -----------------------------------------------------------------------
-      "Let _x_ be _y_ plus _z_." -> "let x = (+ y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be _y_ times _z_." -> "let x = (* y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be ℝ(_y_)." -> "let x = ([math] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be 𝔽(_y_)." -> "let x = ([number] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be ℤ(_y_)." -> "let x = ([bigInt] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be an implementation-approximated Number value " +
-      "representing _y_." ->
-      "let x = ([approx-number] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the Number value of the code unit at index _z_ within " +
-      "_y_." ->
-      "let x = ([number] y[z])",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the BigInt value of the code unit at index _z_ within " +
-      "_y_." ->
-      "let x = ([bigInt] y[z])",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the numeric value of the code unit at index _z_ " +
-      "within _y_." ->
-      "let x = ([math] y[z])",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the result of clamping _y_ between 0 and _z_." ->
-      """call %0 = clo<"__CLAMP__">(y, 0, z)
-      |let x = %0""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Let _x_ be the result of applying the bitwise AND operation to " +
-      "_y_ and _z_." ->
-      "let x = (& y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the result of applying the bitwise exclusive OR (XOR) " +
-      "operation to _y_ and _z_." ->
-      "let x = (^ y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the result of applying the bitwise inclusive OR " +
-      "operation to _y_ and _z_." ->
-      "let x = (| y z)",
+      convToApproxNumberExpr -> "let x = ([approx-number] x)",
+      convToNumberTextExpr -> "let x = ([number] x[x])",
+      convToBigIntTextExpr -> "let x = ([bigInt] x[x])",
+      convToMathTextExpr -> "let x = ([math] x[x])",
+      convToNumberExpr -> "let x = ([number] x)",
+      convToBigIntExpr -> "let x = ([bigInt] x)",
+      convToMathExpr -> "let x = ([math] x)",
     )
 
     // -------------------------------------------------------------------------
     // mathematical operation expressions
     // -------------------------------------------------------------------------
-    checkCompile("mathematical operation expressions")(
-      "Let _x_ be the negation of _y_." -> "let x = (- y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the sum of _y_ and _z_." -> "let x = (+ y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the product of _y_ and _z_." -> "let x = (* y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the difference _y_ minus _z_." -> "let x = (- y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the raising _y_ to the _z_ power." -> "let x = (** y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the subtracting 1 from the exponential function of _y_." ->
-      "let x = ([math:expm1] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the cosine of _y_." -> "let x = ([math:cos] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the cube root of _y_." -> "let x = ([math:cbrt] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the exponential function of _y_." -> "let x = ([math:exp] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the hyperbolic cosine of _y_." -> "let x = ([math:cosh] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the hyperbolic sine of _y_." -> "let x = ([math:sinh] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the hyperbolic tangent of _y_." -> "let x = ([math:tanh] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the inverse cosine of _y_." -> "let x = ([math:acos] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the inverse hyperbolic cosine of _y_." ->
-      "let x = ([math:acosh] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the inverse hyperbolic sine of _y_." ->
-      "let x = ([math:asinh] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the inverse hyperbolic tangent of _y_." ->
-      "let x = ([math:atanh] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the inverse sine of _y_." -> "let x = ([math:asin] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the inverse tangent of the quotient _y_ / _z_." ->
-      "let x = ([math:atan2] y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the inverse tangent of _y_." -> "let x = ([math:atan] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the sine of _y_." -> "let x = ([math:sin] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the square root of _y_." -> "let x = ([math:sqrt] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the tangent of _y_." -> "let x = ([math:tan] y)",
+    checkCompileExpr("mathematical operation expressions")(
+      negMathExpr -> "let x = (- x)",
+      sumMathExpr -> "let x = (+ x x)",
+      prodMathExpr -> "let x = (* x x)",
+      diffMathExpr -> "let x = (- x x)",
+      powMathExpr -> "let x = (** x x)",
+      expm1MathExpr -> "let x = ([math:expm1] x)",
+      cosMathExpr -> "let x = ([math:cos] x)",
+      cbrtMathExpr -> "let x = ([math:cbrt] x)",
+      expMathExpr -> "let x = ([math:exp] x)",
+      coshMathExpr -> "let x = ([math:cosh] x)",
+      sinhMathExpr -> "let x = ([math:sinh] x)",
+      tanhMathExpr -> "let x = ([math:tanh] x)",
+      acosMathExpr -> "let x = ([math:acos] x)",
+      acoshMathExpr -> "let x = ([math:acosh] x)",
+      asinhMathExpr -> "let x = ([math:asinh] x)",
+      atanhMathExpr -> "let x = ([math:atanh] x)",
+      asinMathExpr -> "let x = ([math:asin] x)",
+      atan2MathExpr -> "let x = ([math:atan2] x x)",
+      atanMathExpr -> "let x = ([math:atan] x)",
+      sinMathExpr -> "let x = ([math:sin] x)",
+      sqrtMathExpr -> "let x = ([math:sqrt] x)",
+      tanMathExpr -> "let x = ([math:tan] x)",
     )
 
     // -------------------------------------------------------------------------
     // mathematical function expressions
     // -------------------------------------------------------------------------
-    checkCompile("mathematical function expressions")(
-      "Let _x_ be max(_y_, _z_)." -> "let x = (max y z)",
+    checkCompileExpr("mathematical function expressions")(
+      maxExpr -> "let x = (max x x)",
+      minTwoExpr -> "let x = (min x x)",
+      absExpr -> "let x = (abs x)",
+      floorExpr -> "let x = (floor x)",
+      log10Expr -> "let x = ([math:log10] x)",
+      log2Expr -> "let x = ([math:log2] x)",
+      lnExpr -> "let x = ([math:log] x)",
       // -----------------------------------------------------------------------
-      "Let _x_ be min(_y_, _z_)." -> "let x = (min y z)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be abs(_y_)." -> "let x = (abs y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be floor(_y_)." -> "let x = (floor y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be log10(_y_)." -> "let x = ([math:log10] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be log2(_y_)." -> "let x = ([math:log2] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be ln(_y_)." -> "let x = ([math:log] y)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be truncate(_y_)." ->
-      """%0 = y
+      truncateExpr ->
+      """%0 = x
       |if (< %0 0) %0 = (- (floor (- %0)))
       |else %0 = (floor %0)
       |let x = %0""".stripMargin,
@@ -723,551 +494,438 @@ class CompileTinyTest extends CompilerTest {
     // -------------------------------------------------------------------------
     // literals
     // -------------------------------------------------------------------------
-    checkCompile("literals")(
-      "Let _x_ be the *this* value." -> "let x = this",
+    checkCompileExpr("literals")(
+      thisLit -> "let x = this",
+      thisLitWithArticle -> "let x = this",
+      thisParseNode -> "let x = this",
+      newTarget -> "let x = NewTarget",
+      hex -> "let x = 36",
+      hexWithName -> "let x = 36cu",
+      code -> """let x = "|"""",
+      grSym -> "let x = (grammar-symbol |A|)",
+      grSymIdx -> "let x = (grammar-symbol |A|[FT])",
+      nt -> "let x = (grammar-symbol |Identifier|)",
+      firstNt -> "let x = (grammar-symbol |Identifier|)",
+      firstNtWithArticle -> "let x = (grammar-symbol |Identifier|)",
+      secondNt -> "let x = (grammar-symbol |Identifier|)",
+      secondNtWithArticle -> "let x = (grammar-symbol |Identifier|)",
+      ntFlags -> "let x = (grammar-symbol |A|[FT])",
+      empty -> "let x = ~empty~",
+      emptyStr -> """let x = """"",
+      str -> """let x = "abc"""",
+      strWithStar -> """let x = "abc*"""",
+      strWithBasckSlash -> """let x = "abc\\"""",
+      fieldLit -> """let x = "Value"""",
+      sym -> "let x = @SYMBOL.iterator",
       // -----------------------------------------------------------------------
-      "Let _x_ be this Parse Node." -> "let x = this",
-      // -----------------------------------------------------------------------
-      "Let _x_ be NewTarget." -> "let x = NewTarget",
-      // -----------------------------------------------------------------------
-      "Let _x_ be 0x0024." -> "let x = 36",
-      // -----------------------------------------------------------------------
-      "Let _x_ be 0x0024 (DOLLAR SIGN)." -> "let x = 36cu",
-      // -----------------------------------------------------------------------
-      "Let _x_ be `|`." -> """let x = "|"""",
-      // -----------------------------------------------------------------------
-      "Let _x_ be |Identifier|." -> "let x = (grammar-symbol |Identifier|)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the first |Identifier|." ->
-      "let x = (grammar-symbol |Identifier|)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be ~empty~." -> "let x = ~empty~",
-      // -----------------------------------------------------------------------
-      """Let _x_ be *""*.""" -> """let x = """"",
-      // -----------------------------------------------------------------------
-      """Let _x_ be *"abc"*.""" -> """let x = "abc"""",
-      // -----------------------------------------------------------------------
-      "Let _x_ be %Symbol.iterator%." -> "let x = @SYMBOL.iterator",
-      // -----------------------------------------------------------------------
-      "Let _x_ be a newly created *TypeError* object." ->
+      errObj ->
       """call %0 = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Let _x_ be +∞." -> "let x = +INF",
-      // -----------------------------------------------------------------------
-      "Let _x_ be -∞." -> "let x = -INF",
-      // -----------------------------------------------------------------------
-      "Let _x_ be 0.5." -> "let x = 0.5",
-      // -----------------------------------------------------------------------
-      "Let _x_ be π." -> "let x = @MATH_PI",
-      // -----------------------------------------------------------------------
-      "Let _x_ be 2π." -> "let x = (* 2 @MATH_PI)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *+0*<sub>𝔽</sub>." -> "let x = 0.0f",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *-0*<sub>𝔽</sub>." -> "let x = -0.0f",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *+∞*<sub>𝔽</sub>." -> "let x = +NUM_INF",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *NaN*." -> "let x = NaN",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *1*<sub>𝔽</sub>." -> "let x = 1.0f",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *1*<sub>ℤ</sub>." -> "let x = 1n",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *true*." -> "let x = true",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *false*." -> "let x = false",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *undefined*." -> "let x = undefined",
-      // -----------------------------------------------------------------------
-      "Let _x_ be *null*." -> "let x = null",
-      // -----------------------------------------------------------------------
-      "Set _x_ to Undefined." -> "x = @Undefined",
-      // -----------------------------------------------------------------------
-      "Set _x_ to Null." -> "x = @Null",
-      // -----------------------------------------------------------------------
-      "Set _x_ to Boolean." -> "x = @Boolean",
-      // -----------------------------------------------------------------------
-      "Set _x_ to String." -> "x = @String",
-      // -----------------------------------------------------------------------
-      "Set _x_ to Symbol." -> "x = @Symbol",
-      // -----------------------------------------------------------------------
-      "Set _x_ to Number." -> "x = @Number",
-      // -----------------------------------------------------------------------
-      "Set _x_ to BigInt." -> "x = @BigInt",
-      // -----------------------------------------------------------------------
-      "Set _x_ to Object." -> "x = @Object",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the grammar symbol |Identifier|." ->
-      "let x = (grammar-symbol |Identifier|)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be an instance of <emu-grammar>Identifier : " +
-      "IdentifierName</emu-grammar>." ->
-      "let x = |Identifier|<0>",
-      // -----------------------------------------------------------------------
-      "Let _x_ be msPerDay." -> "let x = 86400000",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the String value _y_." -> "let x = y",
+      mathVal -> "let x = 0.5",
+      mathPi -> "let x = @MATH_PI",
+      mathPiWithPre -> "let x = (* 2 @MATH_PI)",
+      msPerDay -> "let x = 86400000",
+      hoursPerDay -> "let x = 24",
+      posZero -> "let x = 0.0f",
+      negZero -> "let x = -0.0f",
+      posInf -> "let x = +NUM_INF",
+      negInf -> "let x = -NUM_INF",
+      nan -> "let x = NaN",
+      number -> "let x = 1.0f",
+      bigint -> "let x = 1000000000000000000000000n",
+      two -> "let x = 2",
+      six -> "let x = 6",
+      prodLit -> "let x = |Identifier|<0>",
+      posInfMathVal -> "let x = +INF",
+      negInfMathVal -> "let x = -INF",
+      trueLit -> "let x = true",
+      falseLit -> "let x = false",
+      undefinedLit -> "let x = undefined",
+      nullLit -> "let x = null",
+      undefinedTypeLit -> "let x = @Undefined",
+      nullTypeLit -> "let x = @Null",
+      boolTypeLit -> "let x = @Boolean",
+      strTypeLit -> "let x = @String",
+      symbolTypeLit -> "let x = @Symbol",
+      numberTypeLit -> "let x = @Number",
+      bigIntTypeLit -> "let x = @BigInt",
+      objectTypeLit -> "let x = @Object",
     )
 
     // -------------------------------------------------------------------------
-    // references
+    // clamp expressions
     // -------------------------------------------------------------------------
-    checkCompile("references")(
-      "Let _x_ be |ArgumentList| _y_." -> "let x = y",
-      // -----------------------------------------------------------------------
-      "Let _x_ be _y_.[[Value]]." -> "let x = y.Value",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the [[Value]] of _y_." -> "let x = y.Value",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the Value component of _y_." -> "let x = y.Value",
-      // -----------------------------------------------------------------------
-      "Let _x_ be _y_'s [[Value]] attribute." -> "let x = y.Value",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the value of _y_." -> "let x = y",
-      // -----------------------------------------------------------------------
-      "Let _x_ be _y_.[[%Array%]]." -> """let x = y["%Array%"]""",
-      // -----------------------------------------------------------------------
-      "Let _x_ be _y_[_z_]." -> "let x = y[z]",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the binding for _y_ in _z_." -> "let x = z.__MAP__[y]",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the |Arguments| of _y_." -> "let x = y.Arguments",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the first element of _y_." -> "let x = y[0]",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the last element of _y_." ->
-      """%0 = y
-      |let x = %0[(- (sizeof %0) 1)]""".stripMargin,
-      // -----------------------------------------------------------------------
-      "Let _x_ be _y_'s intrinsic object named _z_." ->
-      "let x = y.Intrinsics[z]",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the running execution context." ->
-      "let x = @EXECUTION_STACK[0]",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the second to top element of the execution context stack." ->
-      "let x = @EXECUTION_STACK[1]",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the current Realm Record." ->
-      "let x = @EXECUTION_STACK[0].Realm",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the active function object." ->
-      "let x = @EXECUTION_STACK[0].Function",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the Agent Record of the surrounding agent." ->
-      "let x = @AGENT_RECORD",
+    checkCompileExpr("clamp expressions")(
+      clampExpr ->
+      """call %0 = clo<"__CLAMP__">(x, x, x)
+      |let x = %0""".stripMargin,
+    )
+
+    // -------------------------------------------------------------------------
+    // bitwise expressions
+    // -------------------------------------------------------------------------
+    checkCompileExpr("bitwise expressions")(
+      bAndExpr -> "let x = (& x x)",
+      bXorExpr -> "let x = (^ x x)",
+      bOrExpr -> "let x = (| x x)",
     )
 
     // -------------------------------------------------------------------------
     // conditions
     // -------------------------------------------------------------------------
-    checkCompile("conditions")(
-      "If _x_, return *true*." ->
-      """if x {
-      |  return true
-      |}""".stripMargin,
+    checkCompileCond("conditions")(
+      exprCond -> "assert x",
+      typeCheckCond -> "assert (? x: Record[Base])",
+      notTypeCheckCond -> "assert (! (? x: Record[Base]))",
+      eitherTypeCheckCond ->
+      "assert (|| (|| (? x: Record[Base]) (? x: Record[Base])) (? x: Record[Base]))",
+      neitherTypeCheckCond ->
+      "assert (! (|| (? x: Record[Base]) (? x: Record[Base])))",
+      hasFieldCond -> "assert (exists x.Value)",
+      hasMultipleFieldsCond ->
+      "assert (&& (&& (exists x.Value) (exists x.Value)) (exists x.Value))",
+      noHasFieldCond -> "assert (! (exists x.Value))",
+      hasBindingCond -> "assert (exists x.__MAP__[x])",
+      noHasBindingCond -> "assert (! (exists x.__MAP__[x]))",
+      prodCond ->
+      "assert (? (grammar-symbol |Identifier|): Ast[Identifier[0]])",
+      finiteCond ->
+      "assert (|| (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Math | BigInt))",
+      finiteNumberCond ->
+      "assert (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN])))",
+      finiteNumbersCond ->
+      "assert (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))))",
+      nonZeroFiniteNumberCond ->
+      "assert (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Number[NonZero, -INF, +INF, NaN]))",
+      nonZeroFiniteNumbersCond ->
+      "assert (&& (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Number[NonZero, -INF, +INF, NaN])) (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Number[NonZero, -INF, +INF, NaN])))",
+      abruptCond -> "assert (&& (? x: Completion) (! (= x.Type ~normal~)))",
+      normalCond -> "assert (&& (? x: Completion) (= x.Type ~normal~))",
       // -----------------------------------------------------------------------
-      "If _x_ is a String, return *true*." ->
-      """if (? x: String) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is not a String, return *true*." ->
-      """if (! (? x: String)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is either a String or a Number, return *true*." ->
-      """if (|| (? x: String) (? x: Number)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is neither a String nor a Number, return *true*." ->
-      """if (! (|| (? x: String) (? x: Number))) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ has a [[Value]] internal slot, return *true*." ->
-      """if (exists x.Value) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ has [[Value]], [[Writable]], and [[Get]] internal slots, " +
-      "return *true*." ->
-      """if (&& (&& (exists x.Value) (exists x.Writable)) (exists x.Get)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ does not have a [[Value]] internal method, return *true*." ->
-      """if (! (exists x.Value)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ has a binding for _y_, return *true*." ->
-      """if (exists x.__MAP__[y]) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ does not have a binding for _y_, return *true*." ->
-      """if (! (exists x.__MAP__[y])) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If |Identifier| is <emu-grammar>Identifier : " +
-      "Identifier</emu-grammar>, return *true*." ->
-      """if (yet "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>") {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is finite, return *true*." ->
-      """if (|| (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Math | BigInt)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is a finite Number, return *true*." ->
-      """if (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ and _y_ are finite Numbers, return *true*." ->
-      """if (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (&& (? y: Number) (! (? y: Number[-INF, +INF, NaN])))) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is a non-zero finite Number, return *true*." ->
-      """if (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Number[NonZero, -INF, +INF, NaN])) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is an abrupt completion, return *true*." ->
-      """if (&& (? x: Completion) (! (= x.Type ~normal~))) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is a normal completion, return *true*." ->
-      """if (&& (? x: Completion) (= x.Type ~normal~)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is duplicate entries, return *true*." ->
+      dupCond ->
       """call %0 = clo<"__HAS_DUPLICATE__">(x)
-      |if %0 {
-      |  return true
-      |}""".stripMargin,
+      |assert %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "If _x_ is present, return *true*." ->
-      """if (exists x) {
-      |  return true
-      |}""".stripMargin,
+      presentCond -> "assert (exists x)",
+      emptyCond -> "assert (= (sizeof x) 0)",
+      strictCond -> "assert true",
       // -----------------------------------------------------------------------
-      "If _x_ is empty, return *true*." ->
-      """if (= (sizeof x) 0) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is strict mode code, return *true*." ->
-      """if true {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is an array index, return *true*." ->
+      arrayIndexCond ->
       """call %0 = clo<"__IS_ARRAY_INDEX__">(x)
-      |if %0 {
-      |  return true
-      |}""".stripMargin,
+      |assert %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "If _x_ is the length of _y_, return *true*." ->
-      """if (= x (sizeof y)) {
-      |  return true
-      |}""".stripMargin,
+      isCond -> "assert (= x (sizeof x))",
+      areCond -> "assert (&& (! (= x true)) (! (= x true)))",
+      isEitherCond -> "assert (|| (= x true) (= x false))",
+      isNeitherCond -> "assert (! (|| (= x true) (= x false)))",
+      binaryCondLt -> "assert (< x (+ x x))",
+      inclusiveIntervalCondShort -> "assert (! (|| (< x 2) (< 32 x)))",
+      inclusiveIntervalCond -> "assert (! (|| (< x 2) (< 32 x)))",
+      notInclusiveIntervalCond -> "assert (|| (< x 2) (< 32 x))",
+      containsCond -> "assert (contains x x)",
+      notContainsCond -> "assert (! (contains x x))",
       // -----------------------------------------------------------------------
-      "If both _x_ and _y_ are not *true*, return *true*." ->
-      """if (&& (! (= x true)) (! (= y true))) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is either *true* or *false*, return *true*." ->
-      """if (|| (= x true) (= x false)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is neither *true* nor *false*, return *true*." ->
-      """if (! (|| (= x true) (= x false))) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ < _y_ + 1, return *true*." ->
-      """if (< x (+ y 1)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ = _y_, return *true*." ->
-      """if (== x y) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ ≠ _y_, return *true*." ->
-      """if (! (== x y)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ ≥ _y_, return *true*." ->
-      """if (! (< x y)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If 2 ≤ _x_ ≤ 32, return *true*." ->
-      """if (! (|| (< x 2) (< 32 x))) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is in the inclusive interval from 2 to 32, return *true*." ->
-      """if (! (|| (< x 2) (< 32 x))) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ is not in the inclusive interval from 2 to 32, return *true*." ->
-      """if (|| (< x 2) (< 32 x)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ contains _y_, return *true*." ->
-      """if (contains x y) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ does not contain _y_, return *true*." ->
-      """if (! (contains x y)) {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If _x_ contains a Record whose [[Value]] is _y_, return *true*." ->
+      containsWhoseFieldCond ->
       """%1 = x
       |%2 = 0
       |%3 = false
       |while (&& (! %3) (< %2 (sizeof %1))) {
       |  %0 = %1[%2]
-      |  %3 = (&& (? %0: Record) (= %0.Value y))
+      |  %3 = (&& (? %0: Record[Base]) (= %0.Field x))
       |  %2 = (+ %2 1)
       |}
-      |if %3 {
-      |  return true
-      |}""".stripMargin,
+      |assert %3""".stripMargin,
       // -----------------------------------------------------------------------
-      "If _x_ contains a Record _r_ such that _r_.[[Value]] is _y_, " +
-      "return *true*." ->
+      containsSuchThatCond ->
       """%0 = x
       |%1 = 0
       |%2 = false
       |while (&& (! %2) (< %1 (sizeof %0))) {
-      |  let r = %0[%1]
-      |  %2 = (&& (? r: Record) (= r.Value y))
+      |  let x = %0[%1]
+      |  %2 = (&& (? x: Record[Base]) (= x (sizeof x)))
       |  %1 = (+ %1 1)
       |}
-      |if %2 {
-      |  return true
-      |}""".stripMargin,
+      |assert %2""".stripMargin,
       // -----------------------------------------------------------------------
-      "If _x_ and _y_, return *true*." ->
-      """if (&& x y) {
-      |  return true
-      |}""".stripMargin,
+      compCond -> "assert (&& x x)",
+      implyCond ->
+      "assert (|| (! (= x (sizeof x))) (|| (= x true) (= x false)))",
+    )
+
+    // -------------------------------------------------------------------------
+    // references
+    // -------------------------------------------------------------------------
+    checkCompileRef("references")(
+      x -> "let x = x",
+      xWithNt -> "let x = x",
+      access -> "let x = x.Value",
+      accessFieldDot -> "let x = x.Value",
+      accessCompDot -> "let x = x.Value",
+      accessFieldOf -> "let x = x.Value",
+      accessCompOf -> "let x = x.Value",
+      accessFieldApo -> "let x = x.Value",
+      accessCompApo -> "let x = x.Value",
+      valueOf -> "let x = x",
+      intrField -> """let x = x["%Array%"]""",
+      indexLookup -> "let x = x[x]",
+      bindingLookup -> "let x = x.__MAP__[x]",
+      ntLookup -> "let x = x.Arguments",
+      firstElement -> "let x = x[0]",
       // -----------------------------------------------------------------------
-      "If _x_ or _y_, return *true*." ->
-      """if (|| x y) {
-      |  return true
-      |}""".stripMargin,
+      lastElement ->
+      """%0 = x
+      |let x = %0[(- (sizeof %0) 1)]""".stripMargin,
       // -----------------------------------------------------------------------
-      "Assert: If _x_, then _y_." -> "assert (|| (! x) y)",
+      intrObj -> "let x = x.Intrinsics[x]",
+      runningExecCtx -> "let x = @EXECUTION_STACK[0]",
+      secondExecCtx -> "let x = @EXECUTION_STACK[1]",
+      currentRealmRec -> "let x = @EXECUTION_STACK[0].Realm",
+      activeFuncObj -> "let x = @EXECUTION_STACK[0].Function",
+      agentRec -> "let x = @AGENT_RECORD",
+    )
+
+    // -------------------------------------------------------------------------
+    // return steps of completion-returning algorithms
+    // -------------------------------------------------------------------------
+    checkCompileStep("completion-returning algorithms", needRetComp = true)(
+      returnStep ->
+      """if (? x: Completion) return x
+      |call %0 = clo<"NormalCompletion">(x)
+      |return %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Assert: If _x_ is *true*, then Foo(_y_) is *true*." ->
-      """%0 = (= x true)
+      ReturnStep(trueLit) ->
+      """call %0 = clo<"NormalCompletion">(true)
+      |return %0""".stripMargin,
+      // -----------------------------------------------------------------------
+      ReturnStep(invokeAOExpr) ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
+      |if (? %0: Completion) return %0
+      |call %1 = clo<"NormalCompletion">(%0)
+      |return %1""".stripMargin,
+      // -----------------------------------------------------------------------
+      ReturnStep(riaCheckExpr) ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
+      |assert (? %0: Completion)
+      |if (? %0: Abrupt) return %0
+      |else return %0""".stripMargin,
+      // -----------------------------------------------------------------------
+      ReturnStep(riaNoCheckExpr) ->
+      """call %0 = clo<"ToObject">((+ x x), (- x))
+      |assert (? %0: Normal)
+      |return %0""".stripMargin,
+    )
+
+    // -------------------------------------------------------------------------
+    // conditions with short-circuit evaluation
+    // -------------------------------------------------------------------------
+    checkCompileStep("short-circuit conditions")(
+      AssertStep(CompoundCondition(exprCond, And, invokeCond)) ->
+      """%0 = x
       |if %0 {
-      |  call %1 = clo<"Foo">(y)
-      |  %0 = (= %1 true)
+      |  call %1 = clo<"ToObject">((+ x x), (- x))
+      |  %0 = %1
+      |}
+      |assert %0""".stripMargin,
+      // -----------------------------------------------------------------------
+      AssertStep(CompoundCondition(exprCond, Or, invokeCond)) ->
+      """%0 = x
+      |if %0 {} else {
+      |  call %1 = clo<"ToObject">((+ x x), (- x))
+      |  %0 = %1
+      |}
+      |assert %0""".stripMargin,
+      // -----------------------------------------------------------------------
+      AssertStep(CompoundCondition(exprCond, Imply, invokeCond)) ->
+      """%0 = x
+      |if %0 {
+      |  call %1 = clo<"ToObject">((+ x x), (- x))
+      |  %0 = %1
       |} else %0 = true
       |assert %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "If _x_ is *true* and Foo(_y_) is *true*, return *true*." ->
-      """%0 = (= x true)
+      AssertStep(CompoundCondition(invokeCond, And, invokeCond)) ->
+      """call %1 = clo<"ToObject">((+ x x), (- x))
+      |%0 = %1
       |if %0 {
-      |  call %1 = clo<"Foo">(y)
-      |  %0 = (= %1 true)
+      |  call %2 = clo<"ToObject">((+ x x), (- x))
+      |  %0 = %2
       |}
-      |if %0 {
-      |  return true
-      |}""".stripMargin,
+      |assert %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "If _x_ is *true* or Foo(_y_) is *true*, return *true*." ->
-      """%0 = (= x true)
-      |if %0 {} else {
-      |  call %1 = clo<"Foo">(y)
-      |  %0 = (= %1 true)
+      IfStep(
+        CompoundCondition(exprCond, And, invokeCond),
+        letStep,
+        Some(letStep),
+        ElseConfig(),
+      ) ->
+      """%0 = x
+      |if %0 {
+      |  call %1 = clo<"ToObject">((+ x x), (- x))
+      |  %0 = %1
       |}
       |if %0 {
-      |  return true
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      "If Foo(_x_) is *true* and Foo(_y_) is *true*, return *true*." ->
-      """call %1 = clo<"Foo">(x)
-      |%0 = (= %1 true)
-      |if %0 {
-      |  call %2 = clo<"Foo">(y)
-      |  %0 = (= %2 true)
-      |}
-      |if %0 {
-      |  return true
+      |  let x = x
+      |} else {
+      |  let x = x
       |}""".stripMargin,
     )
 
     // -------------------------------------------------------------------------
-    // syntax-directed operations
+    // syntax-directed operations, where a nonterminal is bound to `this`
     // -------------------------------------------------------------------------
-    checkCompile("syntax-directed operations", sdo = true)(
-      "Let _x_ be |IdentifierName|." -> "let x = this[0]",
+    checkCompileExpr("syntax-directed operation expressions", sdo = true)(
+      sourceTextExpr -> "let x = (source-text this[0])",
+      coveredByExpr -> "let x = (parse this[0] this[0])",
+      getItemsExpr ->
+      """let x = (yet "the List of |Identifier| items in _x_, in source text order")""",
       // -----------------------------------------------------------------------
-      "Let _x_ be the source text matched by |IdentifierName|." ->
-      "let x = (source-text this[0])",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the |Identifier| that is covered by |IdentifierName|." ->
-      "let x = (parse this[0] this)",
-      // -----------------------------------------------------------------------
-      "Let _x_ be the List of |IdentifierName| items in " +
-      "|IdentifierName|, in source text order." ->
-      """call %0 = clo<"__GET_ITEMS__">(this[0], this[0], (grammar-symbol |IdentifierName|))
+      invokeSDOExprZero ->
+      """sdo-call %0 = this[0]->StringValue()
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "Return StringValue of |IdentifierName|." ->
-      """sdo-call %0 = this[0]->StringValue()
-      |return %0""".stripMargin,
+      invokeSDOExprEval ->
+      """sdo-call %0 = this[0]->Evaluation()
+      |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
-      "If |Identifier| is <emu-grammar>Identifier : " +
-      "IdentifierName</emu-grammar>, return *true*." ->
-      """if (? this: Ast[Identifier[0]]) {
-      |  return true
-      |}""".stripMargin,
+      nt -> "let x = this[0]",
+    )
+
+    // -------------------------------------------------------------------------
+    // conditions of syntax-directed operations
+    // -------------------------------------------------------------------------
+    checkCompileCond("syntax-directed operation conditions", sdo = true)(
+      prodCond -> "assert (? this[0]: Ast[Identifier[0]])",
     )
 
     // -------------------------------------------------------------------------
     // auxiliary functions (abstract closures and continuations)
     // -------------------------------------------------------------------------
     checkCompileFuncs("auxiliary functions")(
-      "Set the code evaluation state of _x_ such that when evaluation " +
-      "is resumed for that execution context, _y_ will be called with " +
-      "no arguments." ->
+      letStepClosure ->
+      """def <CLO>:Test:clo0(
+      |  x: Unknown,
+      |  x: Unknown,
+      |): Unknown = {
+      |  let x = x
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      setEvalStateStep ->
       """def <CONT>:Test:cont0(
       |): Unknown = {
-      |  call %0 = y()
+      |  call %0 = x()
       |  pop %1 < x.__RETURN_CONT__
       |  call %2 = %1(%0)
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      """
-      |  1. Resume _x_ passing _y_. If _x_ is ever resumed again, let _z_ be the Completion Record with which it is resumed.
-      |  1. Return _z_.""".stripMargin ->
-      """def <CONT>:Test:cont0(
-      |  z: Unknown,
-      |): Unknown = {
-      |  return z
-      |}""".stripMargin,
-      // -----------------------------------------------------------------------
-      """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta> using _y_ as the result of the operation that suspended it.
-      |  1. Return _x_.""".stripMargin ->
+      setEvalStateArgStep ->
       """def <CONT>:Test:cont0(
       |): Unknown = {
-      |  return x
+      |  call %0 = x(x)
+      |  pop %1 < x.__RETURN_CONT__
+      |  call %2 = %1(%0)
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      """
-      |  1. <emu-meta effects="user-code">Resume the suspended evaluation of _x_</emu-meta>. Let _y_ be the value returned by the resumed computation.
-      |  1. Return _y_.""".stripMargin ->
+      setEvalStateArgsStep ->
       """def <CONT>:Test:cont0(
-      |  y: Unknown,
       |): Unknown = {
-      |  return y
+      |  call %0 = x(x, x)
+      |  pop %1 < x.__RETURN_CONT__
+      |  call %2 = %1(%0)
       |}""".stripMargin,
       // -----------------------------------------------------------------------
-      """Let _x_ be a new Abstract Closure with parameters (_a_, _b_) that captures _y_ and performs the following steps when called:
-      |  1. Return _a_.""".stripMargin ->
-      """def <CLO>:Test:clo0(
-      |  a: Unknown,
-      |  b: Unknown,
+      resumeStep ->
+      """def <CONT>:Test:cont0(
+      |  x: Unknown,
       |): Unknown = {
-      |  if (? a: Completion) return a
-      |  call %0 = clo<"NormalCompletion">(a)
-      |  return %0
+      |  let x = x
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      resumeEvalStep ->
+      """def <CONT>:Test:cont0(
+      |): Unknown = {
+      |  let x = x
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      resumeEvalArgStep ->
+      """def <CONT>:Test:cont0(
+      |): Unknown = {
+      |  let x = x
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
+      resumeEvalParamStep ->
+      """def <CONT>:Test:cont0(
+      |  x: Unknown,
+      |): Unknown = {
+      |  let x = x
       |}""".stripMargin,
     )
 
     // -------------------------------------------------------------------------
-    // coverage of the metalanguage syntax
+    // coverage of the corpus
     // -------------------------------------------------------------------------
-    checkCoverage
+    checkCorpusCoverage("corpus")(handled)
   }
 
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
+  /** shortcuts for the cases depending on the context */
+  private val invokeCond = ExpressionCondition(invokeAOExpr)
+  private val And = CompoundConditionOperator.And
+  private val Or = CompoundConditionOperator.Or
+  private val Imply = CompoundConditionOperator.Imply
+  private val ElseConfig = IfStep.ElseConfig
+
   /** an abstract operation of the fixture specification */
   private lazy val fooAlgo: Algorithm =
     val head = AbstractOperationHead(
       false,
       "Foo",
-      List(Param("x", UnknownType)),
+      List(spec.Param("x", UnknownType)),
       UnknownType,
     )
-    val algo = Algorithm(head, Step.from("return _x_."), "")
-    algo.elem = Element("emu-alg").attr("id", "sec-foo")
+    val algo = Algorithm(head, returnStep, "")
+    algo.elem = Element("emu-alg").attr("id", "sec-x")
     algo
 
-  /** a shorthand of the fixture specification */
+  /** an abstract operation referred by `setAsStep` of the corpus */
+  private lazy val barAlgo: Algorithm =
+    val head = AbstractOperationHead(false, "Bar", Nil, UnknownType)
+    val algo = Algorithm(head, returnStep, "")
+    algo.elem = Element("emu-alg").attr("id", "id")
+    algo
+
+  /** a shorthand referred by `invokeShorthandStep` of the corpus */
   private lazy val shorthandAlgo: Algorithm = Algorithm(
     AbstractOperationHead(
       false,
       "IfAbruptCloseIterator",
-      List(Param("value", UnknownType), Param("iteratorRecord", UnknownType)),
+      List(
+        spec.Param("value", UnknownType),
+        spec.Param("iteratorRecord", UnknownType),
+      ),
       UnknownType,
     ),
-    Step.from("if _value_ is an abrupt completion, return _iteratorRecord_."),
+    AssertStep(abruptCond),
     "",
   )
 
   /** a fixture specification with the minimum for the cases above */
-  private lazy val spec: Spec = Spec(
-    grammar = Grammar(List(Production.from("Identifier :\n  IdentifierName"))),
-    algorithms = List(fooAlgo, shorthandAlgo),
+  private lazy val fixture: Spec = Spec(
+    grammar = Grammar(List(Production.from("Identifier :\n  Identifier"))),
+    algorithms = List(fooAlgo, barAlgo, shorthandAlgo),
     constants = List(
       Constant("msPerDay", DecimalMathValueLiteral(BigDecimal(86400000))),
+      Constant("HoursPerDay", DecimalMathValueLiteral(BigDecimal(24))),
     ),
     tables = Map(
-      "table-x" -> Table(
-        "table-x",
-        List("Internal Slot"),
-        List(List("[[Value]]")),
-      ),
+      "sec-x" -> Table("sec-x", List("Internal Slot"), List(List("[[Value]]"))),
     ),
   )
-  private lazy val compiler: Compiler = new Compiler(spec)
+  private lazy val compiler: Compiler = new Compiler(fixture)
 
-  /** metalanguage parser aware of the constants of the fixture specification */
-  private lazy val langParser: Parsers =
-    LangParser.withConstNames(spec.constantMap.keySet)
-
-  /** parse a single metalanguage step
-    *
-    * The `upper` parser is needed because a step starts with an uppercase
-    * letter, and `yetStep` is the fallback for unsupported steps.
-    */
-  private def parseStep(str: String): Step =
-    import langParser.{given, *}
-    langParser.parseBy(upper ~> (step | yetStep))(str)
-
-  /** compile a single metalanguage step in a minimal algorithm and return the
-    * compiled instruction with the newly created auxiliary functions
-    */
+  /** compile a step in a minimal algorithm with the auxiliary functions */
   private def compileStep(
     step: Step,
     needRetComp: Boolean,
@@ -1285,7 +943,7 @@ class CompileTinyTest extends CompilerTest {
       else
         FuncKind.AbsOp -> AbstractOperationHead(false, "Test", Nil, UnknownType)
     val fb = FuncBuilder(
-      spec = spec,
+      spec = fixture,
       kind = kind,
       name = "Test",
       params = Nil,
@@ -1297,76 +955,68 @@ class CompileTinyTest extends CompilerTest {
     val inst = compiler.compileWithScope(fb, step)
     (inst, compiler.funcs.drop(prevFuncs).toList)
 
-  /** drop the information that the textual form of IR cannot express, because
-    * the expected IR is parsed from it: the metalanguage types, parameters, and
-    * algorithms kept for the backward edges to the specification, and the
-    * abrupt-completion mark of `IIf`
-    */
+  /** drop the information that the textual form of IR cannot express */
   private val normalizer = new IRWalker {
     override def walk(ty: IRType): IRType = IRType(ty.ty, None)
     override def walk(param: IRParam): IRParam =
       IRParam(walk(param.lhs), walk(param.ty), param.optional, None)
-    override def walk(func: Func): Func =
-      super.walk(func).copy(algo = None)
+    override def walk(func: Func): Func = super.walk(func).copy(algo = None)
     override def walk(inst: Inst): Inst = super.walk(inst) match
       case IIf(cond, thenInst, elseInst, _) => IIf(cond, thenInst, elseInst)
       case inst                             => inst
   }
 
-  /** metalanguage syntax covered by the cases above */
-  private val covered: MSet[String] = MSet()
-  private val coverageCollector = new LangUnitWalker {
-    override def walk(step: Step): Unit =
-      covered += step.getClass.getSimpleName; super.walk(step)
-    override def walk(expr: Expression): Unit =
-      covered += expr.getClass.getSimpleName; super.walk(expr)
-    override def walk(cond: Condition): Unit =
-      covered += cond.getClass.getSimpleName; super.walk(cond)
-    override def walk(ref: Reference): Unit =
-      covered += ref.getClass.getSimpleName; super.walk(ref)
-  }
+  /** the metalanguage syntax handled by the cases above */
+  private val handled: MSet[Syntax] = MSet()
 
   /** check the IR instructions compiled from metalanguage steps */
-  private def checkCompile(
+  private def checkCompileStep(
     desc: String,
     needRetComp: Boolean = false,
     sdo: Boolean = false,
-  )(cases: (String, String)*): Unit = check(desc) {
-    var failed = 0
-    for ((snippet, expected) <- cases) {
-      val step = parseStep(snippet)
-      coverageCollector.walk(step)
-      val (inst, _) = compileStep(step, needRetComp, sdo)
-      val result = normalizer.walk(inst)
-      val expectedInst =
-        normalizer.walk(Inst.from(s"{$LINE_SEP$expected$LINE_SEP}"))
-      if (result != expectedInst) {
-        failed += 1
-        println(s"[FAILED] $desc")
-        println(s"- step: $snippet")
-        println(s"- expected: $expected")
-        println(s"- result: $inst")
-      }
-    }
-    // NOTE: all the cases are checked before failing to keep the coverage
-    if (failed > 0) fail(s"$failed cases are not compiled as expected")
-  }
+  )(cases: (Step, String)*): Unit =
+    checkCompile(desc)(cases.map((step, expected) => (step, step, expected)))(
+      compileStep(_, needRetComp, sdo)._1,
+    )
+
+  /** check the IR instructions compiled from metalanguage expressions */
+  private def checkCompileExpr(desc: String, sdo: Boolean = false)(
+    cases: (Expression, String)*,
+  ): Unit =
+    checkCompile(desc)(cases.map { (expr, expected) =>
+      (expr, LetStep(x, expr), expected)
+    })(compileStep(_, false, sdo)._1)
+
+  /** check the IR instructions compiled from metalanguage conditions */
+  private def checkCompileCond(desc: String, sdo: Boolean = false)(
+    cases: (Condition, String)*,
+  ): Unit =
+    checkCompile(desc)(cases.map { (cond, expected) =>
+      (cond, AssertStep(cond), expected)
+    })(compileStep(_, false, sdo)._1)
+
+  /** check the IR instructions compiled from metalanguage references */
+  private def checkCompileRef(desc: String)(
+    cases: (Reference, String)*,
+  ): Unit =
+    checkCompile(desc)(cases.map { (ref, expected) =>
+      (ref, LetStep(x, ReferenceExpression(ref)), expected)
+    })(compileStep(_, false, false)._1)
 
   /** check the auxiliary IR functions compiled from metalanguage steps */
   private def checkCompileFuncs(desc: String)(
-    cases: (String, String)*,
+    cases: (Step, String)*,
   ): Unit = check(desc) {
     var failed = 0
-    for ((snippet, expected) <- cases) {
-      val step = parseStep(snippet)
-      coverageCollector.walk(step)
-      val (_, funcs) = compileStep(step, false, false)
+    for ((step, expected) <- cases) {
+      handled += step
+      val funcs = compileStep(step, false, false)._2
       val result = funcs.map(normalizer.walk)
       val expectedFuncs = List(normalizer.walk(Func.from(expected)))
       if (result != expectedFuncs) {
         failed += 1
         println(s"[FAILED] $desc")
-        println(s"- step: $snippet")
+        println(s"- syntax: $step")
         println(s"- expected: $expected")
         println(s"- result: ${funcs.mkString(LINE_SEP)}")
       }
@@ -1374,29 +1024,28 @@ class CompileTinyTest extends CompilerTest {
     if (failed > 0) fail(s"$failed cases are not compiled as expected")
   }
 
-  /** check whether all the metalanguage syntax is covered by the cases above */
-  private def checkCoverage: Unit = for {
-    (category, names) <- List(
-      "Step" -> leaves[Step],
-      "Expression" -> leaves[Expression],
-      "Condition" -> leaves[Condition],
-      "Reference" -> leaves[Reference],
-    )
-  } check(s"$category coverage") {
-    val missing = names.filterNot(covered.contains)
-    if (missing.nonEmpty) fail(s"uncovered: ${missing.mkString(", ")}")
-  }
-
-  /** names of the leaf case classes of a sealed trait */
-  private inline def leaves[T]: List[String] =
-    summonFrom {
-      case m: Mirror.SumOf[T]     => leavesOf[m.MirroredElemTypes]
-      case m: Mirror.ProductOf[T] => List(constValue[m.MirroredLabel])
+  /** check the compiled IR of (syntax to cover, step, expected IR) cases */
+  private def checkCompile(desc: String)(
+    cases: Iterable[(Syntax, Step, String)],
+  )(compile: Step => Inst): Unit = check(desc) {
+    var failed = 0
+    for ((syntax, step, expected) <- cases) {
+      handled += syntax
+      val inst = compile(step)
+      val result = normalizer.walk(inst)
+      val expectedInst =
+        normalizer.walk(Inst.from(s"{$LINE_SEP$expected$LINE_SEP}"))
+      if (result != expectedInst) {
+        failed += 1
+        println(s"[FAILED] $desc")
+        println(s"- syntax: $syntax")
+        println(s"- expected: $expected")
+        println(s"- result: $inst")
+      }
     }
-  private inline def leavesOf[T <: Tuple]: List[String] =
-    inline erasedValue[T] match
-      case _: EmptyTuple => Nil
-      case _: (h *: t)   => leaves[h] ++ leavesOf[t]
+    // NOTE: all the cases are checked before failing to keep the coverage
+    if (failed > 0) fail(s"$failed cases are not compiled as expected")
+  }
 
   init
 }
