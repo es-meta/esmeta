@@ -15,5 +15,6 @@
   - yet: 208 (2.48%)
 - constants: 7
 - tables: 95
-- type model: 113
+- dfns: 388
+- type model: 123
 - intrinsics: 102
