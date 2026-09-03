@@ -57,7 +57,9 @@ class Extractor(
 ) extends SpecParsers {
   lazy val parser: LangUtil.Parsers =
     val parser = if (eval) LangUtil.ParserForEval else LangUtil.Parser
-    parser.withConstNames(constants.map(_.name).toSet)
+    parser
+      .withConstNames(constants.map(_.name).toSet)
+      .withTyNames(TyModelExtractor.tyNamesOf(dfns))
 
   /** final result */
   lazy val result =

@@ -17,13 +17,39 @@ trait Parsers extends IndentParsers {
   /** names of constants defined by `emu-eqn` elements in ECMA-262 */
   def constNames: Set[String] = Set()
 
+  /** canonical type names defined by `dfn` elements in ECMA-262 */
+  def tyNames: Set[String] = Set()
+
   /** the same parser but aware of the given names of constants */
   def withConstNames(names: Set[String]): Parsers =
+    copied(constNames = names)
+
+  /** the same parser but aware of the given canonical type names */
+  def withTyNames(names: Set[String]): Parsers =
+    copied(tyNames = names)
+
+  private def copied(
+    constNames: Set[String] = this.constNames,
+    tyNames: Set[String] = this.tyNames,
+  ): Parsers =
     val forEval = eval
+    val consts = constNames
+    val tys = tyNames
     new Parsers {
-      override def constNames = names
+      override def constNames = consts
+      override def tyNames = tys
       override def eval = forEval
     }
+
+  /** canonicalize a type name by glossary definitions
+    *
+    * For example, `AsyncGeneratorRequestRecord` becomes `AsyncGeneratorRequest`
+    * when the glossary defines `AsyncGeneratorRequest` but not the former.
+    */
+  def canonicalTyName(name: String): String =
+    (name :: List("Record", "Event").map(name.stripSuffix))
+      .find(tyNames)
+      .getOrElse(name)
 
   // ---------------------------------------------------------------------------
   // metalanguage blocks
@@ -1544,7 +1570,7 @@ trait Parsers extends IndentParsers {
 
   private def normRecordT(s: String): ValueTy = Type.normalizeName(s) match
     case "Record" => RecordT
-    case name     => RecordT(name)
+    case name     => RecordT(canonicalTyName(name))
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
     val multiParser = (if (either) "either" else "") ~> {

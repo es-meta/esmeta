@@ -11,8 +11,8 @@
 - algorithm steps: 22858
   - complete: 22134 (96.83%)
 - types: 8381
-  - known: 7486 (89.32%)
-  - yet: 208 (2.48%)
+  - known: 7490 (89.37%)
+  - yet: 204 (2.43%)
 - constants: 7
 - tables: 95
 - dfns: 388

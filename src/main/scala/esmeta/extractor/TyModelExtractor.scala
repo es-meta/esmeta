@@ -59,7 +59,7 @@ class TyModelExtractor(
   // a natural-language type description to a type string (`Any` if unknown)
   private def getTyStr(desc: String): String = {
     for {
-      ty <- optional(parser.parseBy(parser.langTy)(desc.trim))
+      ty <- optional(tyParser.parseBy(tyParser.langTy)(desc.trim))
       str = ty.toString
       _ <- optional(ValueTy.from(str)) // must be a valid type string
     } yield str
@@ -88,18 +88,27 @@ class TyModelExtractor(
       case ws ~ p => normalize((ws ++ p).mkString(" "))
     }
 
-  private lazy val dfnNames: Set[String] = (for {
+  private def canonicalize(name: String): String =
+    tyParser.canonicalTyName(name)
+
+  // the metalanguage parser aware of the canonical type names
+  private lazy val tyParser: LangUtil.Parsers =
+    parser.withTyNames(TyModelExtractor.tyNamesOf(dfns))
+
+  private def normalize(name: String): String =
+    TyModelExtractor.normalize(name)
+
+  private def warnNone(msg: String): None.type = { warn(msg); None }
+}
+object TyModelExtractor {
+
+  /** canonical type names from glossary definitions (capitalized terms) */
+  def tyNamesOf(dfns: List[Dfn]): Set[String] = (for {
     dfn <- dfns if dfn.name.headOption.exists(_.isUpper)
     form <- dfn.forms
   } yield normalize(form)).toSet
-  private def canonicalize(name: String): String =
-    (name :: List("Record", "Event").map(name.stripSuffix))
-      .find(dfnNames)
-      .getOrElse(name)
 
-  // `Async-from-Sync Iterator` -> `AsyncFromSyncIterator`
-  private def normalize(name: String): String =
+  /** `Async-from-Sync Iterator` -> `AsyncFromSyncIterator` */
+  def normalize(name: String): String =
     name.trim.split("[\\s-]+").map(_.capitalize).mkString
-
-  private def warnNone(msg: String): None.type = { warn(msg); None }
 }
