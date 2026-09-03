@@ -1485,7 +1485,8 @@ trait Parsers extends IndentParsers {
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
     "property name" ^^^ StrT |
-    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }
+    "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) } |
+    strLiteral ^^ { lit => StrT(lit.s) }
   } <~ opt("s")
 
   // rarely used expressions
