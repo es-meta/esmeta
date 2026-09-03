@@ -260,4 +260,10 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     } yield children += parent -> (decl :: list)
     children.map { case (k, v) => k -> v.reverse }
 }
-object TyModel extends Parser.From(Parser.tyModel)
+object TyModel extends Parser.From(Parser.tyModel) {
+
+  private var globalOpt: Option[TyModel] = None
+  def global: TyModel = globalOpt.getOrElse(ManualInfo.tyModel)
+  def global_=(model: TyModel): Unit =
+    if (model.decls.nonEmpty) globalOpt = Some(model)
+}

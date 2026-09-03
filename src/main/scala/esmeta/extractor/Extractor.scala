@@ -72,6 +72,7 @@ class Extractor(
       intrinsics = intrinsics,
     )
     spec.document = document
+    TyModel.global = tyModel
     spec
 
   /** ECMAScript grammar */
