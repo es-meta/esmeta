@@ -11,125 +11,149 @@ class TyModelTinyTest extends ExtractorTest {
 
   // registration
   def init: Unit = {
-    def table(
-      id: String,
-      caption: String,
-      header: List[String],
-      rows: List[List[String]],
-    ): (String, Table) = id -> Table(id, caption, header, rows)
-
-    val tables = Map(
-      // record fields with `Value` column
-      table(
-        "t1",
+    // field tables in the style of ECMA-262
+    val FIELDS = List("Field Name", "Value", "Meaning")
+    val FIELDS_TY = List("Field Name", "Value Type", "Meaning")
+    val SLOTS = List("Internal Slot", "Type", "Description")
+    val tables = List(
+      Table(
+        "table-completion-record-fields",
         "Completion Record Fields",
-        List("Field Name", "Value", "Meaning"),
+        FIELDS,
         List(
           List("[[Type]]", "~normal~, ~break~, or ~throw~", "..."),
           List("[[Value]]", "any value except a Completion Record", "..."),
+          List("[[Target]]", "a String or ~empty~", "..."),
         ),
       ),
-      // additional fields with `Value Type` column and hyphenated name
-      table(
-        "t2",
-        "Additional Fields of For-In Iterator Records",
-        List("Field Name", "Value Type", "Meaning"),
-        List(List("[[Done]]", "a Boolean", "...")),
-      ),
-      // internal slots: `Instances` are dropped and `Type` column is used
-      table(
-        "t3",
-        "Internal Slots of Promise Instances",
-        List("Internal Slot", "Type", "Description"),
-        List(List("[[PromiseIsHandled]]", "a Boolean", "...")),
-      ),
-      // value column is not the second one
-      table(
-        "t4",
+      Table(
+        "table-privateelement-fields",
         "PrivateElement Fields",
         List("Field Name", "Values of the [[Kind]] field", "Value", "Meaning"),
-        List(List("[[Key]]", "All", "a String", "...")),
+        List(
+          List("[[Key]]", "All", "a Private Name", "..."),
+          List(
+            "[[Get]]",
+            "~accessor~",
+            "a function object or *undefined*",
+            "...",
+          ),
+        ),
       ),
-      // canonicalized by glossary definitions (modulo `Record`/`Event`)
-      table(
-        "t5",
+      Table(
+        "table-additional-fields-of-cyclic-module-records",
+        "Additional Fields of Cyclic Module Records",
+        FIELDS_TY,
+        List(List("[[HasTLA]]", "a Boolean", "...")),
+      ),
+      Table(
+        "table-async-from-sync-iterator-internal-slots",
+        "Internal Slots of Async-from-Sync Iterator Instances",
+        SLOTS,
+        List(List("[[SyncIteratorRecord]]", "an Iterator Record", "...")),
+      ),
+      Table(
+        "table-internal-slots-of-bound-function-exotic-objects",
+        "Internal Slots of Bound Function Exotic Objects",
+        SLOTS,
+        List(
+          List(
+            "[[BoundArguments]]",
+            "a List of ECMAScript language values",
+            "...",
+          ),
+        ),
+      ),
+      Table(
+        "sec-asyncgeneratorrequest-records",
         "AsyncGeneratorRequest Record Fields",
-        List("Field Name", "Value", "Meaning"),
+        FIELDS,
         List(List("[[Completion]]", "a Completion Record", "...")),
       ),
-      table(
-        "t6",
+      Table(
+        "table-writesharedmemory-fields",
         "WriteSharedMemory Event Fields",
-        List("Field Name", "Value", "Meaning"),
+        FIELDS,
         List(List("[[NoTear]]", "a Boolean", "...")),
       ),
-      // lowercase definitions are not names
-      table(
-        "t7",
+      Table(
+        "table-candidate-execution-records",
         "Candidate Execution Record Fields",
-        List("Field Name", "Value", "Meaning"),
+        FIELDS,
         List(List("[[ChosenValues]]", "a List of Chosen Value Records", "...")),
       ),
       // not a field table
-      table(
-        "t8",
+      Table(
+        "table-module-fields-example",
         "Module fields after module _A_ finishes executing",
         List("Field Module", "_A_", "[[Status]]"),
         List(List("_A_", "~evaluated~", "...")),
       ),
-      // a field table without a valid type name
-      table(
-        "t9",
-        "Something Else",
-        List("Field Name", "Value", "Meaning"),
-        List(List("[[X]]", "a Boolean", "...")),
-      ),
-    )
+    ).map(t => t.id -> t).toMap
 
+    // glossary definitions in the style of ECMA-262
     val dfns = List(
       Dfn("Completion Record", List("Completion Records")),
+      Dfn("PrivateElements", List("PrivateElement")),
+      Dfn("Async-from-Sync Iterator", List("Async-from-Sync Iterator object")),
+      Dfn(
+        "bound function exotic object",
+        List("bound function exotic objects"),
+      ),
       Dfn("AsyncGeneratorRequest", List("AsyncGeneratorRequests")),
       Dfn("WriteSharedMemory"),
       Dfn("candidate execution", List("candidate executions")),
     )
 
-    val extractor = TyModelExtractor(tables, dfns, Parser)
-
     checkEqual("decls")(
-      extractor.decls -> List(
+      // sorted by table ids
+      TyModelExtractor(tables, dfns, Parser).decls -> List(
+        TyDecl(
+          "AsyncGeneratorRequest", // canonicalized modulo `Record`
+          None,
+          List(Field("Completion", false, "Completion")),
+        ),
+        TyDecl(
+          "CyclicModuleRecord",
+          None,
+          List(Field("HasTLA", false, "Boolean")),
+        ),
+        TyDecl(
+          "AsyncFromSyncIterator",
+          None,
+          List(Field("SyncIteratorRecord", false, "Record[IteratorRecord]")),
+        ),
+        TyDecl(
+          "CandidateExecutionRecord", // lowercase definitions are not names
+          None,
+          List(Field("ChosenValues", false, "List[Record[ChosenValueRecord]]")),
+        ),
         TyDecl(
           "CompletionRecord",
           None,
           List(
             Field("Type", false, "Enum[~break~, ~normal~, ~throw~]"),
-            Field("Value", false, "Any"),
+            Field("Value", false, "Any"), // unknown type descriptions
+            Field("Target", false, "Enum[~empty~] | String"),
           ),
         ),
         TyDecl(
-          "ForInIteratorRecord",
+          "BoundFunctionExoticObject",
           None,
-          List(Field("Done", false, "Boolean")),
+          List(Field("BoundArguments", false, "List[ESValue]")),
         ),
         TyDecl(
-          "Promise",
+          "PrivateElement", // the value column is not the second one
           None,
-          List(Field("PromiseIsHandled", false, "Boolean")),
-        ),
-        TyDecl("PrivateElement", None, List(Field("Key", false, "String"))),
-        TyDecl(
-          "AsyncGeneratorRequest",
-          None,
-          List(Field("Completion", false, "Completion")),
+          List(
+            Field("Key", false, "Record[PrivateName]"),
+            Field("Get", false, "Record[FunctionObject] | Undefined"),
+          ),
         ),
         TyDecl(
-          "WriteSharedMemory",
+          "WriteSharedMemory", // canonicalized modulo `Event`
           None,
           List(Field("NoTear", false, "Boolean")),
-        ),
-        TyDecl(
-          "CandidateExecutionRecord",
-          None,
-          List(Field("ChosenValues", false, "List[Record[ChosenValueRecord]]")),
         ),
       ),
     )
