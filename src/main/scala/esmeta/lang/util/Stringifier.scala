@@ -190,7 +190,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> body
       case ForEachParseNodeStep(x, expr, body) =>
         app >> First("for each child node ") >> x
-        app >> " of " >> expr >> ", do" >> body
+        app >> " of " >> expr >> ", do"
+        if (!body.isInstanceOf[BlockStep]) app >> " "
+        app >> body
       case ReturnStep(expr) =>
         app >> First("return ") >> expr
       case ThrowStep(name) =>
