@@ -509,6 +509,7 @@ class StringifyTinyTest extends LangTest {
       noHasBindingCond -> "_x_ does not have a binding for _x_",
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
       finiteCond -> "_x_ is finite",
+      finitePluralCond -> "_x_ and _x_ are finite",
       finiteNumberCond -> "_x_ is a finite Number",
       finiteNumbersCond -> "_x_ and _x_ are finite Numbers",
       finiteNumbersCond.copy(negation =

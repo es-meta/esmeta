@@ -851,6 +851,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   private def pluralPredCondOpStr(op: PredicateConditionOperator): String =
     import PredicateConditionOperator.*
     op match {
+      case Finite              => "finite"
       case FiniteNumber        => "finite Numbers"
       case NonZeroFiniteNumber => "non-zero finite Numbers"
       case _                   => op.toString
