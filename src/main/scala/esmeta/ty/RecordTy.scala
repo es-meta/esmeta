@@ -177,6 +177,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
+
   /** the globally active type model */
   private def tyModel: TyModel = TyModel.global
 
@@ -234,7 +235,8 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   ): Map[String, FieldMap] = {
     val (t, fm) = pair
     val existCheck = bind == Binding.Exist
-    val refined = bind && (if (refine) get(pair, field) else tyModel.getField(t, field))
+    val refined =
+      bind && (if (refine) get(pair, field) else tyModel.getField(t, field))
     if (refined.isBottom)
       // TODO check why this is needed and remove it if possible
       if (!refine && !(bind <= tyModel.getField(t, field))) Map(pair)
@@ -254,7 +256,9 @@ object RecordTy extends Parser.From(Parser.recordTy) {
               }
             } yield u,
           ) + t
-          val xs = set.toList.filter(x => !set.exists(y => tyModel.isStrictSubTy(y, x)))
+          val xs = set.toList.filter(x =>
+            !set.exists(y => tyModel.isStrictSubTy(y, x)),
+          )
           xs.map(x => normalize(x -> newFM)).toMap
   }
 
