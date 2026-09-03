@@ -239,7 +239,8 @@ object RecordTy extends Parser.From(Parser.recordTy) {
       bind && (if (refine) get(pair, field) else tyModel.getField(t, field))
     if (refined.isBottom)
       // TODO check why this is needed and remove it if possible
-      if (!refine && !(bind <= tyModel.getField(t, field))) Map(pair)
+      if (!refine && !(bind <= tyModel.getField(tyModel.baseOf(t), field)))
+        Map(pair)
       else Map()
     else
       var newFM = fm + (field -> refined)
