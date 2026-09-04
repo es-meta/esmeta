@@ -28,6 +28,7 @@ class StringifyTinyTest extends SpecTest {
         TypeSummary(5908, 5469, 439),
         7,
         89,
+        361,
         58,
         101,
       ) ->
@@ -48,6 +49,7 @@ class StringifyTinyTest extends SpecTest {
          |  - yet: 439 (7.43%)
          |- constants: 7
          |- tables: 89
+         |- dfns: 361
          |- type model: 58
          |- intrinsics: 101""".stripMargin,
     )
