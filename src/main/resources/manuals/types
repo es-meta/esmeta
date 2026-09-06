@@ -981,3 +981,15 @@ type DataViewWithBufferWitnessRecord {
   Object: Record[DataView];
   CachedBufferByteLength: Int[NonNeg] | Enum[~detached~];
 }
+
+// -----------------------------------------------------------------------------
+// Records for Keyed Collections
+// -----------------------------------------------------------------------------
+
+// https://tc39.es/ecma262/#sec-set-records
+type SetRecord {
+  SetObject: Record[Object];
+  Size: Int[NonNeg] | +INF;
+  Has: Record[FunctionObject];
+  Keys: Record[FunctionObject];
+}
