@@ -204,6 +204,12 @@ class Injector(
             handleConstruct(addr, path)
             handlePropKeys(addr, path)
             handleProperty(addr, path)
+          case RecordObj("Symbol", fields) =>
+            _assertions += HasValue(s"typeof $path", Str("symbol"))
+            fields.get("Description") match
+              case Some(sv: SimpleValue) =>
+                _assertions += HasValue(s"$path.description", sv)
+              case _ => warning(s"invalid symbol description: $path")
           case (_: RecordObj) =>
             handlePrototype(addr, path)
             handleExtensible(addr, path)
