@@ -54,7 +54,15 @@ class Stringifier(
             if (symbol.getNt.isDefined) cs.headOption match
               case Some(hd) => hd.map(aux); cs = cs.tail
               case _        => raise(s"invalid AST: $origAst")
-    aux(origAst)
+    origAst match
+      case syn: Syntactic =>
+        (for {
+          loc <- syn.loc
+          text <- loc.originText
+        } yield loc.getString(text)) match
+          case Some(s) => app >> s
+          case None    => aux(origAst)
+      case lex: Lexical => app >> lex.str
     app
 
   lazy val basicAstRule: Rule[Ast] = (app, ast) =>

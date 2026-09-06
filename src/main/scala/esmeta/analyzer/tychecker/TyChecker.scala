@@ -15,6 +15,7 @@ import esmeta.util.SystemUtils.*
 class TyChecker(
   val cfg: CFG,
   val targetPattern: Option[String] = None,
+  val useEffect: Boolean = false,
   val config: TyChecker.Config = TyChecker.Config(),
   val ignore: TyChecker.Ignore = Ignore(),
   val log: Boolean = false,
@@ -29,7 +30,8 @@ class TyChecker(
   with AbsRetDecl
   with AbsTransferDecl
   with TypeGuardDecl
-  with ViewDecl {
+  with ViewDecl
+  with EffectDecl {
 
   val tyStringifier = TyElem.getStringifier(false, false)
   import tyStringifier.given
@@ -285,7 +287,7 @@ class TyChecker(
     val (newLocals, symEnv) = (for {
       ((x, value), sym) <- idxLocals
     } yield (x -> AbsValue(SSym(sym)), sym -> value.ty)).unzip
-    AbsState(true, newLocals.toMap, symEnv.toMap, TypeConstr.Top)
+    AbsState(true, newLocals.toMap, symEnv.toMap, TypeProp.Top, Effect.Bot)
 
   /** get initial abstract states in each node point */
   private def getInitNpMap(

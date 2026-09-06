@@ -82,14 +82,22 @@ class CaseCollector extends UnitWalker {
       case AssertStep(cond) =>
         s"assert: {{ cond }}."
       case IfStep(cond, thenStep, elseStep, config) =>
-        val IfStep.ElseConfig(newLine, keyword, comma) = config
-
-        val e = thenStep.endingChar
-        val k = if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
-        val n = if (newLine) "<NEWLINE> " else ""
-        val c = if (comma) "," else ""
-
-        s"if {{ cond }}, {{ step }}$e $n$k$c {{ step }}."
+        def stepStr(step: Step): String = step match {
+          case BlockStep(_)       => "then <NL> {{ block }}"
+          case IfStep(_, _, _, _) => "{{ elif }}"
+          case YetStep(_)         => "{{ step }}."
+          case _                  => "{{ step }}"
+        }
+        val thenStr = stepStr(thenStep) + thenStep.endingChar
+        val elseStr = elseStep.fold("") { elseStep =>
+          val IfStep.ElseConfig(newLine, keyword, comma) = config
+          val n = if (newLine) " <NL>" else ""
+          val k =
+            if (thenStep.isNextLowercase) keyword else keyword.toFirstUpper
+          val c = if (comma) "," else ""
+          n + " " + k + c + " " + stepStr(elseStep) + elseStep.endingChar
+        }
+        "if {{ cond }}, " + thenStr + elseStr
       case RepeatStep(cond, body) =>
         import RepeatStep.LoopCondition.*
         cond match
@@ -157,8 +165,13 @@ class CaseCollector extends UnitWalker {
         "the string-concatenation of {{ expr }}*"
       case ListConcatExpression(exprs) =>
         "the list-concatenation of {{ expr }}*"
-      case ListCopyExpression(expr) =>
-        "a List whose elements are the elements of {{ expr }}"
+      case CopyExpression(expr, form) =>
+        import CopyExpressionForm.*
+        form match
+          case Plain   => "a copy of {{ expr }}"
+          case TheList => "a copy of the List {{ expr }}"
+          case ListElements =>
+            "a List whose elements are the elements of {{ expr }}"
       case RecordExpression(ty, fields, form) =>
         import RecordExpressionForm.*
         form match {
@@ -225,12 +238,17 @@ class CaseCollector extends UnitWalker {
           case ToBigInt       => "BigInt"
           case ToMath         => "Math"
           case ToApproxNumber => "implementation-approximated Number"
-          case ToCodeUnit     => "code unit whose numeric value is"
+          case ToCodeUnit     => "code unit whose numeric"
         s"$a $opStr value $pre {{expr}}"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"
-      case BinaryExpression(left, op, right) =>
-        s"{{ expr }} $op {{ expr }}"
+      case BinaryExpression(left, op, right, form) =>
+        import BinaryExpressionForm.*, BinaryExpressionOperator.*
+        val o = (op, form) match
+          case (Add, Textual) => "plus"
+          case (Mul, Textual) => "times"
+          case _              => op.toString
+        s"{{ expr }} $o {{ expr }}"
       case UnaryExpression(op, expr) =>
         s"$op {{ expr }}"
       case ThisLiteral(article) =>
@@ -281,6 +299,8 @@ class CaseCollector extends UnitWalker {
       case DecimalMathValueLiteral(n) =>
         s"{{ decimal }}"
       case MathConstantLiteral(pre, name) =>
+        s"{{ const }}"
+      case ConstantLiteral(name) =>
         s"{{ const }}"
       case NumberLiteral(n) =>
         s"{{ number }}"
@@ -389,16 +409,25 @@ class CaseCollector extends UnitWalker {
       case ExpressionCondition(expr) =>
         s"{{ expr }}"
       case TypeCheckCondition(expr, neg, ty) =>
-        s"{{ expr }} is {{ ty }}*"
-      case HasFieldCondition(ref, neg, field, op) =>
-        s"{{ ref }} has a {{ field }} $op"
+        if (neg) s"{{ expr }} is not {{ ty }}*"
+        else s"{{ expr }} is {{ ty }}*"
+      case HasFieldCondition(ref, neg, field, form, tyOpt) =>
+        val h = if (neg) "does not have" else "has"
+        val f = form match
+          case HasFieldConditionForm.Field          => "field"
+          case HasFieldConditionForm.InternalMethod => "internal method"
+          case HasFieldConditionForm.InternalSlot   => "internal slot"
+        val post = tyOpt.fold("")(_ => " whose value is {{ ty }}")
+        if (field.length > 1) s"{{ ref }} $h {{ field }}* ${f}s$post"
+        else s"{{ ref }} $h a {{ field }} $f$post"
       case HasBindingCondition(ref, neg, binding) =>
-        s"{{ ref }} has a binding for {{ binding }}"
+        val h = if (neg) "does not have" else "has"
+        s"{{ ref }} $h a binding for {{ binding }}"
       case ProductionCondition(nt, lhs, rhs) =>
         s"{{ expr }} is <emu-grammar>{{ str }} : {{ str }}</emu-grammar>"
-      case PredicateCondition(x, neg, op) =>
-        if (neg) s"{{ expr }} is not $op"
-        else s"{{ expr }} is $op"
+      case PredicateCondition(xs, neg, op) =>
+        if (neg) s"{{ expr }}* is/are not $op"
+        else s"{{ expr }}* is/are $op"
       case IsAreCondition(ls, neg, rs) =>
         if (neg) s"{{ expr }}* is/are not {{ expr }}*"
         else s"{{ expr }}* is/are {{ expr }}*"

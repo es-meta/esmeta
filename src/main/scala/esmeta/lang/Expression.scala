@@ -13,8 +13,13 @@ case class StringConcatExpression(exprs: List[Expression]) extends Expression
 // list concatenation expressions
 case class ListConcatExpression(exprs: List[Expression]) extends Expression
 
-// list copy expressions
-case class ListCopyExpression(expr: Expression) extends Expression
+// shallow copy expressions
+case class CopyExpression(
+  expr: Expression,
+  form: CopyExpressionForm = CopyExpressionForm.Plain,
+) extends Expression
+enum CopyExpressionForm:
+  case Plain, TheList, ListElements
 
 // record expressions
 case class RecordExpression(
@@ -104,7 +109,7 @@ case class YetExpression(str: String, block: Option[Block]) extends Expression
 // -----------------------------------------------------------------------------
 // metalanguage invocation expressions
 // -----------------------------------------------------------------------------
-sealed trait InvokeExpression extends Expression
+sealed trait InvokeExpression extends CalcExpression
 
 enum HtmlTag:
   case None
@@ -155,10 +160,10 @@ sealed trait CalcExpression extends Expression {
 
   /** level of calculation expressions */
   def level: Int = this match
-    case BinaryExpression(_, Add | Sub, _)       => 0
-    case BinaryExpression(_, Mul | Div | Mod, _) => 1
-    case UnaryExpression(_, _)                   => 2
-    case _                                       => 3
+    case BinaryExpression(_, Add | Sub, _, _)       => 0
+    case BinaryExpression(_, Mul | Div | Mod, _, _) => 1
+    case UnaryExpression(_, _)                      => 2
+    case _                                          => 3
 }
 object CalcExpression extends Parser.From(Parser.calcExpr)
 
@@ -176,8 +181,9 @@ case class MathFuncExpression(
   op: MathFuncExpressionOperator,
   args: List[CalcExpression],
 ) extends CalcExpression
+object MathFuncExpression extends Parser.From(Parser.mathFuncExpr)
 enum MathFuncExpressionOperator extends LangElem:
-  case Max, Min, Abs, Floor, Truncate
+  case Max, Min, Abs, Floor, Log10, Log2, Log, Truncate
 
 // exponentiation expressions
 case class ExponentiationExpression(
@@ -190,9 +196,13 @@ case class BinaryExpression(
   left: CalcExpression,
   op: BinaryExpressionOperator,
   right: CalcExpression,
+  form: BinaryExpressionForm = BinaryExpressionForm.Symbolic,
 ) extends CalcExpression
 enum BinaryExpressionOperator extends LangElem:
   case Add, Sub, Mul, Div, Mod
+enum BinaryExpressionForm:
+  case Symbolic // `+`, `-`, `×`, `/`, `modulo`
+  case Textual // `plus`, `times`
 
 // unary expressions
 case class UnaryExpression(
@@ -236,8 +246,8 @@ case class MathOpExpression(
 object MathOpExpression extends Parser.From(Parser.mathOpExpr)
 enum MathOpExpressionOperator extends LangElem:
   case Neg, Add, Sub, Mul, Pow
-  case Expm1, Log10, Log2, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
-  case Asinh, Atanh, Asin, Atan2, Atan, Log1p, Log, Sin, Sqrt, Tan
+  case Expm1, Cos, Cbrt, Exp, Cosh, Sinh, Tanh, Acos, Acosh
+  case Asinh, Atanh, Asin, Atan2, Atan, Sin, Sqrt, Tan
 
 // -----------------------------------------------------------------------------
 // bitwise expressions
@@ -342,6 +352,9 @@ case class NumberLiteral(double: Double)
   extends NumericLiteral
   with DoubleEquals
 case class BigIntLiteral(bigInt: BigInt) extends NumericLiteral
+
+/** references to constants defined by `emu-eqn` elements */
+case class ConstantLiteral(name: String) extends Literal
 
 // boolean literals
 sealed trait BooleanLiteral extends Literal

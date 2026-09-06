@@ -310,7 +310,7 @@ case class Test262(
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
-    val st = cfg.init.from(sourceText, Some(ast), filename = Some(filename))
+    val st = cfg.init.from(sourceText, ast, filename = Some(filename))
     Interpreter(
       st = st,
       tyCheck = tyCheck,

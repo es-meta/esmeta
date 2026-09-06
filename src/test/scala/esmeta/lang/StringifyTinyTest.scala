@@ -20,7 +20,7 @@ class StringifyTinyTest extends LangTest {
     checkParseAndStringify("Block", Block)(
       stepBlock -> """
       |  1. Let _x_ be _x_.
-      |  1. [id="x,y,z"] Let _x_ be _x_.
+      |  1. [id="x,y,z",some-name] Let _x_ be _x_.
       |  1. Let _x_ be _x_.""".stripMargin,
       exprBlock -> """
       |  * _x_
@@ -39,10 +39,12 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     checkParseAndStringify("Step", Step)(
       letStep -> "let _x_ be _x_.",
+      letCopyStep -> "let _x_ be a copy of _x_.",
       toBlockStep(letStepClosure) -> """
       |  1. Let _x_ be a new Abstract Closure with parameters (_x_, _x_) that captures _x_ and performs the following steps when called:
       |    1. Let _x_ be _x_.""".stripMargin,
       setStep -> "set _x_ to _x_ + _x_.",
+      setCopyStep -> "set _x_ to a copy of _x_.",
       setAsStep -> "set _x_ as specified in <emu-xref href=\"#id\"></emu-xref>.",
       setEvalStateStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with no arguments.",
       setEvalStateArgStep -> "set the code evaluation state of _x_ such that when evaluation is resumed for that execution context, _x_ will be called with argument _x_.",
@@ -106,6 +108,7 @@ class StringifyTinyTest extends LangTest {
       forEachDscOPKStep -> (
         "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, let _x_ be _x_."
       ),
+      forEachParseNodeStep -> "for each child node _x_ of _x_, do let _x_ be _x_.",
       returnStep -> "return _x_.",
       throwStep -> "throw a *ReferenceError* exception.",
       toBlockStep(resumeStep) -> """
@@ -144,7 +147,11 @@ class StringifyTinyTest extends LangTest {
       listConcatExprOne -> "the list-concatenation of _x_",
       listConcatExprTwo -> "the list-concatenation of _x_ and _x_",
       listConcatExprThree -> "the list-concatenation of _x_, _x_, and _x_",
-      listCopyExpr -> "a List whose elements are the elements of _x_",
+      listElementsCopyExpr -> "a List whose elements are the elements of _x_",
+      copyExpr -> "a copy of _x_",
+      copyOfListExpr -> "a copy of the List _x_",
+      copyAccessExpr -> "a copy of _x_.[[Captures]]",
+      copyRunningContextExpr -> "a copy of the running execution context",
       recordEmptyExpr -> "Object { }",
       recordExpr -> "Object { [[Value]]: _x_ }",
       lengthExpr -> "the length of _x_",
@@ -178,6 +185,7 @@ class StringifyTinyTest extends LangTest {
       xrefLenExpr -> "the number of non-optional parameters of the function definition in <emu-xref href=\"#sec-x\"></emu-xref>",
       soleExpr -> "the sole element of « _x_, _x_ »",
       codeUnitAtExpr -> "the code unit at index _x_ within _x_",
+      strValueExpr -> "the String value _x_",
     )
 
     // -------------------------------------------------------------------------
@@ -193,6 +201,12 @@ class StringifyTinyTest extends LangTest {
       parenAddExpr -> "_x_ × (_x_ + _x_)",
       parenMulExpr -> "-(_x_ × _x_)",
       parenUnExpr -> "(-_x_)<sup>_x_</sup>",
+      plusExpr -> "_x_ plus _x_",
+      timesExpr -> "_x_ times _x_",
+      mulSDOExpr -> "StringValue of |Identifier| × _x_",
+      addInvokeExpr -> "ToObject(_x_ + _x_, -_x_) + _x_",
+      mulInvokeExpr -> "_x_<sup>_x_</sup> × ToObject(_x_ + _x_, -_x_)",
+      convInvokeExpr -> "ℝ(ToObject(_x_ + _x_, -_x_) + _x_)",
       convToApproxNumberExpr -> "an implementation-approximated Number value representing _x_",
       convToNumberTextExpr -> "the Number value of the code unit at index _x_ within _x_",
       convToBigIntTextExpr -> "the BigInt value of the code unit at index _x_ within _x_",
@@ -202,123 +216,67 @@ class StringifyTinyTest extends LangTest {
       convToMathExpr -> "ℝ(_x_)",
     )
     // -------------------------------------------------------------------------
+    // constants defined by `emu-eqn` elements
+    // -------------------------------------------------------------------------
+    checkParseAndStringify("ConstantLiteral", ConstExpression)(
+      msPerDay -> "msPerDay",
+      hoursPerDay -> "HoursPerDay",
+      BinaryExpression(
+        msPerDay,
+        BinaryExpressionOperator.Mul,
+        refExpr,
+      ) -> "msPerDay × _x_",
+    )
+    // -------------------------------------------------------------------------
     // algorithm mathematical operation expressions
     // -------------------------------------------------------------------------
     checkParseAndStringify("MathOpExpression", Expression)(
-      MathOpExpression(
-        MathOpExpressionOperator.Neg,
-        List(refExpr),
-      ) -> "the negation of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Add,
-        List(refExpr, refExpr),
-      ) -> "the sum of _x_ and _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Mul,
-        List(refExpr, refExpr),
-      ) -> "the product of _x_ and _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Sub,
-        List(refExpr, refExpr),
-      ) -> "the difference _x_ minus _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Pow,
-        List(refExpr, refExpr),
-      ) -> "the raising _x_ to the _x_ power",
-      MathOpExpression(
-        MathOpExpressionOperator.Expm1,
-        List(refExpr),
-      ) -> "the subtracting 1 from the exponential function of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Log10,
-        List(refExpr),
-      ) -> "the base 10 logarithm of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Log2,
-        List(refExpr),
-      ) -> "the base 2 logarithm of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Cos,
-        List(refExpr),
-      ) -> "the cosine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Cbrt,
-        List(refExpr),
-      ) -> "the cube root of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Exp,
-        List(refExpr),
-      ) -> "the exponential function of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Cosh,
-        List(refExpr),
-      ) -> "the hyperbolic cosine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Sinh,
-        List(refExpr),
-      ) -> "the hyperbolic sine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Tanh,
-        List(refExpr),
-      ) -> "the hyperbolic tangent of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Acos,
-        List(refExpr),
-      ) -> "the inverse cosine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Acosh,
-        List(refExpr),
-      ) -> "the inverse hyperbolic cosine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Asinh,
-        List(refExpr),
-      ) -> "the inverse hyperbolic sine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Atanh,
-        List(refExpr),
-      ) -> "the inverse hyperbolic tangent of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Asin,
-        List(refExpr),
-      ) -> "the inverse sine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Atan2,
-        List(refExpr, refExpr),
-      ) -> "the inverse tangent of the quotient _x_ / _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Atan,
-        List(refExpr),
-      ) -> "the inverse tangent of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Log1p,
-        List(refExpr),
-      ) -> "the natural logarithm of 1 + _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Log,
-        List(refExpr),
-      ) -> "the natural logarithm of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Sin,
-        List(refExpr),
-      ) -> "the sine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Sqrt,
-        List(refExpr),
-      ) -> "the square root of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Tan,
-        List(refExpr),
-      ) -> "the tangent of _x_",
+      negMathExpr -> "the negation of _x_",
+      sumMathExpr -> "the sum of _x_ and _x_",
+      prodMathExpr -> "the product of _x_ and _x_",
+      diffMathExpr -> "the difference _x_ minus _x_",
+      powMathExpr -> "the raising _x_ to the _x_ power",
+      expm1MathExpr -> "the subtracting 1 from the exponential function of _x_",
+      cosMathExpr -> "the cosine of _x_",
+      cbrtMathExpr -> "the cube root of _x_",
+      expMathExpr -> "the exponential function of _x_",
+      coshMathExpr -> "the hyperbolic cosine of _x_",
+      sinhMathExpr -> "the hyperbolic sine of _x_",
+      tanhMathExpr -> "the hyperbolic tangent of _x_",
+      acosMathExpr -> "the inverse cosine of _x_",
+      acoshMathExpr -> "the inverse hyperbolic cosine of _x_",
+      asinhMathExpr -> "the inverse hyperbolic sine of _x_",
+      atanhMathExpr -> "the inverse hyperbolic tangent of _x_",
+      asinMathExpr -> "the inverse sine of _x_",
+      atan2MathExpr -> "the inverse tangent of the quotient _x_ / _x_",
+      atanMathExpr -> "the inverse tangent of _x_",
+      sinMathExpr -> "the sine of _x_",
+      sqrtMathExpr -> "the square root of _x_",
+      tanMathExpr -> "the tangent of _x_",
+    )
+
+    // -------------------------------------------------------------------------
+    // algorithm mathematical function expressions
+    // -------------------------------------------------------------------------
+    checkParseAndStringify("MathFuncExpression", Expression)(
+      maxExpr -> "max(_x_, _x_)",
+      minTwoExpr -> "min(_x_, _x_)",
+      absExpr -> "abs(_x_)",
+      floorExpr -> "floor(_x_)",
+      log10Expr -> "log10(_x_)",
+      log2Expr -> "log2(_x_)",
+      lnExpr -> "ln(_x_)",
+      truncateExpr -> "truncate(_x_)",
     )
 
     // -------------------------------------------------------------------------
     // algorithm literals
     // -------------------------------------------------------------------------
     checkParseAndStringify("Literal", Expression)(
-      ThisLiteral(false) -> "*this* value",
-      ThisLiteral(true) -> "the *this* value",
-      ThisParseNodeLiteral(None) -> "this Parse Node",
-      NewTargetLiteral() -> "NewTarget",
+      thisLit -> "*this* value",
+      thisLitWithArticle -> "the *this* value",
+      thisParseNode -> "this Parse Node",
+      newTarget -> "NewTarget",
       hex -> "0x0024",
       hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",
@@ -336,8 +294,8 @@ class StringifyTinyTest extends LangTest {
       fieldLit -> "[[Value]]",
       sym -> "%Symbol.iterator%",
       errObj -> "a newly created *TypeError* object",
-      PositiveInfinityMathValueLiteral() -> "+∞",
-      NegativeInfinityMathValueLiteral() -> "-∞",
+      posInfMathVal -> "+∞",
+      negInfMathVal -> "-∞",
       mathVal -> "0.5",
       mathPi -> "π",
       mathPiWithPre -> "2π",
@@ -348,18 +306,18 @@ class StringifyTinyTest extends LangTest {
       nan -> "*NaN*",
       number -> "*1*<sub>𝔽</sub>",
       bigint -> "*1000000000000000000000000*<sub>ℤ</sub>",
-      TrueLiteral() -> "*true*",
-      FalseLiteral() -> "*false*",
-      UndefinedLiteral() -> "*undefined*",
-      NullLiteral() -> "*null*",
-      UndefinedTypeLiteral() -> "Undefined",
-      NullTypeLiteral() -> "Null",
-      BooleanTypeLiteral() -> "Boolean",
-      StringTypeLiteral() -> "String",
-      SymbolTypeLiteral() -> "Symbol",
-      NumberTypeLiteral() -> "Number",
-      BigIntTypeLiteral() -> "BigInt",
-      ObjectTypeLiteral() -> "Object",
+      trueLit -> "*true*",
+      falseLit -> "*false*",
+      undefinedLit -> "*undefined*",
+      nullLit -> "*null*",
+      undefinedTypeLit -> "Undefined",
+      nullTypeLit -> "Null",
+      boolTypeLit -> "Boolean",
+      strTypeLit -> "String",
+      symbolTypeLit -> "Symbol",
+      numberTypeLit -> "Number",
+      bigIntTypeLit -> "BigInt",
+      objectTypeLit -> "Object",
     )
 
     // -------------------------------------------------------------------------
@@ -381,6 +339,75 @@ class StringifyTinyTest extends LangTest {
     // -------------------------------------------------------------------------
     // algorithm conditions
     // -------------------------------------------------------------------------
+    import CompoundConditionOperator.{And, Imply, Or}
+    val disjunction = CompoundCondition(exprCond, Or, isCond)
+    val otherDisjunction = CompoundCondition(finiteCond, Or, binaryCondLt)
+    val conjunction = CompoundCondition(exprCond, And, isCond)
+    val conjunctionOfDisjunctions =
+      CompoundCondition(disjunction, And, otherDisjunction)
+    val disjunctionOfConjunction =
+      CompoundCondition(conjunction, Or, finiteCond)
+    val leftAssociatedConjunction =
+      CompoundCondition(conjunction, And, finiteCond)
+    val rightAssociatedConjunction =
+      CompoundCondition(
+        exprCond,
+        And,
+        CompoundCondition(isCond, And, finiteCond),
+      )
+    val implicationWithLogicalOperands =
+      CompoundCondition(disjunction, Imply, conjunction)
+    val chainedImplication = CompoundCondition(
+      exprCond,
+      Imply,
+      CompoundCondition(isCond, Imply, finiteCond),
+    )
+    val conjunctionWithImplication = CompoundCondition(
+      CompoundCondition(exprCond, Imply, isCond),
+      And,
+      finiteCond,
+    )
+    val leftAssociatedImplication = CompoundCondition(
+      CompoundCondition(exprCond, Imply, isCond),
+      Imply,
+      finiteCond,
+    )
+    def makeAnd(left: Condition, right: Condition): Condition =
+      CompoundCondition(left, And, right)
+    def makeOr(left: Condition, right: Condition): Condition =
+      CompoundCondition(left, Or, right)
+    def makeImply(left: Condition, right: Condition): Condition =
+      CompoundCondition(left, Imply, right)
+
+    val xZero = Condition.from("_x_ = 0")
+    val xNegOne = Condition.from("_x_ = -1")
+    val yZero = Condition.from("_y_ = 0")
+    val yNegOne = Condition.from("_y_ = -1")
+    val xDisjunction = makeOr(xZero, xNegOne)
+    val yDisjunction = makeOr(yZero, yNegOne)
+    val groupedDisjunctions = makeAnd(xDisjunction, yDisjunction)
+
+    checkEqual("Condition precedence")(
+      Condition.from("_x_ = 0 or _x_ = -1 and _y_ = 0") ->
+      makeOr(xZero, makeAnd(xNegOne, yZero)),
+      Condition.from("_x_ = 0 and _x_ = -1 or _y_ = 0") ->
+      makeOr(makeAnd(xZero, xNegOne), yZero),
+      Condition.from("(_x_ = 0 or _x_ = -1) and _y_ = 0") ->
+      makeAnd(xDisjunction, yZero),
+      Condition.from("_x_ = 0 and (_x_ = -1 or _y_ = 0)") ->
+      makeAnd(xZero, makeOr(xNegOne, yZero)),
+      Condition.from(
+        "(_x_ = 0 or _x_ = -1) and (_y_ = 0 or _y_ = -1)",
+      ) -> groupedDisjunctions,
+      Condition.from("_x_ = 0 or _x_ = -1 or _y_ = 0") ->
+      makeOr(xZero, makeOr(xNegOne, yZero)),
+      Condition.from("_x_ = 0, _x_ = -1, and _y_ = 0") ->
+      makeAnd(xZero, makeAnd(xNegOne, yZero)),
+      Condition.from(
+        "If _x_ = 0 or _x_ = -1, then _y_ = 0 and _y_ = -1",
+      ) -> makeImply(xDisjunction, makeAnd(yZero, yNegOne)),
+    )
+
     checkParseAndStringify("Condition", Condition)(
       exprCond -> "_x_",
       typeCheckCond -> "_x_ is a Base",
@@ -388,11 +415,22 @@ class StringifyTinyTest extends LangTest {
       eitherTypeCheckCond -> "_x_ is either a Base, a Base, or a Base",
       neitherTypeCheckCond -> "_x_ is neither a Base nor a Base",
       hasFieldCond -> "_x_ has a [[Value]] internal slot",
+      hasMultipleFieldsCond -> "_x_ has [[Value]], [[Value]], and [[Value]] internal slots",
       noHasFieldCond -> "_x_ does not have a [[Value]] internal method",
       hasBindingCond -> "_x_ has a binding for _x_",
       noHasBindingCond -> "_x_ does not have a binding for _x_",
       prodCond -> "|Identifier| is <emu-grammar>Identifier : Identifier</emu-grammar>",
       finiteCond -> "_x_ is finite",
+      finiteNumberCond -> "_x_ is a finite Number",
+      finiteNumbersCond -> "_x_ and _x_ are finite Numbers",
+      finiteNumbersCond.copy(negation =
+        T,
+      ) -> "_x_ and _x_ are not finite Numbers",
+      nonZeroFiniteNumberCond -> "_x_ is a non-zero finite Number",
+      nonZeroFiniteNumbersCond -> "_x_ and _x_ are non-zero finite Numbers",
+      nonZeroFiniteNumbersCond.copy(negation =
+        T,
+      ) -> "_x_ and _x_ are not non-zero finite Numbers",
       abruptCond -> "_x_ is an abrupt completion",
       normalCond -> "_x_ is a normal completion",
       dupCond -> "_x_ is duplicate entries",
@@ -414,6 +452,15 @@ class StringifyTinyTest extends LangTest {
       containsSuchThatCond -> "_x_ contains a Base _x_ such that _x_ is the length of _x_",
       compCond -> "_x_ and _x_",
       implyCond -> "If _x_ is the length of _x_, then _x_ is either *true* or *false*",
+      conjunctionOfDisjunctions -> "(_x_ or _x_ is the length of _x_) and (_x_ is finite or _x_ < _x_ + _x_)",
+      disjunctionOfConjunction -> "_x_ and _x_ is the length of _x_ or _x_ is finite",
+      leftAssociatedConjunction -> "(_x_ and _x_ is the length of _x_) and _x_ is finite",
+      rightAssociatedConjunction -> "_x_, _x_ is the length of _x_, and _x_ is finite",
+      implicationWithLogicalOperands -> "If _x_ or _x_ is the length of _x_, then _x_ and _x_ is the length of _x_",
+      chainedImplication -> "If _x_, then _x_ is the length of _x_, then _x_ is finite",
+      conjunctionWithImplication -> "(If _x_, then _x_ is the length of _x_) and _x_ is finite",
+      leftAssociatedImplication -> "If (If _x_, then _x_ is the length of _x_), then _x_ is finite",
+      groupedDisjunctions -> "(_x_ = 0 or _x_ = -1) and (_y_ = 0 or _y_ = -1)",
     )
 
     // -------------------------------------------------------------------------

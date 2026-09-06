@@ -11,15 +11,15 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject conform-test mutate dump-debugger dump-visualizer solve"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject conform-test mutate dump-debugger dump-visualizer solve yet-check"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
-  extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets -extract:warn-action"
+  extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets"
   compileOpt="-compile:log -compile:log-with-loc -compile:opt"
   buildcfgOpt="-build-cfg:log -build-cfg:dot -build-cfg:pdf"
-  tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:detail-log"
-  parseOpt="-parse:debug"
-  evalOpt="-eval:timeout -eval:tycheck -eval:log -eval:detail-log"
+  tycheckOpt="-tycheck:target -tycheck:repl -tycheck:repl-continue -tycheck:ignore -tycheck:update-ignore -tycheck:log -tycheck:detail-log -tycheck:effect"
+  parseOpt="-parse:debug -parse:goal"
+  evalOpt="-eval:timeout -eval:multiple -eval:tycheck -eval:log -eval:detail-log"
   webOpt="-web:host -web:port"
   test262testOpt="-test262-test:target -test262-test:features -test262-test:tycheck -test262-test:progress -test262-test:coverage -test262-test:k-fs -test262-test:cp -test262-test:all-tests -test262-test:timeout -test262-test:with-yet -test262-test:log -test262-test:detail-log -test262-test:concurrent"
   fuzzOpt="-fuzz:tycheck -fuzz:log -fuzz:log-interval -fuzz:out -fuzz:debug -fuzz:timeout -fuzz:trial -fuzz:duration -fuzz:seed -fuzz:init -fuzz:k-fs -fuzz:cp"
@@ -29,6 +29,7 @@ _esmeta_completions() {
   dumpdebuggerOpt=""
   dumpvisualizerOpt=""
   solveOpt="-solve:branch -solve:side -solve:detail"
+  yetcheckOpt="-yet-check:log -yet-check:github-alert -yet-check:merge-threshold"
   # completion for commands
   case "${COMP_CWORD}" in
     1)
@@ -103,6 +104,10 @@ _esmeta_completions() {
           ;;
         solve)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${solveOpt}"))
+          return 0
+          ;;
+        yet-check)
+          COMPREPLY=($(compgen -W "${globalOpt} ${yetcheckOpt}"))
           return 0
           ;;
       esac

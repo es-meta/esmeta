@@ -6,6 +6,7 @@ import esmeta.util.SystemUtils.*
 
 /** git helpers */
 abstract class Git(path: String, shortHashLength: Int = 16) { self =>
+  import Git.*
 
   /** git versions */
   case class Version(hash: String, tag: Option[String]) {
@@ -57,6 +58,55 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
   /** clean modified content */
   def clean: Unit = executeCmd(s"git checkout -- .", path)
 
+  /** default merge threshold */
+  val DEFAULT_MERGE_THRESHOLD: Int = 1
+
+  /** get git diffs between two targets */
+  def getDiffs(
+    from: String,
+    to: String,
+    target: String = ".",
+    mergeThreshold: Int = DEFAULT_MERGE_THRESHOLD,
+  ): List[Diff] = {
+    val diffStr = executeCmd(s"git diff -U0 $from $to -- $target", path)
+    val parseDiffLine = """^\s*@@ -(\d+)(,\d+)? \+(\d+)(,\d+)? @@.*$""".r
+    def aux(start: String, len: String | Null): Range =
+      val s = start.toInt
+      val l = if (len == null) 1 else len.tail.toInt
+      s until (s + l)
+    val diffs = for {
+      line <- diffStr.split("\n").toList
+      diff <- line match {
+        case parseDiffLine(x, n, y, m) => Some(Diff(aux(x, n), aux(y, m)))
+        case _                         => None
+      }
+    } yield diff
+    normalize(diffs, mergeThreshold)
+  }
+
+  /** normalize diffs by merging adjacent diffs if they are continuous */
+  def normalize(
+    diffs: List[Diff],
+    mergeThreshold: Int = DEFAULT_MERGE_THRESHOLD,
+  ): List[Diff] = {
+    @annotation.tailrec
+    def aux(
+      diffs: List[Diff],
+      revAcc: List[Diff],
+    ): List[Diff] = diffs match
+      case d1 :: d2 :: t
+          if d1.removed.end >= d2.removed.start - mergeThreshold
+          && d1.added.end >= d2.added.start - mergeThreshold =>
+        val merged = Diff(
+          d1.removed.start until d2.removed.end,
+          d1.added.start until d2.added.end,
+        )
+        aux(merged :: t, revAcc)
+      case d :: t => aux(t, d :: revAcc)
+      case Nil    => revAcc.reverse
+    aux(diffs, Nil)
+  }
+
   /** get git commit version */
   def getVersion(targetOpt: Option[String]): Version =
     targetOpt.fold(currentVersion)(getVersion)
@@ -82,4 +132,7 @@ abstract class Git(path: String, shortHashLength: Int = 16) { self =>
     case None =>
       val version = currentVersion
       (version, f(version))
+}
+object Git {
+  case class Diff(removed: Range, added: Range)
 }

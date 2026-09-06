@@ -41,7 +41,7 @@ sealed trait Node extends CFGElem with UId {
         headLoc <- head.loc
         last <- block.insts.lastOption
         lastLoc <- last.loc
-      } yield Loc(headLoc.start, lastLoc.end, None, headLoc.steps)
+      } yield Loc(headLoc.start, lastLoc.end, None, None, headLoc.steps)
     case call: Call     => call.callInst.loc
     case branch: Branch => branch.cond.loc
 

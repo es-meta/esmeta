@@ -22,6 +22,7 @@ case object TyCheck extends Phase[CFG, Unit] {
     val tychecker = TyChecker(
       cfg = cfg,
       targetPattern = config.target,
+      useEffect = config.effect,
       config = TyChecker.Config(),
       ignore = config.ignorePath.fold(Ignore())(Ignore.apply),
       log = config.log,
@@ -72,6 +73,11 @@ case object TyCheck extends Phase[CFG, Unit] {
       BoolOption((c, b) => { c.log ||= b; c.detail = b }),
       "logging mode with detailed information.",
     ),
+    (
+      "effect",
+      BoolOption(_.effect = _),
+      "enable effect system (default: false).",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -81,5 +87,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var replContinue: Boolean = false,
     var log: Boolean = false,
     var detail: Boolean = false,
+    var effect: Boolean = false,
   )
 }

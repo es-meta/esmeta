@@ -301,7 +301,6 @@ trait Parsers extends TyParsers {
     "[math:asin]" ^^^ Asin |
     "[math:atan2]" ^^^ Atan2 |
     "[math:atan]" ^^^ Atan |
-    "[math:log1p]" ^^^ Log1p |
     "[math:log]" ^^^ Log |
     "[math:sin]" ^^^ Sin |
     "[math:sqrt]" ^^^ Sqrt |

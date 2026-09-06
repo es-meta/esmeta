@@ -23,8 +23,8 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
   def math: MathTy
   def infinity: InfinityTy
   def number: NumberTy
-  def bigInt: Flat[scala.BigInt]
-  def str: Flat[String]
+  def bigInt: Boolean
+  def str: BSet[String]
   def bool: BoolTy
   def undef: Boolean
   def nullv: Boolean
@@ -50,7 +50,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         this.math.isBottom &&
         this.infinity.isBottom &&
         this.number.isBottom &&
-        this.bigInt.isBottom &&
+        !this.bigInt &&
         this.str.isBottom &&
         this.bool.isBottom &&
         this.undef.isBottom &&
@@ -166,6 +166,31 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         this.nullv -- that.nullv,
       )
 
+  /** overlap check, which avoids building the meet */
+  def overlaps(that: ValueTy): Boolean =
+    if (this eq that) !this.isBottom
+    else if ((this eq Bot) || (that eq Bot)) false
+    else if (this eq Top) !that.isBottom
+    else if (that eq Top) !this.isBottom
+    else
+      !(this.clo && that.clo).isBottom ||
+      !(this.cont && that.cont).isBottom ||
+      !(this.record && that.record).isBottom ||
+      !(this.map && that.map).isBottom ||
+      !(this.list && that.list).isBottom ||
+      !(this.ast && that.ast).isBottom ||
+      !(this.grammarSymbol && that.grammarSymbol).isBottom ||
+      (this.codeUnit && that.codeUnit) ||
+      !(this.enumv && that.enumv).isBottom ||
+      !(this.math && that.math).isBottom ||
+      !(this.infinity && that.infinity).isBottom ||
+      !(this.number && that.number).isBottom ||
+      (this.bigInt && that.bigInt) ||
+      !(this.str && that.str).isBottom ||
+      !(this.bool && that.bool).isBottom ||
+      (this.undef && that.undef) ||
+      (this.nullv && that.nullv)
+
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean = value match
     case _ if this eq Top => true
@@ -184,14 +209,13 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     case Enum(name)                      => enumv contains name
     case CodeUnit(c)                     => codeUnit
     case n: Number                       => number contains n
-    case BigInt(n)                       => bigInt contains n
+    case BigInt(n)                       => bigInt
     case Str(s)                          => str contains s
     case Bool(b)                         => bool contains b
     case Undef                           => undef
     case Null                            => nullv
 
   def contains(d: Double): Boolean = number.contains(Number(d))
-  def continas(i: scala.BigInt): Boolean = bigInt.contains(i)
   def contains(s: String): Boolean = str.contains(s)
   def contains(b: Boolean): Boolean = bool.contains(b)
 
@@ -209,8 +233,8 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     math: MathTy = math,
     infinity: InfinityTy = infinity,
     number: NumberTy = number,
-    bigInt: Flat[scala.BigInt] = bigInt,
-    str: Flat[String] = str,
+    bigInt: Boolean = bigInt,
+    str: BSet[String] = str,
     bool: BoolTy = bool,
     undef: Boolean = undef,
     nullv: Boolean = nullv,
@@ -273,7 +297,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     math.getSingle ||
     (infinity.getSingle.map(Infinity(_): Value)) ||
     number.getSingle ||
-    (if (this.bigInt.isBottom) Zero else Many) ||
+    (if (this.bigInt) Many else Zero) ||
     (str.getSingle.map(Str(_): Value)) ||
     (bool.getSingle.map(Bool(_): Value)) ||
     (if (this.undef.isBottom) Zero else One(Undef)) ||
@@ -295,7 +319,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         enumv = Inf,
         math = MathTy.Top,
         number = NumberTy.Top,
-        bigInt = Many,
+        bigInt = true,
         bool = BoolTy.Top,
         undef = true,
         nullv = true,
@@ -306,7 +330,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         map = MapTy.Bot,
         list = ListTy.Bot,
         ast = AstTy.Bot,
-        str = Zero,
+        str = Fin(),
       )
 
   /** boolean operations */
@@ -318,7 +342,7 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
   def typeOfNames: Set[String] = {
     var names: Set[String] = Set()
     if (!this.number.isBottom) names += "Number"
-    if (!this.bigInt.isBottom) names += "BigInt"
+    if (this.bigInt) names += "BigInt"
     if (!this.str.isBottom) names += "String"
     if (!this.bool.isBottom) names += "Boolean"
     if (this.undef) names += "Undefined"
@@ -368,8 +392,8 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
       tys ++= math.toAtomicTys.map(math => ValueElemTy(math = math))
       if (!infinity.isBottom) tys :+= ValueElemTy(infinity = InfinityTy.Top)
       if (!number.isBottom) tys :+= ValueElemTy(number = NumberTy.Top)
-      if (!bigInt.isBottom) tys :+= ValueElemTy(bigInt = Many)
-      if (!str.isBottom) tys :+= ValueElemTy(str = Many)
+      if (bigInt) tys :+= ValueElemTy(bigInt = true)
+      if (!str.isBottom) tys :+= ValueElemTy(str = Inf)
       if (!bool.isBottom) tys :+= ValueElemTy(bool = BoolTy.Top)
       if (undef) tys :+= ValueElemTy(undef = true)
       if (nullv) tys :+= ValueElemTy(nullv = true)
@@ -391,7 +415,7 @@ case object ValueTopTy extends ValueTy {
   def cont: BSet[Int] = Inf
   def record: RecordTy = RecordTy.Top
   def map: MapTy = MapTy.Top
-  def list: ListTy = ListTy.Bot // unsound but need to remove cycle
+  def list: ListTy = ListTy.Top
   def ast: AstTy = AstTy.Top
   def grammarSymbol: BSet[GrammarSymbol] = Inf
   def codeUnit: Boolean = true
@@ -399,8 +423,8 @@ case object ValueTopTy extends ValueTy {
   def math: MathTy = MathTy.Top
   def infinity: InfinityTy = InfinityTy.Top
   def number: NumberTy = NumberTy.Top
-  def bigInt: Flat[scala.BigInt] = Many
-  def str: Flat[String] = Many
+  def bigInt: Boolean = true
+  def str: BSet[String] = Inf
   def bool: BoolTy = BoolTy.Top
   def undef: Boolean = true
   def nullv: Boolean = true
@@ -419,8 +443,8 @@ case class ValueElemTy(
   math: MathTy = MathTy.Bot,
   infinity: InfinityTy = InfinityTy.Bot,
   number: NumberTy = NumberTy.Bot,
-  bigInt: Flat[scala.BigInt] = Zero,
-  str: Flat[String] = Zero,
+  bigInt: Boolean = false,
+  str: BSet[String] = Fin(),
   bool: BoolTy = BoolTy.Bot,
   undef: Boolean = false,
   nullv: Boolean = false,
@@ -439,8 +463,8 @@ object ValueTy extends Parser.From(Parser.valueTy) {
     math: MathTy = MathTy.Bot,
     infinity: InfinityTy = InfinityTy.Bot,
     number: NumberTy = NumberTy.Bot,
-    bigInt: Flat[scala.BigInt] = Zero,
-    str: Flat[String] = Zero,
+    bigInt: Boolean = false,
+    str: BSet[String] = Fin(),
     bool: BoolTy = BoolTy.Bot,
     undef: Boolean = false,
     nullv: Boolean = false,

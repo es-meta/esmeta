@@ -41,6 +41,8 @@ class SimpleSynthesizer(
   lazy val reservedLexicals: Map[String, String] = Map(
     "BooleanLiteral" -> "true",
     "IdentifierName" -> "x",
+    "JSONStringCharacters" -> "abc",
+    "JSONNumber" -> "42",
     "NoSubstitutionTemplate" -> "``",
     "NullLiteral" -> "null",
     "NumericLiteral" -> "42",

@@ -14,7 +14,7 @@ trait Solver { self: SymInterp =>
 
   /** check the satisfiability of the given abstract state */
   def check: Boolean =
-    val AbsState(reachable, locals, symEnv, constr) = st
+    val AbsState(reachable, locals, symEnv, constr, _) = st
     reachable &&
     symEnv.forall { case (sym, ty) => !ty.isBottom }
 
@@ -122,7 +122,6 @@ object Solver {
   ): Option[String] =
     if (newTarget.isEmpty) { // without newTarget: XXX.call
       path match
-        case BuiltinPath.YetPath(_) => None
         case BuiltinPath.Getter(base) =>
           descriptor(base).map(d => s"$d.get.call($thisV);")
         case BuiltinPath.Setter(base) =>
@@ -159,7 +158,6 @@ object Solver {
       access(base).map(b => s"$b[Symbol.$sym]")
     case BuiltinPath.Getter(base) => access(base)
     case BuiltinPath.Setter(base) => access(base)
-    case BuiltinPath.YetPath(_)   => None
 
   // Object.getOwnPropertyDescriptor(target, key) for a getter/setter base
   private def descriptor(base: BuiltinPath): Option[String] = base match

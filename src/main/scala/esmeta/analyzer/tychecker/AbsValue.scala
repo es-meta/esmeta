@@ -53,13 +53,26 @@ trait AbsValueDecl { self: TyChecker =>
       val ty = this.ty
       this.copy(guard = (ty, this.guard) && (ty, guard))
 
-    /** kill bases */
-    def kill(bases: Set[Base], update: Boolean)(using AbsState): AbsValue =
+    /** weaken bases */
+    def weaken(bases: Set[Base], update: Boolean)(using AbsState): AbsValue =
       val ty = this.symty.bases.exists(bases.contains) match
         case true  => STy(this.ty)
         case false => this.symty
-      val guard = if (update) this.guard.kill(bases) else this.guard
+      val guard = if (update) this.guard.weaken(bases) else this.guard
       AbsValue(ty, guard)
+
+    def weaken(effect: Effect)(using AbsState): AbsValue =
+      AbsValue(symty.weaken(effect), guard.weaken(effect))
+
+    def refine(ty: ValueTy)(using st: AbsState): AbsValue =
+      AbsValue(symty.refine(ty), guard.refine(ty))
+
+    def fieldUpdate(fld: String, value: AbsValue)(using AbsState): AbsValue =
+      val (tty, vty) = (this.ty, value.ty)
+      val newSymTy = STy(
+        tty.copied(record = tty.record.update(fld, vty, refine = false)),
+      )
+      AbsValue(newSymTy, guard.fieldUpdate(fld, vty))
 
     /** remove non-parameter local variables */
     def forReturn(
@@ -70,7 +83,7 @@ trait AbsValueDecl { self: TyChecker =>
       given AbsState = givenSt
       if (isTypeGuardCandidate(func)) {
         val xs = givenSt.getImprecBases(entrySt)
-        this.onlySym.kill(xs, update = false)
+        this.onlySym.weaken(xs, update = false)
       } else AbsValue(this.ty)
 
     /** get symbols */
@@ -79,9 +92,10 @@ trait AbsValueDecl { self: TyChecker =>
       val inGuard = guard.bases
       inSymty ++ inGuard
 
-    def lift(using st: AbsState): AbsValue = add(st.constr)
+    def bind(using st: AbsState): AbsValue =
+      if (st.constr.isTop) this else add(st.constr)
 
-    def add(constr: TypeConstr)(using st: AbsState): AbsValue =
+    def add(constr: TypeProp)(using st: AbsState): AbsValue =
       AbsValue(symty, (this.ty, guard).add(constr))
 
     /** check whether it has a local variable as a base */
@@ -90,8 +104,8 @@ trait AbsValueDecl { self: TyChecker =>
     /** heck whether it has a type guard */
     def hasTypeGuard(entrySt: AbsState): Boolean = guard.nonEmpty
 
-    def killMutable(using np: NodePoint[_], st: AbsState) =
-      this.copy(guard = this.guard.kill(np.func.mutableLocals))
+    def weakenMutable(using np: NodePoint[_], st: AbsState) =
+      this.copy(guard = this.guard.weaken(np.func.mutableLocals))
 
     def isSymbolic: Boolean = symty.isSymbolic
 
@@ -158,43 +172,40 @@ trait AbsValueDecl { self: TyChecker =>
     /** helper functions for abstract transfer */
     def convertTo(cop: COp, radix: AbsValue)(using AbsState): AbsValue = {
       val ty = this.ty
+      // infinities are converted to the infinite numbers
+      lazy val fromInfinity: NumberTy = NumberTy.inf(ty.infinity)
       AbsValue(cop match
         case COp.ToApproxNumber =>
-          if (!ty.math.isBottom) NumberT
-          else ValueTy.Bot
+          // an approximated number of a mathematical value is unknown
+          lazy val fromMath =
+            if (ty.math.isBottom) NumberTy.Bot else NumberTy.Top
+          ValueTy(number = ty.number || fromMath || fromInfinity)
         case COp.ToNumber =>
           lazy val fromMath = ty.math match
             case MathSignTy(_)  => NumberTy.Top
-            case MathIntTy(int) => NumberIntTy(int, false)
-            case MathSetTy(set) => NumberSetTy(set.map(n => Number(n.toDouble)))
+            case MathIntTy(int) => NumberTy.int(int)
+            case MathSetTy(set) => NumberTy(set.map(n => Number(n.toDouble)))
           if (!ty.str.isBottom) NumberT
-          else ValueTy(number = ty.number || fromMath)
+          else ValueTy(number = ty.number || fromMath || fromInfinity)
         case COp.ToBigInt
             if (
               !ty.math.isBottom ||
               !ty.str.isBottom ||
               !ty.number.isBottom ||
-              !ty.bigInt.isBottom
+              ty.bigInt
             ) =>
           if (!ty.str.isBottom) BigIntT || UndefT
           else BigIntT
         case COp.ToMath =>
-          val fromNumber = ty.number match
-            case NumberSignTy(sign, _, nz) =>
-              MathSignTy(Sign(sign.neg, sign.zero || nz, sign.pos))
-            case NumberIntTy(int, _) => MathIntTy(int)
-            // ToMath (ℝ) is defined only on finite numbers; ±∞ and NaN have
-            // no mathematical value (and cannot be held by BigDecimal-backed
-            // Math), so drop them from the resulting set.
-            case NumberSetTy(set) =>
-              MathSetTy(set.collect {
-                case n if !n.double.isNaN && !n.double.isInfinity =>
-                  Math(n.double)
-              })
-          val fromBigInt = if (!ty.bigInt.isBottom) MathTy.Int else MathTy.Bot
+          // NOTE the mathematical value of a nonfinite number is not defined
+          val fromNumber = ty.number.finite match
+            case FinNumberSignTy(sign) => MathSignTy(sign)
+            case FinNumberIntTy(int)   => MathIntTy(int)
+            case FinNumberSetTy(set) => MathSetTy(set.map(n => Math(n.double)))
+          val fromBigInt = if (ty.bigInt) MathTy.Int else MathTy.Bot
           ValueTy(math = ty.math || fromNumber || fromBigInt)
         case COp.ToStr(_)
-            if (!ty.str.isBottom || !ty.number.isBottom || !ty.bigInt.isBottom) =>
+            if (!ty.str.isBottom || !ty.number.isBottom || ty.bigInt) =>
           StrT
         case _ => ValueTy(),
       )
@@ -254,17 +265,23 @@ trait AbsValueDecl { self: TyChecker =>
         case MathSignTy(s)  => MathSignTy(-s)
         case MathIntTy(x)   => MathIntTy(-x)
         case MathSetTy(set) => MathSetTy(set.map(m => Math(-m.decimal)))
-      val numberTy = ty.number match
-        case NumberSignTy(s, nan, nz) =>
-          NumberSignTy(Sign(s.pos, nz, s.neg), nan, s.zero)
-        case NumberIntTy(x, nan) =>
-          val negated: NumberTy = NumberIntTy(-x, nan)
-          if (x.contains(0))
-            negated || NumberSignTy(Sign.Bot, false, true)
-          else negated
-        case NumberSetTy(set) => NumberSetTy(set.map(n => Number(-n.double)))
+      val numberTy = ty.number.copy(
+        finite = ty.number.finite match
+          case FinNumberSignTy(s) => FinNumberSignTy(-s)
+          case FinNumberIntTy(x)  => FinNumberIntTy(-x)
+          case FinNumberSetTy(set) =>
+            FinNumberSetTy(set.map(n => Number(-n.double)))
+        ,
+        inf = InfinityTy(ty.number.inf.pos.map(!_)),
+      )
+      val infinityTy = InfinityTy(ty.infinity.pos.map(!_))
       AbsValue(
-        ValueTy(math = mathTy, number = numberTy, bigInt = this.ty.bigInt),
+        ValueTy(
+          math = mathTy,
+          infinity = infinityTy,
+          number = numberTy,
+          bigInt = this.ty.bigInt,
+        ),
       )
 
     /** unary logical negation operation */
@@ -278,9 +295,8 @@ trait AbsValueDecl { self: TyChecker =>
         case MathIntTy(x)      => MathIntTy(~x)
         case MathSetTy(set) =>
           MathSetTy(set.map(m => Math(~(m.decimal.toInt))))
-      val numberTy = ty.number match
-        case NumberSetTy(set) => NumberSetTy(set.filter(_.double.isWhole))
-        case _                => NumberIntTy(IntTy.Top, false)
+      val numberTy =
+        if (ty.number.isBottom) NumberTy.Bot else NumberTy.int(IntTy.Top)
       AbsValue(
         ValueTy(math = mathTy, number = numberTy, bigInt = ty.bigInt),
       )
@@ -356,7 +372,7 @@ trait AbsValueDecl { self: TyChecker =>
     )(using AbsState) =
       val lty = l.ty.bigInt
       val rty = r.ty.bigInt
-      if (lty.isBottom || rty.isBottom) Bot
+      if (!lty || !rty) Bot
       else BigIntTop
 
     // logical unary operator helper
@@ -397,7 +413,7 @@ trait AbsValueDecl { self: TyChecker =>
               (!r.ty.math.isBottom || !r.ty.infinity.isBottom)
             ) ||
             (!l.ty.number.isBottom && !r.ty.number.isBottom) ||
-            (!l.ty.bigInt.isBottom && !r.ty.bigInt.isBottom)
+            (l.ty.bigInt && r.ty.bigInt)
           ) Set(true, false)
           else Set(),
         ),
@@ -434,6 +450,7 @@ trait AbsValueDecl { self: TyChecker =>
     lazy val StrTop = AbsValue(StrT)
     lazy val NonNegInt = AbsValue(NonNegIntT)
     lazy val MathTop = AbsValue(MathT)
+    lazy val ExtMathTop = AbsValue(ExtMathT)
     lazy val NumberTop = AbsValue(NumberT)
     lazy val BigIntTop = AbsValue(BigIntT)
 
@@ -445,6 +462,8 @@ trait AbsValueDecl { self: TyChecker =>
     /** TODO AST type names whose MV returns a non-negative integer */
     lazy val nonNegIntMVTyNames: Set[String] = Set(
       "CodePoint",
+      "DecimalDigit",
+      "DecimalDigits",
       "Hex4Digits",
       "HexEscapeSequence",
     ) ++ posIntMVTyNames

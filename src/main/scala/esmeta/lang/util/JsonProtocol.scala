@@ -58,8 +58,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[StringConcatExpression] = deriveEncoderWithType
   given Decoder[ListConcatExpression] = deriveDecoderWithType
   given Encoder[ListConcatExpression] = deriveEncoderWithType
-  given Decoder[ListCopyExpression] = deriveDecoderWithType
-  given Encoder[ListCopyExpression] = deriveEncoderWithType
+  given Decoder[CopyExpression] = deriveDecoderWithType
+  given Encoder[CopyExpression] = deriveEncoderWithType
+  given Decoder[CopyExpressionForm] = deriveDecoderWithType
+  given Encoder[CopyExpressionForm] = deriveEncoderWithType
   given Decoder[RecordExpression] = deriveDecoderWithType
   given Encoder[RecordExpression] = deriveEncoderWithType
   given Decoder[RecordExpressionForm] = deriveDecoderWithType
@@ -128,6 +130,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[BinaryExpression] = deriveEncoderWithType
   given Decoder[BinaryExpressionOperator] = deriveDecoderWithType
   given Encoder[BinaryExpressionOperator] = deriveEncoderWithType
+  given Decoder[BinaryExpressionForm] = deriveDecoderWithType
+  given Encoder[BinaryExpressionForm] = deriveEncoderWithType
   given Decoder[UnaryExpression] = deriveDecoderWithType
   given Encoder[UnaryExpression] = deriveEncoderWithType
   given Decoder[UnaryExpressionOperator] = deriveDecoderWithType
@@ -190,6 +194,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[ErrorObjectLiteral] = deriveEncoderWithType
   given Decoder[SymbolLiteral] = deriveDecoderWithType
   given Encoder[SymbolLiteral] = deriveEncoderWithType
+  given Decoder[NumericLiteral] = deriveDecoderWithType
+  given Encoder[NumericLiteral] = deriveEncoderWithType
   given Decoder[PositiveInfinityMathValueLiteral] = deriveDecoderWithType
   given Encoder[PositiveInfinityMathValueLiteral] = deriveEncoderWithType
   given Decoder[NegativeInfinityMathValueLiteral] = deriveDecoderWithType
@@ -202,6 +208,8 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[NumberLiteral] = deriveEncoderWithType
   given Decoder[BigIntLiteral] = deriveDecoderWithType
   given Encoder[BigIntLiteral] = deriveEncoderWithType
+  given Decoder[ConstantLiteral] = deriveDecoderWithType
+  given Encoder[ConstantLiteral] = deriveEncoderWithType
   given Decoder[TrueLiteral] = deriveDecoderWithType
   given Encoder[TrueLiteral] = deriveEncoderWithType
   given Decoder[FalseLiteral] = deriveDecoderWithType

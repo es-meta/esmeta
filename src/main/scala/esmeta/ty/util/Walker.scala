@@ -146,16 +146,17 @@ trait Walker extends BasicWalker {
     InfinityTy(infinity.pos.map(walk))
 
   /** number types */
-  def walkNumber(number: NumberTy): NumberTy = number match
-    case NumberSetTy(set) => NumberSetTy(walkSet(set, walk))
-    case _                => number
+  def walkNumber(number: NumberTy): NumberTy = number.finite match
+    case FinNumberSetTy(set) =>
+      number.copy(finite = FinNumberSetTy(walkSet(set, walk)))
+    case _ => number
   def walk(number: Number): Number = number
 
   /** big integer types */
-  def walkBigInt(bigInt: Flat[BigInt]): Flat[BigInt] = walkFlat(bigInt, walk)
+  def walkBigInt(bigInt: Boolean): Boolean = walk(bigInt)
 
   /** string types */
-  def walkStr(str: Flat[String]): Flat[String] = walkFlat(str, walk)
+  def walkStr(str: BSet[String]): BSet[String] = walkBSet(str, walk)
 
   /** boolean types */
   def walkBool(bool: BoolTy): BoolTy = BoolTy(walkSet(bool.set, walk))

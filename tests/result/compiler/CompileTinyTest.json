@@ -1,0 +1,22 @@
+{
+  "auxiliary functions" : true,
+  "bitwise expressions" : true,
+  "calculation expressions" : true,
+  "clamp expressions" : true,
+  "completion-returning algorithms" : true,
+  "conditions" : true,
+  "corpus (Condition)" : true,
+  "corpus (Expression)" : true,
+  "corpus (Reference)" : true,
+  "corpus (Step)" : true,
+  "expressions" : true,
+  "literals" : true,
+  "mathematical function expressions" : true,
+  "mathematical operation expressions" : true,
+  "references" : true,
+  "short-circuit conditions" : true,
+  "special steps" : true,
+  "steps" : true,
+  "syntax-directed operation conditions" : true,
+  "syntax-directed operation expressions" : true
+}

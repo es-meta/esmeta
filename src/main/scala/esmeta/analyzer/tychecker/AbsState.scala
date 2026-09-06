@@ -16,7 +16,8 @@ trait AbsStateDecl { self: TyChecker =>
     reachable: Boolean,
     locals: Map[Local, AbsValue],
     symEnv: Map[Sym, ValueTy],
-    constr: TypeConstr,
+    constr: TypeProp,
+    effect: Effect,
   ) extends AbsStateLike {
     import AbsState.*
 
@@ -30,14 +31,15 @@ trait AbsStateDecl { self: TyChecker =>
       case _ if this.isBottom => true
       case _ if that.isBottom => false
       case (
-            AbsState(_, llocals, lsymEnv, lconstr),
-            AbsState(_, rlocals, rsymEnv, rconstr),
+            AbsState(_, llocals, lsymEnv, lconstr, leffect),
+            AbsState(_, rlocals, rsymEnv, rconstr, reffect),
           ) =>
         llocals.forall { (x, lv) =>
           rlocals.get(x).fold(false) { rv => (lv, this) ⊑ (rv, that) }
         } &&
         lsymEnv.forall { (sym, ty) => rsymEnv.get(sym).fold(false)(ty <= _) } &&
-        lconstr <= rconstr
+        lconstr <= rconstr &&
+        leffect ⊑ reffect
 
     /** not partial order */
     def !⊑(that: AbsState): Boolean = !(this ⊑ that)
@@ -56,15 +58,16 @@ trait AbsStateDecl { self: TyChecker =>
           ty = l.get(sym) || r.get(sym)
         } yield sym -> ty).toMap
         val newConstr = l.constr || r.constr
-        AbsState(true, newLocals, newSymEnv, newConstr)
+        AbsState(true, newLocals, newSymEnv, newConstr, l.effect ⊔ r.effect)
 
     /** copy operator */
     def copy(
       reachable: Boolean = reachable,
       locals: Map[Local, AbsValue] = locals,
       symEnv: Map[Sym, ValueTy] = symEnv,
-      constr: TypeConstr = constr,
-    ): AbsState = AbsState(reachable, locals, symEnv, constr)
+      constr: TypeProp = constr,
+      effect: Effect = effect,
+    ): AbsState = AbsState(reachable, locals, symEnv, constr, effect)
 
     /** get imprecise bases compared with another state */
     def getImprecBases(that: AbsState): Set[Base] =
@@ -95,13 +98,21 @@ trait AbsStateDecl { self: TyChecker =>
           ty = l.get(sym) && r.get(sym)
         } yield sym -> ty).toMap
         val newConstr = l.constr && r.constr
-        AbsState(true, newLocals, newSymEnv, newConstr)
+        AbsState(true, newLocals, newSymEnv, newConstr, l.effect ⊓ r.effect)
 
-    /** kill bases */
-    def kill(bases: Set[Base], update: Boolean): AbsState =
-      val newLocals = for { (x, v) <- locals } yield x -> v.kill(bases, update)
-      val newConstr = if (update) constr.kill(bases) else constr
-      AbsState(reachable, newLocals, symEnv, newConstr)
+    /** weaken bases */
+    def weaken(bases: Set[Base], update: Boolean): AbsState =
+      val newLocals =
+        for { (x, v) <- locals } yield x -> v.weaken(bases, update)
+      val newConstr = if (update) constr.weaken(bases) else constr
+      AbsState(reachable, newLocals, symEnv, newConstr, effect)
+
+    def weaken(ef: Effect): AbsState =
+      if (!useEffect || ef.isBottom) this
+      else
+        val newLocals = for { (x, v) <- locals } yield x -> v.weaken(ef)
+        val newSymEnv = for { (sym, ty) <- symEnv } yield sym -> ef(ty)
+        AbsState(reachable, newLocals, newSymEnv, constr.weaken(ef), ef)
 
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
@@ -132,7 +143,9 @@ trait AbsStateDecl { self: TyChecker =>
     /** getter */
     def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue = {
       import SymTy.*
-      val guard = lookupGuard(base.guard, field)
+      val guard = field.ty.str.getSingle match
+        case One(s) => base.guard.fieldLookup(s)
+        case _      => TypeGuard.Empty
       (base.symty, field.ty.getSingle) match
         case (ref: SymRef, One(Str(f))) =>
           AbsValue(SField(ref, STy(StrT(f))), guard)
@@ -210,7 +223,7 @@ trait AbsStateDecl { self: TyChecker =>
         case _ => AstT // TODO warning(s"invalid access: $name of $ast")
 
     // string lookup
-    private def lookupStr(str: Flat[String], field: ValueTy): ValueTy =
+    private def lookupStr(str: BSet[String], field: ValueTy): ValueTy =
       if (str.isBottom) BotT
       else {
         var res = BotT
@@ -244,35 +257,38 @@ trait AbsStateDecl { self: TyChecker =>
       case MapTy.Elem(key, value) => value
       case MapTy.Bot              => BotT
 
-    // guard lookup
-    private def lookupGuard(
-      guard: TypeGuard,
-      field: AbsValue,
-    )(using AbsState): TypeGuard = {
-      import TargetType.*
-      field.ty.str.getSingle match
-        case One("Value") =>
-          TypeGuard(guard.map.collect {
-            case (dty, map) if dty.ty == NormalT(TrueT) =>
-              TargetType(TrueT) -> map
-            case (dty, map) if dty.ty == NormalT(FalseT) =>
-              TargetType(FalseT) -> map
-          })
-        case _ => TypeGuard.Empty
-    }
-
     /** define variables */
     def define(x: Var, value: AbsValue): AbsState = x match
       case x: Local  => this.update(x, value, refine = false)
       case x: Global => raise("do not support defining global variables")
 
+    def update(x: Var, value: AbsValue): AbsState =
+      update(x, value, refine = false)
+
+    def strongUpdate(x: Var, value: AbsValue): AbsState =
+      update(x, value, refine = true)
+
+    def update(lx: Local, fld: String, value: AbsValue): AbsState =
+      val newLocals = (for (x, v) <- locals
+      yield
+        if (x != lx && v.ty.record.names.contains(fld))
+          x -> (v ⊔ v.fieldUpdate(fld, value))
+        else x -> v)
+        .updated(lx, this.get(lx).fieldUpdate(fld, value))
+      if (!useEffect) this.copy(locals = newLocals.toMap)
+      else
+        this.copy(
+          locals = newLocals.toMap,
+          effect = effect.fieldUpdate(fld, value),
+        )
+
     /** identifier setter */
     def update(x: Var, value: AbsValue, refine: Boolean): AbsState = x match
       case x: Local =>
-        val newSt = if (refine) this else this.kill(Set(x), update = true)
+        val newSt = if (refine) this else this.weaken(Set(x), update = true)
         val newV =
-          if (!refine) value.kill(Set(x), update = true)
-          else if (value.hasLocalBase(x)) value.kill(Set(x), update = false)
+          if (!refine) value.weaken(Set(x), update = true)
+          else if (value.hasLocalBase(x)) value.weaken(Set(x), update = false)
           else value
         newSt.copy(locals = newSt.locals + (x -> newV), constr = newSt.constr)
       case x: Global => this
@@ -281,7 +297,7 @@ trait AbsStateDecl { self: TyChecker =>
     def typeCheck(value: AbsValue, givenTy: ValueTy): ValueTy =
       val ty = value.ty
       if (ty <= givenTy) TrueT
-      else if ((ty && givenTy).isBottom) FalseT
+      else if (!(ty overlaps givenTy)) FalseT
       else BoolT
 
     /** variable existence check */
@@ -346,11 +362,11 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** bottom element */
     lazy val Bot: AbsState =
-      AbsState(false, Map(), Map(), TypeConstr.Top)
+      AbsState(false, Map(), Map(), TypeProp.Top, Effect.Bot)
 
     /** empty element */
     lazy val Empty: AbsState =
-      AbsState(true, Map(), Map(), TypeConstr.Top)
+      AbsState(true, Map(), Map(), TypeProp.Top, Effect.Bot)
 
     /** appender */
     given rule: Rule[AbsState] = mkRule(true)
@@ -364,12 +380,14 @@ trait AbsStateDecl { self: TyChecker =>
     private def mkRule(detail: Boolean): Rule[AbsState] = (app, elem) =>
       import SymTy.given
       if (!elem.isBottom) {
-        val AbsState(reachable, locals, symEnv, constr) = elem
+        val AbsState(reachable, locals, symEnv, constr, effect) = elem
         given localsRule: Rule[Map[Local, AbsValue]] = sortedMapRule(sep = ": ")
         given symEnvRule: Rule[Map[Sym, ValueTy]] = sortedMapRule(sep = ": ")
         if (locals.nonEmpty) app >> locals
         if (symEnv.nonEmpty) app >> symEnv
         app >> constr
+        if (effect.nonEmpty) app >> " " >> effect
+        app
       } else app >> "⊥"
   }
 }

@@ -136,16 +136,16 @@ trait UnitWalker extends BasicUnitWalker {
   def walkInfinity(infinity: InfinityTy): Unit = infinity.pos.map(walk)
 
   /** number types */
-  def walkNumber(number: NumberTy): Unit = number match
-    case NumberSetTy(set) => walkSet(set, walk)
-    case _                =>
+  def walkNumber(number: NumberTy): Unit = number.finite match
+    case FinNumberSetTy(set) => walkSet(set, walk)
+    case _                   =>
   def walk(number: Number): Unit = {}
 
   /** big integer types */
-  def walkBigInt(bigInt: Flat[BigInt]): Unit = walkFlat(bigInt, walk)
+  def walkBigInt(bigInt: Boolean): Unit = walk(bigInt)
 
   /** string types */
-  def walkStr(str: Flat[String]): Unit = walkFlat(str, walk)
+  def walkStr(str: BSet[String]): Unit = walkBSet(str, walk)
 
   /** boolean types */
   def walkBool(bool: BoolTy): Unit = walkSet(bool.set, walk)

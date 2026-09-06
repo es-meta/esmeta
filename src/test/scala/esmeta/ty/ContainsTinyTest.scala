@@ -159,10 +159,10 @@ class ContainsTinyTest extends TyTest {
 
     checkContains("numeric values")(
       NumberT -> Number(42),
-      NumberT(1.2) -> Number(1.2),
+      NumberT(Number(1.2)) -> Number(1.2),
       BigIntT -> BigInt(42),
     ).neg(
-      NumberT(1.2) -> Number(5.7),
+      NumberT(Number(1.2)) -> Number(5.7),
     )
 
     checkContains("non-numeric simple values")(

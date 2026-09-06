@@ -2,8 +2,8 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
 // ESMeta version
 // NOTE: please update VERSION together in top-level package.scala
-// NOTE: please update version info in the README.md file
-ThisBuild / version := "0.7.1"
+// NOTE: `scripts/release` updates this together with package.scala
+ThisBuild / version := "0.8.1"
 
 // Scala version
 ThisBuild / scalaVersion := "3.3.6"
@@ -81,6 +81,8 @@ lazy val tyOpTest = taskKey[Unit]("Launch operation tests for ty (tiny)")
 
 // compiler
 lazy val compilerTest = taskKey[Unit]("Launch compiler tests")
+lazy val compilerCompileTest =
+  taskKey[Unit]("Launch compilation tests for compiler (tiny)")
 lazy val compilerValidityTest =
   taskKey[Unit]("Launch validity tests for compiler (small)")
 
@@ -254,6 +256,9 @@ lazy val root = project
     tyOpTest := (Test / testOnly).toTask(" *.ty.Op*Test").value,
     // compiler
     compilerTest := (Test / testOnly).toTask(" *.compiler.*Test").value,
+    compilerCompileTest := (Test / testOnly)
+      .toTask(" *.compiler.Compile*Test")
+      .value,
     compilerValidityTest := (Test / testOnly)
       .toTask(" *.compiler.Validity*Test")
       .value,

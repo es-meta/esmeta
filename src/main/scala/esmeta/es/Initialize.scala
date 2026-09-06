@@ -12,29 +12,31 @@ import scala.collection.mutable.{Map => MMap}
 class Initialize(cfg: CFG) {
   import cfg.*
 
+  /** get initial state from source text */
+  def from(sourceText: String, filename: Option[String] = None): State =
+    val (ast, text) = cfg.scriptParser.fromWithSourceText(sourceText)
+    from(text, ast, filename)
+
   /** get initial state from script */
-  def from(script: Script): State =
-    from(script.code, filename = Some(script.name))
+  def from(script: Script): State = from(script.code, Some(script.name))
 
   /** get initial state from JS file */
   def fromFile(filename: String): State =
-    val (ast, sourceText) = cfg.scriptParser.fromFileWithSourceText(filename)
-    from(sourceText, ast = Some(ast), filename = Some(filename))
+    val (ast, text) = cfg.scriptParser.fromFileWithSourceText(filename)
+    from(text, ast, Some(filename))
 
-  /** get initial state with source text and optional cached AST */
-  def from(
-    sourceText: String,
-    ast: Option[Ast] = None,
-    filename: Option[String] = None,
-  ): State = State(
-    cfg,
-    context = Context(cfg.main),
-    cachedSourceText = Some(sourceText),
-    cachedAst = Some(ast.getOrElse(cfg.scriptParser.from(sourceText))),
-    filename = filename,
-    globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
-    heap = initHeap.copied,
-  )
+  /** get initial state with source text and cached AST */
+  def from(sourceText: String, ast: Ast, filename: Option[String]): State =
+    State(
+      cfg,
+      context = Context(cfg.main),
+      cachedSourceText = Some(sourceText),
+      cachedAst = Some(ast),
+      filename = filename,
+      globals =
+        MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
+      heap = initHeap.copied,
+    )
 
   // initial globals
   lazy val initGlobal: Map[Global, Value] =
@@ -282,7 +284,7 @@ class Initialize(cfg: CFG) {
       case Some(r: RecordObj) => r
       case _                  => recordObj("PropertyDescriptor")
 
-    def updateRecord(obj: RecordObj)(
+    def updateRecordIfAbsent(obj: RecordObj)(
       pairs: (String, Value)*,
     ): obj.type =
       for { (f, v) <- pairs if !obj.map.contains(f) } obj.update(Str(f), v)
@@ -295,12 +297,13 @@ class Initialize(cfg: CFG) {
 
     intrObj.map += Str(s"%$name%") -> baseAddr
 
-    map += baseAddr -> updateRecord(baseObj)(
+    map += baseAddr -> updateRecordIfAbsent(baseObj)(
       "Extensible" -> Bool(true),
       "ScriptOrModule" -> Null,
       "Realm" -> realmAddr,
       "Prototype" -> intrAddr("Function.prototype"),
       "InitialName" -> Str(defaultName),
+      "Async" -> Bool(false),
       INNER_CODE -> intrClo(name),
       INNER_MAP -> subAddr,
       PRIVATE_ELEMENTS -> listAddr,
@@ -313,14 +316,14 @@ class Initialize(cfg: CFG) {
 
     map += listAddr -> listObj
 
-    map += lengthAddr -> updateRecord(lengthrecordObj)(
+    map += lengthAddr -> updateRecordIfAbsent(lengthrecordObj)(
       "Value" -> Number(defaultLength),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),
       "Configurable" -> Bool(true),
     )
 
-    map += nameAddr -> updateRecord(namerecordObj)(
+    map += nameAddr -> updateRecordIfAbsent(namerecordObj)(
       "Value" -> Str(defaultName),
       "Writable" -> Bool(false),
       "Enumerable" -> Bool(false),

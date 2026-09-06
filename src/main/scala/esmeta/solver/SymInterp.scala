@@ -129,7 +129,7 @@ class SymInterp(
                 val vars: Set[Base] = st.locals.keySet.toSet
                 val newLocals: Map[Local, AbsValue] = (for {
                   (param, arg) <- (params zip vs)
-                } yield param.lhs -> arg.kill(vars, false)).toMap
+                } yield param.lhs -> arg.weaken(vars, false)).toMap
                 st = st.copy(
                   locals = newLocals,
                   constr = st.constr.onlySym,
@@ -196,7 +196,7 @@ class SymInterp(
     } yield {
       _configs = Nil
       var retV = AbsValue.Bot
-      var retConstr = TypeConstr.Bot
+      var retConstr = TypeProp.Bot
       fty.clo match
         case CloTopTy           => retV ⊔= AbsValue(AnyT)
         case CloArrowTy(_, ret) => retV ⊔= AbsValue(ret)
@@ -243,7 +243,7 @@ class SymInterp(
     vs: List[AbsValue],
     x: Local,
     next: Node,
-  ): (AbsValue, TypeConstr) = {
+  ): (AbsValue, TypeProp) = {
     given NodePoint[Call] = callerNp
     given AbsState = callerSt
     val call = callerNp.node
@@ -252,10 +252,10 @@ class SymInterp(
       refiner <- manualRefiners.get(callee.name)
       v = refiner(callee, vs, retTy, callerSt)
       newV = instantiate(v, vs, callerNp, callerSt)
-    } yield (newV, TypeConstr.Top)).getOrElse {
+    } yield (newV, TypeProp.Top)).getOrElse {
       val rp = ReturnPoint(callee, emptyView)
       val ret = getResult(rp)
-      val AbsRet(_, noSym, syms) = ret
+      val AbsRet(_, noSym, syms, _) = ret
       for ((_, (v, constr)) <- syms) {
         val newConstr = instantiate(constr, vs, callerNp, callerSt)
         val newSt = transfer.refine(newConstr)(callerSt)
@@ -285,15 +285,15 @@ class SymInterp(
     val map = vs.zipWithIndex.map {
       case (v, i) => i -> v
     }.toMap
-    transfer.instantiate(value, map).lift
+    transfer.instantiate(value, map).bind
 
   /** instantiation of return value */
   def instantiate(
-    constr: TypeConstr,
+    constr: TypeProp,
     vs: List[AbsValue],
     callerNp: NodePoint[Call],
     callerSt: AbsState,
-  ): TypeConstr =
+  ): TypeProp =
     given AbsState = callerSt
     val map = vs.zipWithIndex.map {
       case (v, i) => i -> v
@@ -331,7 +331,7 @@ class SymInterp(
         ) ++ (for ((p, i) <- ps if p.kind != Variadic) yield {
           i -> ESValueT
         })
-        AbsState(true, locals, symEnv, TypeConstr.Top)
+        AbsState(true, locals, symEnv, TypeProp.Top, Effect.Bot)
       case _ => AbsState.Bot
     }
   }

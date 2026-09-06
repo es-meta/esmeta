@@ -34,7 +34,9 @@ case class ESParser(
         ast
       def from(str: String): Ast =
         if (debug) println(debugWelcome)
-        parse(parser, str).get
+        val ast = parse(parser, str).get
+        updateOriginText(ast, str)
+        ast
       def fromFileWithSourceText(filename: String): (Ast, String) =
         if (debug) println(debugWelcome)
         val res = parse(parser, fileReader(filename))
@@ -44,7 +46,10 @@ case class ESParser(
       def fromWithSourceText(str: String): (Ast, String) =
         if (debug) println(debugWelcome)
         val res = parse(parser, str)
-        (res.get, res.next.source.toString)
+        val ast = res.get
+        val code = res.next.source.toString
+        updateOriginText(ast, code)
+        (ast, code)
     }
 
   // parsers
@@ -58,14 +63,38 @@ case class ESParser(
         if (name == "CoalesceExpressionHead") handleLR
         else getParser(prod)
       else (args: List[Boolean]) => nt(name, lexers(name, 0 /* TODO args */ ))
-    name -> parser
+    // `InputElementHashbangOrRegExp` is the goal symbol only for the first
+    // token of a Script or a Module; other goals must keep rejecting `#!`.
+    val goalParser =
+      if (name == "Script" || name == "Module")
+        (args: List[Boolean]) => hashbang ~> parser(args)
+      else parser
+    name -> goalParser
   }).toMap
+
+  /** optional `HashbangComment`, matched before `Skip` so that anything in
+    * front of `#!` fails
+    */
+  private lazy val hashbang: LAParser[String] = new LAParser(
+    _ => opt(getLexer("HashbangComment", Nil)) ^^ { _.getOrElse("") },
+    emptyFirst,
+  )
 
   /** recursively update the filename in the location information of the AST */
   def updateFilename(ast: Ast, name: String): Unit =
-    for (loc <- ast.loc) loc.filename = Some(name)
+    for (loc <- ast.loc) {
+      loc.filename = Some(name)
+    }
     ast match
       case ast: Syntactic => ast.children.map(_.map(updateFilename(_, name)))
+      case _              =>
+
+  def updateOriginText(ast: Ast, text: String): Unit =
+    for (loc <- ast.loc) {
+      loc.originText = Some(text)
+    }
+    ast match
+      case ast: Syntactic => ast.children.map(_.map(updateOriginText(_, text)))
       case _              =>
 
   // ---------------------------------------------------------------------------

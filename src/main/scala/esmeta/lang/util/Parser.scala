@@ -14,6 +14,17 @@ trait Parsers extends IndentParsers {
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
 
+  /** names of constants defined by `emu-eqn` elements in ECMA-262 */
+  def constNames: Set[String] = Set()
+
+  /** the same parser but aware of the given names of constants */
+  def withConstNames(names: Set[String]): Parsers =
+    val forEval = eval
+    new Parsers {
+      override def constNames = names
+      override def eval = forEval
+    }
+
   // ---------------------------------------------------------------------------
   // metalanguage blocks
   // ---------------------------------------------------------------------------
@@ -30,18 +41,20 @@ trait Parsers extends IndentParsers {
     indent ~> (rep1(subStep) ^^ { StepBlock(_) }) <~ dedent
 
   // user-defined directives
-  lazy val directive: Parser[Directive] =
+  lazy val directives: Parser[List[Directive]] =
     lazy val name = "[-a-zA-Z0-9]+".r
-    ("[" ~> name <~ "=\"") ~ rep1sep(name, ",") <~ "\"]" ^^ {
-      case x ~ vs => Directive(x, vs)
+    lazy val attribute =
+      rep1sep(name ~ opt("=\"" ~> rep1sep(name, ",") <~ "\""), ",")
+    ("[" ~> attribute <~ "]") ^^ {
+      _.map { case n ~ v => Directive(n, v.getOrElse(Nil)) }
     }
 
   // sub-steps
-  lazy val subStepPrefix: Parser[Option[Directive]] =
-    next ~ "1." ~> opt(directive) <~ upper
+  lazy val subStepPrefix: Parser[Option[List[Directive]]] =
+    next ~ "1." ~> opt(directives) <~ upper
   lazy val subStep: Parser[SubStep] =
     subStepPrefix ~ (step <~ guard(EOL) | yetStep) ^^ {
-      case d ~ s => SubStep(d, s)
+      case d ~ s => SubStep(d.getOrElse(Nil), s)
     }
 
   // figure string
@@ -118,7 +131,7 @@ trait Parsers extends IndentParsers {
 
   // invoke shorthand steps
   lazy val invokeShorthandStep: PL[InvokeShorthandStep] =
-    opName ~ invokeArgs ~ end ^^ {
+    shorthandName ~ invokeArgs ~ end ^^ {
       case x ~ as ~ f => f(InvokeShorthandStep(x, as))
     }
 
@@ -169,8 +182,8 @@ trait Parsers extends IndentParsers {
     "suspend" ~> (
       variable ^^ { Some(_) } |
       "the running execution context" ^^^ None
-    ) ~ opt("and remove it from the execution context stack") ~ end ^^ {
-      case x ~ r ~ f => f(SuspendStep(x, r.isDefined))
+    ) ~ exists("and remove it from the execution context stack") ~ end ^^ {
+      case x ~ r ~ f => f(SuspendStep(x, r))
     }
 
   // remove execution context step
@@ -311,7 +324,7 @@ trait Parsers extends IndentParsers {
     "as the running execution context." ^^! { ResumeTopContextStep() }
 
   // note steps
-  lazy val noteStep: PL[NoteStep] = note ^^ { str => NoteStep(str) }
+  lazy val noteStep: PL[NoteStep] = note ^^ { NoteStep(_) }
   lazy val note: Parser[String] = "NOTE:" ~> ".*".r
 
   // block steps
@@ -347,7 +360,7 @@ trait Parsers extends IndentParsers {
   given expr: PL[Expression] = {
     stringConcatExpr |
     listConcatExpr |
-    listCopyExpr |
+    copyExpr |
     recordExpr |
     lengthExpr |
     substrExpr |
@@ -365,7 +378,6 @@ trait Parsers extends IndentParsers {
     soleExpr |
     codeUnitAtExpr |
     stringExpr |
-    invokeExpr |
     calcExpr |
     specialExpr
   }.named("lang.Expression")
@@ -385,10 +397,18 @@ trait Parsers extends IndentParsers {
       ListConcatExpression(_)
     }
 
-  // list copy expressions
-  lazy val listCopyExpr: PL[ListCopyExpression] =
-    "a List whose elements are the elements of" ~> expr ^^ {
-      ListCopyExpression(_)
+  // shallow copy expressions
+  lazy val copyExpr: PL[CopyExpression] =
+    import CopyExpressionForm.*
+    {
+      ("a copy of" ~> exists("the List")) ~ expr ^^ {
+        case isList ~ expr =>
+          CopyExpression(expr, if (isList) TheList else Plain)
+      }
+    } | {
+      "a List whose elements are the elements of" ~> expr ^^ {
+        CopyExpression(_, ListElements)
+      }
     }
 
   // record expressions
@@ -496,12 +516,14 @@ trait Parsers extends IndentParsers {
     convExpr |
     mathFuncExpr |
     "(" ~> calcExpr <~ ")" |
+    invokeExpr |
     refExpr |
     literal
 
   // calculation expressions
   lazy val calcExpr: PL[CalcExpression] = {
     import BinaryExpressionOperator.*
+    import BinaryExpressionForm.*
     import UnaryExpressionOperator.*
 
     lazy val unary: PL[CalcExpression] =
@@ -509,18 +531,26 @@ trait Parsers extends IndentParsers {
       baseCalcExpr ^^ { case o ~ e => UnaryExpression(o, e) } |
       baseCalcExpr
 
-    lazy val term: PL[CalcExpression] = unary ~ rep(
-      ("×" ^^^ Mul | "/" ^^^ Div | "modulo" ^^^ Mod) ~ unary,
-    ) ^^ {
+    lazy val mulOp: P[(BinaryExpressionOperator, BinaryExpressionForm)] =
+      "×" ^^^ (Mul -> Symbolic) | "times\\b".r ^^^ (Mul -> Textual) |
+      "/" ^^^ (Div -> Symbolic) | "modulo\\b".r ^^^ (Mod -> Symbolic)
+
+    lazy val addOp: P[(BinaryExpressionOperator, BinaryExpressionForm)] =
+      "+" ^^^ (Add -> Symbolic) | "plus\\b".r ^^^ (Add -> Textual) |
+      "-" ^^^ (Sub -> Symbolic)
+
+    lazy val term: PL[CalcExpression] = unary ~ rep(mulOp ~ unary) ^^ {
       case l ~ rs =>
-        rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
+        rs.foldLeft(l) {
+          case (l, (op, f) ~ r) => BinaryExpression(l, op, r, f)
+        }
     }
 
-    lazy val calc: PL[CalcExpression] = term ~ rep(
-      ("+" ^^^ Add | "-" ^^^ Sub) ~ term,
-    ) ^^ {
+    lazy val calc: PL[CalcExpression] = term ~ rep(addOp ~ term) ^^ {
       case l ~ rs =>
-        rs.foldLeft(l) { case (l, op ~ r) => BinaryExpression(l, op, r) }
+        rs.foldLeft(l) {
+          case (l, (op, f) ~ r) => BinaryExpression(l, op, r, f)
+        }
     }
 
     calc
@@ -537,7 +567,7 @@ trait Parsers extends IndentParsers {
           ConversionExpression(op, e, SyntaxLiteral)
       }
     lazy val textFormat =
-      ("the " | "an " | "a ") ~ (
+      article ~ (
         "implementation-approximated Number" ^^^ ToApproxNumber |
         "Number" ^^^ ToNumber |
         "BigInt" ^^^ ToBigInt |
@@ -576,6 +606,7 @@ trait Parsers extends IndentParsers {
     (
       "max" ^^^ Max | "min" ^^^ Min |
       "abs" ^^^ Abs | "floor" ^^^ Floor |
+      "log10" ^^^ Log10 | "log2" ^^^ Log2 | "ln" ^^^ Log |
       "truncate" ^^^ Truncate
     ) ~ ("(" ~> repsep(calcExpr, ",") <~ ")") ^^ {
       case o ~ as =>
@@ -585,9 +616,9 @@ trait Parsers extends IndentParsers {
   // literals
   // GetIdentifierReference uses 'the value'
   lazy val literal: PL[Literal] = opt("the" ~ opt(langType) ~ "value") ~> (
-    opt("the") <~ "*this* value" ^^ { case a => ThisLiteral(a.isDefined) } |
+    exists("the") <~ "*this* value" ^^ { ThisLiteral(_) } |
     "this Parse Node" ^^! ThisParseNodeLiteral(None) |
-    "this" ~> ntLiteral ^^ { case nt => ThisParseNodeLiteral(Some(nt)) } |
+    thisParseNodeNtLiteral |
     "NewTarget" ^^! NewTargetLiteral() |
     hexLiteral |
     "`[^`]+`".r ^^ { case s => CodeLiteral(s.substring(1, s.length - 1)) } |
@@ -607,6 +638,7 @@ trait Parsers extends IndentParsers {
     opt(int) ~ "π" ^^ {
       case p ~ n => MathConstantLiteral(p.getOrElse(1), n)
     } |
+    constLiteral |
     decimal ^^ { DecimalMathValueLiteral(_) } |
     "*+∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.PositiveInfinity) |
     "*-∞*<sub>𝔽</sub>" ^^! NumberLiteral(Double.NegativeInfinity) |
@@ -627,18 +659,24 @@ trait Parsers extends IndentParsers {
     "Object" ^^! ObjectTypeLiteral()
   )
 
+  // constant literals (e.g., `msPerDay`)
+  lazy val constLiteral: PL[ConstantLiteral] =
+    word.filter(name => constNames.contains(name)) ^^ {
+      ConstantLiteral(_)
+    }
+
   // field literal
   lazy val fieldLiteral: PL[FieldLiteral] =
     "[[" ~> word <~ "]]" ^^ { FieldLiteral(_) }
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
-    opt("the code unit") ~ ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
+    exists("the code unit") ~ ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
     opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
-      case c ~ p ~ n ~ x =>
-        HexLiteral(Integer.parseInt(n, 16), c.isDefined, p, x)
+      case c ~ p ~ n ~ x => HexLiteral(Integer.parseInt(n, 16), c, p, x)
     }
-  // grammar symboll iterals
+
+  // grammar symbol iterals
   lazy val grammarSymbolLiteral: PL[GrammarSymbolLiteral] =
     "the grammar symbol" ~ "|" ~> (word <~ opt("?")) ~ flags <~ "|" ^^ {
       case x ~ fs => GrammarSymbolLiteral(x, fs)
@@ -646,9 +684,15 @@ trait Parsers extends IndentParsers {
 
   // nonterminal literals
   lazy val ntLiteral: PL[NonterminalLiteral] =
-    opt("the") ~ opt(ordinal) ~ ("|" ~> word <~ opt("?")) ~ flags <~ "|" ^^ {
-      case a ~ ord ~ x ~ fs => NonterminalLiteral(ord, x, fs, a.isDefined)
+    exists("the") ~ opt(ordinal) ~ opt("derived") ~ ("|" ~> word <~ opt(
+      "?",
+    )) ~ flags <~ "|" ^^ {
+      case a ~ ord ~ _ ~ x ~ fs => NonterminalLiteral(ord, x, fs, a)
     }
+
+  // `this` parse node literals with nonterminals
+  lazy val thisParseNodeNtLiteral: PL[ThisParseNodeLiteral] =
+    "this" ~> ntLiteral ^^ { nt => ThisParseNodeLiteral(Some(nt)) }
 
   lazy val flags: P[List[String]] =
     "[" ~> repsep("^[~+][A-Z][a-z]+".r, ",") <~ "]" | "" ^^^ Nil
@@ -696,17 +740,12 @@ trait Parsers extends IndentParsers {
         case l ~ r => MathOpExpression(Mul, List(l, r))
       } | ("difference" ~> baseCalcExpr) ~ ("minus" ~> baseCalcExpr) ^^ {
         case l ~ r => MathOpExpression(Sub, List(l, r))
-      } | (baseCalcExpr) ~ ("raised to the power" ~> baseCalcExpr) ^^ {
+      } | baseCalcExpr ~ ("raised to the power" ~> baseCalcExpr) ^^ {
         case l ~ r => MathOpExpression(Pow, List(l, r))
-      } | ("raising" ~> baseCalcExpr) ~
-      ("to the" ~> baseCalcExpr <~ "power") ^^ {
+      } | ("raising" ~> baseCalcExpr) ~ ("to the" ~> baseCalcExpr <~ "power") ^^ {
         case l ~ r => MathOpExpression(Pow, List(l, r))
       } | "subtracting 1 from the exponential function of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Expm1, List(e))
-      } | "base 10 logarithm of" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log10, List(e))
-      } | "base 2 logarithm of" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log2, List(e))
       } | "cosine of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Cos, List(e))
       } | "cube root of" ~> baseCalcExpr ^^ {
@@ -734,10 +773,6 @@ trait Parsers extends IndentParsers {
         case x ~ y => MathOpExpression(Atan2, List(x, y))
       } | "inverse tangent of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Atan, List(e))
-      } | "natural logarithm of 1 +" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log1p, List(e))
-      } | "natural logarithm of" ~> baseCalcExpr ^^ {
-        case e => MathOpExpression(Log, List(e))
       } | "sine of" ~> baseCalcExpr ^^ {
         case e => MathOpExpression(Sin, List(e))
       } | "square root of" ~> baseCalcExpr ^^ {
@@ -794,11 +829,18 @@ trait Parsers extends IndentParsers {
   // names for operations
   lazy val opName: Parser[String] =
     "[a-zA-Z][a-zA-Z0-9/]*".r.filter(!mathFuncNames.contains(_))
+
+  lazy val shorthandName: Parser[String] =
+    opName <~ guard(elem('('))
+
   lazy val mathFuncNames: Set[String] = Set(
     "max",
     "min",
     "abs",
     "floor",
+    "log10",
+    "log2",
+    "ln",
     "truncate",
   )
 
@@ -827,7 +869,7 @@ trait Parsers extends IndentParsers {
     lazy val invalid =
       Set("LexicalEnvironment", "VariableEnvironment", "PrivateEnvironment")
     lazy val name = opt("the result of" | "the") ~ camel.filter(!invalid(_))
-    lazy val base = "of" ~> expr
+    lazy val base = "of" ~> (thisParseNodeNtLiteral | refExpr | ntLiteral)
 
     // normal SDO
     lazy val normalSDOExpr =
@@ -868,7 +910,7 @@ trait Parsers extends IndentParsers {
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
-    ("?" ^^^ true | "!" ^^^ false) ~ expr ^^ {
+    ("?" ^^^ true | "!" ^^^ false) ~ baseCalcExpr ^^ {
       case c ~ e => ReturnIfAbruptExpression(e, c)
     }
 
@@ -883,8 +925,8 @@ trait Parsers extends IndentParsers {
     "a List whose sole element is" ~> expr ^^ { e =>
       ListExpression(SoleElement(e))
     } |
-    (("an" | "a") ~> opt("new") <~ "empty List") ~ opt("of" ~> word) ^^ {
-      case n ~ t => ListExpression(EmptyList(n.isDefined, t))
+    (indefArticle ~> exists("new") <~ "empty List") ~ opt("of" ~> word) ^^ {
+      case n ~ t => ListExpression(EmptyList(n, t))
     } | "a List of the integers in the interval from" ~>
     (calcExpr ~ inc <~ "to") ~ (calcExpr ~ inc <~ ",") ~ asc ^^ {
       case (f ~ fi) ~ (t ~ ti) ~ a => ListExpression(IntRange(f, fi, t, ti, a))
@@ -930,33 +972,47 @@ trait Parsers extends IndentParsers {
   given cond: PL[Condition] = {
     import CompoundConditionOperator.*
 
-    // get compound condition from base and operation
+    // build a right-associative compound condition at one precedence level
     def compound(
       base: P[Condition],
       op: Parser[CompoundConditionOperator],
-    ): Parser[Condition] =
-      opt("(") ~> rep(base <~ opt(",")) ~ op ~ (opt("if") ~> base) <~ opt(
-        ")",
-      ) ^^ {
-        case ls ~ op ~ r =>
+    ): Parser[Condition] = {
+      lazy val next = op ~ (opt("if") ~> base)
+      lazy val listed = rep1(base <~ opt(",")) ~ next
+      lazy val chained = base ~ rep1(opt(",") ~> next)
+
+      listed ^^ {
+        case ls ~ (op ~ r) =>
           ls.foldRight(r) {
             case (l, r) => CompoundCondition(l, op, r)
           }
+      } ||| chained ^^ {
+        case l ~ rs =>
+          def loop(
+            left: Condition,
+            rest: List[CompoundConditionOperator ~ Condition],
+          ): Condition = rest match
+            case Nil            => left
+            case (op ~ r) :: rs => CompoundCondition(left, op, loop(r, rs))
+          loop(l, rs)
       }
+    }
 
-    lazy val simpleAnd: P[Condition] = compound(baseCond, "and" ^^^ And)
-    lazy val simpleOr: P[Condition] = compound(baseCond, "or" ^^^ Or)
-    lazy val simpleImply: P[Condition] =
-      "If" ~> compound(baseCond, "then" ^^^ Imply)
-    lazy val compOr: P[Condition] = compound(simpleAnd, "or" ^^^ Or)
-    lazy val compAnd: P[Condition] = compound(simpleOr, "and" ^^^ And)
+    // precedence (high to low): primary > and > or > implication
+    lazy val primary: P[Condition] =
+      ("(" ~> cond <~ ")") ||| baseCond
 
-    compOr |||
-    compAnd |||
-    simpleImply |||
-    simpleOr |||
-    simpleAnd |||
-    baseCond
+    def level(
+      base: P[Condition],
+      op: Parser[CompoundConditionOperator],
+    ): P[Condition] = compound(base, op) ||| base
+
+    lazy val andCond: P[Condition] = level(primary, "and" ^^^ And)
+    lazy val orCond: P[Condition] = level(andCond, "or" ^^^ Or)
+    lazy val implyCond: P[Condition] =
+      "If" ~> compound(orCond, "then" ^^^ Imply)
+
+    implyCond ||| orCond
   }.named("lang.Condition")
 
   // base conditions
@@ -984,27 +1040,26 @@ trait Parsers extends IndentParsers {
       case e ~ (n ~ t) => TypeCheckCondition(e, n, t)
     }
 
-  // field includsion conditions
+  // field inclusion conditions
   lazy val hasFieldCond: PL[HasFieldCondition] =
+    lazy val field =
+      indefArticle ~> expr ^^ { List(_) } | repsep(expr, sep("and"))
+
     import HasFieldConditionForm.*
     lazy val form =
       "field" ^^^ Field |
       "internal method" ^^^ InternalMethod |
       "internal slot" ^^^ InternalSlot
 
-    // GeneratorValidate
-    (ref <~ opt("also")) ~
-    ("has" ^^^ false | "does not have" ^^^ true) ~
-    (("an " | "a ") ~> expr) ~ form ^^ {
-      case r ~ n ~ f ~ m => HasFieldCondition(r, n, f, m)
+    lazy val fieldType = opt("whose value is" ~ indefArticle ~> langType)
+    (ref <~ opt("also")) ~ hasNeg ~ field ~ (form <~ opt("s")) ~ fieldType ^^ {
+      case r ~ n ~ f ~ m ~ t => HasFieldCondition(r, n, f, m, t)
     }
 
   // binding includsion conditions
   lazy val hasBindingCond: PL[HasBindingCondition] =
     // GeneratorValidate
-    (ref <~ opt("also")) ~
-    ("has" ^^^ false | "does not have" ^^^ true) ~
-    ("a binding for" ~> expr) ^^ {
+    ref ~ hasNeg ~ ("a binding for" ~> expr) ^^ {
       case r ~ n ~ f => HasBindingCondition(r, n, f)
     }
 
@@ -1020,6 +1075,8 @@ trait Parsers extends IndentParsers {
     import PredicateConditionOperator.*
     lazy val op: Parser[PredicateConditionOperator] =
       "finite" ^^^ Finite |
+      "a finite Number" ^^^ FiniteNumber |
+      "a non-zero finite Number" ^^^ NonZeroFiniteNumber |
       "a normal completion" ^^^ Normal |
       "an abrupt completion" ^^^ Abrupt |
       "a throw completion" ^^^ Throw |
@@ -1039,11 +1096,17 @@ trait Parsers extends IndentParsers {
       "a fully populated Property Descriptor" ^^^ FullyPopulated |
       "an instance of a nonterminal" ^^^ Nonterminal
 
+    lazy val pluralOp: Parser[PredicateConditionOperator] =
+      "finite Numbers" ^^^ FiniteNumber |
+      "non-zero finite Numbers" ^^^ NonZeroFiniteNumber
+
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)
 
     expr ~ neg ~ op ^^ {
-      case r ~ n ~ o => PredicateCondition(r, n, o)
+      case r ~ n ~ o => PredicateCondition(List(r), n, o)
+    } | (opt("both") ~> expr) ~ ("and" ~> expr) ~ areNeg ~ pluralOp ^^ {
+      case l ~ r ~ n ~ o => PredicateCondition(List(l, r), n, o)
     }
 
   // `A is/are B` condition
@@ -1074,12 +1137,9 @@ trait Parsers extends IndentParsers {
 
   // inclusive interval conditions
   lazy val inclusiveIntervalCond: PL[InclusiveIntervalCondition] = {
-    (expr <~ "is") ~
-    opt("not") ~
-    ("in the inclusive interval from" ~> expr) ~
-    ("to" ~> expr)
+    expr ~ isNeg ~ ("in the inclusive interval from" ~> expr) ~ ("to" ~> expr)
   } ^^ {
-    case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n.isDefined, f, t, true)
+    case l ~ n ~ f ~ t => InclusiveIntervalCondition(l, n, f, t, true)
   } | {
     (expr <~ "≤") ~ expr ~ ("≤" ~> expr)
   } ^^ {
@@ -1127,11 +1187,8 @@ trait Parsers extends IndentParsers {
   } ^^! getExprCond(FalseLiteral()) | {
     // CreatePerIterationEnvironment
     expr <~ "has any elements"
-  } ^^ { PredicateCondition(_, true, PredicateConditionOperator.Empty) } | {
-    // ForBodyEvaluation
-    expr ~ isNeg <~ "~[empty]~"
-  } ^^ {
-    case e ~ n => PredicateCondition(e, !n, PredicateConditionOperator.Present)
+  } ^^ { e =>
+    PredicateCondition(List(e), true, PredicateConditionOperator.Empty)
   } | {
     // %ForInIteratorPrototype%.next
     ("there does not exist an element" ~> variable) ~
@@ -1143,7 +1200,9 @@ trait Parsers extends IndentParsers {
   } | {
     // CallExpression[0,0].Evaluation
     expr <~ "has no elements"
-  } ^^ { PredicateCondition(_, false, PredicateConditionOperator.Empty) } | {
+  } ^^ { e =>
+    PredicateCondition(List(e), false, PredicateConditionOperator.Empty)
+  } | {
     // ArraySpeciesCreate, SameValueNonNumeric
     expr ~ ("and" ~> expr) ~ areNeg <~ "the same" ~ opt(langType) ~ opt("value")
   } ^^ { case l ~ r ~ n => IsAreCondition(List(l), n, List(r)) } | {
@@ -1163,7 +1222,7 @@ trait Parsers extends IndentParsers {
         IsAreCondition(List(getRefExpr(v1)), n, List(e)),
       )
   } | {
-    ref ~ ("is" ^^^ false | "is not" ^^^ true) <~ "a strict binding"
+    ref ~ isNeg <~ "a strict binding"
   } ^^ {
     case r ~ n =>
       IsAreCondition(
@@ -1183,7 +1242,7 @@ trait Parsers extends IndentParsers {
       )
   } | {
     // InitializeHostDefinedRealm
-    "the host requires use of an exotic object to serve as _realm_'s global object" |
+    "the host requires use of a specific object to serve as _realm_'s global object" |
     "the host requires that the `this` binding in _realm_'s global scope return an object other than the global object"
   } ^^! getExprCond(
     FalseLiteral(),
@@ -1195,7 +1254,7 @@ trait Parsers extends IndentParsers {
 
   // not yet supported conditions
   def yetCond(post: String): PL[Condition] = s".+$post".r ^^ { str =>
-    val s = str.replaceAll(post + "$", "")
+    val s = str.stripSuffix(post)
     ExpressionCondition(YetExpression(s, None))
   }
 
@@ -1257,7 +1316,7 @@ trait Parsers extends IndentParsers {
     val name = camel.filter(!invalid(_))
     import AccessKind.*
     "[[" ~> word <~ "]]" ^^ (_ -> Field) |
-    name ~ opt("component") ^^ { case x ~ p => x -> Component(p.isDefined) }
+    name ~ exists("component") ^^ { case x ~ p => x -> Component(p) }
 
   // of-style access
   lazy val ofAccess: PL[Access] = ("the" ~> nameWithKind <~ "of") ~ ref ^^ {
@@ -1340,7 +1399,7 @@ trait Parsers extends IndentParsers {
   lazy val recordTy: P[ValueTy] =
     "Record" ~ "{" ~> repsep(fieldLiteral, ",") <~ "}" ^^ {
       case fs => RecordT("", fs.map(_.name -> AnyT).toMap)
-    } | opt("an " | "a ") ~> {
+    } | opt(indefArticle) ~> {
       "function object" ^^^ FunctionT |
       "constructor" ^^^ ConstructorT |
       "Data Block" ^^^ DataBlockT | (
@@ -1364,7 +1423,7 @@ trait Parsers extends IndentParsers {
 
   // list types
   lazy val listTy: P[ValueTy] =
-    opt("an " | "a ") ~ "List of" ~> pureValueTy ^^ { ListT(_) }
+    opt(indefArticle) ~ "List of" ~> pureValueTy ^^ { ListT(_) }
 
   // closure types
   // TODO more details
@@ -1373,15 +1432,15 @@ trait Parsers extends IndentParsers {
 
   // AST types
   lazy val astTy: P[ValueTy] =
-    val singleAstTy = article ~> nt <~ opt("Parse Node")
-    article ~ "Parse Node" ~ opt("s") ^^^ AstT |
+    val singleAstTy = opt(article) ~> nt <~ opt("Parse Node")
+    opt(article) ~ "Parse Node" ~ opt("s") ^^^ AstT |
     rep1sep(singleAstTy, sep("or")) ^^ { ss => AstT(ss.toSet) }
 
   // grammar symbol types
   lazy val grammarSymbolTy: P[ValueTy] = "a grammar symbol" ^^^ GrammarSymbolT
 
   // simple types
-  lazy val simpleTy: P[ValueTy] = opt("an " | "a ") ~> {
+  lazy val simpleTy: P[ValueTy] = opt(indefArticle) ~> {
     "Number" ^^^ NumberT |
     "BigInt" ^^^ BigIntT |
     "Boolean" ^^^ BoolT |
@@ -1425,11 +1484,12 @@ trait Parsers extends IndentParsers {
     "*NaN*" ^^! NaNT |
     "integral Number" ^^^ NumberIntT |
     "property key" ^^^ (StrT || SymbolT) |
+    "property name" ^^^ StrT |
     "~" ~> "[-+a-zA-Z0-9]+".r <~ "~" ^^ { EnumT(_) }
   } <~ opt("s")
 
   // rarely used expressions
-  lazy val specialTy: P[Ty] = opt("an " | "a ") ~> {
+  lazy val specialTy: P[Ty] = opt(indefArticle) ~> {
     "List of" ~> word ^^ {
       case s => UnknownTy(s"List of $s")
     } | (nt | tname) ^^ {
@@ -1481,7 +1541,9 @@ trait Parsers extends IndentParsers {
       case x => (x, new StepUpdater { def apply[T <: Step](s: T) = s })
     }
 
-  private def normRecordT(s: String): ValueTy = RecordT(Type.normalizeName(s))
+  private def normRecordT(s: String): ValueTy = Type.normalizeName(s) match
+    case "Record" => RecordT
+    case name     => RecordT(name)
 
   private def multi(parser: P[ValueTy], either: Boolean = true): P[ValueTy] =
     val multiParser = (if (either) "either" else "") ~> {
@@ -1536,7 +1598,7 @@ trait Parsers extends IndentParsers {
     p: Parser[T],
   ): Parser[Boolean ~ List[T]] =
     lazy val compoundGuard = guard(not("is" | "<" | ">" | "(" | "of"))
-    ((b ^^ { case b => !b }) <~ "neither") ~ repsep(p, sep("nor")) |
+    ((b ^^ { !_ }) <~ "neither") ~ repsep(p, sep("nor")) |
     (b <~ "either") ~ p ~ ("or" ~> p) ^^ {
       case b ~ p0 ~ p1 => new ~(b, List(p0, p1))
     } |
@@ -1552,7 +1614,8 @@ trait Parsers extends IndentParsers {
     ("are both not" | "are not") ^^^ true |
     ("are both" | "are") ^^^ false
   private def hasNeg: Parser[Boolean] =
-    "does not have" ^^^ true | "has" ^^^ false
+    ("does not already have" | "does not have") ^^^ true |
+    "has" ^^^ false
 
   // arguments part
   lazy val argsPart = "with" ~> (
@@ -1568,7 +1631,8 @@ trait Parsers extends IndentParsers {
   private val one = DecimalMathValueLiteral(1)
 
   // article
-  private val article = opt("a " | "an " | "the ")
+  private val indefArticle = "an " | "a "
+  private val article = "a " | "an " | "the "
 
   // check existence
   def exists[T](p: Parser[T]): Parser[Boolean] = opt(p) ^^ { _.isDefined }

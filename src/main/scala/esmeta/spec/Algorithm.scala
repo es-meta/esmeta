@@ -3,6 +3,7 @@ package esmeta.spec
 import esmeta.LINE_SEP
 import esmeta.lang.*
 import esmeta.lang.util.*
+import esmeta.ty.*
 import esmeta.spec.util.*
 import org.jsoup.nodes.Element
 
@@ -27,6 +28,13 @@ case class Algorithm(
 
   /** normalized algorithm name */
   lazy val normalizedName: String = name.replace("/", "").replace("`", "")
+
+  /** get all types */
+  lazy val types: List[Type] = head.retTy :: head.funcParams.map(_.ty)
+
+  /** get unknown types */
+  lazy val yetTypes: List[Type] =
+    types.collect { case ty @ Type(UnknownTy(Some(_))) => ty }
 
   /** return types */
   lazy val retTy: Type = head.retTy

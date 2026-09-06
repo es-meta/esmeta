@@ -37,6 +37,7 @@ object SystemUtils {
   /** extension filter */
   def extFilter(ext: String): String => Boolean = _.endsWith(s".$ext")
   lazy val algoFilter = extFilter("algo")
+  lazy val grammarFilter = extFilter("grammar")
   lazy val irFilter = extFilter("ir")
   lazy val cfgFilter = extFilter("cfg")
   lazy val jsFilter = extFilter("js")
@@ -85,7 +86,7 @@ object SystemUtils {
     silent: Boolean = false,
   ): Unit =
     dumpFile(data, filename, append)
-    if (!silent) println(s"- Dumped $name into `$filename` .")
+    if (!silent) println(s"- Dumped $name into `$filename`.")
 
   /** dump given data in a JSON format */
   def dumpJson[T](data: T, filename: String)(using Encoder[T]): Unit =

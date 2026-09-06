@@ -76,15 +76,14 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           _ <- modify(_.update(x, v, refine = false))
         } yield ()
       case IAssign(Field(x: Var, EStr(f)), expr) =>
-        for {
-          v <- transfer(expr)
-          given AbsState <- get
-          ty <- get(_.get(x).ty)
-          record = ty.record.update(f, v.ty, refine = false)
-          _ <- modify(
-            _.update(x, AbsValue(ty.copied(record = record)), refine = false),
-          )
-        } yield ()
+        x match
+          case x: Local =>
+            for {
+              v <- transfer(expr)
+              given AbsState <- get
+              _ <- modify(_.update(x, f, v))
+            } yield ()
+          case _ => st => st /* do not support global variables */
       case IAssign(ref, expr)  => st => st /* TODO */
       case IExpand(base, expr) => st => st /* TODO */
       case IDelete(base, expr) => st => st /* TODO */
@@ -108,7 +107,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- transfer(expr)
           st <- get
-          _ <- doReturn(inst, st, v)
+          _ <- doReturn(inst, st, v, if (useEffect) st.effect else Effect.Bot)
           _ <- put(AbsState.Bot)
         } yield ()
       case IAssert(expr: EYet) =>
@@ -134,6 +133,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       irReturn: Return,
       givenSt: AbsState,
       v: AbsValue,
+      effect: Effect,
     )(using np: NodePoint[Node]): Unit = {
       given AbsState = givenSt
       val NodePoint(func, node, view) = np
@@ -155,9 +155,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             AbsValue(STy(givenTy && expectedTy), givenV.guard)
       // no propagation if the return value is bottom
       if (!newV.isBottom)
-        val AbsRet(oldV, noSym @ (noSymV, noSymConstr), syms) = getResult(rp)
+        val oldRet @ AbsRet(
+          oldV,
+          noSym @ (noSymV, noSymConstr),
+          syms,
+          oldEffect,
+        ) =
+          getResult(rp)
         if (!oldV.isBottom && useRepl) Repl.merged = true
-        if ((newV !⊑ oldV)(using entrySt)) {
+        if ((newV !⊑ oldV)(using entrySt) || (effect !⊑ oldEffect)) {
           val constr = givenSt.constr.onlySym
           val hasSym = v.symty.hasSym
           val newRet = AbsRet(
@@ -165,6 +171,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             if (hasSym) noSym else (noSymV ⊔ newV, noSymConstr || constr),
             if (hasSym) syms + (np -> (v.onlySym(using givenSt), constr))
             else syms - np,
+            oldEffect ⊔ effect,
           )
           rpMap += rp -> newRet
           worklist += rp
@@ -178,8 +185,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val (v, newSt) = (for {
         v <- basicTransfer(expr)
         given AbsState <- get
-        guard <- getTypeGuard(expr)
-        newV = v.addGuard(guard)
+        guard <- inferGuard(expr)
+        newV = v.addGuard(guard).bind
       } yield newV)(st)
       // No propagation if the result of the expression is bottom
       if (v.isBottom) (v, AbsState.Bot) else (v, newSt)
@@ -346,8 +353,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         } yield lv
       case EMath(n)              => AbsValue(MathT(n))
       case EInfinity(pos)        => AbsValue(InfinityT(pos))
-      case ENumber(n) if n.isNaN => AbsValue(NumberT(Double.NaN))
-      case ENumber(n)            => AbsValue(NumberT(n))
+      case ENumber(n) if n.isNaN => AbsValue(NumberT(Number(Double.NaN)))
+      case ENumber(n)            => AbsValue(NumberT(Number(n)))
       case EBigInt(n)            => AbsValue(BigIntT)
       case EStr(str)             => AbsValue(StrT(str))
       case EBool(b)              => AbsValue(BoolT(b))
@@ -478,7 +485,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           refiner <- manualRefiners.get(callee.name)
           v = refiner(callee, vs, retTy, callerSt)
           newV = instantiate(v, callerNp)
-        } yield newV).getOrElse(AbsValue(retTy).lift)
+        } yield newV).getOrElse(AbsValue(retTy).bind)
         for {
           nextNp <- getAfterCallNp(callerNp)
           newSt = callerSt.define(call.lhs, newRetV)
@@ -563,7 +570,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val entryNp = NodePoint(func, func.entry, entryView)
         val entrySt = getResult(entryNp)
         given AbsState = entrySt
-        val value = getResult(rp).value
+        val ret = getResult(rp)
+        val value = ret.value
         (for {
           nextNp <- getAfterCallNp(callerNp)
           callerSt = callInfo(callerNp)
@@ -571,8 +579,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           retTy = rp.func.retTy.ty.toValue
           newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
           if !newV.isBottom
-        } yield analyzer += nextNp -> callerSt
-          .define(callerNp.node.lhs, newV))
+        } yield
+          val weakenedSt = callerSt.weaken(ret.effect)
+          analyzer += nextNp -> weakenedSt.define(callerNp.node.lhs, newV)
+        )
           .getOrElse {
             if (!getResult(rp).isBottom) worklist += rp
           }
@@ -584,7 +594,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val ReturnPoint(func, view) = rp
       val entryNp = NodePoint(func, func.entry, emptyView)
       val entrySt = getResult(entryNp)
-      val value = getResult(rp).value
+      val ret = getResult(rp)
+      val value = ret.value
       for {
         callerNps <- retEdges.get(rp)
         callerNp <- callerNps
@@ -593,7 +604,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val callerSt: AbsState = callInfo(callerNp)
         val retV = AbsValue(rp.func.retTy.ty.toValue)
         val newV = (instantiate(value, callerNp) ⊓ retV)(using callerSt)
-        val nextSt = callerSt.update(callerNp.node.lhs, newV, refine = false)
+        val weakenedSt = callerSt.weaken(ret.effect)
+        val nextSt = weakenedSt.update(callerNp.node.lhs, newV, refine = false)
         analyzer += nextNp -> nextSt
       }
     }
@@ -616,7 +628,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       else refine(constr)(st)
 
     /** refine types using type constraints */
-    def refine(constr: TypeConstr)(using np: NodePoint[?]): Updater =
+    def refine(constr: TypeProp)(using np: NodePoint[?]): Updater =
       constr.fold[Updater](_ => AbsState.Bot) { map =>
         for {
           _ <- join(map.map { (x, ty) => modify(refine(x, ty)) })
@@ -653,7 +665,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       given AbsState = callInfo(callerNp)
       val vs = analyzer.argsInfo.getOrElse(callerNp, Nil)
       val argsMap = vs.zipWithIndex.map { (v, i) => i -> v }.toMap
-      instantiate(value, argsMap).lift
+      instantiate(value, argsMap).bind
 
     /** instantiation of abstract values */
     def instantiate(
@@ -673,15 +685,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     )
 
     def instantiate(
-      constr: TypeConstr,
+      constr: TypeProp,
       argsMap: Map[Sym, AbsValue],
-    )(using st: AbsState): TypeConstr = instantiateConstr(constr, argsMap).lift
+    )(using st: AbsState): TypeProp = instantiateConstr(constr, argsMap).bind
 
     /** instantiation of type constraints */
     def instantiateConstr(
-      constr: TypeConstr,
+      constr: TypeProp,
       argsMap: Map[Sym, AbsValue],
-    )(using st: AbsState): TypeConstr =
+    )(using st: AbsState): TypeProp =
       def aux(x: Sym, ty: ValueTy): Option[(Base, ValueTy)] = for {
         v <- argsMap.get(x)
         y <- v.symty match
@@ -795,15 +807,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     // =========================================================================
     // type guard for expressions
     // =========================================================================
-    def getTypeGuard(expr: Expr)(using np: NodePoint[?]): Result[TypeGuard] = {
+    def inferGuard(expr: Expr)(using np: NodePoint[?]): Result[TypeGuard] = {
       import TargetType.*
       given Node = np.node
-      def toConstr(p: (Base, ValueTy))(using AbsState): TypeConstr =
-        TypeConstr(p).lift
+      def toConstr(p: (Base, ValueTy))(using AbsState): TypeProp =
+        TypeProp(p).bind
       expr match {
         case EBool(bool) =>
           val dty = if (bool) TargetType(TrueT) else TargetType(FalseT)
-          get(st => TypeGuard(Map(dty -> TypeConstr.Top.lift(using st))))
+          get(st => TypeGuard(Map(dty -> TypeProp.Top.bind(using st))))
         case ERecord(tname @ "CompletionRecord", fields) =>
           for {
             pairs <- join(fields.map {
@@ -814,7 +826,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             })
             v <- id(_.allocRecord(tname, pairs))
             given AbsState <- get
-          } yield v.lift.guard
+          } yield v.bind.guard
         case EBinary(BOp.Lt, l, r) =>
           for {
             lv <- transfer(l)
@@ -857,59 +869,49 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 case _ =>
               if (lty.number <= NumberTy.Int)
                 rty.getSingle match
-                  case One(Number(v)) if v == 0 && !isNegZero(v) =>
+                  case One(Number(v)) if v == 0 =>
                     number = (isLt, pos) match
-                      case (true, true)   => /* x < 0 */ NumberTy.NegInt
-                      case (true, false)  => /* x >= 0 */ NumberTy.NonNegInt
-                      case (false, true)  => /* x > 0 */ NumberTy.PosInt
-                      case (false, false) => /* x <= 0 */ NumberTy.NonPosInt
-                  case One(Number(v)) if isNegZero(v) =>
-                    number = (isLt, pos) match
-                      case (true, true)   => /* x < -0 */ NumberTy.NegInt
-                      case (true, false)  => /* x >= -0 */ NumberTy.NonNegInt
-                      case (false, true)  => /* x > -0 */ NumberTy.NonNegInt
-                      case (false, false) => /* x <= -0 */ NumberTy.NegInt
+                      case (true, true)  => /* x < 0 */ NumberNegIntT.number
+                      case (true, false) => /* x >= 0 */ NumberNonNegIntT.number
+                      case (false, true) => /* x > 0 */ NumberPosIntT.number
+                      case (false, false) => /* x <= 0 */
+                        NumberNonPosIntT.number
                   case One(Number(v)) if v < 0 =>
                     number = (isLt, pos) match
-                      case (true, true)   => /* x < N */ NumberTy.NegInt
-                      case (true, false)  => /* x >= N */ NumberTy.Int
-                      case (false, true)  => /* x > N */ NumberTy.Int
-                      case (false, false) => /* x <= N */ NumberTy.NegInt
+                      case (true, true)   => /* x < N */ NumberNegIntT.number
+                      case (true, false)  => /* x >= N */ NumberIntT.number
+                      case (false, true)  => /* x > N */ NumberIntT.number
+                      case (false, false) => /* x <= N */ NumberNegIntT.number
                   case One(Number(v)) if v > 0 =>
                     number = (isLt, pos) match
-                      case (true, true)   => /* x < P */ NumberTy.Int
-                      case (true, false)  => /* x >= P */ NumberTy.PosInt
-                      case (false, true)  => /* x > P */ NumberTy.PosInt
-                      case (false, false) => /* x <= P */ NumberTy.Int
+                      case (true, true)   => /* x < P */ NumberIntT.number
+                      case (true, false)  => /* x >= P */ NumberPosIntT.number
+                      case (false, true)  => /* x > P */ NumberPosIntT.number
+                      case (false, false) => /* x <= P */ NumberIntT.number
                   case _ =>
               else
                 def sign(s: NumberTy): NumberTy =
                   val kept = lty.number && s
                   if (pos) kept else kept || (lty.number && NumberTy.NaN)
                 rty.getSingle match
-                  case One(Number(v)) if v == 0 && !isNegZero(v) =>
+                  case One(Number(v)) if v == 0 =>
                     number = (isLt, pos) match
-                      case (true, true)   => /* x < 0 */ sign(NumberTy.Neg)
-                      case (true, false)  => /* x >= 0 */ sign(NumberTy.NonNeg)
-                      case (false, true)  => /* x > 0 */ sign(NumberTy.Pos)
-                      case (false, false) => /* x <= 0 */ sign(NumberTy.NonPos)
-                  case One(Number(v)) if isNegZero(v) =>
-                    val ltNegZero = NumberSignTy(Sign.Neg, false)
-                    val geNegZero = NumberSignTy(Sign.NonNeg, false, true)
-                    number = (isLt, pos) match
-                      case (true, true)   => /* x < -0 */ sign(ltNegZero)
-                      case (true, false)  => /* x >= -0 */ sign(geNegZero)
-                      case (false, true)  => /* x > -0 */ sign(NumberTy.NonNeg)
-                      case (false, false) => /* x <= -0 */ sign(NumberTy.Neg)
+                      case (true, true) => /* x < 0 */ sign(NegNumberT.number)
+                      case (true, false) => /* x >= 0 */
+                        sign(NonNegNumberT.number)
+                      case (false, true) => /* x > 0 */ sign(PosNumberT.number)
+                      case (false, false) => /* x <= 0 */
+                        sign(NonPosNumberT.number)
                   case One(Number(v)) if v < 0 =>
                     number = (isLt, pos) match
-                      case (true, true)   => /* x < N */ sign(NumberTy.Neg)
-                      case (false, false) => /* x <= N */ sign(NumberTy.Neg)
-                      case _              => number
+                      case (true, true) => /* x < N */ sign(NegNumberT.number)
+                      case (false, false) => /* x <= N */
+                        sign(NegNumberT.number)
+                      case _ => number
                   case One(Number(v)) if v > 0 =>
                     number = (isLt, pos) match
-                      case (true, false) => /* x >= P */ sign(NumberTy.Pos)
-                      case (false, true) => /* x > P */ sign(NumberTy.Pos)
+                      case (true, false) => /* x >= P */ sign(PosNumberT.number)
+                      case (false, true) => /* x > P */ sign(PosNumberT.number)
                       case _             => number
                   case _ =>
               val refinedTy = ValueTy(
@@ -920,7 +922,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               )
               if (lty != refinedTy) Some(refinedTy) else None
             }
-            var lmap: Map[TargetType, TypeConstr] = Map()
+            var lmap: Map[TargetType, TypeProp] = Map()
             toSymRef(l, lv).map { ref =>
               aux(lty, rty, true, true).map { thenTy =>
                 if (lty != thenTy && !thenTy.isBottom)
@@ -935,7 +937,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                   }
               }
             }
-            var rmap: Map[TargetType, TypeConstr] = Map()
+            var rmap: Map[TargetType, TypeProp] = Map()
             toSymRef(r, rv).map { ref =>
               aux(rty, lty, true, false).map { thenTy =>
                 if (rty != thenTy && !thenTy.isBottom)
@@ -958,7 +960,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 lguard(dty) &&
                 rguard(dty)
               }
-              newConstr = constr.lift
+              newConstr = constr.bind
               if !newConstr.isTop
             } yield dty -> newConstr).toMap
             TypeGuard(guard)
@@ -969,7 +971,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             given AbsState <- get
           } yield v.guard
         case EBinary(BOp.Eq, e, EBool(false)) =>
-          getTypeGuard(EUnary(UOp.Not, e))
+          inferGuard(EUnary(UOp.Not, e))
         case EBinary(BOp.Eq, ERef(ref), r) =>
           for {
             lv <- transfer(ref)
@@ -980,7 +982,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             val rty = rv.ty
             val thenTy = lty && rty
             val elseTy = if (rty.isSingle) lty -- rty else lty
-            var guard: Map[TargetType, TypeConstr] = Map()
+            var guard: Map[TargetType, TypeProp] = Map()
             toSymRef(ref, lv).map { ref =>
               if (!thenTy.isBottom) toBase(ref, thenTy).map { pair =>
                 guard += TargetType(TrueT) -> toConstr(pair)
@@ -1000,7 +1002,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             val rty = givenTy.toValue
             val thenTy = lty && rty
             val elseTy = lty -- rty
-            var guard: Map[TargetType, TypeConstr] = Map()
+            var guard: Map[TargetType, TypeProp] = Map()
             toSymRef(ref, lv).map { ref =>
               if (lty != thenTy)
                 if (!thenTy.isBottom) toBase(ref, thenTy).map { p =>
@@ -1026,7 +1028,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             )
             val thenTy = aux(binding)
             val elseTy = aux(lty.record(field) -- binding)
-            var guard: Map[TargetType, TypeConstr] = Map()
+            var guard: Map[TargetType, TypeProp] = Map()
             toSymRef(x, lv).map { ref =>
               if (lty != thenTy)
                 if (!thenTy.isBottom) toBase(ref, thenTy).map { p =>
@@ -1056,7 +1058,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               case _ => lty
             val thenTy = aux(true)
             val elseTy = aux(false)
-            var guard: Map[TargetType, TypeConstr] = Map()
+            var guard: Map[TargetType, TypeProp] = Map()
             toSymRef(ref, lv).map { ref =>
               if (lty != thenTy)
                 if (!thenTy.isBottom) toBase(ref, thenTy).map { p =>
@@ -1078,9 +1080,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             lt = guard(TargetType(TrueT))
             lf = guard(TargetType(FalseT))
           } yield {
-            var guard: Map[TargetType, TypeConstr] = Map()
-            guard += TargetType(TrueT) -> lf.lift
-            guard += TargetType(FalseT) -> lt.lift
+            var guard: Map[TargetType, TypeProp] = Map()
+            guard += TargetType(TrueT) -> lf.bind
+            guard += TargetType(FalseT) -> lt.bind
             TypeGuard(guard)
           }
         case EBinary(BOp.Or, l, r) =>
@@ -1096,21 +1098,21 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             lt = lguard(TargetType(TrueT))
             lf = lguard(TargetType(FalseT))
           } yield {
-            var guard: Map[TargetType, TypeConstr] = Map()
+            var guard: Map[TargetType, TypeProp] = Map()
             val refinedSt = if (lf.isTop) st else refine(lf)(st)
             val (thenConstr, _) = (for {
               rv <- transfer(r)
               rt = rv.guard(TargetType(TrueT))
             } yield if (hasT) lt || rt else rt)(refinedSt)
             if (!thenConstr.isTop)
-              guard += TargetType(TrueT) -> thenConstr.lift
+              guard += TargetType(TrueT) -> thenConstr.bind
             val (elseConstr, _) = (for {
               rv <- transfer(r)
               rf = rv.guard(TargetType(FalseT))
               hasF = lty.bool.contains(false)
             } yield lf && rf)(refinedSt)
             if (!elseConstr.isTop)
-              guard += TargetType(FalseT) -> elseConstr.lift
+              guard += TargetType(FalseT) -> elseConstr.bind
             TypeGuard(guard)
           }
         case EBinary(BOp.And, l, r) =>
@@ -1126,20 +1128,20 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             lt = lguard(TargetType(TrueT))
             lf = lguard(TargetType(FalseT))
           } yield {
-            var guard: Map[TargetType, TypeConstr] = Map()
+            var guard: Map[TargetType, TypeProp] = Map()
             val refinedSt = if (lt.isTop) st else refine(lt)(st)
             val (thenConstr, _) = (for {
               rv <- transfer(r)
               rt = rv.guard(TargetType(TrueT))
             } yield lt && rt)(refinedSt)
             if (!thenConstr.isTop)
-              guard += TargetType(TrueT) -> thenConstr.lift
+              guard += TargetType(TrueT) -> thenConstr.bind
             val (elseConstr, _) = (for {
               rv <- transfer(r)
               rf = rv.guard(TargetType(FalseT))
             } yield if (hasF) lf || rf else rf)(refinedSt)
             if (!elseConstr.isTop)
-              guard += TargetType(FalseT) -> elseConstr.lift
+              guard += TargetType(FalseT) -> elseConstr.bind
             TypeGuard(guard)
           }
         case EEnum(name) =>
@@ -1147,7 +1149,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             get(st => {
               TypeGuard(
                 Map(
-                  TargetType(EnumT(name)) -> TypeConstr.Top.lift(using st),
+                  TargetType(EnumT(name)) -> TypeProp.Top.bind(using st),
                 ),
               )
             })
@@ -1212,7 +1214,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         unary.uop match
           case Abs | Floor =>
             checkUnary(unary, operandTy, MathT)
-          case Neg | BNot =>
+          case Neg =>
+            checkUnary(unary, operandTy, ExtMathT || NumberT || BigIntT)
+          case BNot =>
             checkUnary(unary, operandTy, MathT || NumberT || BigIntT)
           case Not =>
             checkUnary(unary, operandTy, BoolT)
@@ -1317,7 +1321,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       st: AbsState,
       mop: MOp,
       vs: List[AbsValue],
-    )(using np: NodePoint[Node]): AbsValue = MathTop
+    )(using np: NodePoint[Node]): AbsValue = ExtMathTop
 
     // =========================================================================
     // Implementation for TyChecker
@@ -1395,15 +1399,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             val ty = ValueTy(
               record = ObjectT.record.update(f, Binding.Exist, refine = true),
             )
-            TypeConstr(0 -> ty)
-          case _ => TypeConstr(0 -> ObjectT)
+            TypeProp(0 -> ty)
+          case _ => TypeProp(0 -> ObjectT)
         val guard = TypeGuard(TargetType(NormalT) -> constr)
         AbsValue(STy(retTy), guard)
       },
       "NewPromiseCapability" -> { (func, vs, retTy, st) =>
         given AbsState = st
         val guard = TypeGuard(
-          TargetType(NormalT) -> TypeConstr(0 -> ConstructorT),
+          TargetType(NormalT) -> TypeProp(0 -> ConstructorT),
         )
         AbsValue(STy(retTy), guard)
       },
@@ -1413,7 +1417,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           (for {
             v <- vs.lift(1)
             str = v.ty.list.elem.str
-            s <- str match
+            s <- str.getSingle match
               case One(s) => Some(s)
               case _      => None
             ty = ValueTy.fromTypeOf(s)
@@ -1465,7 +1469,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
                 .update(p, Desc(getExc = true, ty = nonCallableT)),
             ) || UndefT || NullT
             TypeGuard(
-              TargetType(AbruptT) -> TypeConstr(0 -> abruptT),
+              TargetType(AbruptT) -> TypeProp(0 -> abruptT),
             )
           case _ => TypeGuard()
         AbsValue(STy(retTy), guard)
@@ -1479,7 +1483,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
               record = ObjectT.record.update(p, Desc(setExc = true)),
             )
             TypeGuard(
-              TargetType(AbruptT) -> TypeConstr(0 -> abruptT),
+              TargetType(AbruptT) -> TypeProp(0 -> abruptT),
             )
           case None => TypeGuard()
         AbsValue(STy(retTy), guard)

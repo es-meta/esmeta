@@ -8,6 +8,7 @@ import esmeta.spec.{*, given}
 import esmeta.spec.util.{Parsers => SpecParsers}
 import esmeta.ty.TyModel
 import esmeta.util.ManualInfo
+import esmeta.util.BaseUtils.*
 import esmeta.util.HtmlUtils.*
 import esmeta.util.SystemUtils.*
 import org.jsoup.nodes.*
@@ -23,6 +24,16 @@ object Extractor:
 
   /** extracts a specification with a target version of ECMA-262 */
   def apply(targetOpt: Option[String] = None, eval: Boolean = false): Spec =
+    from(targetOpt, eval).result
+
+  /** extracts a specification with a target version of ECMA-262 */
+  def apply(target: String): Spec = apply(Some(target))
+
+  /** creates an extractor with a target version of ECMA-262 */
+  def from(
+    targetOpt: Option[String] = None,
+    eval: Boolean = false,
+  ): Extractor =
     val (version, document) = Spec.getVersionWith(targetOpt) {
       case version =>
         // if bugfix patch exists, apply it to spec.html
@@ -36,10 +47,7 @@ object Extractor:
         }
         document
     }
-    apply(document, Some(version), eval)
-
-  /** extracts a specification with a target version of ECMA-262 */
-  def apply(target: String): Spec = apply(Some(target))
+    new Extractor(document, Some(version), eval)
 
 /** extensible helper of specification extractor from ECMA-262 */
 class Extractor(
@@ -48,7 +56,8 @@ class Extractor(
   eval: Boolean = false,
 ) extends SpecParsers {
   lazy val parser: LangUtil.Parsers =
-    if (eval) LangUtil.ParserForEval else LangUtil.Parser
+    val parser = if (eval) LangUtil.ParserForEval else LangUtil.Parser
+    parser.withConstNames(constants.map(_.name).toSet)
 
   /** final result */
   lazy val result =
@@ -56,6 +65,7 @@ class Extractor(
       version = version,
       grammar = grammar,
       algorithms = algorithms,
+      constants = constants,
       tables = tables,
       tyModel = tyModel,
       intrinsics = intrinsics,
@@ -72,6 +82,9 @@ class Extractor(
   /** abstract algorithms in ECMA-262 */
   lazy val algorithms = extractAlgorithms
 
+  /** constants in ECMA-262 */
+  lazy val constants = extractConstants
+
   /** tables in ECMA-262 */
   lazy val tables = extractTables
 
@@ -83,13 +96,18 @@ class Extractor(
 
   /** extracts a grammar */
   def extractGrammar: Grammar = {
-    val allProds = for {
+    val manualProds = for {
+      file <- ManualInfo.grammarFiles
+      prod <- parse[List[Production]](readFile(file).trim)
+    } yield (prod, false)
+    val specProds = for {
       elem <- document.getElems("emu-grammar[type=definition]:not([example])")
       content = elem.html.trim.unescapeHtml
       prods = parse[List[Production]](content)
       prod <- prods
       inAnnex = elem.isInAnnex
     } yield (prod, inAnnex)
+    val allProds = manualProds ++ specProds
     val prods =
       (for ((prod, inAnnex) <- allProds if !inAnnex) yield prod).sorted
     val prodsForWeb =
@@ -182,6 +200,13 @@ class Extractor(
     heads.map(_ -> parent)
   }
 
+  /** extracts constants defined by `emu-eqn` elements */
+  def extractConstants: List[Constant] = for {
+    elem <- document.getElems("emu-eqn[aoid]")
+    content = elem.html.unescapeHtml.split("\\s+").mkString(" ").trim
+    (name, value) <- optional(parseBy(constDef)(content))
+  } yield Constant(name, value)
+
   /** extracts tables */
   def extractTables: Map[String, Table] = (for {
     elem <- document.getElems("emu-table")
@@ -240,7 +265,7 @@ class Extractor(
         rhs <- prod.rhsVec
         rhsName <- rhs.allNames
         syntax = lhsName + ":" + rhsName
-        (idx, subIdx) = idxMap(syntax)
+        (idx, subIdx) <- getSyntaxIdx(syntax, lhsName)
         target = SyntaxDirectedOperationHead.Target(lhsName, idx, subIdx)
       } yield generator(Some(target))
     } else {
@@ -248,6 +273,23 @@ class Extractor(
       List(generator(None))
     }
   }
+
+  private lazy val LhsNames: Set[String] =
+    (for (prod <- grammar.prods ++ grammar.prodsForWeb)
+      yield prod.lhs.name).toSet
+
+  private def getSyntaxIdx(
+    syntax: String,
+    lhsName: String,
+  ): List[(Int, Int)] = idxMap.get(syntax) match
+    case Some(pair) => List(pair)
+    // XXX ECMA-262 defines SDOs for productions of other specifications (e.g. ECMA-404)
+    case None if !LhsNames.contains(lhsName) =>
+      warn(
+        s"ignore an SDO definition for production from external specification: $syntax",
+      )
+      Nil
+    case None => raise(s"unknown grammar production alternative: $syntax")
 
   // get concrete method heads
   private def extractConcMethodHead(
@@ -295,8 +337,6 @@ class Extractor(
     "The abstract operation (this\\w+Value) takes argument _(\\w+)_.*".r
   private lazy val aliasPattern =
     "means? the same thing as:".r
-  private lazy val anonBuiltinPattern =
-    "When a ([A-Za-z.` ]+) is called with argument _(\\w+)_,.*".r
   private def extractUnusualHead(
     parent: Element,
     elem: Element,
@@ -310,11 +350,7 @@ class Extractor(
           UnknownType,
         ),
       )
-    case aliasPattern() => extractAbsOpHead(parent, elem, false)
-    case anonBuiltinPattern(name, param) =>
-      val rname = name.trim.split(" ").map(_.capitalize).mkString
-      val ref = BuiltinPath.YetPath(rname)
-      List(BuiltinHead(ref, List(Param(param, UnknownType)), UnknownType))
+    case aliasPattern()              => extractAbsOpHead(parent, elem, false)
     case _ if parent.hasAttr("aoid") => Nil
     case _                           => extractBuiltinHead(parent, elem)
 

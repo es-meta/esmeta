@@ -12,32 +12,77 @@ import esmeta.util.SystemUtils.exists
 trait TypeGuardDecl { self: TyChecker =>
 
   /** type guard */
-  case class TypeGuard(map: Map[TargetType, TypeConstr] = Map()) {
+  case class TypeGuard(map: Map[TargetType, TypeProp] = Map()) {
     def isEmpty: Boolean = map.isEmpty
     def nonEmpty: Boolean = !isEmpty
     def dtys: Set[TargetType] = map.keySet
 
-    def apply(dty: TargetType): TypeConstr =
-      map.getOrElse(dty, TypeConstr.Top)
+    def apply(dty: TargetType): TypeProp =
+      map.getOrElse(dty, TypeProp.Top)
 
     def bases: Set[Base] = map.values.flatMap(_.bases).toSet
 
-    def kill(bases: Set[Base])(using AbsState): TypeGuard = TypeGuard(for {
+    def weaken(bases: Set[Base])(using AbsState): TypeGuard = TypeGuard(for {
       (dty, constr) <- map
-      newConstr = constr.kill(bases)
+      newConstr = constr.weaken(bases)
       if !newConstr.isTop
     } yield dty -> newConstr)
+
+    def weaken(effect: Effect): TypeGuard = TypeGuard(for {
+      (dty, constr) <- map
+      newConstr = constr.weaken(effect)
+      if !newConstr.isTop
+    } yield dty -> newConstr)
+
+    def lookup(ty: ValueTy): TypeProp =
+      if (map.isEmpty) TypeProp.Top
+      else
+        var acc: TypeProp = null
+        for ((dty, c) <- map if ty <= dty.ty)
+          acc = if (acc eq null) c else acc && c
+        if (acc eq null) TypeProp.Top else acc
+    def apply(ty: ValueTy): TypeProp = lookup(ty)
+
+    def update(ty: ValueTy, constr: TypeProp): TypeGuard = TypeGuard(
+      (for dty <- TargetType.allTargets yield dty -> {
+        val c = map.getOrElse(dty, TypeProp.Top)
+        if (ty <= dty.ty) constr && c else c
+      }).toMap.filter { case (_, c) => !c.isTop },
+    )
+
+    def refine(ty: ValueTy): TypeGuard =
+      if (map.isEmpty) this
+      else
+        TypeGuard(for {
+          (dty, _) <- map
+          if ty overlaps dty.ty
+        } yield dty -> lookup(dty.ty))
+
+    def fieldLookup(fld: String): TypeGuard =
+      val m = for {
+        (dty, c) <- map
+        ity = dty.ty.record(fld).value
+        if TargetType.set.contains(ity)
+      } yield TargetType(ity) -> c
+      m.foldLeft(TypeGuard.Empty) {
+        case (acc, (dty, c)) => acc.update(dty.ty, c)
+      }
+
+    def fieldUpdate(fld: String, ty: ValueTy): TypeGuard =
+      map.foldLeft(TypeGuard.Empty) {
+        case (acc, (dty, c)) => acc.update(dty.ty, c.fieldUpdate(fld, ty))
+      }
 
     def filter(ty: ValueTy): TypeGuard =
       TypeGuard(map.filter { (dty, _) => dty.ty overlap ty })
 
     def has(x: Base): Boolean = map.values.exists(_.has(x))
 
-    def derive(fromTy: ValueTy, toTy: ValueTy): TypeConstr =
+    def derive(fromTy: ValueTy, toTy: ValueTy): TypeProp =
       val ty = fromTy && toTy
       map
         .collect { case (dty, constr) if ty <= dty.ty => constr }
-        .foldLeft(TypeConstr.Top)(_ && _)
+        .foldLeft(TypeProp.Top)(_ && _)
 
     def hasLocal: Boolean = map.values.exists(_.hasLocal)
 
@@ -55,7 +100,7 @@ trait TypeGuardDecl { self: TyChecker =>
   }
   object TypeGuard {
     val Empty: TypeGuard = TypeGuard()
-    def apply(ps: (TargetType, TypeConstr)*): TypeGuard = TypeGuard(
+    def apply(ps: (TargetType, TypeProp)*): TypeGuard = TypeGuard(
       ps.toMap,
     )
   }
@@ -76,8 +121,8 @@ trait TypeGuardDecl { self: TyChecker =>
         (for {
           dty <- (lguard.dtys ++ rguard.dtys).toList
           constr = {
-            (if (dty.ty overlap luty) lguard(dty) else TypeConstr.Bot) ||
-            (if (dty.ty overlap ruty) rguard(dty) else TypeConstr.Bot)
+            (if (dty.ty overlap luty) lguard(dty) else TypeProp.Bot) ||
+            (if (dty.ty overlap ruty) rguard(dty) else TypeProp.Bot)
           }
           if !constr.isTop
         } yield dty -> constr).toMap,
@@ -95,7 +140,7 @@ trait TypeGuardDecl { self: TyChecker =>
         } yield dty -> constr).toMap,
       )
     }
-    def add(constr: TypeConstr): TypeGuard =
+    def add(constr: TypeProp): TypeGuard =
       val (uty, guard) = lpair
       TypeGuard(
         TargetType.from(uty).map(dty => dty -> (guard(dty) && constr)).toMap,
@@ -117,16 +162,18 @@ trait TypeGuardDecl { self: TyChecker =>
     )
     val set: Set[ValueTy] = all.toSet
 
+    val allTargets: List[TargetType] = all.map(TargetType(_))
+
     def from(givenTy: ValueTy): List[TargetType] =
-      TargetType.all.filter(givenTy overlap _).map(TargetType(_))
+      allTargets.filter(dty => givenTy overlaps dty.ty)
   }
 
   /** type constraints */
-  enum TypeConstr {
+  enum TypeProp {
     case Bot
     case Elem(map: Map[Base, ValueTy])
 
-    import TypeConstr.*
+    import TypeProp.*
     def isTop: Boolean = this == Top
     def isBottom: Boolean = this == Bot
 
@@ -134,7 +181,7 @@ trait TypeGuardDecl { self: TyChecker =>
       case Bot       => BotT
       case Elem(map) => map.getOrElse(x, AnyT)
 
-    def map(f: Map[Base, ValueTy] => Map[Base, ValueTy]): TypeConstr =
+    def map(f: Map[Base, ValueTy] => Map[Base, ValueTy]): TypeProp =
       this match
         case Bot       => Bot
         case Elem(map) => Elem(f(map))
@@ -151,13 +198,13 @@ trait TypeGuardDecl { self: TyChecker =>
       case Bot       => false
       case Elem(map) => f(map)
 
-    def <=(that: TypeConstr): Boolean = (this, that) match
+    def <=(that: TypeProp): Boolean = (this, that) match
       case (Bot, _) => true
       case (_, Bot) => true
       case (Elem(lmap), Elem(rmap)) =>
         rmap.forall { case (r, rty) => lmap.get(r).fold(false) { _ <= rty } }
 
-    def ||(that: TypeConstr): TypeConstr = (this, that) match
+    def ||(that: TypeProp): TypeProp = (this, that) match
       case (Bot, _) => that
       case (_, Bot) => this
       case (Elem(lmap), Elem(rmap)) =>
@@ -172,8 +219,11 @@ trait TypeGuardDecl { self: TyChecker =>
           }
         } yield x -> pair).toMap)
 
-    def &&(that: TypeConstr): TypeConstr = (this, that) match
+    def &&(that: TypeProp): TypeProp = (this, that) match
       case (Bot, _) | (_, Bot) => Bot
+      // an absent binding stands for the top type, which the meet keeps
+      case (Elem(lmap), Elem(rmap)) if rmap.isEmpty => this
+      case (Elem(lmap), Elem(rmap)) if lmap.isEmpty => that
       case (Elem(lmap), Elem(rmap)) =>
         Elem((for {
           x <- (lmap.keySet ++ rmap.keySet).toList
@@ -192,10 +242,21 @@ trait TypeGuardDecl { self: TyChecker =>
       case Bot       => Set()
       case Elem(map) => map.keySet.collect { case s: Sym => s }
 
-    def kill(bases: Set[Base])(using AbsState): TypeConstr =
+    def weaken(bases: Set[Base])(using AbsState): TypeProp =
       map(_.filter { case (x, _) => !bases.contains(x) })
 
-    def lift(using st: AbsState): TypeConstr = this && st.constr
+    def nonTop: Boolean = !isTop
+
+    def weaken(effect: Effect): TypeProp =
+      map(_.map { case (x, ty) => x -> effect(ty) })
+
+    def fieldUpdate(fld: String, ty: ValueTy): TypeProp =
+      map(_.map {
+        case (x, oty) =>
+          x -> oty.copied(record = oty.record.update(fld, ty, refine = false))
+      })
+
+    def bind(using st: AbsState): TypeProp = this && st.constr
 
     def hasLocal: Boolean = exists(_.keySet.exists {
       case _: Local => true
@@ -207,14 +268,14 @@ trait TypeGuardDecl { self: TyChecker =>
       case _      => false
     })
 
-    def onlySym: TypeConstr =
+    def onlySym: TypeProp =
       map(_.collect { case (x: Sym, ty) => x -> ty })
 
     override def toString: String = (new Appender >> this).toString
   }
-  object TypeConstr {
-    val Top: TypeConstr = Elem(Map())
-    def apply(pairs: (Base, ValueTy)*): TypeConstr = Elem(pairs.toMap)
+  object TypeProp {
+    val Top: TypeProp = Elem(Map())
+    def apply(pairs: (Base, ValueTy)*): TypeProp = Elem(pairs.toMap)
   }
   // -----------------------------------------------------------------------------
   // helpers
@@ -225,12 +286,12 @@ trait TypeGuardDecl { self: TyChecker =>
   given Rule[TypeGuard] = (app, guard) =>
     given Ordering[TargetType] = Ordering.by(_.toString)
     given Rule[TargetType] = (app, dty) => app >> dty.ty
-    given Rule[Map[TargetType, TypeConstr]] = sortedMapRule("{", "}", " => ")
+    given Rule[Map[TargetType, TypeProp]] = sortedMapRule("{", "}", " => ")
     app >> guard.map
 
-  /** TypeConstr */
-  given Rule[TypeConstr] = (app, constr) =>
-    import TypeConstr.*
+  /** TypeProp */
+  given Rule[TypeProp] = (app, constr) =>
+    import TypeProp.*
     import SymTy.given
     given Rule[Map[Base, ValueTy]] = sortedMapRule(sep = ": ")
     constr match

@@ -57,6 +57,10 @@ case object DumpDebugger extends Phase[CFG, Unit] {
       check("tyModel.decls")(tm == Some(cfg.spec.tyModel))
     }
 
+    dumpThenRead("spec.constants")(cfg.spec.constants) tap { constants =>
+      check("spec.constants")(constants == Some(cfg.spec.constants))
+    }
+
     dumpThenRead("spec.tables")(cfg.spec.tables) tap { tables =>
       check("spec.tables")(tables == Some(cfg.spec.tables))
     }

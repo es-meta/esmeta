@@ -41,7 +41,7 @@ trait Walker extends BasicWalker {
 
   def walk(subStep: SubStep): SubStep =
     val SubStep(directive, step) = subStep
-    SubStep(walkOpt(directive, walk), walk(step))
+    SubStep(walkList(directive, walk), walk(step))
 
   def walk(directive: Directive): Directive =
     val Directive(name, values) = directive
@@ -164,8 +164,8 @@ trait Walker extends BasicWalker {
       StringConcatExpression(walkList(exprs, walk))
     case ListConcatExpression(exprs) =>
       ListConcatExpression(walkList(exprs, walk))
-    case ListCopyExpression(expr) =>
-      ListCopyExpression(walk(expr))
+    case CopyExpression(expr, form) =>
+      CopyExpression(walk(expr), form)
     case RecordExpression(ty, fields, form) =>
       lazy val newFields =
         walkList(fields, { case (f, e) => (walk(f), walk(e)) })
@@ -199,8 +199,6 @@ trait Walker extends BasicWalker {
       MathOpExpression(walk(op), walkList(args, walk))
     case BitwiseExpression(left, op, right) =>
       BitwiseExpression(walk(left), walk(op), walk(right))
-    case invoke: InvokeExpression =>
-      walk(invoke)
     case ListExpression(form) =>
       import ListExpressionForm.*
       ListExpression(
@@ -253,10 +251,12 @@ trait Walker extends BasicWalker {
       ConversionExpression(walk(op), walk(expr), form)
     case ExponentiationExpression(base, power) =>
       ExponentiationExpression(walk(base), walk(power))
-    case BinaryExpression(left, op, right) =>
-      BinaryExpression(walk(left), walk(op), walk(right))
+    case BinaryExpression(left, op, right, form) =>
+      BinaryExpression(walk(left), walk(op), walk(right), form)
     case UnaryExpression(op, expr) =>
       UnaryExpression(walk(op), walk(expr))
+    case invoke: InvokeExpression =>
+      walk(invoke)
   }
 
   def walk(
@@ -310,14 +310,20 @@ trait Walker extends BasicWalker {
       ExpressionCondition(walk(expr))
     case TypeCheckCondition(expr, neg, ty) =>
       TypeCheckCondition(walk(expr), walk(neg), walkList(ty, walk))
-    case HasFieldCondition(ref, neg, field, form) =>
-      HasFieldCondition(walk(ref), walk(neg), walk(field), form)
-    case HasBindingCondition(ref, neg, binding) =>
-      HasBindingCondition(walk(ref), walk(neg), walk(binding))
+    case HasFieldCondition(ref, has, field, form, tyOpt) =>
+      HasFieldCondition(
+        walk(ref),
+        walk(has),
+        walkList(field, walk),
+        walk(form),
+        walkOpt(tyOpt, walk),
+      )
+    case HasBindingCondition(ref, has, binding) =>
+      HasBindingCondition(walk(ref), walk(has), walk(binding))
     case ProductionCondition(nt, lhs, rhs) =>
       ProductionCondition(walk(nt), lhs, rhs)
-    case PredicateCondition(expr, neg, op) =>
-      PredicateCondition(walk(expr), neg, walk(op))
+    case PredicateCondition(exprs, neg, op) =>
+      PredicateCondition(walkList(exprs, walk), neg, walk(op))
     case IsAreCondition(ls, neg, rs) =>
       IsAreCondition(walkList(ls, walk), walk(neg), walkList(rs, walk))
     case BinaryCondition(left, op, right) =>
@@ -335,6 +341,8 @@ trait Walker extends BasicWalker {
     case CompoundCondition(left, op, right) =>
       CompoundCondition(walk(left), walk(op), walk(right))
   }
+
+  def walk(form: HasFieldConditionForm): HasFieldConditionForm = form
 
   def walk(op: PredicateConditionOperator): PredicateConditionOperator = op
 

@@ -6,7 +6,7 @@ import esmeta.error.NoEnvVarError
 val LINE_SEP = System.getProperty("line.separator")
 
 /** base project directory root */
-val VERSION = "0.7.1"
+val VERSION = "0.8.1"
 
 /** base project directory root */
 val BASE_DIR = sys.env.getOrElse("ESMETA_HOME", throw NoEnvVarError)
@@ -16,6 +16,7 @@ val LOG_DIR = s"$BASE_DIR/logs"
 val EXTRACT_LOG_DIR = s"$LOG_DIR/extract"
 val COMPILE_LOG_DIR = s"$LOG_DIR/compile"
 val CFG_LOG_DIR = s"$LOG_DIR/cfg"
+val YET_CHECK_LOG_DIR = s"$LOG_DIR/yet-check"
 val ANALYZE_LOG_DIR = s"$LOG_DIR/analyze"
 val INJECT_LOG_DIR = s"$LOG_DIR/inject"
 val EVAL_LOG_DIR = s"$LOG_DIR/eval"

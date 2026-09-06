@@ -82,11 +82,9 @@ class Compiler(
       "FinishDynamicImport".r,
       "INTRINSICS\\.Object\\.fromEntries".r,
       "AsyncFromSyncIteratorContinuation".r,
-      // CreateResolvingFunctions
+      "CreateResolvingFunctions".r,
       "NewPromiseCapability".r,
-      // PerformPromiseAll
-      // PerformPromiseAllSettled
-      // PerformPromiseAny
+      "PerformPromise.*".r, // All|Any|Race|Then|AllSettled
       "INTRINSICS.Promise.prototype.finally".r,
       "AsyncGeneratorAwaitReturn".r,
       "INTRINSICS.Proxy.revocable".r,
@@ -299,25 +297,35 @@ class Compiler(
     case RemoveContextStep(_, _) =>
       fb.addInst(IPop(fb.newTId, EGLOBAL_EXECUTION_STACK, true))
     case AssertStep(cond) =>
-      fb.addInst(IAssert(compile(fb, cond)))
+      if needsShortCircuit(cond) then
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(
+          compileShortCircuit(fb, x, cond),
+          IAssert(xExpr),
+        )
+      else fb.addInst(IAssert(compile(fb, cond)))
     case IfStep(cond, thenStep, elseStep, _) =>
-      import CompoundConditionOperator.*
-      // apply shortcircuit for invoke expression
-      val condExpr = cond match
-        case CompoundCondition(_, And | Or, right) if hasInvokeExpr(right) =>
-          val (x, _) = fb.newTIdWithExpr
-          fb.addInst(compileShortCircuit(fb, x, cond, thenStep, elseStep))
-        case _ =>
-          val condExpr = compile(fb, cond)
-          fb.addInst(
-            IIf(
-              condExpr,
-              compileWithScope(fb, thenStep),
-              elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-              // AST child existence is statically determined in base SDOs
-              isFiltered = fb.isBaseSDO && isExistsOnThis(condExpr),
-            ),
-          )
+      if needsShortCircuit(cond) then
+        val (x, xExpr) = fb.newTIdWithExpr
+        fb.addInst(
+          compileShortCircuit(fb, x, cond),
+          IIf(
+            xExpr,
+            compileWithScope(fb, thenStep),
+            elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+          ),
+        )
+      else
+        val condExpr = compile(fb, cond)
+        fb.addInst(
+          IIf(
+            condExpr,
+            compileWithScope(fb, thenStep),
+            elseStep.fold(emptyInst)(compileWithScope(fb, _)),
+            // AST child existence is statically determined in base SDOs
+            isFiltered = fb.isBaseSDO && isExistsOnThis(condExpr),
+          ),
+        )
     case RepeatStep(cond, body) =>
       import RepeatStep.LoopCondition.*
       val expr = cond match
@@ -570,7 +578,7 @@ class Compiler(
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, AUX_FLAT_LIST, List(EList(es.map(compile(fb, _))))))
         xExpr
-      case ListCopyExpression(expr) => ECopy(compile(fb, expr))
+      case CopyExpression(expr, _) => ECopy(compile(fb, expr))
       case RecordExpression(rawName, fields, _) =>
         val tname = Type.normalizeName(rawName)
         var props = (for {
@@ -705,6 +713,9 @@ class Compiler(
           case (Min, _)         => EVariadic(VOp.Min, args.map(compile(fb, _)))
           case (Abs, List(arg)) => EUnary(UOp.Abs, compile(fb, arg))
           case (Floor, List(arg)) => EUnary(UOp.Floor, compile(fb, arg))
+          case (Log10, List(arg)) => EMathOp(MOp.Log10, List(compile(fb, arg)))
+          case (Log2, List(arg))  => EMathOp(MOp.Log2, List(compile(fb, arg)))
+          case (Log, List(arg))   => EMathOp(MOp.Log, List(compile(fb, arg)))
           case (Truncate, List(arg)) =>
             val (x, xExpr) = fb.newTIdWithExpr
             fb.addInst(
@@ -727,7 +738,7 @@ class Compiler(
           case ToCodeUnit     => EConvert(COp.ToCodeUnit, compile(fb, expr))
       case ExponentiationExpression(base, power) =>
         EBinary(BOp.Pow, compile(fb, base), compile(fb, power))
-      case BinaryExpression(left, op, right) =>
+      case BinaryExpression(left, op, right, _) =>
         EBinary(compile(op), compile(fb, left), compile(fb, right))
       case UnaryExpression(op, expr) =>
         EUnary(compile(op), compile(fb, expr))
@@ -795,8 +806,6 @@ class Compiler(
       case (Sub, List(l, r))   => EBinary(BOp.Sub, l, r)
       case (Pow, List(l, r))   => EBinary(BOp.Pow, l, r)
       case (Expm1, List(e))    => EMathOp(MOp.Expm1, List(e))
-      case (Log10, List(e))    => EMathOp(MOp.Log10, List(e))
-      case (Log2, List(e))     => EMathOp(MOp.Log2, List(e))
       case (Cos, List(e))      => EMathOp(MOp.Cos, List(e))
       case (Cbrt, List(e))     => EMathOp(MOp.Cbrt, List(e))
       case (Exp, List(e))      => EMathOp(MOp.Exp, List(e))
@@ -810,8 +819,6 @@ class Compiler(
       case (Asin, List(e))     => EMathOp(MOp.Asin, List(e))
       case (Atan2, List(x, y)) => EMathOp(MOp.Atan2, List(x, y))
       case (Atan, List(e))     => EMathOp(MOp.Atan, List(e))
-      case (Log1p, List(e))    => EMathOp(MOp.Log1p, List(e))
-      case (Log, List(e))      => EMathOp(MOp.Log, List(e))
       case (Sin, List(e))      => EMathOp(MOp.Sin, List(e))
       case (Sqrt, List(e))     => EMathOp(MOp.Sqrt, List(e))
       case (Tan, List(e))      => EMathOp(MOp.Tan, List(e))
@@ -871,6 +878,10 @@ class Compiler(
         case "π" => EGLOBAL_MATH_PI
         case _   => EYet(s"<mathematical constant: $name>")
       if (pre == 1) expr else EBinary(BOp.Mul, EMath(pre), expr)
+    case ConstantLiteral(name) =>
+      spec.constantMap.get(name) match
+        case Some(const) => compile(fb, const.value)
+        case None        => EYet(s"<constant: $name>")
     case NumberLiteral(n)       => ENumber(n)
     case BigIntLiteral(n)       => EBigInt(n)
     case TrueLiteral()          => EBool(true)
@@ -903,9 +914,15 @@ class Compiler(
         val e = compile(fb, expr)
         val c = tys.map(t => ETypeCheck(e, compile(t))).reduce[Expr](or(_, _))
         if (neg) not(c) else c
-      case HasFieldCondition(ref, neg, field, _) =>
-        val e = exists(toRef(compile(fb, ref), compile(fb, field)))
-        if (neg) not(e) else e
+      case HasFieldCondition(ref, neg, field, _, tyOpt) =>
+        val r = compile(fb, ref)
+        val el = field.map { f =>
+          val e = toRef(r, compile(fb, f))
+          val ex = exists(e)
+          val tc = tyOpt.fold(ex)(t => and(ex, ETypeCheck(ERef(e), compile(t))))
+          if (neg) not(tc) else tc
+        }
+        el.reduce(and(_, _))
       case HasBindingCondition(ref, neg, binding) =>
         val e = exists(
           toRef(compile(fb, ref), EStr(INNER_MAP), compile(fb, binding)),
@@ -919,65 +936,75 @@ class Compiler(
             fb.ntBindings ++= List((rhsName, base, Some(0)))
             ETypeCheck(base, IRType(AstT(lhsName, rhsIdx)))
           case None => EYet(cond.toString(true, false))
-      case PredicateCondition(expr, neg, op) =>
+      case PredicateCondition(exprs, neg, op) =>
         import PredicateConditionOperator.*
-        val x = compile(fb, expr)
-        val cond = op match {
-          case Abrupt =>
-            val tv = toERef(fb, x, EStr("Type"))
-            and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
-          case NeverAbrupt =>
-            val tv = toERef(fb, x, EStr("Type"))
-            or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
-          case op @ (Normal | Throw | Return | Break | Continue) =>
-            val tv = toERef(fb, x, EStr("Type"))
-            val expected = op match
-              case Normal   => EENUM_NORMAL
-              case Throw    => EENUM_THROW
-              case Return   => EENUM_RETURN
-              case Break    => EENUM_BREAK
-              case Continue => EENUM_CONTINUE
-            and(isCompletion(x), is(tv, expected))
-          case Finite =>
-            not(
-              or(is(x, ENumber(Double.NaN)), or(is(x, posInf), is(x, negInf))),
-            )
-          case Duplicated =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
-            bExpr
-          case Present =>
-            x match
-              case ERef(Name(name))
-                  if fb.isBuiltin && fb.builtinBindings.contains(name) =>
-                exists(Field(NAME_ARGS, EStr(name)))
-              case _ => exists(x)
-          case Empty      => is(ESizeOf(x), zero)
-          case StrictMode => T // XXX assume strict mode
-          case ArrayIndex =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, AUX_IS_ARRAY_INDEX, List(x)))
-            bExpr
-          case FalseToken => is(ESourceText(x), EStr("false"))
-          case TrueToken  => is(ESourceText(x), EStr("true"))
-          case DataProperty =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, dataPropClo, List(x)))
-            bExpr
-          case AccessorProperty =>
-            val (b, bExpr) = fb.newTIdWithExpr
-            fb.addInst(ICall(b, accessorPropClo, List(x)))
-            bExpr
-          case FullyPopulated =>
-            val dataFields =
-              List("Value", "Writable", "Enumerable", "Configurable")
-            val accessorFields =
-              List("Get", "Set", "Enumerable", "Configurable")
-            or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
-          case Nonterminal =>
-            EInstanceOf(x, EGrammarSymbol("", Nil))
+        val es = for (expr <- exprs) yield {
+          val x = compile(fb, expr)
+          val cond = op match {
+            case Abrupt =>
+              val tv = toERef(fb, x, EStr("Type"))
+              and(isCompletion(x), not(is(tv, EENUM_NORMAL)))
+            case NeverAbrupt =>
+              val tv = toERef(fb, x, EStr("Type"))
+              or(not(isCompletion(x)), is(tv, EENUM_NORMAL))
+            case op @ (Normal | Throw | Return | Break | Continue) =>
+              val tv = toERef(fb, x, EStr("Type"))
+              val expected = op match
+                case Normal   => EENUM_NORMAL
+                case Throw    => EENUM_THROW
+                case Return   => EENUM_RETURN
+                case Break    => EENUM_BREAK
+                case Continue => EENUM_CONTINUE
+              and(isCompletion(x), is(tv, expected))
+            case Finite | FiniteNumber | NonZeroFiniteNumber =>
+              def isTy(ty: ValueTy): Expr = ETypeCheck(x, IRType(ty))
+              val finiteNum =
+                and(isTy(NumberT), not(isTy(InfiniteNumberT || NaNT)))
+              op match
+                // TODO: "finite" is currently used for all three kinds of
+                // numeric values ; once tc39/ecma262#3911 lands and reserves it
+                // for mathematical values, keep only `MathT`.
+                case Finite => or(finiteNum, isTy(MathT || BigIntT))
+                case NonZeroFiniteNumber => and(finiteNum, isTy(NonZeroNumberT))
+                case _                   => finiteNum
+            case Duplicated =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
+              bExpr
+            case Present =>
+              x match
+                case ERef(Name(name))
+                    if fb.isBuiltin && fb.builtinBindings.contains(name) =>
+                  exists(Field(NAME_ARGS, EStr(name)))
+                case _ => exists(x)
+            case Empty      => is(ESizeOf(x), zero)
+            case StrictMode => T // XXX assume strict mode
+            case ArrayIndex =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, AUX_IS_ARRAY_INDEX, List(x)))
+              bExpr
+            case FalseToken => is(ESourceText(x), EStr("false"))
+            case TrueToken  => is(ESourceText(x), EStr("true"))
+            case DataProperty =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, dataPropClo, List(x)))
+              bExpr
+            case AccessorProperty =>
+              val (b, bExpr) = fb.newTIdWithExpr
+              fb.addInst(ICall(b, accessorPropClo, List(x)))
+              bExpr
+            case FullyPopulated =>
+              val dataFields =
+                List("Value", "Writable", "Enumerable", "Configurable")
+              val accessorFields =
+                List("Get", "Set", "Enumerable", "Configurable")
+              or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
+            case Nonterminal =>
+              EInstanceOf(x, EGrammarSymbol("", Nil))
+          }
+          if (neg) not(cond) else cond
         }
-        if (neg) not(cond) else cond
+        es.reduce(and(_, _))
       case IsAreCondition(left, neg, right) =>
         val es = for (lexpr <- left) yield {
           val l = compile(fb, lexpr)
@@ -1099,50 +1126,53 @@ class Compiler(
     fb.addInst(renamed)
     EUndef() // NOTE: unused expression
 
-  /** handle short circuiting */
+  /** evaluate a condition with short-circuit semantics and store it in `x` */
   def compileShortCircuit(
     fb: FuncBuilder,
     x: Ref,
     cond: Condition,
-    thenStep: Step,
-    elseStep: Option[Step],
   ): Inst = fb.withLang(cond) {
     val xExpr = toERef(x)
     import CompoundConditionOperator.*
     fb.newScope {
-      fb.addInst(
-        cond match
-          case CompoundCondition(left, And, right) =>
-            ISeq(
-              IAssign(x, compile(fb, left)) ::
-              IIf(
-                xExpr,
-                compileShortCircuit(fb, x, right, thenStep, elseStep),
-                elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-              ) :: Nil,
-            )
-          case CompoundCondition(left, Or, right) =>
-            ISeq(
-              IAssign(x, compile(fb, left)) ::
-              IIf(
-                xExpr,
-                // thenStep is "copied". maybe bad
-                compileWithScope(fb, thenStep),
-                compileShortCircuit(fb, x, right, thenStep, elseStep),
-              ) :: Nil,
-            )
-          case _ =>
-            ISeq(
-              IAssign(x, compile(fb, cond)) ::
-              IIf(
-                xExpr,
-                compileWithScope(fb, thenStep),
-                elseStep.fold(emptyInst)(compileWithScope(fb, _)),
-              ) :: Nil,
+      cond match
+        case CompoundCondition(left, And, right) =>
+          fb.addInst(
+            compileShortCircuit(fb, x, left),
+            IIf(
+              xExpr,
+              compileShortCircuit(fb, x, right),
+              emptyInst,
             ),
-      )
+          )
+        case CompoundCondition(left, Or, right) =>
+          fb.addInst(
+            compileShortCircuit(fb, x, left),
+            IIf(
+              xExpr,
+              emptyInst,
+              compileShortCircuit(fb, x, right),
+            ),
+          )
+        case CompoundCondition(left, Imply, right) =>
+          fb.addInst(
+            compileShortCircuit(fb, x, left),
+            IIf(
+              xExpr,
+              compileShortCircuit(fb, x, right),
+              // the implication vacuously holds when the premise is false
+              IAssign(x, EBool(true)),
+            ),
+          )
+        case _ => fb.addInst(IAssign(x, compile(fb, cond)))
     }
   }
+
+  /** check whether an invoke expression is conditionally evaluated */
+  def needsShortCircuit(cond: Condition): Boolean = cond match
+    case CompoundCondition(left, _, right) =>
+      hasInvokeExpr(right) || needsShortCircuit(left)
+    case _ => false
 
   /** check if condition contains invoke expression */
   def hasInvokeExpr(cond: Condition): Boolean = {

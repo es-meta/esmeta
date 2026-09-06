@@ -10,6 +10,7 @@ case class Summary(
   algos: AlgorithmSummary = AlgorithmSummary(), // abstract algorithms
   steps: StepSummary = StepSummary(), // abstract algorithms steps
   types: TypeSummary = TypeSummary(), // types
+  constants: Int = 0, // constants defined by `emu-eqn` elements
   tables: Int = 0, // tables
   tyModel: Int = 0, // type models
   intrinsics: Int = 0, // intrinsics
@@ -19,7 +20,8 @@ case class Summary(
 object Summary extends Parser.From[Summary](Parser.summary) {
   def apply(spec: Spec): Summary = if (!spec.isEmpty) {
     import ProductionKind.*
-    val Spec(version, grammar, algos, tables, tyModel, intrinsics) = spec
+    val Spec(version, grammar, algos, constants, tables, tyModel, intrinsics) =
+      spec
     val Grammar(prods, prodsForWeb) = grammar
     val prodsBy = prods.groupBy(_.kind)
     val completeAlgos = spec.completeAlgorithms.length
@@ -49,6 +51,7 @@ object Summary extends Parser.From[Summary](Parser.summary) {
         known = knownTypes,
         yet = yetTypes,
       ),
+      constants = constants.length,
       tables = tables.size,
       tyModel = tyModel.decls.size,
       intrinsics = intrinsics.models.length,

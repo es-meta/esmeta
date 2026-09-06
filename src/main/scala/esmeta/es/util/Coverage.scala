@@ -85,22 +85,20 @@ case class Coverage(
     script: Script,
     ast: Option[Ast] = None,
   ): (State, Boolean, Boolean) =
-    val sourceText = script.code
-    val interp = run(
-      sourceText,
-      ast.getOrElse(scriptParser.from(sourceText)),
-      Some(script.name),
-    )
+    val (theAst, code) = ast match
+      case Some(a) => (a, script.code)
+      case None    => scriptParser.fromWithSourceText(script.code)
+    val interp = run(code, theAst, Some(script.name))
     this.synchronized(check(script, interp))
 
   /** evaluate a given ECMAScript program */
   def run(sourceText: String): Interp =
-    val ast = scriptParser.from(sourceText)
-    run(sourceText, ast, None)
+    val (ast, code) = scriptParser.fromWithSourceText(sourceText)
+    run(code, ast, None)
 
   /** evaluate a given ECMAScript program */
   def run(sourceText: String, ast: Ast, name: Option[String]): Interp =
-    val initSt = cfg.init.from(sourceText, Some(ast), name)
+    val initSt = cfg.init.from(sourceText, ast, name)
     val interp =
       Interp(initSt, tyCheck, kFs, cp, timeLimit, isTargetNode, isTargetBranch)
     interp.result; interp

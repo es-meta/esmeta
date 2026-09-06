@@ -265,10 +265,15 @@
     "language/identifiers/start-unicode-16.0.0-escaped",
     "language/identifiers/start-unicode-16.0.0-class",
     "language/identifiers/start-unicode-16.0.0-class-escaped",
+    "language/identifiers/start-unicode-17.0.0",
+    "language/identifiers/start-unicode-17.0.0-escaped",
+    "language/identifiers/start-unicode-17.0.0-class",
+    "language/identifiers/start-unicode-17.0.0-class-escaped",
     "language/types/string/S8.4_A6.1",
     "language/types/string/S8.4_A6.2"
   ],
   "precision": [
+    "built-ins/Math/sumPrecise/sum",
     "language/expressions/does-not-equals/bigint-and-number-extremes",
     "language/expressions/equals/bigint-and-number-extremes",
     "language/expressions/greater-than-or-equal/bigint-and-number-extremes",

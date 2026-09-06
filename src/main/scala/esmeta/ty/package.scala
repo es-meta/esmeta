@@ -72,8 +72,8 @@ lazy val RegExpT: ValueTy = RecordT("RegExp")
 lazy val ESPrimT: ValueTy = ValueTy(
   record = RecordTy("Symbol"),
   number = NumberTy.Top,
-  bigInt = Many,
-  str = Many,
+  bigInt = true,
+  str = Inf,
   bool = BoolTy.Top,
   undef = true,
   nullv = true,
@@ -142,23 +142,23 @@ lazy val NumberNonNegIntT: ValueTy = ValueTy(number = NumberTy.NonNegInt)
 lazy val NumberNegIntT: ValueTy = ValueTy(number = NumberTy.NegInt)
 lazy val NumberPosIntT: ValueTy = ValueTy(number = NumberTy.PosInt)
 lazy val NaNT: ValueTy = ValueTy(number = NumberTy.NaN)
-def NumberT(ds: Double*): ValueTy =
-  if (ds.isEmpty) BotT
-  else ValueTy(number = NumberSetTy(ds.map(Number(_)).toSet))
+def NumberT(ns: Number*): ValueTy =
+  if (ns.isEmpty) BotT
+  else ValueTy(number = NumberTy(ns.toSet))
 lazy val PosNumberT = ValueTy(number = NumberTy.Pos)
 lazy val NegNumberT = ValueTy(number = NumberTy.Neg)
 lazy val NonPosNumberT = ValueTy(number = NumberTy.NonPos)
 lazy val NonNegNumberT = ValueTy(number = NumberTy.NonNeg)
-lazy val BigIntT: ValueTy = ValueTy(bigInt = Many)
-def BigIntT(n: BigInt): ValueTy = ValueTy(bigInt = One(n))
-def BigIntT(str: String): ValueTy = BigIntT(BigInt(str))
-lazy val StrT: ValueTy = ValueTy(str = Many)
+lazy val InfiniteNumberT: ValueTy = ValueTy(number = NumberTy.Infinite)
+lazy val NonZeroNumberT: ValueTy = ValueTy(number = NumberTy.NonZero)
+lazy val BigIntT: ValueTy = ValueTy(bigInt = true)
+lazy val StrT: ValueTy = ValueTy(str = Inf)
 def StrT(set: Set[String]): ValueTy =
   if (set.isEmpty) BotT
-  else ValueTy(str = Flat(set))
+  else ValueTy(str = Fin(set))
 def StrT(xs: String*): ValueTy =
   if (xs.isEmpty) BotT
-  else ValueTy(str = Flat(xs.toSet))
+  else ValueTy(str = Fin(xs.toSet))
 def BoolT(set: Set[Boolean]): ValueTy =
   if (set.isEmpty) BotT
   else ValueTy(bool = BoolTy(set))

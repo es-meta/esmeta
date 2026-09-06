@@ -41,7 +41,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   def walk(subStep: SubStep): Unit =
     val SubStep(directive, step) = subStep
-    walkOpt(directive, walk); walk(step)
+    walkList(directive, walk); walk(step)
 
   def walk(directive: Directive): Unit =
     val Directive(name, values) = directive
@@ -132,7 +132,7 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case ListConcatExpression(exprs) =>
       walkList(exprs, walk)
-    case ListCopyExpression(expr) =>
+    case CopyExpression(expr, _) =>
       walk(expr)
     case RecordExpression(ty, fields, _) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) });
@@ -160,8 +160,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(op); walkList(args, walk)
     case BitwiseExpression(left, op, right) =>
       walk(left); walk(op); walk(right)
-    case invoke: InvokeExpression =>
-      walk(invoke)
     case ListExpression(form) =>
       import ListExpressionForm.*
       form match
@@ -207,10 +205,12 @@ trait UnitWalker extends BasicUnitWalker {
       walk(op); walk(expr)
     case ExponentiationExpression(base, power) =>
       walk(base); walk(power)
-    case BinaryExpression(left, op, right) =>
+    case BinaryExpression(left, op, right, _) =>
       walk(left); walk(op); walk(right)
     case UnaryExpression(op, expr) =>
       walk(op); walk(expr)
+    case invoke: InvokeExpression =>
+      walk(invoke)
     case lit: Literal =>
       walk(lit)
   }
@@ -257,14 +257,15 @@ trait UnitWalker extends BasicUnitWalker {
       walk(expr)
     case TypeCheckCondition(expr, neg, ty) =>
       walk(expr); walk(neg); walkList(ty, walk)
-    case HasFieldCondition(ref, neg, field, _) =>
-      walk(ref); walk(neg); walk(field)
+    case HasFieldCondition(ref, neg, field, form, tyOpt) =>
+      walk(ref); walk(neg); walkList(field, walk); walk(form);
+      walkOpt(tyOpt, walk)
     case HasBindingCondition(ref, neg, binding) =>
       walk(ref); walk(neg); walk(binding)
     case ProductionCondition(nt, lhs, rhs) =>
-      walk(nt);
-    case PredicateCondition(expr, neg, op) =>
-      walk(expr); walk(neg); walk(op)
+      walk(nt); walk(lhs); walk(rhs)
+    case PredicateCondition(exprs, neg, op) =>
+      walkList(exprs, walk); walk(neg); walk(op)
     case IsAreCondition(ls, neg, rs) =>
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>
@@ -276,6 +277,8 @@ trait UnitWalker extends BasicUnitWalker {
     case CompoundCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
   }
+
+  def walk(form: HasFieldConditionForm): Unit = {}
 
   def walk(op: PredicateConditionOperator): Unit = {}
 
@@ -321,4 +324,5 @@ trait UnitWalker extends BasicUnitWalker {
   def walk(intr: Intrinsic): Unit = {}
 
   def walk(ty: Type): Unit = {}
+
 }

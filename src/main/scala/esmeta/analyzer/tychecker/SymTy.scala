@@ -97,12 +97,12 @@ trait SymTyDecl { self: TyChecker =>
       case SConstruct(base)    => base.bases
       case SNormal(symty)      => symty.bases
 
-    def kill(bases: Set[Base], update: Boolean): Option[SymTy] = this match
-      case t: SymRef      => killRef(t, bases, update)
+    def weaken(bases: Set[Base], update: Boolean): Option[SymTy] = this match
+      case t: SymRef      => weakenRef(t, bases, update)
       case STy(ty)        => Some(STy(ty))
-      case SNormal(symty) => symty.kill(bases, update).map(SNormal(_))
+      case SNormal(symty) => symty.weaken(bases, update).map(SNormal(_))
 
-    def killRef(
+    def weakenRef(
       ref: SymRef,
       bases: Set[Base],
       update: Boolean,
@@ -111,25 +111,44 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(sym) => if (bases contains sym) None else Some(SSym(sym))
       case SField(b, f) =>
         for {
-          b <- killRef(b, bases, update)
-          f <- f.kill(bases, update)
+          b <- weakenRef(b, bases, update)
+          f <- f.weaken(bases, update)
         } yield SField(b, f)
       case SProp(b, prop) =>
         for {
-          b <- killRef(b, bases, update)
+          b <- weakenRef(b, bases, update)
         } yield SProp(b, prop)
       case SCall(base) =>
         for {
-          b <- killRef(base, bases, update)
+          b <- weakenRef(base, bases, update)
         } yield SCall(b)
       case SConstruct(base) =>
         for {
-          b <- killRef(base, bases, update)
+          b <- weakenRef(base, bases, update)
         } yield SConstruct(b)
 
     def isSymbolic: Boolean = this match
       case STy(_) => false
       case _      => true
+
+    def upper(using st: AbsState): ValueTy = ty
+
+    def weaken(effect: Effect)(using st: AbsState): SymTy = this match
+      case STy(ty)        => STy(effect(ty))
+      case SVar(x)        => this
+      case SSym(sym)      => this
+      case SField(b, f)   => SField(weakenRef(b, effect), f.weaken(effect))
+      case SProp(b, p)    => SProp(weakenRef(b, effect), p)
+      case SCall(b)       => SCall(weakenRef(b, effect))
+      case SConstruct(b)  => SConstruct(weakenRef(b, effect))
+      case SNormal(symty) => SNormal(symty.weaken(effect))
+
+    private def weakenRef(ref: SymRef, effect: Effect)(using AbsState): SymRef =
+      (ref: SymTy).weaken(effect).asInstanceOf[SymRef]
+
+    def refine(ty: ValueTy)(using st: AbsState): SymTy =
+      if (this ⊑ STy(ty)) this
+      else STy(this.ty && ty)
 
     /** partial order in same state */
     def ⊑(that: SymTy)(using st: AbsState): Boolean =

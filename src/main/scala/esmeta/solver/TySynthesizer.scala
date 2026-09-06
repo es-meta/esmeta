@@ -29,8 +29,10 @@ class TySynthesizer(cfg: CFG) {
       set.toList.sortBy(n => (n.isNaN, n.double)).map(numberLit)
     }
     numbers ++
-    ty.bigInt.map(n => s"${n}n").toList ++
-    ty.str.map(str => s"\"${normStr(str)}\"").toList ++
+    (ty.str match
+      case Fin(set) => set.toList.map(str => s"\"${normStr(str)}\"")
+      case Inf      => Nil
+    ) ++
     ty.bool.set.toList.sorted.map(b => if (b) "true" else "false") ++
     (if (ty.undef) List("undefined") else Nil) ++
     (if (ty.nullv) List("null") else Nil)
@@ -40,13 +42,10 @@ class TySynthesizer(cfg: CFG) {
 
   private def admitted(lits: SpecLiterals, ty: ValueTy): List[String] =
     lits.numbers.filter(ty.number.contains).map(numberLit) ++
-    (ty.bigInt match
-      case Many => lits.bigInts.map(n => s"${n}n")
-      case _    => Nil
-    ) ++
+    (if (ty.bigInt) lits.bigInts.map(n => s"${n}n") else Nil) ++
     (ty.str match
-      case Many => lits.strings.map(s => "\"" + normStr(s) + "\"")
-      case _    => Nil
+      case Inf => lits.strings.map(s => "\"" + normStr(s) + "\"")
+      case _   => Nil
     )
 
   private def numberLit(n: Number): String =
@@ -385,7 +384,7 @@ class TySynthesizer(cfg: CFG) {
       .getOrElse(field, Vector())
       .toList
       .flatMap { (ty, sub) =>
-        ty.str match
+        ty.str.getSingle match
           case One(name) if name == sub => Some(name)
           case _                        => None
       }
