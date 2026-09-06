@@ -227,8 +227,22 @@ class Injector(
   private lazy val PREFIX_INTRINSIC = "INTRINSICS."
   private def addrToName(addr: Addr): Option[String] = addr match
     case a @ NamedAddr(name) if name.startsWith(PREFIX_INTRINSIC) =>
-      Some(name.substring(PREFIX_INTRINSIC.length))
+      nameToExpr(name.substring(PREFIX_INTRINSIC.length))
     case _ => None
+
+  // an accessor intrinsic is named `get:base.prop` or `get:base[%Symbol.x%]`,
+  // and a symbol key is written `[%Symbol.x%]`; neither is JS syntax
+  private lazy val accessor =
+    raw"(get|set):(.*?)(?:\.([^.\[\]]+)|\[%Symbol\.(\w+)%\])".r
+  private lazy val symbolKey = raw"\[%Symbol\.(\w+)%\]".r
+  private def nameToExpr(name: String): Option[String] =
+    def js(path: String): String =
+      symbolKey.replaceAllIn(path, m => s"[Symbol.${m.group(1)}]")
+    name match
+      case accessor(kind, base, prop, sym) =>
+        val key = if (prop != null) s"\"$prop\"" else s"Symbol.$sym"
+        Some(s"Object.getOwnPropertyDescriptor(${js(base)}, $key).$kind")
+      case _ => Some(js(name))
 
   // handle [[Prototype]]
   private def handlePrototype(addr: Addr, path: String): Unit =
