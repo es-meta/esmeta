@@ -96,15 +96,14 @@ class Fuzzer(
       s"- initializing program pool with ${initPool.size} programs", {
         var i = 1
         for {
-          (synthesizer, initCode) <- initPool
-          rawStr = initCode.toString
-          normalized <- optional(
-            scriptParser.from(rawStr).toString(grammar = Some(grammar)),
+          (synthesizer, rawCode) <- initPool
+          code <- optional(
+            scriptParser.from(rawCode).toString(grammar = Some(grammar)),
           )
         } {
-          debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $normalized")
+          debugging(f"[${synthesizer}:$i/${initPool.size}%-30s] $code")
           i += 1
-          add(normalized, initCode)
+          add(code)
         }
       },
     )
@@ -153,14 +152,18 @@ class Fuzzer(
     debugging(f"[$selectorInfo%-30s] $code")
     debugFlush
 
-    val mutants: List[(Mutator.Result, CandInfo)] =
-      val results = mutator(code, 100, condView.map((_, cov))).par
-      results.map(result => (result, getCandInfo(result.code))).toList
+    val mutants = mutator(code, 100, condView.map((_, cov)))
+      .map(res => (res.name, res.ast.toString(grammar = Some(grammar))))
+      .distinctBy(_._2)
+      .toArray
+      .par
+      .map((name, code) => (name, code, getCandInfo(code)))
+      .toList
 
-    for ((res @ Mutator.Result(mutatorName, mutantCode), info) <- mutants)
-      debugging(f"----- $mutatorName%-20s-----> ${res.code}")
+    for ((mutatorName, mutatedCode, info) <- mutants)
+      debugging(f"----- $mutatorName%-20s-----> $mutatedCode")
 
-      val result = add(res.code, info, mutantCode)
+      val result = add(mutatedCode, info)
       update(selectorName, selectorStat, result)
       update(mutatorName, mutatorStat, result)
 
@@ -182,15 +185,12 @@ class Fuzzer(
     else CandInfo(interp = Some(Try(cov.run(code))))
 
   /** add new program */
-  def add(code: String): Boolean =
-    add(code, getCandInfo(code), Code.Simple(code))
-  def add(code: String, codeObj: Code): Boolean =
-    add(code, getCandInfo(code), codeObj)
+  def add(code: String): Boolean = add(code, getCandInfo(code))
 
-  /** add mutant with precomputed info */
-  def add(mutant: String, info: CandInfo, codeObj: Code): Boolean =
+  /** add new program with precomputed info */
+  def add(code: String, info: CandInfo): Boolean =
     handleResult(
-      mutant,
+      code,
       Try {
         if (info.visited) fail("ALREADY VISITED")
         if (info.invalid) fail("INVALID PROGRAM")
@@ -199,8 +199,8 @@ class Fuzzer(
           case Failure(e) => throw e
         val finalState = interp.result
         val supported = interp.supported
-        val script = toScript(codeObj, supported)
-        if (tyCheck) collector.add(mutant, finalState.typeErrors)
+        val script = toScript(code, supported)
+        if (tyCheck) collector.add(code, finalState.typeErrors)
         val (_, updated, covered) = cov.check(script, interp)
         if (!updated) fail("NO UPDATE")
         (covered, supported)
@@ -255,11 +255,11 @@ class Fuzzer(
 
   /** mutator */
   val mutator: Mutator = WeightedMutator(
-    NearestMutator() -> 6,
-    RandomMutator() -> 3,
-    StatementInserter() -> 1,
-    Remover() -> 1,
-    SpecStringMutator() -> 1,
+    NearestMutator(),
+    RandomMutator(),
+    StatementInserter(),
+    Remover(),
+    SpecStringMutator(),
   )
 
   /** mutator stat */
@@ -272,13 +272,12 @@ class Fuzzer(
       case Some(files) =>
         files.map { file =>
           val sourceText = readFile(file.getPath).replace(USE_STRICT, "")
-          "GivenByUser" -> Code.Simple(sourceText)
+          "GivenByUser" -> sourceText
         }
       case None =>
-        // FIXME: use only builtin init pool for experiment
-        // val simpleSyn = SimpleSynthesizer(grammar)
+        val simpleSyn = SimpleSynthesizer(grammar)
         val builtinSyn = BuiltinSynthesizer(cfg.spec.algorithms)
-        // simpleSyn.initPool.map(code => simpleSyn.name -> code) ++
+        simpleSyn.initPool.map(code => simpleSyn.name -> code) ++
         builtinSyn.initPool.map(code => builtinSyn.name -> code)
 
   lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
@@ -302,7 +301,7 @@ class Fuzzer(
   private def interval: Long = System.currentTimeMillis - startInterval
 
   // conversion from code string to `Script` object
-  private def toScript(code: Code, supported: Boolean): Script =
+  private def toScript(code: String, supported: Boolean): Script =
     Script(code, s"$nextId.js", supported)
 
   // check if the added code is visited (thread-safe)

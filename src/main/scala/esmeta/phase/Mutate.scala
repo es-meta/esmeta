@@ -27,7 +27,7 @@ case object Mutate extends Phase[CFG, String] {
     val coveredCondView: Option[CondView] = config.targetBranchId.map { id =>
       val interp = cov.run(code)
       // update targetCondViews on the coverage object
-      cov.check(Script(Code.Simple(code), "seed", true), interp)
+      cov.check(Script(code, "seed"), interp)
       interp.touchedCondViews.keySet
         .filter(_.cond.branch.id == id)
         .headOption
@@ -41,7 +41,7 @@ case object Mutate extends Phase[CFG, String] {
       val funcName = cfg.funcOf.get(cv.cond.branch).map(_.name).getOrElse("?")
       val targets = cov.targetCondViews
         .getOrElse(cv.cond, Map())
-        .getOrElse(cv.view, Set())
+        .getOrElse(cv.view, None)
       println(s"[mutate] covered: ${cv.cond.simpleString} (@ $funcName)")
       println(s"[mutate] target: ${cv.neg.cond.simpleString} (@ $funcName)")
       println(s"[mutate] program: ${setColor(CYAN)(code.trim())}")
@@ -68,7 +68,8 @@ case object Mutate extends Phase[CFG, String] {
       if (trialExceeded) throw TimeoutException("mutate: trial exceeded")
 
     def nextMutant(): String =
-      val result = mutator(code, coveredCondView.map((_, cov))).code
+      val result = mutator(code, 1, coveredCondView.map((_, cov))).head.ast
+        .toString(grammar = Some(cfg.grammar))
       val ppResult = s"----- iter: $iter -----> ${result.trim()}"
       iter += 1
       if (config.debug) println(ppResult)

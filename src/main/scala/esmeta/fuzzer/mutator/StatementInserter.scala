@@ -3,8 +3,9 @@ package esmeta.fuzzer.mutator
 import esmeta.es.*
 import esmeta.es.util.{Walker => AstWalker}
 import esmeta.es.util.*
-import esmeta.fuzzer.*
-import esmeta.fuzzer.synthesizer.{Synthesizer, RandomSynthesizer}
+import esmeta.es.util.Coverage.*
+import esmeta.spec.Grammar
+import esmeta.fuzzer.synthesizer.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
 
@@ -13,7 +14,8 @@ class StatementInserter(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator
   with Util.MultiplicativeListWalker {
-  import Mutator.*, StatementInserter.*, Coverage.*
+  import StatementInserter.*
+  import Mutator.*
 
   val randomMutator = RandomMutator()
 
@@ -21,35 +23,48 @@ class StatementInserter(using cfg: CFG)(
 
   val synthesizer = synBuilder(cfg.grammar)
 
-  /** mutate ASTs */
+  /** default weight for StatementInserter is 1 */
+  def calculateWeight(ast: Ast): Int = 1
+
+  /** mutate a program */
   def apply(
     ast: Ast,
     n: Int,
-    target: Option[(CondView, Coverage)],
-  ): Seq[Ast] =
+    _target: Option[(CondView, Coverage)],
+  ): Seq[Result] = {
     // count the number of stmtLists
     val k = stmtListCounter(ast)
 
-    if (k == 0) randomMutator(ast, n, target)
+    if (k == 0) randomMutator(ast, n, _target)
     else if (n == 1)
       // Insert one statement with 80% probability
-      k1 = k - 1; c1 = 1; k2 = 1; c2 = 5
-      shuffle(walk(ast)).take(n)
+      k1 = k - 1
+      c1 = 1
+      k2 = 1
+      c2 = 5
+
+      sample(ast, n)
     else {
       // calculate the most efficient parameters
       val (kc1, kc2) = calcParam(n, k)
       k1 = kc1._1; c1 = kc1._2
       k2 = kc2._1; c2 = kc2._2
-      shuffle(walk(ast)).take(n)
+      sample(ast, n)
     }
+  }
 
   /** parameter for sampler */
   private var (c1, c2, k1, k2) = (0, 0, 0, 0)
 
+  private def sample(ast: Ast, n: Int): Seq[Result] =
+    shuffle(walk(ast)).take(n).map(Result(name, _))
+
   private def decideGenNum =
-    if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then { k1 -= 1; c1 }
-    else if k2 > 0 then { k2 -= 1; c2 }
-    else throw new Error("This is a bug in StatementInserter")
+    if k1 > 0 && randBool(k1 / (k1 + k2 + 0.0)) then
+      k1 -= 1; c1
+    else if k2 > 0 then
+      k2 -= 1; c2
+    else throw new Error("This is a bug in Stmt Inserter")
 
   /** generate a new statement list item, either randomly or manually */
   private def newStmtItem(args: List[Boolean]) = choose(
@@ -62,90 +77,87 @@ class StatementInserter(using cfg: CFG)(
     Syntactic(STATEMENT_LIST, item.args, 0, Vector(Some(item)))
 
   /** ast walker */
-  override def walk(ast: Syntactic): List[Syntactic] =
-    ast match
-      // singleton statement list
-      case Syntactic(STATEMENT_LIST, args, 0, _) =>
-        val genNum = decideGenNum
-        val mutants = super.walk(ast)
-        List
-          .tabulate(genNum) {
-            case 0 => mutants
-            case _ =>
-              val newStmt = newStmtItem(args)
-              mutants.map { mutant =>
-                Syntactic(
-                  STATEMENT_LIST,
-                  args,
-                  1,
-                  if randBool then Vector(Some(mutant), Some(newStmt))
-                  else Vector(Some(item2list(newStmt)), mutant.children(0)),
-                )
-              }
-          }
-          .flatten
-
-      // long statement list
-      case Syntactic(STATEMENT_LIST, args, 1, _) =>
-        val genNum = decideGenNum
-        val mutants = super.walk(ast)
-        List
-          .tabulate(genNum) {
-            case 0 => mutants
-            case _ =>
-              val newStmt = newStmtItem(args)
-              mutants.map { mutant =>
-                Syntactic(
-                  STATEMENT_LIST,
-                  args,
-                  1,
-                  Vector(Some(mutant), Some(newStmt)),
-                )
-              }
-          }
-          .flatten
-
-      // ast who has an empty statement list as a child
-      case _ if containsEmptyStatementList(ast) =>
-        val Syntactic(name, args, rhsIdx, children) = ast
-        val container =
-          STATEMENT_LIST_OPTIONAL_CONTAINERS.find(_._1 == name).get
-
-        // get args for new stmt to be added
-        val rhsArgModifier = container._4.toList
-        val newArgs = rhsArgModifier.zipWithIndex.map {
-          case (-1, _) => false
-          case (0, i)  => optional(args(i)).getOrElse(false)
-          case (1, _)  => true
-          case _       => false
-        }
-
-        // generate new stmts
-        val genNum = decideGenNum
-        val newStmts = List.tabulate(genNum) {
-          case 0 => None
-          case _ =>
-            val item = newStmtItem(newArgs)
-            Some(item2list(item))
-        }
-
-        // change children
-        val childIdx = container._3
-        val newChildrens =
-          children.zipWithIndex.foldRight(List(Vector[Option[Ast]]())) {
-            case ((child, i), childrens) =>
-              for {
-                child <-
-                  if (i == childIdx) newStmts
-                  else walkOpt(child)
-                children <- childrens
-              } yield (child +: children)
-          }
-        newChildrens.map(newChildren =>
-          Syntactic(name, args, rhsIdx, newChildren),
+  override def walk(ast: Syntactic): List[Syntactic] = ast match
+    // singleton statement list
+    case Syntactic(STATEMENT_LIST, args, 0, _) =>
+      val genNum = decideGenNum
+      val mutants = super.walk(ast)
+      List
+        .tabulate(genNum)(_ match
+          case 0 => // do Nothing
+            mutants
+          case _ => // append a stmt either front or behind
+            val newStmt = newStmtItem(args)
+            mutants.map(mutant =>
+              Syntactic(
+                STATEMENT_LIST,
+                args,
+                1,
+                if randBool then Vector(Some(mutant), Some(newStmt))
+                else Vector(Some(item2list(newStmt)), mutant.children(0)),
+              ),
+            ),
         )
+        .flatten
 
-      case _ => super.walk(ast)
+    // long statement list
+    case Syntactic(STATEMENT_LIST, args, 1, _) =>
+      val genNum = decideGenNum
+      val mutants = super.walk(ast)
+      List
+        .tabulate(genNum)(_ match
+          case 0 => // do Nothing
+            mutants
+          case _ => // append a stmt behind
+            val newStmt = newStmtItem(args)
+            mutants.map(mutant =>
+              Syntactic(
+                STATEMENT_LIST,
+                args,
+                1,
+                Vector(Some(mutant), Some(newStmt)),
+              ),
+            ),
+        )
+        .flatten
+
+    // ast who has an empty statement list as a child
+    case _ if containsEmptyStatementList(ast) =>
+      val Syntactic(name, args, rhsIdx, children) = ast
+      val container = STATEMENT_LIST_OPTIONAL_CONTAINERS.find(_._1 == name).get
+
+      // get args for new stmt to be added
+      val rhsArgModifier = container._4.toList
+      val newArgs = rhsArgModifier.zipWithIndex.map {
+        case (-1, _) => false
+        case (0, i)  => optional(args(i)).getOrElse(false)
+        case (1, _)  => true
+        case _       => false
+      }
+
+      // generate new stmts
+      val genNum = decideGenNum
+      val newStmts = List.tabulate(genNum)(_ match
+        case 0 => None
+        case _ => Some(item2list(newStmtItem(newArgs))),
+      )
+
+      // change children
+      val childIdx = container._3
+      val newChildrens =
+        children.zipWithIndex.foldRight(List(Vector[Option[Ast]]())) {
+          case ((child, i), childrens) => {
+            for {
+              child <- if (i == childIdx) newStmts else walkOpt(child)
+              children <- childrens
+            } yield (child +: children)
+          }
+        }
+      newChildrens.map(newChildren =>
+        Syntactic(name, args, rhsIdx, newChildren),
+      )
+
+    case _ => super.walk(ast)
 
   // TODO: generalize to case where length of args is not 3
   lazy val manualStmtItems: Map[List[Boolean], List[Syntactic]] = (

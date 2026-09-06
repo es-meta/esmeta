@@ -3,36 +3,32 @@ package esmeta.fuzzer.mutator
 import esmeta.fuzzer.synthesizer.*
 import esmeta.es.*
 import esmeta.es.util.{Walker => AstWalker, *}
-import esmeta.fuzzer.*
+import esmeta.es.util.Coverage.*
 import esmeta.spec.Grammar
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import esmeta.cfg.CFG
 
 /** A mutator selects one of given mutators under weight */
-class WeightedMutator(using cfg: CFG)(pairs: (Mutator, Int)*) extends Mutator {
-  import Mutator.*, Coverage.*
+class WeightedMutator(using cfg: CFG)(
+  val mutators: Seq[Mutator],
+) extends Mutator {
+  import Mutator.*
 
-  /** mutate code */
-  override def apply(
-    code: String,
-    n: Int,
-    target: Option[(CondView, Coverage)],
-  ): Seq[Result] = weightedChoose(pairs)(code, n, target)
+  def calculateWeight(ast: Ast): Int = 0
 
-  /** mutate structured Code */
-  override def apply(
-    code: Code,
-    n: Int,
-    target: Option[(CondView, Coverage)],
-  ): Seq[Result] = weightedChoose(pairs)(code, n, target)
-
-  /** mutate ASTs */
+  /** mutate programs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[Ast] = weightedChoose(pairs)(ast, n, target)
+  ): Seq[Result] =
+    val weights = mutators.map(_.calculateWeight(ast))
+    weightedChoose(mutators zip weights)(ast, n, target)
 
-  val names = pairs.toList.flatMap(_._1.names).sorted.distinct
+  val names = mutators.toList.flatMap(_.names).sorted.distinct
+}
+object WeightedMutator {
+  def apply(mutators: Mutator*)(using CFG): WeightedMutator =
+    new WeightedMutator(mutators)
 }

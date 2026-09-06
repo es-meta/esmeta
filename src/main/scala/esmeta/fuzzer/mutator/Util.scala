@@ -8,12 +8,17 @@ import esmeta.util.*
 
 object Util {
   class AstCounter(pred: Ast => Boolean) extends UnitWalker {
-    def apply(ast: Ast): Int = { _cnt = 0; walk(ast); _cnt }
+    def apply(ast: Ast): Int = {
+      _cnt = 0
+      walk(ast)
+      _cnt
+    }
     private var _cnt = 0
 
-    override def walk(ast: Ast): Unit =
+    override def walk(ast: Ast): Unit = {
       if pred(ast) then _cnt += 1
       super.walk(ast)
+    }
   }
   val simpleAstCounter = new AstCounter(_ => true)
 
@@ -29,6 +34,8 @@ object Util {
     def walk(ast: Syntactic): List[Syntactic]
   }
 
+  private type Childrens = List[Vector[Option[Ast]]]
+
   // should be used carefully because this can explode the size of created program so easily
   trait MultiplicativeListWalker extends ListWalker {
     def preChild(ast: Syntactic, i: Int): Unit = ()
@@ -43,14 +50,12 @@ object Util {
           postChild(ast, i)
           result
         })
-        .foldLeft[List[Vector[Option[Ast]]]](List(Vector()))(
-          (childrens, childs) => {
-            for {
-              childrens <- childrens
-              child <- childs
-            } yield (childrens :+ child)
-          },
-        )
+        .foldLeft[Childrens](List(Vector()))((childrens, childs) => {
+          for {
+            childrens <- childrens
+            child <- childs
+          } yield (childrens :+ child)
+        })
       newChildrens.map(newChildren =>
         Syntactic(name, args, rhsIdx, newChildren),
       )
@@ -80,13 +85,12 @@ object Util {
     def walk(ast: Syntactic): List[Syntactic] =
       val Syntactic(name, args, rhsIdx, children) = ast
       // pair of processed childrens and unprocessed childrens
-      val initStat: (List[Vector[Option[Ast]]], List[Vector[Option[Ast]]]) =
-        (List(), List(Vector()))
+      val initStat: (Childrens, Childrens) = (List(), List(Vector()))
       val newStat = children
-        .foldLeft(initStat)((stat, child) => {
+        .foldLeft[(Childrens, Childrens)](initStat)((stat, child) => {
           val (done, yet) = stat
           val done1 = done.map(_ :+ child)
-          val done2: List[Vector[Option[Ast]]] = for {
+          val done2: Childrens = for {
             child <- walkOpt(child)
             children <- yet
           } yield (children :+ child)
@@ -94,4 +98,5 @@ object Util {
         })
       newStat._1.map(newChildren => Syntactic(name, args, rhsIdx, newChildren))
   }
+
 }

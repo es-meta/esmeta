@@ -124,15 +124,6 @@ sealed trait Ast extends ESElem with Locational {
         }
       }
 
-  /** check if this node matches a target location */
-  def matches(target: Target)(using CFG): Boolean = this match
-    case syn: Syntactic =>
-      syn.name == target.prodName &&
-      syn.rhsIdx == target.idx &&
-      syn.subIdx == target.subIdx &&
-      syn.loc == Some(target.loc)
-    case _ => false
-
   /** not use case class' hash code */
   override def hashCode: Int = super.hashCode
 }

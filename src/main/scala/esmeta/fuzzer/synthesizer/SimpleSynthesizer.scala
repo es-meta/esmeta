@@ -7,7 +7,9 @@ import esmeta.util.BaseUtils.*
 import esmeta.spec.util.GrammarGraph
 
 /** A simple ECMAScript AST synthesizer */
-class SimpleSynthesizer(grammar: Grammar) extends Synthesizer {
+class SimpleSynthesizer(
+  grammar: Grammar,
+) extends Synthesizer {
 
   val graph = GrammarGraph(grammar)
   import graph.*
@@ -28,11 +30,7 @@ class SimpleSynthesizer(grammar: Grammar) extends Synthesizer {
     pool
 
   /** for syntactic production */
-  def apply(
-    name: String,
-    args: List[Boolean],
-    rhsIdx: Option[Int] = None,
-  ): Syntactic =
+  def apply(name: String, args: List[Boolean]): Syntactic =
     val (ast, _) = cache(getSyn(name, args))
     ast.asInstanceOf[Syntactic]
 

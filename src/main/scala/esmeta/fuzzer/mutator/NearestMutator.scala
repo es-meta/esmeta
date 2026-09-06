@@ -1,44 +1,56 @@
 package esmeta.fuzzer.mutator
 
-import esmeta.cfg.CFG
 import esmeta.es.*
-import esmeta.es.util.*
+import esmeta.state.*
+import esmeta.spec.Grammar
 import esmeta.fuzzer.synthesizer.*
+import esmeta.es.util.*
+import esmeta.es.util.Coverage.*
 import esmeta.util.BaseUtils.*
+import esmeta.cfg.CFG
 
 /** A nearest ECMAScript AST mutator */
 class NearestMutator(using cfg: CFG)(
   val synBuilder: Synthesizer.Builder = RandomSynthesizer,
 ) extends Mutator {
-  import Coverage.*, Mutator.*
+  import NearestMutator.*
+  import Mutator.*
 
   val randomMutator = RandomMutator()
 
   val names = "NearestMutator" :: randomMutator.names
 
-  /** synthesizers for localized replacements */
+  /** synthesizer */
   val synthesizer = synBuilder(cfg.grammar)
-  val specStringSynthesizer = SpecStringSynthesizer(synthesizer)
 
-  /** mutate ASTs */
+  /** default weight for NearestMutator is 6 */
+  def calculateWeight(ast: Ast): Int = 6
+
+  /** mutate programs */
   def apply(
     ast: Ast,
     n: Int,
     target: Option[(CondView, Coverage)],
-  ): Seq[Ast] = (for {
+  ): Seq[Result] = (for {
     (condView, cov) <- target
     CondView(cond, view) = condView
-    targets = cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, Set())
-    if targets.nonEmpty
-    nearest = choose(targets)
-  } yield Walker(nearest, n).walk(ast))
+    nearest <- cov.targetCondViews.getOrElse(cond, Map()).getOrElse(view, None)
+  } yield Walker(nearest, n).walk(ast).map(Result(name, _)))
     .getOrElse(randomMutator(ast, n, target))
 
   /** internal walker */
-  class Walker(target: Target, n: Int) extends Util.MultiplicativeListWalker {
+  class Walker(nearest: Nearest, n: Int) extends Util.MultiplicativeListWalker {
+    val Nearest(name, rhsIdx, subIdx, loc) = nearest
     override def walk(ast: Syntactic): List[Syntactic] =
-      if (ast.matches(target)) TotalWalker(ast, n)
-      else super.walk(ast)
+      if (
+        ast.name == name &&
+        ast.rhsIdx == rhsIdx &&
+        ast.subIdx == subIdx &&
+        ast.loc == Some(loc)
+      )
+        TotalWalker(ast, n)
+      else
+        super.walk(ast)
   }
 
   /** internal walker that mutates all internal nodes with same prob. */
@@ -51,9 +63,6 @@ class NearestMutator(using cfg: CFG)(
 
     override def walk(ast: Syntactic): List[Syntactic] =
       val mutants = super.walk(ast)
-      val replacements =
-        List.tabulate(c)(_ => synthesizer(ast)) ++
-        List.tabulate(c)(_ => specStringSynthesizer(ast))
-      replacements ++ mutants
+      List.tabulate(c)(_ => synthesizer(ast)) ++ mutants
   }
 }
