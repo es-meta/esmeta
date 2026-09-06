@@ -1,7 +1,7 @@
 def <BUILTIN>:INTRINSICS.Function.prototype.toString(
   this: ESValue,
   ArgumentsList: List[ESValue],
-  NewTarget: Record[Object] | Undefined,
+  NewTarget: Record[Constructor] | Undefined,
 ): Unknown = {
 
   let func = this

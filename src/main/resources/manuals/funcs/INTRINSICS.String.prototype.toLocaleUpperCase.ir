@@ -1,7 +1,7 @@
 def <BUILTIN>:INTRINSICS.String.prototype.toLocaleUpperCase(
   this: ESValue,
   ArgumentsList: List[ESValue],
-  NewTarget: Record[Object] | Undefined,
+  NewTarget: Record[Constructor] | Undefined,
 ): Unknown = {
   (yet "[YET] String.prototype.toLocaleUpperCase")
 }
