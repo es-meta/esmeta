@@ -1,5 +1,4 @@
 [
-  "ApplyStringOrNumericBinaryOperator",
   "AsyncFromSyncIteratorContinuation",
   "AsyncGeneratorYield",
   "BigIntBitwiseOp",
@@ -21,8 +20,6 @@
   "INTRINSICS.Atomics.store",
   "INTRINSICS.TypedArray.prototype.copyWithin",
   "InitializeTypedArrayFromTypedArray",
-  "IsLessThan",
-  "IsStrictlyEqual",
   "IsTypedArrayFixedLength",
   "IsTypedArrayOutOfBounds",
   "IsValidIntegerIndex",
@@ -31,9 +28,6 @@
   "MakeTypedArrayWithBufferWitnessRecord",
   "Record[ProxyExoticObject].OwnPropertyKeys",
   "Record[SourceTextModuleRecord].ExecuteModule",
-  "SameValue",
-  "SameValueNonNumber",
-  "SameValueZero",
   "SetTypedArrayFromTypedArray",
   "TypedArrayLength"
 ]

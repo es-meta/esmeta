@@ -629,9 +629,37 @@ trait AbsTransferDecl { analyzer: TyChecker =>
 
     /** refine types using type constraints */
     def refine(constr: TypeProp)(using np: NodePoint[?]): Updater =
+      import SymExpr.*
+      val alias: Map[Base, Base] = constr.sexpr.fold(Map()) {
+        case SEEq(SETypeOf(SERef(x: SymBase)), SETypeOf(SERef(y: SymBase))) =>
+          Map(x.toBase -> y.toBase, y.toBase -> x.toBase)
+        case _ => Map()
+      }
+      def typeOfType(givenTy: ValueTy): ValueTy = {
+        var ty = BotT
+        givenTy.typeOfNames.map {
+          case "Number"    => ty ||= NumberT
+          case "BigInt"    => ty ||= BigIntT
+          case "String"    => ty ||= StrT
+          case "Boolean"   => ty ||= BoolT
+          case "Undefined" => ty ||= UndefT
+          case "Null"      => ty ||= NullT
+          case "Object"    => ty ||= ObjectT
+          case "Symbol"    => ty ||= SymbolT
+          case _           =>
+        }
+        ty
+      }
       constr.fold[Updater](_ => AbsState.Bot) { map =>
         for {
-          _ <- join(map.map { (x, ty) => modify(refine(x, ty)) })
+          _ <- join(map.map { (x, ty) =>
+            for {
+              _ <- modify(refine(x, ty))
+              _ <- alias.get(x) match
+                case Some(y) => modify(refine(y, typeOfType(ty)))
+                case None    => pure(())
+            } yield ()
+          })
           _ <- modify(st => st.copy(constr = st.constr && constr))
         } yield ()
       }
@@ -701,12 +729,38 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           case _         => None
         (z, zty) <- toBase(y, ty)
       } yield z -> zty
-      constr.map { map =>
-        for {
-          case (x: Sym, ty: ValueTy) <- map
-          pair <- aux(x, ty)
-        } yield pair
-      }
+      constr match
+        case TypeProp.Bot => TypeProp.Bot
+        case TypeProp.Elem(map, sexpr) =>
+          TypeProp.Elem(
+            for {
+              case (x: Sym, ty: ValueTy) <- map
+              pair <- aux(x, ty)
+            } yield pair,
+            sexpr.flatMap(instantiate(_, argsMap)),
+          )
+
+    /** instantiation of symbolic expressions */
+    def instantiate(
+      sexpr: SymExpr,
+      argsMap: Map[Sym, AbsValue],
+    )(using st: AbsState): Option[SymExpr] =
+      import SymExpr.*
+      sexpr match
+        case SEBool(_) => Some(sexpr)
+        case SERef(ref) =>
+          instantiate(ref, argsMap).symty match
+            case x: SymRef => Some(SERef(x))
+            case _         => None
+        case SEExists(ref) => None
+        case SETypeCheck(base, ty) =>
+          instantiate(base, argsMap).map(SETypeCheck(_, ty))
+        case SETypeOf(base) => instantiate(base, argsMap).map(SETypeOf(_))
+        case SEEq(left, right) =>
+          for {
+            l <- instantiate(left, argsMap)
+            r <- instantiate(right, argsMap)
+          } yield SEEq(l, r)
 
     /** instantiation of symbolic type */
     def instantiate(
@@ -1042,7 +1096,22 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             TypeGuard(guard)
           }
         // case EExists(Field(x: Local, field)) => TODO
-        // case EBinary(BOp.Eq, ETypeOf(l), ETypeOf(r)) => TODO
+        case EBinary(BOp.Eq, ETypeOf(l), ETypeOf(r)) =>
+          import SymExpr.*
+          for {
+            lv <- transfer(l)
+            rv <- transfer(r)
+          } yield {
+            var guard: Map[TargetType, TypeProp] = Map()
+            for {
+              lref <- toSymRef(l, lv)
+              rref <- toSymRef(r, rv)
+              ltypeOf = SETypeOf(SERef(lref))
+              rtypeOf = SETypeOf(SERef(rref))
+              pexpr = SEEq(ltypeOf, rtypeOf)
+            } guard += TargetType(TrueT) -> TypeProp(pexpr)
+            TypeGuard(guard)
+          }
         case EBinary(BOp.Eq, ETypeOf(ERef(ref)), r) =>
           for {
             lv <- transfer(ref)
@@ -1423,6 +1492,17 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             ty = ValueTy.fromTypeOf(s)
             refined = retTy.toValue && NormalT(ListT(ty))
           } yield refined).getOrElse(retTy),
+        )
+      },
+      "SameType" -> { (func, vs, retTy, st) =>
+        import SymExpr.*
+        AbsValue(
+          STy(BoolT),
+          TypeGuard(
+            TargetType(TrueT) -> TypeProp(
+              SEEq(SETypeOf(SERef(SSym(0))), SETypeOf(SERef(SSym(1)))),
+            ),
+          ),
         )
       },
       "TypedArrayElementType" -> { (func, vs, retTy, st) =>

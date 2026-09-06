@@ -171,111 +171,200 @@ trait TypeGuardDecl { self: TyChecker =>
   /** type constraints */
   enum TypeProp {
     case Bot
-    case Elem(map: Map[Base, ValueTy])
+    case Elem(map: Map[Base, ValueTy], expr: Option[SymExpr])
 
     import TypeProp.*
     def isTop: Boolean = this == Top
     def isBottom: Boolean = this == Bot
 
     def get(x: Base): ValueTy = this match
-      case Bot       => BotT
-      case Elem(map) => map.getOrElse(x, AnyT)
+      case Bot          => BotT
+      case Elem(map, _) => map.getOrElse(x, AnyT)
 
     def map(f: Map[Base, ValueTy] => Map[Base, ValueTy]): TypeProp =
       this match
-        case Bot       => Bot
-        case Elem(map) => Elem(f(map))
+        case Bot              => Bot
+        case Elem(map, sexpr) => Elem(f(map), sexpr)
 
     def fold[T](default: => T)(f: Map[Base, ValueTy] => T): T = this match
-      case Bot       => default
-      case Elem(map) => f(map)
+      case Bot          => default
+      case Elem(map, _) => f(map)
 
     def forall(f: Map[Base, ValueTy] => Boolean): Boolean = this match
-      case Bot       => true
-      case Elem(map) => f(map)
+      case Bot          => true
+      case Elem(map, _) => f(map)
 
     def exists(f: Map[Base, ValueTy] => Boolean): Boolean = this match
-      case Bot       => false
-      case Elem(map) => f(map)
+      case Bot          => false
+      case Elem(map, _) => f(map)
 
     def <=(that: TypeProp): Boolean = (this, that) match
       case (Bot, _) => true
       case (_, Bot) => true
-      case (Elem(lmap), Elem(rmap)) =>
-        rmap.forall { case (r, rty) => lmap.get(r).fold(false) { _ <= rty } }
+      case (Elem(lmap, lexpr), Elem(rmap, rexpr)) =>
+        rmap.forall { case (r, rty) => lmap.get(r).fold(false) { _ <= rty } } &&
+        lexpr == rexpr
 
     def ||(that: TypeProp): TypeProp = (this, that) match
       case (Bot, _) => that
       case (_, Bot) => this
-      case (Elem(lmap), Elem(rmap)) =>
-        Elem((for {
-          x <- (lmap.keySet intersect rmap.keySet).toList
-          lty = lmap(x)
-          rty = rmap(x)
-          pair = {
-            if (lty <= rty) rty
-            else if (rty <= lty) lty
-            else lty || rty
-          }
-        } yield x -> pair).toMap)
+      case (Elem(lmap, lexpr), Elem(rmap, rexpr)) =>
+        Elem(
+          (for {
+            x <- (lmap.keySet intersect rmap.keySet).toList
+            lty = lmap(x)
+            rty = rmap(x)
+            pair = {
+              if (lty <= rty) rty
+              else if (rty <= lty) lty
+              else lty || rty
+            }
+          } yield x -> pair).toMap,
+          lexpr || rexpr,
+        )
 
     def &&(that: TypeProp): TypeProp = (this, that) match
       case (Bot, _) | (_, Bot) => Bot
       // an absent binding stands for the top type, which the meet keeps
-      case (Elem(lmap), Elem(rmap)) if rmap.isEmpty => this
-      case (Elem(lmap), Elem(rmap)) if lmap.isEmpty => that
-      case (Elem(lmap), Elem(rmap)) =>
-        Elem((for {
-          x <- (lmap.keySet ++ rmap.keySet).toList
-          lty = lmap.getOrElse(x, AnyT)
-          rty = rmap.getOrElse(x, AnyT)
-          pair = {
-            if (lty <= rty) lty
-            else if (rty <= lty) rty
-            else lty && rty
-          }
-        } yield x -> pair).toMap)
+      case (Elem(lmap, lexpr), Elem(rmap, rexpr)) =>
+        val sexpr = lexpr && rexpr
+        if (rmap.isEmpty) Elem(lmap, sexpr)
+        else if (lmap.isEmpty) Elem(rmap, sexpr)
+        else
+          Elem(
+            (for {
+              x <- (lmap.keySet ++ rmap.keySet).toList
+              lty = lmap.getOrElse(x, AnyT)
+              rty = rmap.getOrElse(x, AnyT)
+              pair = {
+                if (lty <= rty) lty
+                else if (rty <= lty) rty
+                else lty && rty
+              }
+            } yield x -> pair).toMap,
+            sexpr,
+          )
 
-    def has(x: Base): Boolean = exists(_.contains(x))
+    def sexpr: Option[SymExpr] = this match
+      case Bot           => None
+      case Elem(_, expr) => expr
+
+    def has(x: Base): Boolean =
+      exists(_.contains(x)) || sexpr.exists(_.has(x))
 
     def bases: Set[Base] = this match
-      case Bot       => Set()
-      case Elem(map) => map.keySet.collect { case s: Sym => s }
+      case Bot              => Set()
+      case Elem(map, sexpr) => map.keySet ++ sexpr.fold(Set[Base]())(_.bases)
 
-    def weaken(bases: Set[Base])(using AbsState): TypeProp =
-      map(_.filter { case (x, _) => !bases.contains(x) })
+    def weaken(bases: Set[Base])(using AbsState): TypeProp = this match
+      case Bot => Bot
+      case Elem(map, sexpr) =>
+        Elem(
+          map.filter { case (x, _) => !bases.contains(x) },
+          sexpr.flatMap(_.weaken(bases)),
+        )
 
     def nonTop: Boolean = !isTop
 
-    def weaken(effect: Effect): TypeProp =
-      map(_.map { case (x, ty) => x -> effect(ty) })
+    def weaken(effect: Effect): TypeProp = this match
+      case Bot => Bot
+      case Elem(map, _) =>
+        Elem(map.map { case (x, ty) => x -> effect(ty) }, None)
 
-    def fieldUpdate(fld: String, ty: ValueTy): TypeProp =
-      map(_.map {
-        case (x, oty) =>
-          x -> oty.copied(record = oty.record.update(fld, ty, refine = false))
-      })
+    def fieldUpdate(fld: String, ty: ValueTy): TypeProp = this match
+      case Bot => Bot
+      case Elem(map, _) =>
+        Elem(
+          map.map {
+            case (x, oty) =>
+              x -> oty.copied(record =
+                oty.record.update(fld, ty, refine = false),
+              )
+          },
+          None,
+        )
 
     def bind(using st: AbsState): TypeProp = this && st.constr
 
-    def hasLocal: Boolean = exists(_.keySet.exists {
+    def hasLocal: Boolean = bases.exists {
       case _: Local => true
       case _        => false
-    })
+    }
 
-    def hasSym: Boolean = exists(_.keySet.exists {
-      case s: Sym => true
+    def hasSym: Boolean = bases.exists {
+      case _: Sym => true
       case _      => false
-    })
+    }
 
-    def onlySym: TypeProp =
-      map(_.collect { case (x: Sym, ty) => x -> ty })
+    def onlySym: TypeProp = this match
+      case Bot => Bot
+      case Elem(map, _) =>
+        Elem(map.collect { case (x: Sym, ty) => x -> ty }, None)
 
     override def toString: String = (new Appender >> this).toString
   }
   object TypeProp {
-    val Top: TypeProp = Elem(Map())
-    def apply(pairs: (Base, ValueTy)*): TypeProp = Elem(pairs.toMap)
+    val Top: TypeProp = Elem(Map(), None)
+    def apply(pairs: (Base, ValueTy)*): TypeProp = Elem(pairs.toMap, None)
+    def apply(sexpr: SymExpr): TypeProp = Elem(Map(), Some(sexpr))
+  }
+
+  enum SymExpr {
+    case SEBool(b: Boolean)
+    case SERef(ref: SymRef)
+    case SEExists(ref: SymRef)
+    case SETypeCheck(base: SymExpr, ty: ValueTy)
+    case SETypeOf(base: SymExpr)
+    case SEEq(left: SymExpr, right: SymExpr)
+    def ||(that: SymExpr): SymExpr = (this, that) match
+      case _ if this == that  => this
+      case (SEBool(false), _) => that
+      case (_, SEBool(false)) => this
+      case _                  => SEBool(true)
+    def &&(that: SymExpr): SymExpr = (this, that) match
+      case _ if this == that                       => this
+      case (SEBool(true), _)                       => that
+      case (_, SEBool(true))                       => this
+      case (SEBool(false), _) | (_, SEBool(false)) => SEBool(false)
+      case _                                       => SEBool(true)
+    def has(x: Base): Boolean = this match
+      case SEBool(_)            => false
+      case SERef(ref)           => ref.has(x)
+      case SEExists(ref)        => ref.has(x)
+      case SETypeCheck(base, _) => base.has(x)
+      case SETypeOf(base)       => base.has(x)
+      case SEEq(left, right)    => left.has(x) || right.has(x)
+    def bases: Set[Base] = this match
+      case SEBool(_)            => Set()
+      case SERef(ref)           => ref.bases
+      case SEExists(ref)        => ref.bases
+      case SETypeCheck(base, _) => base.bases
+      case SETypeOf(base)       => base.bases
+      case SEEq(left, right)    => left.bases ++ right.bases
+    def weaken(bases: Set[Base]): Option[SymExpr] = this match
+      case SEBool(_)     => Some(this)
+      case SERef(ref)    => ref.weakenRef(ref, bases, true).map(SERef(_))
+      case SEExists(ref) => ref.weakenRef(ref, bases, true).map(SEExists(_))
+      case SETypeCheck(base, ty) =>
+        base.weaken(bases).map(SETypeCheck(_, ty))
+      case SETypeOf(base) => base.weaken(bases).map(SETypeOf(_))
+      case SEEq(left, right) =>
+        for {
+          l <- left.weaken(bases)
+          r <- right.weaken(bases)
+        } yield SEEq(l, r)
+    override def toString: String = (new Appender >> this).toString
+  }
+  object SymExpr {
+    extension (l: Option[SymExpr])
+      def &&(r: Option[SymExpr]): Option[SymExpr] = (l, r) match
+        case (Some(le), Some(re)) => Some(le && re)
+        case (Some(_), None)      => l
+        case (None, Some(_))      => r
+        case _                    => None
+      def ||(r: Option[SymExpr]): Option[SymExpr] = (l, r) match
+        case (Some(le), Some(re)) => Some(le || re)
+        case _                    => None
   }
   // -----------------------------------------------------------------------------
   // helpers
@@ -289,6 +378,21 @@ trait TypeGuardDecl { self: TyChecker =>
     given Rule[Map[TargetType, TypeProp]] = sortedMapRule("{", "}", " => ")
     app >> guard.map
 
+  /** SymExpr */
+  given Rule[SymExpr] = symExprRule
+  private def symExprRule(app: Appender, expr: SymExpr): Appender =
+    import SymExpr.*, SymTy.given
+    expr match
+      case SEBool(bool)  => app >> bool
+      case SERef(ref)    => app >> ref
+      case SEExists(ref) => app >> "(exists " >> ref >> ")"
+      case SETypeCheck(e, ty) =>
+        symExprRule(app >> "(? ", e) >> ": " >> ty >> ")"
+      case SETypeOf(base) => symExprRule(app >> "(typeof ", base) >> ")"
+      case SEEq(left, right) =>
+        val a = symExprRule(app >> "(= ", left)
+        symExprRule(a >> " ", right) >> ")"
+
   /** TypeProp */
   given Rule[TypeProp] = (app, constr) =>
     import TypeProp.*
@@ -296,8 +400,8 @@ trait TypeGuardDecl { self: TyChecker =>
     given Rule[Map[Base, ValueTy]] = sortedMapRule(sep = ": ")
     constr match
       case Bot => app >> "⊥"
-      case Elem(map) =>
+      case Elem(map, sexpr) =>
         if (map.nonEmpty) app >> map
-        app
+        sexpr.fold(app)(app >> _)
 
 }
