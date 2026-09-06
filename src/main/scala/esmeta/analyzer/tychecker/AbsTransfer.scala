@@ -1485,11 +1485,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         AbsValue(
           (for {
             v <- vs.lift(1)
-            str = v.ty.list.elem.str
-            s <- str.getSingle match
-              case One(s) => Some(s)
-              case _      => None
-            ty = ValueTy.fromTypeOf(s)
+            ty <- v.ty.enumv.getSingle match
+              case One("property-key") => Some(StrT || SymbolT)
+              case One("all")          => Some(ESValueT)
+              case _                   => None
             refined = retTy.toValue && NormalT(ListT(ty))
           } yield refined).getOrElse(retTy),
         )
