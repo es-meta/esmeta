@@ -1,10 +1,37 @@
 // hidden constructors
-var AsyncArrowFunction = Object.getPrototypeOf(async () => {}).constructor;
 var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 var AsyncGeneratorFunction = Object.getPrototypeOf(
   async function* () {}
 ).constructor;
 var GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
+var TypedArray = Object.getPrototypeOf(Uint8Array);
+var GeneratorPrototype = Object.getPrototypeOf(function* () {}).prototype;
+var AsyncGeneratorPrototype = Object.getPrototypeOf(
+  async function* () {}
+).prototype;
+var AsyncIteratorPrototype = Object.getPrototypeOf(
+  Object.getPrototypeOf(async function* () {}).prototype
+);
+var ArrayIteratorPrototype = Object.getPrototypeOf([][Symbol.iterator]());
+var StringIteratorPrototype = Object.getPrototypeOf(
+  new String()[Symbol.iterator]()
+);
+var MapIteratorPrototype = Object.getPrototypeOf(new Map()[Symbol.iterator]());
+var SetIteratorPrototype = Object.getPrototypeOf(new Set()[Symbol.iterator]());
+var ThrowTypeError = (function () {
+  "use strict";
+  return Object.getOwnPropertyDescriptor(arguments, "callee").get;
+})();
+var IteratorHelperPrototype =
+  typeof Iterator !== "undefined"
+    ? Object.getPrototypeOf(Iterator.from([]).drop(0))
+    : undefined;
+var WrapForValidIteratorPrototype =
+  typeof Iterator !== "undefined"
+    ? Object.getPrototypeOf(
+      Iterator.from({ [Symbol.iterator]() { return {}; }})
+    )
+    : undefined;
 
 // logging errors
 var $error = (globalThis.console && globalThis.console.log) || globalThis.print;
@@ -127,16 +154,20 @@ $assert.notConstructable = function (f) {
 };
 
 // assertion to compare arrays
-function $compareArray(a, b) {
-  if (b.length !== a.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (!$isSameValue(a[i], b[i])) return false;
+function $compareArray(actual, expected) {
+  // NOTE: all expected elements should appear in order, while additional
+  // implementation-defined elements (e.g. `stack` of errors)
+  // may be interleaved between them
+  var i = 0;
+  for (var j = 0; j < actual.length && i < expected.length; j++) {
+    if ($isSameValue(expected[i], actual[j])) i++;
   }
-  return true;
+  return i === expected.length;
 }
 
 $assert.compareArray = function (actual, expected, obj) {
   function format(array) {
+    if (!Array.isArray(array)) return $toString(array);
     return "[" + array.map($toString).join(", ") + "]";
   }
   function getObjDesc(obj) {
@@ -145,7 +176,7 @@ $assert.compareArray = function (actual, expected, obj) {
     ty = ty.substring("[object ".length, ty.length - "]".length);
     return `${algo} for ${ty}`;
   }
-  if ($compareArray(actual, expected)) return;
+  if (Array.isArray(actual) && $compareArray(actual, expected)) return;
   $error(
     "Expected " +
       format(expected) +
