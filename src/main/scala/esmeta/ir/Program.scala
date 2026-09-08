@@ -22,7 +22,7 @@ case class Program(
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = spec.esParser
-  lazy val scriptParser: AstFrom = esParser("Script")
+  lazy val scriptParser: AstFrom = spec.scriptParser
 
   /** get list of all yet expressions */
   lazy val yets: List[(EYet, Func)] = for {

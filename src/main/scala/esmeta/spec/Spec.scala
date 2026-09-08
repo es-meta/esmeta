@@ -5,6 +5,7 @@ import esmeta.compiler.Compiler
 import esmeta.lang.*
 import esmeta.es.builtin.Intrinsics
 import esmeta.parser.{ESParser, AstFrom}
+import esmeta.parser.estree.FastParser
 import esmeta.spec.util.*
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
@@ -28,8 +29,15 @@ case class Spec(
 
   /** ECMAScript parser */
   lazy val esParser: ESParser = ESParser(grammar)
-  lazy val scriptParser: AstFrom = esParser("Script")
-  lazy val moduleParser: AstFrom = esParser("Module")
+
+  /** ECMAScript parser through ESTree, used when [[esmeta.FAST_PARSE]] is on */
+  lazy val fastParser: FastParser = FastParser(grammar)
+
+  lazy val scriptParser: AstFrom = parserFor("Script")
+  lazy val moduleParser: AstFrom = parserFor("Module")
+
+  private def parserFor(goal: String): AstFrom =
+    if (FAST_PARSE) fastParser(goal) else esParser(goal)
 
   /** get incomplete algorithms */
   lazy val incompleteAlgorithms: List[Algorithm] =

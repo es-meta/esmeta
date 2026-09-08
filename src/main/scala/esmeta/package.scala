@@ -69,3 +69,11 @@ def TEST262_TEST_DIR = s"$TEST262_DIR/test"
 // -----------------------------------------------------------------------------
 /** test mode (turn it on only when executing tests) */
 var TEST_MODE: Boolean = false
+
+/** parse ECMAScript programs through ESTree instead of the grammar directly
+  *
+  * The environment variable makes it possible to run any existing test suite
+  * through the ESTree parser, which checks what the equality of ASTs does not:
+  * the parent links that the specification walks.
+  */
+var FAST_PARSE: Boolean = sys.env.contains("ESMETA_FAST_PARSE")
