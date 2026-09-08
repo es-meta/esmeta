@@ -16,7 +16,8 @@ class SymInterp(
   val tychecker: TyChecker,
   val synthesizer: TySynthesizer,
   val entryFunc: Func,
-  val target: Cond,
+  val target: Node,
+  val side: Option[Boolean] = None,
   val timeLimit: Option[Int] = None,
   val detail: Boolean = false,
 ) extends Solver {
@@ -26,7 +27,7 @@ class SymInterp(
   val startTime: Long = System.currentTimeMillis
 
   // target function
-  lazy val targetFunc: Func = cfg.funcOf(target.branch)
+  lazy val targetFunc: Func = cfg.funcOf(target)
 
   // main entry point of symbolic execution
   lazy val result: Option[Config] = nextCandidate
@@ -61,7 +62,7 @@ class SymInterp(
   // candidate nodes
   inline def isCandidate(n: Node): Boolean = candidateNodes.contains(n)
   private lazy val candidateNodes: Set[Node] =
-    SymInterp.candidateNodes(entryFunc, target.branch)(using cfg)
+    SymInterp.candidateNodes(entryFunc, target)(using cfg)
 
   def timeout: Boolean = timeLimit.exists { limit =>
     val duration = System.currentTimeMillis - startTime
@@ -91,7 +92,7 @@ class SymInterp(
 
   // symbolic execution of a node
   private def step: Unit = {
-    // abort symbolic execution once the per-side time limit is exceeded
+    // abort symbolic execution once the per-target time limit is exceeded
     if (timeout) throw Result.Timeout
 
     // log current configuration
@@ -105,6 +106,16 @@ class SymInterp(
 
     given np: NodePoint[?] = NodePoint(cfg.funcOf(node), node, emptyView)
     if (!isCandidate(node) || st.isBottom) return unwrap(pop)
+    if (node == target && side.isEmpty) {
+      if (check) {
+        import AbsState.constrMapRule
+        log("=" * 80)
+        log(s"FOUND: ${stringify(st.constrForSyms)(using constrMapRule)}")
+        log("-" * 80)
+        log(node)
+        throw Found(wrap)
+      } else return unwrap(pop)
+    }
     node match
       case Block(_, insts, next) =>
         st = insts.foldLeft(st) {
@@ -144,18 +155,17 @@ class SymInterp(
             pushCall(call, fexpr, args)
             unwrap(pop)
           case _ => unwrap(pop) // TODO: handle other calls
-      case branch: Branch if target.branch == branch =>
-        // reached the target branch, check the constraint
-        st = refine(branch, target.cond)(st)
-        if (check)
-          // log found constraints
+      case branch: Branch if target == branch =>
+        // refine the requested side after reaching the target branch
+        side.foreach(taken => st = refine(branch, taken)(st))
+        if (check) {
           import AbsState.constrMapRule
           log("=" * 80)
           log(s"FOUND: ${stringify(st.constrForSyms)(using constrMapRule)}")
           log("-" * 80)
           log(node)
           throw Found(wrap)
-        else unwrap(pop)
+        } else unwrap(pop)
       case branch @ Branch(_, kind, cond, _, thenNode, elseNode, _) =>
         // already visited this loop, skip it
         if (loops.contains(branch)) unwrap(pop)
@@ -454,19 +464,19 @@ object SymInterp {
     dist.toMap
   }
 
-  /** built-in entries reaching the given branch, mapped to their distance (the
-    * number of call edges from the entry to the branch's function)
+  /** built-in entries reaching the target node, mapped to their distance (the
+    * number of call edges from the entry to the target's function)
     */
-  def findEntries(branch: Branch)(using cfg: CFG): Map[Func, Int] =
-    val func = cfg.funcOf(branch)
+  def findEntries(target: Node)(using cfg: CFG): Map[Func, Int] =
+    val func = cfg.funcOf(target)
     if (func.isBuiltin) Map(func -> 0)
     else reachingDists(func).filter(_._1.isBuiltin)
 
-  /** built-in entries reaching the given branch, ordered from the closest to
-    * the farthest
+  /** built-in entries reaching the target node, ordered from the closest to the
+    * farthest
     */
-  def sortedEntries(branch: Branch)(using cfg: CFG): List[Func] =
-    findEntries(branch).toList.sortBy((f, d) => (d, f.id)).map(_._1)
+  def sortedEntries(target: Node)(using cfg: CFG): List[Func] =
+    findEntries(target).toList.sortBy((f, d) => (d, f.id)).map(_._1)
 
   /** functions that may lie on a call path from `entry` to `target` (always
     * including `entry` itself)
@@ -475,9 +485,8 @@ object SymInterp {
     if (target == entry) Set(target)
     else reachingDists(target, stopAt = Set(entry)).keySet + entry
 
-  /** nodes within candidate functions that can still reach the `target` branch
-    */
-  def candidateNodes(entry: Func, target: Branch)(using cfg: CFG): Set[Node] =
+  /** nodes within candidate functions that can still reach the target node */
+  def candidateNodes(entry: Func, target: Node)(using cfg: CFG): Set[Node] =
     val targetFunc = cfg.funcOf(target)
     val funcs = candidateFuncs(entry, targetFunc)
     for {
@@ -489,7 +498,7 @@ object SymInterp {
     func: Func,
     candidateFuncs: Set[Func],
     targetFunc: Func,
-    target: Branch,
+    target: Node,
   )(using cfg: CFG): Set[Node] =
     if (func == targetFunc) func.reachingTo(target) // direct reachables
     else {
@@ -512,5 +521,13 @@ case class SymInterpRunner(
   detail: Boolean = false,
 ) {
   def apply(func: Func, cond: Cond): SymInterp =
-    new SymInterp(tyChecker, synthesizer, func, cond, timeLimit, detail)
+    new SymInterp(
+      tyChecker,
+      synthesizer,
+      func,
+      cond.branch,
+      Some(cond.cond),
+      timeLimit,
+      detail,
+    )
 }
