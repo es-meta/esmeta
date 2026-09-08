@@ -321,9 +321,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         for {
           v <- transfer(expr)
           given AbsState <- get
-          newV = v.symty match
-            case STy(sty) => AbsValue(NormalT(sty))
-            case s        => AbsValue(SNormal(s))
+          newV = AbsValue(SymTy.record(NormalT(v.ty), Map("Value" -> v.symty)))
         } yield newV
       case ERecord(tname, fields) =>
         for {
@@ -778,11 +776,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         st.getCall(instantiate(b, argsMap))
       case SConstruct(b) =>
         st.getConstruct(instantiate(b, argsMap))
-      case SNormal(symty) =>
-        val ty = instantiate(symty, argsMap).symty match
-          case STy(ty) => STy(NormalT(ty))
-          case s       => SNormal(s)
-        AbsValue(ty)
+      case SRecord(base, fields) =>
+        val next = fields.map { (field, symty) =>
+          field -> instantiate(symty, argsMap).symty
+        }
+        AbsValue(SymTy.record(base, next))
 
     // =========================================================================
     // SymRef <: ValueTy --> (Base <: ValueTy)
@@ -1434,7 +1432,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       },
       "NormalCompletion" -> { (func, vs, retTy, st) =>
         given AbsState = st
-        AbsValue(SNormal(SSym(0)))
+        AbsValue(
+          SymTy.record(retTy, Map("Value" -> SSym(0)), captureUpper = false),
+        )
       },
       "UpdateEmpty" -> { (func, vs, retTy, st) =>
         given AbsState = st

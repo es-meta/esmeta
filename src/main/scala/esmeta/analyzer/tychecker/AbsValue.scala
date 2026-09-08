@@ -55,9 +55,9 @@ trait AbsValueDecl { self: TyChecker =>
 
     /** weaken bases */
     def weaken(bases: Set[Base], update: Boolean)(using AbsState): AbsValue =
-      val ty = this.symty.bases.exists(bases.contains) match
-        case true  => STy(this.ty)
-        case false => this.symty
+      val ty = this.symty
+        .weaken(bases, update)
+        .getOrElse(STy(this.ty))
       val guard = if (update) this.guard.weaken(bases) else this.guard
       AbsValue(ty, guard)
 
@@ -69,9 +69,14 @@ trait AbsValueDecl { self: TyChecker =>
 
     def fieldUpdate(fld: String, value: AbsValue)(using AbsState): AbsValue =
       val (tty, vty) = (this.ty, value.ty)
-      val newSymTy = STy(
-        tty.copied(record = tty.record.update(fld, vty, refine = false)),
-      )
+      val updatedTy =
+        tty.copied(record = tty.record.update(fld, vty, refine = false))
+      val newSymTy = symty match
+        case SRecord(_, fields) =>
+          SymTy.record(updatedTy, fields.updated(fld, value.symty))
+        case _ if value.symty.isSymbolic =>
+          SymTy.record(updatedTy, Map(fld -> value.symty))
+        case _ => STy(updatedTy)
       AbsValue(newSymTy, guard.fieldUpdate(fld, vty))
 
     /** remove non-parameter local variables */
@@ -425,7 +430,12 @@ trait AbsValueDecl { self: TyChecker =>
     def hasSym: Boolean = symty.hasSym || guard.hasSym
 
     def onlySym(using AbsState): AbsValue =
-      AbsValue(if (symty.hasLocal) STy(this.ty) else symty, guard.onlySym)
+      val locals: Set[Base] =
+        symty.bases.collect { case local: Local => local: Base }
+      val onlySymTy = symty
+        .weaken(locals, update = false)
+        .getOrElse(STy(this.ty))
+      AbsValue(onlySymTy, guard.onlySym)
 
     /** get string of abstract value with an abstract state */
     def getString(state: AbsState): String =

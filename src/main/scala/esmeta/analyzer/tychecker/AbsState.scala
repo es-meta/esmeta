@@ -149,8 +149,8 @@ trait AbsStateDecl { self: TyChecker =>
       (base.symty, field.ty.getSingle) match
         case (ref: SymRef, One(Str(f))) =>
           AbsValue(SField(ref, STy(StrT(f))), guard)
-        case (SNormal(sty), One(Str("Value"))) =>
-          AbsValue(sty, guard)
+        case (SRecord(_, fields), One(Str(f))) if fields.contains(f) =>
+          AbsValue(fields(f), guard)
         case (SArgs, One(Math(k))) if k.isValidInt && k.toInt >= 0 =>
           AbsValue(SVariadicIdx(k.toInt), guard)
         case _ =>
@@ -279,7 +279,7 @@ trait AbsStateDecl { self: TyChecker =>
       else
         this.copy(
           locals = newLocals.toMap,
-          effect = effect.fieldUpdate(fld, value),
+          effect = effect.fieldUpdate(fld, this.get(lx)),
         )
 
     /** identifier setter */
@@ -338,7 +338,10 @@ trait AbsStateDecl { self: TyChecker =>
       tname: String,
       pairs: Iterable[(String, AbsValue)] = Nil,
     ): (AbsValue, AbsState) =
-      (AbsValue(RecordT(tname, pairs.map(_ -> _.ty).toMap)), this)
+      val list = pairs.toList
+      val upper = RecordT(tname, list.map((f, v) => f -> v.ty).toMap)
+      val fields = list.map((field, value) => field -> value.symty)
+      (AbsValue(SymTy.record(upper, fields)), this)
 
     /** allocate a map object */
     def allocMap(

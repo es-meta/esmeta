@@ -40,14 +40,20 @@ trait EffectDecl { self: TyChecker =>
           .getOrElse(k, Set.empty))).toMap,
       )
 
-    def fieldUpdate(fld: String, value: AbsValue)(using AbsState): Effect =
+    def fieldUpdate(fld: String, base: AbsValue)(using AbsState): Effect =
       Effect({
-        value.ty.record.bases match
+        base.ty.record.bases match
           case Inf => Map()
           case Fin(set) =>
             val baseTys = set.map(ManualInfo.tyModel.baseOf(_))
             baseTys.map { baseTy => baseTy -> Set(fld) }.toMap
       }) ⊔ this
+
+    def mayUpdate(ty: ValueTy, field: String): Boolean =
+      ty.record.bases match
+        case Inf => map.values.exists(_.contains(field))
+        case Fin(set) =>
+          set.exists(base => map.get(base).exists(_.contains(field)))
 
     def +(baseTy: String, field: Set[String]) = Effect(map + (baseTy -> field))
 
