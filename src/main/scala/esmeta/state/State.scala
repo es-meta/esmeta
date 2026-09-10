@@ -7,6 +7,7 @@ import esmeta.es.*
 import esmeta.ir.{Func => IRFunc, *}
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
+import esmeta.util.ManualInfo
 import scala.collection.mutable.{Map => MMap}
 import scala.util.Try
 
@@ -169,8 +170,14 @@ case class State(
     case RecordObj(tname, map) if detail =>
       // recursively get detailed types for completion records
       val recDetail = tname == "CompletionRecord"
+      val absent = ManualInfo.tyModel.fieldsOf(tname).collect {
+        case (f, binding) if binding.absent && !map.contains(f) =>
+          f -> Binding.Absent
+      }
       val fm = FieldMap(
-        map.map { (k, v) => k -> Binding(typeOf(v, detail = recDetail)) }.toMap,
+        map.map { (k, v) =>
+          k -> Binding(typeOf(v, detail = recDetail))
+        }.toMap ++ absent,
       )
       RecordT(tname, fm)
     case RecordObj(tname, _) => RecordT(tname)

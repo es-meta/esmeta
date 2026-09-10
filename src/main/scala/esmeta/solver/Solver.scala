@@ -1,31 +1,76 @@
 package esmeta.solver
 
-import esmeta.cfg.Func
+import esmeta.analyzer.tychecker.TyChecker
+import esmeta.cfg.{Branch, CFG, Func}
+import esmeta.es.builtin.intrAddr
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Set => MSet}
+import java.util.concurrent.TimeoutException
 
 trait Solver { self: SymInterp =>
 
-  import tychecker.*, SymTy.*, Solver.*
+  import tychecker.*
 
   /** check the satisfiability of the given abstract state */
   def check: Boolean =
-    val AbsState(reachable, locals, symEnv, constr, _) = st
-    reachable &&
-    symEnv.forall { case (sym, ty) => !ty.isBottom }
+    st.reachable && st.symEnv.forall((_, ty) => !ty.isBottom)
 
   /** reify a satisfiable path into an ECMAScript program */
   def reify: Option[String] = reifyAll.headOption
 
-  def reifyAll: LazyList[String] =
+  def reifyAll: LazyList[String] = reifyAll(wrap)
+
+  def reifyAll(checkTimeout: () => Unit): LazyList[String] =
+    reifyAll(wrap, checkTimeout)
+
+  def reifyAll(config: Config): LazyList[String] =
+    reifyAll(config, () => if (timeout) throw TimeoutException("solver"))
+
+  def reifyAll(
+    config: Config,
+    checkTimeout: () => Unit,
+  ): LazyList[String] = {
+    // config.conds excludes the target branch
+    val target = config.node match
+      case branch: Branch => List(branch)
+      case _              => Nil
+    val literals =
+      synthesizer.literals(target ++ config.conds.map(_.branch))
+    Solver
+      .getTemplate(tychecker)(entryFunc, config.state)
+      .to(LazyList)
+      .flatMap { template =>
+        synthesizer.candidates(template)(using
+          literals,
+          Set.empty,
+          checkTimeout,
+        )
+      }
+      .map(_ + ";")
+  }
+}
+
+object Solver {
+
+  /** extract a template and its input types */
+  def getTemplate(tychecker: TyChecker)(
+    entryFunc: Func,
+    st: tychecker.AbsState,
+  ): Option[Template] =
+    import tychecker.*, SymTy.*
     given AbsState = st
     // get constraints for each symbolic input
-    val thisValue = st.getConstr(SThis.sym)
-    val newTarget = st.getConstr(SNewTarget.sym)
+    val thisTy = st.getConstr(SThis.sym)
+    val newTargetTy = st.getConstr(SNewTarget.sym)
+    // newTarget alone does not imply a constructable entry
+    val newTarget =
+      if (isConstructable(entryFunc, cfg)) newTargetTy
+      else newTargetTy && UndefT
+    if (newTarget.isBottom) return None
     val args = entryFunc.head match
       case Some(h: BuiltinHead) =>
         val variadicAt = h.params.indexWhere(_.kind == ParamKind.Variadic)
@@ -46,25 +91,47 @@ trait Solver { self: SymInterp =>
               }
               before ++ variadic ++ after
       case _ => Nil
-    // reify into a JS program
-    getPath(entryFunc) match
-      case None       => LazyList.empty
-      case Some(path) =>
-        // get candidates from analyzed type
-        val thisCands = synthesizer.candidates(thisValue)
-        val argCands = args.map(synthesizer.candidates)
-        val ntCands = newTargetForms(newTarget, synthesizer)
-        // enumerate programs by varying one position at a time
-        val slots = (thisCands +: argCands) :+ ntCands
-        oneChange(slots).flatMap { chosen =>
-          val thisV = chosen.head
-          val vs = chosen.slice(1, 1 + args.length)
-          val newTarget = chosen.last
-          invoke(path, thisV, vs, newTarget)
-        }
-}
+    getPath(entryFunc).map(path => Template(path, thisTy, args, newTarget))
 
-object Solver {
+  /** JS call form and input types */
+  case class Template(
+    path: BuiltinPath,
+    thisTy: ValueTy,
+    argTys: List[ValueTy],
+    newTargetTy: ValueTy,
+  ) {
+    def apply(
+      thisV: String,
+      vs: List[String],
+      newTarget: String,
+    ): Option[String] =
+      if (newTarget.isEmpty) { // without newTarget: XXX.call
+        path match
+          case BuiltinPath.Getter(base) =>
+            descriptor(base).map(d => s"$d.get.call($thisV)")
+          case BuiltinPath.Setter(base) =>
+            val value = vs.headOption.getOrElse("undefined")
+            descriptor(base).map(d => s"$d.set.call($thisV, $value)")
+          case _ =>
+            val args = (thisV :: vs).mkString(", ")
+            access(path).map(fn => s"$fn.call($args)")
+      } else { // with newTarget: Reflect.construct
+        access(path).map { fn =>
+          s"Reflect.construct($fn, [${vs.mkString(", ")}], $newTarget)"
+        }
+      }
+
+    def apply(vs: List[String]): Option[String] =
+      access(path).map(fn => s"new ($fn)(${vs.mkString(", ")})")
+  }
+
+  private def isConstructable(func: Func, cfg: CFG): Boolean =
+    cfg.init.intrHeap
+      .get(intrAddr(func.name.stripPrefix("INTRINSICS.")))
+      .exists {
+        case record: RecordObj => record.map.contains("Construct")
+        case _                 => false
+      }
 
   def oneChange(slots: List[LazyList[String]]): LazyList[List[String]] =
     if (slots.exists(_.isEmpty)) LazyList.empty
@@ -85,56 +152,6 @@ object Solver {
   def distinct(xs: LazyList[String]): LazyList[String] =
     val seen = MSet[String]()
     xs.filter(seen.add)
-
-  def prioritize(
-    rows: List[(ValueTy, List[String])],
-    ty: ValueTy,
-    synthesizer: TySynthesizer,
-  ): LazyList[String] =
-    distinct(rows.to(LazyList).flatMap(_._2).flatMap(fill(_, ty, synthesizer)))
-
-  private def fill(
-    template: String,
-    ty: ValueTy,
-    synthesizer: TySynthesizer,
-  ): LazyList[String] =
-    synthesizer.slotChoices(template, ty).fold(LazyList.empty) { choices =>
-      val (fields, alts) = choices.unzip
-      oneChange(alts).map { chosen =>
-        fields.zip(chosen).foldLeft(template) {
-          case (acc, (field, e)) => acc.replace("$" + field, e)
-        }
-      }
-    }
-
-  private def newTargetForms(
-    ty: ValueTy,
-    synthesizer: TySynthesizer,
-  ): LazyList[String] =
-    val ctor = synthesizer.candidates(ty && ConstructorT)
-    if (UndefT ⊑ ty) "" #:: ctor else ctor // empty stands for no newTarget
-
-  private def invoke(
-    path: BuiltinPath,
-    thisV: String,
-    vs: List[String],
-    newTarget: String,
-  ): Option[String] =
-    if (newTarget.isEmpty) { // without newTarget: XXX.call
-      path match
-        case BuiltinPath.Getter(base) =>
-          descriptor(base).map(d => s"$d.get.call($thisV);")
-        case BuiltinPath.Setter(base) =>
-          val value = vs.headOption.getOrElse("undefined")
-          descriptor(base).map(d => s"$d.set.call($thisV, $value);")
-        case _ =>
-          val args = (thisV :: vs).mkString(", ")
-          access(path).map(fn => s"$fn.call($args);")
-    } else { // with newTarget: Reflect.construct
-      access(path).map { fn =>
-        s"Reflect.construct($fn, [${vs.mkString(", ")}], $newTarget);"
-      }
-    }
 
   def getPath(func: Func): Option[BuiltinPath] = func.head match {
     case Some(h: BuiltinHead) => Some(h.path)

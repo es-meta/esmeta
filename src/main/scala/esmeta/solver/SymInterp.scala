@@ -20,6 +20,7 @@ class SymInterp(
   val side: Option[Boolean] = None,
   val timeLimit: Option[Int] = None,
   val detail: Boolean = false,
+  checkDeadline: () => Unit = () => (),
 ) extends Solver {
   import tychecker.*, monad.*, SymTy.*, Result.*
 
@@ -64,9 +65,12 @@ class SymInterp(
   private lazy val candidateNodes: Set[Node] =
     SymInterp.candidateNodes(entryFunc, target)(using cfg)
 
-  def timeout: Boolean = timeLimit.exists { limit =>
-    val duration = System.currentTimeMillis - startTime
-    duration >= limit.toLong * 1000L
+  def timeout: Boolean = {
+    checkDeadline()
+    timeLimit.exists { limit =>
+      val duration = System.currentTimeMillis - startTime
+      duration >= limit.toLong * 1000L
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -435,7 +439,8 @@ object SymInterp {
   ): SymInterpRunner = {
     val tyChecker = TyChecker(cfg, silent = true)
     tyChecker.analyze
-    val synthesizer = TySynthesizer(cfg)
+    val synthesizer = TySynthesizer(cfg, tyChecker)
+    synthesizer.prepare()
     SymInterpRunner(tyChecker, synthesizer, timeLimit, detail)
   }
 

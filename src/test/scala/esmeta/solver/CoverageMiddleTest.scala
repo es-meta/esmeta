@@ -365,12 +365,10 @@ class CoverageMiddleTest extends SolverTest {
               checkTimeout()
               interp.nextCandidate match {
                 case Some(conf) =>
-                  val cands = interp.reifyAll.take(maxCandsPerPath).toList
-                  cands match {
-                    case Nil =>
-                      val curRejected = Rejected("fail-reify", None, conf)
-                      retry(rejected.orElse(Some(curRejected)))
-                    case _ =>
+                  val cands =
+                    interp.reifyAll(() => checkTimeout()).take(maxCandsPerPath)
+                  cands.headOption match {
+                    case Some(first) =>
                       val passing = cands.iterator
                         .map { js => { attempts += 1; js } }
                         .find(verifies)
@@ -379,7 +377,7 @@ class CoverageMiddleTest extends SolverTest {
                           normalResult("pass", Some(js), Some(conf), attempts)
                         case None => // reified but none covering target
                           val curRejected =
-                            Rejected("fail-verify", Some(cands.head), conf)
+                            Rejected("fail-verify", Some(first), conf)
                           retry(rejected match {
                             case Some(r) =>
                               if (r.status == "fail-verify") rejected
@@ -387,6 +385,9 @@ class CoverageMiddleTest extends SolverTest {
                             case _ => Some(curRejected)
                           })
                       }
+                    case None =>
+                      val curRejected = Rejected("fail-reify", None, conf)
+                      retry(rejected.orElse(Some(curRejected)))
                   }
                 case None =>
                   // no model: a genuine "unsolved", or one out of its share

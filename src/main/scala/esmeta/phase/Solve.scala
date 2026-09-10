@@ -1,16 +1,12 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.analyzer.tychecker.TyChecker
 import esmeta.cfg.*
 import esmeta.es.util.Coverage
 import esmeta.es.util.Coverage.Cond
-import esmeta.ir.{Func => _, *}
 import esmeta.solver.*
-import esmeta.spec.{BuiltinHead, ParamKind}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.{Set => MSet, Queue}
 
 /** `solve` phase */
 case object Solve extends Phase[CFG, String] {
@@ -56,9 +52,8 @@ case object Solve extends Phase[CFG, String] {
       try {
         val interp = runner(func, cond)
         LazyList
-          .continually(interp.nextCandidate)
-          .takeWhile(_.isDefined)
-          .flatMap(_ => interp.reifyAll.take(maxCandsPerPath).toList)
+          .unfold(())(_ => interp.nextCandidate.map(_ -> ()))
+          .flatMap { config => interp.reifyAll(config).take(maxCandsPerPath) }
           .find(js => covers(js, cond))
       } catch {
         case e: Throwable => println(s"[error] ${func.name}: $e"); None
