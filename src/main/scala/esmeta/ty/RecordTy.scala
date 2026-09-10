@@ -228,7 +228,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   lazy val Bot: RecordTy = Elem()
   lazy val Object: RecordTy = apply("Object")
 
-  lazy val maxFieldDepth: Int = 3
+  lazy val maxFieldDepth: Int = 4
 
   def apply(names: String*): RecordTy =
     apply(names.toSet)
@@ -289,9 +289,10 @@ object RecordTy extends Parser.From(Parser.recordTy) {
     else
       var newFM = fm + (field -> refined)
       getPropRefiner(field) match
-        case Some(fs) =>
+        case Some(fs) if !refined.absent =>
           for (f <- fs) newFM += f -> (get(pair, f) && Binding.Exist)
           Map(normalize(t -> newFM))
+        case Some(_) => Map(normalize(t -> newFM))
         case None =>
           val set = (
             for {
@@ -383,7 +384,6 @@ object Desc {
   val Top: Desc = Desc(getExc = true, setExc = true, ESValueT)
   val GetExc: Desc = Desc(getExc = true)
   val SetExc: Desc = Desc(setExc = true)
-  def apply(ty: ValueTy): Desc = Desc(ty = ty)
 }
 
 enum CallDesc extends TyElem {

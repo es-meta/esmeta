@@ -210,7 +210,7 @@ trait Parsers extends BasicParsers {
     val single =
       "<GET-EXC>" ^^^ GetExc |
       "<SET-EXC>" ^^^ SetExc |
-      valueTy ^^ { Desc(_) }
+      valueTy ^^ { ty => Desc(ty = ty) }
     "⊥" ^^^ Bot |
     rep1sep(single, "|") ^^ { ds => ds.foldLeft(Bot)(_ || _) }
   }
