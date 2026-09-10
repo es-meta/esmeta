@@ -308,7 +308,7 @@ type ECMAScriptFunctionObject extends OrdinaryObject {
   PrivateEnvironment: Record[PrivateEnvironmentRecord] | Null;
   FormalParameters: Ast;
   ECMAScriptCode: Ast;
-  ConstructorKind?: Enum[~base~, ~derived~];
+  ConstructorKind?: Enum[~base~, ~derived~] | Undefined; // TODO: PR - Undefined
   Realm: Record[RealmRecord];
   ScriptOrModule: Record[ModuleRecord | ScriptRecord] | Null; // TODO: PR - Null
   ThisMode: Enum[~global~, ~lexical~, ~strict~];
@@ -897,8 +897,8 @@ type AsyncFromSyncIterator extends OrdinaryObject {
 type Promise extends OrdinaryObject {
   PromiseState: Enum[~pending~, ~fulfilled~, ~rejected~];
   PromiseResult: ESValue | Enum[~empty~];
-  PromiseFulfillReactions: List[Record[PromiseReactionRecord]];
-  PromiseRejectReactions: List[Record[PromiseReactionRecord]];
+  PromiseFulfillReactions: List[Record[PromiseReactionRecord]] | Undefined; // TODO: PR - Undefined
+  PromiseRejectReactions: List[Record[PromiseReactionRecord]] | Undefined; // TODO: PR - Undefined
   PromiseIsHandled: Boolean;
 }
 

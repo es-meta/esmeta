@@ -165,6 +165,7 @@ class Initialize(cfg: CFG) {
         (PRIVATE_ELEMENTS -> elemsAddr(iname)) ::
         imap.map { (k, v) => k -> toValue(v) },
       )
+      _map += elemsAddr(iname) -> ListObj()
       // inner map object
       _map ++= getMapObjects(iname, name, nmap.map { _ -> toDesc(_) })
     }
