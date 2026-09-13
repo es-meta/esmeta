@@ -1,67 +1,428 @@
 package esmeta.solver
 
+import esmeta.SOLVER_LOG_DIR
 import esmeta.analyzer.tychecker.TyChecker
-import esmeta.cfg.{Branch, CFG, Func}
-import esmeta.es.builtin.intrAddr
+import esmeta.cfg.*
+import esmeta.es.builtin.{INNER_CODE, intrAddr}
+import esmeta.es.util.Coverage
+import esmeta.es.util.Coverage.*
+import esmeta.ir.{Func => _, *}
+import esmeta.state.{Clo, RecordObj}
 import esmeta.spec.*
-import esmeta.state.*
 import esmeta.ty.*
-import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.{Set => MSet}
-import java.util.concurrent.TimeoutException
+import esmeta.util.{ConcurrentPolicy => CP, ProgressBar}
+import esmeta.util.SystemUtils.*
+import java.util.concurrent.{
+  ConcurrentHashMap => CMMap,
+  ConcurrentLinkedQueue,
+  TimeoutException,
+}
+import scala.collection.mutable.{Map => MMap, Set => MSet, Stack, Queue}
+import scala.concurrent.duration.Duration
+import scala.jdk.CollectionConverters.*
 
-trait Solver { self: SymInterp =>
-
-  import tychecker.*
-
-  /** check the satisfiability of the given abstract state */
-  def check: Boolean =
-    st.reachable && st.symEnv.forall((_, ty) => !ty.isBottom)
-
-  /** reify a satisfiable path into an ECMAScript program */
-  def reify: Option[String] = reifyAll.headOption
-
-  def reifyAll: LazyList[String] = reifyAll(wrap)
-
-  def reifyAll(checkTimeout: () => Unit): LazyList[String] =
-    reifyAll(wrap, checkTimeout)
-
-  def reifyAll(config: Config): LazyList[String] =
-    reifyAll(config, () => if (timeout) throw TimeoutException("solver"))
-
-  def reifyAll(
-    config: Config,
-    checkTimeout: () => Unit,
-  ): LazyList[String] = {
-    // config.conds excludes the target branch
-    val target = config.node match
-      case branch: Branch => List(branch)
-      case _              => Nil
-    val literals =
-      synthesizer.literals(target ++ config.conds.map(_.branch))
-    Solver
-      .getTemplate(tychecker)(entryFunc, config.state)
-      .to(LazyList)
-      .flatMap { template =>
-        synthesizer.candidates(template)(using
-          literals,
-          Set.empty,
-          checkTimeout,
-        )
-      }
-      .map(_ + ";")
+/** Solve selected branch sides */
+class Solver(
+  cfg: CFG,
+  branch: Option[Int] = None,
+  side: Option[Boolean] = None,
+  log: Boolean = false,
+  detail: Boolean = false,
+) {
+  private given CFG = cfg
+  private val solveTimeLimit = 10
+  private val solveTimeout = Duration(solveTimeLimit, "seconds")
+  private lazy val tyChecker: TyChecker = {
+    val analyzer = TyChecker(cfg, silent = true)
+    analyzer.analyze
+    analyzer
   }
+  private lazy val synthesizer: TySynthesizer = {
+    val syn = TySynthesizer(cfg, tyChecker)
+    syn.prepare
+    syn
+  }
+  private lazy val cov = Coverage(cfg, timeLimit = Some(2))
+
+  // branch-side witnesses with a builtin as the nearest feature
+  private val condMap = CMMap[(Int, Boolean), String]()
+
+  // check for `yet`, ignoring assertions
+  private def hasYet(elem: IRElem): Boolean = elem match
+    case IAssert(_) => false
+    case _ =>
+      var found = false
+      val walker = new esmeta.ir.util.UnitWalker {
+        override def walk(expr: Expr): Unit = expr match
+          case _: EYet => found = true
+          case _       => super.walk(expr)
+      }
+      walker.walk(elem)
+      found
+
+  // resolve explicitly named calls
+  private def directCallee(call: Call): Option[Func] = call.callInst match
+    case ICall(_, EClo(name, _), _) => cfg.fnameMap.get(name)
+    case _                          => None
+
+  // propagate `yet` barriers with optimistic return summaries
+  private lazy val reachableNodesByFunc: Map[Int, Set[Int]] = {
+    var mayReturn = cfg.funcs.toSet
+    var reachable = Map.empty[Int, Set[Int]]
+    var changed = true
+    while (changed) {
+      val nextMayReturn = MSet.empty[Func]
+      reachable = cfg.funcs.map { f =>
+        val seen = MSet(f.entry.id)
+        val stack = Stack[Node](f.entry)
+        while (stack.nonEmpty) {
+          val n = stack.pop()
+          val blocked = n match
+            case b: Branch                     => hasYet(b.cond)
+            case b: Block                      => b.insts.exists(hasYet)
+            case c: Call if hasYet(c.callInst) => true
+            case c: Call =>
+              directCallee(c) match
+                case Some(callee) => !mayReturn.contains(callee)
+                case None         => false // Indirect calls may return.
+          // include blocking nodes without traversing their successors
+          if (!blocked) {
+            if (f.exits(n)) nextMayReturn += f
+            for (m <- n.succs if seen.add(m.id)) stack.push(m)
+          }
+        }
+        f.id -> seen.toSet
+      }.toMap
+      val next = nextMayReturn.toSet
+      changed = next != mayReturn
+      mayReturn = next
+    }
+    reachable
+  }
+
+  // direct calls reachable before a `yet` barrier
+  private def reachableCallees(f: Func): Set[Func] =
+    val reachable = reachableNodesByFunc(f.id)
+    f.nodes
+      .collect { case c: Call if reachable(c.id) && !hasYet(c.callInst) => c }
+      .flatMap(directCallee)
+      .toSet
+
+  // call distances for target selection and entry ordering
+  private def callDistances(entry: Func): Map[Func, Int] = {
+    val distance = MMap(entry -> 0)
+    val queue = Queue(entry)
+    while (queue.nonEmpty)
+      val caller = queue.dequeue()
+      for (callee <- reachableCallees(caller) if !distance.contains(callee)) {
+        distance(callee) = distance(caller) + 1
+        queue.enqueue(callee)
+      }
+    distance.toMap
+  }
+
+  // exclude boilerplate, constant, and unsupported branches
+  private lazy val candidateBranches: Set[Int] =
+    cfg.nodes.collect {
+      case b: Branch
+          if !b.isFiltered && !hasYet(b.cond) && !b.cond.isInstanceOf[EBool] =>
+        b.id
+    }.toSet
+
+  /** select static builtin targets before analysis */
+  lazy val targets: List[(List[Func], Cond)] = {
+    for (id <- branch)
+      cfg.nodeMap.get(id) match
+        case Some(_: Branch) => ()
+        case _               => raise(s"solve: node $id is not a branch")
+    val builtins = cfg.funcs
+      .filter { f =>
+        f.isBuiltin && Solver.funcAccessExpr(f).nonEmpty &&
+        cfg.init.initHeap.map
+          .get(intrAddr(f.name.stripPrefix("INTRINSICS.")))
+          .exists {
+            case obj: RecordObj =>
+              (obj.map.contains("Call") || obj.map.contains("Construct")) &&
+              obj.map.get(INNER_CODE).exists {
+                case Clo(code, _) => code == f
+                case _            => false
+              }
+            case _ => false
+          }
+      }
+      .sortBy(_.name)
+    val pairs = for {
+      entry <- builtins
+      (func, distance) <- callDistances(entry).toList
+      target <- func.nodes.collect {
+        case b: Branch
+            if reachableNodesByFunc(func.id)(b.id) && candidateBranches(b.id) =>
+          b
+      }
+    } yield target -> (entry, distance)
+    val selected = pairs
+      .groupMap(_._1)(_._2)
+      .toList
+      .sortBy(_._1.id)
+      .filter((b, _) => branch.forall(_ == b.id))
+      .flatMap { (b, candidates) =>
+        val entries = candidates.sortBy((f, d) => (d, f.id)).map(_._1)
+        List(true, false)
+          .filter(s => side.forall(_ == s))
+          .map(s => entries -> Cond(b, s))
+      }
+    if (selected.isEmpty)
+      raise(branch.fold("solve: no static builtin branch targets") { id =>
+        s"solve: branch $id is outside the static builtin target set"
+      })
+    selected
+  }
+
+  private lazy val logDir: Option[String] = Option.when(log) {
+    val dir = s"$SOLVER_LOG_DIR/solve-$dateStr"
+    mkdir(dir, remove = true)
+    createSymLink(s"$SOLVER_LOG_DIR/recent", dir, overwrite = true)
+    dir
+  }
+
+  /** solve selected targets with a per-target budget */
+  lazy val result: String = {
+    val selected = targets
+    val targetKeys = selected.map { (_, c) => (c.branch.id, c.cond) }.toSet
+    logDir
+    synthesizer
+    val nThreads = Runtime.getRuntime.availableProcessors
+    val completed = ConcurrentLinkedQueue[BranchResult]()
+    ProgressBar(
+      msg = s"solving with $nThreads threads ($solveTimeout per target)",
+      iterable = selected,
+      detail = false,
+      concurrent = CP.Fixed(nThreads),
+    ).foreach { (entries, cond) =>
+      // reuse known coverage without changing the target set
+      val r = Option(condMap.get((cond.branch.id, cond.cond))) match
+        case Some(js) => BranchResult(cond, "pass", Some(js))
+        case None     => solveTarget(entries, cond)
+      completed.add(r)
+    }
+    val conds = condMap.keySet.asScala.toSet
+    // count all observed targets as passes
+    val results = completed.asScala.toList
+      .map { r =>
+        Option(condMap.get((r.cond.branch.id, r.cond.cond))) match
+          case Some(js) => r.copy(status = "pass", js = Some(js))
+          case None     => r
+      }
+      .sortBy { r => (r.cond.branch.id, if (r.cond.cond) 0 else 1) }
+    val reached = (conds intersect targetKeys).size
+    val outside = (conds -- targetKeys).size
+    val byStatus = results.groupBy(_.status)
+    val statusGroups =
+      List("pass", "fail-verify", "fail-reify", "unsolved", "timeout", "error")
+        .flatMap(status => byStatus.get(status).map(status -> _))
+    val reachedPct = reached * 100.0 / selected.size
+    val summary = "Status breakdown:\n" +
+      statusGroups.map { (status, rs) =>
+        val count = rs.size
+        val pct = count * 100.0 / selected.size
+        f"  $status%-12s $count%5d (${pct}%5.1f%%)\n"
+      }.mkString +
+      f"\nReached targets: $reached/${selected.size} (${reachedPct}%.1f%%)\n" +
+      s"Observed outside target set: $outside\n"
+
+    // dump programs and coverage after solving
+    for (dir <- logDir) {
+      val witnesses = results.flatMap(r => r.js.map(r.cond -> _))
+      val programs = witnesses
+        .map(_._2)
+        .distinct
+        .zipWithIndex
+        .map { (js, index) => js -> (index + 1) }
+      val programIds = programs.toMap
+      dumpDir[(String, Int)](
+        name = s"${programs.size} ECMAScript programs",
+        iterable = programs,
+        dirname = s"$dir/programs",
+        getName = { case (_, id) => s"$id.js" },
+        getData = { case (js, _) => js },
+      )
+      // reuse the Fuzzer coverage format
+      import cov.jsonProtocol.given
+      val coverage = witnesses.zipWithIndex.map {
+        case ((cond, js), index) =>
+          CondViewInfo(
+            index,
+            CondView(cond, None),
+            s"programs/${programIds(js)}.js",
+          )
+      }
+      dumpJson(
+        name = "branch coverage",
+        data = coverage,
+        filename = s"$dir/branch-coverage.json",
+      )
+      val details = statusGroups.map { (status, rs) =>
+        rs.map(r => s"  ${r.cond}  ${cfg.funcOf(r.cond.branch).name}")
+          .mkString(s"\n[$status] ${rs.size}\n", "\n", "\n")
+      }.mkString
+      dumpFile(
+        name = "solver summary",
+        data = summary + details,
+        filename = s"$dir/summary",
+      )
+    }
+    if (branch.isEmpty) summary
+    else
+      summary + results
+        .map(r => s"[${r.status}] ${r.cond}: ${r.js.getOrElse("no program")}")
+        .mkString("", "\n", "\n")
+  }
+
+  // ---------------------------------------------------------------------------
+  // solving and concrete verification
+  // ---------------------------------------------------------------------------
+
+  private def solveTarget(entries: List[Func], cond: Cond): BranchResult = {
+    val targetDeadline = System.nanoTime() + solveTimeout.toNanos
+    val perEntry = solveTimeout.toNanos / entries.size
+    def solveNext(f: Func): BranchResult = {
+      val deadline = (System.nanoTime() + perEntry).min(targetDeadline)
+      try solveEntry(f, cond, deadline)
+      catch {
+        case e: Throwable =>
+          println(s"[error] ${f.name} -> $cond  $e")
+          BranchResult(cond, "error")
+      }
+    }
+    def rank(status: String): Int = status match
+      case "pass"        => 0
+      case "fail-verify" => 1
+      case "fail-reify"  => 2
+      case "timeout"     => 3
+      case "unsolved"    => 4
+      case _             => 5
+    val rest = entries.iterator
+    var best = solveNext(rest.next())
+    while (
+      best.status != "pass" &&
+      rest.hasNext &&
+      System.nanoTime() < targetDeadline
+    ) {
+      val other = solveNext(rest.next())
+      if (rank(other.status) < rank(best.status)) best = other
+    }
+    best
+  }
+
+  private def solveEntry(f: Func, cond: Cond, deadline: Long): BranchResult = {
+    def expired: Boolean = System.nanoTime() > deadline
+    def checkTimeout(): Unit = if (expired) throw TimeoutException("solver")
+    val interp = new SymInterp(
+      tyChecker,
+      f,
+      cond.branch,
+      side = Some(cond.cond),
+      timeLimit = Some(solveTimeLimit),
+      detail = detail,
+      checkDeadline = () => checkTimeout(),
+    )
+    @scala.annotation.tailrec
+    def retry(rejected: Option[BranchResult]): BranchResult = {
+      checkTimeout()
+      interp.nextCandidate match {
+        case Some(conf) =>
+          // conf.conds excludes the target branch
+          val target = conf.node match
+            case branch: Branch => List(branch)
+            case _              => Nil
+          val literals =
+            synthesizer.literals(target ++ conf.conds.map(_.branch))
+          val candidates = Solver
+            .getTemplate(interp.tychecker)(f, conf.state)
+            .to(LazyList)
+            .flatMap { template =>
+              synthesizer.candidates(template)(using
+                literals,
+                Set.empty,
+                checkTimeout,
+              )
+            }
+            .map(_ + ";")
+            .take(Solver.maxCandidatesPerPath)
+          candidates.headOption match {
+            case Some(_) =>
+              val passing = candidates.iterator
+                .find(js => verifies(js, cond, () => checkTimeout()))
+              passing match {
+                case Some(js) => BranchResult(cond, "pass", Some(js))
+                case None =>
+                  val next = rejected
+                    .filter(_.status == "fail-verify")
+                    .orElse(Some(BranchResult(cond, "fail-verify")))
+                  retry(next)
+              }
+            case None =>
+              retry(rejected.orElse(Some(BranchResult(cond, "fail-reify"))))
+          }
+        case None =>
+          if (expired) BranchResult(cond, "timeout")
+          else rejected.getOrElse(BranchResult(cond, "unsolved"))
+      }
+    }
+    try retry(None)
+    catch { case _: TimeoutException => BranchResult(cond, "timeout") }
+  }
+
+  private def verifies(
+    js: String,
+    cond: Cond,
+    checkTimeout: () => Unit,
+  ): Boolean = {
+    checkTimeout()
+    try {
+      val interp = Coverage.Interp(
+        cfg.init.from(js),
+        cov.tyCheck,
+        cov.kFs,
+        cov.cp,
+        cov.timeLimit,
+        cov.isTargetNode,
+        cov.isTargetBranch,
+      )
+      interp.result
+      checkTimeout()
+      for (
+        cv <- interp.touchedCondViews.keys
+        if candidateBranches(cv.cond.branch.id)
+      )
+        condMap.putIfAbsent((cv.cond.branch.id, cv.cond.cond), js)
+      interp.touchedCondViews.keys.exists { cv =>
+        cv.cond.branch.id == cond.branch.id && cv.cond.cond == cond.cond
+      }
+    } catch {
+      case e: TimeoutException => throw e
+      case _: Throwable        => false
+    }
+  }
+
+  private case class BranchResult(
+    cond: Cond,
+    status: String,
+    js: Option[String] = None,
+  )
 }
 
 object Solver {
+
+  val maxCandidatesPerPath: Int = 100
 
   /** extract a template and its input types */
   def getTemplate(tychecker: TyChecker)(
     entryFunc: Func,
     st: tychecker.AbsState,
   ): Option[Template] =
-    import tychecker.*, SymTy.*
+    import tychecker.*
     given AbsState = st
     // get constraints for each symbolic input
     val thisTy = st.getConstr(SThis.sym)
@@ -158,15 +519,27 @@ object Solver {
     case _                    => None
   }
 
-  // JS expression to access a builtin function (None if unreachable)
+  // JS expression accessing an exposed builtin function value
   def funcAccessExpr(f: Func): Option[String] =
-    f.head.collectFirst { case h: BuiltinHead => h.path }.flatMap(access)
+    if (!f.isBuiltin) None
+    else
+      getPath(f)
+        .orElse {
+          Option.when(f.name.startsWith("INTRINSICS.")) {
+            BuiltinPath.from(f.name.stripPrefix("INTRINSICS."))
+          }
+        }
+        .flatMap {
+          case BuiltinPath.Getter(base) => descriptor(base).map(_ + ".get")
+          case BuiltinPath.Setter(base) => descriptor(base).map(_ + ".set")
+          case path                     => access(path)
+        }
 
   // JS expression accessing the builtin at path
   private def access(path: BuiltinPath): Option[String] = path match
     case BuiltinPath.Base(name) =>
       globalAlias.get(name) match
-        case Some("")   => None // intrinsic unreachable from JS
+        case Some("")   => None // intrinsic not exposed to JS code
         case Some(expr) => Some(expr)
         case None       => Some(name) // directly nameable global
     case BuiltinPath.NormalAccess(base, name) =>
@@ -188,8 +561,7 @@ object Solver {
       target.map(t => s"Object.getOwnPropertyDescriptor($t, $key)")
     case _ => None
 
-  // global alias for builtins that are not directly nameable but have a known JS expression to access them
-  // https://github.com/tc39/test262/blob/main/harness/wellKnownIntrinsicObjects.js
+  // intrinsic access paths (test262/harness/wellKnownIntrinsicObjects.js)
   private val globalAlias: Map[String, String] = Map(
     "TypedArray" -> "Object.getPrototypeOf(Uint8Array)",
     "ArrayIteratorPrototype" -> "Object.getPrototypeOf([][Symbol.iterator]())",

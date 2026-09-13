@@ -1,88 +1,40 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.cfg.*
-import esmeta.es.util.Coverage
-import esmeta.es.util.Coverage.Cond
-import esmeta.solver.*
+import esmeta.cfg.CFG
+import esmeta.solver.Solver
 import esmeta.util.*
-import esmeta.util.BaseUtils.*
 
 /** `solve` phase */
 case object Solve extends Phase[CFG, String] {
   val name = "solve"
-  val help = "generates an ECMAScript program that covers a target branch"
+  val help = "generates ECMAScript programs for selected builtin branch sides"
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
-    val id = config.branch.getOrElse(raise("solve: branch id is required"))
-    val branch = cfg.nodeMap.get(id) match
-      case Some(b: Branch) => b
-      case _               => raise(s"solve: node $id is not a branch")
-    val conds: List[Cond] = config.side match
-      case Some(side) => List(Cond(branch, side))
-      case None       => List(Cond(branch, true), Cond(branch, false))
-
-    given CFG = cfg
-
-    val entries = SymInterp.sortedEntries(branch)
-
-    given SymInterpRunner =
-      SymInterp(cfg, timeLimit = Some(10), detail = config.detail)
-    given Coverage = Coverage(cfg, timeLimit = Some(2))
-
-    conds
-      .map { cond =>
-        LazyList
-          .from(entries)
-          .flatMap(solve(_, branch, cond))
-          .headOption match
-          case Some(js) => s"[solve] $cond: $js"
-          case None     => s"[solve] $cond: no solution"
-      }
-      .mkString("\n")
-
-  /** symbolic execution -> synthesis -> validation */
-  def solve(
-    func: Func,
-    branch: Branch,
-    cond: Cond,
-  )(using runner: SymInterpRunner, cov: Coverage): Option[String] =
-    println(s"=== Entry: ${func.name} ===")
-    val result =
-      try {
-        val interp = runner(func, cond)
-        LazyList
-          .unfold(())(_ => interp.nextCandidate.map(_ -> ()))
-          .flatMap { config => interp.reifyAll(config).take(maxCandsPerPath) }
-          .find(js => covers(js, cond))
-      } catch {
-        case e: Throwable => println(s"[error] ${func.name}: $e"); None
-      }
-    result match
-      case Some(js) => println(s"[Solution] $js")
-      case None     => println(s"[No solution]")
-    result
-
-  /** run and check it covers the target */
-  def covers(js: String, cond: Cond)(using cov: Coverage): Boolean =
-    try {
-      val interp = cov.run(js)
-      interp.touchedCondViews.keys.exists { cv =>
-        cv.cond.branch.id == cond.branch.id && cv.cond.cond == cond.cond
-      }
-    } catch { case _: Throwable => false }
+    new Solver(
+      cfg,
+      branch = config.branch,
+      side = config.side,
+      log = config.log,
+      detail = config.detail,
+    ).result
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
       "branch",
       NumOption((c, k) => c.branch = Some(k)),
-      "solve for the given branch id.",
+      "target the branch to solve (default: all).",
     ),
     (
       "side",
       BoolOption((c, b) => c.side = Some(b)),
-      "solve only the given side (default: both).",
+      "target the side to solve (default: both).",
+    ),
+    (
+      "log",
+      BoolOption((c, b) => c.log = b),
+      "turn on logging mode (default: false).",
     ),
     (
       "detail",
@@ -93,8 +45,7 @@ case object Solve extends Phase[CFG, String] {
   case class Config(
     var branch: Option[Int] = None,
     var side: Option[Boolean] = None,
+    var log: Boolean = false,
     var detail: Boolean = false,
   )
-
-  private val maxCandsPerPath = 100
 }

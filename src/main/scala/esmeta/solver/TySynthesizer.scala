@@ -6,16 +6,14 @@ import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.ir.util.UnitWalker
 import esmeta.solver.Solver.Template
-import esmeta.spec.*
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
-import esmeta.util.ManualInfo
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
-import scala.util.{Try, Success, Failure}
+import scala.util.*
 
 class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
   import TySynthesizer.*
@@ -26,7 +24,7 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
   }
 
   /** prepare manual observations */
-  def prepare(): Unit = { manualEntries.size; () }
+  def prepare: Unit = { manualEntries.size; () }
 
   def candidates(ty: ValueTy)(using
     literals: List[Literals] = Nil,
@@ -268,7 +266,6 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
           val IReturn(expr) = block.insts.last: @unchecked
           val interp = new SymInterp(
             this.tychecker,
-            this,
             entry,
             block,
             checkDeadline = checkDeadline,

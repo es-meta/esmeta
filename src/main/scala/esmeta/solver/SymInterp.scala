@@ -7,21 +7,19 @@ import esmeta.ir.{Func => _, *}
 import esmeta.spec.{BuiltinHead, ParamKind}
 import esmeta.ty.*
 import esmeta.util.*
-import esmeta.util.Appender.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, PriorityQueue, Queue}
 
 class SymInterp(
   val tychecker: TyChecker,
-  val synthesizer: TySynthesizer,
   val entryFunc: Func,
   val target: Node,
   val side: Option[Boolean] = None,
   val timeLimit: Option[Int] = None,
   val detail: Boolean = false,
   checkDeadline: () => Unit = () => (),
-) extends Solver {
+) {
   import tychecker.*, monad.*, SymTy.*, Result.*
 
   // start time
@@ -52,6 +50,9 @@ class SymInterp(
       case Found(config)      => Some(config)
       case NotFound | Timeout => None
     }
+
+  /** check the satisfiability of the given abstract state */
+  def check: Boolean = st.reachable && st.symEnv.forall((_, ty) => !ty.isBottom)
 
   // ---------------------------------------------------------------------------
   // symbolic execution state
@@ -383,7 +384,6 @@ class SymInterp(
   private def refine(v: AbsValue, ty: ValueTy)(using
     NodePoint[?],
   ): Updater = st =>
-    import TargetType.*
     val dty = TargetType(ty)
     val vty = v.ty(using st)
     val constr = v.guard.derive(vty, dty.ty)
@@ -432,22 +432,8 @@ class SymInterp(
 }
 
 object SymInterp {
-  def apply(
-    cfg: CFG,
-    timeLimit: Option[Int] = None,
-    detail: Boolean = false,
-  ): SymInterpRunner = {
-    val tyChecker = TyChecker(cfg, silent = true)
-    tyChecker.analyze
-    val synthesizer = TySynthesizer(cfg, tyChecker)
-    synthesizer.prepare()
-    SymInterpRunner(tyChecker, synthesizer, timeLimit, detail)
-  }
 
-  /** BFS from `func` over the reverse call graph, mapping each reached function
-    * to its distance (the number of call edges) from `func`. Traversal records
-    * functions in `stopAt` but does not explore their callers.
-    */
+  /** reverse call distances, including but not expanding `stopAt` */
   def reachingDists(
     func: Func,
     stopAt: Set[Func] = Set.empty,
@@ -469,28 +455,22 @@ object SymInterp {
     dist.toMap
   }
 
-  /** built-in entries reaching the target node, mapped to their distance (the
-    * number of call edges from the entry to the target's function)
-    */
+  /** builtin entry distances to the target function */
   def findEntries(target: Node)(using cfg: CFG): Map[Func, Int] =
     val func = cfg.funcOf(target)
     if (func.isBuiltin) Map(func -> 0)
     else reachingDists(func).filter(_._1.isBuiltin)
 
-  /** built-in entries reaching the target node, ordered from the closest to the
-    * farthest
-    */
+  /** builtin entries ordered by call distance */
   def sortedEntries(target: Node)(using cfg: CFG): List[Func] =
     findEntries(target).toList.sortBy((f, d) => (d, f.id)).map(_._1)
 
-  /** functions that may lie on a call path from `entry` to `target` (always
-    * including `entry` itself)
-    */
+  /** possible call-path functions, including the entry */
   def candidateFuncs(entry: Func, target: Func)(using cfg: CFG): Set[Func] =
     if (target == entry) Set(target)
     else reachingDists(target, stopAt = Set(entry)).keySet + entry
 
-  /** nodes within candidate functions that can still reach the target node */
+  /** candidate nodes that can reach the target */
   def candidateNodes(entry: Func, target: Node)(using cfg: CFG): Set[Node] =
     val targetFunc = cfg.funcOf(target)
     val funcs = candidateFuncs(entry, targetFunc)
@@ -518,21 +498,4 @@ object SymInterp {
       } yield callTarget
       callTargets.flatMap(func.reachingTo)
     }
-}
-case class SymInterpRunner(
-  tyChecker: TyChecker,
-  synthesizer: TySynthesizer,
-  timeLimit: Option[Int] = None,
-  detail: Boolean = false,
-) {
-  def apply(func: Func, cond: Cond): SymInterp =
-    new SymInterp(
-      tyChecker,
-      synthesizer,
-      func,
-      cond.branch,
-      Some(cond.cond),
-      timeLimit,
-      detail,
-    )
 }

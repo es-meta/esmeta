@@ -232,10 +232,12 @@ case object CmdDumpVisualizer
 // -----------------------------------------------------------------------------
 /** `solve` command */
 case object CmdSolve extends Command("solve", CmdBuildCFG >> Solve) {
-  val help = "generates an ECMAScript program that covers a target branch"
+  val help = "generates ECMAScript programs for selected builtin branch sides"
   val examples = List(
-    "esmeta solve -solve:branch=1234              # solve both sides.",
-    "esmeta solve -solve:branch=1234 -solve:side  # solve true side only.",
+    "esmeta solve                     # solve all builtin targets.",
+    "esmeta solve -solve:log          # save programs and a summary.",
+    "esmeta solve -solve:branch=1234  # solve both sides of one target branch.",
+    "esmeta solve -solve:branch=1234 -solve:side=true  # solve true side only.",
   )
 }
 
