@@ -9,7 +9,7 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
-import scala.collection.mutable.{Map => MMap, PriorityQueue, Queue}
+import scala.collection.mutable.{Map => MMap, Stack, Queue}
 
 class SymInterp(
   val tychecker: TyChecker,
@@ -90,10 +90,8 @@ class SymInterp(
   // visited loops to avoid infinite exploration
   var loops: Set[Branch] = Set.empty
 
-  // priority queue of configurations for backtracking
-  private val configs = PriorityQueue[(Config, Double)]()(Ordering.by {
-    case (config, score) => (score, elsePriority(config))
-  })
+  // configuration stack for depth-first backtracking
+  private val configs = Stack[Config]()
 
   // symbolic execution of a node
   private def step: Unit = {
@@ -103,9 +101,7 @@ class SymInterp(
     // log current configuration
     log("=" * 80)
     log(s"Executing node ${node.name}: $wrap")
-    log(
-      s"Backtrack queue: ${configs.clone().dequeueAll.map(_._1.node.name).mkString(", ")}",
-    )
+    log(s"Backtrack stack: ${configs.iterator.map(_.node.name).mkString(", ")}")
     log("-" * 80)
     log(s"$node @ ${cfg.funcOf(node).name}")
 
@@ -183,7 +179,7 @@ class SymInterp(
               val takenSt = refine(v, b)(st)
               wrap.copy(node = to, state = takenSt).push(Cond(branch, taken))
             (thenNode, elseNode) match
-              case (Some(t), Some(e)) =>
+              case (Some(t), Some(e)) => // else-side first, then-side later
                 push(aux(t, true)); push(aux(e, false)); unwrap(pop)
               case (Some(t), None) =>
                 push(aux(t, true)); unwrap(pop)
@@ -365,14 +361,11 @@ class SymInterp(
   // push the current config and refine it using the branch condition and side
   def push(config: Config): Unit =
     val next = config
-    if (isCandidate(next.node) && !next.state.isBottom)
-      configs.enqueue(next -> configScore(next))
+    if (isCandidate(next.node) && !next.state.isBottom) configs.push(next)
   def push(configs: List[Config]): Unit = configs.foreach(push)
 
   // pop the previous config and backtrack
-  def pop: Config =
-    if (configs.isEmpty) throw NotFound
-    else configs.dequeue()._1
+  def pop: Config = if (configs.isEmpty) throw NotFound else configs.pop()
 
   // refine the current abstract state based on the branch condition and side
   def refine(branch: Branch, taken: Boolean)(using NodePoint[?]): Updater =
@@ -402,13 +395,6 @@ class SymInterp(
     def push(cond: Cond): Config = copy(conds = cond :: conds)
     override def toString: String = stringify(this)
   }
-
-  private def configScore(config: Config): Double = 0.0 // FIXME: priority score
-
-  private def elsePriority(config: Config): Int =
-    config.conds.headOption match
-      case Some(Cond(_, false)) => 1
-      case _                    => 0
 
   given stateRule: Rule[Config] = (app, config) => {
     app.wrap {
