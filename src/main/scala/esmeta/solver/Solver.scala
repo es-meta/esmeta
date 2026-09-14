@@ -38,11 +38,7 @@ class Solver(
     analyzer.analyze
     analyzer
   }
-  private lazy val synthesizer: TySynthesizer = {
-    val syn = TySynthesizer(cfg, tyChecker)
-    syn.prepare
-    syn
-  }
+  private lazy val synthesizer: TySynthesizer = TySynthesizer(cfg, tyChecker)
   private lazy val cov = Coverage(cfg, timeLimit = Some(2))
 
   // branch-side witnesses with a builtin as the nearest feature

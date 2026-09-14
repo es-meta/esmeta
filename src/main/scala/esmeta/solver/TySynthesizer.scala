@@ -13,13 +13,9 @@ import esmeta.util.BaseUtils.*
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
-import scala.util.*
 
 class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
   import TySynthesizer.*
-
-  /** prepare manual observations */
-  def prepare: Unit = { manualEntries.size; () }
 
   /** synthesize a value using constants from the specification */
   def synthesize(ty: ValueTy)(using
@@ -44,7 +40,7 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
   private val cachedManuals = TrieMap[ValueTy, List[String]]()
 
   private def fromDirect(ty: ValueTy): Option[String] = {
-    val values = (primitives(ty) ++ manuals(ty)).distinct
+    val values = (primitives(ty) ++ manualExprs(ty)).distinct
     Option.when(values.nonEmpty)(choose(values))
   }
 
@@ -194,13 +190,32 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
 
   private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
 
-  private def manuals(ty: ValueTy): List[String] =
+  private def manualExprs(ty: ValueTy): List[String] =
     if (ty.isBottom) Nil
     else
       cachedManuals.getOrElseUpdate(
         ty,
-        manualEntries.filter(_.ty <= ty).map(_.expr).distinct,
+        observations.filter(obs => matches(ty, obs.value, obs.heap)).map(_.expr),
       )
+
+  // check refined slots even when the record has a subtype tag
+  private def matches(ty: ValueTy, value: Value, heap: Heap): Boolean =
+    ty.safeContains(value, heap).contains(true) && ((value, ty.record) match {
+      case (addr: Addr, RecordTy.Elem(map, _)) =>
+        heap(addr) match {
+          case record: RecordObj =>
+            map.exists { (name, fields) =>
+              RecordT(name).safeContains(value, heap).contains(true) &&
+              fields.map.forall { (field, binding) =>
+                record.get(field).fold(binding.absent) { value =>
+                  matches(binding.value, value, heap)
+                }
+              }
+            }
+          case _ => true
+        }
+      case _ => true
+    })
 
   private def fromTemplate(ty: ValueTy)(using
     checkDeadline: () => Unit,
@@ -222,9 +237,7 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
       .filter(Solver.funcAccessExpr(_).nonEmpty)
     LazyList.from(entries).flatMap { entry =>
       LazyList.from(shuffle(entry.exits.toList)).flatMap {
-        case block: Block
-            if block.insts.lastOption.exists(_.isInstanceOf[IReturn]) =>
-          val IReturn(expr) = block.insts.last: @unchecked
+        case block @ Block(_, insts :+ IReturn(expr), _) =>
           val interp = new SymInterp(
             this.tychecker,
             entry,
@@ -238,7 +251,7 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
           for {
             config <- LazyList
               .unfold(())(_ => interp.nextCandidate.map(_ -> ()))
-            st = block.insts.init.foldLeft(config.state) {
+            st = insts.foldLeft(config.state) {
               case (st, _) if st.isBottom => st
               case (st, inst)             => transfer.transfer(inst)(st)
             }
@@ -394,211 +407,103 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
       } yield z
     case _ => None
 
-  private def observeBatch(
-    exprs: List[String],
-  ): Map[String, Try[Option[ValueTy]]] =
-    if (exprs.isEmpty) Map()
+  private val observations: List[ObservedExpr] =
+    manuals.grouped(120).flatMap(observeBatch).toList
+
+  private def observeBatch(exprs: List[String]): List[ObservedExpr] =
+    if (exprs.isEmpty) Nil
     else
       try {
-        val src = ("var __a__ = 0;" :: exprs.zipWithIndex.map { (e, i) =>
-          s"var __w${i}__; try { __w${i}__ = ($e); } catch (e) {}"
-        }).mkString("\n")
+        val src =
+          ("var __marker__ = 0;" :: exprs.zipWithIndex.map { (expr, i) =>
+            s"var __value${i}__, __succeeded${i}__ = false; " +
+            s"try { __value${i}__ = ($expr); " +
+            s"__succeeded${i}__ = true; } catch (e) {}"
+          }).mkString("\n")
         val st = Interpreter(cfg.init.from(src), timeLimit = Some(20))
         val globals = st.heap.map.collectFirst {
-          case (_, m: MapObj) if m.map.contains(Str("__a__")) => m
+          case (_, m: MapObj) if m.map.contains(Str("__marker__")) => m
         }
-        exprs.zipWithIndex.map { (expr, i) =>
-          val ty = for {
-            g <- globals
-            addr <- g.map.get(Str(s"__w${i}__")).collect { case a: Addr => a }
-            obj <- st.heap.map.get(addr).collect { case r: RecordObj => r }
-            value <- obj.map.get("Value")
-          } yield st.typeOf(value)
-          expr -> Success(ty)
-        }.toMap
+        (for {
+          (expr, i) <- exprs.zipWithIndex
+          properties <- globals
+          succeededDesc <- properties.map.get(Str(s"__succeeded${i}__"))
+          if st(succeededDesc, Str("Value")) == Bool(true)
+          valueDesc <- properties.map.get(Str(s"__value${i}__"))
+        } yield ObservedExpr(expr, st(valueDesc, Str("Value")), st.heap)).toList
       } catch {
         case _: Throwable if exprs.size > 1 =>
           val (l, r) = exprs.splitAt(exprs.size / 2)
           observeBatch(l) ++ observeBatch(r)
-        case cause: Throwable => Map(exprs.head -> Failure(cause))
+        case _: Throwable => Nil
       }
 
-  lazy val manualEntries: List[Manual] =
-    def started(generator: String): String =
+  lazy val manuals: List[String] =
+    // basic values and syntax (7)
+    val ordinaryObjects = List("{}")
+    val symbols = List("Symbol()")
+    val argumentsObjects = List("(function(){ return arguments; })()")
+    val ecmascriptFunctions = List("() => {}", "function(){}")
+    val freshGenerators = List("(function*(){})()", "(async function*(){})()")
+
+    // size variations (6)
+    val strings = List("\"\"", "\"a\"", "\"aa\"")
+    val arrays = List("[]", "[0]", "[0, 0]")
+
+    // builtin references and results (4)
+    val builtinFunctions = List(
+      "Object", // callable and constructable
+      "Math.max", // callable only
+    )
+    val boundFunctions = List("(function(){}).bind()")
+    val errors = List("new Error()")
+
+    // execution states (20)
+    def afterNext(generator: String): String =
       s"(() => { const g = ($generator)(); g.next(); return g; })()"
-    val revoked = RecordT(
-      "ProxyExoticObject",
-      Map("ProxyTarget" -> NullT, "ProxyHandler" -> NullT),
+
+    def revoked(target: String): String =
+      s"(() => { const r = Proxy.revocable($target, {}); " +
+      "r.revoke(); return r.proxy; })()"
+
+    def withDetachedBuffer(makeValue: String => String): String =
+      "(() => { const buffer = new ArrayBuffer(8); " +
+      s"const value = ${makeValue("buffer")}; " +
+      "buffer.transfer(); return value; })()"
+
+    val promises = List(
+      "Promise.resolve(0)",
+      "new Promise(() => {})",
     )
-    val detached = RecordT("ArrayBuffer", Map("ArrayBufferData" -> NullT))
-    val rows: List[(ValueTy, List[String])] = List(
-      // NOTE: basic seeds (17)
-      ObjectT -> List("{}"),
-      SymbolT -> List("Symbol()"),
-      FunctionT -> List("() => {}"),
-      RecordT("ECMAScriptFunctionObject") -> List("function(){}"),
-      RecordT("BoundFunctionExoticObject") -> List("(function(){}).bind()"),
-      RecordT("BuiltinFunctionObject", List("Call", "Construct")) -> List(
-        "Object",
-      ),
-      RecordT("BuiltinFunctionObject", List("Call")) -> List("Math.max"),
-      RecordT("ArgumentsExoticObject") -> List(
-        "(function(){ return arguments; })()",
-      ),
-      RecordT("ErrorObject") -> List("new Error()"),
-      RecordT("SettledPromise") -> List("Promise.resolve(0)"),
-      RecordT("PendingPromise") -> List("new Promise(() => {})"),
-      RecordT("Generator") -> List("(function*(){})()"),
-      RecordT(
-        "Generator",
-        Map("GeneratorState" -> EnumT("completed")),
-      ) -> List(started("function*(){}")),
-      RecordT(
-        "Generator",
-        Map("GeneratorState" -> EnumT("suspended-yield")),
-      ) -> List(started("function*(){ yield 0; }")),
-      RecordT("AsyncGenerator") -> List("(async function*(){})()"),
-      RecordT(
-        "AsyncGenerator",
-        Map("AsyncGeneratorState" -> EnumT("completed")),
-      ) -> List(started("async function*(){}")),
-      RecordT(
-        "AsyncGenerator",
-        Map("AsyncGeneratorState" -> EnumT("draining-queue")),
-      ) -> List(started("async function*(){ yield 0; }")),
-      // FIXME: derivation edge-cases (2)
-      RecordT("StringExoticObject") -> List("Object('')"),
-      RecordT("ArrayBuffer", Map("ArrayBufferMaxByteLength" -> AnyT)) -> List(
-        "new ArrayBuffer(0, { maxByteLength: 0 })",
-      ),
-      // FIXME: size/content seeds (33)
-      StrT -> List("\"\"", "\"aa\""),
-      ArrayT -> List("[]", "[0]", "[0, 0]"),
-      RecordT("Map") -> List("new Map([])", "new Map([[0, 0]])"),
-      RecordT("Set") -> List("new Set([])", "new Set([0])"),
-      RecordT("WeakMap") -> List("new WeakMap([[{}, 0]])"),
-      RecordT("WeakSet") -> List("new WeakSet([{}])"),
-      RecordT("ArrayBuffer") -> List(
-        "new ArrayBuffer(0)",
-        "new ArrayBuffer(8)",
-      ),
-      TypedArrayT -> List(
-        "new Int8Array([])",
-        "new Int8Array([0])",
-        "new Int8Array([1])",
-        "new Int8Array([0, 0])",
-      ),
-      RecordT("Int8Array") -> List(
-        "new Int8Array([])",
-        "new Int8Array([0])",
-        "new Int8Array([1])",
-        "new Int8Array([0, 0])",
-      ),
-      RecordT("Uint8Array") -> List("new Uint8Array([0])"),
-      RecordT("Uint8ClampedArray") -> List("new Uint8ClampedArray([])"),
-      RecordT("Int16Array") -> List("new Int16Array([])"),
-      RecordT("Uint16Array") -> List("new Uint16Array([])"),
-      RecordT("Int32Array") -> List("new Int32Array([])"),
-      RecordT("Uint32Array") -> List("new Uint32Array([])"),
-      RecordT("BigInt64Array") -> List(
-        "new BigInt64Array([])",
-        "new BigInt64Array([0n])",
-      ),
-      RecordT("BigUint64Array") -> List("new BigUint64Array([])"),
-      RecordT("Float16Array") -> List("new Float16Array([])"),
-      RecordT("Float32Array") -> List("new Float32Array([])"),
-      RecordT("Float64Array") -> List("new Float64Array([])"),
-      // FIXME: using revoked proxy (1)
-      revoked -> List(
-        "(() => { const r = Proxy.revocable(function(){}, {}); " +
-        "r.revoke(); return r.proxy; })()",
-      ),
-      // FIXME: using detached arraybuffer (13)
-      detached -> List(
-        "(() => { const b = new ArrayBuffer(8); b.transfer(); return b; })()",
-      ),
-      RecordT("Int8Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Int8Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("Uint8Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Uint8Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT(
-        "Uint8ClampedArray",
-        Map("ViewedArrayBuffer" -> detached),
-      ) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Uint8ClampedArray(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("Int16Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Int16Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("Uint16Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Uint16Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("Int32Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Int32Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("Uint32Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Uint32Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("BigInt64Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new BigInt64Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT(
-        "BigUint64Array",
-        Map("ViewedArrayBuffer" -> detached),
-      ) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new BigUint64Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("Float16Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Float16Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("Float32Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Float32Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
-      RecordT("Float64Array", Map("ViewedArrayBuffer" -> detached)) -> List(
-        "(() => { const b = new ArrayBuffer(8); const t = new Float64Array(b); " +
-        "b.transfer(); return t; })()",
-      ),
+    val resumedGenerators = List(
+      afterNext("function*(){}"),
+      afterNext("function*(){ yield 0; }"),
+      afterNext("async function*(){}"),
+      afterNext("async function*(){ yield 0; }"),
     )
-    val observations = rows
-      .flatMap(_._2)
-      .distinct
-      .grouped(120)
-      .flatMap(observeBatch)
-      .toMap
-    rows.flatMap { (ty, exprs) =>
-      exprs.map { expr =>
-        Manual(ty, expr, observations(expr))
-      }
+    val revokedProxies = List(revoked("function(){}"))
+    val detachedBuffers = List(withDetachedBuffer(buffer => buffer))
+    val detachedTypedArrays = cfg.init.taNames.map { name =>
+      withDetachedBuffer(buffer => s"new $name($buffer)")
     }
+
+    val expressions =
+      ordinaryObjects ++ symbols ++ argumentsObjects ++ ecmascriptFunctions ++
+      freshGenerators ++ strings ++ arrays ++
+      builtinFunctions ++ boundFunctions ++ errors ++
+      promises ++ resumedGenerators ++ revokedProxies ++ detachedBuffers ++
+      detachedTypedArrays
+    expressions.distinct
+
 }
 
 object TySynthesizer {
-  private case class Literals(
+  case class Literals(
     numbers: List[Number],
     bigInts: List[SBigInt],
     strings: List[String],
   )
 
-  case class Manual(
-    annotation: ValueTy,
-    expr: String,
-    observation: Try[Option[ValueTy]],
-  ) {
-    val ty: ValueTy = observation.toOption.flatten
-      .filter(ty => !ty.isBottom && !ty.record.isBottom && ty <= annotation)
-      .getOrElse(annotation)
-  }
+  // keep the heap for internal-slot checks on object values
+  case class ObservedExpr(expr: String, value: Value, heap: Heap)
 }
