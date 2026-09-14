@@ -1,7 +1,7 @@
 package esmeta.solver
 
 import esmeta.analyzer.tychecker.TyChecker
-import esmeta.cfg.{Block, Branch, CFG}
+import esmeta.cfg.{Block, CFG}
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.ir.util.UnitWalker
@@ -18,79 +18,38 @@ import scala.util.*
 class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
   import TySynthesizer.*
 
-  def this(cfg: CFG) = {
-    this(cfg, TyChecker(cfg, silent = true))
-    tychecker.analyze
-  }
-
   /** prepare manual observations */
   def prepare: Unit = { manualEntries.size; () }
 
-  def candidates(ty: ValueTy)(using
-    literals: List[Literals] = Nil,
-    active: Set[ValueTy] = Set.empty,
+  /** synthesize a value using constants from the specification */
+  def synthesize(ty: ValueTy)(using
     checkDeadline: () => Unit = () => (),
-  ): LazyList[String] =
-    checked(checkDeadline) {
-      Solver.distinct(
-        primitives(ty) #::: manuals(ty) #::: fromStructure(ty) #:::
-        fromTemplate(ty),
+  ): Option[String] = {
+    checkDeadline()
+    val valueTy = ty && ESValueT
+    if (valueTy.isBottom) None
+    else
+      firstSuccess(
+        List(
+          () => fromDirect(valueTy),
+          () => fromRecord(valueTy),
+          () => fromTemplate(valueTy),
+        ),
       )
-    }
-
-  // fill template inputs
-  def candidates(template: Template)(using
-    literals: List[Literals],
-    active: Set[ValueTy],
-    checkDeadline: () => Unit,
-  ): LazyList[String] = checked(checkDeadline) {
-    val thisCands = candidates(template.thisTy)
-    val argCands = template.argTys.map(candidates)
-    val ctorTy = template.newTargetTy && ConstructorT
-    val ctorCands = candidates(ctorTy)
-    // empty newTarget denotes a call
-    val ntCands =
-      if (UndefT ⊑ template.newTargetTy) "" #:: ctorCands else ctorCands
-    val slots = (thisCands +: argCands) :+ ntCands
-    lazy val calls = Solver.oneChange(slots).flatMap { chosen =>
-      val thisV = chosen.head
-      val vs = chosen.slice(1, 1 + template.argTys.length)
-      val newTarget = chosen.last
-      template(thisV, vs, newTarget)
-    }
-    val constructors =
-      if (ctorTy.isBottom) LazyList.empty
-      else Solver.oneChange(argCands).flatMap(vs => template(vs))
-    def alternate(
-      left: LazyList[String],
-      right: => LazyList[String],
-    ): LazyList[String] =
-      left match
-        case head #:: tail => head #:: alternate(right, tail)
-        case _             => right
-    Solver.distinct(alternate(constructors, calls))
   }
 
-  private val cachedManuals = TrieMap[ValueTy, LazyList[String]]()
+  private def firstSuccess[A](choices: List[() => Option[A]]): Option[A] =
+    shuffle(choices).iterator.flatMap(_()).nextOption()
 
-  // check deadlines when forcing candidates
-  private def checked(check: () => Unit)(
-    stream: => LazyList[String],
-  ): LazyList[String] =
-    LazyList.unfold(() => stream) { resume =>
-      check()
-      val current = resume()
-      val next =
-        if (current.isEmpty) None
-        else Some(current.head -> (() => current.tail))
-      check()
-      next
-    }
+  private val cachedManuals = TrieMap[ValueTy, List[String]]()
+
+  private def fromDirect(ty: ValueTy): Option[String] = {
+    val values = (primitives(ty) ++ manuals(ty)).distinct
+    Option.when(values.nonEmpty)(choose(values))
+  }
 
   // exact values and primitive seeds
-  private def primitives(ty: ValueTy)(using
-    literals: List[Literals],
-  ): LazyList[String] =
+  private def primitives(ty: ValueTy): List[String] =
     val numberSet = ty.number.toNumberSet
     val numbers = numberSet.fold(Nil) { set =>
       set.toList.sortBy(n => (n.isNaN, n.double)).map(numberLit)
@@ -105,20 +64,20 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
       (if (ty.nullv) List("null") else Nil)
     val examples =
       (if (numberSet.isEmpty)
-         (literals.flatMap(_.numbers) ++ List(0, 1, -1).map(n => Number(n)))
+         (literals.numbers ++ List(0, 1, -1).map(n => Number(n)))
            .filter(ty.number.contains)
            .map(numberLit)
        else Nil) ++
       (if (ty.bigInt)
-         (literals.flatMap(_.bigInts) :+ SBigInt(0)).map(n => s"${n}n")
+         (literals.bigInts :+ SBigInt(0)).map(n => s"${n}n")
        else Nil) ++
       (ty.str match
         case Inf =>
-          (literals.flatMap(_.strings) :+ "")
+          (literals.strings :+ "")
             .map(s => "\"" + normStr(s) + "\"")
         case _ => Nil
       )
-    LazyList.from(exact) #::: LazyList.from(examples)
+    exact ++ examples
 
   private def numberLit(n: Number): String =
     val d = n.double
@@ -129,84 +88,100 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
     else if (d.isWhole && d.abs <= 9007199254740991.0) d.toLong.toString
     else d.toString
 
-  // values built from the object shape a type carries
-  private def fromStructure(ty: ValueTy)(using
-    literals: List[Literals],
-    active: Set[ValueTy],
+  // synthesize structural object requirements
+  private def fromRecord(ty: ValueTy)(using
     checkDeadline: () => Unit,
-  ): LazyList[String] =
-    val objs = ty.record match
-      case RecordTy.Elem(map, ObjShape(props, call, construct))
-          if props.nonEmpty =>
-        val ordered = props.toList.sortBy { case (p, _) => propKey(p) }
-        val slots = ordered.map { (prop, desc) =>
-          val k = propKey(prop)
-          if (desc.getExc) LazyList(s"get $k() { throw 0; }")
-          else if (desc.setExc) LazyList(s"set $k(_) { throw 0; }")
-          else candidates(desc.ty).map(v => s"$k: $v")
-        }
-        val objs = Solver.oneChange(slots).map(_.mkString("{ ", ", ", " }"))
-        if (isPlainObject(ty)) objs
-        else
-          val traps = ordered match
-            case (prop, desc) :: Nil =>
+  ): Option[String] = ty.record match {
+    case RecordTy.Elem(map, ObjShape(props, call, construct))
+        if props.nonEmpty =>
+      val ordered = props.toList.sortBy { case (prop, _) => propKey(prop) }
+      def objectLiteral(): Option[String] =
+        ordered
+          .foldLeft(Option(List.empty[String])) {
+            case (fields, (prop, desc)) =>
+              fields.flatMap { fs =>
+                val key = propKey(prop)
+                val field =
+                  if (desc.getExc) Some(s"get $key() { throw 0; }")
+                  else if (desc.setExc) Some(s"set $key(_) { throw 0; }")
+                  else synthesize(desc.ty).map(v => s"$key: $v")
+                field.map(_ :: fs)
+              }
+          }
+          .map(_.reverse.mkString("{ ", ", ", " }"))
+      if (isPlainObject(ty) && !call.exists && !construct.exists)
+        objectLiteral()
+      else {
+        val baseTy = ty.copied(record =
+          RecordTy.Elem(map, ObjShape(Map.empty, call, construct)),
+        )
+        val overlay = () => {
+          // preserve existing attributes and unspecified accessors
+          val updates = ordered
+            .map { (prop, desc) =>
               val key = propExpr(prop)
-              val fwd = "return Reflect.get(t, p, r); }"
-              if (desc.getExc)
-                LazyList(s"get(t, p, r) { if (p === $key) throw 0; $fwd")
-              else if (desc.setExc)
-                LazyList(
-                  s"set(t, p, v, r) { if (p === $key) throw 0; " +
-                  "return Reflect.set(t, p, v, r); }",
-                )
-              else
-                candidates(desc.ty)
-                  .map(v => s"get(t, p, r) { if (p === $key) return $v; $fwd")
-            case _ => LazyList.empty
-          val base = candidates(
-            ty.copied(record =
-              RecordTy.Elem(map, ObjShape(Map.empty, call, construct)),
-            ),
-          ).headOption
-          base match
-            case None => LazyList.empty
-            case Some(b) =>
-              traps.map(h => s"new Proxy($b, { $h })") #:::
-              objs.map(o =>
-                s"Object.defineProperties($b, " +
-                s"Object.getOwnPropertyDescriptors($o))",
-              )
-      case _ => LazyList.empty
-    objs #::: fromConstruct(ty) #::: fromCall(ty)
+              val field =
+                if (desc.getExc) "get" else if (desc.setExc) "set" else "value"
+              s"[$key]: Object.getOwnPropertyDescriptor(o, $key) ? " +
+              s"{ $field: ds[$key].$field } : ds[$key]"
+            }
+            .mkString("{ ", ", ", " }")
+          for {
+            base <- synthesize(baseTy)
+            obj <- objectLiteral()
+          } yield s"((o, ds) => Object.defineProperties(o, $updates))" +
+          s"($base, Object.getOwnPropertyDescriptors($obj))"
+        }
+        val proxy = ordered match {
+          case (prop, desc) :: Nil =>
+            List(() => {
+              val key = propExpr(prop)
+              for {
+                base <- synthesize(baseTy)
+                handler <-
+                  if (desc.getExc)
+                    Some(
+                      s"get(t, p, r) { if (p === $key) throw 0; return Reflect.get(t, p, r); }",
+                    )
+                  else if (desc.setExc)
+                    Some(
+                      s"set(t, p, v, r) { if (p === $key) throw 0; return Reflect.set(t, p, v, r); }",
+                    )
+                  else
+                    synthesize(desc.ty).map(v =>
+                      s"get(t, p, r) { if (p === $key) return $v; return Reflect.get(t, p, r); }",
+                    )
+              } yield s"new Proxy($base, { $handler })"
+            })
+          case _ => Nil
+        }
+        firstSuccess(overlay :: proxy)
+      }
+    case _ => firstSuccess(List(() => fromConstruct(ty), () => fromCall(ty)))
+  }
 
   private def fromConstruct(ty: ValueTy)(using
-    literals: List[Literals],
-    active: Set[ValueTy],
     checkDeadline: () => Unit,
-  ): LazyList[String] =
-    ty.record.construct match
-      case ConstructDesc.Elem(exc, ret) =>
-        if (exc) LazyList("function() { throw 0; }")
-        else candidates(ret).map(v => s"function() { return $v; }")
-      case ConstructDesc.Top => LazyList.empty
+  ): Option[String] = ty.record.construct match {
+    case ConstructDesc.Elem(exc, ret) =>
+      if (exc) Some("function() { throw 0; }")
+      else synthesize(ret).map(v => s"function() { return $v; }")
+    case ConstructDesc.Top => None
+  }
 
   private def fromCall(ty: ValueTy)(using
-    literals: List[Literals],
-    active: Set[ValueTy],
     checkDeadline: () => Unit,
-  ): LazyList[String] =
-    ty.record.call match
-      case CallDesc.Elem(exc, ret) =>
-        val isCtor = ty <= ConstructorT
-        if (exc)
-          if (isCtor) LazyList("function() { throw 0; }")
-          else LazyList("() => { throw 0; }")
-        else
-          candidates(ret).map { v =>
-            if (isCtor) s"function() { return $v; }"
-            else s"() => ($v)"
-          }
-      case CallDesc.Top => LazyList.empty
+  ): Option[String] = ty.record.call match {
+    case CallDesc.Elem(exc, ret) =>
+      val isCtor = ty <= ConstructorT
+      if (exc)
+        Some(if (isCtor) "function() { throw 0; }" else "() => { throw 0; }")
+      else
+        synthesize(ret).map { value =>
+          if (isCtor) s"function() { return $value; }" else s"() => ($value)"
+        }
+    case CallDesc.Top => None
+  }
 
   private def isPlainObject(ty: ValueTy): Boolean = ty.record match
     case RecordTy.Elem(map, _) =>
@@ -219,48 +194,34 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
 
   private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
 
-  private def manuals(ty: ValueTy): LazyList[String] =
-    if (ty.isBottom) LazyList.empty
+  private def manuals(ty: ValueTy): List[String] =
+    if (ty.isBottom) Nil
     else
       cachedManuals.getOrElseUpdate(
         ty,
-        Solver.distinct(
-          LazyList.from(manualEntries.filter(_.ty <= ty)).map(_.expr),
-        ),
+        manualEntries.filter(_.ty <= ty).map(_.expr).distinct,
       )
 
   private def fromTemplate(ty: ValueTy)(using
-    literals: List[Literals],
-    active: Set[ValueTy],
     checkDeadline: () => Unit,
-  ): LazyList[String] =
-    if (
-      !searchFields(ty).exists(targetCandidates.contains(_)) ||
-      active.contains(ty)
-    ) LazyList.empty
+  ): Option[String] =
+    if (!searchFields(ty).exists(targetCandidates.contains(_))) None
     else
-      derive(ty).flatMap { (template, localLiterals) =>
-        candidates(template)(using
-          literals ++ localLiterals,
-          active + ty,
-          checkDeadline,
-        )
-      }
+      derive(ty).iterator
+        .flatMap(_.instantiate(ty => synthesize(ty)))
+        .nextOption()
 
   // derive templates at the candidate entries' returns
   private def derive(ty: ValueTy)(using
     checkDeadline: () => Unit,
-  ): LazyList[(Template, List[Literals])] =
-    val targets = searchFields(ty).toList.sorted
+  ): LazyList[Template] =
+    val targets = searchFields(ty).toList
       .flatMap(field => targetCandidates.getOrElse(field, Nil))
-      .distinct
-    val entries = LazyList
-      .from(targets)
-      .flatMap(block => SymInterp.sortedEntries(block)(using cfg))
-      .distinct
+    val entries = SymInterp
+      .sortedEntries(targets)(using cfg)
       .filter(Solver.funcAccessExpr(_).nonEmpty)
-    entries.flatMap { entry =>
-      LazyList.from(entry.exits.toList.sortBy(_.id)).flatMap {
+    LazyList.from(entries).flatMap { entry =>
+      LazyList.from(shuffle(entry.exits.toList)).flatMap {
         case block: Block
             if block.insts.lastOption.exists(_.isInstanceOf[IReturn]) =>
           val IReturn(expr) = block.insts.last: @unchecked
@@ -290,7 +251,7 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
             if !refinedSt.isBottom && !symty.ty(using refinedSt).isBottom
             if symty.ty(using refinedSt) ⊑ required
             template <- Solver.getTemplate(tychecker)(entry, refinedSt)
-          } yield (template, literals(config.conds.map(_.branch)))
+          } yield template
         case _ => LazyList.empty
       }
     }
@@ -385,17 +346,8 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
       }
     }
 
-  private val literalsByBranch = TrieMap[Int, Literals]()
-
-  // fold each branch condition once across threads
-  def literals(branches: List[Branch]): List[Literals] =
-    branches.distinctBy(_.id).map { branch =>
-      literalsByBranch.synchronized {
-        literalsByBranch.getOrElseUpdate(branch.id, literalsIn(branch.cond))
-      }
-    }
-
-  private def literalsIn(expr: Expr): Literals =
+  // collect specification constants once per synthesizer
+  private lazy val literals: Literals =
     // separate NaN, infinities, and -0 from decimal folding
     val decimals = MMap[BigDecimal, Int]().withDefaultValue(0)
     val doubles = MMap[Double, Int]().withDefaultValue(0)
@@ -416,7 +368,7 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
         case Field(base, _) => walk(base)
         case _              => super.walk(ref)
     }
-    walker.walk(expr)
+    walker.walk(cfg.program)
     def ranked[T](from: MMap[T, Int])(using Ordering[T]): List[T] =
       from.toList.sortBy((lit, n) => (-n, lit)).map(_._1)
     val numbers = ranked(decimals).map(n => Number(n.toDouble)) ++
@@ -519,9 +471,9 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
       RecordT("ArrayBuffer", Map("ArrayBufferMaxByteLength" -> AnyT)) -> List(
         "new ArrayBuffer(0, { maxByteLength: 0 })",
       ),
-      // FIXME: size/content seeds (32)
+      // FIXME: size/content seeds (33)
       StrT -> List("\"\"", "\"aa\""),
-      ArrayT -> List("[]", "[0, 0]"),
+      ArrayT -> List("[]", "[0]", "[0, 0]"),
       RecordT("Map") -> List("new Map([])", "new Map([[0, 0]])"),
       RecordT("Set") -> List("new Set([])", "new Set([0])"),
       RecordT("WeakMap") -> List("new WeakMap([[{}, 0]])"),
@@ -634,7 +586,7 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
 }
 
 object TySynthesizer {
-  case class Literals(
+  private case class Literals(
     numbers: List[Number],
     bigInts: List[SBigInt],
     strings: List[String],

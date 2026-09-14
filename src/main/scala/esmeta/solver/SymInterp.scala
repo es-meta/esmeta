@@ -463,7 +463,18 @@ object SymInterp {
 
   /** builtin entries ordered by call distance */
   def sortedEntries(target: Node)(using cfg: CFG): List[Func] =
-    findEntries(target).toList.sortBy((f, d) => (d, f.id)).map(_._1)
+    sortedEntries(List(target))
+
+  /** builtin entries ordered by minimum call distance to any target */
+  def sortedEntries(targets: Iterable[Node])(using cfg: CFG): List[Func] =
+    targets.toList
+      .map(cfg.funcOf)
+      .distinct
+      .flatMap(func => findEntries(func.entry))
+      .groupMapReduce(_._1)(_._2)(_ min _)
+      .toList
+      .sortBy((f, d) => (d, f.id))
+      .map(_._1)
 
   /** possible call-path functions, including the entry */
   def candidateFuncs(entry: Func, target: Func)(using cfg: CFG): Set[Func] =

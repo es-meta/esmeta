@@ -7,7 +7,7 @@ import esmeta.es.builtin.{INNER_CODE, intrAddr}
 import esmeta.es.util.Coverage
 import esmeta.es.util.Coverage.*
 import esmeta.ir.{Func => _, *}
-import esmeta.state.{Clo, RecordObj}
+import esmeta.state.*
 import esmeta.spec.*
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
@@ -317,7 +317,8 @@ class Solver(
 
   private def solveEntry(f: Func, cond: Cond, deadline: Long): BranchResult = {
     def expired: Boolean = System.nanoTime() > deadline
-    def checkTimeout(): Unit = if (expired) throw TimeoutException("solver")
+    given checkTimeout: (() => Unit) =
+      () => if (expired) throw TimeoutException("solver")
     val interp = new SymInterp(
       tyChecker,
       f,
@@ -325,35 +326,34 @@ class Solver(
       side = Some(cond.cond),
       timeLimit = Some(solveTimeLimit),
       detail = detail,
-      checkDeadline = () => checkTimeout(),
+      checkDeadline = checkTimeout,
     )
     @scala.annotation.tailrec
     def retry(rejected: Option[BranchResult]): BranchResult = {
       checkTimeout()
       interp.nextCandidate match {
         case Some(conf) =>
-          // conf.conds excludes the target branch
-          val target = conf.node match
-            case branch: Branch => List(branch)
-            case _              => Nil
-          val literals =
-            synthesizer.literals(target ++ conf.conds.map(_.branch))
+          val seen = MSet.empty[String]
           val candidates = Solver
             .getTemplate(interp.tychecker)(f, conf.state)
             .to(LazyList)
             .flatMap { template =>
-              synthesizer.candidates(template)(using
-                literals,
-                Set.empty,
-                checkTimeout,
-              )
+              LazyList
+                .continually {
+                  checkTimeout()
+                  template.instantiate(ty => synthesizer.synthesize(ty))
+                }
+                .takeWhile(_.isDefined)
+                .flatten
             }
             .map(_ + ";")
             .take(Solver.maxCandidatesPerPath)
+            .filter(seen.add)
           candidates.headOption match {
             case Some(_) =>
-              val passing = candidates.iterator
-                .find(js => verifies(js, cond, () => checkTimeout()))
+              val passing = candidates.iterator.find { js =>
+                verifies(js, cond, checkTimeout)
+              }
               passing match {
                 case Some(js) => BranchResult(cond, "pass", Some(js))
                 case None =>
@@ -423,6 +423,7 @@ object Solver {
     st: tychecker.AbsState,
   ): Option[Template] =
     import tychecker.*
+    given CFG = tychecker.cfg
     given AbsState = st
     // get constraints for each symbolic input
     val thisTy = st.getConstr(SThis.sym)
@@ -432,36 +433,106 @@ object Solver {
       if (isConstructable(entryFunc, cfg)) newTargetTy
       else newTargetTy && UndefT
     if (newTarget.isBottom) return None
-    val args = entryFunc.head match
-      case Some(h: BuiltinHead) =>
-        val variadicAt = h.params.indexWhere(_.kind == ParamKind.Variadic)
-        if (variadicAt < 0) // no variadic argument
-          (0 until h.arity._2).toList.map(i => st.getConstr(i))
-        else // contains variadic argument
-          val fixed = h.params.indices
-            .filter(_ != variadicAt)
-            .map(i => st.getConstr(i))
-            .toList
-          val (before, after) = fixed.splitAt(variadicAt)
-          // only a refined argument is in the environment
-          st.symEnv.keysIterator.flatMap(variadicIdxOf).maxOption match
-            case None => before ++ after
-            case Some(i) =>
-              val variadic = (0 to i).toList.map { k =>
-                st.getConstr(SVariadicIdx(k).sym)
+    entryFunc.head match
+      case Some(head: BuiltinHead) =>
+        val paramTys = head.params.zipWithIndex.map { (param, i) =>
+          if (param.kind == ParamKind.Variadic) st.getConstr(SArgs.sym)
+          else st.getConstr(i)
+        }
+        val variadicTys =
+          if (!head.params.exists(_.kind == ParamKind.Variadic)) Nil
+          else {
+            val listTy = st.getConstr(SArgs.sym).list
+            if (listTy.isBottom) return None
+            val elemTy = listTy.elem && ESValueT
+            st.symEnv.keysIterator
+              .flatMap(variadicIdxOf)
+              .maxOption
+              .toList
+              .flatMap { last =>
+                (0 to last).map { i =>
+                  st.getConstr(SVariadicIdx(i).sym) && elemTy
+                }
               }
-              before ++ variadic ++ after
-      case _ => Nil
-    getPath(entryFunc).map(path => Template(path, thisTy, args, newTarget))
+          }
+        Some(Template(head, thisTy, paramTys, variadicTys, newTarget))
+      case _ => None
 
-  /** JS call form and input types */
+  /** builtin signature and symbolic input types */
   case class Template(
-    path: BuiltinPath,
+    head: BuiltinHead,
     thisTy: ValueTy,
-    argTys: List[ValueTy],
+    paramTys: List[ValueTy],
+    variadicTys: List[ValueTy],
     newTargetTy: ValueTy,
-  ) {
-    def apply(
+  )(using cfg: CFG) {
+
+    private val path = head.path
+
+    // resolve the callee's type without executing a generated program
+    private lazy val calleeTy: ValueTy =
+      cfg.init.initHeap.map.get(intrAddr(path.toString)) match
+        case Some(obj: RecordObj) =>
+          State(cfg, Context(cfg.main), heap = cfg.init.initHeap).typeOf(obj)
+        case _ => BotT
+
+    /** fill the invocation inputs with type-directed synthesis */
+    def instantiate(
+      synthesize: ValueTy => Option[String],
+    )(using checkDeadline: () => Unit): Option[String] = {
+      def arguments(): Option[List[String]] = {
+        head.params
+          .zip(paramTys)
+          .foldLeft(Option(List.empty[String])) {
+            case (values, (param, ty)) =>
+              values.flatMap { vs =>
+                checkDeadline()
+                val expr =
+                  if (param.kind != ParamKind.Variadic) synthesize(ty)
+                  else
+                    variadicTys
+                      .foldLeft(Option(List.empty[String])) {
+                        case (elements, elemTy) =>
+                          elements.flatMap { es =>
+                            checkDeadline()
+                            synthesize(elemTy).map(_ :: es)
+                          }
+                      }
+                      .map(_.reverse.mkString("...[", ", ", "]"))
+                expr.map(_ :: vs)
+              }
+          }
+          .map(_.reverse)
+      }
+      checkDeadline()
+      val ctorTy = newTargetTy && ConstructorT
+      val calls = Option
+        .when(UndefT ⊑ newTargetTy) { () =>
+          for {
+            receiver <- synthesize(thisTy)
+            args <- arguments()
+            expr <- apply(receiver, args, "")
+          } yield expr
+        }
+        .toList
+      val constructs =
+        if (ctorTy.isBottom) Nil
+        else
+          Option
+            .when(!calleeTy.isBottom && calleeTy <= ctorTy) { () =>
+              arguments().flatMap(apply(_))
+            }
+            .toList ++ List(() =>
+            for {
+              args <- arguments()
+              newTarget <- synthesize(ctorTy)
+              expr <- apply("undefined", args, newTarget)
+            } yield expr,
+          )
+      shuffle(calls ++ constructs).iterator.flatMap(_()).nextOption()
+    }
+
+    private def apply(
       thisV: String,
       vs: List[String],
       newTarget: String,
@@ -482,7 +553,7 @@ object Solver {
         }
       }
 
-    def apply(vs: List[String]): Option[String] =
+    private def apply(vs: List[String]): Option[String] =
       access(path).map(fn => s"new ($fn)(${vs.mkString(", ")})")
   }
 
@@ -493,26 +564,6 @@ object Solver {
         case record: RecordObj => record.map.contains("Construct")
         case _                 => false
       }
-
-  def oneChange(slots: List[LazyList[String]]): LazyList[List[String]] =
-    if (slots.exists(_.isEmpty)) LazyList.empty
-    else {
-      val heads = slots.map(_.head)
-      def rounds(tails: List[LazyList[String]]): LazyList[List[String]] =
-        if (tails.forall(_.isEmpty)) LazyList.empty
-        else
-          val round = for {
-            (alts, i) <- LazyList.from(tails).zipWithIndex
-            if alts.nonEmpty
-          } yield heads.updated(i, alts.head)
-          round #::: rounds(tails.map(_.drop(1)))
-      heads #:: rounds(slots.map(_.drop(1)))
-    }
-
-  // lazy distinct
-  def distinct(xs: LazyList[String]): LazyList[String] =
-    val seen = MSet[String]()
-    xs.filter(seen.add)
 
   def getPath(func: Func): Option[BuiltinPath] = func.head match {
     case Some(h: BuiltinHead) => Some(h.path)
