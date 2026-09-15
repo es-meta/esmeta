@@ -12,15 +12,15 @@ assert (= f.Configurable false)
 
 assert (! (exists objRec.x))
 assert (? decRec.x: Record[MutableBinding])
-assert decRec.x.initialized
-assert (= decRec.x.BoundValue 2.0f)
+assert decRec.x.__INITIALIZED__
+assert (= decRec.x.__BOUND_VALUE__ 2.0f)
 
 assert (! (exists objRec.y))
 assert (? decRec.y: Record[MutableBinding])
-assert decRec.y.initialized
-assert (= decRec.y.BoundValue 2.0f)
+assert decRec.y.__INITIALIZED__
+assert (= decRec.y.__BOUND_VALUE__ 2.0f)
 
 assert (! (exists objRec.z))
 assert (? decRec.z: Record[MutableBinding])
-assert decRec.z.initialized
-assert (= decRec.z.BoundValue 2.0f)
+assert decRec.z.__INITIALIZED__
+assert (= decRec.z.__BOUND_VALUE__ 2.0f)
