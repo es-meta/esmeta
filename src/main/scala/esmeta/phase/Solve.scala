@@ -29,7 +29,7 @@ case object Solve extends Phase[CFG, String] {
     (
       "side",
       BoolOption((c, b) => c.side = Some(b)),
-      "target the side to solve (default: both).",
+      "target the side to solve (requires -solve:branch; default: both).",
     ),
     (
       "log",

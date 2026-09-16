@@ -128,6 +128,8 @@ class Solver(
 
   /** select static builtin targets before analysis */
   lazy val targets: List[(List[Func], Cond)] = {
+    if (side.nonEmpty && branch.isEmpty)
+      raise("solve: -solve:side requires -solve:branch")
     for (id <- branch)
       cfg.nodeMap.get(id) match
         case Some(_: Branch) => ()
@@ -193,6 +195,7 @@ class Solver(
     ProgressBar(
       msg = s"solving with $nThreads threads ($solveTimeout per target)",
       iterable = selected,
+      verbose = branch.isEmpty,
       detail = false,
       concurrent = CP.Fixed(nThreads),
     ).foreach { (entries, cond) =>
@@ -270,7 +273,7 @@ class Solver(
     }
     if (branch.isEmpty) summary
     else
-      summary + results
+      results
         .map(r => s"[${r.status}] ${r.cond}: ${r.js.getOrElse("no program")}")
         .mkString("", "\n", "\n")
   }
