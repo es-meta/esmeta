@@ -37,9 +37,9 @@ case object Solve extends Phase[CFG, String] {
       "turn on logging mode (default: false).",
     ),
     (
-      "detail",
+      "detail-log",
       BoolOption((c, b) => c.detail = b),
-      "print detailed symbolic execution steps (default: false).",
+      "logging mode with detailed information.",
     ),
   )
   case class Config(
