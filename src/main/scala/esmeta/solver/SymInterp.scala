@@ -209,8 +209,12 @@ class SymInterp(
       var retV = AbsValue.Bot
       var retConstr = TypeProp.Bot
       fty.clo match
-        case CloTopTy           => retV ⊔= AbsValue(AnyT)
-        case CloArrowTy(_, ret) => retV ⊔= AbsValue(ret)
+        case CloTopTy =>
+          retV ⊔= AbsValue(AnyT)
+          retConstr ||= TypeProp.Top
+        case CloArrowTy(_, ret) =>
+          retV ⊔= AbsValue(ret)
+          retConstr ||= TypeProp.Top
         case CloSetTy(names) =>
           for {
             fname <- names
@@ -218,7 +222,9 @@ class SymInterp(
             (v, constr) = pushCall(callerNp, f, st, vs, x, next)
           } { retV ⊔= v; retConstr ||= constr }
       fty.cont match
-        case Inf => retV ⊔= AbsValue(AnyT)
+        case Inf =>
+          retV ⊔= AbsValue(AnyT)
+          retConstr ||= TypeProp.Top
         case Fin(fids) =>
           for {
             fid <- fty.cont.toIterable(stop = false)
@@ -228,7 +234,7 @@ class SymInterp(
       if (!retV.isBottom)
         push(
           wrap.copy(
-            state = st.define(x, retV).copy(constr = retConstr),
+            state = transfer.refine(retConstr)(st).define(x, retV),
             node = next,
           ),
         )
@@ -272,7 +278,7 @@ class SymInterp(
         val newSt = transfer.refine(newConstr)(callerSt)
         val newV = instantiate(v, vs, callerNp, callerSt)
         _configs ::= wrap.copy(
-          state = newSt.define(x, newV).copy(constr = newConstr),
+          state = newSt.define(x, newV),
           node = next,
         )
       }
