@@ -45,7 +45,7 @@ class Solver(
     an
   }
   private lazy val templateGen = new TemplateGenerator(analyzer)
-  private lazy val synthesizer = TySynthesizer(cfg, templateGen.templatesBySlot)
+  private lazy val synth = ExprSynthesizer(cfg, templateGen.templatesBySlot)
   private lazy val cov = Coverage(cfg, timeLimit = Some(2))
 
   // branch-side witnesses with a builtin as the nearest feature
@@ -198,7 +198,7 @@ class Solver(
     val selected = targets
     val targetKeys = selected.map { (_, c) => (c.branch.id, c.cond) }.toSet
     logDir
-    synthesizer
+    synth
     for (dir <- logDir)
       dumpJson(
         name = "candidate synthesis templates",
@@ -400,7 +400,7 @@ class Solver(
   ): Option[String] = {
     checkDeadline()
     invocation.form.flatMap { (expr, holes) =>
-      synthesizer.synthesize(holes).map(vs => Invocation.fill(expr, vs))
+      synth.synthesize(holes).map(vs => Invocation.fill(expr, vs))
     }
   }
 

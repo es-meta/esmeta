@@ -14,11 +14,11 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
 
-class TySynthesizer(
+class ExprSynthesizer(
   cfg: CFG,
   templatesBySlot: Map[String, List[Template]],
 ) {
-  import TySynthesizer.*
+  import ExprSynthesizer.*
 
   /** sample a candidate expression for a required type */
   def synthesize(ty: ValueTy)(using
@@ -445,7 +445,7 @@ class TySynthesizer(
 
 }
 
-object TySynthesizer {
+object ExprSynthesizer {
   case class Literals(
     numbers: List[Number],
     bigInts: List[SBigInt],
