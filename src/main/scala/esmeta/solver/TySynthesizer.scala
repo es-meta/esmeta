@@ -280,7 +280,7 @@ class TySynthesizer(
     checkDeadline: () => Unit,
   ): Option[String] = {
     checkDeadline()
-    shuffle(invocation.forms).iterator
+    invocation.form
       .filter { (_, holes) =>
         holes.forall { (_, input) =>
           checkDeadline()
@@ -290,7 +290,6 @@ class TySynthesizer(
       .flatMap { (expr, holes) =>
         synthesize(holes).map(values => Invocation.fill(expr, values))
       }
-      .nextOption()
   }
 
   private def matchingTemplates(ty: ValueTy)(using

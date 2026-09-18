@@ -101,7 +101,7 @@ class TemplateGenerator(analyzer: SymAnalyzer) {
   /** synthesis candidates grouped by their lookup slots */
   lazy val json: Json = {
     val rendered = templates.map { template =>
-      val forms = template.invocation.forms.map { (expr, holes) =>
+      val form = template.invocation.form.map { (expr, holes) =>
         val (receiver, args) = holes.partition(_._1 == "#THIS")
         Json.fromFields(
           List(
@@ -114,7 +114,7 @@ class TemplateGenerator(analyzer: SymAnalyzer) {
           template.relation.map(r => "relation" -> Json.fromString(r.toString)),
         )
       }
-      template -> forms
+      template -> form
     }.toMap
     Json.fromFields(
       templatesBySlot.toList.sortBy(_._1).map { (slot, templates) =>
@@ -170,7 +170,7 @@ object TemplateGenerator {
           invocation.paramTys.zip(refinedInvocation.paramTys).map(_ && _),
         variadicTys =
           invocation.variadicTys.zip(refinedInvocation.variadicTys).map(_ && _),
-      )(using analyzer.cfg)
+      )
     }
   }
 

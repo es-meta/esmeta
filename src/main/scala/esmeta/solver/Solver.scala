@@ -344,14 +344,18 @@ class Solver(
       detail = detail,
       checkDeadline = checkTimeout,
     )
+    // sample each distinct invocation once per entry
+    val invocations = Iterator
+      .unfold(())(_ => interp.nextCandidate.map(_ -> ()))
+      .map { conf => Solver.getInvocation(interp.analyzer)(f, conf.state) }
+      .distinct
     @scala.annotation.tailrec
     def retry(rejected: Option[BranchResult]): BranchResult = {
       checkTimeout()
-      interp.nextCandidate match {
-        case Some(conf) =>
+      invocations.nextOption match {
+        case Some(invocation) =>
           val seen = MSet.empty[String]
-          val candidates = Solver
-            .getInvocation(interp.analyzer)(f, conf.state)
+          val candidates = invocation
             .to(LazyList)
             .flatMap { invocation =>
               LazyList
@@ -395,11 +399,9 @@ class Solver(
     checkDeadline: () => Unit,
   ): Option[String] = {
     checkDeadline()
-    shuffle(invocation.forms).iterator
-      .flatMap { (expr, holes) =>
-        synthesizer.synthesize(holes).map(vs => Invocation.fill(expr, vs))
-      }
-      .nextOption()
+    invocation.form.flatMap { (expr, holes) =>
+      synthesizer.synthesize(holes).map(vs => Invocation.fill(expr, vs))
+    }
   }
 
   private def verifies(
@@ -450,7 +452,6 @@ object Solver {
     st: analyzer.AbsState,
   ): Option[Invocation] =
     import analyzer.*
-    given CFG = analyzer.cfg
     // get constraints for each symbolic input
     val thisTy = st.getConstr(SThis.sym)
     val newTargetTy = st.getConstr(SNewTarget.sym)
@@ -503,19 +504,12 @@ object Solver {
     paramTys: List[ValueTy],
     variadicTys: List[ValueTy],
     newTargetTy: ValueTy,
-  )(using cfg: CFG) {
+  ) {
 
     private val path = head.path
 
-    // resolve the callee's type without executing a generated program
-    private lazy val calleeTy: ValueTy =
-      cfg.init.initHeap.map.get(intrAddr(path.toString)) match
-        case Some(obj: RecordObj) =>
-          State(cfg, Context(cfg.main), heap = cfg.init.initHeap).typeOf(obj)
-        case _ => BotT
-
-    /** call/construct expressions with their typed holes */
-    val forms: List[(String, List[(String, ValueTy)])] = {
+    /** choose call when allowed, otherwise construct */
+    val form: Option[(String, List[(String, ValueTy)])] = {
       val holes = ListBuffer.empty[(String, ValueTy)]
       val args = head.params.zip(paramTys).zipWithIndex.map {
         case ((param, ty), i) =>
@@ -534,25 +528,15 @@ object Solver {
           }
       }
       val argHoles = holes.toList
-      val calls =
-        if (UndefT ⊑ newTargetTy)
-          call("#THIS", args).map(_ -> (("#THIS" -> thisTy) :: argHoles)).toList
-        else Nil
-      val ctorTy = newTargetTy && ConstructorT
-      val constructs =
-        if (ctorTy.isBottom) Nil
-        else {
-          val direct =
-            if (!calleeTy.isBottom && calleeTy <= ctorTy)
-              access(path)
-                .map(fn => s"new ($fn)(${args.mkString(", ")})" -> argHoles)
-                .toList
-            else Nil
-          direct ++ construct(args, "#NEW_TARGET")
+      if (UndefT ⊑ newTargetTy)
+        call("#THIS", args).map(_ -> (("#THIS" -> thisTy) :: argHoles))
+      else {
+        val ctorTy = newTargetTy && ConstructorT
+        if (ctorTy.isBottom) None
+        else
+          construct(args, "#NEW_TARGET")
             .map(_ -> (argHoles :+ ("#NEW_TARGET" -> ctorTy)))
-            .toList
-        }
-      calls ++ constructs
+      }
     }
 
     private def call(receiver: String, args: List[String]): Option[String] =
