@@ -28,7 +28,7 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
       firstSuccess(
         List(
           () => fromDirect(valueTy),
-          () => fromRecord(valueTy),
+          () => fromShape(valueTy),
           () => fromTemplate(valueTy),
         ),
       )
@@ -85,48 +85,61 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
     else d.toString
 
   // synthesize structural object requirements
-  private def fromRecord(ty: ValueTy)(using
+  private def fromShape(ty: ValueTy)(using
     checkDeadline: () => Unit,
   ): Option[String] = ty.record match {
     case RecordTy.Elem(map, ObjShape(props, call, construct))
         if props.nonEmpty =>
       val ordered = props.toList.sortBy { case (prop, _) => propKey(prop) }
-      def objectLiteral(): Option[String] =
+      def objectLiteral(): Option[(String, List[(Property, String)])] =
         ordered
-          .foldLeft(Option(List.empty[String])) {
+          .foldLeft(Option(List.empty[(Property, String, String)])) {
             case (fields, (prop, desc)) =>
               fields.flatMap { fs =>
                 val key = propKey(prop)
-                val field =
-                  if (desc.getExc) Some(s"get $key() { throw 0; }")
-                  else if (desc.setExc) Some(s"set $key(_) { throw 0; }")
-                  else synthesize(desc.ty).map(v => s"$key: $v")
-                field.map(_ :: fs)
+                val field = firstSuccess(
+                  List(
+                    () =>
+                      Option.when(desc.getExc)(
+                        "get" -> s"get $key() { throw 0; }",
+                      ),
+                    () =>
+                      Option.when(desc.setExc)(
+                        "set" -> s"set $key(_) { throw 0; }",
+                      ),
+                    () => synthesize(desc.ty).map(v => "value" -> s"$key: $v"),
+                  ),
+                )
+                field.map((kind, code) => (prop, kind, code) :: fs)
               }
           }
-          .map(_.reverse.mkString("{ ", ", ", " }"))
+          .map { fields =>
+            val orderedFields = fields.reverse
+            orderedFields.map(_._3).mkString("{ ", ", ", " }") ->
+            orderedFields.map((prop, kind, _) => prop -> kind)
+          }
       if (isPlainObject(ty) && !call.exists && !construct.exists)
-        objectLiteral()
+        objectLiteral().map(_._1)
       else {
         val baseTy = ty.copied(record =
           RecordTy.Elem(map, ObjShape(Map.empty, call, construct)),
         )
         val overlay = () => {
-          // preserve existing attributes and unspecified accessors
-          val updates = ordered
-            .map { (prop, desc) =>
-              val key = propExpr(prop)
-              val field =
-                if (desc.getExc) "get" else if (desc.setExc) "set" else "value"
-              s"[$key]: Object.getOwnPropertyDescriptor(o, $key) ? " +
-              s"{ $field: ds[$key].$field } : ds[$key]"
-            }
-            .mkString("{ ", ", ", " }")
           for {
             base <- synthesize(baseTy)
-            obj <- objectLiteral()
-          } yield s"((o, ds) => Object.defineProperties(o, $updates))" +
-          s"($base, Object.getOwnPropertyDescriptors($obj))"
+            (obj, fields) <- objectLiteral()
+          } yield {
+            // preserve existing attributes and unspecified accessors
+            val updates = fields
+              .map { (prop, field) =>
+                val key = propExpr(prop)
+                s"[$key]: Object.getOwnPropertyDescriptor(o, $key) ? " +
+                s"{ $field: ds[$key].$field } : ds[$key]"
+              }
+              .mkString("{ ", ", ", " }")
+            s"((o, ds) => Object.defineProperties(o, $updates))" +
+            s"($base, Object.getOwnPropertyDescriptors($obj))"
+          }
         }
         val proxy = ordered match {
           case (prop, desc) :: Nil =>
@@ -134,34 +147,47 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
               val key = propExpr(prop)
               for {
                 base <- synthesize(baseTy)
-                handler <-
-                  if (desc.getExc)
-                    Some(
-                      s"get(t, p, r) { if (p === $key) throw 0; return Reflect.get(t, p, r); }",
-                    )
-                  else if (desc.setExc)
-                    Some(
-                      s"set(t, p, v, r) { if (p === $key) throw 0; return Reflect.set(t, p, v, r); }",
-                    )
-                  else
-                    synthesize(desc.ty).map(v =>
-                      s"get(t, p, r) { if (p === $key) return $v; return Reflect.get(t, p, r); }",
-                    )
+                handler <- firstSuccess(
+                  List(
+                    () =>
+                      Option.when(desc.getExc)(
+                        s"get(t, p, r) { if (p === $key) throw 0; return Reflect.get(t, p, r); }",
+                      ),
+                    () =>
+                      Option.when(desc.setExc)(
+                        s"set(t, p, v, r) { if (p === $key) throw 0; return Reflect.set(t, p, v, r); }",
+                      ),
+                    () =>
+                      synthesize(desc.ty).map(v =>
+                        s"get(t, p, r) { if (p === $key) return $v; return Reflect.get(t, p, r); }",
+                      ),
+                  ),
+                )
               } yield s"new Proxy($base, { $handler })"
             })
           case _ => Nil
         }
         firstSuccess(overlay :: proxy)
       }
-    case _ => firstSuccess(List(() => fromConstruct(ty), () => fromCall(ty)))
+    case _ =>
+      firstSuccess(
+        List(
+          () => fromConstruct(ty),
+          () => fromCall(ty),
+        ),
+      )
   }
 
   private def fromConstruct(ty: ValueTy)(using
     checkDeadline: () => Unit,
   ): Option[String] = ty.record.construct match {
     case ConstructDesc.Elem(exc, ret) =>
-      if (exc) Some("function() { throw 0; }")
-      else synthesize(ret).map(v => s"function() { return $v; }")
+      firstSuccess(
+        List(
+          () => Option.when(exc)("function() { throw 0; }"),
+          () => synthesize(ret).map(v => s"function() { return $v; }"),
+        ),
+      )
     case ConstructDesc.Top => None
   }
 
@@ -170,12 +196,20 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
   ): Option[String] = ty.record.call match {
     case CallDesc.Elem(exc, ret) =>
       val isCtor = ty <= ConstructorT
-      if (exc)
-        Some(if (isCtor) "function() { throw 0; }" else "() => { throw 0; }")
-      else
-        synthesize(ret).map { value =>
-          if (isCtor) s"function() { return $value; }" else s"() => ($value)"
-        }
+      firstSuccess(
+        List(
+          () =>
+            Option.when(exc)(
+              if (isCtor) "function() { throw 0; }"
+              else "() => { throw 0; }",
+            ),
+          () =>
+            synthesize(ret).map { value =>
+              if (isCtor) s"function() { return $value; }"
+              else s"() => ($value)"
+            },
+        ),
+      )
     case CallDesc.Top => None
   }
 
