@@ -2,8 +2,6 @@ package esmeta.solver
 
 import esmeta.cfg.CFG
 import esmeta.interpreter.Interpreter
-import esmeta.ir.*
-import esmeta.ir.util.UnitWalker
 import esmeta.solver.Solver.Invocation
 import esmeta.solver.TemplateGenerator.{Template, getSlots}
 import esmeta.state.*
@@ -11,8 +9,6 @@ import esmeta.ty.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.collection.concurrent.TrieMap
-import scala.collection.mutable.{Map => MMap}
-import scala.math.{BigInt => SBigInt}
 
 class ExprSynthesizer(
   cfg: CFG,
@@ -54,43 +50,47 @@ class ExprSynthesizer(
   private def firstSuccess[A](choices: List[() => Option[A]]): Option[A] =
     shuffle(choices).iterator.flatMap(_()).nextOption()
 
-  private val cachedManuals = TrieMap[ValueTy, List[String]]()
+  private val cachedDirect = TrieMap[ValueTy, List[List[String]]]()
 
+  // type literals and matching candidates, sampled by kind and then by value
   private def fromDirect(ty: ValueTy): Option[String] = {
-    val values = (primitives(ty) ++ manualExprs(ty)).distinct
-    Option.when(values.nonEmpty)(choose(values))
+    val groups = cachedDirect.getOrElseUpdate(
+      ty, {
+        val numbers = ty.number.toNumberSet.toList
+          .flatMap(_.toList.sortBy(n => (n.isNaN, n.double)))
+          .map(n => "Number" -> numberLit(n))
+        val strings = ty.str match
+          case Fin(set) =>
+            set.toList.sorted.map(s => "Str" -> s"\"${normStr(s)}\"")
+          case Inf => Nil
+        val observed = observations
+          .filter(obs => matches(ty, obs.value, obs.heap))
+          .map(obs => kindOf(obs.value, obs.heap) -> obs.expr)
+        (numbers ++ strings ++ observed)
+          .groupMap(_._1)(_._2)
+          .toList
+          .sortBy(_._1)
+          .map(_._2.distinct)
+      },
+    )
+    Option.when(groups.nonEmpty)(choose(choose(groups)))
   }
 
-  // exact values and primitive seeds
-  private def primitives(ty: ValueTy): List[String] =
-    val numberSet = ty.number.toNumberSet
-    val numbers = numberSet.fold(Nil) { set =>
-      set.toList.sortBy(n => (n.isNaN, n.double)).map(numberLit)
-    }
-    val exact = numbers ++
-      (ty.str match
-        case Fin(set) => set.toList.map(str => s"\"${normStr(str)}\"")
-        case Inf      => Nil
-      ) ++
-      ty.bool.set.toList.sorted.map(b => if (b) "true" else "false") ++
-      (if (ty.undef) List("undefined") else Nil) ++
-      (if (ty.nullv) List("null") else Nil)
-    val examples =
-      (if (numberSet.isEmpty)
-         (literals.numbers ++ List(0, 1, -1).map(n => Number(n)))
-           .filter(ty.number.contains)
-           .map(numberLit)
-       else Nil) ++
-      (if (ty.bigInt)
-         (literals.bigInts :+ SBigInt(0)).map(n => s"${n}n")
-       else Nil) ++
-      (ty.str match
-        case Inf =>
-          (literals.strings :+ "")
-            .map(s => "\"" + normStr(s) + "\"")
-        case _ => Nil
-      )
-    exact ++ examples
+  // sampling stratum of an observed value
+  private def kindOf(value: Value, heap: Heap): String = value match
+    case addr: Addr =>
+      heap(addr) match
+        case record: RecordObj => record.tname
+        case _: MapObj         => "Map"
+        case _: ListObj        => "List"
+        case _                 => "Object"
+    case _: Number => "Number"
+    case _: BigInt => "BigInt"
+    case _: Str    => "Str"
+    case _: Bool   => "Bool"
+    case Undef     => "Undefined"
+    case Null      => "Null"
+    case _         => "Other"
 
   private def numberLit(n: Number): String =
     val d = n.double
@@ -241,14 +241,6 @@ class ExprSynthesizer(
 
   private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
 
-  private def manualExprs(ty: ValueTy): List[String] =
-    if (ty.isBottom) Nil
-    else
-      cachedManuals.getOrElseUpdate(
-        ty,
-        observations.filter(obs => matches(ty, obs.value, obs.heap)).map(_.expr),
-      )
-
   // check refined slots even when the record has a subtype tag
   private def matches(ty: ValueTy, value: Value, heap: Heap): Boolean =
     ty.safeContains(value, heap).contains(true) && ((value, ty.record) match {
@@ -307,56 +299,7 @@ class ExprSynthesizer(
       }
       .distinct
 
-  // collect specification constants once per synthesizer
-  private lazy val literals: Literals =
-    // separate NaN, infinities, and -0 from decimal folding
-    val decimals = MMap[BigDecimal, Int]().withDefaultValue(0)
-    val doubles = MMap[Double, Int]().withDefaultValue(0)
-    val bigInts = MMap[SBigInt, Int]().withDefaultValue(0)
-    val strings = MMap[String, Int]().withDefaultValue(0)
-    def bump[T](to: MMap[T, Int], key: T): Unit = to(key) = to(key) + 1
-    val walker = new UnitWalker {
-      override def walk(expr: Expr): Unit = expr match
-        case EStr(str)  => bump(strings, str)
-        case EBigInt(n) => bump(bigInts, n)
-        case ENumber(d) if !d.isFinite || (d == 0 && 1 / d < 0) =>
-          bump(doubles, d)
-        case _ =>
-          foldLiterals(expr) match
-            case Some(n) => bump(decimals, n)
-            case None    => super.walk(expr)
-      override def walk(ref: Ref): Unit = ref match
-        case Field(base, _) => walk(base)
-        case _              => super.walk(ref)
-    }
-    walker.walk(cfg.program)
-    def ranked[T](from: MMap[T, Int])(using Ordering[T]): List[T] =
-      from.toList.sortBy((lit, n) => (-n, lit)).map(_._1)
-    val numbers = ranked(decimals).map(n => Number(n.toDouble)) ++
-      ranked(doubles).map(Number(_))
-    Literals(numbers, ranked(bigInts), ranked(strings))
-
-  private def foldLiterals(expr: Expr): Option[BigDecimal] = expr match
-    case EMath(n)   => Some(n)
-    case ENumber(d) => Option.when(!d.isNaN && !d.isInfinite)(BigDecimal(d))
-    case EUnary(UOp.Neg, e) => foldLiterals(e).map(-_)
-    case EBinary(bop, left, right) =>
-      for {
-        x <- foldLiterals(left)
-        y <- foldLiterals(right)
-        z <- bop match
-          case BOp.Add => Some(x + y)
-          case BOp.Sub => Some(x - y)
-          case BOp.Mul => Some(x * y)
-          case BOp.Div => Option.when(y != 0)(x / y)
-          case BOp.Pow =>
-            Option.when(y.isValidInt && y >= 0 && y <= 1024)(x.pow(y.toInt))
-          case _ => None
-      } yield z
-    case _ => None
-
-  private val observations: List[ObservedExpr] =
-    manuals.grouped(120).flatMap(observeBatch).toList
+  private val observations: List[ObservedExpr] = observeBatch(manuals)
 
   private def observeBatch(exprs: List[String]): List[ObservedExpr] =
     if (exprs.isEmpty) Nil
@@ -387,41 +330,65 @@ class ExprSynthesizer(
       }
 
   lazy val manuals: List[String] =
-    // basic values and syntax (7)
-    val ordinaryObjects = List("{}")
+    // primitive values (26)
+    val nullish = List("undefined", "null")
+    val booleans = List("true", "false")
+    val strings = List("\"\"", "\"a\"", "\"aa\"")
     val symbols = List("Symbol()")
+    val nonFinite = List("NaN", "-Infinity", "Infinity")
+    val zeros = List("-0", "0")
+    val fractions = List("-0.5", "0.5")
+    val integers = List("-1", "1", "2", "4", "8")
+    val limits = List(
+      "Number.MIN_VALUE",
+      "Number.MAX_SAFE_INTEGER",
+      "Number.MAX_VALUE",
+    )
+    val bigInts = List("-1n", "0n", "1n")
+
+    // object values (16)
+    val ordinaryObjects = List("{}")
+    val arrays = List("[]", "[0]", "[0, 0]")
     val argumentsObjects = List("(function(){ return arguments; })()")
     val ecmascriptFunctions = List("() => {}", "function(){}")
-    val freshGenerators = List("(function*(){})()", "(async function*(){})()")
-
-    // size variations (6)
-    val strings = List("\"\"", "\"a\"", "\"aa\"")
-    val arrays = List("[]", "[0]", "[0, 0]")
-
-    // builtin references and results (4)
+    val classConstructors = List("class {}", "class extends Object {}")
     val builtinFunctions = List(
       "Object", // callable and constructable
-      "Math.max", // callable only
+      "Function.prototype", // callable only
     )
     val boundFunctions = List("(function(){}).bind()")
     val errors = List("new Error()")
+    val promises = List("new Promise(() => {})")
+    val generators = List("(function*(){})()", "(async function*(){})()")
 
-    // execution states (20)
+    // execution states (22)
+    def afterThen(promise: String): String =
+      s"(() => { const p = $promise; p.then(); return p; })()"
+
     def afterNext(generator: String): String =
       s"(() => { const g = ($generator)(); g.next(); return g; })()"
 
-    def revoked(target: String): String =
-      s"(() => { const r = Proxy.revocable($target, {}); " +
-      "r.revoke(); return r.proxy; })()"
+    def revoked(target: String): String = oneLine(
+      s"""(() => {
+         |  const r = Proxy.revocable($target, {});
+         |  r.revoke();
+         |  return r.proxy;
+         |})()""",
+    )
 
-    def withDetachedBuffer(makeValue: String => String): String =
-      "(() => { const buffer = new ArrayBuffer(8); " +
-      s"const value = ${makeValue("buffer")}; " +
-      "buffer.transfer(); return value; })()"
+    def withDetachedBuffer(makeValue: String => String): String = oneLine(
+      s"""(() => {
+         |  const buffer = new ArrayBuffer(8);
+         |  const value = ${makeValue("buffer")};
+         |  buffer.transfer();
+         |  return value;
+         |})()""",
+    )
 
-    val promises = List(
+    val settledPromises = List(
       "Promise.resolve(0)",
-      "new Promise(() => {})",
+      "Promise.reject(0)",
+      afterThen("Promise.reject(0)"),
     )
     val resumedGenerators = List(
       afterNext("function*(){}"),
@@ -430,28 +397,43 @@ class ExprSynthesizer(
       afterNext("async function*(){ yield 0; }"),
     )
     val revokedProxies = List(revoked("function(){}"))
+    val resizableBuffers = List("new ArrayBuffer(8, { maxByteLength: 16 })")
     val detachedBuffers = List(withDetachedBuffer(buffer => buffer))
     val detachedTypedArrays = cfg.init.taNames.map { name =>
       withDetachedBuffer(buffer => s"new $name($buffer)")
     }
 
-    val expressions =
-      ordinaryObjects ++ symbols ++ argumentsObjects ++ ecmascriptFunctions ++
-      freshGenerators ++ strings ++ arrays ++
-      builtinFunctions ++ boundFunctions ++ errors ++
-      promises ++ resumedGenerators ++ revokedProxies ++ detachedBuffers ++
-      detachedTypedArrays
-    expressions.distinct
-
+    List(
+      nullish,
+      booleans,
+      strings,
+      symbols,
+      nonFinite,
+      zeros,
+      fractions,
+      integers,
+      limits,
+      bigInts,
+      ordinaryObjects,
+      arrays,
+      argumentsObjects,
+      ecmascriptFunctions,
+      classConstructors,
+      builtinFunctions,
+      boundFunctions,
+      errors,
+      promises,
+      generators,
+      settledPromises,
+      resumedGenerators,
+      revokedProxies,
+      resizableBuffers,
+      detachedBuffers,
+      detachedTypedArrays,
+    ).flatten.distinct
 }
 
 object ExprSynthesizer {
-  case class Literals(
-    numbers: List[Number],
-    bigInts: List[SBigInt],
-    strings: List[String],
-  )
-
   // keep the heap for internal-slot checks on object values
   case class ObservedExpr(expr: String, value: Value, heap: Heap)
 }

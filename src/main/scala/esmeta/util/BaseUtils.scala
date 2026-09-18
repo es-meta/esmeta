@@ -124,6 +124,10 @@ object BaseUtils {
   def trimRight(str: String): String =
     str.reverse.span(_ == ' ')._2.reverse
 
+  /** join the trimmed lines of a margin-stripped string into one line */
+  def oneLine(str: String): String =
+    str.stripMargin.linesIterator.map(_.trim).mkString(" ")
+
   /** normalize strings */
   def normStr(str: String): String = str
     .replace("\\", "\\\\")
