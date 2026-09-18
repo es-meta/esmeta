@@ -1,7 +1,6 @@
 package esmeta.solver
 
 import esmeta.SOLVER_LOG_DIR
-import esmeta.analyzer.tychecker.TyChecker
 import esmeta.cfg.*
 import esmeta.es.builtin.{INNER_CODE, intrAddr}
 import esmeta.es.util.Coverage
@@ -9,6 +8,7 @@ import esmeta.es.util.Coverage.*
 import esmeta.ir.{Func => _, *}
 import esmeta.state.*
 import esmeta.spec.*
+import esmeta.solver.Solver.Invocation
 import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{ConcurrentPolicy => CP, ProgressBar}
@@ -18,7 +18,13 @@ import java.util.concurrent.{
   ConcurrentLinkedQueue,
   TimeoutException,
 }
-import scala.collection.mutable.{Map => MMap, Set => MSet, Stack, Queue}
+import scala.collection.mutable.{
+  Map => MMap,
+  Set => MSet,
+  ListBuffer,
+  Stack,
+  Queue,
+}
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.*
 
@@ -33,12 +39,13 @@ class Solver(
   private given CFG = cfg
   private val solveTimeLimit = 10
   private val solveTimeout = Duration(solveTimeLimit, "seconds")
-  private lazy val tyChecker: TyChecker = {
-    val analyzer = TyChecker(cfg, silent = true)
-    analyzer.analyze
-    analyzer
+  private lazy val analyzer: SymAnalyzer = {
+    val an = new SymAnalyzer(cfg)
+    an.analyze
+    an
   }
-  private lazy val synthesizer: TySynthesizer = TySynthesizer(cfg, tyChecker)
+  private lazy val templateGen = new TemplateGenerator(analyzer)
+  private lazy val synthesizer = TySynthesizer(cfg, templateGen.templatesBySlot)
   private lazy val cov = Coverage(cfg, timeLimit = Some(2))
 
   // branch-side witnesses with a builtin as the nearest feature
@@ -120,10 +127,12 @@ class Solver(
 
   // exclude boilerplate, constant, and unsupported branches
   private lazy val candidateBranches: Set[Int] =
-    cfg.nodes.collect {
-      case b: Branch
-          if !b.isFiltered && !hasYet(b.cond) && !b.cond.isInstanceOf[EBool] =>
-        b.id
+    cfg.nodes.flatMap {
+      case b: Branch if !b.isFiltered && !hasYet(b.cond) =>
+        b.cond match
+          case EBool(_) => None // skip constant branches
+          case _        => Some(b.id)
+      case _ => None
     }.toSet
 
   /** select static builtin targets before analysis */
@@ -171,8 +180,8 @@ class Solver(
           .map(s => entries -> Cond(b, s))
       }
     if (selected.isEmpty)
-      raise(branch.fold("solve: no static builtin branch targets") { id =>
-        s"solve: branch $id is outside the static builtin target set"
+      raise(branch.fold("solve: no targets") { id =>
+        s"solve: branch $id is outside the target set"
       })
     selected
   }
@@ -190,6 +199,12 @@ class Solver(
     val targetKeys = selected.map { (_, c) => (c.branch.id, c.cond) }.toSet
     logDir
     synthesizer
+    for (dir <- logDir)
+      dumpJson(
+        name = "candidate synthesis templates",
+        data = templateGen.json,
+        filename = s"$dir/templates.json",
+      )
     val nThreads = Runtime.getRuntime.availableProcessors
     val completed = ConcurrentLinkedQueue[BranchResult]()
     ProgressBar(
@@ -221,7 +236,9 @@ class Solver(
       List("pass", "fail-verify", "fail-reify", "unsolved", "timeout", "error")
         .flatMap(status => byStatus.get(status).map(status -> _))
     val reachedPct = reached * 100.0 / selected.size
-    val summary = "Status breakdown:\n" +
+    val summary =
+      templateGen.summary +
+      "Status breakdown:\n" +
       statusGroups.map { (status, rs) =>
         val count = rs.size
         val pct = count * 100.0 / selected.size
@@ -319,7 +336,7 @@ class Solver(
     given checkTimeout: (() => Unit) =
       () => if (expired) throw TimeoutException("solver")
     val interp = new SymInterp(
-      tyChecker,
+      analyzer,
       f,
       cond.branch,
       side = Some(cond.cond),
@@ -334,13 +351,13 @@ class Solver(
         case Some(conf) =>
           val seen = MSet.empty[String]
           val candidates = Solver
-            .getTemplate(interp.tychecker)(f, conf.state)
+            .getInvocation(interp.analyzer)(f, conf.state)
             .to(LazyList)
-            .flatMap { template =>
+            .flatMap { invocation =>
               LazyList
                 .continually {
                   checkTimeout()
-                  template.instantiate(ty => synthesizer.synthesize(ty))
+                  assemble(invocation)
                 }
                 .takeWhile(_.isDefined)
                 .flatten
@@ -373,6 +390,18 @@ class Solver(
     catch { case _: TimeoutException => BranchResult(cond, "timeout") }
   }
 
+  /** assemble a target call from synthesized input expressions */
+  private def assemble(invocation: Invocation)(using
+    checkDeadline: () => Unit,
+  ): Option[String] = {
+    checkDeadline()
+    shuffle(invocation.forms).iterator
+      .flatMap { (expr, holes) =>
+        synthesizer.synthesize(holes).map(vs => Invocation.fill(expr, vs))
+      }
+      .nextOption()
+  }
+
   private def verifies(
     js: String,
     cond: Cond,
@@ -391,11 +420,10 @@ class Solver(
       )
       interp.result
       checkTimeout()
-      for (
+      for {
         cv <- interp.touchedCondViews.keys
         if candidateBranches(cv.cond.branch.id)
-      )
-        condMap.putIfAbsent((cv.cond.branch.id, cv.cond.cond), js)
+      } condMap.putIfAbsent((cv.cond.branch.id, cv.cond.cond), js)
       interp.touchedCondViews.keys.exists { cv =>
         cv.cond.branch.id == cond.branch.id && cv.cond.cond == cond.cond
       }
@@ -417,19 +445,18 @@ object Solver {
   val maxCandidatesPerPath: Int = 100
 
   /** extract a template and its input types */
-  def getTemplate(tychecker: TyChecker)(
+  def getInvocation(analyzer: SymAnalyzer)(
     entryFunc: Func,
-    st: tychecker.AbsState,
-  ): Option[Template] =
-    import tychecker.*
-    given CFG = tychecker.cfg
-    given AbsState = st
+    st: analyzer.AbsState,
+  ): Option[Invocation] =
+    import analyzer.*
+    given CFG = analyzer.cfg
     // get constraints for each symbolic input
     val thisTy = st.getConstr(SThis.sym)
     val newTargetTy = st.getConstr(SNewTarget.sym)
     // newTarget alone does not imply a constructable entry
     val newTarget =
-      if (isConstructable(entryFunc, cfg)) newTargetTy
+      if (isConstructable(entryFunc, analyzer.cfg)) newTargetTy
       else newTargetTy && UndefT
     if (newTarget.isBottom) return None
     entryFunc.head match
@@ -454,11 +481,23 @@ object Solver {
                 }
               }
           }
-        Some(Template(head, thisTy, paramTys, variadicTys, newTarget))
+        Some(Invocation(head, thisTy, paramTys, variadicTys, newTarget))
       case _ => None
 
+  object Invocation {
+    private val holePattern =
+      "#(?:THIS|NEW_TARGET|VAR\\[[0-9]+\\]|[0-9]+)".r
+
+    /** replace holes with already synthesized expressions */
+    def fill(expr: String, values: Map[String, String]): String =
+      holePattern.replaceAllIn(
+        expr,
+        m => scala.util.matching.Regex.quoteReplacement(values(m.matched)),
+      )
+  }
+
   /** builtin signature and symbolic input types */
-  case class Template(
+  case class Invocation(
     head: BuiltinHead,
     thisTy: ValueTy,
     paramTys: List[ValueTy],
@@ -475,85 +514,65 @@ object Solver {
           State(cfg, Context(cfg.main), heap = cfg.init.initHeap).typeOf(obj)
         case _ => BotT
 
-    /** fill the invocation inputs with type-directed synthesis */
-    def instantiate(
-      synthesize: ValueTy => Option[String],
-    )(using checkDeadline: () => Unit): Option[String] = {
-      def arguments(): Option[List[String]] = {
-        head.params
-          .zip(paramTys)
-          .foldLeft(Option(List.empty[String])) {
-            case (values, (param, ty)) =>
-              values.flatMap { vs =>
-                checkDeadline()
-                val expr =
-                  if (param.kind != ParamKind.Variadic) synthesize(ty)
-                  else
-                    variadicTys
-                      .foldLeft(Option(List.empty[String])) {
-                        case (elements, elemTy) =>
-                          elements.flatMap { es =>
-                            checkDeadline()
-                            synthesize(elemTy).map(_ :: es)
-                          }
-                      }
-                      .map(_.reverse.mkString("...[", ", ", "]"))
-                expr.map(_ :: vs)
+    /** call/construct expressions with their typed holes */
+    val forms: List[(String, List[(String, ValueTy)])] = {
+      val holes = ListBuffer.empty[(String, ValueTy)]
+      val args = head.params.zip(paramTys).zipWithIndex.map {
+        case ((param, ty), i) =>
+          if (param.kind == ParamKind.Variadic)
+            variadicTys.zipWithIndex
+              .map { (ty, k) =>
+                val hole = s"#VAR[$k]"
+                holes += hole -> ty
+                hole
               }
+              .mkString("...[", ", ", "]")
+          else {
+            val hole = s"#$i"
+            holes += hole -> ty
+            hole
           }
-          .map(_.reverse)
       }
-      checkDeadline()
+      val argHoles = holes.toList
+      val calls =
+        if (UndefT ⊑ newTargetTy)
+          call("#THIS", args).map(_ -> (("#THIS" -> thisTy) :: argHoles)).toList
+        else Nil
       val ctorTy = newTargetTy && ConstructorT
-      val calls = Option
-        .when(UndefT ⊑ newTargetTy) { () =>
-          for {
-            receiver <- synthesize(thisTy)
-            args <- arguments()
-            expr <- apply(receiver, args, "")
-          } yield expr
-        }
-        .toList
       val constructs =
         if (ctorTy.isBottom) Nil
-        else
-          Option
-            .when(!calleeTy.isBottom && calleeTy <= ctorTy) { () =>
-              arguments().flatMap(apply(_))
-            }
-            .toList ++ List(() =>
-            for {
-              args <- arguments()
-              newTarget <- synthesize(ctorTy)
-              expr <- apply("undefined", args, newTarget)
-            } yield expr,
-          )
-      shuffle(calls ++ constructs).iterator.flatMap(_()).nextOption()
+        else {
+          val direct =
+            if (!calleeTy.isBottom && calleeTy <= ctorTy)
+              access(path)
+                .map(fn => s"new ($fn)(${args.mkString(", ")})" -> argHoles)
+                .toList
+            else Nil
+          direct ++ construct(args, "#NEW_TARGET")
+            .map(_ -> (argHoles :+ ("#NEW_TARGET" -> ctorTy)))
+            .toList
+        }
+      calls ++ constructs
     }
 
-    private def apply(
-      thisV: String,
-      vs: List[String],
+    private def call(receiver: String, args: List[String]): Option[String] =
+      path match
+        case BuiltinPath.Getter(base) =>
+          descriptor(base).map(d => s"$d.get.call($receiver)")
+        case BuiltinPath.Setter(base) =>
+          val value = args.headOption.getOrElse("undefined")
+          descriptor(base).map(d => s"$d.set.call($receiver, $value)")
+        case _ =>
+          val values = (receiver :: args).mkString(", ")
+          access(path).map(fn => s"$fn.call($values)")
+
+    private def construct(
+      args: List[String],
       newTarget: String,
     ): Option[String] =
-      if (newTarget.isEmpty) { // without newTarget: XXX.call
-        path match
-          case BuiltinPath.Getter(base) =>
-            descriptor(base).map(d => s"$d.get.call($thisV)")
-          case BuiltinPath.Setter(base) =>
-            val value = vs.headOption.getOrElse("undefined")
-            descriptor(base).map(d => s"$d.set.call($thisV, $value)")
-          case _ =>
-            val args = (thisV :: vs).mkString(", ")
-            access(path).map(fn => s"$fn.call($args)")
-      } else { // with newTarget: Reflect.construct
-        access(path).map { fn =>
-          s"Reflect.construct($fn, [${vs.mkString(", ")}], $newTarget)"
-        }
+      access(path).map { fn =>
+        s"Reflect.construct($fn, [${args.mkString(", ")}], $newTarget)"
       }
-
-    private def apply(vs: List[String]): Option[String] =
-      access(path).map(fn => s"new ($fn)(${vs.mkString(", ")})")
   }
 
   private def isConstructable(func: Func, cfg: CFG): Boolean =

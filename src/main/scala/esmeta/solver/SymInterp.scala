@@ -1,6 +1,5 @@
 package esmeta.solver
 
-import esmeta.analyzer.tychecker.TyChecker
 import esmeta.cfg.*
 import esmeta.es.util.Coverage.Cond
 import esmeta.ir.{Func => _, *}
@@ -12,7 +11,7 @@ import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, Stack, Queue}
 
 class SymInterp(
-  val tychecker: TyChecker,
+  val analyzer: SymAnalyzer,
   val entryFunc: Func,
   val target: Node,
   val side: Option[Boolean] = None,
@@ -20,16 +19,14 @@ class SymInterp(
   val detail: Boolean = false,
   checkDeadline: () => Unit = () => (),
 ) {
-  import tychecker.*, monad.*, SymTy.*, Result.*
+  private val cfg = analyzer.cfg
+  import analyzer.{cfg => _, *}, monad.*, SymTy.*, Result.*
 
   // start time
   val startTime: Long = System.currentTimeMillis
 
   // target function
   lazy val targetFunc: Func = cfg.funcOf(target)
-
-  // main entry point of symbolic execution
-  lazy val result: Option[Config] = nextCandidate
 
   // get the next candidate configuration
   def nextCandidate: Option[Config] = results.nextOption
@@ -142,10 +139,7 @@ class SymInterp(
                 val newLocals: Map[Local, AbsValue] = (for {
                   (param, arg) <- (params zip vs)
                 } yield param.lhs -> arg.weaken(vars, false)).toMap
-                st = st.copy(
-                  locals = newLocals,
-                  constr = st.constr.onlySym,
-                )
+                st = st.copy(locals = newLocals, constr = st.constr.onlySym)
               })(st)
               node = callee.entry
               funcs += callee
@@ -262,21 +256,24 @@ class SymInterp(
     next: Node,
   ): (AbsValue, TypeProp) = {
     given NodePoint[Call] = callerNp
-    given AbsState = callerSt
-    val call = callerNp.node
     val retTy = callee.retTy.ty.toValue
     (for {
       refiner <- manualRefiners.get(callee.name)
       v = refiner(callee, vs, retTy, callerSt)
-      newV = instantiate(v, vs, callerNp, callerSt)
+      newV = instantiate(
+        v,
+        vs.zipWithIndex.map((v, i) => i -> v).toMap,
+        callerSt,
+      )
     } yield (newV, TypeProp.Top)).getOrElse {
       val rp = ReturnPoint(callee, emptyView)
       val ret = getResult(rp)
       val AbsRet(_, noSym, syms, _) = ret
+      val args = bindArgs(callee, vs, ret)(using callerNp, callerSt)
       for ((_, (v, constr)) <- syms) {
-        val newConstr = instantiate(constr, vs, callerNp, callerSt)
+        val newConstr = instantiate(constr, args, callerSt)
         val newSt = transfer.refine(newConstr)(callerSt)
-        val newV = instantiate(v, vs, callerNp, callerSt)
+        val newV = instantiate(v, args, callerSt)
         _configs ::= wrap.copy(
           state = newSt.define(x, newV),
           node = next,
@@ -284,8 +281,8 @@ class SymInterp(
       }
       val (v, constr) = noSym
       (
-        instantiate(v, vs, callerNp, callerSt),
-        instantiate(constr, vs, callerNp, callerSt),
+        instantiate(v, args, callerSt),
+        instantiate(constr, args, callerSt),
       )
     }
   }
@@ -293,29 +290,20 @@ class SymInterp(
   /** instantiation of return value */
   def instantiate(
     value: AbsValue,
-    vs: List[AbsValue],
-    callerNp: NodePoint[Call],
+    args: Map[Sym, AbsValue],
     callerSt: AbsState,
   ): AbsValue =
     given AbsState = callerSt
-    val call = callerNp.node
-    val map = vs.zipWithIndex.map {
-      case (v, i) => i -> v
-    }.toMap
-    transfer.instantiate(value, map).bind
+    transfer.instantiate(value, args).bind
 
   /** instantiation of return value */
   def instantiate(
     constr: TypeProp,
-    vs: List[AbsValue],
-    callerNp: NodePoint[Call],
+    args: Map[Sym, AbsValue],
     callerSt: AbsState,
   ): TypeProp =
     given AbsState = callerSt
-    val map = vs.zipWithIndex.map {
-      case (v, i) => i -> v
-    }.toMap
-    transfer.instantiate(constr, map)
+    transfer.instantiate(constr, args)
 
   // ---------------------------------------------------------------------------
   // helper functions for configuration manipulation
@@ -337,17 +325,13 @@ class SymInterp(
         for {
           (p, i) <- ps
           sty = if (p.kind == Variadic) SArgs else SSym(i)
-        } {
-          locals += Name(p.name) -> AbsValue(sty)
-        }
+        } { locals += Name(p.name) -> AbsValue(sty) }
         // symbolic environment for built-in functions
         val symEnv = Map(
           SThis.sym -> ESValueT,
           SArgs.sym -> ListT(ESValueT),
           SNewTarget.sym -> (ConstructorT || UndefT),
-        ) ++ (for ((p, i) <- ps if p.kind != Variadic) yield {
-          i -> ESValueT
-        })
+        ) ++ (for ((p, i) <- ps if p.kind != Variadic) yield { i -> ESValueT })
         AbsState(true, locals, symEnv, TypeProp.Top, Effect.Bot)
       case _ => AbsState.Bot
     }
@@ -366,8 +350,8 @@ class SymInterp(
 
   // push the current config and refine it using the branch condition and side
   def push(config: Config): Unit =
-    val next = config
-    if (isCandidate(next.node) && !next.state.isBottom) configs.push(next)
+    if (isCandidate(config.node) && !config.state.isBottom) configs.push(config)
+    else ()
   def push(configs: List[Config]): Unit = configs.foreach(push)
 
   // pop the previous config and backtrack
@@ -446,27 +430,6 @@ object SymInterp {
     }
     dist.toMap
   }
-
-  /** builtin entry distances to the target function */
-  def findEntries(target: Node)(using cfg: CFG): Map[Func, Int] =
-    val func = cfg.funcOf(target)
-    if (func.isBuiltin) Map(func -> 0)
-    else reachingDists(func).filter(_._1.isBuiltin)
-
-  /** builtin entries ordered by call distance */
-  def sortedEntries(target: Node)(using cfg: CFG): List[Func] =
-    sortedEntries(List(target))
-
-  /** builtin entries ordered by minimum call distance to any target */
-  def sortedEntries(targets: Iterable[Node])(using cfg: CFG): List[Func] =
-    targets.toList
-      .map(cfg.funcOf)
-      .distinct
-      .flatMap(func => findEntries(func.entry))
-      .groupMapReduce(_._1)(_._2)(_ min _)
-      .toList
-      .sortBy((f, d) => (d, f.id))
-      .map(_._1)
 
   /** possible call-path functions, including the entry */
   def candidateFuncs(entry: Func, target: Func)(using cfg: CFG): Set[Func] =

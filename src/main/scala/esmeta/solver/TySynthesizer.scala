@@ -1,11 +1,11 @@
 package esmeta.solver
 
-import esmeta.analyzer.tychecker.TyChecker
-import esmeta.cfg.{Block, CFG}
+import esmeta.cfg.CFG
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.ir.util.UnitWalker
-import esmeta.solver.Solver.Template
+import esmeta.solver.Solver.Invocation
+import esmeta.solver.TemplateGenerator.{Template, getSlots}
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
@@ -14,10 +14,13 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.{Map => MMap}
 import scala.math.{BigInt => SBigInt}
 
-class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
+class TySynthesizer(
+  cfg: CFG,
+  templatesBySlot: Map[String, List[Template]],
+) {
   import TySynthesizer.*
 
-  /** synthesize a value using constants from the specification */
+  /** sample a candidate expression for a required type */
   def synthesize(ty: ValueTy)(using
     checkDeadline: () => Unit = () => (),
   ): Option[String] = {
@@ -32,6 +35,20 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
           () => fromTemplate(valueTy),
         ),
       )
+  }
+
+  /** synthesize an expression for each hole */
+  def synthesize(holes: List[(String, ValueTy)])(using
+    checkDeadline: () => Unit,
+  ): Option[Map[String, String]] = {
+    checkDeadline()
+    holes.foldLeft(Option(Map.empty[String, String])) {
+      case (values, (hole, ty)) =>
+        values.flatMap { vs =>
+          checkDeadline()
+          synthesize(ty).map(value => vs.updated(hole, value))
+        }
+    }
   }
 
   private def firstSuccess[A](choices: List[() => Option[A]]): Option[A] =
@@ -254,144 +271,42 @@ class TySynthesizer(cfg: CFG, val tychecker: TyChecker) {
   private def fromTemplate(ty: ValueTy)(using
     checkDeadline: () => Unit,
   ): Option[String] =
-    if (!searchFields(ty).exists(targetCandidates.contains(_))) None
-    else
-      derive(ty).iterator
-        .flatMap(_.instantiate(ty => synthesize(ty)))
-        .nextOption()
+    shuffle(matchingTemplates(ty)).iterator
+      .flatMap(instantiate)
+      .nextOption()
 
-  // derive templates at the candidate entries' returns
-  private def derive(ty: ValueTy)(using
+  /** instantiate constrained holes with recursively synthesized expressions */
+  private def instantiate(invocation: Invocation)(using
     checkDeadline: () => Unit,
-  ): LazyList[Template] =
-    val targets = searchFields(ty).toList
-      .flatMap(field => targetCandidates.getOrElse(field, Nil))
-    val entries = SymInterp
-      .sortedEntries(targets)(using cfg)
-      .filter(Solver.funcAccessExpr(_).nonEmpty)
-    LazyList.from(entries).flatMap { entry =>
-      LazyList.from(shuffle(entry.exits.toList)).flatMap {
-        case block @ Block(_, insts :+ IReturn(expr), _) =>
-          val interp = new SymInterp(
-            this.tychecker,
-            entry,
-            block,
-            checkDeadline = checkDeadline,
-          )
-          val tychecker: interp.tychecker.type = interp.tychecker
-          import tychecker.{cfg => _, *}
-          given NodePoint[?] = NodePoint(entry, block, emptyView)
-          val required = NormalT(ty)
-          for {
-            config <- LazyList
-              .unfold(())(_ => interp.nextCandidate.map(_ -> ()))
-            st = insts.foldLeft(config.state) {
-              case (st, _) if st.isBottom => st
-              case (st, inst)             => transfer.transfer(inst)(st)
-            }
-            if !st.isBottom
-            (value, retSt) = transfer.transfer(expr)(st)
-            if !retSt.isBottom
-            symty = value.onlySym(using retSt).symty
-            prop <- inputConstraints(tychecker)(symty, required, retSt)
-            refinedSt = transfer.refine(prop)(retSt)
-            if !refinedSt.isBottom && !symty.ty(using refinedSt).isBottom
-            if symty.ty(using refinedSt) ⊑ required
-            template <- Solver.getTemplate(tychecker)(entry, refinedSt)
-          } yield template
-        case _ => LazyList.empty
-      }
-    }
-
-  private def inputConstraints(tychecker: TyChecker)(
-    symty: tychecker.SymTy,
-    ty: ValueTy,
-    st: tychecker.AbsState,
-  ): Option[tychecker.TypeProp] =
-    import tychecker.*, SymTy.*
-    given AbsState = st
-    if (symty.ty ⊑ ty) Some(TypeProp.Top)
-    else
-      symty match
-        case ref: SymRef => transfer.toBase(ref, ty).map(TypeProp(_))
-        case SRecord(_, fields) =>
-          explicitFields(ty).toList.sorted
-            .foldLeft(Option(TypeProp.Top)) {
-              case (acc, field) =>
-                acc.flatMap { prop =>
-                  val required = ty.record(field).value
-                  if (symty.ty.record(field).value ⊑ required)
-                    Some(prop)
-                  else
-                    for {
-                      fieldSymty <- fields.get(field)
-                      next <- inputConstraints(tychecker)(
-                        fieldSymty,
-                        required,
-                        st,
-                      )
-                    } yield prop && next
-                }
-            }
-        case STy(_) => None
-
-  private def explicitFields(ty: ValueTy): Set[String] = ty.record match
-    case RecordTy.Elem(map, _) => map.values.flatMap(_.map.keySet).toSet
-    case _                     => Set.empty
-
-  // select fields for target search
-  private def searchFields(ty: ValueTy): Set[String] =
-    val explicit = explicitFields(ty)
-      .filter(field => !ty.record(field).value.isBottom)
-    if (explicit.exists(targetCandidates.contains(_))) explicit
-    else {
-      // recover slots encoded by record names (e.g., NumberObject)
-      val declared = ty.record match
-        case RecordTy.Elem(map, _) =>
-          map.keys.flatMap { name =>
-            val model = ManualInfo.tyModel
-            val base = model.baseOf(name)
-            val common = model.upperFieldsOf(base).keySet
-            model
-              .diffOf(base, name)
-              .toList
-              .flatMap(_.map.collect {
-                case (field, binding) if !binding.absent && !common(field) =>
-                  field
-              })
-          }.toSet
-        case _ => Set.empty[String]
-      declared.filter(field => !ty.record(field).value.isBottom)
-    }
-
-  private def fieldWrites(inst: NormalInst): List[(Local, String, Expr)] =
-    inst match
-      case IAssign(Field(local: Local, EStr(field)), value) =>
-        List((local, field, value))
-      case ILet(local, ERecord(_, fields)) =>
-        fields.map((field, value) => (local, field, value))
-      case IAssign(local: Local, ERecord(_, fields)) =>
-        fields.map((field, value) => (local, field, value))
-      case _ => Nil
-
-  // keep all writes to fields with a potentially symbolic source
-  private lazy val targetCandidates: Map[String, List[Block]] =
-    val writes = (for {
-      func <- cfg.funcs
-      block <- func.nodes.collect { case block: Block => block }
-      (_, field, _) <- block.insts.flatMap(fieldWrites)
-    } yield field -> block).toList.groupMap(_._1)(_._2)
-    writes.filter { (field, blocks) =>
-      blocks.exists { block =>
-        block.insts.iterator.flatMap(fieldWrites).exists {
-          case (_, `field`, value) =>
-            value match
-              case _: LiteralExpr | EClo(_, Nil) => false
-              case _                             => true
-          case _ => false
+  ): Option[String] = {
+    checkDeadline()
+    shuffle(invocation.forms).iterator
+      .filter { (_, holes) =>
+        holes.forall { (_, input) =>
+          checkDeadline()
+          !(input && ESValueT).isBottom
         }
       }
-    }
+      .flatMap { (expr, holes) =>
+        synthesize(holes).map(values => Invocation.fill(expr, values))
+      }
+      .nextOption()
+  }
+
+  private def matchingTemplates(ty: ValueTy)(using
+    checkDeadline: () => Unit,
+  ): List[Invocation] =
+    getSlots(ty).toList.sorted
+      .flatMap(field => templatesBySlot.getOrElse(field, Nil))
+      .distinct
+      .flatMap { template =>
+        checkDeadline()
+        val upper = template.returnTy
+        if (upper ⊑ ty) List(template.invocation)
+        else if (upper overlaps ty) template.specialize(ty).toList
+        else Nil
+      }
+      .distinct
 
   // collect specification constants once per synthesizer
   private lazy val literals: Literals =
