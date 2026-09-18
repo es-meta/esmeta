@@ -1,7 +1,9 @@
 package esmeta.solver
 
 import esmeta.cfg.CFG
+import esmeta.es.builtin.INNER_MAP
 import esmeta.interpreter.Interpreter
+import esmeta.ir.Expr
 import esmeta.solver.Solver.Invocation
 import esmeta.solver.TemplateGenerator.{Template, getSlots}
 import esmeta.state.*
@@ -14,7 +16,6 @@ class ExprSynthesizer(
   cfg: CFG,
   templatesBySlot: Map[String, List[Template]],
 ) {
-  import ExprSynthesizer.*
 
   /** sample a candidate expression for a required type */
   def synthesize(ty: ValueTy)(using
@@ -58,16 +59,18 @@ class ExprSynthesizer(
       ty, {
         val numbers = ty.number.toNumberSet.toList
           .flatMap(_.toList.sortBy(n => (n.isNaN, n.double)))
-          .map(n => "Number" -> numberLit(n))
+          .map(n => numberLit(n) -> NumberT(n))
         val strings = ty.str match
           case Fin(set) =>
-            set.toList.sorted.map(s => "Str" -> s"\"${normStr(s)}\"")
+            set.toList.sorted.map(s => s"\"${normStr(s)}\"" -> StrT(s))
           case Inf => Nil
-        val observed = observations
-          .filter(obs => matches(ty, obs.value, obs.heap))
-          .map(obs => kindOf(obs.value, obs.heap) -> obs.expr)
+        val records = ty.copied(record = ty.record match
+          case RecordTy.Elem(map, _) => RecordTy.Elem(map)
+          case other                 => other,
+        )
+        val observed = observations.toList.filter(_._2 <= records)
         (numbers ++ strings ++ observed)
-          .groupMap(_._1)(_._2)
+          .groupMap((_, valueTy) => kindOf(valueTy))(_._1)
           .toList
           .sortBy(_._1)
           .map(_._2.distinct)
@@ -76,21 +79,36 @@ class ExprSynthesizer(
     Option.when(groups.nonEmpty)(choose(choose(groups)))
   }
 
-  // sampling stratum of an observed value
-  private def kindOf(value: Value, heap: Heap): String = value match
-    case addr: Addr =>
-      heap(addr) match
-        case record: RecordObj => record.tname
-        case _: MapObj         => "Map"
-        case _: ListObj        => "List"
-        case _                 => "Object"
-    case _: Number => "Number"
-    case _: BigInt => "BigInt"
-    case _: Str    => "Str"
-    case _: Bool   => "Bool"
-    case Undef     => "Undefined"
-    case Null      => "Null"
-    case _         => "Other"
+  // sampling stratum: the ECMAScript language type
+  private def kindOf(ty: ValueTy): String =
+    if (ty <= UndefT) "Undefined"
+    else if (ty <= NullT) "Null"
+    else if (ty <= BoolT) "Boolean"
+    else if (ty <= StrT) "String"
+    else if (ty <= SymbolT) "Symbol"
+    else if (ty <= NumberT) "Number"
+    else if (ty <= BigIntT) "BigInt"
+    else "Object"
+
+  // type of an observed value
+  private def observedTy(value: Value, st: State, depth: Int): ValueTy =
+    value match
+      case addr: Addr if depth > 0 =>
+        st.heap(addr) match
+          case RecordObj(tname, map) =>
+            val absent = ManualInfo.tyModel.fieldsOf(tname).collect {
+              case (f, binding) if binding.absent && !map.contains(f) =>
+                f -> Binding.Absent
+            }
+            val fields = map.map { (f, v) =>
+              f -> Binding(observedTy(v, st, depth - 1))
+            }
+            RecordT(tname, FieldMap(fields.toMap ++ absent))
+          case obj => st.typeOf(obj, detail = false)
+      case n: Number => NumberT(n)
+      case Str(s)    => StrT(s)
+      case Bool(b)   => BoolT(b)
+      case _         => st.typeOf(value, detail = false)
 
   private def numberLit(n: Number): String =
     val d = n.double
@@ -241,25 +259,6 @@ class ExprSynthesizer(
 
   private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
 
-  // check refined slots even when the record has a subtype tag
-  private def matches(ty: ValueTy, value: Value, heap: Heap): Boolean =
-    ty.safeContains(value, heap).contains(true) && ((value, ty.record) match {
-      case (addr: Addr, RecordTy.Elem(map, _)) =>
-        heap(addr) match {
-          case record: RecordObj =>
-            map.exists { (name, fields) =>
-              RecordT(name).safeContains(value, heap).contains(true) &&
-              fields.map.forall { (field, binding) =>
-                record.get(field).fold(binding.absent) { value =>
-                  matches(binding.value, value, heap)
-                }
-              }
-            }
-          case _ => true
-        }
-      case _ => true
-    })
-
   private def fromTemplate(ty: ValueTy)(using
     checkDeadline: () => Unit,
   ): Option[String] =
@@ -299,35 +298,28 @@ class ExprSynthesizer(
       }
       .distinct
 
-  private val observations: List[ObservedExpr] = observeBatch(manuals)
-
-  private def observeBatch(exprs: List[String]): List[ObservedExpr] =
-    if (exprs.isEmpty) Nil
-    else
-      try {
-        val src =
-          ("var __marker__ = 0;" :: exprs.zipWithIndex.map { (expr, i) =>
-            s"var __value${i}__, __succeeded${i}__ = false; " +
-            s"try { __value${i}__ = ($expr); " +
-            s"__succeeded${i}__ = true; } catch (e) {}"
-          }).mkString("\n")
-        val st = Interpreter(cfg.init.from(src), timeLimit = Some(20))
-        val globals = st.heap.map.collectFirst {
-          case (_, m: MapObj) if m.map.contains(Str("__marker__")) => m
-        }
-        (for {
-          (expr, i) <- exprs.zipWithIndex
-          properties <- globals
-          succeededDesc <- properties.map.get(Str(s"__succeeded${i}__"))
-          if st(succeededDesc, Str("Value")) == Bool(true)
-          valueDesc <- properties.map.get(Str(s"__value${i}__"))
-        } yield ObservedExpr(expr, st(valueDesc, Str("Value")), st.heap)).toList
-      } catch {
-        case _: Throwable if exprs.size > 1 =>
-          val (l, r) = exprs.splitAt(exprs.size / 2)
-          observeBatch(l) ++ observeBatch(r)
-        case _: Throwable => Nil
+  // evaluate the manual expressions once to match them against types
+  private val observations: Map[String, ValueTy] = {
+    val src = manuals.zipWithIndex
+      .map { (expr, i) =>
+        s"""var __value${i}__, __succeeded${i}__ = false;
+           |try {
+           |  __value${i}__ = ($expr);
+           |  __succeeded${i}__ = true;
+           |} catch (e) {}""".stripMargin
       }
+      .mkString("\n")
+    val st = Interpreter(cfg.init.from(src), timeLimit = Some(20))
+    val reader = new Interpreter(st.copied)
+    def global(name: String): Value =
+      val path = s"""@REALM.GlobalObject.$INNER_MAP["$name"].Value"""
+      reader.eval(Expr.from(path))
+    (for {
+      (expr, i) <- manuals.zipWithIndex
+      if global(s"__succeeded${i}__") == Bool(true)
+      value = global(s"__value${i}__")
+    } yield expr -> observedTy(value, st, RecordTy.maxFieldDepth)).toMap
+  }
 
   lazy val manuals: List[String] =
     // primitive values (26)
@@ -431,9 +423,4 @@ class ExprSynthesizer(
       detachedBuffers,
       detachedTypedArrays,
     ).flatten.distinct
-}
-
-object ExprSynthesizer {
-  // keep the heap for internal-slot checks on object values
-  case class ObservedExpr(expr: String, value: Value, heap: Heap)
 }
