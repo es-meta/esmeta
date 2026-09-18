@@ -10,7 +10,7 @@ import esmeta.util.Appender.{*, given}
 import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Map => MMap, Stack, Queue}
 
-class SymInterp(
+class SymInterpreter(
   val analyzer: SymAnalyzer,
   val entryFunc: Func,
   val target: Node,
@@ -57,11 +57,11 @@ class SymInterp(
   // candidate functions
   inline def isCandidate(f: Func): Boolean = candidateFuncs.contains(f)
   private lazy val candidateFuncs: Set[Func] =
-    SymInterp.candidateFuncs(entryFunc, targetFunc)(using cfg)
+    SymInterpreter.candidateFuncs(entryFunc, targetFunc)(using cfg)
   // candidate nodes
   inline def isCandidate(n: Node): Boolean = candidateNodes.contains(n)
   private lazy val candidateNodes: Set[Node] =
-    SymInterp.candidateNodes(entryFunc, target)(using cfg)
+    SymInterpreter.candidateNodes(entryFunc, target)(using cfg)
 
   def timeout: Boolean = {
     checkDeadline()
@@ -407,7 +407,7 @@ class SymInterp(
   def log(msg: => Any): Unit = if (detail) println(msg)
 }
 
-object SymInterp {
+object SymInterpreter {
 
   /** reverse call distances, including but not expanding `stopAt` */
   def reachingDists(

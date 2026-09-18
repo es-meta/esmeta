@@ -335,7 +335,7 @@ class Solver(
     def expired: Boolean = System.nanoTime() > deadline
     given checkTimeout: (() => Unit) =
       () => if (expired) throw TimeoutException("solver")
-    val interp = new SymInterp(
+    val interp = new SymInterpreter(
       analyzer,
       f,
       cond.branch,
