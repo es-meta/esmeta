@@ -27,6 +27,7 @@ import scala.collection.mutable.{
 }
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.*
+import scala.util.Try
 
 /** Solve selected branch sides */
 class Solver(
@@ -47,6 +48,7 @@ class Solver(
   private lazy val templateGen = new TemplateGenerator(analyzer)
   private lazy val synth = ExprSynthesizer(cfg, templateGen.templatesBySlot)
   private lazy val cov = Coverage(cfg, timeLimit = Some(2))
+  private lazy val simplifier = Simplifier(cfg)
 
   // branch-side witnesses with a builtin as the nearest feature
   private val condMap = CMMap[(Int, Boolean), String]()
@@ -207,19 +209,21 @@ class Solver(
       )
     val nThreads = Runtime.getRuntime.availableProcessors
     val completed = ConcurrentLinkedQueue[BranchResult]()
-    ProgressBar(
-      msg = s"solving with $nThreads threads ($solveTimeout per target)",
+    val solving = ProgressBar(
+      msg = s"solving with $nThreads threads (timeout: $solveTimeout/target)",
       iterable = selected,
       verbose = branch.isEmpty,
       detail = false,
       concurrent = CP.Fixed(nThreads),
-    ).foreach { (entries, cond) =>
+    )
+    solving.foreach { (entries, cond) =>
       // reuse known coverage without changing the target set
       val r = Option(condMap.get((cond.branch.id, cond.cond))) match
         case Some(js) => BranchResult(cond, "pass", Some(js))
         case None     => solveTarget(entries, cond)
       completed.add(r)
     }
+    val simplifying = simplify(nThreads)
     val conds = condMap.keySet.asScala.toSet
     // count all observed targets as passes
     val results = completed.asScala.toList
@@ -238,6 +242,8 @@ class Solver(
     val reachedPct = reached * 100.0 / selected.size
     val summary =
       templateGen.summary +
+      s"Solving: ${solving.summary.time.simpleString}\n" +
+      simplifying +
       "Status breakdown:\n" +
       statusGroups.map { (status, rs) =>
         val count = rs.size
@@ -372,7 +378,9 @@ class Solver(
           candidates.headOption match {
             case Some(_) =>
               val passing = candidates.iterator.find { js =>
-                verifies(js, cond, checkTimeout)
+                val conds = touched(js, checkTimeout)
+                for (c <- conds) condMap.putIfAbsent(c, js)
+                conds((cond.branch.id, cond.cond))
               }
               passing match {
                 case Some(js) => BranchResult(cond, "pass", Some(js))
@@ -404,11 +412,32 @@ class Solver(
     }
   }
 
-  private def verifies(
+  /** replace programs by simpler ones covering the same branch sides */
+  private def simplify(nThreads: Int): String = {
+    val programs = condMap.asScala.toList.groupMap(_._2)(_._1)
+    val bar = ProgressBar(
+      msg = s"simplifying ${programs.size} programs",
+      iterable = programs,
+      verbose = branch.isEmpty,
+      detail = false,
+      concurrent = CP.Fixed(nThreads),
+    )
+    bar.foreach { (js, conds) =>
+      val kept = (s: String) => Try(touched(s, () => ())).getOrElse(Set.empty)
+      for ((c, s) <- simplifier(js, conds.toSet, kept)) condMap.put(c, s)
+    }
+    val simplified = programs.count { (js, conds) =>
+      conds.exists(c => condMap.get(c) != js)
+    }
+    s"Simplification: ${bar.summary.time.simpleString}" +
+    s" ($simplified of ${programs.size} programs simplified)\n"
+  }
+
+  /** candidate branch sides touched by a program */
+  private def touched(
     js: String,
-    cond: Cond,
     checkTimeout: () => Unit,
-  ): Boolean = {
+  ): Set[(Int, Boolean)] = {
     checkTimeout()
     try {
       val interp = Coverage.Interp(
@@ -422,16 +451,13 @@ class Solver(
       )
       interp.result
       checkTimeout()
-      for {
+      (for {
         cv <- interp.touchedCondViews.keys
         if candidateBranches(cv.cond.branch.id)
-      } condMap.putIfAbsent((cv.cond.branch.id, cv.cond.cond), js)
-      interp.touchedCondViews.keys.exists { cv =>
-        cv.cond.branch.id == cond.branch.id && cv.cond.cond == cond.cond
-      }
+      } yield (cv.cond.branch.id, cv.cond.cond)).toSet
     } catch {
       case e: TimeoutException => throw e
-      case _: Throwable        => false
+      case _: Throwable        => Set.empty
     }
   }
 
