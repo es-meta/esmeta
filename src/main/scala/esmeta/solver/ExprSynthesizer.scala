@@ -126,35 +126,40 @@ class ExprSynthesizer(
     case RecordTy.Elem(map, ObjShape(props, call, construct))
         if props.nonEmpty =>
       val ordered = props.toList.sortBy { case (prop, _) => propKey(prop) }
-      def objectLiteral(): Option[(String, List[(Property, String)])] =
+      def members(): Option[List[(Property, String, String)]] =
         ordered
           .foldLeft(Option(List.empty[(Property, String, String)])) {
-            case (fields, (prop, desc)) =>
-              fields.flatMap { fs =>
-                val key = propKey(prop)
-                val field = firstSuccess(
+            case (members, (prop, desc)) =>
+              members.flatMap { ms =>
+                val member = firstSuccess(
                   List(
-                    () =>
-                      Option.when(desc.getExc)(
-                        "get" -> s"get $key() { throw 0; }",
-                      ),
-                    () =>
-                      Option.when(desc.setExc)(
-                        "set" -> s"set $key(_) { throw 0; }",
-                      ),
-                    () => synthesize(desc.ty).map(v => "value" -> s"$key: $v"),
+                    () => Option.when(desc.getExc)("get" -> ""),
+                    () => Option.when(desc.setExc)("set" -> ""),
+                    () => synthesize(desc.ty).map("value" -> _),
                   ),
                 )
-                field.map((kind, code) => (prop, kind, code) :: fs)
+                member.map((kind, value) => (prop, kind, value) :: ms)
               }
           }
-          .map { fields =>
-            val orderedFields = fields.reverse
-            orderedFields.map(_._3).mkString("{ ", ", ", " }") ->
-            orderedFields.map((prop, kind, _) => prop -> kind)
-          }
+          .map(_.reverse)
+      def literal(ms: List[(Property, String, String)]): String =
+        ms.map { (prop, kind, value) =>
+          val key = propKey(prop)
+          kind match
+            case "get" => s"get $key() { throw 0; }"
+            case "set" => s"set $key(_) { throw 0; }"
+            case _     => s"$key: $value"
+        }.mkString("{ ", ", ", " }")
+      def descriptors(ms: List[(Property, String, String)]): String =
+        ms.map { (prop, kind, value) =>
+          val key = propKey(prop)
+          kind match
+            case "get" => s"$key: { get() { throw 0; } }"
+            case "set" => s"$key: { set(_) { throw 0; } }"
+            case _     => s"$key: { value: $value }"
+        }.mkString("{ ", ", ", " }")
       if (isPlainObject(ty) && !call.exists && !construct.exists)
-        objectLiteral().map(_._1)
+        members().map(literal)
       else {
         val baseTy = ty.copied(record =
           RecordTy.Elem(map, ObjShape(Map.empty, call, construct)),
@@ -162,22 +167,11 @@ class ExprSynthesizer(
         val overlay = () => {
           for {
             base <- synthesize(baseTy)
-            (obj, fields) <- objectLiteral()
-          } yield {
-            // preserve existing attributes and unspecified accessors
-            val updates = fields
-              .map { (prop, field) =>
-                val key = propExpr(prop)
-                s"[$key]: Object.getOwnPropertyDescriptor(o, $key) ? " +
-                s"{ $field: ds[$key].$field } : ds[$key]"
-              }
-              .mkString("{ ", ", ", " }")
-            s"((o, ds) => Object.defineProperties(o, $updates))" +
-            s"($base, Object.getOwnPropertyDescriptors($obj))"
-          }
+            ms <- members()
+          } yield s"Object.defineProperties($base, ${descriptors(ms)})"
         }
         val proxy = ordered match {
-          case (prop, desc) :: Nil =>
+          case (prop, desc) :: Nil if (desc.getExc || desc.setExc) =>
             List(() => {
               val key = propExpr(prop)
               for {
@@ -186,15 +180,21 @@ class ExprSynthesizer(
                   List(
                     () =>
                       Option.when(desc.getExc)(
-                        s"get(t, p, r) { if (p === $key) throw 0; return Reflect.get(t, p, r); }",
+                        oneLine(
+                          s"""get(t, p, r) {
+                           |  if (p === $key) throw 0;
+                           |  return Reflect.get(t, p, r);
+                           |}""",
+                        ),
                       ),
                     () =>
                       Option.when(desc.setExc)(
-                        s"set(t, p, v, r) { if (p === $key) throw 0; return Reflect.set(t, p, v, r); }",
-                      ),
-                    () =>
-                      synthesize(desc.ty).map(v =>
-                        s"get(t, p, r) { if (p === $key) return $v; return Reflect.get(t, p, r); }",
+                        oneLine(
+                          s"""set(t, p, v, r) {
+                           |  if (p === $key) throw 0;
+                           |  return Reflect.set(t, p, v, r);
+                           |}""",
+                        ),
                       ),
                   ),
                 )
@@ -241,7 +241,10 @@ class ExprSynthesizer(
           () =>
             synthesize(ret).map { value =>
               if (isCtor) s"function() { return $value; }"
-              else s"() => ($value)"
+              else {
+                if (value.startsWith("{")) s"() => ($value)"
+                else s"() => $value"
+              }
             },
         ),
       )
@@ -257,7 +260,13 @@ class ExprSynthesizer(
     case Property.PStr(str) => s"\"${normStr(str)}\""
     case Property.PSym(sym) => s"Symbol.$sym"
 
-  private def propKey(prop: Property): String = s"[${propExpr(prop)}]"
+  private val identifier = "[A-Za-z_$][\\w$]*".r
+
+  private def propKey(prop: Property): String = prop match
+    case Property.PStr("__proto__")                      => "[\"__proto__\"]"
+    case Property.PStr(str) if (identifier.matches(str)) => str
+    case Property.PStr(str) => s"\"${normStr(str)}\""
+    case Property.PSym(sym) => s"[Symbol.$sym]"
 
   private def fromTemplate(ty: ValueTy)(using
     checkDeadline: () => Unit,
