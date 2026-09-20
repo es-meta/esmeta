@@ -609,7 +609,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // literals
-  given litRule: Rule[Literal] = (app, lit) =>
+  private val litRule: Rule[Literal] = (app, lit) =>
     lit match {
       case ThisLiteral(article) =>
         val a = if (article) "the " else ""
@@ -617,7 +617,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ThisParseNodeLiteral(nt) =>
         nt match {
           case None     => app >> "this Parse Node"
-          case Some(nt) => app >> "this" >> " " >> nt
+          case Some(nt) => litRule(app >> "this" >> " ", nt)
         }
       case _: NewTargetLiteral => app >> "NewTarget"
       case HexLiteral(hex, codeUnitDesc, isUnicodePrefix, name) =>
@@ -691,6 +691,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case _: BigIntTypeLiteral    => app >> "BigInt"
       case _: ObjectTypeLiteral    => app >> "Object"
     }
+  given Rule[Literal] = litRule
 
   // operators for bitwise expressions
   given bitExprOpRule: Rule[BitwiseExpressionOperator] = (app, op) =>
