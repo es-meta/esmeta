@@ -256,7 +256,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       rule(app, elem)
       if (location) app >> elem.langOpt else app
 
-  given instRule: Rule[Inst] = withLoc('i') { (app, inst) =>
+  private val instRule: Rule[Inst] = withLoc('i') { (app, inst) =>
     inst match
       case IExpr(expr) =>
         app >> expr
@@ -286,7 +286,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "nop"
       case ISeq(insts) =>
         if (insts.isEmpty) app >> "{}"
-        else app.wrap(for { i <- insts } app :> i)
+        else app.wrap(for { i <- insts } app.:>(i)(using instRule))
       case IIf(cond, thenInst, elseInst, _) =>
         app >> "if " >> cond >> " " >> thenInst
         (thenInst, elseInst) match
@@ -303,6 +303,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "sdo-call " >> lhs >> " = "
         app >> ast >> "->" >> method >> args
   }
+  given Rule[Inst] = instRule
 
   given funcKindRule: Rule[FuncKind] = (app, kind) =>
     import FuncKind.*
