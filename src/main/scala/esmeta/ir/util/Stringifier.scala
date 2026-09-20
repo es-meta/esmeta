@@ -34,6 +34,72 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
   given Rule[Ref] = refRule
 
+  private val exprRule: Rule[Expr] = withLoc('e') { (app, expr) =>
+    expr match
+      case EParse(code, rule) =>
+        exprRule(exprRule(app >> "(parse ", code) >> " ", rule) >> ")"
+      case EGrammarSymbol(name, params) =>
+        app >> "(grammar-symbol |" >> name >> "|"
+        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+        given Rule[List[Boolean]] = iterableRule("[", "", "]")
+        if (params.nonEmpty) app >> params
+        app >> ")"
+      case ESourceText(expr) =>
+        app >> "(source-text " >> expr >> ")"
+      case EYet(msg) =>
+        app >> "(yet \"" >> normStr(msg) >> "\")"
+      case EContains(list, elem) =>
+        app >> "(contains " >> list >> " " >> elem >> ")"
+      case ESubstring(expr, from, to) =>
+        app >> "(substring " >> expr >> " " >> from
+        to.map(app >> " " >> _)
+        app >> ")"
+      case ETrim(expr, isStarting) =>
+        if (isStarting) app >> "(trim > " >> expr >> ")"
+        else app >> "(trim " >> expr >> " <)"
+      case ERef(ref) => app >> ref
+      case EUnary(uop, expr) =>
+        app >> "(" >> uop >> " " >> expr >> ")"
+      case EBinary(bop, left, right) =>
+        app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
+      case EVariadic(vop, exprs) =>
+        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
+        app >> "(" >> vop >> " " >> exprs >> ")"
+      case EMathOp(mop, exprs) =>
+        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
+        app >> "(" >> mop >> " " >> exprs >> ")"
+      case EConvert(cop, expr) =>
+        app >> "(" >> cop >> " " >> expr >> ")"
+      case EExists(ref) =>
+        app >> "(exists " >> ref >> ")"
+      case ETypeOf(base) =>
+        app >> "(typeof " >> base >> ")"
+      case EInstanceOf(expr, target) =>
+        app >> "(instanceof " >> expr >> " " >> target >> ")"
+      case ETypeCheck(expr, ty) =>
+        app >> "(? " >> expr >> ": " >> ty >> ")"
+      case ESizeOf(expr) =>
+        app >> "(sizeof " >> expr >> ")"
+      case EClo(fname, captured) =>
+        given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
+        app >> "clo<" >> "\"" >> fname >> "\""
+        if (!captured.isEmpty) app >> ", " >> captured
+        app >> ">"
+      case ECont(fname) =>
+        app >> "cont<" >> "\"" >> fname >> "\"" >> ">"
+      case EDebug(expr) =>
+        app >> "(debug " >> expr >> ")"
+      case expr: ERandom =>
+        randRule(app, expr)
+      case expr: AstExpr =>
+        astExprRule(app, expr)
+      case expr: AllocExpr =>
+        allocExprRule(app, expr)
+      case expr: LiteralExpr =>
+        literalExprRule(app, expr)
+  }
+  given Rule[Expr] = exprRule
+
   given copRule: Rule[COp] = (app, cop) =>
     import COp.*
     cop match {
@@ -174,71 +240,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   lazy val randRule: Rule[ERandom] = (app, rand) => app >> "(random)"
-
-  given exprRule: Rule[Expr] = withLoc('e') { (app, expr) =>
-    expr match
-      case EParse(code, rule) =>
-        app >> "(parse " >> code >> " " >> rule >> ")"
-      case EGrammarSymbol(name, params) =>
-        app >> "(grammar-symbol |" >> name >> "|"
-        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
-        given Rule[List[Boolean]] = iterableRule("[", "", "]")
-        if (params.nonEmpty) app >> params
-        app >> ")"
-      case ESourceText(expr) =>
-        app >> "(source-text " >> expr >> ")"
-      case EYet(msg) =>
-        app >> "(yet \"" >> normStr(msg) >> "\")"
-      case EContains(list, elem) =>
-        app >> "(contains " >> list >> " " >> elem >> ")"
-      case ESubstring(expr, from, to) =>
-        app >> "(substring " >> expr >> " " >> from
-        to.map(app >> " " >> _)
-        app >> ")"
-      case ETrim(expr, isStarting) =>
-        if (isStarting) app >> "(trim > " >> expr >> ")"
-        else app >> "(trim " >> expr >> " <)"
-      case ERef(ref) => app >> ref
-      case EUnary(uop, expr) =>
-        app >> "(" >> uop >> " " >> expr >> ")"
-      case EBinary(bop, left, right) =>
-        app >> "(" >> bop >> " " >> left >> " " >> right >> ")"
-      case EVariadic(vop, exprs) =>
-        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
-        app >> "(" >> vop >> " " >> exprs >> ")"
-      case EMathOp(mop, exprs) =>
-        given Rule[Iterable[Expr]] = iterableRule(sep = " ")
-        app >> "(" >> mop >> " " >> exprs >> ")"
-      case EConvert(cop, expr) =>
-        app >> "(" >> cop >> " " >> expr >> ")"
-      case EExists(ref) =>
-        app >> "(exists " >> ref >> ")"
-      case ETypeOf(base) =>
-        app >> "(typeof " >> base >> ")"
-      case EInstanceOf(expr, target) =>
-        app >> "(instanceof " >> expr >> " " >> target >> ")"
-      case ETypeCheck(expr, ty) =>
-        app >> "(? " >> expr >> ": " >> ty >> ")"
-      case ESizeOf(expr) =>
-        app >> "(sizeof " >> expr >> ")"
-      case EClo(fname, captured) =>
-        given Rule[Iterable[Name]] = iterableRule("[", ", ", "]")
-        app >> "clo<" >> "\"" >> fname >> "\""
-        if (!captured.isEmpty) app >> ", " >> captured
-        app >> ">"
-      case ECont(fname) =>
-        app >> "cont<" >> "\"" >> fname >> "\"" >> ">"
-      case EDebug(expr) =>
-        app >> "(debug " >> expr >> ")"
-      case expr: ERandom =>
-        randRule(app, expr)
-      case expr: AstExpr =>
-        astExprRule(app, expr)
-      case expr: AllocExpr =>
-        allocExprRule(app, expr)
-      case expr: LiteralExpr =>
-        literalExprRule(app, expr)
-  }
 
   private def withLoc[T <: IRElem & LangEdge](tag: Char)(
     rule: Rule[T],
