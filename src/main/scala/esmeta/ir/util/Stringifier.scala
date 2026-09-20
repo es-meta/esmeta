@@ -25,13 +25,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-  given refRule: Rule[Ref] = { (app, ref) =>
+  private val refRule: Rule[Ref] = { (app, ref) =>
     ref match {
-      case Field(base, EStr(inlineField(str))) => app >> base >> "." >> str
-      case Field(base, expr) => app >> base >> "[" >> expr >> "]"
-      case x: Var            => varRule(app, x)
+      case Field(base, EStr(inlineField(str))) => refRule(app, base) >> "." >> str
+      case Field(base, expr) => refRule(app, base) >> "[" >> expr >> "]"
+      case x: Var => varRule(app, x)
     }
   }
+  given Rule[Ref] = refRule
 
   given copRule: Rule[COp] = (app, cop) =>
     import COp.*
