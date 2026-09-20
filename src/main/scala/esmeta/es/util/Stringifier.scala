@@ -80,14 +80,38 @@ class Stringifier(
         app >> "|" >> name >> "|(" >> str >> ")"
         if (detail && ast.loc.isDefined) app >> ast.loc.get else app
 
-  // intrinsics
-  given intrRule: Rule[Intrinsics] = (app, intr) => {
-    given iterRule[T: Rule]: Rule[Iterable[T]] =
-      iterableRule(sep = LINE_SEP + LINE_SEP)
-    val Intrinsics(templates, models) = intr
-    app >> templates >> LINE_SEP
-    app :> models
+  // property keys
+  given propKeyRule: Rule[PropKey] = (app, prop) =>
+    prop match
+      case PropKey.Str(str) => app >> str
+      case PropKey.Sym(sym) => app >> s"%Symbol.$sym%"
+
+  // models
+  given modelRule: Rule[Model] = (app, model) => {
+    val Model(name, tname, imap, nmap) = model
+    app >> name >> " = " >> tname
+    if (imap.nonEmpty) app.wrap(" [", "]") {
+      for ((k, v) <- imap) app :> k >> ": " >> v >> ";"
+    }
+    if (nmap.nonEmpty) app.wrap(" {", "}") {
+      for ((key, desc) <- nmap) app :> key >> ": " >> desc >> ";"
+    }
+    app
   }
+
+  // property descriptors
+  given propDescRule: Rule[PropDesc] = (app, prop) =>
+    val stateStringifier = _stateStringifier
+    import stateStringifier.{*, given}
+    given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+    prop match
+      case DataDesc(value, w, e, c) =>
+        app >> "[" >> w >> e >> c >> "] " >> value
+      case AccessorDesc(get, set, e, c) =>
+        (app >> "[" >> e >> c >> "] ").wrap("{", "}") {
+          app :> "Get: " >> get >> ";"
+          app :> "Set: " >> set >> ";"
+        }
 
   // templates
   given templateRule: Rule[Template] = (app, template) => {
@@ -105,36 +129,12 @@ class Stringifier(
     }
   }
 
-  // models
-  given modelRule: Rule[Model] = (app, model) => {
-    val Model(name, tname, imap, nmap) = model
-    app >> name >> " = " >> tname
-    if (imap.nonEmpty) app.wrap(" [", "]") {
-      for ((k, v) <- imap) app :> k >> ": " >> v >> ";"
-    }
-    if (nmap.nonEmpty) app.wrap(" {", "}") {
-      for ((key, desc) <- nmap) app :> key >> ": " >> desc >> ";"
-    }
-    app
+  // intrinsics
+  given intrRule: Rule[Intrinsics] = (app, intr) => {
+    given iterRule[T: Rule]: Rule[Iterable[T]] =
+      iterableRule(sep = LINE_SEP + LINE_SEP)
+    val Intrinsics(templates, models) = intr
+    app >> templates >> LINE_SEP
+    app :> models
   }
-
-  // property keys
-  given propKeyRule: Rule[PropKey] = (app, prop) =>
-    prop match
-      case PropKey.Str(str) => app >> str
-      case PropKey.Sym(sym) => app >> s"%Symbol.$sym%"
-
-  // property descriptors
-  given propDescRule: Rule[PropDesc] = (app, prop) =>
-    val stateStringifier = _stateStringifier
-    import stateStringifier.{*, given}
-    given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
-    prop match
-      case DataDesc(value, w, e, c) =>
-        app >> "[" >> w >> e >> c >> "] " >> value
-      case AccessorDesc(get, set, e, c) =>
-        (app >> "[" >> e >> c >> "] ").wrap("{", "}") {
-          app :> "Get: " >> get >> ";"
-          app :> "Set: " >> set >> ";"
-        }
 }

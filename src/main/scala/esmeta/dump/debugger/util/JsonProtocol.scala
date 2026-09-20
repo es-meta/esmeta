@@ -54,7 +54,7 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Grammar] = summon
   given Encoder[Grammar] = summon
 
-  given Decoder[lang.Type] = summon
-  given Encoder[lang.Type] = summon
+  given Decoder[lang.Type] = esmeta.lang.util.JsonProtocol.given_Decoder_Type
+  given Encoder[lang.Type] = esmeta.lang.util.JsonProtocol.given_Encoder_Type
 
 }
