@@ -925,6 +925,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case SameCodeUnits    => "is the same sequence of code units as"
     })
 
+  // types
+  given typeRule: Rule[Type] = getTypeRule(ArticleOption.Single)
+
   // targets for `contains` conditions
   given containsTargetRule: Rule[ContainsConditionTarget] = (app, target) => {
     import ContainsConditionTarget.*
@@ -978,9 +981,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Tan   => "tangent of"
     )
   }
-
-  // types
-  given typeRule: Rule[Type] = getTypeRule(ArticleOption.Single)
 
   def getTypeRule(article: ArticleOption): Rule[Type] = (app, ty) =>
     given Rule[Ty] = tyStringifier.tyRule
