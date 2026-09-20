@@ -26,7 +26,7 @@ trait Locational {
   def mergeLoc(that: Locational): Option[Loc] = for {
     lloc <- this.loc
     rloc <- that.loc
-    loc <- lloc merge rloc
+    loc <- lloc `merge` rloc
   } yield loc
 }
 

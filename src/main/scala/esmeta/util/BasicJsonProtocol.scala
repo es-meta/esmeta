@@ -196,7 +196,7 @@ object EncoderWithType {
 
   private inline final def summonEncoders[T <: Tuple](
     inline derivingForSum: Boolean,
-  ): List[Encoder[_]] =
+  ): List[Encoder[?]] =
     inline erasedValue[T] match
       case _: EmptyTuple => Nil
       case _: (t *: ts) =>
@@ -280,7 +280,7 @@ trait DecoderWithType[A] extends Decoder[A] {
         )
       else {
         val res = new Array[Any](elemLabels.length)
-        var failed: Left[DecodingFailure, _] = null
+        var failed: Left[DecodingFailure, ?] = null
         var index = 0
         while (index < elemLabels.length && (failed eq null)) {
           decodeProductElement(c, index, _.tryDecode) match
@@ -351,7 +351,7 @@ object DecoderWithType {
 
   private inline final def summonDecoders[T <: Tuple](
     inline derivingForSum: Boolean,
-  ): List[Decoder[_]] =
+  ): List[Decoder[?]] =
     inline erasedValue[T] match
       case _: EmptyTuple => Nil
       case _: (t *: ts) =>

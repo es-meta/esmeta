@@ -109,7 +109,7 @@ case class ESParser(
     syn: Syntactic,
     astStart: Ast,
     astEnd: Ast,
-  ): Syntactic = syn.setLoc(astStart mergeLoc astEnd)
+  ): Syntactic = syn.setLoc(astStart `mergeLoc` astEnd)
 
   // get a parser
   private def getParser(prod: Production): ESParser[Ast] = memo(args =>

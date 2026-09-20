@@ -69,7 +69,7 @@ trait Lexer extends UnicodeParsers {
   // internal data for packrat parsers
   type ParseCase[+T]
   protected case class Data(
-    var cache: Map[ParseCase[Any], ParseResult[_]] = Map(),
+    var cache: Map[ParseCase[Any], ParseResult[?]] = Map(),
     var rightmostFailedPos: Option[(Position, List[Elem])] = None,
     var rightmostDoWhileClose: Option[Position] = None,
   ) extends DataType { def next = this }

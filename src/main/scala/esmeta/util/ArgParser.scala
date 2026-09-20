@@ -14,7 +14,7 @@ import io.circe.*, io.circe.syntax.*, io.circe.parser.{parse => parseJson}
   * @param cmdConfig:
   *   ESMeta configuration
   */
-class ArgParser(cmd: Command[_], cmdConfig: CommandConfig)
+class ArgParser(cmd: Command[?], cmdConfig: CommandConfig)
   extends RegexParsers {
   private var ruleList: List[Parser[Unit]] = Nil
   private var optNameSet: Set[String] = Set()

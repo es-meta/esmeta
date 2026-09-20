@@ -1030,7 +1030,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           app.toString
         }
         app >> normalStr
-        if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
+        if (both) app >> (if (normalStr `contains` " or ") ", or " else " or ")
         map.get("AbruptCompletion").map { fm =>
           m -= "AbruptCompletion"
           fm("Type").value.enumv match

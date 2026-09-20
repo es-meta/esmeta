@@ -362,7 +362,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // private helpers
   // ---------------------------------------------------------------------------
   // append locations
-  private def withLoc[T <: IRElem with LangEdge](tag: Char)(
+  private def withLoc[T <: IRElem & LangEdge](tag: Char)(
     rule: Rule[T],
   ): Rule[T] =
     (app, elem) =>

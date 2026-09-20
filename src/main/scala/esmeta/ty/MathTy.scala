@@ -150,8 +150,8 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     import Math.given
     (this.canon, that.canon) match
       case (l, r) if l.isTop || r.isTop   => Top
-      case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l min r)
-      case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l min r)
+      case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l `min` r)
+      case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l `min` r)
       case (MathSetTy(lset), MathSetTy(rset)) =>
         if lset.max < rset.min then MathSetTy(lset)
         else if rset.max < lset.min then MathSetTy(rset)
@@ -163,8 +163,8 @@ sealed trait MathTy extends TyElem with Lattice[MathTy] {
     import Math.given
     (this.canon, that.canon) match
       case (l, r) if l.isTop || r.isTop   => Top
-      case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l max r)
-      case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l max r)
+      case (MathSignTy(l), MathSignTy(r)) => MathSignTy(l `max` r)
+      case (MathIntTy(l), MathIntTy(r))   => MathIntTy(l `max` r)
       case (MathSetTy(lset), MathSetTy(rset)) =>
         if lset.min > rset.max then MathSetTy(lset)
         else if rset.min > lset.max then MathSetTy(rset)

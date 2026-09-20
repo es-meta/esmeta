@@ -23,7 +23,7 @@ trait EPackratParsers extends Parsers {
     val data: Data = defaultData
     val rev: List[Elem] = Nil
     private[EPackratParsers] val cache =
-      mutable.HashMap.empty[(Parser[_], Position), MemoEntry[_]]
+      mutable.HashMap.empty[(Parser[?], Position), MemoEntry[?]]
     private[EPackratParsers] def getFromCache[T2](
       p: Parser[T2],
     ): Option[MemoEntry[T2]] =
@@ -135,31 +135,31 @@ trait EPackratParsers extends Parsers {
   // ---------------------------------------------------------------------------
   // private helpers
   // ---------------------------------------------------------------------------
-  private def getPosFromResult(r: ParseResult[_]): Position = r.next.pos
-  private case class MemoEntry[+T](var r: Either[LR, ParseResult[_]]) {
+  private def getPosFromResult(r: ParseResult[?]): Position = r.next.pos
+  private case class MemoEntry[+T](var r: Either[LR, ParseResult[?]]) {
     def getResult: ParseResult[T] = r match {
       case Left(LR(res, _, _)) => res.asInstanceOf[ParseResult[T]]
       case Right(res)          => res.asInstanceOf[ParseResult[T]]
     }
   }
   private case class LR(
-    var seed: ParseResult[_],
-    var rule: Parser[_],
+    var seed: ParseResult[?],
+    var rule: Parser[?],
     var head: Option[Head],
   ) { def getPos: Position = getPosFromResult(seed) }
   private case class Head(
-    var headParser: Parser[_],
-    var involvedSet: List[Parser[_]],
-    var evalSet: List[Parser[_]],
+    var headParser: Parser[?],
+    var involvedSet: List[Parser[?]],
+    var evalSet: List[Parser[?]],
   ) { def getHead = headParser }
   abstract class EPackratParser[+T] extends super.Parser[T]
   implicit def parser2packrat[T](p: => super.Parser[T]): EPackratParser[T] =
     lazy val q = p
     memo(super.Parser { in => q(in) })
   private def recall(
-    p: super.Parser[_],
+    p: super.Parser[?],
     in: EPackratReader[Elem],
-  ): Option[MemoEntry[_]] = {
+  ): Option[MemoEntry[?]] = {
     val cached = in.getFromCache(p)
     val head = in.recursionHeads.get(in.pos)
     head match
@@ -170,13 +170,13 @@ trait EPackratParsers extends Parsers {
         if (evalSet contains p)
           h.evalSet = h.evalSet.filterNot(_ == p)
           val tempRes = p(in)
-          val tempEntry: MemoEntry[_] = cached.get
+          val tempEntry: MemoEntry[?] = cached.get
           tempEntry.r = Right(tempRes)
         cached
   }
   private def setupLR(
-    p: Parser[_],
-    in: EPackratReader[_],
+    p: Parser[?],
+    in: EPackratReader[?],
     recDetect: LR,
   ): Unit =
     if (recDetect.head.isEmpty) recDetect.head = Some(Head(p, Nil, Nil))

@@ -22,7 +22,7 @@ case class Symbol(cfg: CFG) {
 
   /** get symbol record */
   def obj: RecordObj = recordObj("")(
-    (for { symField <- symbols } yield symField -> symbolAddr(symField)): _*,
+    (for { symField <- symbols } yield symField -> symbolAddr(symField))*
   )
 
   /** get map for heap */
