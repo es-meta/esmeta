@@ -377,6 +377,60 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Target.Element(expr) => app >> expr
   }
 
+  // intrinsics
+  given intrRule: Rule[Intrinsic] = (app, intr) =>
+    val Intrinsic(base, props) = intr
+    app >> "%" >> base
+    props.map(app >> "." >> _)
+    app >> "%"
+
+  // references
+  given refRule: Rule[Reference] = withLoc { (app, ref) =>
+    given Rule[(String, AccessKind)] = (app, pair) => {
+      import AccessKind.*
+      val (name, kind) = pair
+      kind match
+        case Field           => app >> "[[" >> name >> "]]"
+        case Component(post) => app >> name >> (if (post) " component" else "")
+    }
+    ref match {
+      case Variable(name, nt) =>
+        nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
+      case Access(base, name, kind, AccessForm.Dot) =>
+        refRule(app, base) >> "." >> (name, kind)
+      case Access(base, name, kind, AccessForm.Of) =>
+        refRule(app >> "the " >> (name, kind) >> " of ", base)
+      case Access(base, name, kind, AccessForm.Apo(desc)) =>
+        refRule(app, base) >> "'s " >> (name, kind)
+        desc.fold(app)(app >> " " >> _)
+      case ValueOf(base) =>
+        refRule(app >> "the value of ", base)
+      case IntrinsicField(base, intr) =>
+        refRule(app, base) >> "." >> "[[" >> intr >> "]]"
+      case IndexLookup(base, index) =>
+        refRule(app, base) >> "[" >> index >> "]"
+      case BindingLookup(base, binding) =>
+        refRule(app >> "the binding for " >> binding >> " in ", base)
+      case NonterminalLookup(base, nt) =>
+        refRule(app >> "the |" >> nt >> "| of ", base)
+      case PositionalElement(base, isFirst) =>
+        if (isFirst) refRule(app >> "the first element of ", base)
+        else refRule(app >> "the last element of ", base)
+      case IntrinsicObject(base, expr) =>
+        refRule(app, base) >> "'s intrinsic object named " >> expr
+      case _: RunningExecutionContext =>
+        app >> "the running execution context"
+      case _: SecondExecutionContext =>
+        app >> "the second to top element of the execution context stack"
+      case _: CurrentRealmRecord =>
+        app >> "the current Realm Record"
+      case _: ActiveFunctionObject =>
+        app >> "the active function object"
+      case AgentRecord() =>
+        app >> "the Agent Record of the surrounding agent"
+    }
+  }
+
   given removeCtxtStepRestoreTargetRule: Rule[RemoveContextStep.RestoreTarget] =
     (app, target) => {
       import RemoveContextStep.RestoreTarget.*
@@ -923,60 +977,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Tan   => "tangent of"
     )
   }
-
-  // references
-  given refRule: Rule[Reference] = withLoc { (app, ref) =>
-    given Rule[(String, AccessKind)] = (app, pair) => {
-      import AccessKind.*
-      val (name, kind) = pair
-      kind match
-        case Field           => app >> "[[" >> name >> "]]"
-        case Component(post) => app >> name >> (if (post) " component" else "")
-    }
-    ref match {
-      case Variable(name, nt) =>
-        nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
-      case Access(base, name, kind, AccessForm.Dot) =>
-        app >> base >> "." >> (name, kind)
-      case Access(base, name, kind, AccessForm.Of) =>
-        app >> "the " >> (name, kind) >> " of " >> base
-      case Access(base, name, kind, AccessForm.Apo(desc)) =>
-        app >> base >> "'s " >> (name, kind)
-        desc.fold(app)(app >> " " >> _)
-      case ValueOf(base) =>
-        app >> "the value of " >> base
-      case IntrinsicField(base, intr) =>
-        app >> base >> "." >> "[[" >> intr >> "]]"
-      case IndexLookup(base, index) =>
-        app >> base >> "[" >> index >> "]"
-      case BindingLookup(base, binding) =>
-        app >> "the binding for " >> binding >> " in " >> base
-      case NonterminalLookup(base, nt) =>
-        app >> "the |" >> nt >> "| of " >> base
-      case PositionalElement(base, isFirst) =>
-        if (isFirst) app >> "the first element of " >> base
-        else app >> "the last element of " >> base
-      case IntrinsicObject(base, expr) =>
-        app >> base >> "'s intrinsic object named " >> expr
-      case _: RunningExecutionContext =>
-        app >> "the running execution context"
-      case _: SecondExecutionContext =>
-        app >> "the second to top element of the execution context stack"
-      case _: CurrentRealmRecord =>
-        app >> "the current Realm Record"
-      case _: ActiveFunctionObject =>
-        app >> "the active function object"
-      case AgentRecord() =>
-        app >> "the Agent Record of the surrounding agent"
-    }
-  }
-
-  // intrinsics
-  given intrRule: Rule[Intrinsic] = (app, intr) =>
-    val Intrinsic(base, props) = intr
-    app >> "%" >> base
-    props.map(app >> "." >> _)
-    app >> "%"
 
   // types
   given typeRule: Rule[Type] = getTypeRule(ArticleOption.Single)
