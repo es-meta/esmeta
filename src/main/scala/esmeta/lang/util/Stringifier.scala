@@ -42,6 +42,155 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case syn: Intrinsic  => intrRule(app, syn)
     }
 
+  // expressions
+  private val exprRule: Rule[Expression] = withLoc { (app, expr) =>
+    expr match {
+      case StringConcatExpression(exprs) =>
+        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")(using exprRule)
+        app >> "the string-concatenation of " >> exprs
+      case ListConcatExpression(exprs) =>
+        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+        app >> "the list-concatenation of " >> exprs
+      case CopyExpression(expr, form) =>
+        import CopyExpressionForm.*
+        form match
+          case Plain =>
+            app >> "a copy of " >> expr
+          case TheList =>
+            app >> "a copy of the List " >> expr
+          case ListElements =>
+            app >> "a List whose elements are the elements of " >> expr
+      case RecordExpression(ty, fields, form) =>
+        import RecordExpressionForm.*
+        form match {
+          case SyntaxLiteral(prefix) =>
+            given Rule[(FieldLiteral, Expression)] = {
+              case (app, (field, expr)) =>
+                app >> field >> ": " >> expr
+            }
+            given Rule[List[(FieldLiteral, Expression)]] =
+              iterableRule("{ ", ", ", " }")
+            app >> prefix.fold("")(_ + " ") >> ty >> " "
+            if (fields.isEmpty) app >> "{ }"
+            else app >> fields
+          case Text =>
+            val (field, expr) = fields.head
+            app >> "a new " >> ty >> " whose " >> field >> " is " >> expr
+          case TextWithNoElement(prefix, postfix) =>
+            app >> prefix >> " " >> ty >> postfix.fold("")(" " + _)
+        }
+      case LengthExpression(expr) =>
+        app >> "the length of " >> expr
+      case SubstringExpression(expr, from, to) =>
+        app >> "the substring of " >> expr >> " from " >> from
+        to.fold(app)(app >> " to " >> _)
+      case TrimExpression(expr, leading, trailing) =>
+        app >> "the String value that is a copy of " >> expr >> " with "
+        app >> ((leading, trailing) match
+          case (true, true)   => "both leading and trailing"
+          case (true, false)  => "leading"
+          case (false, true)  => "trailing"
+          case (false, false) => "no"
+        )
+        app >> " white space removed"
+      case NumberOfExpression(name, pre, expr, exclude) =>
+        app >> "the number of " >> name >> " in "
+        pre.map(app >> "the " >> _ >> " ")
+        app >> expr
+        exclude.fold(app)(app >> ", excluding all occurrences of " >> _)
+      case SourceTextExpression(expr) =>
+        app >> "the source text matched by " >> expr
+      case CoveredByExpression(code, rule) =>
+        app >> "the " >> rule >> " that is covered by " >> code
+      case GetItemsExpression(nt, expr) =>
+        app >> "the List of " >> nt >> " items in " >> expr
+        app >> ", in source text order"
+      case IntrinsicExpression(intr) =>
+        app >> intr
+      case XRefExpression(op, id) =>
+        import XRefExpressionOperator.*
+        val o = op match
+          case Algo       => "the algorithm steps defined in"
+          case Definition => "the definition specified in"
+          case InternalMethod =>
+            "the ordinary object internal method defined in"
+          case InternalSlots => "the internal slots listed in"
+          case ParamLength =>
+            "the number of non-optional parameters of the function definition in"
+        xrefRule(app >> o >> " ", id)
+      case expr: CalcExpression =>
+        calcExprRule(app, expr)
+      case ClampExpression(target, lower, upper) =>
+        app >> "the result of clamping " >> target >> " between " >> lower
+        app >> " and " >> upper
+      case expr: MathOpExpression => mathOpExprRule(app, expr)
+      case BitwiseExpression(left, op, right) =>
+        app >> "the result of applying the " >> op >> " to " >> left
+        app >> " and " >> right
+      case ListExpression(form) =>
+        import ListExpressionForm.*
+        form match
+          case LiteralSyntax(entries) =>
+            entries match
+              case Nil => app >> "« »"
+              case _ =>
+                given Rule[Iterable[Expression]] =
+                  iterableRule("« ", ", ", " »")
+                app >> entries
+          case SoleElement(e) =>
+            app >> "a List whose sole element is " >> e
+          case EmptyList(isNewUsed, typeDesc) =>
+            if (isNewUsed) app >> "a new empty List"
+            else app >> s"an empty List"
+            typeDesc.fold(app)(app >> " of " >> _)
+          case IntRange(from, isFromInc, to, isToInc, isInc) =>
+            app >> "a List of the integers in the interval from " >> from
+            app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
+            app >> " to " >> to
+            app >> " (" >> (if (isToInc) "inclusive" else "exclusive") >> ")"
+            app >> ", in " >> (if (isInc) "ascending"
+                               else "descending") >> " order"
+      case SoleElementExpression(expr) =>
+        app >> "the sole element of " >> expr
+      case CodeUnitAtExpression(base, index) =>
+        app >> "the code unit at index " >> index >> " within " >> base
+      case StringExpression(expr) =>
+        app >> "the String value " >> expr
+      case YetExpression(str, block) =>
+        app >> str
+        block.fold(app)(app >> _)
+      case multi: MultilineExpression => app >> multi
+    }
+  }
+  given Rule[Expression] = exprRule
+
+  given directiveRule: Rule[Directive] = (app, directive) =>
+    given Rule[List[String]] = (app, values) => app >> values.mkString(",")
+    val Directive(name, values) = directive
+    app >> name
+    values match
+      case Nil =>
+      case _   => app >> "=\"" >> values >> "\""
+    app
+
+  given directiveListRule: Rule[List[Directive]] = (app, directives) =>
+    directives match
+      case Nil => app
+      case _ =>
+        app >> "["
+        directives.zipWithIndex.foreach {
+          case (d, i) =>
+            app >> d
+            if (i < directives.length - 1) app >> ","
+        }
+        app >> "] "
+
+  // sub-steps
+  given subStepRule: Rule[SubStep] = (app, subStep) =>
+    given Rule[Step] = stepWithUpperRule(true)
+    val SubStep(directive, step) = subStep
+    app >> directive >> step
+
   // blocks
   given blockRule: Rule[Block] = (app, block) =>
     given Rule[Step] = stepWithUpperRule(true)
@@ -56,33 +205,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app :> "</figure>"
     })
     else app >> " [...]"
-
-  // sub-steps
-  given subStepRule: Rule[SubStep] = (app, subStep) =>
-    given Rule[Step] = stepWithUpperRule(true)
-    val SubStep(directive, step) = subStep
-    app >> directive >> step
-
-  given directiveListRule: Rule[List[Directive]] = (app, directives) =>
-    directives match
-      case Nil => app
-      case _ =>
-        app >> "["
-        directives.zipWithIndex.foreach {
-          case (d, i) =>
-            app >> d
-            if (i < directives.length - 1) app >> ","
-        }
-        app >> "] "
-
-  given directiveRule: Rule[Directive] = (app, directive) =>
-    given Rule[List[String]] = (app, values) => app >> values.mkString(",")
-    val Directive(name, values) = directive
-    app >> name
-    values match
-      case Nil =>
-      case _   => app >> "=\"" >> values >> "\""
-    app
 
   // steps
   given stepRule: Rule[Step] = stepWithUpperRule(false)
@@ -281,127 +403,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
   private def firstRule(upper: Boolean): Rule[First] = (app, first) => {
     val First(str) = first
     app >> (if (upper) str.toFirstUpper else str)
-  }
-
-  // expressions
-  given exprRule: Rule[Expression] = withLoc { (app, expr) =>
-    expr match {
-      case StringConcatExpression(exprs) =>
-        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
-        app >> "the string-concatenation of " >> exprs
-      case ListConcatExpression(exprs) =>
-        given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
-        app >> "the list-concatenation of " >> exprs
-      case CopyExpression(expr, form) =>
-        import CopyExpressionForm.*
-        form match
-          case Plain =>
-            app >> "a copy of " >> expr
-          case TheList =>
-            app >> "a copy of the List " >> expr
-          case ListElements =>
-            app >> "a List whose elements are the elements of " >> expr
-      case RecordExpression(ty, fields, form) =>
-        import RecordExpressionForm.*
-        form match {
-          case SyntaxLiteral(prefix) =>
-            given Rule[(FieldLiteral, Expression)] = {
-              case (app, (field, expr)) =>
-                app >> field >> ": " >> expr
-            }
-            given Rule[List[(FieldLiteral, Expression)]] =
-              iterableRule("{ ", ", ", " }")
-            app >> prefix.fold("")(_ + " ") >> ty >> " "
-            if (fields.isEmpty) app >> "{ }"
-            else app >> fields
-          case Text =>
-            val (field, expr) = fields.head
-            app >> "a new " >> ty >> " whose " >> field >> " is " >> expr
-          case TextWithNoElement(prefix, postfix) =>
-            app >> prefix >> " " >> ty >> postfix.fold("")(" " + _)
-        }
-      case LengthExpression(expr) =>
-        app >> "the length of " >> expr
-      case SubstringExpression(expr, from, to) =>
-        app >> "the substring of " >> expr >> " from " >> from
-        to.fold(app)(app >> " to " >> _)
-      case TrimExpression(expr, leading, trailing) =>
-        app >> "the String value that is a copy of " >> expr >> " with "
-        app >> ((leading, trailing) match
-          case (true, true)   => "both leading and trailing"
-          case (true, false)  => "leading"
-          case (false, true)  => "trailing"
-          case (false, false) => "no"
-        )
-        app >> " white space removed"
-      case NumberOfExpression(name, pre, expr, exclude) =>
-        app >> "the number of " >> name >> " in "
-        pre.map(app >> "the " >> _ >> " ")
-        app >> expr
-        exclude.fold(app)(app >> ", excluding all occurrences of " >> _)
-      case SourceTextExpression(expr) =>
-        app >> "the source text matched by " >> expr
-      case CoveredByExpression(code, rule) =>
-        app >> "the " >> rule >> " that is covered by " >> code
-      case GetItemsExpression(nt, expr) =>
-        app >> "the List of " >> nt >> " items in " >> expr
-        app >> ", in source text order"
-      case IntrinsicExpression(intr) =>
-        app >> intr
-      case XRefExpression(op, id) =>
-        import XRefExpressionOperator.*
-        val o = op match
-          case Algo       => "the algorithm steps defined in"
-          case Definition => "the definition specified in"
-          case InternalMethod =>
-            "the ordinary object internal method defined in"
-          case InternalSlots => "the internal slots listed in"
-          case ParamLength =>
-            "the number of non-optional parameters of the function definition in"
-        xrefRule(app >> o >> " ", id)
-      case expr: CalcExpression =>
-        calcExprRule(app, expr)
-      case ClampExpression(target, lower, upper) =>
-        app >> "the result of clamping " >> target >> " between " >> lower
-        app >> " and " >> upper
-      case expr: MathOpExpression => mathOpExprRule(app, expr)
-      case BitwiseExpression(left, op, right) =>
-        app >> "the result of applying the " >> op >> " to " >> left
-        app >> " and " >> right
-      case ListExpression(form) =>
-        import ListExpressionForm.*
-        form match
-          case LiteralSyntax(entries) =>
-            entries match
-              case Nil => app >> "« »"
-              case _ =>
-                given Rule[Iterable[Expression]] =
-                  iterableRule("« ", ", ", " »")
-                app >> entries
-          case SoleElement(e) =>
-            app >> "a List whose sole element is " >> e
-          case EmptyList(isNewUsed, typeDesc) =>
-            if (isNewUsed) app >> "a new empty List"
-            else app >> s"an empty List"
-            typeDesc.fold(app)(app >> " of " >> _)
-          case IntRange(from, isFromInc, to, isToInc, isInc) =>
-            app >> "a List of the integers in the interval from " >> from
-            app >> " (" >> (if (isFromInc) "inclusive" else "exclusive") >> ")"
-            app >> " to " >> to
-            app >> " (" >> (if (isToInc) "inclusive" else "exclusive") >> ")"
-            app >> ", in " >> (if (isInc) "ascending"
-                               else "descending") >> " order"
-      case SoleElementExpression(expr) =>
-        app >> "the sole element of " >> expr
-      case CodeUnitAtExpression(base, index) =>
-        app >> "the code unit at index " >> index >> " within " >> base
-      case StringExpression(expr) =>
-        app >> "the String value " >> expr
-      case YetExpression(str, block) =>
-        app >> str
-        block.fold(app)(app >> _)
-      case multi: MultilineExpression => app >> multi
-    }
   }
 
   // mathematical operations
