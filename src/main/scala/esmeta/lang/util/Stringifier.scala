@@ -61,13 +61,28 @@ class Stringifier(detail: Boolean, location: Boolean) {
   given subStepRule: Rule[SubStep] = (app, subStep) =>
     given Rule[Step] = stepWithUpperRule(true)
     val SubStep(directive, step) = subStep
-    directive.map(app >> _ >> " ")
-    app >> step
+    app >> directive >> step
+
+  given directiveListRule: Rule[List[Directive]] = (app, directives) =>
+    directives match
+      case Nil => app
+      case _ =>
+        app >> "["
+        directives.zipWithIndex.foreach {
+          case (d, i) =>
+            app >> d
+            if (i < directives.length - 1) app >> ","
+        }
+        app >> "] "
 
   given directiveRule: Rule[Directive] = (app, directive) =>
-    given Rule[List[String]] = iterableRule(sep = ",")
+    given Rule[List[String]] = (app, values) => app >> values.mkString(",")
     val Directive(name, values) = directive
-    app >> "[" >> name >> "=\"" >> values >> "\"]"
+    app >> name
+    values match
+      case Nil =>
+      case _   => app >> "=\"" >> values >> "\""
+    app
 
   // steps
   given stepRule: Rule[Step] = stepWithUpperRule(false)
@@ -177,7 +192,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> body
       case ForEachParseNodeStep(x, expr, body) =>
         app >> First("for each child node ") >> x
-        app >> " of " >> expr >> ", do" >> body
+        app >> " of " >> expr >> ", do"
+        if (!body.isInstanceOf[BlockStep]) app >> " "
+        app >> body
       case ReturnStep(expr) =>
         app >> First("return ") >> expr
       case ThrowStep(name) =>
@@ -284,8 +301,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case ListConcatExpression(exprs) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
         app >> "the list-concatenation of " >> exprs
-      case ListCopyExpression(expr) =>
-        app >> "a List whose elements are the elements of " >> expr
+      case CopyExpression(expr, form) =>
+        import CopyExpressionForm.*
+        form match
+          case Plain =>
+            app >> "a copy of " >> expr
+          case TheList =>
+            app >> "a copy of the List " >> expr
+          case ListElements =>
+            app >> "a List whose elements are the elements of " >> expr
       case RecordExpression(ty, fields, form) =>
         import RecordExpressionForm.*
         form match {
@@ -353,8 +377,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case BitwiseExpression(left, op, right) =>
         app >> "the result of applying the " >> op >> " to " >> left
         app >> " and " >> right
-      case expr: InvokeExpression =>
-        invokeExprRule(app, expr)
       case ListExpression(form) =>
         import ListExpressionForm.*
         form match
@@ -397,60 +419,31 @@ class Stringifier(detail: Boolean, location: Boolean) {
     import MathOpExpressionOperator.*
     val MathOpExpression(op, args) = expr
     app >> "the " >> op >> " "
-    (op, args) match
-      case (Neg, List(e)) =>
-        app >> e
-      case (Add, List(l, r)) =>
-        app >> l >> " and " >> r
-      case (Mul, List(l, r)) =>
-        app >> l >> " and " >> r
-      case (Sub, List(l, r)) =>
-        app >> l >> " minus " >> r
-      case (Pow, List(l, r)) =>
-        app >> l >> " to the " >> r >> " power"
-      case (Expm1, List(e)) =>
-        app >> e
-      case (Log10, List(e)) =>
-        app >> e
-      case (Log2, List(e)) =>
-        app >> e
-      case (Cos, List(e)) =>
-        app >> e
-      case (Cbrt, List(e)) =>
-        app >> e
-      case (Exp, List(e)) =>
-        app >> e
-      case (Cosh, List(e)) =>
-        app >> e
-      case (Sinh, List(e)) =>
-        app >> e
-      case (Tanh, List(e)) =>
-        app >> e
-      case (Acos, List(e)) =>
-        app >> e
-      case (Acosh, List(e)) =>
-        app >> e
-      case (Asinh, List(e)) =>
-        app >> e
-      case (Atanh, List(e)) =>
-        app >> e
-      case (Asin, List(e)) =>
-        app >> e
-      case (Atan2, List(x, y)) =>
-        app >> x >> " / " >> y
-      case (Atan, List(e)) =>
-        app >> e
-      case (Log1p, List(e)) =>
-        app >> e
-      case (Log, List(e)) =>
-        app >> e
-      case (Sin, List(e)) =>
-        app >> e
-      case (Sqrt, List(e)) =>
-        app >> e
-      case (Tan, List(e)) =>
-        app >> e
-      case _ => raise(s"invalid math operationr: $op with $args")
+    (op, args) match {
+      case (Neg, List(e))      => app >> e
+      case (Add, List(l, r))   => app >> l >> " and " >> r
+      case (Mul, List(l, r))   => app >> l >> " and " >> r
+      case (Sub, List(l, r))   => app >> l >> " minus " >> r
+      case (Pow, List(l, r))   => app >> l >> " to the " >> r >> " power"
+      case (Expm1, List(e))    => app >> e
+      case (Cos, List(e))      => app >> e
+      case (Cbrt, List(e))     => app >> e
+      case (Exp, List(e))      => app >> e
+      case (Cosh, List(e))     => app >> e
+      case (Sinh, List(e))     => app >> e
+      case (Tanh, List(e))     => app >> e
+      case (Acos, List(e))     => app >> e
+      case (Acosh, List(e))    => app >> e
+      case (Asinh, List(e))    => app >> e
+      case (Atanh, List(e))    => app >> e
+      case (Asin, List(e))     => app >> e
+      case (Atan2, List(x, y)) => app >> x >> " / " >> y
+      case (Atan, List(e))     => app >> e
+      case (Sin, List(e))      => app >> e
+      case (Sqrt, List(e))     => app >> e
+      case (Tan, List(e))      => app >> e
+      case _ => raise(s"invalid math operation: $op with $args")
+    }
 
   // multiline expressions
   given multilineExprRule: Rule[MultilineExpression] = (app, expr) =>
@@ -492,10 +485,13 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> a >> " " >> op >> " value " >> pre >> " " >> expr
       case ExponentiationExpression(base, power) =>
         app >> base >> "<sup>" >> power >> "</sup>"
-      case BinaryExpression(left, op, right) =>
+      case BinaryExpression(left, op, right, form) =>
+        given Rule[BinaryExpressionOperator] = binExprOpRuleWithForm(form)
         app >> left >> " " >> op >> " " >> right
       case UnaryExpression(op, expr) =>
         app >> op >> expr
+      case invoke: InvokeExpression =>
+        invokeExprRule(app, invoke)
       case lit: Literal =>
         litRule(app, lit)
     }
@@ -510,6 +506,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Min      => "min"
       case Abs      => "abs"
       case Floor    => "floor"
+      case Log10    => "log10"
+      case Log2     => "log2"
+      case Log      => "ln"
       case Truncate => "truncate"
     })
 
@@ -526,14 +525,22 @@ class Stringifier(detail: Boolean, location: Boolean) {
       })
 
   // operators for binary expressions
-  given binExprOpRule: Rule[BinaryExpressionOperator] = (app, op) =>
+  given binExprOpRule: Rule[BinaryExpressionOperator] =
+    binExprOpRuleWithForm(BinaryExpressionForm.Symbolic)
+
+  def binExprOpRuleWithForm(
+    form: BinaryExpressionForm,
+  ): Rule[BinaryExpressionOperator] = (app, op) =>
     import BinaryExpressionOperator.*
-    app >> (op match {
-      case Add => "+"
-      case Sub => "-"
-      case Mul => "×"
-      case Div => "/"
-      case Mod => "modulo"
+    import BinaryExpressionForm.*
+    app >> ((op, form) match {
+      case (Add, Textual) => "plus"
+      case (Mul, Textual) => "times"
+      case (Add, _)       => "+"
+      case (Sub, _)       => "-"
+      case (Mul, _)       => "×"
+      case (Div, _)       => "/"
+      case (Mod, _)       => "modulo"
     })
 
   // operators for unary expressions
@@ -614,6 +621,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case MathConstantLiteral(pre, name) =>
         if (pre != 1) app >> pre
         app >> name
+      case ConstantLiteral(name) => app >> name
       case NumberLiteral(n) =>
         if (n.isNaN) app >> "*NaN*"
         else
@@ -694,7 +702,28 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // conditions
-  given condRule: Rule[Condition] = withLoc { (app, cond) =>
+  given condRule: Rule[Condition] = condRuleWithPrecedence(Int.MinValue)
+
+  // keep in sync with Parser.cond: primary > and > or > implication
+  private def condPrecedence(cond: Condition): Int = cond match
+    case CompoundCondition(_, op, _) =>
+      import CompoundConditionOperator.*
+      op match
+        case Imply => 0
+        case Or    => 1
+        case And   => 2
+    case _ => 3
+
+  private def condRuleWithPrecedence(
+    parentPrecedence: Int,
+    parenthesizeOnEqual: Boolean = false,
+  ): Rule[Condition] = withLoc { (app, cond) =>
+    val precedence = condPrecedence(cond)
+    val parenthesized =
+      precedence < parentPrecedence ||
+      parenthesizeOnEqual && precedence == parentPrecedence
+    if (parenthesized) app >> "("
+
     cond match {
       case ExpressionCondition(expr) =>
         app >> expr
@@ -730,9 +759,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> nt >> " is " >> "<emu-grammar>"
         app >> lhs >> " : " >> rhs
         app >> "</emu-grammar>"
-      case PredicateCondition(x, neg, op) =>
+      case PredicateCondition(xs, neg, op) =>
         // TODO is/has
-        app >> x >> isStr(neg) >> op
+        xs match {
+          case x :: Nil => app >> x >> isStr(neg) >> op
+          case _ =>
+            given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
+            app >> xs >> isStr(neg, single = false)
+            app >> pluralPredCondOpStr(op)
+        }
       case IsAreCondition(ls, neg, rs) =>
         val single = ls.length == 1
         if (single) app >> ls.head
@@ -765,9 +800,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         else app >> from >> " ≤ " >> left >> " ≤ " >> to
       case ContainsCondition(list, neg, expr) =>
         app >> list >> (if (neg) " does not contain " else " contains ") >> expr
-      case CompoundCondition(left, CompoundConditionOperator.Imply, right) =>
-        app >> "If " >> left >> ", then " >> right
-      case CompoundCondition(left, op, right) =>
+      case CompoundCondition(_, op, _) =>
+        import CompoundConditionOperator.*
+
         // collect sub conditions of same level in a single list
         def flatten(cond: Condition): List[Condition] = {
           cond match {
@@ -776,41 +811,60 @@ class Stringifier(detail: Boolean, location: Boolean) {
           }
         }
         val conds = flatten(cond)
-        val sep = op match {
-          case CompoundConditionOperator.And   => "and"
-          case CompoundConditionOperator.Or    => "or"
-          case CompoundConditionOperator.Imply => "then" // not used
-        }
-        given Rule[List[Condition]] = listNamedSepRule(namedSep = sep)
-        app >> conds
-      case MetaCondition(name, _) => app >> name >> ":cond"
+        given Rule[Condition] = condRuleWithPrecedence(
+          precedence,
+          parenthesizeOnEqual = true,
+        )
+        op match
+          case And =>
+            given Rule[List[Condition]] = listNamedSepRule(namedSep = "and")
+            app >> conds
+          case Or =>
+            given Rule[List[Condition]] = listNamedSepRule(namedSep = "or")
+            app >> conds
+          case Imply =>
+            app >> "If " >> conds.head
+            for (cond <- conds.tail) app >> ", then " >> cond
     }
+
+    if (parenthesized) app >> ")"
+    app
   }
 
   // operators for predicate conditions
   given predCondOpRule: Rule[PredicateConditionOperator] = (app, op) =>
     import PredicateConditionOperator.*
     app >> (op match {
-      case Finite           => "finite"
-      case Abrupt           => "an abrupt completion"
-      case Throw            => "a throw completion"
-      case Return           => "a return completion"
-      case Break            => "a break completion"
-      case Continue         => "a continue completion"
-      case NeverAbrupt      => "never an abrupt completion"
-      case Normal           => "a normal completion"
-      case Duplicated       => "duplicate entries"
-      case Present          => "present"
-      case Empty            => "empty"
-      case StrictMode       => "strict mode code"
-      case ArrayIndex       => "an array index"
-      case FalseToken       => "the token `false`"
-      case TrueToken        => "the token `true`"
-      case DataProperty     => "a data property"
-      case AccessorProperty => "an accessor property"
-      case FullyPopulated   => "a fully populated Property Descriptor"
-      case Nonterminal      => "an instance of a nonterminal"
+      case Finite              => "finite"
+      case FiniteNumber        => "a finite Number"
+      case NonZeroFiniteNumber => "a non-zero finite Number"
+      case Abrupt              => "an abrupt completion"
+      case Throw               => "a throw completion"
+      case Return              => "a return completion"
+      case Break               => "a break completion"
+      case Continue            => "a continue completion"
+      case NeverAbrupt         => "never an abrupt completion"
+      case Normal              => "a normal completion"
+      case Duplicated          => "duplicate entries"
+      case Present             => "present"
+      case Empty               => "empty"
+      case StrictMode          => "strict mode code"
+      case ArrayIndex          => "an array index"
+      case FalseToken          => "the token `false`"
+      case TrueToken           => "the token `true`"
+      case DataProperty        => "a data property"
+      case AccessorProperty    => "an accessor property"
+      case FullyPopulated      => "a fully populated Property Descriptor"
+      case Nonterminal         => "an instance of a nonterminal"
     })
+
+  private def pluralPredCondOpStr(op: PredicateConditionOperator): String =
+    import PredicateConditionOperator.*
+    op match {
+      case FiniteNumber        => "finite Numbers"
+      case NonZeroFiniteNumber => "non-zero finite Numbers"
+      case _                   => op.toString
+    }
 
   // operators for binary conditions
   given binCondOpRule: Rule[BinaryConditionOperator] = (app, op) =>
@@ -860,8 +914,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Sub   => "difference"
       case Pow   => "raising"
       case Expm1 => "subtracting 1 from the exponential function of"
-      case Log10 => "base 10 logarithm of"
-      case Log2  => "base 2 logarithm of"
       case Cos   => "cosine of"
       case Cbrt  => "cube root of"
       case Exp   => "exponential function of"
@@ -875,8 +927,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Asin  => "inverse sine of"
       case Atan2 => "inverse tangent of the quotient"
       case Atan  => "inverse tangent of"
-      case Log1p => "natural logarithm of 1 +"
-      case Log   => "natural logarithm of"
       case Sin   => "sine of"
       case Sqrt  => "square root of"
       case Tan   => "tangent of"

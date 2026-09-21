@@ -316,7 +316,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Asin  => "[math:asin]"
       case Atan2 => "[math:atan2]"
       case Atan  => "[math:atan]"
-      case Log1p => "[math:log1p]"
       case Log   => "[math:log]"
       case Sin   => "[math:sin]"
       case Sqrt  => "[math:sqrt]"

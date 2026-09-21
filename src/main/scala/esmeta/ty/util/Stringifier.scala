@@ -252,14 +252,16 @@ class Stringifier(
 
   /** sign domain */
   given signRule: Rule[Sign] = (app, sign) =>
-    val Sign(neg, zero, pos) = sign
-    if sign.isTop then app
-    else
-      app >> "["
-      if (neg) app >> "-"
-      if (zero) app >> "0"
-      if (pos) app >> "+"
-      app >> "]"
+    if (sign.isTop) app else app >> "[" >> signName(sign) >> "]"
+
+  private def signName(sign: Sign): String = sign match
+    case Sign.Neg     => "Neg"
+    case Sign.Zero    => "Zero"
+    case Sign.Pos     => "Pos"
+    case Sign.NonPos  => "NonPos"
+    case Sign.NonNeg  => "NonNeg"
+    case Sign.NonZero => "NonZero"
+    case _            => ""
 
   /** integer types */
   given intRule: Rule[IntTy] = (app, ty) =>
@@ -275,27 +277,32 @@ class Stringifier(
     ty.canon match
       case ty if ty.isTop => app >> "Math"
       // case ty if ty.isBottom => app >> "Math[Bot]"
-      case MathSignTy(sign) => app >> "Math[" >> sign >> "]"
+      case MathSignTy(sign) => app >> "Math" >> sign
       case MathIntTy(int) =>
         given Rule[IntTy] = intRule
         app >> int
       case MathSetTy(set) => app >> "Math" >> set
 
-  /** number types */
+  /** number types, whose every part goes inside one `Number[...]` */
   given numberTyRule: Rule[NumberTy] = (app, ty) =>
-    ty.canon match
-      case t if t.isTop                 => app >> "Number"
-      case t if t == NumberTy.NaN.canon => app >> "NaN"
-      // case ty if ty.isBottom => app >> "Number[Bot]"
-      case NumberSignTy(sign, hasNaN) =>
-        app >> "Number" >> sign
-        app >> (if (hasNaN) " | NaN" else "")
-      case NumberIntTy(int, hasNaN) =>
-        int match
-          case IntSetTy(set)   => app >> "NumberInt" >> set
-          case IntSignTy(sign) => app >> "NumberInt" >> sign
-        app >> (if (hasNaN) " | NaN" else "")
-      case NumberSetTy(set) => app >> "Number" >> set
+    val NumberTy(finite, inf, nan) = ty.canon
+    if (ty.isTop) app >> "Number"
+    else
+      var rest = false
+      def sep: Unit = { if (rest) app >> ", "; rest = true }
+      app >> "Number["
+      finite.canon match
+        case f if f.isBottom     => ()
+        case FinNumberIntTy(int) => sep; app >> int
+        case FinNumberSignTy(s) =>
+          sep; app >> (if (s.isTop) "Finite" else signName(s))
+        case FinNumberSetTy(set) =>
+          for (n <- set.toList.sorted) { sep; app >> n }
+      for (p <- inf.pos.toList.sorted) {
+        sep; app >> (if (p) "+INF" else "-INF")
+      }
+      if (nan) { sep; app >> "NaN" }
+      app >> "]"
 
   /** infinity types */
   given infinityTyRule: Rule[InfinityTy] = (app, ty) =>

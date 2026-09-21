@@ -27,6 +27,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Table] = deriveDecoder
   given Encoder[Table] = deriveEncoder
 
+  // constants defined by `emu-eqn` elements
+  given Decoder[Constant] = deriveDecoder
+  given Encoder[Constant] = deriveEncoder
+
   // ---------------------------------------------------------------------------
   // Grammar
   // ---------------------------------------------------------------------------

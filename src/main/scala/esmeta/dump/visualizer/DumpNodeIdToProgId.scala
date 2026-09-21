@@ -20,14 +20,10 @@ object DumpNodeIdToProgId {
     st: State,
     targetNodeId: Int,
     targetCallPath: String,
-    printMsg: () => Unit,
   ): Int =
     var stepCnt = 1
     try new StepCounter(st, targetNodeId, targetCallPath).result
-    catch
-      case e =>
-        printMsg()
-        stepCnt = e.getMessage().toInt
+    catch case e => stepCnt = e.getMessage().toInt
     return stepCnt
 
   def apply(cfg: CFG): Unit =
@@ -40,9 +36,14 @@ object DumpNodeIdToProgId {
       MMap.empty
     val progIdSet: MSet[Int] = MSet.empty
 
-    val total = nvList.length
-    nvList.zipWithIndex.foreach {
-      case (NodeViewInfoJson(_, NodeViewJson(node, view), scriptStr), idx) =>
+    val progress = ProgressBar(
+      msg = "Dump nodeIdToProgId",
+      iterable = nvList,
+      getName = (nv, _) => s"node ${nv.nodeView.node.id}",
+      detail = false,
+    )
+    progress.foreach {
+      case NodeViewInfoJson(_, NodeViewJson(node, view), scriptStr) =>
         val script = scriptStr.toInt
         progIdSet += script
 
@@ -58,7 +59,6 @@ object DumpNodeIdToProgId {
               cfg.init.from(currentCode),
               node.id,
               pathStr,
-              () => println(s"${idx + 1}/$total"),
             )
 
             val cpToProgId =
@@ -79,7 +79,6 @@ object DumpNodeIdToProgId {
               cfg.init.from(currentCode),
               node.id,
               "",
-              () => println(s"${idx + 1}/$total"),
             )
 
             featIdToProgId

@@ -15,12 +15,12 @@ class ValiditySmallTest extends CFGTest {
       val prev = optional(readFile(path).trim).getOrElse("<none>")
       val cur = ESMetaTest.cfg.fingerprint
       if (prev != cur) {
+        dumpFile(cur, path)
         fail(
           "function/node IDs have changed -- CFG fingerprint mismatch:" +
           s"\n* previous: $prev" +
           s"\n* current : $cur",
         )
-        dumpFile(cur, path)
       }
     }
   }

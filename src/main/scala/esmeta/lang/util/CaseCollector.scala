@@ -171,8 +171,13 @@ class CaseCollector extends UnitWalker {
         "the string-concatenation of {{ expr }}*"
       case ListConcatExpression(exprs) =>
         "the list-concatenation of {{ expr }}*"
-      case ListCopyExpression(expr) =>
-        "a List whose elements are the elements of {{ expr }}"
+      case CopyExpression(expr, form) =>
+        import CopyExpressionForm.*
+        form match
+          case Plain   => "a copy of {{ expr }}"
+          case TheList => "a copy of the List {{ expr }}"
+          case ListElements =>
+            "a List whose elements are the elements of {{ expr }}"
       case RecordExpression(ty, fields, form) =>
         import RecordExpressionForm.*
         form match {
@@ -243,8 +248,13 @@ class CaseCollector extends UnitWalker {
         s"$a $opStr value $pre {{expr}}"
       case ExponentiationExpression(base, power) =>
         s"{{ expr }} <sup>{{ expr }}</sup>"
-      case BinaryExpression(left, op, right) =>
-        s"{{ expr }} $op {{ expr }}"
+      case BinaryExpression(left, op, right, form) =>
+        import BinaryExpressionForm.*, BinaryExpressionOperator.*
+        val o = (op, form) match
+          case (Add, Textual) => "plus"
+          case (Mul, Textual) => "times"
+          case _              => op.toString
+        s"{{ expr }} $o {{ expr }}"
       case UnaryExpression(op, expr) =>
         s"$op {{ expr }}"
       case ThisLiteral(article) =>
@@ -295,6 +305,8 @@ class CaseCollector extends UnitWalker {
       case DecimalMathValueLiteral(n) =>
         s"{{ decimal }}"
       case MathConstantLiteral(pre, name) =>
+        s"{{ const }}"
+      case ConstantLiteral(name) =>
         s"{{ const }}"
       case NumberLiteral(n) =>
         s"{{ number }}"
@@ -420,9 +432,9 @@ class CaseCollector extends UnitWalker {
         s"{{ ref }} $h a binding for {{ binding }}"
       case ProductionCondition(nt, lhs, rhs) =>
         s"{{ expr }} is <emu-grammar>{{ str }} : {{ str }}</emu-grammar>"
-      case PredicateCondition(x, neg, op) =>
-        if (neg) s"{{ expr }} is not $op"
-        else s"{{ expr }} is $op"
+      case PredicateCondition(xs, neg, op) =>
+        if (neg) s"{{ expr }}* is/are not $op"
+        else s"{{ expr }}* is/are $op"
       case IsAreCondition(ls, neg, rs) =>
         if (neg) s"{{ expr }}* is/are not {{ expr }}*"
         else s"{{ expr }}* is/are {{ expr }}*"

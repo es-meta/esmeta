@@ -420,9 +420,6 @@ class JsonTinyTest extends SpecTest {
           "symbol" -> "B".asJson,
         ),
       ),
-      YetPath("A B C") -> Json.obj(
-        "YetPath" -> Json.obj("name" -> "A B C".asJson),
-      ),
     )
   }
 

@@ -95,6 +95,7 @@ object Sign {
   lazy val Zero = Sign(false, true, false)
   lazy val NonNeg = Sign(false, true, true)
   lazy val NonPos = Sign(true, true, false)
+  lazy val NonZero = Sign(true, false, true)
 
   def alpha[A](l: Iterable[A], f: A => Sign): Sign =
     l.foldLeft[Sign](Bot)((acc, a) => acc || f(a))

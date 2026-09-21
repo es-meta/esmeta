@@ -41,7 +41,7 @@ trait UnitWalker extends BasicUnitWalker {
 
   def walk(subStep: SubStep): Unit =
     val SubStep(directive, step) = subStep
-    walkOpt(directive, walk); walk(step)
+    walkList(directive, walk); walk(step)
 
   def walk(directive: Directive): Unit =
     val Directive(name, values) = directive
@@ -137,7 +137,7 @@ trait UnitWalker extends BasicUnitWalker {
       walkList(exprs, walk)
     case ListConcatExpression(exprs) =>
       walkList(exprs, walk)
-    case ListCopyExpression(expr) =>
+    case CopyExpression(expr, _) =>
       walk(expr)
     case RecordExpression(ty, fields, _) =>
       walk(ty); walkList(fields, { case (f, e) => walk(f); walk(e) });
@@ -165,8 +165,6 @@ trait UnitWalker extends BasicUnitWalker {
       walk(op); walkList(args, walk)
     case BitwiseExpression(left, op, right) =>
       walk(left); walk(op); walk(right)
-    case invoke: InvokeExpression =>
-      walk(invoke)
     case ListExpression(form) =>
       import ListExpressionForm.*
       form match
@@ -213,10 +211,12 @@ trait UnitWalker extends BasicUnitWalker {
       walk(op); walk(expr)
     case ExponentiationExpression(base, power) =>
       walk(base); walk(power)
-    case BinaryExpression(left, op, right) =>
+    case BinaryExpression(left, op, right, _) =>
       walk(left); walk(op); walk(right)
     case UnaryExpression(op, expr) =>
       walk(op); walk(expr)
+    case invoke: InvokeExpression =>
+      walk(invoke)
     case lit: Literal =>
       walk(lit)
   }
@@ -270,8 +270,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(ref); walk(neg); walk(binding)
     case ProductionCondition(nt, lhs, rhs) =>
       walk(nt); walk(lhs); walk(rhs)
-    case PredicateCondition(expr, neg, op) =>
-      walk(expr); walk(neg); walk(op)
+    case PredicateCondition(exprs, neg, op) =>
+      walkList(exprs, walk); walk(neg); walk(op)
     case IsAreCondition(ls, neg, rs) =>
       walkList(ls, walk); walk(neg); walkList(rs, walk)
     case BinaryCondition(left, op, right) =>

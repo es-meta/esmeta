@@ -3,6 +3,7 @@ package esmeta.lang
 import esmeta.ESMetaTest
 import esmeta.spec
 import esmeta.ty.*
+import esmeta.util.BaseUtils.*
 import scala.collection.mutable.{Set as MSet}
 
 /** test for metalangauge */
@@ -17,10 +18,12 @@ object LangTest {
   // blocks
   // ---------------------------------------------------------------------------
   def toBlockStep(steps: Step*): BlockStep =
-    BlockStep(StepBlock(steps.toList.map(SubStep(None, _))))
-  lazy val subStep = SubStep(None, letStep)
-  lazy val directive = Directive("id", List("x", "y", "z"))
-  lazy val subStepId = SubStep(Some(directive), letStep)
+    BlockStep(StepBlock(steps.toList.map(SubStep(Nil, _))))
+  lazy val subStep = SubStep(Nil, letStep)
+  lazy val directiveWithValue = Directive("id", List("x", "y", "z"))
+  lazy val directiveWithoutValue = Directive("some-name", Nil)
+  lazy val subStepId =
+    SubStep(List(directiveWithValue, directiveWithoutValue), letStep)
   lazy val stepBlock = StepBlock(List(subStep, subStepId, subStep))
   lazy val exprBlock = ExprBlock(List(refExpr, refExpr, refExpr))
   lazy val figureBlock = Figure(List("a", "b", "c"))
@@ -40,10 +43,12 @@ object LangTest {
   lazy val semicolon = genStepEnder(";")
 
   lazy val letStep = dot(LetStep(x, refExpr))
+  lazy val letCopyStep = dot(LetStep(x, copyExpr))
   lazy val letStepSemicolon = semicolon(LetStep(x, refExpr))
   lazy val letStepClosure =
     LetStep(x, AbstractClosureExpression(List(x, x), List(x), blockStep))
   lazy val setStep = dot(SetStep(x, addExpr))
+  lazy val setCopyStep = dot(SetStep(x, copyExpr))
   lazy val setAsStep = dot(SetAsStep(x, "specified", "id"))
   lazy val setEvalStateStep = SetEvaluationStateStep(x, x, Nil)
   lazy val setEvalStateArgStep = SetEvaluationStateStep(x, x, List(refExpr))
@@ -125,6 +130,7 @@ object LangTest {
     ForEachOwnPropertyKeyStepOrder.ChronologicalOrder,
     letStep,
   )
+  lazy val forEachParseNodeStep = ForEachParseNodeStep(x, refExpr, letStep)
   lazy val returnStep = dot(ReturnStep(refExpr))
   lazy val throwStep = dot(ThrowStep("ReferenceError"))
   lazy val resumeStep = ResumeStep(x, refExpr, x, x, List(subStep))
@@ -135,7 +141,7 @@ object LangTest {
     ResumeEvaluationStep(x, None, Some(x, "value"), List(subStep))
   lazy val resumeTopCtxtStep = ResumeTopContextStep()
   lazy val noteStep = NoteStep("At this point, it must be a numeric operation.")
-  lazy val blockStep = BlockStep(StepBlock(List(SubStep(None, letStep))))
+  lazy val blockStep = BlockStep(StepBlock(List(SubStep(Nil, letStep))))
   lazy val yetStep = YetStep(yetExpr)
 
   // ---------------------------------------------------------------------------
@@ -144,7 +150,7 @@ object LangTest {
   lazy val setFieldsWithIntrinsicsStep =
     SetFieldsWithIntrinsicsStep(x, "More description.")
   lazy val performBlockStep = PerformBlockStep(
-    StepBlock(List(SubStep(None, letStep), SubStep(None, setStep))),
+    StepBlock(List(SubStep(Nil, letStep), SubStep(Nil, setStep))),
     "possibly interleaving parsing and error detection",
   )
 
@@ -164,7 +170,15 @@ object LangTest {
     ListConcatExpression(List(refExpr, refExpr))
   lazy val listConcatExprThree =
     ListConcatExpression(List(refExpr, refExpr, refExpr))
-  lazy val listCopyExpr = ListCopyExpression(refExpr)
+  lazy val listElementsCopyExpr =
+    CopyExpression(refExpr, CopyExpressionForm.ListElements)
+  lazy val copyExpr = CopyExpression(refExpr)
+  lazy val copyOfListExpr =
+    CopyExpression(refExpr, CopyExpressionForm.TheList)
+  lazy val copyAccessExpr =
+    CopyExpression(ReferenceExpression(Access(x, "Captures")))
+  lazy val copyRunningContextExpr =
+    CopyExpression(ReferenceExpression(runningExecCtx))
   lazy val recordEmptyExpr =
     RecordExpression(
       "Object",
@@ -264,6 +278,7 @@ object LangTest {
   lazy val soleExpr = SoleElementExpression(listExpr)
   lazy val codeUnitAtExpr =
     CodeUnitAtExpression(refExpr, refExpr)
+  lazy val strValueExpr = StringExpression(refExpr)
   lazy val yetExpr = YetExpression("Not yet supported:", Some(stepBlock))
 
   // algorithm calcualation expressions
@@ -285,6 +300,32 @@ object LangTest {
     UnaryExpression(UnaryExpressionOperator.Neg, mulExpr)
   lazy val parenUnExpr =
     ExponentiationExpression(unExpr, refExpr)
+  lazy val addInvokeExpr =
+    BinaryExpression(invokeAOExpr, BinaryExpressionOperator.Add, refExpr)
+  lazy val mulInvokeExpr =
+    BinaryExpression(expExpr, BinaryExpressionOperator.Mul, invokeAOExpr)
+  lazy val plusExpr =
+    BinaryExpression(
+      refExpr,
+      BinaryExpressionOperator.Add,
+      refExpr,
+      BinaryExpressionForm.Textual,
+    )
+  lazy val timesExpr =
+    BinaryExpression(
+      refExpr,
+      BinaryExpressionOperator.Mul,
+      refExpr,
+      BinaryExpressionForm.Textual,
+    )
+  lazy val mulSDOExpr =
+    BinaryExpression(invokeSDOExprZero, BinaryExpressionOperator.Mul, refExpr)
+  lazy val convInvokeExpr =
+    ConversionExpression(
+      ConversionExpressionOperator.ToMath,
+      addInvokeExpr,
+      ConversionExpressionForm.SyntaxLiteral,
+    )
   lazy val convToApproxNumberExpr =
     ConversionExpression(
       ConversionExpressionOperator.ToApproxNumber,
@@ -328,7 +369,47 @@ object LangTest {
       ConversionExpressionForm.SyntaxLiteral,
     )
 
+  // algorithm mathematical operation expressions
+  import MathOpExpressionOperator as MOp
+  lazy val negMathExpr = MathOpExpression(MOp.Neg, List(refExpr))
+  lazy val sumMathExpr = MathOpExpression(MOp.Add, List(refExpr, refExpr))
+  lazy val prodMathExpr = MathOpExpression(MOp.Mul, List(refExpr, refExpr))
+  lazy val diffMathExpr = MathOpExpression(MOp.Sub, List(refExpr, refExpr))
+  lazy val powMathExpr = MathOpExpression(MOp.Pow, List(refExpr, refExpr))
+  lazy val expm1MathExpr = MathOpExpression(MOp.Expm1, List(refExpr))
+  lazy val cosMathExpr = MathOpExpression(MOp.Cos, List(refExpr))
+  lazy val cbrtMathExpr = MathOpExpression(MOp.Cbrt, List(refExpr))
+  lazy val expMathExpr = MathOpExpression(MOp.Exp, List(refExpr))
+  lazy val coshMathExpr = MathOpExpression(MOp.Cosh, List(refExpr))
+  lazy val sinhMathExpr = MathOpExpression(MOp.Sinh, List(refExpr))
+  lazy val tanhMathExpr = MathOpExpression(MOp.Tanh, List(refExpr))
+  lazy val acosMathExpr = MathOpExpression(MOp.Acos, List(refExpr))
+  lazy val acoshMathExpr = MathOpExpression(MOp.Acosh, List(refExpr))
+  lazy val asinhMathExpr = MathOpExpression(MOp.Asinh, List(refExpr))
+  lazy val atanhMathExpr = MathOpExpression(MOp.Atanh, List(refExpr))
+  lazy val asinMathExpr = MathOpExpression(MOp.Asin, List(refExpr))
+  lazy val atan2MathExpr = MathOpExpression(MOp.Atan2, List(refExpr, refExpr))
+  lazy val atanMathExpr = MathOpExpression(MOp.Atan, List(refExpr))
+  lazy val sinMathExpr = MathOpExpression(MOp.Sin, List(refExpr))
+  lazy val sqrtMathExpr = MathOpExpression(MOp.Sqrt, List(refExpr))
+  lazy val tanMathExpr = MathOpExpression(MOp.Tan, List(refExpr))
+
+  // algorithm mathematical function expressions
+  import MathFuncExpressionOperator as MFOp
+  lazy val maxExpr = MathFuncExpression(MFOp.Max, List(refExpr, refExpr))
+  lazy val minTwoExpr = MathFuncExpression(MFOp.Min, List(refExpr, refExpr))
+  lazy val absExpr = MathFuncExpression(MFOp.Abs, List(refExpr))
+  lazy val floorExpr = MathFuncExpression(MFOp.Floor, List(refExpr))
+  lazy val log10Expr = MathFuncExpression(MFOp.Log10, List(refExpr))
+  lazy val log2Expr = MathFuncExpression(MFOp.Log2, List(refExpr))
+  lazy val lnExpr = MathFuncExpression(MFOp.Log, List(refExpr))
+  lazy val truncateExpr = MathFuncExpression(MFOp.Truncate, List(refExpr))
+
   // algorithm literals
+  lazy val thisLit = ThisLiteral(false)
+  lazy val thisLitWithArticle = ThisLiteral(true)
+  lazy val thisParseNode = ThisParseNodeLiteral(None)
+  lazy val newTarget = NewTargetLiteral()
   lazy val hex = HexLiteral(0x0024, false, false, None)
   lazy val hexWithName = HexLiteral(0x0024, false, false, Some("DOLLAR SIGN"))
   lazy val code = CodeLiteral("|")
@@ -355,6 +436,8 @@ object LangTest {
   lazy val mathVal = DecimalMathValueLiteral(BigDecimal("0.5"))
   lazy val mathPi = MathConstantLiteral(1, "π")
   lazy val mathPiWithPre = MathConstantLiteral(2, "π")
+  lazy val msPerDay = ConstantLiteral("msPerDay")
+  lazy val hoursPerDay = ConstantLiteral("HoursPerDay")
   lazy val posZero = NumberLiteral(+0.0)
   lazy val negZero = NumberLiteral(-0.0)
   lazy val posInf = NumberLiteral(Double.PositiveInfinity)
@@ -362,6 +445,23 @@ object LangTest {
   lazy val nan = NumberLiteral(Double.NaN)
   lazy val number = NumberLiteral(1)
   lazy val bigint = BigIntLiteral(BigInt("1000000000000000000000000"))
+  lazy val two = DecimalMathValueLiteral(BigDecimal(2))
+  lazy val six = DecimalMathValueLiteral(BigDecimal(6))
+  lazy val prodLit = ProductionLiteral("Identifier", "Identifier")
+  lazy val posInfMathVal = PositiveInfinityMathValueLiteral()
+  lazy val negInfMathVal = NegativeInfinityMathValueLiteral()
+  lazy val trueLit = TrueLiteral()
+  lazy val falseLit = FalseLiteral()
+  lazy val undefinedLit = UndefinedLiteral()
+  lazy val nullLit = NullLiteral()
+  lazy val undefinedTypeLit = UndefinedTypeLiteral()
+  lazy val nullTypeLit = NullTypeLiteral()
+  lazy val boolTypeLit = BooleanTypeLiteral()
+  lazy val strTypeLit = StringTypeLiteral()
+  lazy val symbolTypeLit = SymbolTypeLiteral()
+  lazy val numberTypeLit = NumberTypeLiteral()
+  lazy val bigIntTypeLit = BigIntTypeLiteral()
+  lazy val objectTypeLit = ObjectTypeLiteral()
 
   // algorithm clamp expressions
   lazy val clampExpr = ClampExpression(refExpr, refExpr, refExpr)
@@ -402,28 +502,50 @@ object LangTest {
   lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
   lazy val finiteCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Finite)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Finite)
+  lazy val finiteNumberCond =
+    PredicateCondition(
+      List(refExpr),
+      F,
+      PredicateConditionOperator.FiniteNumber,
+    )
+  lazy val finiteNumbersCond = PredicateCondition(
+    List(refExpr, refExpr),
+    F,
+    PredicateConditionOperator.FiniteNumber,
+  )
+  lazy val nonZeroFiniteNumberCond =
+    PredicateCondition(
+      List(refExpr),
+      F,
+      PredicateConditionOperator.NonZeroFiniteNumber,
+    )
+  lazy val nonZeroFiniteNumbersCond = PredicateCondition(
+    List(refExpr, refExpr),
+    F,
+    PredicateConditionOperator.NonZeroFiniteNumber,
+  )
   lazy val abruptCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Abrupt)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Abrupt)
   lazy val normalCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Normal)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Normal)
   lazy val dupCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Duplicated)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Duplicated)
   lazy val presentCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Present)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Present)
   lazy val emptyCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.Empty)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Empty)
   lazy val strictCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.StrictMode)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.StrictMode)
   lazy val arrayIndexCond =
-    PredicateCondition(refExpr, F, PredicateConditionOperator.ArrayIndex)
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.ArrayIndex)
   lazy val isCond = IsAreCondition(List(refExpr), F, List(lengthExpr))
   lazy val areCond =
-    IsAreCondition(List(refExpr, refExpr), T, List(TrueLiteral()))
+    IsAreCondition(List(refExpr, refExpr), T, List(trueLit))
   lazy val isEitherCond =
-    IsAreCondition(List(refExpr), F, List(TrueLiteral(), FalseLiteral()))
+    IsAreCondition(List(refExpr), F, List(trueLit, falseLit))
   lazy val isNeitherCond =
-    IsAreCondition(List(refExpr), T, List(TrueLiteral(), FalseLiteral()))
+    IsAreCondition(List(refExpr), T, List(trueLit, falseLit))
   lazy val binaryCondLt =
     BinaryCondition(refExpr, BinaryConditionOperator.LessThan, addExpr)
   lazy val inclusiveIntervalCondShort =
@@ -495,6 +617,45 @@ object LangTest {
   // algorithm types
   lazy val ty = Type(RecordT("Base"))
 
-  lazy val two = DecimalMathValueLiteral(BigDecimal(2))
-  lazy val six = DecimalMathValueLiteral(BigDecimal(6))
+  // ---------------------------------------------------------------------------
+  // the whole corpus of the metalanguage syntax defined above
+  // ---------------------------------------------------------------------------
+  /** all the syntax defined above with their names, collected by reflection */
+  lazy val allSyntax: List[(String, Syntax)] = for {
+    method <- getClass.getMethods.toList.sortBy(_.getName)
+    if method.getParameterCount == 0
+    if classOf[Syntax].isAssignableFrom(method.getReturnType)
+    syntax <- optional(method.invoke(this).asInstanceOf[Syntax])
+  } yield method.getName -> syntax
+
+  /** all the metalanguage steps of the corpus */
+  lazy val allSteps: List[(String, Step)] = allSyntax.collect {
+    case (name, step: Step) => name -> step
+  }
+
+  /** all the metalanguage expressions of the corpus */
+  lazy val allExprs: List[(String, Expression)] = allSyntax.collect {
+    case (name, expr: Expression) => name -> expr
+  }
+
+  /** all the metalanguage conditions of the corpus */
+  lazy val allConds: List[(String, Condition)] = allSyntax.collect {
+    case (name, cond: Condition) => name -> cond
+  }
+
+  /** all the metalanguage references of the corpus */
+  lazy val allRefs: List[(String, Reference)] = allSyntax.collect {
+    case (name, ref: Reference) => name -> ref
+  }
+
+  // ---------------------------------------------------------------------------
+  // constants defined by `emu-eqn` elements
+  // ---------------------------------------------------------------------------
+  val ConstParser = esmeta.lang.util.Parser.withConstNames(
+    Set(
+      "HoursPerDay",
+      "msPerDay",
+    ),
+  )
+  object ConstExpression extends ConstParser.From(ConstParser.expr)
 }

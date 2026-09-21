@@ -65,9 +65,12 @@ enum MapTy extends TyElem with Lattice[MapTy] {
   /** normalized type */
   def normalized: MapTy = this match
     case Elem(key, value) if key.isTop && value.isTop       => Top
-    case Elem(key, value) if key.isBottom || value.isBottom => Bot
+    case Elem(key, value) if key.isBottom || value.isBottom => Empty
     case _                                                  => this
 }
 object MapTy extends Parser.From(Parser.mapTy) {
   def apply(key: ValueTy, value: ValueTy): MapTy = Elem(key, value).normalized
+
+  /** the type of the empty map */
+  lazy val Empty: MapTy = Elem(ValueTy.Bot, ValueTy.Bot)
 }

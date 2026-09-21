@@ -273,6 +273,7 @@
     "language/types/string/S8.4_A6.2"
   ],
   "precision": [
+    "built-ins/Math/sumPrecise/sum",
     "language/expressions/does-not-equals/bigint-and-number-extremes",
     "language/expressions/equals/bigint-and-number-extremes",
     "language/expressions/greater-than-or-equal/bigint-and-number-extremes",

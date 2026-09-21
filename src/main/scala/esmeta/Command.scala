@@ -121,6 +121,7 @@ case object CmdParse extends Command("parse", CmdExtract >> Parse) {
     "esmeta parse a.js                         # parse a.js file.",
     "esmeta parse a.js -extract:target=es2025  # parse with es2025 spec.",
     "esmeta parse a.js -parse:debug            # parse in the debugging mode.",
+    "esmeta parse a.js -parse:goal=Module      # parse as an ECMAScript module.",
   )
   override val targetName = "<js>+"
 }

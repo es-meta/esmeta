@@ -25,7 +25,6 @@ class BuiltinSynthesizer(
   lazy val initPool: Vector[String] = (for {
     case BuiltinHead(path, _, _) <- algorithms.map(_.head)
     code <- path match
-      case YetPath(_) => Nil
       case Getter(base) =>
         getString(base) :: (base match
           case Prototype(proto, prop) =>
@@ -76,7 +75,6 @@ class BuiltinSynthesizer(
       case Setter(base)             => app >> base
       case SymbolAccess(base, symbol) =>
         app >> base >> "[Symbol." >> symbol >> "]"
-      case YetPath(name) => app >> "yet:" >> name.replace(" ", "")
 
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic =

@@ -3,7 +3,6 @@ package esmeta.phase
 import esmeta.*
 import esmeta.extractor.Extractor
 import esmeta.lang.*
-import esmeta.lang.util.ParserForEval.{getParseCount, getCacheCount}
 import esmeta.spec.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -22,12 +21,14 @@ case object Extract extends Phase[Unit, Spec] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Spec = if (!config.repl) {
-    lazy val spec = Extractor(config.target, config.eval)
+    lazy val extractor = Extractor.from(config.target, config.eval)
+    lazy val spec = extractor.result
     if (config.strict && config.log) warnInvalidPath(config.allowedYets)
     if (config.eval)
       time("extracting specification", spec)
-      println(f"- # of actual parsing: $getParseCount%,d")
-      println(f"- # of using cached result: $getCacheCount%,d")
+      val parser = extractor.parser
+      println(f"- # of actual parsing: ${parser.getParseCount}%,d")
+      println(f"- # of using cached result: ${parser.getCacheCount}%,d")
     if (config.log) log(spec)
     if (config.strict) checkStrict(spec, config)
     spec
@@ -111,6 +112,12 @@ case object Extract extends Phase[Unit, Spec] {
     )
 
     dumpFile("grammar", spec.grammar, s"$EXTRACT_LOG_DIR/grammar")
+
+    dumpFile(
+      name = "constants",
+      data = spec.constants.mkString(LINE_SEP),
+      filename = s"$EXTRACT_LOG_DIR/constants",
+    )
 
     dumpDir(
       name = "algorithms",

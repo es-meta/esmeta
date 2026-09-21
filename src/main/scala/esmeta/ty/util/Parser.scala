@@ -144,14 +144,6 @@ trait Parsers extends BasicParsers {
     "Null" ^^^ ValueTy(nullv = true)
   }.named("ty.ValueTy (single)")
 
-  private lazy val numberWithSpecial: Parser[Number] =
-    doubleWithSpecial ^^ { Number(_) }
-  private lazy val doubleWithSpecial: Parser[Double] =
-    double |
-    ("+INF" | "INF") ^^^ Double.PositiveInfinity |
-    "-INF" ^^^ Double.NegativeInfinity |
-    "NaN" ^^^ Double.NaN
-
   private lazy val grammarSymbol: Parser[GrammarSymbol] =
     ("|" ~> word <~ "|") ~ opt(parseParams) ^^ {
       case x ~ ps => GrammarSymbol(x, ps.getOrElse(Nil))
@@ -196,10 +188,12 @@ trait Parsers extends BasicParsers {
   }.named("ty.RecordTy (single)")
 
   given sign: Parser[Sign] = {
-    val neg = "-" ^^^ Sign.Neg | "" ^^^ Sign.Bot
-    val zero = "0" ^^^ Sign.Zero | "" ^^^ Sign.Bot
-    val pos = "+" ^^^ Sign.Pos | "" ^^^ Sign.Bot
-    neg ~ zero ~ pos ^^ { case n ~ z ~ p => n || z || p }
+    "NonNeg" ^^^ Sign.NonNeg |
+    "NonPos" ^^^ Sign.NonPos |
+    "NonZero" ^^^ Sign.NonZero |
+    "Neg" ^^^ Sign.Neg |
+    "Pos" ^^^ Sign.Pos |
+    "Zero" ^^^ Sign.Zero
   }.named("ty.Sign")
 
   private lazy val intTy: Parser[IntTy] = {
@@ -243,33 +237,28 @@ trait Parsers extends BasicParsers {
     }
   }.named("ty.NumberTy")
 
-  private lazy val numberIntTy: Parser[(IntTy, Boolean)] = {
-    lazy val nan: Parser[Boolean] = "|" ~ "NaN" ^^^ true | "" ^^^ false
-    lazy val intSignTy =
-      ("NumberInt" ~> "[" ~> sign <~ "]") ~ nan ^^ {
-        case s ~ n => (IntSignTy(s), n)
-      }
-    lazy val intSetTy =
-      ("NumberInt" ~> "[" ~> rep1sep(bigInt, ",") <~ "]") ~ nan ^^ {
-        case ds ~ n => (IntSetTy(ds.toSet), n)
-      }
-    lazy val intTop = "NumberInt" ~> nan ^^ {
-      case n => (IntSignTy(Sign.Top), n)
-    }
-    intSignTy | intSetTy | intTop
-  }.named("ty.NumberIntTy")
+  /** one part of a `Number[...]` */
+  private lazy val numberTyElem: Parser[NumberTy] =
+    "+INF" ^^^ NumberTy.PosInf |
+    "-INF" ^^^ NumberTy.NegInf |
+    "INF" ^^^ NumberTy.Infinite |
+    "NaN" ^^^ NumberTy.NaN |
+    "Finite" ^^^ NumberTy.Finite |
+    intTy ^^ { NumberTy.int(_) } |
+    finiteNumber ^^ { d => NumberTy(Set(Number(d))) } |
+    sign ^^ { s => NumberTy.finite(FinNumberSignTy(s)) }
+
+  /** a finite value, whose decimal point tells it from a sign such as `-0` */
+  private lazy val finiteNumber: Parser[Double] =
+    """[+-]?(\d+\.\d+([eE][+-]?\d+)?|\d+[eE][+-]?\d+)""".r ^^ { _.toDouble }
 
   private lazy val singleNumberTy: Parser[NumberTy] =
-    lazy val nan: Parser[Boolean] = "|" ~ "NaN" ^^^ true | "" ^^^ false
-    lazy val numSignTy =
-      ("Number[" ~> sign <~ "]") ~ nan ^^ { case s ~ n => NumberSignTy(s, n) }
-    lazy val numIntTy = numberIntTy.map(NumberIntTy(_, _))
-    lazy val numSetTy =
-      "Number[" ~> rep1sep(numberWithSpecial, ",") <~ "]" ^^ {
-        case ns => NumberSetTy(ns.toSet)
+    lazy val numParts =
+      "Number[" ~> repsep(numberTyElem, ",") <~ "]" ^^ {
+        case ts => ts.foldLeft(NumberTy.Bot)(_ || _)
       }
     lazy val numTop = "Number" ^^^ NumberTy.Top
-    numSignTy | numIntTy | numSetTy | numTop | "NaN" ^^^ NumberTy.NaN
+    numParts | numTop
 
   private lazy val singleInfinityTy: Parser[InfinityTy] =
     "INF" ^^^ InfinityTy.Top | "+INF" ^^^ InfinityTy.Pos | "-INF" ^^^ InfinityTy.Neg
