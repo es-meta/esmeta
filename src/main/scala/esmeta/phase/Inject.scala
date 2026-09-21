@@ -10,6 +10,7 @@ import esmeta.state.*
 import esmeta.test262.*
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
+import java.io.File
 import java.util.concurrent.TimeoutException
 
 /** `inject` phase */
@@ -26,17 +27,17 @@ case object Inject extends Phase[CFG, String] {
     cfg: CFG,
     dirname: String,
     config: Config,
-  ): (List[(String, String)], Int) = {
+  ): (List[(String, String)], List[File]) = {
     val files = listFiles(dirname)
       .filter(f => f.isFile && jsFilter(f.getName))
       .sortBy(_.getName)
-    val injected = files.flatMap { file =>
-      try Some(file.getName -> injectFile(cfg, file.getPath, config))
+    val (skipped, injected) = files.partitionMap { f =>
+      try Right(f.getName -> injectFile(cfg, f.getPath, config))
       catch {
-        case _: InterpreterError | _: NSError | _: TimeoutException => None
+        case _: InterpreterError | _: NSError | _: TimeoutException => Left(f)
       }
     }
-    (injected, files.size)
+    (injected, skipped)
   }
 
   def apply(
@@ -46,14 +47,15 @@ case object Inject extends Phase[CFG, String] {
   ): String =
     val path = getFirstFilename(cmdConfig, this.name)
     if (config.batch) {
-      val (injected, total) = injectFiles(cfg, path, config)
+      val (injected, skipped) = injectFiles(cfg, path, config)
+      val total = injected.size + skipped.size
       config.out match
         case Some(dirname) =>
           mkdir(dirname, remove = true)
           for ((filename, source) <- injected)
             dumpFile(source, s"$dirname/$filename")
           s"Injected ${injected.size}/$total ECMAScript program(s), " +
-          s"skipped ${total - injected.size}."
+          s"skipped ${skipped.size}."
         case None =>
           injected.map(_._2).mkString(LINE_SEP + LINE_SEP)
     } else {

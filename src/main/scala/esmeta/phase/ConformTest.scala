@@ -33,14 +33,62 @@ case object ConformTest extends Phase[CFG, Unit] {
 
     val engines = EngineSpec.resolve(config.engine)
     val workDir = Files.createTempDirectory("esmeta-conform-work-")
-    val results =
+    val (results, divergences) =
       try {
-        val tests = inject(cfg, scriptDir, workDir, config.timeLimit)
-        engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
+        val (tests, skipped) = inject(cfg, scriptDir, workDir, config.timeLimit)
+        val results =
+          engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
+        (results, differential(skipped, engines, config.timeLimit))
       } finally rmdir(workDir.toString)
 
     for (filename <- config.out)
-      dumpJson(reportJson(scriptDir.getPath, results), filename)
+      dumpJson(reportJson(scriptDir.getPath, results, divergences), filename)
+  }
+
+  /** a program without an oracle, where a minority of engines stands apart */
+  private case class Divergence(
+    program: String,
+    odd: List[String],
+    tags: Map[String, String],
+  )
+
+  private def differential(
+    skipped: List[(String, String)],
+    engines: List[EngineSpec],
+    timeLimit: Option[Int],
+  ): List[Divergence] = {
+    if (skipped.isEmpty || engines.sizeIs < 3) Nil
+    else {
+      val bar = ProgressBar(
+        "differential test on programs without assertions",
+        skipped,
+        getName = (entry, _) => entry._1,
+        concurrent = ConcurrentPolicy.Auto,
+        errorHandler = (_, summary, name) => summary.fail.add(name),
+      )
+      val found = ConcurrentLinkedQueue[Divergence]()
+      for ((_, source) <- bar) {
+        // NOTE: no global-hiding prefix, since these carry no assertions
+        val runs = engines.map(e => e.id -> execute(e, source, timeLimit))
+        val noisy = runs.exists { (_, r) =>
+          unhandled.findFirstIn(r.stdout + LINE_SEP + r.stderr).isDefined
+        }
+        val tags = runs.map((id, r) => id -> r.concrete).toMap
+        val grouped = tags.groupMap(_._2)(_._1)
+        // an engine apart from the majority may have a bug (JEST's decision)
+        val majority = grouped.values.find(_.size * 2 > engines.size)
+        if (!noisy) for {
+          agreed <- majority
+          odd = tags.keys.filterNot(agreed.toSet).toList.sorted
+          if odd.nonEmpty
+        } found.add(Divergence(source, odd, tags))
+      }
+      val divergences = found.iterator.asScala.toList.sortBy(_.program)
+      println(
+        s"${divergences.size}/${skipped.size} programs divide the engines",
+      )
+      divergences
+    }
   }
 
   /** inject source programs once in a temporary workspace */
@@ -49,13 +97,13 @@ case object ConformTest extends Phase[CFG, Unit] {
     scriptDir: File,
     workDir: Path,
     timeLimit: Option[Int],
-  ): List[TestInput] = {
+  ): (List[TestInput], List[(String, String)]) = {
     val injectConfig = Inject.Config(
       defs = true,
       instrument = true,
       timeLimit = timeLimit,
     )
-    val (injected, total) = Inject.injectFiles(
+    val (injected, skippedFiles) = Inject.injectFiles(
       cfg,
       scriptDir.getPath,
       injectConfig,
@@ -73,11 +121,13 @@ case object ConformTest extends Phase[CFG, Unit] {
         source,
       )
     }
+    val skipped = skippedFiles.map(f => f.getName -> readFile(f.getPath))
+    val total = injected.size + skipped.size
     println(
       s"Injected ${injected.size}/$total ECMAScript program(s), " +
-      s"skipped ${total - injected.size}.",
+      s"skipped ${skipped.size}.",
     )
-    tests
+    (tests, skipped)
   }
 
   // -------------------------------------------------------------------------
@@ -440,12 +490,22 @@ case object ConformTest extends Phase[CFG, Unit] {
   private def reportJson(
     input: String,
     results: List[EngineResult],
+    divergences: List[Divergence],
   ): Json = Json.obj(
     "input" -> input.asJson,
     "engines" -> Json.fromFields(results.map { result =>
       result.engine.id -> Json.obj(
         "engine" -> result.engine.path.toString.asJson,
         "bugs" -> Json.fromValues(result.bugs.map(bugJson)),
+      )
+    }),
+    "divergences" -> Json.fromValues(divergences.map { d =>
+      Json.obj(
+        "program" -> d.program.asJson,
+        "odd" -> d.odd.asJson,
+        "tags" -> Json.fromFields(
+          d.tags.toList.sorted.map((k, v) => k -> v.asJson),
+        ),
       )
     }),
   )
