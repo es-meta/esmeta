@@ -1,0 +1,1 @@
+Iterator.from({ [Symbol.iterator]: () => ({ get next() { throw 0; } }) });

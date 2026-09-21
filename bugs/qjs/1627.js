@@ -1,0 +1,1 @@
+Object.defineProperty(Promise.reject(0), Infinity, { get get() { throw 0; } });

@@ -1,0 +1,1 @@
+new EvalError(undefined, Symbol());

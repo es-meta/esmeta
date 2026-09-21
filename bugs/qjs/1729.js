@@ -1,0 +1,1 @@
+new ArrayBuffer(8, { maxByteLength: 16 }).transfer(Number.MAX_SAFE_INTEGER);

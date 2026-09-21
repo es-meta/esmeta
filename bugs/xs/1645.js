@@ -1,0 +1,1 @@
+Array.from.call((function(){ return arguments; })(), Object, undefined, "aa");

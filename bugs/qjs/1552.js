@@ -1,0 +1,1 @@
+Object.getOwnPropertyDescriptor(Iterator.prototype, "constructor").set.call(Function.prototype, null);

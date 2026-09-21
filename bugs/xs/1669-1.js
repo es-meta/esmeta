@@ -1,0 +1,1 @@
+Reflect.get(class {});

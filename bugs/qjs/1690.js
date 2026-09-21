@@ -1,0 +1,1 @@
+new Uint32Array(new BigInt64Array()).indexOf(-0.5, Number.MAX_SAFE_INTEGER);

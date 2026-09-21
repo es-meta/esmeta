@@ -1,0 +1,1 @@
+Object.preventExtensions(new BigInt64Array(new ArrayBuffer(8, { maxByteLength: 16 }).transfer(null)));

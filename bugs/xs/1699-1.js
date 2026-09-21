@@ -1,0 +1,1 @@
+String.prototype.charCodeAt.call(2, -Infinity);
