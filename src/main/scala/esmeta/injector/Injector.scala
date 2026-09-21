@@ -78,7 +78,8 @@ object Injector {
             Vector.empty,
           )
       }
-    new Injector(cfg, exitSt, log, deadline).result
+    val scriptSt = extractor.scriptSt.getOrElse(exitSt)
+    new Injector(cfg, scriptSt, exitSt, log, deadline).result
   }
 
   /** assertion definitions */
@@ -101,10 +102,14 @@ object Injector {
 /** extensible helper of assertion injector */
 class Injector(
   cfg: CFG,
-  exitSt: State,
+  scriptSt: State,
+  drainedSt: State,
   log: Boolean,
   deadline: Option[Long],
 ) {
+
+  /** the state the assertions see, which `$delay` defers for an async test */
+  private lazy val exitSt: State = if (async) drainedSt else scriptSt
 
   /** generated assertions */
   lazy val assertions: Vector[Assertion] =
@@ -132,10 +137,10 @@ class Injector(
   lazy val result: ConformTest = conformTest
 
   /** target script */
-  lazy val script = exitSt.cachedSourceText.get
+  lazy val script = drainedSt.cachedSourceText.get
 
   /** exit status tag */
-  lazy val exitTag: ExitTag = ExitTag(exitSt)
+  lazy val exitTag: ExitTag = ExitTag(drainedSt)
 
   /** normal termination */
   lazy val normalExit: Boolean = exitTag == ExitTag.Normal
