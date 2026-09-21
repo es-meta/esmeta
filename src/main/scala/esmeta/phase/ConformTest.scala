@@ -35,7 +35,7 @@ case object ConformTest extends Phase[CFG, Unit] {
     val workDir = Files.createTempDirectory("esmeta-conform-work-")
     val (results, divergences) =
       try {
-        val (tests, skipped) = inject(cfg, scriptDir, workDir, config.timeLimit)
+        val (tests, skipped) = inject(cfg, scriptDir, workDir, config)
         val results =
           engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
         (results, differential(skipped, engines, config.timeLimit))
@@ -96,12 +96,12 @@ case object ConformTest extends Phase[CFG, Unit] {
     cfg: CFG,
     scriptDir: File,
     workDir: Path,
-    timeLimit: Option[Int],
+    config: Config,
   ): (List[TestInput], List[(String, String)]) = {
     val injectConfig = Inject.Config(
       defs = true,
-      instrument = true,
-      timeLimit = timeLimit,
+      instrument = config.instrument,
+      timeLimit = config.timeLimit,
     )
     val (injected, skippedFiles) = Inject.injectFiles(
       cfg,
@@ -547,10 +547,16 @@ case object ConformTest extends Phase[CFG, Unit] {
       NumOption((config, seconds) => config.timeLimit = Some(seconds)),
       "set the time limit in seconds (default: 10 seconds).",
     ),
+    (
+      "instrument",
+      BoolOption((config, bool) => config.instrument = bool),
+      "instrument for evaluation order before injection (default: true).",
+    ),
   )
   case class Config(
     var out: Option[String] = None,
     var engine: String = "all",
     var timeLimit: Option[Int] = Some(10),
+    var instrument: Boolean = true,
   )
 }
