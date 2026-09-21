@@ -31,28 +31,6 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Feature     => featureRule(app, elem)
       case elem: CallPath    => callPathRule(app, elem)
 
-  // states
-  given stRule: Rule[State] = (app, st) =>
-    app.wrap {
-      st.filename.map(app :> "filename: " >> _)
-      app :> "context: " >> st.context
-      given Rule[List[String]] = iterableRule("[", ", ", "]")
-      app :> "call-stack: "
-      app.wrapIterable("[", ",", "]")(st.callStack)
-      app :> "globals: " >> st.globals
-      app :> "heap: " >> st.heap
-    }
-
-  // contexts
-  given ctxtRule: Rule[Context] = (app, ctxt) =>
-    app.wrap {
-      app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
-      app :> "local-vars: " >> ctxt.locals
-      app :> "visited: "
-      app.wrapIterable("[", ",", "]")(ctxt.visited.toList.map(_.id).sorted)
-      ctxt.retVal.map(app :> "return: " >> _)
-    }
-
   // cursor
   given cursorRule: Rule[Cursor] = (app, cursor) =>
     cursor match
@@ -63,6 +41,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         node.loc.fold(app)(app >> " (" >> _ >> ")")
       case ExitCursor(func) => app >> func.simpleString
 
+  // contexts
+  given ctxtRule: Rule[Context] = (app, ctxt) =>
+    app.wrap {
+      app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
+      app :> "local-vars: " >> ctxt.locals // l:48, [E172]
+      app :> "visited: "
+      app.wrapIterable("[", ",", "]")(ctxt.visited.toList.map(_.id).sorted)
+      ctxt.retVal.map(app :> "return: " >> _) // l:51, [E172]
+    }
+
   // calling contexts
   given callCtxtRule: Rule[CallContext] = (app, callCtxt) =>
     val CallContext(context, retId) = callCtxt
@@ -71,24 +59,19 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // heaps
   given heapRule: Rule[Heap] = (app, heap) =>
     val Heap(map, size) = heap
-    app >> s"(SIZE = " >> size.toString >> "): " >> map
+    app >> s"(SIZE = " >> size.toString >> "): " >> map // l:62, [E172]
 
-  // objects
-  given objRule: Rule[Obj] = (app, obj) =>
-    obj match
-      case MapObj(map) =>
-        app >> "Map " >> map.map { case (k, v) => (k.toString, v) }
-      case RecordObj(tname, map) =>
-        app >> "Record"
-        given Rule[Iterable[(String, Value)]] =
-          sortedMapRule("{", "}", " : ")
-        if (tname.nonEmpty) app >> "[" >> tname >> "]"
-        app >> " " >> map.map { case (k, v) => (s"\"$k\"", v) }
-      case ListObj(values) =>
-        given Rule[List[Value]] = iterableRule("[", ", ", "]")
-        app >> "List" >> values.toList
-      case YetObj(tname, msg) =>
-        app >> "Yet[" >> tname >> "](\"" >> msg >> "\")"
+  // states
+  given stRule: Rule[State] = (app, st) =>
+    app.wrap {
+      st.filename.map(app :> "filename: " >> _)
+      app :> "context: " >> st.context
+      given Rule[List[String]] = iterableRule("[", ", ", "]")
+      app :> "call-stack: "
+      app.wrapIterable("[", ",", "]")(st.callStack)
+      app :> "globals: " >> st.globals // l:72, [E172]
+      app :> "heap: " >> st.heap
+    }
 
   // values
   given valueRule: Rule[Value] = (app, value) =>
@@ -103,6 +86,23 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case e: Enum           => enumRule(app, e)
       case cu: CodeUnit      => cuRule(app, cu)
       case sv: SimpleValue   => svRule(app, sv)
+
+  // objects
+  given objRule: Rule[Obj] = (app, obj) =>
+    obj match
+      case MapObj(map) =>
+        app >> "Map " >> map.map { case (k, v) => (k.toString, v) } // l:80, [E172]
+      case RecordObj(tname, map) =>
+        app >> "Record"
+        given Rule[Iterable[(String, Value)]] =
+          sortedMapRule("{", "}", " : ")
+        if (tname.nonEmpty) app >> "[" >> tname >> "]"
+        app >> " " >> map.map { case (k, v) => (s"\"$k\"", v) }
+      case ListObj(values) =>
+        given Rule[List[Value]] = iterableRule("[", ", ", "]")
+        app >> "List" >> values.toList
+      case YetObj(tname, msg) =>
+        app >> "Yet[" >> tname >> "](\"" >> msg >> "\")"
 
   // addresses
   given addrRule: Rule[Addr] = (app, addr) =>
