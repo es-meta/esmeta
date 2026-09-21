@@ -1,1 +1,0 @@
-Iterator.from(() => {}).return();
