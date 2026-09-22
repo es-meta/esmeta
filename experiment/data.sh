@@ -1,18 +1,15 @@
 #!/bin/sh
-# Pack and unpack the fuzzer run data.
-#
-# Git carries one compressed tarball per run and ignores the extracted
-# directory: the nine runs are 259M of mostly JSON on disk but 8M packed, and
-# 21,000 of the files are one-line programs under minimal/.
+# Pack and unpack the fuzzer run data; git carries the tarballs, not the 259M
+# of extracted files.
 #
 #   experiment/data.sh unpack        extract every tarball that has no directory
 #   experiment/data.sh unpack -f     extract them all, replacing what is there
 #   experiment/data.sh pack          re-pack every directory
 #
-# gzip is told not to record its own timestamp, so re-packing an unchanged run
-# produces the same bytes and git sees no diff. COPYFILE_DISABLE keeps macOS
-# tar from writing an AppleDouble ._name beside every file that carries an
-# extended attribute, and .DS_Store never goes in.
+# gzip -n and COPYFILE_DISABLE are load-bearing: without the first, re-packing
+# an unchanged run writes new bytes and git stores 8M again; without the second
+# macOS tar adds an AppleDouble ._name beside anything with an extended
+# attribute.
 
 set -eu
 

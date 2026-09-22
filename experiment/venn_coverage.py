@@ -2,16 +2,9 @@
 
 # python3 experiment/venn_coverage.py
 #
-# With no arguments it reads every 1-FS fuzzer run under experiment/data plus
-# logs/test262/recent and logs/solver/recent. The fuzzer runs are named rather
-# than globbed from the whole directory because 0-FS and 1-FS are separate
-# configurations and a figure must not mix them; pass the runs of the other
-# configuration explicitly to draw that one instead.
-#
-# Every branch-coverage.json under a path is merged, so a directory holding
-# several fuzzer runs counts as one set. All three sets are then restricted to
-# the solver's universe of builtin-entry reachable branch sides, which the
-# run's `summary` lists one status section at a time.
+# The default fuzzer set is the 1-FS runs only, never everything under
+# experiment/data: 0-FS and 1-FS are separate configurations and one figure
+# must not mix them. Name the other runs to draw that configuration instead.
 
 from __future__ import annotations
 

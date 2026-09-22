@@ -2,14 +2,10 @@
 
 # python3 experiment/venn_bug.py
 #
-# Two-set Venn over the reported bug rows: which ones Synth262 reproduces,
-# which ones the fuzzer reproduces, and which ones neither does.
-#
-# experiment/bugs.json lists every row under its status, and separately the
-# rows sharing a tag. Nothing else is stored there: the engine comes from the
-# row name, and whether a tool reproduces a row is whether it left a file under
-# bugs/solver or bugs/fuzzer, which is the only place a claimed reproduction
-# can be run. Issue links stay out so the artifact can be anonymous.
+# experiment/bugs.json holds status and tag; nothing else. The engine comes
+# from the row name, and a tool reproduces a row when it left a file under
+# bugs/solver or bugs/fuzzer -- the only place a claim can be run. Issue links
+# stay out so the artifact can be anonymous.
 
 from __future__ import annotations
 

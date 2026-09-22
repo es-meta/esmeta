@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 
-"""Area-proportional Venn diagrams, drawn for print.
-
-Each circle's area is its set's size, and the centre distances are solved so
-that every pairwise overlap covers its own area too. Two circles can always be
-placed exactly; three circles have three distances to satisfy three pairwise
-overlaps, so the pairs are exact and whatever the triple region then covers is
-reported as residual rather than silently trusted.
-
-Region labels carry the true counts either way. `fit_report` says how far the
-drawing is from the numbers so a caption can admit it.
-"""
+"""Venn diagrams for print."""
 
 from __future__ import annotations
 
@@ -39,7 +29,7 @@ class Circle:
 
 
 def lens_area(r1: float, r2: float, d: float) -> float:
-    """area covered by both circles when their centres are d apart"""
+    """area both circles cover"""
     if d >= r1 + r2:
         return 0.0
     if d <= abs(r1 - r2):
@@ -53,7 +43,7 @@ def lens_area(r1: float, r2: float, d: float) -> float:
 
 
 def distance_for(r1: float, r2: float, target: float) -> float:
-    """the centre distance whose overlap has the given area"""
+    """centre distance giving that overlap"""
     lo, hi = abs(r1 - r2), r1 + r2
     if target <= 0:
         return hi
@@ -78,16 +68,13 @@ def pair_size(a: str, b: str, regions: dict[frozenset[str], int]) -> int:
     return sum(c for key, c in regions.items() if a in key and b in key)
 
 
+
 def place(
     names: list[str],
     regions: dict[frozenset[str], int],
     unit: float,
 ) -> list[Circle]:
-    """circles whose areas are the set sizes and whose overlaps are the pairs
-
-    `unit` is the drawing area one element takes up, so a radius is
-    sqrt(count * unit / pi).
-    """
+    """areas are the set sizes, overlaps the pairwise counts"""
     sizes = set_sizes(names, regions)
     radii = [math.sqrt(max(sizes[n], 1) * unit / math.pi) for n in names]
     if len(names) == 1:
@@ -134,7 +121,7 @@ def _key(circles: list[Circle], px: float, py: float) -> frozenset[str]:
 
 
 def _clearance(circles: list[Circle], px: float, py: float) -> float:
-    """distance to the nearest circle boundary, which is how much room a label has"""
+    """room a label has: distance to the nearest boundary"""
     return min(abs(math.hypot(px - c.x, py - c.y) - c.r) for c in circles)
 
 
@@ -143,7 +130,7 @@ def anchors(
     keys: list[frozenset[str]],
     steps: int = 320,
 ) -> dict[frozenset[str], tuple[float, float, float]]:
-    """the roomiest point of each region, with the room it has"""
+    """the roomiest point of each region"""
     best: dict[frozenset[str], tuple[float, float, float]] = {}
     wanted = set(keys)
     for px, py in _grid(circles, steps):
@@ -161,7 +148,7 @@ def measured_areas(
     keys: list[frozenset[str]],
     steps: int = 320,
 ) -> dict[frozenset[str], float]:
-    """what the drawing actually covers, by sampling"""
+    """sampled region areas"""
     lo_x = min(c.x - c.r for c in circles)
     hi_x = max(c.x + c.r for c in circles)
     lo_y = min(c.y - c.r for c in circles)
@@ -181,7 +168,7 @@ def fit_report(
     regions: dict[frozenset[str], int],
     unit: float,
 ) -> list[str]:
-    """regions the drawing cannot size correctly, worst first"""
+    """regions sized wrong, worst first"""
     keys = [k for k in regions if k]
     drawn = measured_areas(circles, keys)
     off = []
@@ -200,7 +187,7 @@ def fit_report(
 
 
 def _box(x: float, y: float, text: str, size: float, anchor: str, margin: float = 0.0):
-    """the rectangle a piece of text occupies, for keeping labels apart"""
+    """the rectangle a piece of text occupies"""
     w = _text_width(text, size)
     left = x - w if anchor == "end" else x if anchor == "start" else x - w / 2
     return (
@@ -224,7 +211,7 @@ def _hits(box, others) -> bool:
 
 
 def _crosses(x1: float, y1: float, x2: float, y2: float, others) -> bool:
-    """whether a leader line runs through a label already placed"""
+    """does a leader cross a placed label"""
     for i in range(1, 21):
         t = i / 21
         px, py = x1 + (x2 - x1) * t, y1 + (y2 - y1) * t
@@ -235,12 +222,12 @@ def _crosses(x1: float, y1: float, x2: float, y2: float, others) -> bool:
 
 
 def _text_width(label: str, size: float) -> float:
-    """roughly how wide a run of text is, enough to keep it inside the frame"""
+    """rough text width"""
     return len(label) * size * 0.52
 
 
 def _text_room(label: str, size: float) -> float:
-    """the radius a centred number needs, in drawing units"""
+    """radius a centred number needs"""
     return math.hypot(_text_width(label, size), size * 0.72) / 2
 
 
@@ -248,7 +235,7 @@ def _frame(
     circles, regions, keys, spots, labels, names,
     count_size, label_size, gap, span, has_outside,
 ):
-    """where every piece of text goes, and the frame that holds it all"""
+    """text placement and the frame around it"""
     sizes = set_sizes(names, regions)
     mid_x = sum(c.x for c in circles) / len(circles)
     mid_y = sum(c.y for c in circles) / len(circles)
@@ -357,10 +344,9 @@ def render(
     title: str = "",
     description: str = "",
 ) -> str:
-    """an area-proportional Venn, sized in points for inclusion in a paper"""
+    """sized in points for a paper"""
     labels = labels or {n: n for n in names}
-    unit = 1.0  # solved in element units, scaled to points at the end
-    circles = place(names, regions, unit)
+    circles = place(names, regions, 1.0)
     keys = [k for k in regions if k]
 
     spots = anchors(circles, keys)
