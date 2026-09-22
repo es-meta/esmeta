@@ -44,8 +44,12 @@ tests/result/test262
 ## python byproducts
 __pycache__/
 
+## fuzzer run data: git carries experiment/data/*.tar.gz, not the 259M
+## of extracted files. experiment/data.sh unpack puts them back.
+experiment/data/*/
+
 ## FIXME: manual
-experiment/result.*
-experiment/bugs.json
-experiment/ablation.csv
-experiment/ablation.raw.csv
+experiment/coverage-venn.json
+experiment/coverage-venn.svg
+experiment/bug-venn.json
+experiment/bug-venn.svg
