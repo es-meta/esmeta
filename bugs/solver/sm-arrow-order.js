@@ -1,1 +1,0 @@
-Error.prototype.toString.call(() => {});
