@@ -49,6 +49,7 @@ __pycache__/
 experiment/data/*/
 
 ## FIXME: manual
+experiment/growth.pdf
 experiment/coverage-venn.json
 experiment/coverage-venn.svg
 experiment/bug-venn.json
