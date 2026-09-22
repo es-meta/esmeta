@@ -41,11 +41,11 @@ tests/result/test262
 .bashrc
 .zshrc
 
+## python byproducts
+__pycache__/
+
 ## FIXME: manual
 experiment/result.*
 experiment/bugs.json
-experiment/order-oracle.json
-experiment/arm-on.json
-experiment/arm-off.json
 experiment/ablation.csv
 experiment/ablation.raw.csv
