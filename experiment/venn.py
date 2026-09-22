@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import html
 import math
+import subprocess
 from dataclasses import dataclass
 
 # Okabe-Ito, the colourblind-safe set; readable in greyscale and in print
@@ -444,3 +445,14 @@ def render(
     out.append("  </g>")
     out.append("</svg>")
     return "\n".join(out) + "\n"
+
+
+def write(path, svg: str) -> None:
+    """PDF through rsvg-convert (brew install librsvg); an .svg path keeps the SVG"""
+    if (path.suffix.lower() == ".svg"):
+        path.write_text(svg, encoding="utf-8")
+    else:
+        subprocess.run(
+            ["rsvg-convert", "-f", "pdf", "-o", str(path)],
+            input=svg.encode("utf-8"), check=True,
+        )

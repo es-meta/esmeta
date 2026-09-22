@@ -245,7 +245,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser = argparse.ArgumentParser(
         description=(
-            "Generate a Venn SVG for Solver/Test262/Fuzz branch-side coverage "
+            "Generate a Venn diagram for Solver/Test262/Fuzz branch-side coverage "
             "restricted to builtin-entry reachable solver targets."
         ),
     )
@@ -279,8 +279,8 @@ def parse_args() -> argparse.Namespace:
         "-o",
         "--out",
         type=Path,
-        default=default_home / "experiment" / "coverage-venn.svg",
-        help="output SVG path",
+        default=default_home / "experiment" / "coverage-venn.pdf",
+        help="output PDF (rsvg-convert); an .svg path writes the SVG itself",
     )
     parser.add_argument(
         "--json-out",
@@ -340,7 +340,7 @@ def main() -> int:
     svg, off = figure(
         counts, args.solver_label, args.test262_label, args.fuzz_label, args.width,
     )
-    args.out.write_text(svg, encoding="utf-8")
+    venn.write(args.out, svg)
 
     json_out = args.json_out or args.out.with_suffix(".json")
     json_out.parent.mkdir(parents=True, exist_ok=True)
@@ -365,7 +365,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    print(f"wrote SVG:  {args.out}")
+    print(f"wrote:      {args.out}")
     print(f"wrote JSON: {json_out}")
     print(f"universe:   {format_int(counts['universe'])}")
     print(f"merged:     {len(fuzz_files)} fuzz, {len(test262_files)} test262 coverage files")

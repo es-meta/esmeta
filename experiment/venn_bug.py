@@ -154,7 +154,7 @@ def parse_args() -> argparse.Namespace:
         os.environ.get("ESMETA_HOME", Path(__file__).resolve().parents[1]),
     )
     parser = argparse.ArgumentParser(
-        description="Generate a Venn SVG for which reported bugs each tool reproduces.",
+        description="Generate a Venn diagram for which reported bugs each tool reproduces.",
     )
     parser.add_argument(
         "table",
@@ -174,8 +174,8 @@ def parse_args() -> argparse.Namespace:
         "-o",
         "--out",
         type=Path,
-        default=default_home / "experiment" / "bug-venn.svg",
-        help="output SVG path",
+        default=default_home / "experiment" / "bug-venn.pdf",
+        help="output PDF (rsvg-convert); an .svg path writes the SVG itself",
     )
     parser.add_argument(
         "--json-out",
@@ -221,7 +221,7 @@ def main() -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     svg, off = figure(counts, args.solver_label, args.fuzz_label, args.width)
-    args.out.write_text(svg, encoding="utf-8")
+    venn.write(args.out, svg)
     json_out = args.json_out or args.out.with_suffix(".json")
     json_out.write_text(
         json.dumps(
@@ -248,7 +248,7 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    print(f"wrote SVG:  {args.out}")
+    print(f"wrote:      {args.out}")
     print(f"wrote JSON: {json_out}")
     print(f"bug rows:   {format_int(counts['rows'])}  ({dropped} excluded as not a bug)")
     print(
