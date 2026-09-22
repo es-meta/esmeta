@@ -79,8 +79,8 @@ def draw(rows: list[dict], out: Path, width_pt: float) -> None:
         "font.family": "serif",
         "font.serif": ["Linux Libertine O", "Times New Roman", "DejaVu Serif"],
         "font.size": 8,
-        "axes.edgecolor": MUTED, "axes.labelcolor": INK, "text.color": INK,
-        "xtick.color": MUTED, "ytick.color": MUTED,
+        "axes.labelcolor": INK, "text.color": INK,
+        "xtick.color": INK, "ytick.color": INK, "axes.edgecolor": INK,
         "axes.spines.top": False, "axes.spines.right": False,
         "pdf.fonttype": 42,
     })
@@ -91,16 +91,16 @@ def draw(rows: list[dict], out: Path, width_pt: float) -> None:
         ("language", LANGUAGE, "language"),
         ("builtin", BUILTIN, "built-in library"),
     ):
-        axis.plot(
-            years, [r[key] for r in rows],
-            color=color, linewidth=1.4, marker="o", markersize=2.8, label=label,
-        )
+        axis.plot(years, [r[key] for r in rows], color=color, linewidth=1.1, label=label)
+    axis.legend(frameon=False, loc="upper left", handlelength=1.6)
     axis.set_ylabel("algorithm steps")
-    axis.grid(axis="y", color=MUTED, alpha=0.18, linewidth=0.5)
-    axis.set_axisbelow(True)
     axis.set_xticks(years[::2])
     axis.set_xticklabels([f"ES{y}" for y in years[::2]])
-    axis.legend(frameon=False, fontsize=7.5, loc="upper left")
+    axis.yaxis.set_major_formatter(lambda v, _: f"{v / 1000:g}k")
+    axis.tick_params(length=2.5, width=0.6)
+    for spine in axis.spines.values():
+        spine.set_linewidth(0.6)
+    axis.margins(x=0.02)
     fig.tight_layout(pad=0.3)
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, format="pdf", bbox_inches="tight", pad_inches=0.01)

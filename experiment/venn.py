@@ -12,13 +12,18 @@ from dataclasses import dataclass
 # Okabe-Ito, the colourblind-safe set; readable in greyscale and in print
 INK = "#1a1a1a"
 MUTED = "#6b7280"
-PALETTE = [
-    ("#0072b2", "#00537f"),  # blue
-    ("#e69f00", "#a37100"),  # orange
-    ("#009e73", "#006f51"),  # green
-]
+PALETTE = ["#0072b2", "#e69f00", "#009e73"]  # blue, orange, green
+# a set keeps its colour across figures, whichever others it is drawn with
+COLOUR = {"Synth262": PALETTE[0], "ESMeta fuzzer": PALETTE[1], "Test262": PALETTE[2]}
+
+
+def colour_of(name: str, i: int) -> str:
+    return COLOUR.get(name, PALETTE[i % len(PALETTE)])
 FONT = "Linux Libertine O, Linux Libertine, Libertine, Times New Roman, serif"
-FILL_OPACITY = 0.32
+# a wash light enough that the overlaps still read; the outline is ink
+FILL_OPACITY = 0.30
+STROKE_PT = 0.8
+LEADER_PT = 0.6
 
 
 @dataclass
@@ -232,150 +237,153 @@ def _text_room(label: str, size: float) -> float:
     return math.hypot(_text_width(label, size), size * 0.72) / 2
 
 
-def _frame(
-    circles, regions, keys, spots, labels, names,
-    count_size, label_size, gap, span, has_outside,
-):
-    """text placement and the frame around it"""
-    sizes = set_sizes(names, regions)
+def _drop(anchor: str, below: bool, size: float) -> float:
+    """baseline offset from a leader's tip"""
+    if anchor != "middle":
+        return size * 0.3
+    return size * 0.95 if below else -size * 0.25
+
+
+def _segments_cross(a, b) -> bool:
+    """do two leaders cross"""
+    def side(x1, y1, x2, y2, x, y):
+        return (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1)
+    d1 = side(*a, b[0], b[1])
+    d2 = side(*a, b[2], b[3])
+    d3 = side(*b, a[0], a[1])
+    d4 = side(*b, a[2], a[3])
+    return d1 * d2 < 0 and d3 * d4 < 0
+
+
+def _leave(px, py, angle, circles, span):
+    """distance along the angle at which the ray has left every circle"""
+    cos, sin = math.cos(angle), math.sin(angle)
+    step = span * 0.01
+    d = 0.0
+    while d < span * 2:
+        x, y = px + cos * d, py + sin * d
+        if all(math.hypot(x - c.x, y - c.y) >= c.r for c in circles):
+            return d
+        d += step
+    return d
+
+
+def _layout(circles, regions, keys, spots, labels, names, size, gap, span, title, legend_on):
+    """every count on a leader outside the circles, legend at the left,
+    title underneath; returns the frame and the placed pieces"""
     mid_x = sum(c.x for c in circles) / len(circles)
     mid_y = sum(c.y for c in circles) / len(circles)
+    lo_cx = min(c.x - c.r for c in circles)
+    hi_cx = max(c.x + c.r for c in circles)
+    lo_cy = min(c.y - c.r for c in circles)
+    hi_cy = max(c.y + c.r for c in circles)
+    clear = size * 0.45
 
-    placed = []
-    for circle in circles:
-        dx, dy = circle.x - mid_x, circle.y - mid_y
-        norm = math.hypot(dx, dy) or 1.0
-        if len(circles) == 2:
-            dx, dy, norm = (-1.0 if circle.x < mid_x else 1.0), -0.35, 1.06
-        ux, uy = dx / norm, dy / norm
-        # a label that sits above or below its circle is centred on it, since
-        # running the text sideways from there would cross the outline
-        anchor = "middle" if abs(ux) < 0.4 else "end" if ux < 0 else "start"
-        reach = circle.r + gap * (1.6 if anchor == "middle" else 1.0)
-        drop = label_size * (0.72 if uy > 0 else -0.10) if anchor == "middle" else 0.0
-        placed.append(
-            (
-                circle.x + ux * reach,
-                circle.y + uy * reach + drop,
-                labels[circle.name],
-                anchor,
-                circle.name,
-            ),
-        )
-
-    # a region too small for its number gets the number outside, on a leader,
-    # pushed out until it clears the set labels and the leaders before it
-    clear = count_size * 0.45  # keep labels from touching
+    # legend: a column of circle swatches, left of the drawing
+    legend_w = size * 1.5 + max(_text_width(labels[n], size) for n in names)
+    legend_x = lo_cx - gap * 2 - legend_w
+    legend_y0 = mid_y - size * 1.5 * (len(names) - 1) / 2
+    legend = [(legend_x, legend_y0 + i * size * 1.5, labels[n]) for i, n in enumerate(names)]
     taken = [
-        _box(x, y, f"{labels[n]} ({sizes[n]:,})", label_size, a, clear)
-        for x, y, _t, a, n in placed
+        (legend_x - clear, legend_y0 - size, legend_x + legend_w + clear, legend[-1][1] + size)
     ]
+    if not legend_on:
+        legend, taken = [], []
     inside, leaders = [], []
-    for key in sorted(keys, key=lambda k: (len(k), sorted(k))):
-        if key not in spots:
+    for key in sorted(keys, key=lambda k: (-regions[k], sorted(k))):
+        if key not in spots or regions[key] == 0:
             continue
         px, py, room = spots[key]
-        text = f"{regions[key]:,}"
-        if room >= _text_room(text, count_size):
-            inside.append((px, py, text))
+        count = f"{regions[key]:,}"
+        width = _text_width(count, size)
+        # a region with room to spare carries its number itself
+        if room >= _text_room(count, size) * 1.6:
+            inside.append((px, py, count))
             continue
-        dx, dy = px - mid_x, py - mid_y
-        norm = math.hypot(dx, dy) or 1.0
-        base = math.atan2(dy, dx)
-        # every direction may be crowded, so score them all and take the least
-        # bad: never overlapping beats never crossing beats staying short
+        # the region every set shares points straight up, as the eye expects
+        whole = key == frozenset(names)
+        base = -math.pi / 2 if whole else math.atan2(py - mid_y, px - mid_x)
+        turns = (0.0,) if whole else (0.0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9, 1.2, -1.2, 1.5, -1.5)
         best = None
-        for reach in (2.6, 3.4, 4.4, 5.6, 7.0, 8.6):
-            for turn in (0.0, 0.26, -0.26, 0.52, -0.52, 0.85, -0.85, 1.2, -1.2):
-                angle = base + turn
-                tx = px + math.cos(angle) * gap * reach
-                ty = py + math.sin(angle) * gap * reach
-                anchor = "end" if math.cos(angle) < 0 else "start"
-                box = _box(tx, ty, text, count_size, anchor, clear)
+        for turn in turns:
+            angle = base + turn
+            exit_d = _leave(px, py, angle, circles, span)
+            for extra in (1.0, 1.8, 2.8, 4.0):
+                d = exit_d + gap * extra
+                tx, ty = px + math.cos(angle) * d, py + math.sin(angle) * d
+                anchor = "end" if math.cos(angle) < -0.3 else "start" if math.cos(angle) > 0.3 else "middle"
+                left = tx - width if anchor == "end" else tx if anchor == "start" else tx - width / 2
+                # a number under a leader hangs below its tip, one above sits on it
+                by = ty + _drop(anchor, ty > py, size)
+                box = (left - clear, by - size * 0.72 - clear, left + width + clear, by + size * 0.3 + clear)
+                # text must clear the circles too, not just the other text
+                on_circle = any(
+                    math.hypot(x - c.x, y - c.y) < c.r
+                    for x in (box[0], (box[0] + box[2]) / 2, box[2])
+                    for y in (box[1], (box[1] + box[3]) / 2, box[3])
+                    for c in circles
+                )
                 penalty = (
                     1000 * _hits(box, taken)
+                    + 1000 * on_circle
                     + 300 * _crosses(px, py, tx, ty, taken)
-                    + 10 * reach
+                    + 300 * any(_segments_cross((px, py, tx, ty), l[:4]) for l in leaders)
+                    + 10 * d / gap
                     + abs(turn)
                 )
                 if best is None or penalty < best[0]:
                     best = (penalty, tx, ty, anchor, box)
         _, tx, ty, anchor, box = best
         taken.append(box)
-        leaders.append((px, py, tx, ty, text, anchor))
+        leaders.append((px, py, tx, ty, count, anchor))
 
-    def span_of(x, text, name, anchor, size):
-        width = _text_width(text if name is None else f"{text} ({sizes[name]:,})", size)
-        if anchor == "end":
-            return x - width, x
-        if anchor == "start":
-            return x, x + width
-        return x - width / 2, x + width / 2
+    # title under everything
+    title_y = max([hi_cy] + [b[3] for b in taken]) + gap + size * 0.9
+    if title:
+        taken.append(_box(mid_x, title_y, title, size, "middle", clear))
 
-    edges = [span_of(p[0], p[2], p[4], p[3], label_size) for p in placed]
-    edges += [span_of(l[2], l[4], None, l[5], count_size) for l in leaders]
-    xs = (
-        [c.x - c.r for c in circles]
-        + [c.x + c.r for c in circles]
-        + [e for pair in edges for e in pair]
-    )
-    ys = (
-        [c.y - c.r for c in circles]
-        + [c.y + c.r for c in circles]
-        + [p[1] - label_size * 0.78 for p in placed]
-        + [p[1] + label_size * 0.28 for p in placed]
-        + [l[3] - count_size * 0.6 for l in leaders]
-        + [l[3] + count_size * 0.6 for l in leaders]
-    )
+    xs = [lo_cx, hi_cx] + [b[0] for b in taken] + [b[2] for b in taken]
+    ys = [lo_cy, hi_cy] + [b[1] for b in taken] + [b[3] for b in taken]
     pad = span * 0.02
-    lo_y, hi_y = min(ys) - pad, max(ys) + pad
-    if has_outside:
-        hi_y += label_size * 2.0
-    return min(xs) - pad, max(xs) + pad, lo_y, hi_y, placed, inside, leaders
+    return (
+        min(xs) - pad, max(xs) + pad, min(ys) - pad, max(ys) + pad,
+        legend, (mid_x, title_y), inside, leaders,
+    )
 
 
 def render(
     names: list[str],
     regions: dict[frozenset[str], int],
     labels: dict[str, str] | None = None,
-    outside: int | None = None,
-    outside_label: str = "neither",
-    width_pt: float = 340.0,
-    font_pt: float = 8.5,
+    width_pt: float = 240.0,
+    font_pt: float = 8.0,
     title: str = "",
     description: str = "",
+    legend_on: bool = True,
 ) -> str:
     """sized in points for a paper"""
     labels = labels or {n: n for n in names}
     circles = place(names, regions, 1.0)
     keys = [k for k in regions if k]
-
     spots = anchors(circles, keys)
     span = max(
         max(c.x + c.r for c in circles) - min(c.x - c.r for c in circles),
         max(c.y + c.r for c in circles) - min(c.y - c.r for c in circles),
     )
-    gap = span * 0.030
+    gap = span * 0.05
     # text is sized in points, not as a fraction of the drawing, so widening
     # the figure enlarges the circles and leaves the type at the paper's size.
     # The frame depends on the type and the scale depends on the frame, so the
     # two settle over a few passes.
-    count_size = label_size = span * 0.05
-    scale = width_pt / (max(c.x + c.r for c in circles) - min(c.x - c.r for c in circles))
-
-    for _ in range(3):
-        count_size = label_size = font_pt / scale
-        lo_x, hi_x, lo_y, hi_y, placed, inside, leaders = _frame(
-            circles, regions, keys, spots, labels, names,
-            count_size, label_size, gap, span, outside is not None,
+    scale = width_pt / span
+    for _ in range(4):
+        size = font_pt / scale
+        lo_x, hi_x, lo_y, hi_y, legend, (title_x, title_y), inside, leaders = _layout(
+            circles, regions, keys, spots, labels, names, size, gap, span, title, legend_on,
         )
         scale = width_pt / (hi_x - lo_x)
-    # the frame settled a hair away from the last sizes; take the scale as
-    # final so the emitted type is exactly font_pt
-    count_size = label_size = font_pt / scale
+    size = font_pt / scale
     w, h = hi_x - lo_x, hi_y - lo_y
-    pad = span * 0.02
-    sizes = set_sizes(names, regions)
 
     def fx(v: float) -> str:
         return f"{(v - lo_x) * scale:.2f}"
@@ -386,13 +394,10 @@ def render(
     def fs(v: float) -> str:
         return f"{v * scale:.2f}"
 
-    total = sum(regions.values()) + (outside or 0)
+    sizes = set_sizes(names, regions)
     desc = description or (
-        f"Area-proportional Venn diagram over {total:,} items; "
-        + ", ".join(
-            f"{labels[n]} {set_sizes(names, regions)[n]:,}" for n in names
-        )
-        + "."
+        f"Area-proportional Venn diagram over {sum(regions.values()):,} items; "
+        + ", ".join(f"{labels[n]} {sizes[n]:,}" for n in names) + "."
     )
     out = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -401,46 +406,43 @@ def render(
         'role="img" aria-labelledby="t d">',
         f"  <title id=\"t\">{html.escape(title or 'Venn diagram')}</title>",
         f'  <desc id="d">{html.escape(desc)}</desc>',
-        f'  <g font-family="{FONT}" fill="{INK}">',
+        f'  <g font-family="{FONT}" fill="{INK}" font-size="{font_pt:.2f}">',
     ]
     for i, circle in enumerate(circles):
-        fill, stroke = PALETTE[i % len(PALETTE)]
         out.append(
             f'    <circle cx="{fx(circle.x)}" cy="{fy(circle.y)}" r="{fs(circle.r)}" '
-            f'fill="{fill}" fill-opacity="{FILL_OPACITY}" stroke="{stroke}" '
-            f'stroke-width="{fs(span * 0.0035)}" />',
+            f'fill="{colour_of(circle.name, i)}" fill-opacity="{FILL_OPACITY}" '
+            f'stroke="{INK}" stroke-width="{STROKE_PT:.2f}" />',
         )
-    for px, py, text in inside:
+    for px, py, count in inside:
         out.append(
-            f'    <text x="{fx(px)}" y="{fy(py)}" font-size="{fs(count_size)}" '
-            'text-anchor="middle" dominant-baseline="central">'
-            f"{html.escape(text)}</text>",
+            f'    <text x="{fx(px)}" y="{fy(py)}" text-anchor="middle" '
+            f'dominant-baseline="central">{count}</text>',
         )
-    for px, py, tx, ty, text, anchor in leaders:
-        pad_x = fs(gap * 0.28) if anchor == "start" else f"-{fs(gap * 0.28)}"
+    for px, py, tx, ty, count, anchor in leaders:
         out.append(
             f'    <line x1="{fx(px)}" y1="{fy(py)}" x2="{fx(tx)}" y2="{fy(ty)}" '
-            f'stroke="{MUTED}" stroke-width="{fs(span * 0.002)}" />',
+            f'stroke="{INK}" stroke-width="{LEADER_PT:.2f}" />',
+        )
+        nudge = {"start": size * 0.25, "end": -size * 0.25}.get(anchor, 0.0)
+        out.append(
+            f'    <text x="{fx(tx + nudge)}" y="{fy(ty + _drop(anchor, ty > py, size))}" '
+            f'text-anchor="{anchor}">{count}</text>',
+        )
+    for i, (lx, ly, text) in enumerate(legend):
+        out.append(
+            f'    <circle cx="{fx(lx + size * 0.55)}" cy="{fy(ly)}" r="{fs(size * 0.55)}" '
+            f'fill="{colour_of(names[i], i)}" fill-opacity="{FILL_OPACITY}" '
+            f'stroke="{INK}" stroke-width="{STROKE_PT:.2f}" />',
         )
         out.append(
-            f'    <text x="{float(fx(tx)) + float(pad_x):.2f}" y="{fy(ty)}" '
-            f'font-size="{fs(count_size)}" text-anchor="{anchor}" '
+            f'    <text x="{fx(lx + size * 1.5)}" y="{fy(ly)}" '
             f'dominant-baseline="central">{html.escape(text)}</text>',
         )
-    for px, py, text, anchor, name in placed:
-        size = sizes[name]
+    if title:
         out.append(
-            f'    <text x="{fx(px)}" y="{fy(py)}" font-size="{fs(label_size)}" '
-            f'text-anchor="{anchor}">{html.escape(text)}'
-            f'<tspan fill="{MUTED}" font-size="{fs(label_size * 0.85)}" '
-            f'dx="{fs(label_size * 0.3)}">'
-            f"({size:,})</tspan></text>",
-        )
-    if outside is not None:
-        out.append(
-            f'    <text x="{fx(hi_x - pad)}" y="{fy(hi_y - pad)}" '
-            f'font-size="{fs(label_size * 0.88)}" fill="{MUTED}" text-anchor="end">'
-            f"{html.escape(outside_label)}: {outside:,}</text>",
+            f'    <text x="{fx(title_x)}" y="{fy(title_y)}" text-anchor="middle">'
+            f'{html.escape(title)}</text>',
         )
     out.append("  </g>")
     out.append("</svg>")

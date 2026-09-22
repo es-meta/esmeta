@@ -130,6 +130,7 @@ def figure(
     solver_label: str,
     fuzz_label: str,
     width_pt: float,
+    legend_on: bool,
 ) -> tuple[str, list[str]]:
     names = [solver_label, fuzz_label]
     regions = {
@@ -141,10 +142,9 @@ def figure(
     svg = venn.render(
         names,
         regions,
-        outside=counts["none"],
-        outside_label="reproduced by neither",
         width_pt=width_pt,
-        title="Reported bugs each tool reproduces",
+        legend_on=legend_on,
+        title="# bugs",
     )
     return svg, venn.fit_report(circles, regions, 1.0)
 
@@ -189,13 +189,18 @@ def parse_args() -> argparse.Namespace:
         help="write the figure even if bugs/ holds a row the table does not list",
     )
     parser.add_argument(
+        "--no-legend",
+        action="store_true",
+        help="leave the legend out, e.g. when a neighbouring figure carries it",
+    )
+    parser.add_argument(
         "--width",
         type=float,
         default=240.0,
         help="figure width in points (240 fits one column)",
     )
     parser.add_argument("--solver-label", default="Synth262", help="left set label")
-    parser.add_argument("--fuzz-label", default="ESMeta Fuzzer", help="right set label")
+    parser.add_argument("--fuzz-label", default="ESMeta fuzzer", help="right set label")
     return parser.parse_args()
 
 
@@ -220,7 +225,7 @@ def main() -> int:
     counts, regions = tally(rows, stored)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    svg, off = figure(counts, args.solver_label, args.fuzz_label, args.width)
+    svg, off = figure(counts, args.solver_label, args.fuzz_label, args.width, not args.no_legend)
     venn.write(args.out, svg)
     json_out = args.json_out or args.out.with_suffix(".json")
     json_out.write_text(

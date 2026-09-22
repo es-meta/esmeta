@@ -215,6 +215,7 @@ def figure(
     test262_label: str,
     fuzz_label: str,
     width_pt: float,
+    legend_on: bool,
 ) -> tuple[str, list[str]]:
     names = [solver_label, test262_label, fuzz_label]
     s, t, f = names
@@ -231,10 +232,9 @@ def figure(
     svg = venn.render(
         names,
         regions,
-        outside=counts["none"],
-        outside_label="covered by none",
         width_pt=width_pt,
-        title="Branch sides each source covers",
+        legend_on=legend_on,
+        title="# coverage",
     )
     return svg, venn.fit_report(circles, regions, 1.0)
 
@@ -289,6 +289,11 @@ def parse_args() -> argparse.Namespace:
         help="optional JSON summary path; defaults to OUT with .json suffix",
     )
     parser.add_argument(
+        "--no-legend",
+        action="store_true",
+        help="leave the legend out, e.g. when a neighbouring figure carries it",
+    )
+    parser.add_argument(
         "--width",
         type=float,
         default=240.0,
@@ -296,7 +301,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--solver-label", default="Synth262", help="left set label")
     parser.add_argument("--test262-label", default="Test262", help="right set label")
-    parser.add_argument("--fuzz-label", default="ESMeta Fuzzer", help="bottom set label")
+    parser.add_argument("--fuzz-label", default="ESMeta fuzzer", help="bottom set label")
     return parser.parse_args()
 
 
@@ -338,7 +343,7 @@ def main() -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     svg, off = figure(
-        counts, args.solver_label, args.test262_label, args.fuzz_label, args.width,
+        counts, args.solver_label, args.test262_label, args.fuzz_label, args.width, not args.no_legend,
     )
     venn.write(args.out, svg)
 
