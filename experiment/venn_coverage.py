@@ -2,9 +2,11 @@
 
 # python3 experiment/venn_coverage.py
 #
-# With no arguments it reads experiment/data, logs/test262/recent and
-# logs/solver/recent, so a fresh `fuzz`, `eval-test262` and `solve` run is
-# picked up without naming paths.
+# With no arguments it reads every 1-FS fuzzer run under experiment/data plus
+# logs/test262/recent and logs/solver/recent. The fuzzer runs are named rather
+# than globbed from the whole directory because 0-FS and 1-FS are separate
+# configurations and a figure must not mix them; pass the runs of the other
+# configuration explicitly to draw that one instead.
 #
 # Every branch-coverage.json under a path is merged, so a directory holding
 # several fuzzer runs counts as one set. All three sets are then restricted to
@@ -127,14 +129,21 @@ def load_solver_sets(
     return universe, solver, status_counts, load_solver_programs(solver_log)
 
 
-def coverage_json_files(path: Path, what: str, hint: str) -> list[Path]:
-    """every branch-coverage.json under a path, to be merged into one set"""
-    if path.is_file():
-        return [path]
-    matches = sorted(path.rglob("branch-coverage.json")) if path.exists() else []
-    if not matches:
-        raise MissingLog(f"{what} branch coverage", path, hint)
-    return matches
+def coverage_json_files(paths: list[Path], what: str, hint: str) -> list[Path]:
+    """every branch-coverage.json under the given paths, merged into one set"""
+    found: list[Path] = []
+    for path in paths:
+        if path.is_file():
+            found.append(path)
+        elif path.exists():
+            found.extend(sorted(path.rglob("branch-coverage.json")))
+    if not found:
+        raise MissingLog(
+            f"{what} branch coverage",
+            Path(", ".join(str(p) for p in paths)),
+            hint,
+        )
+    return sorted(set(found))
 
 
 def load_branch_coverage(paths: Iterable[Path]) -> set[BranchSide]:
@@ -250,14 +259,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "fuzz_log",
         type=Path,
-        nargs="?",
-        default=default_home / "experiment" / "data",
-        help="fuzzer run directory, a directory of them, or a branch-coverage.json",
+        nargs="*",
+        default=sorted((default_home / "experiment" / "data").glob("1fs-*/")),
+        help="fuzzer runs to merge (default: every 1-FS run under experiment/data)",
     )
     parser.add_argument(
-        "test262_log",
+        "-t",
+        "--test262-log",
         type=Path,
-        nargs="?",
         default=default_home / "logs" / "test262" / "recent",
         help="test262 log directory or branch-coverage.json",
     )
@@ -294,7 +303,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--solver-label", default="Synth262", help="left set label")
     parser.add_argument("--test262-label", default="Test262", help="right set label")
-    parser.add_argument("--fuzz-label", default="Fuzz", help="bottom set label")
+    parser.add_argument("--fuzz-label", default="ESMeta Fuzzer", help="bottom set label")
     return parser.parse_args()
 
 
@@ -314,7 +323,7 @@ def main() -> int:
         solver_statuses,
     )
     fuzz_files = coverage_json_files(args.fuzz_log, "fuzzer", FUZZ_HINT)
-    test262_files = coverage_json_files(args.test262_log, "test262", TEST262_HINT)
+    test262_files = coverage_json_files([args.test262_log], "test262", TEST262_HINT)
     raw_fuzz = load_branch_coverage(fuzz_files)
     raw_test262 = load_branch_coverage(test262_files)
 
