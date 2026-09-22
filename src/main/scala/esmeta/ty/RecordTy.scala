@@ -1,5 +1,6 @@
 package esmeta.ty
 
+import esmeta.Ablation
 import esmeta.util.*
 import esmeta.state.{Value, RecordObj, Heap}
 import esmeta.ty.util.Parser
@@ -138,18 +139,21 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 
   /** property update */
   def update(p: Property, desc: Desc): RecordTy = this match
-    case Top            => Top
-    case Elem(map, obj) => Elem(map, obj + (p -> desc))
+    case _ if Ablation.noShape => this
+    case Top                   => Top
+    case Elem(map, obj)        => Elem(map, obj + (p -> desc))
 
   /** function call return update */
   def update(call: CallDesc): RecordTy = this match
-    case Top            => Top
-    case Elem(map, obj) => Elem(map, obj.copy(call = call))
+    case _ if Ablation.noShape => this
+    case Top                   => Top
+    case Elem(map, obj)        => Elem(map, obj.copy(call = call))
 
   /** construct return update */
   def update(construct: ConstructDesc): RecordTy = this match
-    case Top            => Top
-    case Elem(map, obj) => Elem(map, obj.copy(construct = construct))
+    case _ if Ablation.noShape => this
+    case Top                   => Top
+    case Elem(map, obj)        => Elem(map, obj.copy(construct = construct))
 
   /** field update */
   def update(field: String, ty: ValueTy, refine: Boolean): RecordTy =

@@ -11,6 +11,8 @@ case object Solve extends Phase[CFG, String] {
   val help = "generates ECMAScript programs for selected builtin branch sides"
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): String =
+    Ablation.noShape = config.noShape
+    Ablation.noTemplate = config.noTemplate
     new Solver(
       cfg,
       branch = config.branch,
@@ -41,11 +43,23 @@ case object Solve extends Phase[CFG, String] {
       BoolOption((c, b) => c.detail = b),
       "logging mode with detailed information.",
     ),
+    (
+      "no-shape",
+      BoolOption((c, b) => c.noShape = b),
+      "ablation: drop the object structure from the type domain.",
+    ),
+    (
+      "no-template",
+      BoolOption((c, b) => c.noTemplate = b),
+      "ablation: drop the call templates derived from the specification.",
+    ),
   )
   case class Config(
     var branch: Option[Int] = None,
     var side: Option[Boolean] = None,
     var log: Boolean = false,
     var detail: Boolean = false,
+    var noShape: Boolean = false,
+    var noTemplate: Boolean = false,
   )
 }

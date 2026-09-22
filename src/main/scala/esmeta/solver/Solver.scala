@@ -1,6 +1,6 @@
 package esmeta.solver
 
-import esmeta.SOLVER_LOG_DIR
+import esmeta.{Ablation, SOLVER_LOG_DIR}
 import esmeta.cfg.*
 import esmeta.es.builtin.{INNER_CODE, intrAddr}
 import esmeta.es.util.Coverage
@@ -240,7 +240,11 @@ class Solver(
       List("pass", "fail-verify", "fail-reify", "unsolved", "timeout", "error")
         .flatMap(status => byStatus.get(status).map(status -> _))
     val reachedPct = reached * 100.0 / selected.size
+    val ablated = Ablation.enabled match
+      case Nil  => ""
+      case offs => s"Ablation: ${offs.mkString(", ")}\n"
     val summary =
+      ablated +
       templateGen.summary +
       s"Solving: ${solving.summary.time.simpleString}\n" +
       simplifying +
