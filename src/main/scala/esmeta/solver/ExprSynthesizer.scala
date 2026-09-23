@@ -1,11 +1,12 @@
 package esmeta.solver
 
 import esmeta.cfg.CFG
-import esmeta.es.builtin.INNER_MAP
+import esmeta.es.builtin.{INNER_MAP, intrAddr}
 import esmeta.interpreter.Interpreter
 import esmeta.ir.Expr
 import esmeta.solver.Solver.Invocation
 import esmeta.solver.TemplateGenerator.{Template, getSlots}
+import esmeta.spec.BuiltinPath
 import esmeta.state.*
 import esmeta.ty.*
 import esmeta.util.*
@@ -307,9 +308,30 @@ class ExprSynthesizer(
       }
       .distinct
 
-  // evaluate the manual expressions once to match them against types
+  // constructors only: other built-ins would bury the callables in manuals
+  private val builtins: List[String] = for {
+    f <- cfg.funcs
+    path <- Solver.getPath(f)
+    if (Solver.isConstructable(f, cfg) && modeled(path))
+    expr <- Solver.funcAccessExpr(f)
+  } yield expr
+
+  // reading a property of an object ESMeta does not model stops the interpreter
+  private def modeled(path: BuiltinPath): Boolean =
+    import BuiltinPath.*
+    cfg.init.initHeap.map.get(intrAddr(path.toString)).exists {
+      case _: RecordObj => true
+      case _            => false
+    } && (path match
+      case NormalAccess(base, _) => modeled(base)
+      case SymbolAccess(base, _) => modeled(base)
+      case _                     => true
+    )
+
+  // evaluate the candidate expressions once to match them against types
   private val observations: Map[String, ValueTy] = {
-    val src = manuals.zipWithIndex
+    val exprs = manuals ++ builtins
+    val src = exprs.zipWithIndex
       .map { (expr, i) =>
         s"""var __value${i}__, __succeeded${i}__ = false;
            |try {
@@ -324,7 +346,7 @@ class ExprSynthesizer(
       val path = s"""@REALM.GlobalObject.$INNER_MAP["$name"].Value"""
       reader.eval(Expr.from(path))
     (for {
-      (expr, i) <- manuals.zipWithIndex
+      (expr, i) <- exprs.zipWithIndex
       if global(s"__succeeded${i}__") == Bool(true)
       value = global(s"__value${i}__")
     } yield expr -> observedTy(value, st, RecordTy.maxFieldDepth)).toMap
@@ -347,20 +369,13 @@ class ExprSynthesizer(
     )
     val bigInts = List("-1n", "0n", "1n")
 
-    // object values (16)
+    // object values (10)
     val ordinaryObjects = List("{}")
     val arrays = List("[]", "[0]", "[0, 0]")
     val argumentsObjects = List("(function(){ return arguments; })()")
     val ecmascriptFunctions = List("() => {}", "function(){}")
     val classConstructors = List("class {}", "class extends Object {}")
-    val builtinFunctions = List(
-      "Object", // callable and constructable
-      "Function.prototype", // callable only
-    )
     val boundFunctions = List("(function(){}).bind()")
-    val errors = List("new Error()")
-    val promises = List("new Promise(() => {})")
-    val generators = List("(function*(){})()", "(async function*(){})()")
 
     // execution states (22)
     def afterThen(promise: String): String =
@@ -420,11 +435,7 @@ class ExprSynthesizer(
       argumentsObjects,
       ecmascriptFunctions,
       classConstructors,
-      builtinFunctions,
       boundFunctions,
-      errors,
-      promises,
-      generators,
       settledPromises,
       resumedGenerators,
       revokedProxies,

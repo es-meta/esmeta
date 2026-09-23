@@ -589,7 +589,7 @@ object Solver {
       }
   }
 
-  private def isConstructable(func: Func, cfg: CFG): Boolean =
+  def isConstructable(func: Func, cfg: CFG): Boolean =
     cfg.init.intrHeap
       .get(intrAddr(func.name.stripPrefix("INTRINSICS.")))
       .exists {
