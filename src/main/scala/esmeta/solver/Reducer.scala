@@ -487,7 +487,8 @@ class Reducer(cfg: CFG) {
     ast match
       case Syntactic("Script", _, _, _) =>
         val found = iifes(ast).sortBy(_._1.loc.get.start.offset)
-        Option.when(found.nonEmpty) {
+        val names = (ast :: found.flatMap(_._2)).flatMap(declared)
+        Option.when(found.nonEmpty && names.distinct.size == names.size) {
           val src = text(ast)
           val base = ast.loc.get.start.offset
           val body = found.reverse.foldLeft(src) {
@@ -500,4 +501,25 @@ class Reducer(cfg: CFG) {
           (prelude :+ body).mkString("\n")
         }
       case _ => None
+
+  // names an AST declares in its own scope, not in nested functions
+  private def declared(ast: Ast): List[String] = ast match
+    case Syntactic("BindingIdentifier", _, _, _) =>
+      unwrap(ast) match
+        case Lexical(_, name) => List(name)
+        case _                => Nil
+    case syn: Syntactic if (!scopes.contains(syn.name)) =>
+      syn.children.flatten.toList.flatMap(declared)
+    case _ => Nil
+
+  private val scopes = bodies ++ Set(
+    "FormalParameters",
+    "UniqueFormalParameters",
+    "ArrowParameters",
+    "FunctionExpression",
+    "GeneratorExpression",
+    "AsyncFunctionExpression",
+    "AsyncGeneratorExpression",
+    "ClassExpression",
+  )
 }
