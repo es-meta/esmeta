@@ -216,7 +216,7 @@ def figure(
     fuzz_label: str,
     width_pt: float,
     legend_on: bool,
-) -> tuple[str, list[str]]:
+) -> str:
     names = [solver_label, test262_label, fuzz_label]
     s, t, f = names
     regions = {
@@ -228,15 +228,15 @@ def figure(
         frozenset({t, f}): counts["test262_fuzz"],
         frozenset({s, t, f}): counts["all_three"],
     }
-    circles = venn.place(names, regions, 1.0)
     svg = venn.render(
         names,
         regions,
         width_pt=width_pt,
         legend_on=legend_on,
+        legend_order=[solver_label, fuzz_label, test262_label],
         title="# coverage",
     )
-    return svg, venn.fit_report(circles, regions, 1.0)
+    return svg
 
 
 def parse_args() -> argparse.Namespace:
@@ -342,7 +342,7 @@ def main() -> int:
     }
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    svg, off = figure(
+    svg = figure(
         counts, args.solver_label, args.test262_label, args.fuzz_label, args.width, not args.no_legend,
     )
     venn.write(args.out, svg)
@@ -388,8 +388,6 @@ def main() -> int:
         f"all={format_int(counts['all_three'])}, "
         f"none={format_int(counts['none'])}",
     )
-    for line in off:
-        print(f"  area off:  {line}", file=sys.stderr)
     if any(outside_universe.values()):
         print(
             "outside universe: "

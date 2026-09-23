@@ -131,14 +131,13 @@ def figure(
     fuzz_label: str,
     width_pt: float,
     legend_on: bool,
-) -> tuple[str, list[str]]:
+) -> str:
     names = [solver_label, fuzz_label]
     regions = {
         frozenset({solver_label}): counts["solver_only"],
         frozenset({solver_label, fuzz_label}): counts["both"],
         frozenset({fuzz_label}): counts["fuzz_only"],
     }
-    circles = venn.place(names, regions, 1.0)
     svg = venn.render(
         names,
         regions,
@@ -146,7 +145,7 @@ def figure(
         legend_on=legend_on,
         title="# bugs",
     )
-    return svg, venn.fit_report(circles, regions, 1.0)
+    return svg
 
 
 def parse_args() -> argparse.Namespace:
@@ -225,7 +224,7 @@ def main() -> int:
     counts, regions = tally(rows, stored)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    svg, off = figure(counts, args.solver_label, args.fuzz_label, args.width, not args.no_legend)
+    svg = figure(counts, args.solver_label, args.fuzz_label, args.width, not args.no_legend)
     venn.write(args.out, svg)
     json_out = args.json_out or args.out.with_suffix(".json")
     json_out.write_text(
@@ -264,8 +263,6 @@ def main() -> int:
         f"neither={counts['none']}",
     )
     print(f"sets:       {args.solver_label}={counts['solver']}, {args.fuzz_label}={counts['fuzz']}")
-    for line in off:
-        print(f"  area off:  {line}", file=sys.stderr)
     return 0
 
 

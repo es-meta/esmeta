@@ -19,10 +19,17 @@ COLOUR = {"Synth262": PALETTE[0], "ESMeta fuzzer": PALETTE[1], "Test262": PALETT
 
 def colour_of(name: str, i: int) -> str:
     return COLOUR.get(name, PALETTE[i % len(PALETTE)])
+
+
+def darker(colour: str, share: float = 0.35) -> str:
+    """the colour mixed with that share of black, for its outline"""
+    rgb = [int(colour[k:k + 2], 16) for k in (1, 3, 5)]
+    return "#" + "".join(f"{round(c * (1 - share)):02x}" for c in rgb)
 FONT = "Linux Libertine O, Linux Libertine, Libertine, Times New Roman, serif"
-# a wash light enough that the overlaps still read; the outline is ink
+# a wash light enough that the overlaps still read; each outline is its own
+# colour, darker, so the circles stay apart where they cross
 FILL_OPACITY = 0.30
-STROKE_PT = 0.8
+STROKE_PT = 0.5
 LEADER_PT = 0.6
 
 
@@ -34,45 +41,15 @@ class Circle:
     r: float
 
 
-def lens_area(r1: float, r2: float, d: float) -> float:
-    """area both circles cover"""
-    if d >= r1 + r2:
-        return 0.0
-    if d <= abs(r1 - r2):
-        return math.pi * min(r1, r2) ** 2
-    a1 = math.acos((d * d + r1 * r1 - r2 * r2) / (2 * d * r1))
-    a2 = math.acos((d * d + r2 * r2 - r1 * r1) / (2 * d * r2))
-    return (
-        r1 * r1 * (a1 - math.sin(2 * a1) / 2)
-        + r2 * r2 * (a2 - math.sin(2 * a2) / 2)
-    )
-
-
-def distance_for(r1: float, r2: float, target: float) -> float:
-    """centre distance giving that overlap"""
-    lo, hi = abs(r1 - r2), r1 + r2
-    if target <= 0:
-        return hi
-    if target >= math.pi * min(r1, r2) ** 2:
-        return lo
-    for _ in range(80):
-        mid = (lo + hi) / 2
-        if lens_area(r1, r2, mid) > target:
-            lo = mid
-        else:
-            hi = mid
-    return (lo + hi) / 2
-
-
 def set_sizes(names: list[str], regions: dict[frozenset[str], int]) -> dict[str, int]:
     return {
         n: sum(c for key, c in regions.items() if n in key) for n in names
     }
 
 
-def pair_size(a: str, b: str, regions: dict[frozenset[str], int]) -> int:
-    return sum(c for key, c in regions.items() if a in key and b in key)
-
+# centre distance as a share of the mean radius, by the number of circles:
+# as close as the thinnest region still holds its number
+SPREAD = {2: 0.8, 3: 0.7}
 
 
 def place(
@@ -80,30 +57,13 @@ def place(
     regions: dict[frozenset[str], int],
     unit: float,
 ) -> list[Circle]:
-    """areas are the set sizes, overlaps the pairwise counts"""
+    """areas are the set sizes; the overlaps are drawn evenly, not to scale,
+    since three circles cannot size seven regions and a wrong area misleads"""
     sizes = set_sizes(names, regions)
     radii = [math.sqrt(max(sizes[n], 1) * unit / math.pi) for n in names]
-    if len(names) == 1:
-        return [Circle(names[0], 0.0, 0.0, radii[0])]
-
-    d01 = distance_for(radii[0], radii[1], pair_size(names[0], names[1], regions) * unit)
-    if len(names) == 2:
-        return [
-            Circle(names[0], 0.0, 0.0, radii[0]),
-            Circle(names[1], d01, 0.0, radii[1]),
-        ]
-
-    d02 = distance_for(radii[0], radii[2], pair_size(names[0], names[2], regions) * unit)
-    d12 = distance_for(radii[1], radii[2], pair_size(names[1], names[2], regions) * unit)
-    # trilateration; a triangle inequality this tight can fail, and then the
-    # third circle lands on the axis as close as the other two allow
-    x = (d01 * d01 + d02 * d02 - d12 * d12) / (2 * d01)
-    y = math.sqrt(max(0.0, d02 * d02 - x * x))
-    return [
-        Circle(names[0], 0.0, 0.0, radii[0]),
-        Circle(names[1], d01, 0.0, radii[1]),
-        Circle(names[2], x, y, radii[2]),
-    ]
+    d = SPREAD.get(len(names), 1.0) * sum(radii) / len(radii)
+    spots = [(0.0, 0.0), (d, 0.0), (d / 2, d * math.sqrt(3) / 2)]
+    return [Circle(n, x, y, r) for n, (x, y), r in zip(names, spots, radii)]
 
 
 def _grid(circles: list[Circle], steps: int):
@@ -135,61 +95,18 @@ def anchors(
     circles: list[Circle],
     keys: list[frozenset[str]],
     steps: int = 320,
-) -> dict[frozenset[str], tuple[float, float, float]]:
-    """the roomiest point of each region"""
-    best: dict[frozenset[str], tuple[float, float, float]] = {}
+) -> dict[frozenset[str], tuple[list[tuple[float, float, float]], float, float]]:
+    """each region's sampled points with their room, and its centroid"""
+    points: dict[frozenset[str], list[tuple[float, float, float]]] = {}
     wanted = set(keys)
     for px, py in _grid(circles, steps):
         key = _key(circles, px, py)
-        if key not in wanted:
-            continue
-        room = _clearance(circles, px, py)
-        if key not in best or room > best[key][2]:
-            best[key] = (px, py, room)
-    return best
-
-
-def measured_areas(
-    circles: list[Circle],
-    keys: list[frozenset[str]],
-    steps: int = 320,
-) -> dict[frozenset[str], float]:
-    """sampled region areas"""
-    lo_x = min(c.x - c.r for c in circles)
-    hi_x = max(c.x + c.r for c in circles)
-    lo_y = min(c.y - c.r for c in circles)
-    hi_y = max(c.y + c.r for c in circles)
-    step = max(hi_x - lo_x, hi_y - lo_y) / steps
-    cell = step * step
-    out = {k: 0.0 for k in keys}
-    for px, py in _grid(circles, steps):
-        key = _key(circles, px, py)
-        if key in out:
-            out[key] += cell
-    return out
-
-
-def fit_report(
-    circles: list[Circle],
-    regions: dict[frozenset[str], int],
-    unit: float,
-) -> list[str]:
-    """regions sized wrong, worst first"""
-    keys = [k for k in regions if k]
-    drawn = measured_areas(circles, keys)
-    off = []
-    for key in keys:
-        want = regions[key] * unit
-        got = drawn.get(key, 0.0)
-        if want <= 0 and got <= 0:
-            continue
-        scale = max(want, got, 1e-9)
-        error = abs(got - want) / scale
-        if error > 0.02:
-            shown = round(got / unit)
-            off.append((error, f"{' & '.join(sorted(key))}: {regions[key]} drawn as ~{shown}"))
-    off.sort(reverse=True)
-    return [line for _, line in off]
+        if key in wanted:
+            points.setdefault(key, []).append((px, py, _clearance(circles, px, py)))
+    return {
+        key: (pts, sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
+        for key, pts in points.items()
+    }
 
 
 def _box(x: float, y: float, text: str, size: float, anchor: str, margin: float = 0.0):
@@ -268,7 +185,7 @@ def _leave(px, py, angle, circles, span):
     return d
 
 
-def _layout(circles, regions, keys, spots, labels, names, size, gap, span, title, legend_on):
+def _layout(circles, regions, keys, spots, labels, names, order, size, gap, span, title, legend_on):
     """every count on a leader outside the circles, legend at the left,
     title underneath; returns the frame and the placed pieces"""
     mid_x = sum(c.x for c in circles) / len(circles)
@@ -283,7 +200,7 @@ def _layout(circles, regions, keys, spots, labels, names, size, gap, span, title
     legend_w = size * 1.5 + max(_text_width(labels[n], size) for n in names)
     legend_x = lo_cx - gap * 2 - legend_w
     legend_y0 = mid_y - size * 1.5 * (len(names) - 1) / 2
-    legend = [(legend_x, legend_y0 + i * size * 1.5, labels[n]) for i, n in enumerate(names)]
+    legend = [(legend_x, legend_y0 + i * size * 1.5, n) for i, n in enumerate(order)]
     taken = [
         (legend_x - clear, legend_y0 - size, legend_x + legend_w + clear, legend[-1][1] + size)
     ]
@@ -293,13 +210,17 @@ def _layout(circles, regions, keys, spots, labels, names, size, gap, span, title
     for key in sorted(keys, key=lambda k: (-regions[k], sorted(k))):
         if key not in spots or regions[key] == 0:
             continue
-        px, py, room = spots[key]
+        pts, cx, cy = spots[key]
         count = f"{regions[key]:,}"
         width = _text_width(count, size)
-        # a region with room to spare carries its number itself
-        if room >= _text_room(count, size) * 1.6:
+        # a region with room to spare carries its number itself, as near its
+        # centroid as the room allows, since that is where the eye looks
+        fits = [p for p in pts if p[2] >= _text_room(count, size) * 1.6]
+        if fits:
+            px, py, _ = min(fits, key=lambda p: math.hypot(p[0] - cx, p[1] - cy))
             inside.append((px, py, count))
             continue
+        px, py, room = max(pts, key=lambda p: p[2])
         # the region every set shares points straight up, as the eye expects
         whole = key == frozenset(names)
         base = -math.pi / 2 if whole else math.atan2(py - mid_y, px - mid_x)
@@ -360,9 +281,12 @@ def render(
     title: str = "",
     description: str = "",
     legend_on: bool = True,
+    legend_order: list[str] | None = None,
 ) -> str:
-    """sized in points for a paper"""
+    """sized in points for a paper; the legend lists the sets in
+    `legend_order`, which need not follow where the circles sit"""
     labels = labels or {n: n for n in names}
+    order = legend_order or names
     circles = place(names, regions, 1.0)
     keys = [k for k in regions if k]
     spots = anchors(circles, keys)
@@ -379,7 +303,7 @@ def render(
     for _ in range(4):
         size = font_pt / scale
         lo_x, hi_x, lo_y, hi_y, legend, (title_x, title_y), inside, leaders = _layout(
-            circles, regions, keys, spots, labels, names, size, gap, span, title, legend_on,
+            circles, regions, keys, spots, labels, names, order, size, gap, span, title, legend_on,
         )
         scale = width_pt / (hi_x - lo_x)
     size = font_pt / scale
@@ -396,7 +320,8 @@ def render(
 
     sizes = set_sizes(names, regions)
     desc = description or (
-        f"Area-proportional Venn diagram over {sum(regions.values()):,} items; "
+        f"Venn diagram over {sum(regions.values()):,} items, circle areas "
+        "proportional to set sizes and region areas not; "
         + ", ".join(f"{labels[n]} {sizes[n]:,}" for n in names) + "."
     )
     out = [
@@ -412,7 +337,8 @@ def render(
         out.append(
             f'    <circle cx="{fx(circle.x)}" cy="{fy(circle.y)}" r="{fs(circle.r)}" '
             f'fill="{colour_of(circle.name, i)}" fill-opacity="{FILL_OPACITY}" '
-            f'stroke="{INK}" stroke-width="{STROKE_PT:.2f}" />',
+            f'stroke="{darker(colour_of(circle.name, i))}" '
+            f'stroke-width="{STROKE_PT:.2f}" />',
         )
     for px, py, count in inside:
         out.append(
@@ -429,15 +355,17 @@ def render(
             f'    <text x="{fx(tx + nudge)}" y="{fy(ty + _drop(anchor, ty > py, size))}" '
             f'text-anchor="{anchor}">{count}</text>',
         )
-    for i, (lx, ly, text) in enumerate(legend):
+    for lx, ly, name in legend:
+        colour = colour_of(name, names.index(name))
         out.append(
             f'    <circle cx="{fx(lx + size * 0.55)}" cy="{fy(ly)}" r="{fs(size * 0.55)}" '
-            f'fill="{colour_of(names[i], i)}" fill-opacity="{FILL_OPACITY}" '
-            f'stroke="{INK}" stroke-width="{STROKE_PT:.2f}" />',
+            f'fill="{colour}" fill-opacity="{FILL_OPACITY}" '
+            f'stroke="{darker(colour)}" '
+            f'stroke-width="{STROKE_PT:.2f}" />',
         )
         out.append(
             f'    <text x="{fx(lx + size * 1.5)}" y="{fy(ly)}" '
-            f'dominant-baseline="central">{html.escape(text)}</text>',
+            f'dominant-baseline="central">{html.escape(labels[name])}</text>',
         )
     if title:
         out.append(
