@@ -241,6 +241,16 @@ case object CmdSolve extends Command("solve", CmdBuildCFG >> Solve) {
   )
 }
 
+/** `reduce` command */
+case object CmdReduce extends Command("reduce", CmdBuildCFG >> Reduce) {
+  val help = "reduces programs, keeping the branch sides they cover"
+  val examples = List(
+    "esmeta reduce dir                  # reduce programs in dir.",
+    "esmeta reduce dir -reduce:out=out  # dump reduced programs into out.",
+  )
+  override val targetName = "<log-dir>"
+}
+
 // ECMA-262 GitHub Actions
 // -----------------------------------------------------------------------------
 /** `yet-check` command */

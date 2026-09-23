@@ -27,7 +27,6 @@ import scala.collection.mutable.{
 }
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.*
-import scala.util.Try
 
 /** Solve selected branch sides */
 class Solver(
@@ -48,7 +47,6 @@ class Solver(
   private lazy val templateGen = new TemplateGenerator(analyzer)
   private lazy val synth = ExprSynthesizer(cfg, templateGen.templatesBySlot)
   private lazy val cov = Coverage(cfg, timeLimit = Some(2))
-  private lazy val simplifier = Simplifier(cfg)
 
   // branch-side witnesses with a builtin as the nearest feature
   private val condMap = CMMap[(Int, Boolean), String]()
@@ -188,15 +186,19 @@ class Solver(
     selected
   }
 
-  private lazy val logDir: Option[String] = Option.when(log) {
+  lazy val logDir: Option[String] = Option.when(log) {
     val dir = s"$SOLVER_LOG_DIR/solve-$dateStr"
     mkdir(dir, remove = true)
     createSymLink(s"$SOLVER_LOG_DIR/recent", dir, overwrite = true)
     dir
   }
 
-  /** solve selected targets with a per-target budget */
-  lazy val result: String = {
+  // outcomes and their summary, kept from solve for report
+  private val completed = ConcurrentLinkedQueue[BranchResult]()
+  private var summary = ""
+
+  /** solve the targets, and return a witness of each branch side touched */
+  lazy val solve: Map[(Int, Boolean), String] = {
     val selected = targets
     val targetKeys = selected.map { (_, c) => (c.branch.id, c.cond) }.toSet
     logDir
@@ -208,7 +210,6 @@ class Solver(
         filename = s"$dir/templates.json",
       )
     val nThreads = Runtime.getRuntime.availableProcessors
-    val completed = ConcurrentLinkedQueue[BranchResult]()
     val solving = ProgressBar(
       msg = s"solving with $nThreads threads (timeout: $solveTimeout/target)",
       iterable = selected,
@@ -223,72 +224,34 @@ class Solver(
         case None     => solveTarget(entries, cond)
       completed.add(r)
     }
-    val simplifying = simplify(nThreads)
-    val conds = condMap.keySet.asScala.toSet
-    // count all observed targets as passes
-    val results = completed.asScala.toList
-      .map { r =>
-        Option(condMap.get((r.cond.branch.id, r.cond.cond))) match
-          case Some(js) => r.copy(status = "pass", js = Some(js))
-          case None     => r
-      }
-      .sortBy { r => (r.cond.branch.id, if (r.cond.cond) 0 else 1) }
+    val witnesses = condMap.asScala.toMap
+    val conds = witnesses.keySet
     val reached = (conds intersect targetKeys).size
     val outside = (conds -- targetKeys).size
-    val byStatus = results.groupBy(_.status)
-    val statusGroups =
-      List("pass", "fail-verify", "fail-reify", "unsolved", "timeout", "error")
-        .flatMap(status => byStatus.get(status).map(status -> _))
     val reachedPct = reached * 100.0 / selected.size
     val ablated = Ablation.enabled match
       case Nil  => ""
       case offs => s"Ablation: ${offs.mkString(", ")}\n"
-    val summary =
-      ablated +
+    summary = ablated +
       templateGen.summary +
       s"Solving: ${solving.summary.time.simpleString}\n" +
-      simplifying +
       "Status breakdown:\n" +
-      statusGroups.map { (status, rs) =>
+      statusGroups(outcomes(witnesses)).map { (status, rs) =>
         val count = rs.size
         val pct = count * 100.0 / selected.size
         f"  $status%-12s $count%5d (${pct}%5.1f%%)\n"
       }.mkString +
       f"\nReached targets: $reached/${selected.size} (${reachedPct}%.1f%%)\n" +
       s"Observed outside target set: $outside\n"
+    if (branch.isEmpty) print(summary)
+    witnesses
+  }
 
-    // dump programs and coverage after solving
+  /** dump the summary, and list the outcomes when one branch is targeted */
+  def report(witnesses: Map[(Int, Boolean), String]): Unit = {
+    val results = outcomes(witnesses)
     for (dir <- logDir) {
-      val witnesses = results.flatMap(r => r.js.map(r.cond -> _))
-      val programs = witnesses
-        .map(_._2)
-        .distinct
-        .zipWithIndex
-        .map { (js, index) => js -> (index + 1) }
-      val programIds = programs.toMap
-      dumpDir[(String, Int)](
-        name = s"${programs.size} ECMAScript programs",
-        iterable = programs,
-        dirname = s"$dir/programs",
-        getName = { case (_, id) => s"$id.js" },
-        getData = { case (js, _) => js },
-      )
-      // reuse the Fuzzer coverage format
-      import cov.jsonProtocol.given
-      val coverage = witnesses.zipWithIndex.map {
-        case ((cond, js), index) =>
-          CondViewInfo(
-            index,
-            CondView(cond, None),
-            s"programs/${programIds(js)}.js",
-          )
-      }
-      dumpJson(
-        name = "branch coverage",
-        data = coverage,
-        filename = s"$dir/branch-coverage.json",
-      )
-      val details = statusGroups.map { (status, rs) =>
+      val details = statusGroups(results).map { (status, rs) =>
         rs.map(r => s"  ${r.cond}  ${cfg.funcOf(r.cond.branch).name}")
           .mkString(s"\n[$status] ${rs.size}\n", "\n", "\n")
       }.mkString
@@ -298,12 +261,32 @@ class Solver(
         filename = s"$dir/summary",
       )
     }
-    if (branch.isEmpty) summary
-    else
-      results
-        .map(r => s"[${r.status}] ${r.cond}: ${r.js.getOrElse("no program")}")
-        .mkString("", "\n", "\n")
+    if (branch.nonEmpty)
+      for (r <- results)
+        println(s"[${r.status}] ${r.cond}: ${r.js.getOrElse("no program")}")
   }
+
+  /** the witnesses of the selected targets */
+  def targeted(witnesses: Map[(Int, Boolean), String]): List[(Cond, String)] =
+    outcomes(witnesses).flatMap(r => r.js.map(r.cond -> _))
+
+  // count all observed targets as passes
+  private def outcomes(
+    witnesses: Map[(Int, Boolean), String],
+  ): List[BranchResult] = completed.asScala.toList
+    .map { r =>
+      witnesses.get((r.cond.branch.id, r.cond.cond)) match
+        case Some(js) => r.copy(status = "pass", js = Some(js))
+        case None     => r
+    }
+    .sortBy { r => (r.cond.branch.id, if (r.cond.cond) 0 else 1) }
+
+  private def statusGroups(
+    results: List[BranchResult],
+  ): List[(String, List[BranchResult])] =
+    val byStatus = results.groupBy(_.status)
+    List("pass", "fail-verify", "fail-reify", "unsolved", "timeout", "error")
+      .flatMap(status => byStatus.get(status).map(status -> _))
 
   // ---------------------------------------------------------------------------
   // solving and concrete verification
@@ -414,27 +397,6 @@ class Solver(
     invocation.form.flatMap { (expr, holes) =>
       synth.synthesize(holes).map(vs => Invocation.fill(expr, vs))
     }
-  }
-
-  /** replace programs by simpler ones covering the same branch sides */
-  private def simplify(nThreads: Int): String = {
-    val programs = condMap.asScala.toList.groupMap(_._2)(_._1)
-    val bar = ProgressBar(
-      msg = s"simplifying ${programs.size} programs",
-      iterable = programs,
-      verbose = branch.isEmpty,
-      detail = false,
-      concurrent = CP.Fixed(nThreads),
-    )
-    bar.foreach { (js, conds) =>
-      val kept = (s: String) => Try(touched(s, () => ())).getOrElse(Set.empty)
-      for ((c, s) <- simplifier(js, conds.toSet, kept)) condMap.put(c, s)
-    }
-    val simplified = programs.count { (js, conds) =>
-      conds.exists(c => condMap.get(c) != js)
-    }
-    s"Simplification: ${bar.summary.time.simpleString}" +
-    s" ($simplified of ${programs.size} programs simplified)\n"
   }
 
   /** candidate branch sides touched by a program */

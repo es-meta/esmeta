@@ -2,20 +2,55 @@ package esmeta.solver
 
 import esmeta.cfg.{CFG, Func}
 import esmeta.es.*
-import esmeta.es.util.Walker
+import esmeta.es.util.{Coverage, Walker}
 import esmeta.ir.{Name, Ref}
 import esmeta.ir.util.UnitWalker
 import esmeta.spec.BuiltinHead
+import esmeta.util.{ConcurrentPolicy => CP, ProgressBar}
 import java.util.IdentityHashMap
+import java.util.concurrent.{ConcurrentHashMap => CMMap}
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
-class Simplifier(cfg: CFG) {
+/** reduce witnesses into simpler or bug-triggering forms, keeping coverage */
+class Reducer(cfg: CFG) {
+  private lazy val cov = Coverage(cfg, timeLimit = Some(2))
 
-  /** simpler programs for the branch sides they still cover */
+  /** branch sides a program touches, none if it fails */
+  private def touched(js: String): Set[(Int, Boolean)] = Try {
+    val conds = cov.run(js).touchedCondViews.keys.map(_.cond)
+    conds.map(c => (c.branch.id, c.cond)).toSet
+  }.getOrElse(Set.empty)
+
+  /** reduced witnesses */
   def apply(
+    witnesses: Map[(Int, Boolean), String],
+  ): Map[(Int, Boolean), String] = {
+    val programs = witnesses.toList.groupMap(_._2)(_._1)
+    val reduced = CMMap[(Int, Boolean), String](witnesses.asJava)
+    val bar = ProgressBar(
+      msg = s"reducing ${programs.size} programs",
+      iterable = programs,
+      detail = false,
+      concurrent = CP.Fixed(Runtime.getRuntime.availableProcessors),
+    )
+    bar.foreach { (js, conds) =>
+      for ((c, s) <- reduce(js, conds.toSet)) reduced.put(c, s)
+    }
+    val count = programs.count { (js, conds) =>
+      conds.exists(c => reduced.get(c) != js)
+    }
+    println(
+      s"Reduction: ${bar.summary.time.simpleString}" +
+      s" ($count of ${programs.size} programs reduced)",
+    )
+    reduced.asScala.toMap
+  }
+
+  /** smaller programs for the branch sides they still cover */
+  def reduce(
     js: String,
     conds: Set[(Int, Boolean)],
-    touched: String => Set[(Int, Boolean)],
   ): Map[(Int, Boolean), String] = {
     val groups = transforms.foldLeft(Map(js -> conds)) { (groups, transform) =>
       groups.toList
@@ -38,14 +73,14 @@ class Simplifier(cfg: CFG) {
   }
 
   lazy val transforms: List[(Syntactic, Ast => String) => Option[String]] =
-    flattenSpread :: // flatten spread elements for variadic arguments
-    weakenArgs ::: // weaken each argument position to `undefined`
-    trimUndefined :: // trim trailing `undefined` values
-    constructToNew :: // convert `Reflect.construct` to `new` exprs if possible
-    dropReceiver :: // drop receivers of builtins that never read `this`
-    accessorToProperty :: // call accessor descriptors as property accesses
-    callAsMethod :: // call prototype methods as methods of the receivers
-    hoistIIFE :: // hoist IIFE bodies to the top of the program
+    flattenSpread :: // simplify: flatten spread elements into arguments
+    weakenArgs ::: // trigger: pass `undefined` explicitly at each position
+    trimUndefined :: // trigger: omit trailing `undefined` arguments
+    constructToNew :: // simplify: `Reflect.construct` to `new` if possible
+    dropReceiver :: // simplify: drop receivers builtins never read
+    accessorToProperty :: // simplify: accessor calls to property accesses
+    callAsMethod :: // simplify: prototype method calls to method calls
+    hoistIIFE :: // simplify: hoist IIFE bodies to the top of the program
     Nil
 
   def run(

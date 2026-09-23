@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject conform-test mutate dump-debugger dump-visualizer solve yet-check"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject conform-test mutate dump-debugger dump-visualizer solve reduce yet-check"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets"
@@ -28,7 +28,8 @@ _esmeta_completions() {
   mutateOpt="-mutate:out -mutate:branch -mutate:kfs -mutate:duration -mutate:trial -mutate:debug"
   dumpdebuggerOpt=""
   dumpvisualizerOpt=""
-  solveOpt="-solve:branch -solve:side -solve:log -solve:detail-log -solve:no-shape -solve:no-template"
+  solveOpt="-solve:branch -solve:side -solve:log -solve:detail-log -solve:reduce -solve:no-shape -solve:no-template"
+  reduceOpt="-reduce:out"
   yetcheckOpt="-yet-check:log -yet-check:github-alert -yet-check:merge-threshold"
   # completion for commands
   case "${COMP_CWORD}" in
@@ -104,6 +105,10 @@ _esmeta_completions() {
           ;;
         solve)
           COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${solveOpt}"))
+          return 0
+          ;;
+        reduce)
+          COMPREPLY=($(compgen -W "${globalOpt} ${extractOpt} ${compileOpt} ${buildcfgOpt} ${reduceOpt}"))
           return 0
           ;;
         yet-check)
