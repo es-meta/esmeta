@@ -25,7 +25,17 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
     val optimize = config.opt || config.dslDir.isDefined
     val dslDir =
       if (optimize) Some(config.dslDir.getOrElse(POLYFILL_RULES_DIR)) else None
-    val polyfills = Generator(spec, dslDir)
+    val generator = new Generator(spec, dslDir, config.skipUnsupported)
+    val polyfills = generator.result
+    val skipped = generator.skipped
+
+    if (skipped.nonEmpty)
+      println(s"- WARNING: skipped ${skipped.size} algorithms using")
+      println("  metalanguage the translator does not support yet:")
+      for ((reason, names) <- skipped.groupMap(_._2)(_._1).toList.sortBy(_._1))
+        println(
+          s"    $reason (${names.size}): ${names.toList.sorted.mkString(", ")}",
+        )
 
     if (config.log)
       rmdir(POLYFILL_LOG_DIR)
@@ -45,6 +55,7 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
       config.out.getOrElse(POLYFILL_OUT_DIR),
       config.targets,
       optimize,
+      skipped,
     )
 
     polyfills
@@ -79,6 +90,12 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
       StrOption((c, s) => c.dslDir = Some(s)),
       "set a custom transformation rule directory (implies -gen-poly:opt).",
     ),
+    (
+      "skip-unsupported",
+      BoolOption(_.skipUnsupported = _),
+      "skip algorithms using metalanguage the translator does not support " +
+      "yet, packaging them as throwing stubs, instead of failing.",
+    ),
   )
   case class Config(
     var log: Boolean = false,
@@ -87,5 +104,6 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
     var targets: List[String] = Nil,
     var out: Option[String] = None,
     var dslDir: Option[String] = None,
+    var skipUnsupported: Boolean = false,
   )
 }

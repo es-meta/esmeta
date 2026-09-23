@@ -147,13 +147,7 @@ object Eraser {
   }
 }
 
-/** rule dispatcher
-  *
-  * Rules are tried in order and the first one that applies wins, so a rule with
-  * a more specific pattern must be placed before the more general one (e.g.
-  * `XRefInliningRule` before `LetStepTransform`). Steps that no rule handles
-  * are emitted as-is.
-  */
+/** rule dispatcher */
 class Rewriter(
   val rules: List[EraseRule],
   val algos: List[Algorithm],
@@ -194,14 +188,7 @@ class Rewriter(
   }
 }
 
-/** completion record erasure
-  *
-  * Unlike the other paths this one leaves the metalanguage: erasure introduces
-  * steps [[esmeta.lang.Step]] cannot represent, so it lifts each body into
-  * [[esmeta.es.util.polyfill.PolyfillStep]] and yields
-  * [[esmeta.es.util.polyfill.PolyfillAlgo]]. It therefore runs last, after
-  * every [[TransformPath]].
-  */
+/** completion record erasure */
 object CompletionPath {
   def apply(targets: List[Algorithm]): List[PolyfillAlgo] = {
     targets.map { algo =>

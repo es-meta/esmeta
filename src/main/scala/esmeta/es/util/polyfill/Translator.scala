@@ -1,5 +1,7 @@
 package esmeta.es.util.polyfill
 
+import esmeta.error.NotSupported
+import esmeta.error.NotSupported.Category.Metalanguage
 import esmeta.lang.*
 import esmeta.spec.*
 import esmeta.es.util.polyfill.util.UnitWalker as PolyfillUnitWalker
@@ -8,11 +10,6 @@ import esmeta.util.BaseUtils.raise
 import scala.collection.mutable
 import scala.collection.mutable.{ListBuffer, Stack}
 
-/** the Spec-to-JS translator of Section 4
-  *
-  * Lowers an algorithm whose completions have been erased -- a [[PolyfillAlgo]]
-  * over [[PolyfillStep]] -- into the JavaScript statements of a [[Polyfill]].
-  */
 class Translator(spec: Spec) {
 
   import Polyfill.*
@@ -22,7 +19,19 @@ class Translator(spec: Spec) {
   private val INTERNAL_HEADER = "IN";
   private val RESERVED_WORDS = Set("return")
 
-  /** compile an algorithm into a polyfill */
+  /** a metalanguage element the translator does not know how to translate yet
+    *
+    * The reason names the element and, when the element alone is ambiguous, the
+    * parts that make it unsupported (e.g. `LengthExpression/XRefExpression`).
+    */
+  private def unsupported(elem: Any, details: Any*): Nothing =
+    def nameOf(x: Any): String = x match
+      case p: Product => p.productPrefix
+      case _          => x.getClass.getSimpleName
+    throw NotSupported(Metalanguage)(
+      "polyfill" :: (elem +: details).map(nameOf).toList,
+    )
+
   def compile(algo: PolyfillAlgo): Polyfill =
     val pb = Builder()
 
@@ -75,15 +84,12 @@ class Translator(spec: Spec) {
         })
     })
 
-  /** compile with a new scope and convert it into a statement */
   def compileWithScope(pb: Builder, step: Step): Stmt =
     pb.newScope(compile(pb, step))
 
-  /** compile with a new scope and convert it into a statement */
   def compileWithScope(pb: Builder, step: PolyfillStep): Stmt =
     pb.newScope(compile(pb, step))
 
-  /** compile the steps of the polyfill pipeline language */
   def compile(pb: Builder, step: PolyfillStep): Unit = {
     import PolyfillStep.*
     step match {
@@ -154,7 +160,7 @@ class Translator(spec: Spec) {
           compileWithScope(pb, body),
         ),
       )
-    case other => raise(s"unsupported loop in polyfill: $other")
+    case other => unsupported(other)
   }
 
   /** compile the expressions of the polyfill pipeline language */
@@ -172,7 +178,6 @@ class Translator(spec: Spec) {
     }
   }
 
-  /** compile algorithm steps */
   def compile(
     pb: Builder,
     step: Step,
@@ -181,25 +186,25 @@ class Translator(spec: Spec) {
       pb.addStmt(NormalStmt(s"var ${compile(x)} = ${compile(pb, expr)};"))
     case SetStep(x, expr) =>
       pb.addStmt(NormalStmt(s"${compile(pb, x)} = ${compile(pb, expr)};"))
-    case SetAsStep(x, verb, id)                   => ???
-    case SetEvaluationStateStep(base, func, args) => ???
+    case SetAsStep(x, verb, id)                   => unsupported(step)
+    case SetEvaluationStateStep(base, func, args) => unsupported(step)
     case PerformStep(expr) =>
       pb.addStmt(NormalStmt(s"${compile(pb, expr)};"))
-    case InvokeShorthandStep(name, args) => ???
+    case InvokeShorthandStep(name, args) => unsupported(step)
     case AppendStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
           s"${INTERNAL_HEADER}__Append(${compile(pb, ref)}, ${compile(pb, expr)})",
         ),
       )
-    case InsertStep(expr, ref) => ???
+    case InsertStep(expr, ref) => unsupported(step)
     case PrependStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
           s"${INTERNAL_HEADER}__Prepend(${compile(pb, ref)}, ${compile(pb, expr)})",
         ),
       )
-    case AddStep(expr, ref) => ???
+    case AddStep(expr, ref) => unsupported(step)
     case ReplaceStep(oldElem, newElem, ref) =>
       pb.addStmt(
         NormalStmt(
@@ -210,11 +215,11 @@ class Translator(spec: Spec) {
       t match {
         case RemoveStep.Target.First(None) =>
           pb.addStmt(NormalStmt(s"${compile(pb, l)}.shift()"))
-        case _ => ???
+        case _ => unsupported(step, t)
       }
-    case PushContextStep(ref)       => ???
+    case PushContextStep(ref)       => unsupported(step)
     case SuspendStep(ref, rm)       => {}
-    case RemoveContextStep(ctxt, t) => ???
+    case RemoveContextStep(ctxt, t) => unsupported(step)
     case AssertStep(cond)           => ()
     case IfStep(cond, thenStep, elseStep, config) =>
       pb.addStmt(
@@ -255,22 +260,22 @@ class Translator(spec: Spec) {
         ),
       )
     case ForEachOwnPropertyKeyStep(key, obj, cond, ascending, order, body) =>
-      ???
-    case ForEachParseNodeStep(x, expr, body) => ???
+      unsupported(step)
+    case ForEachParseNodeStep(x, expr, body) => unsupported(step)
     case ReturnStep(expr) =>
       pb.addStmt(NormalStmt(s"return ${compile(pb, expr)};"))
     case ThrowStep(name) =>
       pb.addStmt(NormalStmt(s"throw new $name;"))
-    case ResumeStep(callerCtxt, arg, genCtxt, param, steps) => ???
-    case ResumeEvaluationStep(b, aOpt, pOpt, steps)         => ???
-    case ResumeTopContextStep()                             => ???
+    case ResumeStep(callerCtxt, arg, genCtxt, param, steps) => unsupported(step)
+    case ResumeEvaluationStep(b, aOpt, pOpt, steps)         => unsupported(step)
+    case ResumeTopContextStep()                             => unsupported(step)
     case NoteStep(note)                                     => ()
     case BlockStep(StepBlock(steps)) =>
       for (substep <- steps) compile(pb, substep.step)
     case YetStep(expr) => pb.addStmt(NormalStmt(compile(pb, expr)))
-    case SetFieldsWithIntrinsicsStep(ref, desc) => ???
-    case PerformBlockStep(b, d)                 => ???
-    case MetaStep(name, multiline, _)           => ???
+    case SetFieldsWithIntrinsicsStep(ref, desc) => unsupported(step)
+    case PerformBlockStep(b, d)                 => unsupported(step)
+    case MetaStep(name, multiline, _)           => unsupported(step)
   }
 
   /** compile local variable */
@@ -285,20 +290,20 @@ class Translator(spec: Spec) {
     case x: Variable                => compile(x)
     case Access(base, name, _, _)   => s"${compile(pb, base)}[\"$name\"]"
     case ValueOf(base)              => compile(pb, base)
-    case IntrinsicField(base, intr) => ???
+    case IntrinsicField(base, intr) => unsupported(ref)
     case IndexLookup(base, index) =>
       s"${compile(pb, base)}[${compile(pb, index)}]"
-    case BindingLookup(base, binding)   => ???
-    case NonterminalLookup(base, nt)    => ???
+    case BindingLookup(base, binding)   => unsupported(ref)
+    case NonterminalLookup(base, nt)    => unsupported(ref)
     case PositionalElement(base, true)  => s"${compile(pb, base)}[0]"
-    case PositionalElement(base, false) => ???
-    case IntrinsicObject(base, expr)    => ???
+    case PositionalElement(base, false) => unsupported(ref)
+    case IntrinsicObject(base, expr)    => unsupported(ref)
     case RunningExecutionContext() => "this" // TODO Single-Runtime Assumption
-    case SecondExecutionContext()  => ???
+    case SecondExecutionContext()  => unsupported(ref)
     case CurrentRealmRecord()      => "globalThis"
     case ActiveFunctionObject()    => "_self"
-    case AgentRecord()             => ???
-    case MetaReference(name, _)    => ???
+    case AgentRecord()             => unsupported(ref)
+    case MetaReference(name, _)    => unsupported(ref)
   }
 
   /** compile expressions */
@@ -318,25 +323,25 @@ class Translator(spec: Spec) {
       s"{${fields.map((fieldLit, fieldExpr) => s"\"${fieldLit.name}\": ${compile(pb, fieldExpr)}").mkString(", ")}}"
     case LengthExpression(ReferenceExpression(ref)) =>
       s"${compile(pb, ref)}.length"
-    case LengthExpression(expr) => ???
-    case StringExpression(expr) => compile(pb, expr)
+    case LengthExpression(inner) => unsupported(expr, inner)
+    case StringExpression(expr)  => compile(pb, expr)
     case SubstringExpression(expr, from, to) =>
       s"${INTERNAL_HEADER}__SubString(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
     case TrimExpression(expr, leading, trailing) =>
       s"${INTERNAL_HEADER}__Trim(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
       s"${compile(pb, ref)}.length"
-    case NumberOfExpression(_, _, expr, _) => ???
+    case NumberOfExpression(_, _, inner, _) => unsupported(expr, inner)
     case IntrinsicExpression(intr) =>
       if (intr.props.isEmpty)
         s"${intr.base}"
       else
         s"${intr.base}.${intr.props.mkString(".")}"
-    case SourceTextExpression(expr)      => ???
-    case CoveredByExpression(code, rule) => ???
-    case GetItemsExpression(nt, expr @ NonterminalLiteral(_, _, _, _)) =>
-      ???
-    case expr: GetItemsExpression => ???
+    case SourceTextExpression(_)         => unsupported(expr)
+    case CoveredByExpression(code, rule) => unsupported(expr)
+    case GetItemsExpression(_, inner: NonterminalLiteral) =>
+      unsupported(expr, inner)
+    case _: GetItemsExpression => unsupported(expr)
     case InvokeAbstractOperationExpression(name, args, tag) =>
       s"${AO_HEADER}__$name(${compile(pb, args)})"
     case InvokeNumericMethodExpression(ty, name, args) =>
@@ -352,7 +357,7 @@ class Translator(spec: Spec) {
           prefix,
           tag,
         ) =>
-      ???
+      unsupported(expr)
     case ReturnIfAbruptExpression(expr, _) => compile(pb, expr)
     case ListExpression(form) =>
       import ListExpressionForm.*
@@ -393,7 +398,7 @@ class Translator(spec: Spec) {
         case (Sub, List(l, r)) => s"${compile(pb, l)} - ${compile(pb, r)}"
         case (Pow, List(l, r)) =>
           s"Math.pow(${compile(pb, l)}, ${compile(pb, r)})"
-        case _ => ???
+        case _ => unsupported(expr, op)
     case BitwiseExpression(l, op, r) =>
       s"${compile(pb, l)} ${compile(op)} ${compile(pb, r)}"
     case AbstractClosureExpression(params, captured, body) =>
@@ -415,12 +420,12 @@ class Translator(spec: Spec) {
       s"${AO_HEADER}__${fname}"
     case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
       spec.getAlgoById(id).head.originalParams.length.toString
-    case XRefExpression(kind, id)    => ???
-    case SoleElementExpression(list) => ???
+    case XRefExpression(kind, id)    => unsupported(expr)
+    case SoleElementExpression(list) => unsupported(expr)
     case CodeUnitAtExpression(base, index) =>
       s"${compile(pb, base)}.charCodeAt(${compile(pb, index)})"
     case lit: Literal            => compile(lit)
-    case MetaExpression(name, _) => ???
+    case MetaExpression(name, _) => unsupported(expr)
   }
 
   /** compile iterable of expressions */
@@ -458,12 +463,12 @@ class Translator(spec: Spec) {
     op match {
       case Max      => s"Math.max"
       case Min      => s"Math.min"
-      case Abs      => ???
+      case Abs      => unsupported(op)
       case Floor    => s"Math.floor"
       case Truncate => s"Math.trunc"
-      case Log10    => ???
-      case Log2     => ???
-      case Log      => ???
+      case Log10    => unsupported(op)
+      case Log2     => unsupported(op)
+      case Log      => unsupported(op)
     }
 
   def compileTypeCheck(expr: String, ty: String): String = ty match
@@ -494,8 +499,8 @@ class Translator(spec: Spec) {
         )
     case HasFieldCondition(ref, neg, field, form, opTy) =>
       negateIf(neg)(s"${compile(pb, field)} in ${compile(pb, ref)}")
-    case HasBindingCondition(ref, neg, binding)    => ???
-    case ProductionCondition(nt, lhsName, rhsName) => ???
+    case HasBindingCondition(ref, neg, binding)    => unsupported(cond)
+    case ProductionCondition(nt, lhsName, rhsName) => unsupported(cond)
     case PredicateCondition(expr, neg, op) =>
       import PredicateConditionOperator.*
       op match {
@@ -529,7 +534,7 @@ class Translator(spec: Spec) {
         case LessThanEqual    => s"$l <= $r"
         case GreaterThan      => s"$l > $r"
         case GreaterThanEqual => s"$l >= $r"
-        case SameCodeUnits    => ???
+        case SameCodeUnits    => unsupported(cond, op)
       }
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)
@@ -538,7 +543,7 @@ class Translator(spec: Spec) {
       negateIf(neg)(
         s"${INTERNAL_HEADER}__Contains(${compile(pb, list)}, ${compile(pb, target)})",
       )
-    case ContainsCondition(list, neg, _) => ???
+    case ContainsCondition(_, _, target) => unsupported(cond, target)
     case CompoundCondition(left, op, right) =>
       import CompoundConditionOperator.*
       lazy val l = compile(pb, left)
@@ -546,14 +551,14 @@ class Translator(spec: Spec) {
       op match
         case And   => s"$l && $r"
         case Or    => s"$l || $r"
-        case Imply => ???
-    case MetaCondition(name, _) => ???
+        case Imply => unsupported(cond, op)
+    case MetaCondition(name, _) => unsupported(cond)
   }
 
   def compile(lit: Literal): String =
     lit match {
       case _: ThisLiteral          => "this"
-      case _: ThisParseNodeLiteral => ???
+      case _: ThisParseNodeLiteral => unsupported(lit)
       case _: NewTargetLiteral     => "new.target"
       // A hex literal is a bare code point where the specification compares
       // numbers, and the character it names where the specification calls it a
@@ -561,15 +566,16 @@ class Translator(spec: Spec) {
       case HexLiteral(hex, hasCodeUnitDescription, _, _) =>
         val value = s"0x${hex.toHexString.toUpperCase}"
         if (hasCodeUnitDescription) s"String.fromCharCode($value)" else value
-      case CodeLiteral(code)                                    => s"\"$code\""
-      case ConstantLiteral(name)                                => ???
-      case GrammarSymbolLiteral(name, flags)                    => ???
-      case NonterminalLiteral(ordinal, name, flags, hasArticle) => ???
-      case EnumLiteral(name)                                    => s"\"$name\""
-      case StringLiteral(str, _)                                => s"\"$str\""
-      case FieldLiteral(name)                                   => s"\"$name\""
+      case CodeLiteral(code)                 => s"\"$code\""
+      case ConstantLiteral(name)             => unsupported(lit)
+      case GrammarSymbolLiteral(name, flags) => unsupported(lit)
+      case NonterminalLiteral(ordinal, name, flags, hasArticle) =>
+        unsupported(lit)
+      case EnumLiteral(name)           => s"\"$name\""
+      case StringLiteral(str, _)       => s"\"$str\""
+      case FieldLiteral(name)          => s"\"$name\""
       case SymbolLiteral(sym)          => s"Symbol.$sym"
-      case ProductionLiteral(lhs, rhs) => ???
+      case ProductionLiteral(lhs, rhs) => unsupported(lit)
       case ErrorObjectLiteral(name) =>
         name match {
           case "AggregateError" => s"new $name(errors)"
@@ -578,21 +584,21 @@ class Translator(spec: Spec) {
       case _: PositiveInfinityMathValueLiteral => "Infinity"
       case _: NegativeInfinityMathValueLiteral => "-Infinity"
       case DecimalMathValueLiteral(n)          => s"$n"
-      case MathConstantLiteral(pre, name)      => ???
+      case MathConstantLiteral(pre, name)      => unsupported(lit)
       case NumberLiteral(n)        => if (n.toInt == n) s"${n.toInt}" else s"$n"
       case BigIntLiteral(n)        => s"${n}n"
       case _: TrueLiteral          => "true"
       case _: FalseLiteral         => "false"
       case _: UndefinedLiteral     => "undefined"
       case _: NullLiteral          => "null"
-      case _: UndefinedTypeLiteral => ???
-      case _: NullTypeLiteral      => ???
-      case _: BooleanTypeLiteral   => ???
-      case _: StringTypeLiteral    => ???
-      case _: SymbolTypeLiteral    => ???
-      case _: NumberTypeLiteral    => ???
-      case _: BigIntTypeLiteral    => ???
-      case _: ObjectTypeLiteral    => ???
+      case _: UndefinedTypeLiteral => unsupported(lit)
+      case _: NullTypeLiteral      => unsupported(lit)
+      case _: BooleanTypeLiteral   => unsupported(lit)
+      case _: StringTypeLiteral    => unsupported(lit)
+      case _: SymbolTypeLiteral    => unsupported(lit)
+      case _: NumberTypeLiteral    => unsupported(lit)
+      case _: BigIntTypeLiteral    => unsupported(lit)
+      case _: ObjectTypeLiteral    => unsupported(lit)
     }
 }
 

@@ -1,6 +1,6 @@
 package esmeta.es.util.polyfill
 
-import esmeta.es.*
+import esmeta.error.NotSupported
 import esmeta.es.util.polyfill.completion.CompletionPath
 import esmeta.es.util.polyfill.dsl.*
 import esmeta.lang.*
@@ -11,17 +11,42 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 object Generator {
-  def apply(spec: Spec, dslDir: Option[String]): List[Polyfill] =
-    new Generator(spec, dslDir).result
+  def apply(
+    spec: Spec,
+    dslDir: Option[String],
+    skipUnsupported: Boolean = false,
+  ): List[Polyfill] =
+    new Generator(spec, dslDir, skipUnsupported).result
 }
 
-class Generator(spec: Spec, dslDir: Option[String]) {
+/** polyfill generator
+  *
+  * @param skipUnsupported
+  *   drop algorithms whose metalanguage the translator does not support yet,
+  *   recording why in `skipped`, instead of failing on the first one
+  */
+class Generator(
+  spec: Spec,
+  dslDir: Option[String],
+  skipUnsupported: Boolean = false,
+) {
 
   private val translator = Translator(spec)
+  private val skippedBuffer = mutable.ListBuffer[(String, String)]()
 
   lazy val result: List[Polyfill] =
     val optimizedTargets = optPaths.foldLeft(targets) { (x, optim) => optim(x) }
-    CompletionPath(optimizedTargets).map(translator.compile)
+    CompletionPath(optimizedTargets).flatMap { algo =>
+      try Some(translator.compile(algo))
+      catch
+        case e: NotSupported =>
+          if (!skipUnsupported) throw NotSupported(e.reasonPath :+ algo.name)
+          skippedBuffer += algo.name -> e.reasonPath.mkString("/")
+          None
+    }
+
+  /** algorithms dropped by `skipUnsupported`, with the reason for each */
+  lazy val skipped: Map[String, String] = { result; skippedBuffer.toMap }
 
   val optPaths: List[TransformPath] =
     List(ShorthandInlinePath(spec)) ++ dslDir.map(DSLPath(_))
