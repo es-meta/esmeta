@@ -170,8 +170,8 @@ case class Pos(
   override def toString: String = s"$line:$column($offset)"
 }
 
-/** ordering of locations */
-given Ordering[Loc] = Ordering.by(loc => (loc.start, loc.end))
-
 /** ordering of positions */
 given Ordering[Pos] = Ordering.by(pos => (pos.line, pos.column))
+
+/** ordering of locations */
+given Ordering[Loc] = Ordering.by(loc => (loc.start, loc.end))
