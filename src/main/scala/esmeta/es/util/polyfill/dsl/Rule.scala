@@ -9,24 +9,6 @@ sealed trait Rule[T <: LangElem] {
   def predicates: Map[String, LangElemPredicate]
   def subrules: List[Rule[LangElem]]
 
-  /** Pretty-print the rule tree for debugging. */
-  def prettyPrint(indent: Int = 0): String =
-    val pad = "  " * indent
-    val kind = this.getClass.getSimpleName
-    val predStr =
-      if (predicates.isEmpty) ""
-      else predicates.keys.mkString("  preds=[", ", ", "]")
-    val replStr = replace match
-      case Some(_) => "  replace=yes"
-      case None    => "  replace=no"
-    val header = s"${pad}${kind}(${name})${predStr}${replStr}\n"
-    val patStr = s"${pad}  pattern: ${pattern}\n"
-    val repStr = replace match
-      case Some(r) => s"${pad}  replace: ${r}\n"
-      case None    => ""
-    val subStr = subrules.map(_.prettyPrint(indent + 1)).mkString
-    header + patStr + repStr + subStr
-
   def isMultiStepRule: Boolean =
     pattern match {
       case _: BlockStep => true

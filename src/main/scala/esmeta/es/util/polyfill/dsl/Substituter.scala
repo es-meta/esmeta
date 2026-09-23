@@ -3,8 +3,6 @@ package esmeta.es.util.polyfill.dsl
 import esmeta.lang.*
 import esmeta.lang.util.Walker as LangWalker
 
-import AstExtensions.*
-
 object Substituter {
 
   private def mkWalker(bindings: CaptureEnv): LangWalker = new LangWalker {

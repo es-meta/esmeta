@@ -156,9 +156,7 @@ class CaseCollector extends UnitWalker {
       case PerformBlockStep(block, desc) =>
         s"perform the following substeps in an implementation-defined order ..."
       // Should not reach here (polyfill)
-      case WrappedTryCatchStep(t, c, cb) => ???
-      case TaggedStep(s, t)              => ???
-      case MetaStep(name, multiline, _)  => ???
+      case MetaStep(name, multiline, _) => ???
     })
     super.walk(step)
   }

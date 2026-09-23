@@ -99,9 +99,7 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
-    case WrappedTryCatchStep(t, c, cb) => walk(t); walk(c); walkOpt(cb, walk)
-    case TaggedStep(s, t)              => walk(s)
-    case MetaStep(_, _, _)             =>
+    case MetaStep(_, _, _) =>
   }
 
   def walk(target: RemoveStep.Target): Unit =

@@ -347,10 +347,6 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[YetStep] = deriveDecoderWithType
   given Encoder[YetStep] = deriveEncoderWithType
   // TODO Remove these
-  given Decoder[WrappedTryCatchStep] = deriveDecoderWithType
-  given Encoder[WrappedTryCatchStep] = deriveEncoderWithType
-  given Decoder[TaggedStep] = deriveDecoderWithType
-  given Encoder[TaggedStep] = deriveEncoderWithType
   // TODO
   given Decoder[Step] = deriveDecoderWithType
   given Encoder[Step] = deriveEncoderWithType

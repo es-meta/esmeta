@@ -1,0 +1,69 @@
+{
+  "knownFailures": {
+    "basic": {
+      "Map": {
+        "test/built-ins/Map/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/Map/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      },
+      "Set": {
+        "test/built-ins/Set/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/Set/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      },
+      "Promise": {
+        "test/built-ins/Promise/get-prototype-abrupt-executor-not-callable.js [default]": "[[Construct]] on an ordinary function pre-creates this, so Get(newTarget, prototype) runs before the body; a built-in constructor does not (core-js fails this too)",
+        "test/built-ins/Promise/get-prototype-abrupt-executor-not-callable.js [strict mode]": "[[Construct]] on an ordinary function pre-creates this, so Get(newTarget, prototype) runs before the body; a built-in constructor does not (core-js fails this too)",
+        "test/built-ins/Promise/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/Promise/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      },
+      "Promise.all": {
+        "test/built-ins/Promise/all/does-not-invoke-array-setters.js [default]": "deliberate: spec Lists are modelled as JS arrays for performance, so a list-index write can reach an Array.prototype setter (core-js fails these too)",
+        "test/built-ins/Promise/all/does-not-invoke-array-setters.js [strict mode]": "deliberate: spec Lists are modelled as JS arrays for performance, so a list-index write can reach an Array.prototype setter (core-js fails these too)"
+      },
+      "Promise.allSettled": {
+        "test/built-ins/Promise/allSettled/does-not-invoke-array-setters.js [default]": "deliberate: spec Lists are modelled as JS arrays for performance, so a list-index write can reach an Array.prototype setter (core-js fails these too)",
+        "test/built-ins/Promise/allSettled/does-not-invoke-array-setters.js [strict mode]": "deliberate: spec Lists are modelled as JS arrays for performance, so a list-index write can reach an Array.prototype setter (core-js fails these too)"
+      },
+      "WeakMap": {
+        "test/built-ins/WeakMap/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/WeakMap/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      },
+      "WeakSet": {
+        "test/built-ins/WeakSet/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/WeakSet/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      }
+    },
+    "opt": {
+      "Map": {
+        "test/built-ins/Map/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/Map/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      },
+      "Set": {
+        "test/built-ins/Set/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/Set/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      },
+      "Promise": {
+        "test/built-ins/Promise/get-prototype-abrupt-executor-not-callable.js [default]": "[[Construct]] on an ordinary function pre-creates this, so Get(newTarget, prototype) runs before the body; a built-in constructor does not (core-js fails this too)",
+        "test/built-ins/Promise/get-prototype-abrupt-executor-not-callable.js [strict mode]": "[[Construct]] on an ordinary function pre-creates this, so Get(newTarget, prototype) runs before the body; a built-in constructor does not (core-js fails this too)",
+        "test/built-ins/Promise/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/Promise/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      },
+      "Promise.all": {
+        "test/built-ins/Promise/all/does-not-invoke-array-setters.js [default]": "deliberate: spec Lists are modelled as JS arrays for performance, so a list-index write can reach an Array.prototype setter (core-js fails these too)",
+        "test/built-ins/Promise/all/does-not-invoke-array-setters.js [strict mode]": "deliberate: spec Lists are modelled as JS arrays for performance, so a list-index write can reach an Array.prototype setter (core-js fails these too)"
+      },
+      "Promise.allSettled": {
+        "test/built-ins/Promise/allSettled/does-not-invoke-array-setters.js [default]": "deliberate: spec Lists are modelled as JS arrays for performance, so a list-index write can reach an Array.prototype setter (core-js fails these too)",
+        "test/built-ins/Promise/allSettled/does-not-invoke-array-setters.js [strict mode]": "deliberate: spec Lists are modelled as JS arrays for performance, so a list-index write can reach an Array.prototype setter (core-js fails these too)"
+      },
+      "WeakMap": {
+        "test/built-ins/WeakMap/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/WeakMap/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      },
+      "WeakSet": {
+        "test/built-ins/WeakSet/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
+        "test/built-ins/WeakSet/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
+      }
+    }
+  },
+  "allowedDivergences": {}
+}

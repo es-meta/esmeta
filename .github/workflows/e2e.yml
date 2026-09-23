@@ -51,3 +51,49 @@ jobs:
         fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  polyfill:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+        cache: sbt
+
+    - name: Setup SBT
+      uses: sbt/setup-sbt@v1
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: tests/polyfill/package-lock.json
+
+    - name: Generate polyfills (both configurations)
+      run: |
+        sbt "run gen-poly -gen-poly:out=logs/polyfill/basic"
+        sbt "run gen-poly -gen-poly:opt -gen-poly:out=logs/polyfill/opt"
+
+    - name: Run test262 against the polyfills
+      run: |
+        cd $ESMETA_HOME/tests/polyfill
+        npm ci
+        npm test
+
+    - name: Report Status
+      if: failure()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -14,7 +14,7 @@ case class UnifyResult(
 
 object Unifier {
 
-  import Analyzer.{SymPath, ⊔, =~=}
+  import Analyzer.{SymPath, ⊔}
 
   def merge(envs: CaptureEnv*): Option[CaptureEnv] = {
     def mergeEnv(
@@ -238,7 +238,7 @@ object Unifier {
           ListExpression(ListExpressionForm.EmptyList(_, _)),
         ) =>
       Some(Map.empty)
-    case (ListCopyExpression(pExpr), ListCopyExpression(cExpr)) =>
+    case (CopyExpression(pExpr, _), CopyExpression(cExpr, _)) =>
       unify(pExpr, cExpr, ctx, preds)
     case (
           NumberOfExpression(_, _, pExpr, _),
@@ -296,8 +296,8 @@ object Unifier {
         ) if pCheck == cCheck =>
       unify(pExpr, cExpr, ctx, preds)
     case (
-          BinaryExpression(pLeft, pOp, pRight),
-          BinaryExpression(cLeft, cOp, cRight),
+          BinaryExpression(pLeft, pOp, pRight, _),
+          BinaryExpression(cLeft, cOp, cRight, _),
         ) if pOp == cOp =>
       for {
         lEnv <- unify(pLeft, cLeft, ctx, preds)
@@ -320,7 +320,6 @@ object Unifier {
     case _                                  => None
   }
 
-  // helper to unify Variables as References
   private def unify(
     pattern: Variable,
     concrete: Variable,
@@ -367,7 +366,7 @@ object Unifier {
           PredicateCondition(pExpr, pNeg, pOp),
           PredicateCondition(cExpr, cNeg, cOp),
         ) if pNeg == cNeg && pOp == cOp =>
-      unify(pExpr, cExpr, ctx, preds)
+      unifyList(pExpr, cExpr, ctx, preds, unify)
     case _ => None
   }
 
@@ -437,9 +436,7 @@ object Unifier {
     preds: Map[String, LangElemPredicate],
     collector: SymPathCollector,
     state: Analyzer.AbsState,
-  ): Option[CaptureEnv] = {
-    // Delegate to the normal unify, then scan the result for reference captures
-    // and record their symbolic paths
+  ): Option[CaptureEnv] =
     unify(pattern, concrete, ctx, preds).map { env =>
       env.foreach {
         case (key, elem) =>
@@ -447,12 +444,11 @@ object Unifier {
             case ref: Reference =>
               val path = Analyzer.resolvePath(ref, state)
               if (path.nonEmpty) collector.record(key, path)
-            case _ => // non-reference captures don't need sympath tracking
+            case _ => // only references carry a symbolic path
           }
       }
       env
     }
-  }
 
   // ---------------------------------------------------------------------------
   // Variant validation

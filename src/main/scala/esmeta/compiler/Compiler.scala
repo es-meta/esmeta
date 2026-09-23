@@ -547,9 +547,7 @@ class Compiler(
       for (substep <- block.steps) compile(fb, substep.step)
 
     // Should not reach here (polyfill)
-    case WrappedTryCatchStep(t, c, cb) => ???
-    case TaggedStep(s, t)              => ???
-    case MetaStep(name, multiline, _)  => ???
+    case MetaStep(name, multiline, _) => ???
   })
 
   /** compile local variable */

@@ -1,10 +1,7 @@
 package esmeta.es.util.polyfill.dsl
 
-import esmeta.es.util.TransformPath
 import esmeta.lang.*
 import esmeta.spec.Algorithm
-
-import scala.annotation.tailrec
 
 import AstExtensions.*
 

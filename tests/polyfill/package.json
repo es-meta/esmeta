@@ -1,0 +1,16 @@
+{
+  "name": "esmeta-polyfill-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "end-to-end test running test262 against the polyfills ESMeta generates",
+  "scripts": {
+    "test": "node run.js",
+    "baseline": "node run.js --update-baseline"
+  },
+  "devDependencies": {
+    "js-yaml": "^4.1.0",
+    "test262-harness": "^10.0.0",
+    "webpack": "^5.104.0",
+    "webpack-cli": "^6.0.1"
+  }
+}

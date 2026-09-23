@@ -23,11 +23,6 @@ object EarlyReturn {
     site: Option[InvokeSite],
   )
 
-  def needsWrapping(rule: StepRule, bindings: CaptureEnv): Boolean = {
-    val analysis = analyze(rule)
-    hasReturningMovedBody(analysis.moved, bindings)
-  }
-
   def wrapIfNeeded(
     rule: StepRule,
     bindings: CaptureEnv,

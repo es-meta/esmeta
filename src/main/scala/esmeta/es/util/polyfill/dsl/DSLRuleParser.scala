@@ -4,7 +4,6 @@ import AstExtensions.flatten
 import AstExtensions.rawSteps
 import esmeta.lang.*
 import esmeta.lang.util.UnitWalker as LangUnitWalker
-import esmeta.lang.util.Walker as LangWalker
 import esmeta.util.SystemUtils.*
 import io.circe.*
 import io.circe.yaml.scalayaml.parser as yamlParser
@@ -15,40 +14,23 @@ import scala.util.Try
 
 object DSLRuleParser {
 
-  def parseDir(dir: String): List[Rule[LangElem]] = {
-    // println(s"[DSLRuleParser] parseDir: $dir")
-    val files = new File(dir)
+  def parseDir(dir: String): List[Rule[LangElem]] =
+    new File(dir)
       .listFiles()
       .filter(_.getName.endsWith(".yaml"))
       .sortBy(_.getName)
-    // println(s"[DSLRuleParser] found ${files.length} YAML files: ${files.map(_.getName).mkString(", ")}")
-    val rules = files.flatMap(f => parseFile(f.getAbsolutePath)).toList
-    // println(s"[DSLRuleParser] parsed ${rules.length} rules total")
-    rules
-  }
+      .flatMap(f => parseFile(f.getAbsolutePath))
+      .toList
 
   def parseFile(path: String): List[Rule[LangElem]] = {
-    // println(s"[DSLRuleParser] parseFile: $path")
-    val content = readFile(path)
-
-    val json = yamlParser.parse(content) match {
+    val json = yamlParser.parse(readFile(path)) match {
       case Right(j) => j
-      case Left(e)  =>
-        // println(s"[DSLRuleParser]   YAML parse error: $e")
+      case Left(e) =>
         throw new RuntimeException(s"YAML syntax error in $path: $e")
     }
 
     json.asObject match {
-      case Some(_) =>
-        try {
-          val rule = parseRule(json)
-          // println(s"[DSLRuleParser]   OK: ${rule.name} (${rule.getClass.getSimpleName})")
-          List(rule)
-        } catch {
-          case e: Exception =>
-            // println(s"[DSLRuleParser]   FAILED: ${e.getMessage}")
-            throw e
-        }
+      case Some(_) => List(parseRule(json))
       case None =>
         throw new RuntimeException(
           s"Expected YAML array or object in $path",
@@ -56,8 +38,6 @@ object DSLRuleParser {
     }
   }
 
-  // No yet
-  // No blockstep with single step
   def ensureComplete[T <: LangElem](body: T): T = {
     var yetFound = false
     var hasSingleStepBlock = false
@@ -123,12 +103,7 @@ object DSLRuleParser {
       getStringOpt(obj, "replace").map(_.trim).filter(_.nonEmpty)
     val predicates = parsePredicateConstraints(obj)
 
-    // println(s"[DSLRuleParser]   parseRule '$name'")
-    // println(s"[DSLRuleParser]     pattern: ${patternText.take(80)}")
-    // println(s"[DSLRuleParser]     replace: ${replaceText.map(_.take(80))}")
-    // println(s"[DSLRuleParser]     predicates: ${predicates.keys.mkString(", ")}")
-
-    // Auto-detect pattern type: try ref, cond, expr, step in order
+    // the pattern's syntactic category is not declared, so each is tried in turn
     val attempts = List[(String, String => LangElem)](
       "ref" -> (text => ensureComplete(DSLParser(defs).parseRef(text))),
       "expr" -> (text => ensureComplete(DSLParser(defs).parseExpr(text))),
@@ -138,16 +113,7 @@ object DSLRuleParser {
       ),
     )
     val results = attempts.map {
-      case (label, f) =>
-        val r = label -> Try(f(patternText))
-        r._2 match
-          case scala.util.Success(
-                _,
-              ) => // println(s"[DSLRuleParser]     try $label: OK")
-          case scala.util.Failure(
-                e,
-              ) => // println(s"[DSLRuleParser]     try $label: ${e.getMessage.take(60)}")
-        r
+      case (label, f) => label -> Try(f(patternText))
     }
     val patternElem: LangElem = results
       .collectFirst {
@@ -165,12 +131,10 @@ object DSLRuleParser {
 
     val patternDefs = metaDefs(patternElem) ++ defs
 
-    // Parse subrules with inherited meta-variable definitions
     val subrules = getArrayOpt(obj, "subrules")
       .map(_.toList.map(subrule => parseRule(subrule, patternDefs)))
       .getOrElse(List.empty)
 
-    // Construct the appropriate rule type based on parsed pattern
     patternElem match {
       case patRef: Reference =>
         val repRef = replaceText.map(rt =>
@@ -190,7 +154,6 @@ object DSLRuleParser {
           )
         ExpressionRule(name, patExpr, repExpr, predicates, subrules)
       case patStep: Step =>
-        // println(s"[DSLRuleParser]     patternDefs: ${patternDefs.map { case (k, v) => s"$k:${v.getClass.getSimpleName}" }.mkString(", ")}")
         val repStep =
           replaceText.map { rt =>
             ensureComplete(
@@ -251,13 +214,8 @@ object DSLRuleParser {
                           varName,
                           Analyzer.resolvePath(ref, ctx.symbolicPaths),
                         )
-                      val result =
-                        path.nonEmpty && PredicateExpr.matches(path, regex)
-                      // println(s"    [PRED-DETAIL] pred=$predName ref=$ref path=${path.mkString(".")} result=$result")
-                      result
-                    case other =>
-                      // println(s"    [PRED-DETAIL] unhandled type=${other.getClass.getSimpleName} node=$other")
-                      false
+                      path.nonEmpty && PredicateExpr.matches(path, regex)
+                    case _ => false
                   }
                 varName -> pred
               case _ =>
@@ -268,71 +226,6 @@ object DSLRuleParser {
           }
           .toMap
     }
-  }
-
-  /** Parse the legacy predicates: YAML list into a map of name → expression
-    * string.
-    */
-  private def parsePredDefinitions(
-    obj: JsonObject,
-  ): Map[String, String] = {
-    getArrayOpt(obj, "predicates")
-      .map { arr =>
-        arr.flatMap { json =>
-          json.asObject
-            .map { inner =>
-              inner.toList.collect {
-                case (name, value) if value.asString.isDefined =>
-                  name -> value.asString.get
-              }
-            }
-            .getOrElse(List.empty)
-        }.toMap
-      }
-      .getOrElse(Map.empty)
-  }
-
-  // ---------------------------------------------------------------------------
-  // Text parsing helpers
-  // ---------------------------------------------------------------------------
-
-  /** Parse text as a single step. */
-  private def parseStepText(text: String): Step = {
-    val t = text.trim
-    if (t.startsWith("1.")) {
-      val steps = parseStepListText(t)
-      if (steps.length == 1) steps.head
-      else BlockStep(StepBlock(steps.map(SubStep(None, _))))
-    } else {
-      DSLParser().parseStep(t)
-    }
-  }
-
-  /** Parse text as a list of steps (numbered "1. ..."). Wraps in a dummy
-    * ForEach to get the block parser to work, then extracts the step list.
-    */
-  private def parseStepListText(text: String): List[Step] = {
-    val trimmed = text.trim
-    // Wrap in a dummy step so the indent parser can handle the block
-    val wrapped =
-      s"for each _dummy_ of _dummy_, do\n${trimmed.linesIterator.map("  " + _).mkString("\n")}"
-    val parsed = DSLParser().parseStep(wrapped)
-    parsed match {
-      case ForEachStep(_, _, _, _, BlockStep(StepBlock(steps))) =>
-        steps.map(_.step)
-      case ForEachStep(_, _, _, _, singleStep) =>
-        List(singleStep)
-      case _ =>
-        throw new RuntimeException(
-          s"Failed to parse step list: $trimmed",
-        )
-    }
-  }
-
-  /** Try to parse text as an expression. */
-  private def tryParseExpr(text: String): Option[Expression] = {
-    try { Some(DSLParser().parseExpr(text)) }
-    catch { case _: Throwable => None }
   }
 
   // ---------------------------------------------------------------------------
@@ -350,12 +243,6 @@ object DSLRuleParser {
     key: String,
   ): Option[String] =
     obj(key).flatMap(_.asString).map(_.strip())
-
-  private def getBoolOpt(
-    obj: JsonObject,
-    key: String,
-  ): Option[Boolean] =
-    obj(key).flatMap(_.asBoolean)
 
   private def getArrayOpt(
     obj: JsonObject,

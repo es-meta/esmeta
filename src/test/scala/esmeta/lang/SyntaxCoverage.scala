@@ -11,9 +11,29 @@ trait SyntaxCoverage extends ESMetaTest {
   def checkSyntaxCoverage(desc: String)(syntax: => Iterable[Syntax]): Unit =
     for ((category, names) <- leafNames) check(s"$desc ($category)") {
       val covered = coveredNames(syntax)
-      val missing = names.filterNot(covered.contains)
+      val missing =
+        names.filterNot(covered.contains).filterNot(uncoverable.contains)
       if (missing.nonEmpty) fail(s"uncovered: ${missing.mkString(", ")}")
     }
+
+  /** leaf cases the corpus cannot cover
+    *
+    * These are the meta-variable holes of the polyfill DSL: they have no
+    * surface syntax, so no corpus entry can parse to one, and the compiler
+    * cannot lower them. They live in the metalanguage only because the DSL
+    * parses its rule patterns with the metalanguage grammar, through the
+    * `extraStep`/`extraExpr`/`extraCond`/`extraRef` hooks, and a sealed `Step`
+    * admits no subtype declared elsewhere.
+    *
+    * TODO: remove this exemption once the DSL owns its own pattern grammar, so
+    * the holes can leave `esmeta.lang` the way the polyfill pipeline steps did.
+    */
+  private val uncoverable: Set[String] = Set(
+    "MetaStep",
+    "MetaExpression",
+    "MetaCondition",
+    "MetaReference",
+  )
 
   /** check whether the given syntax covers the whole `LangTest` corpus */
   def checkCorpusCoverage(desc: String)(syntax: => Iterable[Syntax]): Unit =

@@ -13,14 +13,14 @@ trait Parsers extends IndentParsers {
   // shortcuts
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
-  
+
   // extension points for DSL parser (override in DSLParsers)
   def extraStep: PL[Step] = failure("no extra step")
   def extraExpr: PL[Expression] = failure("no extra expr")
   def extraCond: PL[Condition] = failure("no extra cond")
   def extraRef: PL[Reference] = failure("no extra ref")
   def extraVariable: PL[Variable] = failure("no extra variable")
-  
+
   /** names of constants defined by `emu-eqn` elements in ECMA-262 */
   def constNames: Set[String] = Set()
 
@@ -415,7 +415,7 @@ trait Parsers extends IndentParsers {
     "the list-concatenation of" ~> repsep(expr, sep("and")) ^^ {
       ListConcatExpression(_)
     }
-  
+
   // shallow copy expressions
   lazy val copyExpr: PL[CopyExpression] =
     import CopyExpressionForm.*
@@ -848,11 +848,11 @@ trait Parsers extends IndentParsers {
 
   // names for operations
   lazy val opName: Parser[String] =
-    "[a-zA-Z][a-zA-Z0-9/]*".r.filter(!mathFuncNames.contains(_))
+    "[a-zA-Z][a-zA-Z0-9/_]*".r.filter(!mathFuncNames.contains(_))
 
   lazy val shorthandName: Parser[String] =
     opName <~ guard(elem('('))
-  
+
   lazy val mathFuncNames: Set[String] = Set(
     "max",
     "min",

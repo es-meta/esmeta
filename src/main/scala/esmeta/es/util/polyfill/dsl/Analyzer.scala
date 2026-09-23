@@ -121,7 +121,6 @@ object Analyzer {
 
   private def analyzeStep(step: Step, state: AbsState): (AbsState, AStep) =
     step match
-      // variable binding / mutation
       case LetStep(Variable(x, _, _, _), expr) =>
         val exitState = state.updated(x, evalExpr(expr, state))
         (exitState, AStep(step, state, Nil))
@@ -133,7 +132,6 @@ object Analyzer {
       case SetStep(_: Access, _) =>
         (state, AStep(step, state, Nil))
 
-      // sequential composition
       case BlockStep(StepBlock(subSteps)) =>
         val (exitState, achildren) =
           subSteps.foldLeft((state, List.empty[AStep])) {
@@ -143,7 +141,6 @@ object Analyzer {
           }
         (exitState, AStep(step, state, achildren))
 
-      // branch — join both arms
       case IfStep(_, thenStep, elseStep, _) =>
         val (thenExit, aThen) = analyzeStep(thenStep, state)
         val (elseExit, aElse) = elseStep match
@@ -155,7 +152,7 @@ object Analyzer {
         val exitState = thenExit ⊔ elseExit
         (exitState, AStep(step, state, List(aThen) ++ aElse.toList))
 
-      // loops — seed loop variable from iterable, then fixpoint
+      // loops — seed the loop variable from the iterable, then fixpoint
       case ForEachStep(_, Variable(v, _, _, _), iterExpr, _, body) =>
         val initState = state.updated(v, evalExpr(iterExpr, state))
         val (exitState, aBody) = fixpoint(initState, body)
@@ -202,7 +199,6 @@ object Analyzer {
   // ---------------------------------------------------------------------------
 
   private def evalExpr(expr: Expression, state: AbsState): SymPath = expr match
-    // reference → resolve
     case ReferenceExpression(ref) =>
       resolveRef(ref, state)
 
@@ -210,15 +206,12 @@ object Analyzer {
     case ReturnIfAbruptExpression(inner, _) =>
       evalExpr(inner, state)
 
-    // list copy: a copy of X
-    case ListCopyExpression(inner) =>
+    case CopyExpression(inner, _) =>
       evalExpr(inner, state) :+ COPY
 
-    // list concat: join all operand paths
     case ListConcatExpression(exprs) =>
       exprs.map(evalExpr(_, state)).reduce(_ ⊔ _)
 
-    // interprocedural: copy-like abstract operations
     case InvokeAbstractOperationExpression(name, args, _) if copyAOs(name) =>
       args.headOption
         .map {
@@ -227,12 +220,11 @@ object Analyzer {
         }
         .getOrElse(List(freshSym()))
 
-    // interprocedural: data-structure constructors
     case InvokeAbstractOperationExpression(name, _, _)
         if createAOs.contains(name) =>
       List(freshSym(), createAOs(name))
 
-    // unknown expressions get fresh symbols (not Nil)
+    // an unknown expression gets a fresh symbol, never the empty path
     case _ => List(freshSym())
 
   // ---------------------------------------------------------------------------
@@ -246,7 +238,7 @@ object Analyzer {
     case ValueOf(base)            => resolveRef(base, state)
     case _                        => List(freshSym())
 
-  /** Resolve a reference to its symbolic path (public, for Unifier use). */
+  /** the public entry point of [[resolveRef]], used by [[Unifier]]. */
   def resolvePath(ref: Reference, state: AbsState): SymPath =
     resolveRef(ref, state)
 }

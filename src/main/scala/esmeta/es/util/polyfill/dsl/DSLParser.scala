@@ -1,7 +1,6 @@
 package esmeta.es.util.polyfill.dsl
 
 import esmeta.lang.*
-import esmeta.lang.util.Parser as LangParser
 import esmeta.lang.util.Parsers
 import esmeta.util.Locational
 
@@ -16,7 +15,6 @@ import scala.collection.mutable
 class DSLParser(initialDefs: Map[String, LangElem] = Map.empty)
   extends DSLParsers {
 
-  // Seed the mutable context with any inherited definitions
   defs ++= initialDefs
 
   def parseStep(input: String): Step = parseBy(step)(input)
@@ -71,8 +69,6 @@ trait DSLParsers extends Parsers {
   // ---------------------------------------------------------------------------
   // Meta-variable helpers
   // ---------------------------------------------------------------------------
-
-  lazy val metaName: Parser[String] = "[a-zA-Z_][a-zA-Z0-9_]*".r
 
   /** Parse a meta-variable name with optional variant suffix: `name'N`. Returns
     * (baseName, variant). Unspecified variant defaults to 0.

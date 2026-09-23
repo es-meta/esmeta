@@ -20,16 +20,6 @@ object Transformer {
       case rr: ReferenceRule  => applyReferenceRule(rr, root, stats)
     }
 
-  private def onMatch[T](
-    ruleName: String,
-    before: T,
-    after: T,
-    stats: Option[TransformStats],
-    ctx: DSLContext = DSLContext(),
-  ): Unit = {
-    stats.foreach(_.record(ruleName))
-  }
-
   /** Apply sub-rules to a step, pre-substituting parent bindings. */
   private def applySubrules(
     subrules: List[Rule[LangElem]],
@@ -46,7 +36,6 @@ object Transformer {
 
   private def finalizeStepRuleMatch(
     rule: StepRule,
-    before: Any,
     template: Step,
     bindings: CaptureEnv,
     ctx: DSLContext,
@@ -57,7 +46,7 @@ object Transformer {
       applySubrules(rule.subrules, bindings, result, ctx, stats)
     EarlyReturn.wrapIfNeeded(rule, bindings, transformed) match {
       case Some(finalStep) =>
-        onMatch(rule.name, before, finalStep, stats, ctx)
+        stats.foreach(_.record(rule.name))
         Some(finalStep)
       case None => None
     }
@@ -178,7 +167,6 @@ object Transformer {
                   DSLContext()
               finalizeStepRuleMatch(
                 rule,
-                rule.pattern,
                 template,
                 unifyResult.bindings,
                 ctx,
@@ -227,7 +215,6 @@ object Transformer {
             rule.replace.flatMap { template =>
               finalizeStepRuleMatch(
                 rule,
-                rule.pattern,
                 template,
                 bindings,
                 ctx,
@@ -253,7 +240,7 @@ object Transformer {
     Unifier.unify(rule.pattern, step, ctx, rule.predicates).flatMap {
       bindings =>
         rule.replace.flatMap { template =>
-          finalizeStepRuleMatch(rule, step, template, bindings, ctx, stats)
+          finalizeStepRuleMatch(rule, template, bindings, ctx, stats)
         }
     }
 
@@ -310,9 +297,8 @@ object Transformer {
           .unify(rule.pattern, expr, ctx, rule.predicates)
           .flatMap { bindings =>
             rule.replace.map { tmpl =>
-              val result = Substituter.subst(tmpl, bindings)
-              onMatch(rule.name, expr, result, stats, ctx)
-              result
+              stats.foreach(_.record(rule.name))
+              Substituter.subst(tmpl, bindings)
             }
           }
           .getOrElse(super.walk(expr))
@@ -353,9 +339,8 @@ object Transformer {
           .unify(rule.pattern, cond, ctx, rule.predicates)
           .flatMap { bindings =>
             rule.replace.map { tmpl =>
-              val result = Substituter.subst(tmpl, bindings)
-              onMatch(rule.name, cond, result, stats, ctx)
-              result
+              stats.foreach(_.record(rule.name))
+              Substituter.subst(tmpl, bindings)
             }
           }
           .getOrElse(super.walk(cond))
@@ -396,9 +381,8 @@ object Transformer {
           .unify(rule.pattern, ref, ctx, rule.predicates)
           .flatMap { bindings =>
             rule.replace.map { tmpl =>
-              val result = Substituter.subst(tmpl, bindings)
-              onMatch(rule.name, ref, result, stats, ctx)
-              result
+              stats.foreach(_.record(rule.name))
+              Substituter.subst(tmpl, bindings)
             }
           }
           .getOrElse(super.walk(ref))

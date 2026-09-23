@@ -1,0 +1,362 @@
+# Targets for the polyfill end-to-end test.
+#
+# module      : file emitted by PolyfillPackager under the generated library
+# deleteStmt  : removes the host built-in, so the polyfill installs instead of
+#               being skipped by its `if (!Base.member)` guard
+# testPattern : test262 tests exercising the built-in, relative to the repo root
+- name: Array.from
+  module: Array.from.js
+  deleteStmt: delete Array.from;
+  testPattern: test/built-ins/Array/from/*.js
+- name: Array.of
+  module: Array.of.js
+  deleteStmt: delete Array.of;
+  testPattern: test/built-ins/Array/of/*.js
+- name: Array.prototype.at
+  module: Array.prototype.at.js
+  deleteStmt: delete Array.prototype.at;
+  testPattern: test/built-ins/Array/prototype/at/*.js
+- name: Array.prototype.copyWithin
+  module: Array.prototype.copyWithin.js
+  deleteStmt: delete Array.prototype.copyWithin;
+  testPattern: test/built-ins/Array/prototype/copyWithin/*.js
+- name: Array.prototype.every
+  module: Array.prototype.every.js
+  deleteStmt: delete Array.prototype.every;
+  testPattern: test/built-ins/Array/prototype/every/*.js
+- name: Array.prototype.fill
+  module: Array.prototype.fill.js
+  deleteStmt: delete Array.prototype.fill;
+  testPattern: test/built-ins/Array/prototype/fill/*.js
+- name: Array.prototype.filter
+  module: Array.prototype.filter.js
+  deleteStmt: delete Array.prototype.filter;
+  testPattern: test/built-ins/Array/prototype/filter/*.js
+- name: Array.prototype.find
+  module: Array.prototype.find.js
+  deleteStmt: delete Array.prototype.find;
+  testPattern: test/built-ins/Array/prototype/find/*.js
+- name: Array.prototype.findIndex
+  module: Array.prototype.findIndex.js
+  deleteStmt: delete Array.prototype.findIndex;
+  testPattern: test/built-ins/Array/prototype/findIndex/*.js
+- name: Array.prototype.findLast
+  module: Array.prototype.findLast.js
+  deleteStmt: delete Array.prototype.findLast;
+  testPattern: test/built-ins/Array/prototype/findLast/*.js
+- name: Array.prototype.findLastIndex
+  module: Array.prototype.findLastIndex.js
+  deleteStmt: delete Array.prototype.findLastIndex;
+  testPattern: test/built-ins/Array/prototype/findLastIndex/*.js
+- name: Array.prototype.flat
+  module: Array.prototype.flat.js
+  deleteStmt: delete Array.prototype.flat;
+  testPattern: test/built-ins/Array/prototype/flat/*.js
+- name: Array.prototype.flatMap
+  module: Array.prototype.flatMap.js
+  deleteStmt: delete Array.prototype.flatMap;
+  testPattern: test/built-ins/Array/prototype/flatMap/*.js
+- name: Array.prototype.forEach
+  module: Array.prototype.forEach.js
+  deleteStmt: delete Array.prototype.forEach;
+  testPattern: test/built-ins/Array/prototype/forEach/*.js
+- name: Array.prototype.includes
+  module: Array.prototype.includes.js
+  deleteStmt: delete Array.prototype.includes;
+  testPattern: test/built-ins/Array/prototype/includes/*.js
+- name: Array.prototype.indexOf
+  module: Array.prototype.indexOf.js
+  deleteStmt: delete Array.prototype.indexOf;
+  testPattern: test/built-ins/Array/prototype/indexOf/*.js
+- name: Array.prototype.lastIndexOf
+  module: Array.prototype.lastIndexOf.js
+  deleteStmt: delete Array.prototype.lastIndexOf;
+  testPattern: test/built-ins/Array/prototype/lastIndexOf/*.js
+- name: Array.prototype.map
+  module: Array.prototype.map.js
+  deleteStmt: delete Array.prototype.map;
+  testPattern: test/built-ins/Array/prototype/map/*.js
+- name: Array.prototype.reduce
+  module: Array.prototype.reduce.js
+  deleteStmt: delete Array.prototype.reduce;
+  testPattern: test/built-ins/Array/prototype/reduce/*.js
+- name: Array.prototype.reduceRight
+  module: Array.prototype.reduceRight.js
+  deleteStmt: delete Array.prototype.reduceRight;
+  testPattern: test/built-ins/Array/prototype/reduceRight/*.js
+- name: Array.prototype.some
+  module: Array.prototype.some.js
+  deleteStmt: delete Array.prototype.some;
+  testPattern: test/built-ins/Array/prototype/some/*.js
+- name: Array.prototype.toReversed
+  module: Array.prototype.toReversed.js
+  deleteStmt: delete Array.prototype.toReversed;
+  testPattern: test/built-ins/Array/prototype/toReversed/*.js
+- name: Array.prototype.toSpliced
+  module: Array.prototype.toSpliced.js
+  deleteStmt: delete Array.prototype.toSpliced;
+  testPattern: test/built-ins/Array/prototype/toSpliced/*.js
+- name: Array.prototype.with
+  module: Array.prototype.with.js
+  deleteStmt: delete Array.prototype.with;
+  testPattern: test/built-ins/Array/prototype/with/*.js
+- name: String.prototype.at
+  module: String.prototype.at.js
+  deleteStmt: delete String.prototype.at;
+  testPattern: test/built-ins/String/prototype/at/*.js
+- name: String.prototype.codePointAt
+  module: String.prototype.codePointAt.js
+  deleteStmt: delete String.prototype.codePointAt;
+  testPattern: test/built-ins/String/prototype/codePointAt/*.js
+- name: String.prototype.endsWith
+  module: String.prototype.endsWith.js
+  deleteStmt: delete String.prototype.endsWith;
+  testPattern: test/built-ins/String/prototype/endsWith/*.js
+- name: String.prototype.includes
+  module: String.prototype.includes.js
+  deleteStmt: delete String.prototype.includes;
+  testPattern: test/built-ins/String/prototype/includes/*.js
+- name: String.prototype.isWellFormed
+  module: String.prototype.isWellFormed.js
+  deleteStmt: delete String.prototype.isWellFormed;
+  testPattern: test/built-ins/String/prototype/isWellFormed/*.js
+- name: String.prototype.padEnd
+  module: String.prototype.padEnd.js
+  deleteStmt: delete String.prototype.padEnd;
+  testPattern: test/built-ins/String/prototype/padEnd/*.js
+- name: String.prototype.padStart
+  module: String.prototype.padStart.js
+  deleteStmt: delete String.prototype.padStart;
+  testPattern: test/built-ins/String/prototype/padStart/*.js
+- name: String.prototype.startsWith
+  module: String.prototype.startsWith.js
+  deleteStmt: delete String.prototype.startsWith;
+  testPattern: test/built-ins/String/prototype/startsWith/*.js
+- name: String.prototype.toWellFormed
+  module: String.prototype.toWellFormed.js
+  deleteStmt: delete String.prototype.toWellFormed;
+  testPattern: test/built-ins/String/prototype/toWellFormed/*.js
+- name: String.prototype.trim
+  module: String.prototype.trim.js
+  deleteStmt: delete String.prototype.trim;
+  testPattern: test/built-ins/String/prototype/trim/*.js
+- name: String.prototype.trimEnd
+  module: String.prototype.trimEnd.js
+  deleteStmt: delete String.prototype.trimEnd;
+  testPattern: test/built-ins/String/prototype/trimEnd/*.js
+- name: String.prototype.trimStart
+  module: String.prototype.trimStart.js
+  deleteStmt: delete String.prototype.trimStart;
+  testPattern: test/built-ins/String/prototype/trimStart/*.js
+- name: Map
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/*.js
+- name: Map.groupBy
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/groupBy/*.js
+- name: Map.prototype.clear
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/clear/*.js
+- name: Map.prototype.delete
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/delete/*.js
+- name: Map.prototype.entries
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/entries/*.js
+- name: Map.prototype.forEach
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/forEach/*.js
+- name: Map.prototype.get
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/get/*.js
+- name: Map.prototype.has
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/has/*.js
+- name: Map.prototype.keys
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/keys/*.js
+- name: Map.prototype.set
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/set/*.js
+- name: Map.prototype.size
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/size/*.js
+- name: Map.prototype.values
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/Map/prototype/values/*.js
+- name: Set
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/*.js
+- name: Set.prototype.add
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/add/*.js
+- name: Set.prototype.clear
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/clear/*.js
+- name: Set.prototype.constructor
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/constructor/*.js
+- name: Set.prototype.delete
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/delete/*.js
+- name: Set.prototype.difference
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/difference/*.js
+- name: Set.prototype.entries
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/entries/*.js
+- name: Set.prototype.forEach
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/forEach/*.js
+- name: Set.prototype.has
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/has/*.js
+- name: Set.prototype.intersection
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/intersection/*.js
+- name: Set.prototype.isDisjointFrom
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/isDisjointFrom/*.js
+- name: Set.prototype.isSubsetOf
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/isSubsetOf/*.js
+- name: Set.prototype.isSupersetOf
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/isSupersetOf/*.js
+- name: Set.prototype.keys
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/keys/*.js
+- name: Set.prototype.size
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/size/*.js
+- name: Set.prototype.symmetricDifference
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/symmetricDifference/*.js
+- name: Set.prototype.union
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/union/*.js
+- name: Set.prototype.values
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/Set/prototype/values/*.js
+- name: Promise
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/*.js
+- name: Promise.all
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/all/*.js
+- name: Promise.allSettled
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/allSettled/*.js
+- name: Promise.any
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/any/*.js
+- name: Promise.prototype
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/prototype/*.js
+- name: Promise.prototype.catch
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/prototype/catch/*.js
+- name: Promise.prototype.finally
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/prototype/finally/*.js
+- name: Promise.prototype.then
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/prototype/then/*.js
+- name: Promise.race
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/race/*.js
+- name: Promise.reject
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/reject/*.js
+- name: Promise.resolve
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/resolve/*.js
+- name: Promise.try
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/try/*.js
+- name: Promise.withResolvers
+  module: Promise.js
+  deleteStmt: Promise = undefined; globalThis.Promise = undefined;
+  testPattern: test/built-ins/Promise/withResolvers/*.js
+- name: WeakMap
+  module: WeakMap.js
+  deleteStmt: WeakMap = undefined; globalThis.WeakMap = undefined;
+  testPattern: test/built-ins/WeakMap/*.js
+- name: WeakMap.prototype.delete
+  module: WeakMap.js
+  deleteStmt: WeakMap = undefined; globalThis.WeakMap = undefined;
+  testPattern: test/built-ins/WeakMap/prototype/delete/*.js
+- name: WeakMap.prototype.get
+  module: WeakMap.js
+  deleteStmt: WeakMap = undefined; globalThis.WeakMap = undefined;
+  testPattern: test/built-ins/WeakMap/prototype/get/*.js
+- name: WeakMap.prototype.has
+  module: WeakMap.js
+  deleteStmt: WeakMap = undefined; globalThis.WeakMap = undefined;
+  testPattern: test/built-ins/WeakMap/prototype/has/*.js
+- name: WeakMap.prototype.set
+  module: WeakMap.js
+  deleteStmt: WeakMap = undefined; globalThis.WeakMap = undefined;
+  testPattern: test/built-ins/WeakMap/prototype/set/*.js
+- name: WeakSet
+  module: WeakSet.js
+  deleteStmt: WeakSet = undefined; globalThis.WeakSet = undefined;
+  testPattern: test/built-ins/WeakSet/*.js
+- name: WeakSet.prototype.add
+  module: WeakSet.js
+  deleteStmt: WeakSet = undefined; globalThis.WeakSet = undefined;
+  testPattern: test/built-ins/WeakSet/prototype/add/*.js
+- name: WeakSet.prototype.constructor
+  module: WeakSet.js
+  deleteStmt: WeakSet = undefined; globalThis.WeakSet = undefined;
+  testPattern: test/built-ins/WeakSet/prototype/constructor/*.js
+- name: WeakSet.prototype.delete
+  module: WeakSet.js
+  deleteStmt: WeakSet = undefined; globalThis.WeakSet = undefined;
+  testPattern: test/built-ins/WeakSet/prototype/delete/*.js
+- name: WeakSet.prototype.has
+  module: WeakSet.js
+  deleteStmt: WeakSet = undefined; globalThis.WeakSet = undefined;
+  testPattern: test/built-ins/WeakSet/prototype/has/*.js

@@ -2,8 +2,8 @@ var AO__IsCallable = require("./IsCallable");
 var AO__ToString = require("./ToString");
 var AO__Get = require("./Get");
 var AO__Call = require("./Call");
-// ToBoolean is generated, so it sits one level up rather than beside this file.
-var AO__ToBoolean = require("../ToBoolean");
+// ToBoolean is hand-written too, so it sits beside this file.
+var AO__ToBoolean = require("./ToBoolean");
 
 // 23.1.3 Properties of the Array Prototype Object
 // https://tc39.es/ecma262/multipage/indexed-collections.html#sec-findviapredicate

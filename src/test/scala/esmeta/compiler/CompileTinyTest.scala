@@ -47,6 +47,17 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       prependStep -> "push x > x.Value",
       insertStep -> "push x > x.Value",
       addStep -> "push x.Value < x",
+      // -----------------------------------------------------------------------
+      replaceStep ->
+      """%0 = x.Value
+      |%1 = x
+      |%2 = x
+      |%3 = 0
+      |while (< %3 (sizeof %0)) {
+      |  if (== %0[%3] %1) %0[%3] = %2
+      |  %3 = (+ %3 1)
+      |}""".stripMargin,
+      // -----------------------------------------------------------------------
       removeStep -> """call %0 = clo<"__REMOVE_ELEM__">(x, x)""",
       // -----------------------------------------------------------------------
       removeFirstStep ->
