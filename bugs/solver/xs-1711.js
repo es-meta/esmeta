@@ -1,0 +1,1 @@
+new BigUint64Array("a").fill(Uint32Array, 1n);

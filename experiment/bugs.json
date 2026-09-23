@@ -18,7 +18,7 @@
       "qjs-1730", "sm-2073811", "qjs-1731", "qjs-1732", "xs-1703", "xs-1704",
       "jsc-324664", "qjs-1735", "qjs-1736", "qjs-1737", "qjs-1738",
       "qjs-1739", "xs-1705", "xs-1706", "jsc-324681", "xs-1708-1",
-      "xs-1708-2", "xs-1708-3", "xs-1708-4", "xs-1708-5"
+      "xs-1708-2", "xs-1708-3", "xs-1708-4", "xs-1708-5", "xs-1711"
     ],
     "known-upstream": [
       "qjs-iterator-constructor-setter", "sm-2073809", "qjs-iterator-concat",

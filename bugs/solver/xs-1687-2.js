@@ -1,1 +1,1 @@
-new Map().keys().next();
+const __res0 = new Map().keys().next();

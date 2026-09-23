@@ -1,1 +1,1 @@
-String.prototype.charCodeAt.call(2, -Infinity);
+const __res0 = String.prototype.charCodeAt.call(2, -Infinity);

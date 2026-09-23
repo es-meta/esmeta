@@ -1,1 +1,1 @@
-new Function("a");
+const __res0 = new Function("a");

@@ -1,1 +1,1 @@
-Math.round(Number.MIN_VALUE);
+const __res0 = Math.round(Number.MIN_VALUE);
