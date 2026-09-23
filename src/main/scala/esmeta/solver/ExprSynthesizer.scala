@@ -309,7 +309,7 @@ class ExprSynthesizer(
       .distinct
 
   // constructors only: other built-ins would bury the callables in manuals
-  private val builtins: List[String] = for {
+  private val intrinsics: List[String] = for {
     f <- cfg.funcs
     path <- Solver.getPath(f)
     if (Solver.isConstructable(f, cfg) && modeled(path))
@@ -330,7 +330,7 @@ class ExprSynthesizer(
 
   // evaluate the candidate expressions once to match them against types
   private val observations: Map[String, ValueTy] = {
-    val exprs = manuals ++ builtins
+    val exprs = manuals ++ intrinsics
     val src = exprs.zipWithIndex
       .map { (expr, i) =>
         s"""var __value${i}__, __succeeded${i}__ = false;
