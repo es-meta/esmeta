@@ -28,11 +28,7 @@ object Injector {
     src: String,
     log: Boolean = false,
     timeLimit: Option[Int] = Some(10),
-    instrument: Boolean = false,
-  ): ConformTest =
-    val text = if (instrument) OrderInstrumenter(cfg, src) else src
-    val initSt = cfg.init.from(text)
-    fromState(cfg, initSt, log, timeLimit)
+  ): ConformTest = fromState(cfg, cfg.init.from(src), log, timeLimit)
 
   /** injection from files */
   def fromFile(
@@ -40,16 +36,7 @@ object Injector {
     filename: String,
     log: Boolean = false,
     timeLimit: Option[Int] = Some(10),
-    instrument: Boolean = false,
-  ): ConformTest =
-    val initSt =
-      if (instrument)
-        cfg.init.from(
-          OrderInstrumenter(cfg, readFile(filename)),
-          Some(filename),
-        )
-      else cfg.init.fromFile(filename)
-    fromState(cfg, initSt, log, timeLimit)
+  ): ConformTest = fromState(cfg, cfg.init.fromFile(filename), log, timeLimit)
 
   /** injection from an initial state */
   private def fromState(
@@ -193,7 +180,7 @@ class Injector(
   private lazy val createdVars: Set[String] =
     val initial = getStrKeys(getValue(s"@GLOBAL.$INNER_MAP"), "<global>")
     val current = getStrKeys(getValue(globalMap), "<global>")
-    current -- (initial + "__instrument")
+    current -- initial
 
   // handle lexical variables
   private def handleLet: Unit = for (x <- createdLets.toList.sorted) {

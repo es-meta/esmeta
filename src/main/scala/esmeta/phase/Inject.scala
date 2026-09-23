@@ -20,7 +20,7 @@ case object Inject extends Phase[CFG, String] {
 
   private def injectFile(cfg: CFG, filename: String, config: Config): String =
     Injector
-      .fromFile(cfg, filename, config.log, config.timeLimit, config.instrument)
+      .fromFile(cfg, filename, config.log, config.timeLimit)
       .toString(detail = config.defs)
 
   private[phase] def injectFiles(
@@ -89,11 +89,6 @@ case object Inject extends Phase[CFG, String] {
       "turn on logging mode.",
     ),
     (
-      "instrument",
-      BoolOption(_.instrument = _),
-      "instrument expression evaluation order.",
-    ),
-    (
       "batch",
       BoolOption(_.batch = _),
       "inject assertions into all JavaScript files in a target directory, " +
@@ -109,7 +104,6 @@ case object Inject extends Phase[CFG, String] {
     var defs: Boolean = false,
     var out: Option[String] = None,
     var log: Boolean = false,
-    var instrument: Boolean = false,
     var batch: Boolean = false,
     var timeLimit: Option[Int] = Some(10),
   )

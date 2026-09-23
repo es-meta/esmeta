@@ -100,7 +100,6 @@ case object ConformTest extends Phase[CFG, Unit] {
   ): (List[TestInput], List[(String, String)]) = {
     val injectConfig = Inject.Config(
       defs = true,
-      instrument = config.instrument,
       timeLimit = config.timeLimit,
     )
     val (injected, skippedFiles) = Inject.injectFiles(
@@ -547,16 +546,10 @@ case object ConformTest extends Phase[CFG, Unit] {
       NumOption((config, seconds) => config.timeLimit = Some(seconds)),
       "set the time limit in seconds (default: 10 seconds).",
     ),
-    (
-      "instrument",
-      BoolOption((config, bool) => config.instrument = bool),
-      "instrument for evaluation order before injection (default: true).",
-    ),
   )
   case class Config(
     var out: Option[String] = None,
     var engine: String = "all",
     var timeLimit: Option[Int] = Some(10),
-    var instrument: Boolean = true,
   )
 }

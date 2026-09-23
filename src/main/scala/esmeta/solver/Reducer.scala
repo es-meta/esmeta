@@ -12,7 +12,7 @@ import java.util.concurrent.{ConcurrentHashMap => CMMap}
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
-/** reduce witnesses into simpler or bug-triggering forms, keeping coverage */
+/** reduce witnesses into simpler or bug-revealing forms, keeping coverage */
 class Reducer(cfg: CFG) {
   private lazy val cov = Coverage(cfg, timeLimit = Some(2))
 
@@ -74,13 +74,14 @@ class Reducer(cfg: CFG) {
 
   lazy val transforms: List[(Syntactic, Ast => String) => Option[String]] =
     flattenSpread :: // simplify: flatten spread elements into arguments
-    weakenArgs ::: // trigger: pass `undefined` explicitly at each position
-    trimUndefined :: // trigger: omit trailing `undefined` arguments
+    weakenArgs ::: // reveal: pass `undefined` explicitly at each position
+    trimUndefined :: // reveal: omit trailing `undefined` arguments
     constructToNew :: // simplify: `Reflect.construct` to `new` if possible
     dropReceiver :: // simplify: drop receivers builtins never read
     accessorToProperty :: // simplify: accessor calls to property accesses
     callAsMethod :: // simplify: prototype method calls to method calls
     hoistIIFE :: // simplify: hoist IIFE bodies to the top of the program
+    bindResults :: // reveal: bind dropped results of top-level expressions
     Nil
 
   def run(
@@ -502,6 +503,35 @@ class Reducer(cfg: CFG) {
         }
       case _ => None
 
+  /** name each top-level expression statement so its value can be checked */
+  def bindResults(ast: Syntactic, text: Ast => String): Option[String] =
+    ast match
+      case Syntactic(
+            "Script",
+            _,
+            _,
+            Vector(Some(Syntactic("ScriptBody", _, _, Vector(Some(list))))),
+          ) =>
+        val used = "[A-Za-z_$][\\w$]*".r.findAllIn(text(ast)).toSet
+        val fresh =
+          LazyList.from(0).map(i => s"__res$i").filterNot(used).iterator
+        // binding a directive would drop its effect, such as strict mode
+        val (prologue, rest) = statements(list).span(isDirective)
+        val bound = rest.map { stmt =>
+          unwrap(stmt) match
+            case Syntactic("ExpressionStatement", _, _, Vector(Some(e))) =>
+              // a comma would declare the operands after the first
+              val value = e match
+                case Syntactic("Expression", _, 1, _) => s"(${text(e)})"
+                case _                                => text(e)
+              s"const ${fresh.next()} = $value;"
+            case _ => text(stmt)
+        }
+        Option.when(bound != rest.map(text)) {
+          (prologue.map(text) ++ bound).mkString("\n")
+        }
+      case _ => None
+
   // names an AST declares in its own scope, not in nested functions
   private def declared(ast: Ast): List[String] = ast match
     case Syntactic("BindingIdentifier", _, _, _) =>
@@ -522,4 +552,11 @@ class Reducer(cfg: CFG) {
     "AsyncGeneratorExpression",
     "ClassExpression",
   )
+
+  private def isDirective(stmt: Ast): Boolean = unwrap(stmt) match
+    case Syntactic("ExpressionStatement", _, _, Vector(Some(e))) =>
+      unwrap(e) match
+        case Lexical("StringLiteral", _) => true
+        case _                           => false
+    case _ => false
 }
