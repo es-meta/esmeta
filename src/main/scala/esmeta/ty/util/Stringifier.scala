@@ -206,6 +206,19 @@ class Stringifier(
       if (pos) app >> "+"
       app >> "]"
 
+  // rule for math
+  private given mathRule: Rule[Math] = (app, math) => app >> math.toString
+  given Ordering[Math] = Ordering.by(_.decimal)
+
+  // rule for number
+  private given numberRule: Rule[Number] = (app, number) =>
+    number match
+      case Number(Double.PositiveInfinity) => app >> "+INF"
+      case Number(Double.NegativeInfinity) => app >> "-INF"
+      case Number(n) if n.isNaN            => app >> "NaN"
+      case Number(n)                       => app >> n
+  given Ordering[Number] = Ordering.by(_.double)
+
   /** mathematical value types */
   given mathTyRule: Rule[MathTy] = (app, ty) =>
     ty.canon match
@@ -215,7 +228,7 @@ class Stringifier(
       case MathIntTy(int) =>
         given Rule[IntTy] = intRule
         app >> int
-      case MathSetTy(set) => app >> "Math" >> set // l:246 given_Ordering_Math
+      case MathSetTy(set) => app >> "Math" >> set
 
   /** infinity types */
   given infinityTyRule: Rule[InfinityTy] = (app, ty) =>
@@ -238,7 +251,7 @@ class Stringifier(
           case IntSetTy(set)   => app >> "NumberInt" >> set
           case IntSignTy(sign) => app >> "NumberInt" >> sign
         app >> (if (hasNaN) " | NaN" else "")
-      case NumberSetTy(set) => app >> "Number" >> set // l:269 given_Ordering_Number
+      case NumberSetTy(set) => app >> "Number" >> set
 
   /** boolean types */
   given boolTyRule: Rule[BoolTy] = (app, ty) =>
@@ -442,19 +455,6 @@ class Stringifier(
         app >> pre >> t >> post
       this
   }
-
-  // rule for math
-  private given mathRule: Rule[Math] = (app, math) => app >> math.toString
-  given Ordering[Math] = Ordering.by(_.decimal)
-
-  // rule for number
-  private given numberRule: Rule[Number] = (app, number) =>
-    number match
-      case Number(Double.PositiveInfinity) => app >> "+INF"
-      case Number(Double.NegativeInfinity) => app >> "-INF"
-      case Number(n) if n.isNaN            => app >> "NaN"
-      case Number(n)                       => app >> n
-  given Ordering[Number] = Ordering.by(_.double)
 
   // separator for type disjuction
   private val OR = " | "
