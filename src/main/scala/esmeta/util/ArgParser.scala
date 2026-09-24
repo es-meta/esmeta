@@ -75,7 +75,7 @@ class ArgParser(cmd: Command[?], cmdConfig: CommandConfig)
     // setting options using a JSON file.
     lazy val json: Parser[Unit] = ("-config=" ~> str) ^^ {
       case fileName => {
-        parseJson(Source.fromFile(fileName)("UTF-8").mkString) match {
+        parseJson(Source.fromFile(fileName)(using "UTF-8").mkString) match {
           case Left(err) => throw err
           case Right(json) =>
             json match {
