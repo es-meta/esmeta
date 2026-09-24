@@ -54,3 +54,7 @@ experiment/coverage-venn.json
 experiment/coverage-venn.pdf
 experiment/bug-venn.json
 experiment/bug-venn.pdf
+experiment/reprod-coverage.json
+experiment/reprod-coverage.pdf
+experiment/reprod-bug.json
+experiment/reprod-bug.pdf
