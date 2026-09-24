@@ -56,7 +56,7 @@ class DotPrinter(
       drawEntry
       drawExit
       while (!queue.isEmpty)
-        val cur = queue.dequeue
+        val cur = queue.dequeue()
         drawNodeWithEdge(cur)
         cur match
           case block: Block   => add(block.next)

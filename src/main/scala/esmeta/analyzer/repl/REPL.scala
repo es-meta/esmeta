@@ -67,7 +67,7 @@ trait ReplDecl { self: Self =>
     private val prompt: String = LINE_SEP + s"${MAGENTA}analyzer>${RESET} "
 
     // show help message at the first time
-    lazy val firstHelp: Unit = { CmdHelp.showHelp; println }
+    lazy val firstHelp: Unit = { CmdHelp.showHelp; println() }
 
     // repl stop
     private var replStop: Boolean = false

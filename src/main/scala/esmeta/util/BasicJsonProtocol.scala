@@ -253,7 +253,7 @@ trait DecoderWithType[A] extends Decoder[A] {
           ),
         )
       else
-        val sumTypeName = iter.next
+        val sumTypeName = iter.next()
         decodersDict
           .get(sumTypeName)
           .fold(

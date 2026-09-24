@@ -26,7 +26,7 @@ class StackWorklist[T](init: Iterable[T]) extends Worklist[T] {
   init.foreach(this += _)
 
   protected def add(x: T): Unit = stack.push(x)
-  protected def pop: T = stack.pop
+  protected def pop: T = stack.pop()
   def foreach(f: T => Unit): Unit = stack.foreach(f)
 }
 
@@ -36,7 +36,7 @@ class QueueWorklist[T](init: Iterable[T]) extends Worklist[T] {
   init.foreach(this += _)
 
   protected def add(x: T): Unit = queue.enqueue(x)
-  protected def pop: T = queue.dequeue
+  protected def pop: T = queue.dequeue()
   def foreach(f: T => Unit): Unit = queue.foreach(f)
 }
 
@@ -47,7 +47,7 @@ class PriorityQueueWorklist[T](init: Iterable[T])(using ord: Ordering[T])
   init.foreach(this += _)
 
   protected def add(x: T): Unit = pq.enqueue(x)
-  protected def pop: T = pq.dequeue
+  protected def pop: T = pq.dequeue()
   def foreach(f: T => Unit): Unit =
     val all = pq.dequeueAll
     all.foreach(f)

@@ -331,7 +331,7 @@ class Interpreter(
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
       Cont(func, captured.toMap, st.callStack)
     case EDebug(expr) => debug(eval(expr))
-    case ERandom()    => Number(math.random)
+    case ERandom()    => Number(math.random())
     case ESyntactic(name, args, rhsIdx, children) =>
       val asts = children.map(_.map(child => eval(child).asAst))
       AstValue(Syntactic(name, args, rhsIdx, asts))

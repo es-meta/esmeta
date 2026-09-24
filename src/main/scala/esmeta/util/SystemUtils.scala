@@ -21,7 +21,7 @@ object SystemUtils {
 
   /** file reader */
   def fileReader(filename: String): Reader =
-    Source.fromFile(filename, ENC).bufferedReader
+    Source.fromFile(filename, ENC).bufferedReader()
 
   /** file trees with filename */
   def walkTree(filename: String): Iterable[File] = walkTree(File(filename))

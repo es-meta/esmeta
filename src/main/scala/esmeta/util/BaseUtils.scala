@@ -135,7 +135,7 @@ object BaseUtils {
   def getSeed = _seed
   def setSeed(seed: Int) = { _seed = seed; rand.setSeed(seed) }
   def resetSeed = setSeed(getSeed)
-  private var _seed: Int = Random().nextInt
+  private var _seed: Int = Random().nextInt()
   private val rand = Random(_seed)
 
   /** randomly choose an element in a list */
@@ -148,10 +148,10 @@ object BaseUtils {
     val idx = rand.nextInt(seq.length); (seq(idx), idx)
 
   /** random boolean */
-  def randBool: Boolean = rand.nextBoolean
+  def randBool: Boolean = rand.nextBoolean()
 
   /** random boolean with a given probability [0, 1] */
-  def randBool(prob: Double): Boolean = rand.nextDouble < prob
+  def randBool(prob: Double): Boolean = rand.nextDouble() < prob
 
   /** random integer */
   def randInt(n: Int): Int = rand.nextInt(n)

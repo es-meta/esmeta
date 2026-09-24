@@ -22,7 +22,7 @@ sealed trait Node extends CFGElem with UId {
       if (!visited.contains(node)) { queue.enqueue(node); visited += node }
     }
     while (!queue.isEmpty) {
-      val cur = queue.dequeue
+      val cur = queue.dequeue()
       cur match
         case block: Block   => add(block.next)
         case call: Call     => add(call.next)

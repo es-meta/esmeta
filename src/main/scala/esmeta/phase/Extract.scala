@@ -167,7 +167,7 @@ case object Extract extends Phase[Unit, Spec] {
         } warn(getMessage(e))
 
   // stop and read user message
-  private def stop(msg: String): String = { print(msg); readLine }
+  private def stop(msg: String): String = { print(msg); readLine() }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

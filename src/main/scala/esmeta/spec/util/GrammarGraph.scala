@@ -120,7 +120,7 @@ case class GrammarGraph(grammar: Grammar) {
       if prod.kind == Syntactic
       name = prod.name
       params = prod.lhs.params
-      selected <- params.toSet.subsets
+      selected <- params.toSet.subsets()
       args = params.map(selected contains _)
       argMap = (params zip args).toMap
       synNode = getSyn(name, args)

@@ -51,7 +51,7 @@ object Test {
   def apply(path: String): Test = {
     val source = Source.fromFile(path)
     val lines =
-      try source.getLines.toList
+      try source.getLines().toList
       finally source.close()
     val frontmatterLines = lines.dropWhile((x) => !(x `contains` "/*---")) match {
       case Nil       => Nil
