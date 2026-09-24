@@ -6,16 +6,19 @@
 #   experiment/data.sh unpack -f     extract them all, replacing what is there
 #   experiment/data.sh pack          re-pack every directory
 #   experiment/data.sh pack NAME...  re-pack only the named runs
+#   experiment/data.sh pack-logs     re-pack the conform-test logs
 #
 # gzip -n and COPYFILE_DISABLE are load-bearing: without the first, re-packing
 # an unchanged run writes new bytes and git stores 8M again; without the second
 # macOS tar adds an AppleDouble ._name beside anything with an extended
-# attribute. What reduce and conform-test derive from a run stays out: reduce
-# is deterministic and conform-test reruns from the programs.
+# attribute. A run's tarball keeps only what the tool wrote: reduce is
+# deterministic, and the conform-test logs, hours on the frozen engines to redo,
+# go together in conform/logs.tar.gz, which unpack also extracts.
 
 set -eu
 
 dir=$(CDPATH= cd -- "$(dirname -- "$0")/data" && pwd)
+logs="$dir/../conform/logs.tar.gz"
 action=${1:-}
 force=${2:-}
 [ $# -gt 0 ] && shift
@@ -49,9 +52,27 @@ case "$action" in
       found=$((found + 1))
     done
     [ "$found" -gt 0 ] || { echo "no tarballs under $dir" >&2; exit 1; }
+    if [ -f "$logs" ]; then
+      tar -xzf "$logs" -C "$dir"
+      printf '  unpacked conform-test logs\n'
+    fi
+    ;;
+  pack-logs)
+    (cd "$dir" && ls -d */conform-*.json) > /dev/null
+    # machine paths out, so the artifact names no one: the repository root,
+    # any jsvu home, and the temporary directory become relative
+    root=$(cd "$dir/../.." && pwd)
+    tmp=${TMPDIR:-/tmp/}
+    for f in "$dir"/*/conform-*.json; do
+      perl -pe "s|\Q$root/\E||g; s|\Q${tmp%/}/\E|\\\$TMPDIR/|g; s|/[^\" ]*/\.jsvu/|~/.jsvu/|g" "$f" > "$f.new"
+      # an unchanged file keeps its mtime, so the tarball keeps its bytes
+      if cmp -s "$f" "$f.new"; then rm "$f.new"; else mv "$f.new" "$f"; fi
+    done
+    (cd "$dir" && COPYFILE_DISABLE=1 tar -cf - */conform-*.json) | gzip -n9 > "$logs"
+    printf '  packed   conform-test logs %s\n' "$(du -h "$logs" | cut -f1)"
     ;;
   *)
-    sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
     ;;
 esac
