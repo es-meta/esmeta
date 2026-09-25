@@ -2,9 +2,9 @@
 
 # python3 experiment/venn_coverage.py
 #
-# The default fuzzer set is the 1-FS runs only, never everything under
-# experiment/data: 0-FS and 1-FS are separate configurations and one figure
-# must not mix them. Name the other runs to draw that configuration instead.
+# Every tool is the union of its frozen runs under experiment/data: solve-*,
+# the Test262 run, and both fuzzer settings, 0fs-* and 1fs-*, as the bug Venn
+# counts what either setting reproduced. Name runs to draw a subset instead.
 
 from __future__ import annotations
 
@@ -128,6 +128,9 @@ def coverage_json_files(paths: list[Path], what: str, hint: str) -> list[Path]:
     for path in paths:
         if path.is_file():
             found.append(path)
+        elif (path / "branch-coverage.json").is_file():
+            # a run's own file, not the one `esmeta reduce` leaves in reduced/
+            found.append(path / "branch-coverage.json")
         elif path.exists():
             found.extend(sorted(path.rglob("branch-coverage.json")))
     if not found:
@@ -253,22 +256,25 @@ def parse_args() -> argparse.Namespace:
         "fuzz_log",
         type=Path,
         nargs="*",
-        default=sorted((default_home / "experiment" / "data").glob("1fs-*/")),
-        help="fuzzer runs to merge (default: every 1-FS run under experiment/data)",
+        default=sorted(
+            p for c in ("0fs", "1fs") for p in (default_home / "experiment" / "data").glob(f"{c}-*/")
+        ),
+        help="fuzzer runs to merge (default: every 0-FS and 1-FS run under experiment/data)",
     )
     parser.add_argument(
         "-t",
         "--test262-log",
         type=Path,
-        default=default_home / "logs" / "test262" / "recent",
-        help="test262 log directory or branch-coverage.json",
+        default=default_home / "experiment" / "data" / "test262",
+        help="test262 run directory or branch-coverage.json",
     )
     parser.add_argument(
         "-s",
         "--solver-log",
         type=Path,
-        default=default_home / "logs" / "solver" / "recent",
-        help="solver run directory holding `summary` and branch-coverage.json",
+        nargs="+",
+        default=sorted((default_home / "experiment" / "data").glob("solve-*/")),
+        help="solver runs to merge, each holding `summary` and branch-coverage.json",
     )
     parser.add_argument(
         "--solver-statuses",
@@ -316,10 +322,17 @@ def main() -> int:
         print("error: --solver-statuses must not be empty", file=sys.stderr)
         return 2
 
-    universe, raw_solver, solver_status_counts, solver_programs = load_solver_sets(
-        args.solver_log,
-        solver_statuses,
-    )
+    universe, raw_solver, solver_programs = None, set(), {}
+    solver_status_counts: dict[str, dict[str, int]] = {}
+    for run in args.solver_log:
+        sides, solved, status_counts, programs = load_solver_sets(run, solver_statuses)
+        if universe is not None and sides != universe:
+            raise ValueError(f"{run} targets another universe than {args.solver_log[0]}")
+        universe = sides
+        raw_solver |= solved
+        solver_status_counts[run.name] = status_counts
+        for side, program in programs.items():
+            solver_programs.setdefault(side, program)
     fuzz_files = coverage_json_files(args.fuzz_log, "fuzzer", FUZZ_HINT)
     test262_files = coverage_json_files([args.test262_log], "test262", TEST262_HINT)
     raw_fuzz = load_branch_coverage(fuzz_files)
@@ -357,7 +370,7 @@ def main() -> int:
                 "regions": region_details(regions, solver_programs),
                 "solver_status_counts": solver_status_counts,
                 "sources": {
-                    "solver_log": str(args.solver_log),
+                    "solver_log": [str(p) for p in args.solver_log],
                     "solver_statuses": sorted(solver_statuses),
                     "fuzz_coverage": [str(p) for p in fuzz_files],
                     "test262_coverage": [str(p) for p in test262_files],
