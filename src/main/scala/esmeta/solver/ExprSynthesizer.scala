@@ -5,7 +5,7 @@ import esmeta.es.builtin.{INNER_MAP, intrAddr}
 import esmeta.interpreter.Interpreter
 import esmeta.ir.Expr
 import esmeta.solver.Solver.Invocation
-import esmeta.solver.TemplateGenerator.{Template, getSlots}
+import esmeta.solver.TemplateGenerator.{Template, getSlotGroups}
 import esmeta.spec.BuiltinPath
 import esmeta.state.*
 import esmeta.ty.*
@@ -296,8 +296,13 @@ class ExprSynthesizer(
   private def matchingTemplates(ty: ValueTy)(using
     checkDeadline: () => Unit,
   ): List[Invocation] =
-    getSlots(ty).toList.sorted
-      .flatMap(field => templatesBySlot.getOrElse(field, Nil))
+    getSlotGroups(ty)
+      .filter(_.nonEmpty)
+      .flatMap { slots =>
+        slots.toList.sorted
+          .map(field => templatesBySlot.getOrElse(field, Nil))
+          .reduce[List[Template]](_ intersect _)
+      }
       .distinct
       .flatMap { template =>
         checkDeadline()

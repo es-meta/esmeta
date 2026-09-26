@@ -209,10 +209,12 @@ object TemplateGenerator {
     case _                     => Set.empty
 
   // include explicit refinements and slot information implied by subtype names
-  def getSlots(ty: ValueTy): Set[String] = ty.record match {
+  def getSlots(ty: ValueTy): Set[String] = getSlotGroups(ty).flatten.toSet
+
+  def getSlotGroups(ty: ValueTy): List[Set[String]] = ty.record match {
     case RecordTy.Elem(map, _) =>
       val model = ManualInfo.tyModel
-      map.toList.flatMap { (name, fields) =>
+      map.toList.sortBy(_._1).map { (name, fields) =>
         val base = model.baseOf(name)
         val declared = model.diffOf(base, name).toList.flatMap(_.fields)
         val record = RecordTy.Elem(Map(name -> fields))
@@ -220,9 +222,9 @@ object TemplateGenerator {
           val binding = record(field)
           val general = model.getField(base, field)
           !binding.value.isBottom && binding != general && binding <= general
-        }
-      }.toSet
-    case _ => Set.empty
+        }.toSet
+      }
+    case _ => Nil
   }
 
 }
