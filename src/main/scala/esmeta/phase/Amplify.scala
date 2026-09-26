@@ -4,15 +4,15 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.es.util.JsonProtocol
 import esmeta.es.util.Coverage.Cond
-import esmeta.solver.Reducer
+import esmeta.solver.Amplifier
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.Decoder
 
-/** `reduce` phase */
-case object Reduce extends Phase[CFG, Unit] {
-  val name = "reduce"
-  val help = "reduces programs, keeping the branch sides they cover."
+/** `amplify` phase */
+case object Amplify extends Phase[CFG, Unit] {
+  val name = "amplify"
+  val help = "amplifies programs, keeping the branch sides they cover."
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): Unit =
     val dir = getFirstFilename(cmdConfig, name)
@@ -35,10 +35,12 @@ case object Reduce extends Phase[CFG, Unit] {
     val witnesses = infos
       .groupMap((c, _) => (c.branch.id, c.cond))(_._2)
       .map((key, scripts) => key -> scripts.distinct.map(read).minBy(_.length))
-    val reduced = Reducer(cfg)(witnesses)
-    val out = config.out.getOrElse(s"$dir/reduced")
+    val amplified = Amplifier(cfg)(witnesses)
+    val out = config.out.getOrElse(s"$dir/amplified")
     mkdir(out)
-    val results = conds.toMap.toList.sortBy(_._1).map((k, c) => c -> reduced(k))
+    val results = conds.toMap.toList.sortBy(_._1).flatMap { (k, c) =>
+      amplified.getOrElse(k, List(witnesses(k))).map(c -> _)
+    }
     Solve.dumpWitnesses(cfg, out, results)
 
   def defaultConfig: Config = Config()
@@ -46,7 +48,7 @@ case object Reduce extends Phase[CFG, Unit] {
     (
       "out",
       StrOption((c, s) => c.out = Some(s)),
-      "output directory (default: reduced in the input directory).",
+      "output directory (default: amplified in the input directory).",
     ),
   )
   case class Config(var out: Option[String] = None)

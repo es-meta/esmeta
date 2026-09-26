@@ -4,7 +4,7 @@ import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.es.util.JsonProtocol
 import esmeta.es.util.Coverage.{Cond, CondView, CondViewInfo}
-import esmeta.solver.{Reducer, Solver}
+import esmeta.solver.{Amplifier, Solver}
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 
@@ -24,9 +24,18 @@ case object Solve extends Phase[CFG, Unit] {
       detail = config.detail,
     )
     val solved = solver.solve
-    val witnesses = if (config.reduce) Reducer(cfg)(solved) else solved
+    val amplified =
+      if (config.amplify) Amplifier(cfg)(solved)
+      else solved.map((k, js) => k -> List(js))
+    val witnesses = amplified.map((k, l) => k -> l.head)
     for (dir <- solver.logDir)
-      dumpWitnesses(cfg, dir, solver.targeted(witnesses))
+      dumpWitnesses(
+        cfg,
+        dir,
+        solver.targeted(witnesses).flatMap { (c, _) =>
+          amplified((c.branch.id, c.cond)).map(c -> _)
+        },
+      )
     solver.report(witnesses)
 
   /** dump witnesses as numbered programs with a branch coverage file */
@@ -89,9 +98,9 @@ case object Solve extends Phase[CFG, Unit] {
       "logging mode with detailed information.",
     ),
     (
-      "reduce",
-      BoolOption((c, b) => c.reduce = b),
-      "reduce the witnesses after solving (default: false).",
+      "amplify",
+      BoolOption((c, b) => c.amplify = b),
+      "amplify the witnesses after solving (default: false).",
     ),
     (
       "no-shape",
@@ -109,7 +118,7 @@ case object Solve extends Phase[CFG, Unit] {
     var side: Option[Boolean] = None,
     var log: Boolean = false,
     var detail: Boolean = false,
-    var reduce: Boolean = false,
+    var amplify: Boolean = false,
     var noShape: Boolean = false,
     var noTemplate: Boolean = false,
   )

@@ -241,12 +241,12 @@ case object CmdSolve extends Command("solve", CmdBuildCFG >> Solve) {
   )
 }
 
-/** `reduce` command */
-case object CmdReduce extends Command("reduce", CmdBuildCFG >> Reduce) {
-  val help = "reduces programs, keeping the branch sides they cover"
+/** `amplify` command */
+case object CmdAmplify extends Command("amplify", CmdBuildCFG >> Amplify) {
+  val help = "amplifies programs, keeping the branch sides they cover"
   val examples = List(
-    "esmeta reduce dir                  # reduce programs in dir.",
-    "esmeta reduce dir -reduce:out=out  # dump reduced programs into out.",
+    "esmeta amplify dir                   # amplify programs in dir.",
+    "esmeta amplify dir -amplify:out=out  # dump amplified programs into out.",
   )
   override val targetName = "<log-dir>"
 }
