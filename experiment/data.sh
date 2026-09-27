@@ -15,6 +15,16 @@
 # deterministic, the type edit distance measurement takes seconds to redo, and
 # the conform-test logs, hours on the frozen engines to redo, go together in
 # conform/logs.tar.gz, which unpack also extracts.
+#
+# A run is frozen from its log directory, timed since the paper reports it:
+#
+#   export ESMETA_HOME=$PWD JAVA_OPTS="-Xmx32g -Xss1g"
+#   time bin/esmeta solve -solve:log
+#   mkdir experiment/data/solve-6
+#   cp -R logs/solver/recent/{programs,branch-coverage.json,summary,templates.json} experiment/data/solve-6/
+#   time bin/esmeta fuzz -fuzz:log -fuzz:duration=180000   # 50 hours
+#   cp -R logs/fuzz/recent/ experiment/data/fuzz-6
+#   experiment/data.sh pack solve-6 fuzz-6
 
 set -eu
 
@@ -62,11 +72,12 @@ case "$action" in
   pack-logs)
     (cd "$dir" && ls -d */conform-*.json) > /dev/null
     # machine paths out, so the artifact names no one: the repository root,
-    # any jsvu home, and the temporary directory become relative
+    # any jsvu home or frozen prefix, and the temporary directory become
+    # relative, also for logs made on another machine
     root=$(cd "$dir/../.." && pwd)
     tmp=${TMPDIR:-/tmp/}
     for f in "$dir"/*/conform-*.json; do
-      perl -pe "s|\Q$root/\E||g; s|\Q${tmp%/}/\E|\\\$TMPDIR/|g; s|/[^\" ]*/\.jsvu/|~/.jsvu/|g" "$f" > "$f.new"
+      perl -pe "s|\Q$root/\E||g; s|\Q${tmp%/}/\E|\\\$TMPDIR/|g; s|/tmp/esmeta-|\\\$TMPDIR/esmeta-|g; s|/[^\" ]*/(?=experiment/data/)||g; s|/[^\" ]*/\.jsvu/|~/.jsvu/|g; s|/[^\" ]*/frozen/|~/frozen/|g" "$f" > "$f.new"
       # an unchanged file keeps its mtime, so the tarball keeps its bytes
       if cmp -s "$f" "$f.new"; then rm "$f.new"; else mv "$f.new" "$f"; fi
     done

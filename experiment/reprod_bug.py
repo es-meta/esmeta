@@ -6,18 +6,15 @@
 # frozen engines counts as the row experiment/conform/triage.json gives it;
 # `fp:` and `new:` do not count. --draft adds unseen failures as `?` guesses,
 # and the plot waits until none is left. data.sh unpack restores the conform
-# logs; to redo them:
+# logs; to redo them on Linux x86-64, the platform they were made on:
 #
-#   H=/private/tmp/frozen-home   # see ConformTest's EngineSpec.baseDir
-#   for r in experiment/data/fuzz-?; do
-#     ./bin/esmeta amplify $r
-#     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/minimal -conform-test:out=$r/conform-minimal.json
-#     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/amplified/programs -conform-test:out=$r/conform-amplified.json
-#   done
-#   for r in experiment/data/solve-?; do
-#     ./bin/esmeta amplify $r
-#     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/programs -conform-test:out=$r/conform-programs.json
-#     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/amplified/programs -conform-test:out=$r/conform-amplified.json
+#   experiment/engine-install.sh    # the frozen engines, in ~/frozen
+#   export ESMETA_HOME=$PWD JAVA_OPTS="-Xmx32g -Xss1g -Duser.home=$HOME/frozen/home"
+#   for r in experiment/data/solve-? experiment/data/fuzz-?; do
+#     raw=programs; [ -d $r/minimal ] && raw=minimal    # the fuzzer's witnesses
+#     time bin/esmeta amplify $r
+#     time bin/esmeta conform-test $r/$raw -conform-test:out=$r/conform-$raw.json
+#     time bin/esmeta conform-test $r/amplified/programs -conform-test:out=$r/conform-amplified.json
 #   done
 
 from __future__ import annotations
