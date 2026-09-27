@@ -199,7 +199,7 @@ def parse_args() -> argparse.Namespace:
         help="figure width in points (240 fits one column)",
     )
     parser.add_argument("--solver-label", default="Synth262", help="left set label")
-    parser.add_argument("--fuzz-label", default="ESMeta fuzzer", help="right set label")
+    parser.add_argument("--fuzz-label", default="JEST", help="right set label")
     return parser.parse_args()
 
 

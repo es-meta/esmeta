@@ -9,7 +9,7 @@
 # logs; to redo them:
 #
 #   H=/private/tmp/frozen-home   # see ConformTest's EngineSpec.baseDir
-#   for r in experiment/data/*fs-?; do
+#   for r in experiment/data/fuzz-?; do
 #     ./bin/esmeta reduce $r
 #     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/minimal -conform-test:out=$r/conform-minimal.json
 #     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/reduced/programs -conform-test:out=$r/conform-reduced.json
@@ -48,10 +48,8 @@ KEYWORDS = {"var", "let", "const", "function", "class", "new", "typeof", "undefi
 GROUPS = {
     box.label("solve"): ("solve", "conform-programs.json"),
     box.label("solve", True): ("solve", "conform-reduced.json"),
-    box.label("0fs"): ("0fs", "conform-minimal.json"),
-    box.label("0fs", True): ("0fs", "conform-reduced.json"),
-    box.label("1fs"): ("1fs", "conform-minimal.json"),
-    box.label("1fs", True): ("1fs", "conform-reduced.json"),
+    box.label("fuzz"): ("fuzz", "conform-minimal.json"),
+    box.label("fuzz", True): ("fuzz", "conform-reduced.json"),
 }
 
 

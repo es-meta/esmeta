@@ -28,9 +28,8 @@ def config_runs(data: Path, config: str) -> list[Path]:
 
 def label(config: str, reduced: bool = False) -> str:
     """the tool names the Venn legends use"""
-    setting = [config.upper().replace("FS", "-FS")] if config != "solve" else []
-    setting += ["with reducer"] if reduced else []
-    tool = "Synth262" if config == "solve" else "ESMeta fuzzer"
+    setting = ["with reducer"] if reduced else []
+    tool = "Synth262" if config == "solve" else "JEST"
     return f"{tool} ({', '.join(setting)})" if setting else tool
 
 

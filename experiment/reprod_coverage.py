@@ -28,7 +28,7 @@ def parse_args() -> argparse.Namespace:
         help="solver run whose summary gives the universe (default: solve-1)",
     )
     parser.add_argument("-o", "--out", type=Path, default=home / "experiment" / "reprod-coverage.pdf")
-    parser.add_argument("--configs", default="solve,0fs,1fs", help="comma-separated run prefixes")
+    parser.add_argument("--configs", default="solve,fuzz", help="comma-separated run prefixes")
     parser.add_argument("--width", type=float, default=240.0, help="figure width in points")
     return parser.parse_args()
 

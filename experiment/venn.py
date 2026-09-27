@@ -14,7 +14,7 @@ INK = "#1a1a1a"
 MUTED = "#6b7280"
 PALETTE = ["#0072b2", "#e69f00", "#009e73"]  # blue, orange, green
 # a set keeps its colour across figures, whichever others it is drawn with
-COLOUR = {"Synth262": PALETTE[0], "ESMeta fuzzer": PALETTE[1], "Test262": PALETTE[2]}
+COLOUR = {"Synth262": PALETTE[0], "JEST": PALETTE[1], "Test262": PALETTE[2]}
 
 
 def colour_of(name: str, i: int) -> str:

@@ -3,8 +3,7 @@
 # python3 experiment/venn_coverage.py
 #
 # Every tool is the union of its frozen runs under experiment/data: solve-*,
-# the Test262 run, and both fuzzer settings, 0fs-* and 1fs-*, as the bug Venn
-# counts what either setting reproduced. Name runs to draw a subset instead.
+# the Test262 run, and the fuzzer runs fuzz-*. Name runs to draw a subset instead.
 
 from __future__ import annotations
 
@@ -257,9 +256,9 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         nargs="*",
         default=sorted(
-            p for c in ("0fs", "1fs") for p in (default_home / "experiment" / "data").glob(f"{c}-*/")
+            p for p in (default_home / "experiment" / "data").glob("fuzz-*/")
         ),
-        help="fuzzer runs to merge (default: every 0-FS and 1-FS run under experiment/data)",
+        help="fuzzer runs to merge (default: every fuzz run under experiment/data)",
     )
     parser.add_argument(
         "-t",
@@ -307,7 +306,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--solver-label", default="Synth262", help="left set label")
     parser.add_argument("--test262-label", default="Test262", help="right set label")
-    parser.add_argument("--fuzz-label", default="ESMeta fuzzer", help="bottom set label")
+    parser.add_argument("--fuzz-label", default="JEST", help="bottom set label")
     return parser.parse_args()
 
 

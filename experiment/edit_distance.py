@@ -16,8 +16,8 @@ import venn
 import venn_coverage
 
 INK = venn.INK
-HATCH = {"0fs": "//////"}
-PRIORITY = ["solve", "1fs", "0fs"]
+HATCH = {"fuzz": "//////"}
+PRIORITY = ["solve", "fuzz"]
 
 AXIS = "type edit distance"
 MEASURE_HINT = 'sbt "Test/runMain esmeta.solver.EditDistance RUN/branch-coverage.json"'
@@ -127,7 +127,7 @@ def main() -> int:
     )
     parser.add_argument("-d", "--data", type=Path, default=home / "experiment" / "data",
                         help="run directories, each with its measured edit-distance.tsv")
-    parser.add_argument("--configs", default="solve,0fs,1fs",
+    parser.add_argument("--configs", default="solve,fuzz",
                         help="run prefixes, in the order the bars stand")
     parser.add_argument("-s", "--solver-log", type=Path, default=None,
                         help="solver run whose summary gives the universe (default: solve-1)")
