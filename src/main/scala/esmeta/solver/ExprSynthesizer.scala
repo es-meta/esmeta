@@ -65,11 +65,11 @@ class ExprSynthesizer(
           case Fin(set) =>
             set.toList.sorted.map(s => s"\"${normStr(s)}\"" -> StrT(s))
           case Inf => Nil
-        val records = ty.copied(record = ty.record match
+        val withoutShape = ty.copied(record = ty.record match
           case RecordTy.Elem(map, _) => RecordTy.Elem(map)
           case other                 => other,
         )
-        val observed = observations.toList.filter(_._2 <= records)
+        val observed = observations.toList.filter(_._2 <= withoutShape)
         (numbers ++ strings ++ observed)
           .groupMap((_, valueTy) => kindOf(valueTy))(_._1)
           .toList
@@ -218,12 +218,7 @@ class ExprSynthesizer(
     checkDeadline: () => Unit,
   ): Option[String] = ty.record.construct match {
     case ConstructDesc.Elem(exc, ret) =>
-      firstSuccess(
-        List(
-          () => Option.when(exc)("function() { throw 0; }"),
-          () => synthesize(ret).map(v => s"function() { return $v; }"),
-        ),
-      )
+      funcExpr(exc, ret, constructable = true)
     case ConstructDesc.Top => None
   }
 
@@ -231,26 +226,30 @@ class ExprSynthesizer(
     checkDeadline: () => Unit,
   ): Option[String] = ty.record.call match {
     case CallDesc.Elem(exc, ret) =>
-      val isCtor = ty <= ConstructorT
-      firstSuccess(
-        List(
-          () =>
-            Option.when(exc)(
-              if (isCtor) "function() { throw 0; }"
-              else "() => { throw 0; }",
-            ),
-          () =>
-            synthesize(ret).map { value =>
-              if (isCtor) s"function() { return $value; }"
-              else {
-                if (value.startsWith("{")) s"() => ($value)"
-                else s"() => $value"
-              }
-            },
-        ),
-      )
+      funcExpr(exc, ret, constructable = ty <= ConstructorT)
     case CallDesc.Top => None
   }
+
+  private def funcExpr(
+    exc: Boolean,
+    ret: ValueTy,
+    constructable: Boolean,
+  )(using checkDeadline: () => Unit): Option[String] =
+    firstSuccess(
+      List(
+        () =>
+          Option.when(exc)(
+            if (constructable) "function() { throw 0; }"
+            else "() => { throw 0; }",
+          ),
+        () =>
+          synthesize(ret).map { value =>
+            if (constructable) s"function() { return $value; }"
+            else if (value.startsWith("{")) s"() => ($value)"
+            else s"() => $value"
+          },
+      ),
+    )
 
   private def isPlainObject(ty: ValueTy): Boolean = ty.record match
     case RecordTy.Elem(map, _) =>
