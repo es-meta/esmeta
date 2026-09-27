@@ -45,9 +45,7 @@ class Amplifier(cfg: CFG) {
     amplified.asScala.toMap
   }
 
-  /** the witness and each rule's rewrite of it at one site, each with its
-    * results bound, for each branch side the program still covers
-    */
+  /** apply rewriting rule at one site, while preserving coverage */
   def amplify(
     js: String,
     conds: Set[(Int, Boolean)],
@@ -231,15 +229,13 @@ class Amplifier(cfg: CFG) {
 
   private val identifier = "[A-Za-z_$][\\w$]*".r
 
-  private def property(key: Ast, text: Ast => String): String = unwrap(
-    key,
-  ) match
-    case Lexical("StringLiteral", str)
-        if (str.length >= 2 && identifier.matches(
-          str.substring(1, str.length - 1),
-        )) =>
-      "." + str.substring(1, str.length - 1)
-    case _ => s"[${text(key)}]"
+  private def property(key: Ast, text: Ast => String): String =
+    unwrap(key) match
+      case Lexical("StringLiteral", str)
+          if (str.length >= 2 &&
+          identifier.matches(str.substring(1, str.length - 1))) =>
+        "." + str.substring(1, str.length - 1)
+      case _ => s"[${text(key)}]"
 
   /** omit the arguments from a position on, which the callee sees as absent */
   def omitFrom(idx: Int)(ast: Syntactic, text: Ast => String): Option[String] =
@@ -268,11 +264,9 @@ class Amplifier(cfg: CFG) {
     }
     .mkString("(", ", ", ")")
 
-  /** a value whose every use throws, so an engine that uses an argument before
-    * the checks the specification makes first reveals itself
-    */
+  /** a value whose every use throws an error */
   val poison =
-    "new Proxy(function(){}, new Proxy({}, { get: () => () => { throw 42; } }))"
+    "new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } }))"
 
   /** poison the argument at a position */
   def poisonArg(idx: Int)(ast: Syntactic, text: Ast => String): Option[String] =
