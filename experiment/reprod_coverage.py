@@ -3,7 +3,7 @@
 # python3 experiment/reprod_coverage.py
 #
 # Final branch-side coverage of each run, cut to the solver's universe as in
-# coverage-venn.pdf. The reducer keeps coverage, so it gets no box here.
+# coverage-venn.pdf. The amplifier keeps coverage, so it gets no box here.
 
 from __future__ import annotations
 

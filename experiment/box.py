@@ -26,9 +26,9 @@ def config_runs(data: Path, config: str) -> list[Path]:
     return runs
 
 
-def label(config: str, reduced: bool = False) -> str:
+def label(config: str, amplified: bool = False) -> str:
     """the tool names the Venn legends use"""
-    setting = ["with reducer"] if reduced else []
+    setting = ["with amplifier"] if amplified else []
     tool = "Synth262" if config == "solve" else "JEST"
     return f"{tool} ({', '.join(setting)})" if setting else tool
 

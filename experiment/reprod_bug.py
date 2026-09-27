@@ -2,7 +2,7 @@
 
 # python3 experiment/reprod_bug.py
 #
-# Bug rows each run reproduces, with and without the reducer. A failure on the
+# Bug rows each run reproduces, with and without the amplifier. A failure on the
 # frozen engines counts as the row experiment/conform/triage.json gives it;
 # `fp:` and `new:` do not count. --draft adds unseen failures as `?` guesses,
 # and the plot waits until none is left. data.sh unpack restores the conform
@@ -10,14 +10,14 @@
 #
 #   H=/private/tmp/frozen-home   # see ConformTest's EngineSpec.baseDir
 #   for r in experiment/data/fuzz-?; do
-#     ./bin/esmeta reduce $r
+#     ./bin/esmeta amplify $r
 #     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/minimal -conform-test:out=$r/conform-minimal.json
-#     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/reduced/programs -conform-test:out=$r/conform-reduced.json
+#     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/amplified/programs -conform-test:out=$r/conform-amplified.json
 #   done
 #   for r in experiment/data/solve-?; do
-#     ./bin/esmeta reduce $r
+#     ./bin/esmeta amplify $r
 #     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/programs -conform-test:out=$r/conform-programs.json
-#     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/reduced/programs -conform-test:out=$r/conform-reduced.json
+#     JAVA_OPTS=-Duser.home=$H ./bin/esmeta conform-test $r/amplified/programs -conform-test:out=$r/conform-amplified.json
 #   done
 
 from __future__ import annotations
@@ -47,9 +47,9 @@ KEYWORDS = {"var", "let", "const", "function", "class", "new", "typeof", "undefi
 # box label -> (run prefix, conform log)
 GROUPS = {
     box.label("solve"): ("solve", "conform-programs.json"),
-    box.label("solve", True): ("solve", "conform-reduced.json"),
+    box.label("solve", True): ("solve", "conform-amplified.json"),
     box.label("fuzz"): ("fuzz", "conform-minimal.json"),
-    box.label("fuzz", True): ("fuzz", "conform-reduced.json"),
+    box.label("fuzz", True): ("fuzz", "conform-amplified.json"),
 }
 
 

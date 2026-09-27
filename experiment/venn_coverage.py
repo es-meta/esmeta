@@ -128,7 +128,7 @@ def coverage_json_files(paths: list[Path], what: str, hint: str) -> list[Path]:
         if path.is_file():
             found.append(path)
         elif (path / "branch-coverage.json").is_file():
-            # a run's own file, not the one `esmeta reduce` leaves in reduced/
+            # a run's own file, not the one `esmeta amplify` leaves in amplified/
             found.append(path / "branch-coverage.json")
         elif path.exists():
             found.extend(sorted(path.rglob("branch-coverage.json")))
