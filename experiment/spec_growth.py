@@ -19,7 +19,6 @@ from pathlib import Path
 
 # the clause that opens the built-in half of the document
 ANCHOR = "sec-ecmascript-standard-built-in-objects"
-MEMORY_MODEL = "sec-memory-model"
 EDITION = re.compile(r"^es20\d\d$")
 TOP_CLAUSE = re.compile(r'^<emu-clause id="([a-z0-9-]+)"', re.M)
 ALGORITHM = re.compile(r"<emu-alg\b([^>]*)>(.*?)</emu-alg>", re.S)
@@ -28,6 +27,11 @@ EXAMPLE = re.compile(r"\bexample\b")
 STEP = re.compile(r"^\s*\d+\.\s", re.M)
 TOKEN = re.compile(r"<(/?)emu-clause\b([^>]*)>|<emu-alg\b([^>]*)>", re.S)
 TITLE = re.compile(r"\s*<h1>(.*?)</h1>", re.S)
+GRAMMAR = re.compile(
+    r"<emu-grammar\b[^>]*>(.*?)</emu-grammar>|<h2>(.*?)</h2>|<h1\b|<emu-clause\b", re.S,
+)
+PRODUCTION = re.compile(r"^(\s*)([A-Z]\w*)(\[[^\]]*\])?\s*(:{1,3})\s*(.*)$")
+SYNTAX = ("Syntax", "Supplemental Syntax")
 
 # Okabe-Ito, as in experiment/venn.py
 LANGUAGE, BUILTIN, INK, MUTED = "#0072b2", "#e69f00", "#1a1a1a", "#6b7280"
@@ -49,17 +53,37 @@ def is_api(attrs: str, title: str) -> bool:
     return title.startswith(("get ", "set ")) or "(" in title
 
 
-def is_sdo(attrs: str, title: str) -> bool:
-    """a syntax-directed operation, marked only since ES2021"""
-    if 'type="sdo"' in attrs:
-        return True
-    if "aoid=" in attrs or "type=" in attrs:
-        return False
-    return "Semantics:" in title and "Early Errors" not in title
+def grammar_rules(text: str, cut: int) -> int:
+    """right-hand sides of the syntactic grammar, as defined under Syntax
+    headings, where a one-line production only quotes a rule refined below"""
+    rules: dict[str, set[str]] = {}
+    heading = None
+    for m in GRAMMAR.finditer(text, 0, cut):
+        if m.group(2) is not None:
+            heading = re.sub(r"\s+", " ", m.group(2)).strip()
+            continue
+        if m.group(1) is None:
+            heading = None
+            continue
+        lines = [line for line in m.group(1).splitlines() if line.strip()]
+        heads = [PRODUCTION.match(line) for line in lines]
+        if heading not in SYNTAX or all(h and h.group(5).strip() for h in heads):
+            continue
+        name = indent = None
+        for line, head in zip(lines, heads):
+            if head and (indent is None or len(head.group(1)) <= indent):
+                indent = len(head.group(1))
+                name = head.group(2) if head.group(4) == ":" else None
+                rhs = head.group(5).strip()
+            else:
+                rhs = re.sub(r"\s+", " ", line.strip())
+            if name and rhs:
+                rules.setdefault(name, set()).add(rhs)
+    return sum(len(rhs) for rhs in rules.values())
 
 
 def steps(spec: Path, tag: str) -> tuple[int, int, int, int] | None:
-    """numbered steps in the language and the library, and their SDOs and APIs"""
+    """numbered steps in the language and the library, its grammar rules and APIs"""
     text = git(spec, "show", f"{tag}:spec.html")
     if not text:
         return None
@@ -67,10 +91,9 @@ def steps(spec: Path, tag: str) -> tuple[int, int, int, int] | None:
     cut = next((off for off, name in tops if name == ANCHOR), None)
     if cut is None:
         return None
-    # the memory model and the annexes follow the library
-    ends = [off for off, name in tops if name == MEMORY_MODEL and off > cut]
-    end = min(ends + [text.find("<emu-annex", cut)])
-    language = builtin = sdos = 0
+    # the annexes are optional or informative
+    end = text.find("<emu-annex", cut)
+    language = builtin = 0
     apis = set()
     stack: list[tuple[int, str, str]] = []
     for m in TOKEN.finditer(text):
@@ -88,12 +111,11 @@ def steps(spec: Path, tag: str) -> tuple[int, int, int, int] | None:
         n = len(STEP.findall(alg.group(2))) if alg else 0
         if m.start() < cut:
             language += n
-            sdos += bool(stack and is_sdo(stack[-1][1], stack[-1][2]))
         elif m.start() < end:
             builtin += n
             if stack and is_api(stack[-1][1], stack[-1][2]):
                 apis.add(stack[-1][0])
-    return language, builtin, sdos, len(apis)
+    return language, builtin, grammar_rules(text, cut), len(apis)
 
 
 def editions(spec: Path) -> list[dict]:
@@ -105,7 +127,7 @@ def editions(spec: Path) -> list[dict]:
         out.append({
             "tag": tag, "year": int(tag[2:]),
             "language": counted[0], "builtin": counted[1],
-            "sdos": counted[2], "apis": counted[3],
+            "rules": counted[2], "apis": counted[3],
         })
     return out
 
@@ -129,11 +151,11 @@ def draw(rows: list[dict], out: Path, width_pt: float) -> None:
     inch = width_pt / 72
     fig, axes = plt.subplots(1, 2, figsize=(inch, inch * 0.32))
     years = [r["year"] for r in rows]
-    for axis, keys in ((axes[0], ("sdos", "apis")), (axes[1], ("language", "builtin"))):
+    for axis, keys in ((axes[0], ("rules", "apis")), (axes[1], ("language", "builtin"))):
         for key, color, label in zip(keys, (LANGUAGE, BUILTIN), ("language", "built-in library")):
             axis.plot(years, [r[key] for r in rows], color=color, linewidth=1.1, label=label)
     for axis, keys, ylabel, tick in (
-        (axes[0], ("sdos", "apis"), "algorithms", 200),
+        (axes[0], ("rules", "apis"), "grammar rules / APIs", 200),
         (axes[1], ("language", "builtin"), "algorithm steps", 2000),
     ):
         axis.set_ylabel(ylabel, fontsize=10)
@@ -178,21 +200,20 @@ def main() -> int:
     grew_l = last["language"] - first["language"]
     grew_b = last["builtin"] - first["builtin"]
     share = grew_b * 100 / (grew_l + grew_b)
-    grew_s = last["sdos"] - first["sdos"]
+    grew_r = last["rules"] - first["rules"]
     grew_a = last["apis"] - first["apis"]
 
-    print(f"  {'':9}{'steps':>20}{'algorithms':>20}")
-    print(f"  {'edition':9}{'language':>10}{'built-in':>10}{'SDO':>10}{'API':>10}")
+    print(f"  {'edition':9}{'steps':>10}{'':10}{'rules':>10}{'APIs':>10}")
     for r in rows:
         print(
             f"  {r['tag']:9}{r['language']:>10,}{r['builtin']:>10,}"
-            f"{r['sdos']:>10,}{r['apis']:>10,}",
+            f"{r['rules']:>10,}{r['apis']:>10,}",
         )
     print(
         f"\n  since {first['tag']}: language +{grew_l:,} steps, built-in +{grew_b:,}; "
         f"built-ins are {share:.0f}% of the growth",
     )
-    print(f"  since {first['tag']}: language +{grew_s:,} SDO algorithms, built-in +{grew_a:,} API algorithms")
+    print(f"  since {first['tag']}: language +{grew_r:,} grammar rules, built-in +{grew_a:,} APIs")
 
     if args.macros:
         print()
@@ -204,10 +225,10 @@ def main() -> int:
             ("NumStepsLangLast", f"{last['language']:,}"),
             ("NumStepsBuiltinLast", f"{last['builtin']:,}"),
             ("PctBuiltinOfGrowth", f"{share:.0f}\\%"),
-            ("NumAlgsLangFirst", f"{first['sdos']:,}"),
-            ("NumAlgsLangLast", f"{last['sdos']:,}"),
-            ("NumAlgsBuiltinFirst", f"{first['apis']:,}"),
-            ("NumAlgsBuiltinLast", f"{last['apis']:,}"),
+            ("NumRulesFirst", f"{first['rules']:,}"),
+            ("NumRulesLast", f"{last['rules']:,}"),
+            ("NumAPIsFirst", f"{first['apis']:,}"),
+            ("NumAPIsLast", f"{last['apis']:,}"),
         ):
             print(f"\\newcommand{{\\{name}}}{{{value}\\xspace}}")
 
