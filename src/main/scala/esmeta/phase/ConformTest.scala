@@ -67,7 +67,7 @@ case object ConformTest extends Phase[CFG, Unit] {
         errorHandler = (_, summary, name) => summary.fail.add(name),
       )
       val found = ConcurrentLinkedQueue[Divergence]()
-      for ((_, source) <- bar) {
+      bar.foreach { (_, source) =>
         // NOTE: no global-hiding prefix, since these carry no assertions
         val runs = engines.map(e => e.id -> execute(e, source, timeLimit))
         val noisy = runs.exists { (_, r) =>
@@ -197,7 +197,7 @@ case object ConformTest extends Phase[CFG, Unit] {
       },
     )
 
-    for ((test, injected) <- progress) {
+    progress.foreach { (test, injected) =>
       classify(test, execute(engine, injected, timeLimit)) match
         case Outcome.Pass | Outcome.Skip =>
         case Outcome.Fail(failure) =>
