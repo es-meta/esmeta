@@ -807,7 +807,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val desc = Desc(
           getExc = givenTy overlap ThrowT,
           ty =
-            if (givenTy overlap NormalT) st.get(givenTy, StrT("Value"))
+            if (givenTy overlap NormalT)
+              st.get(givenTy && NormalT, StrT("Value"))
             else BotT,
         )
         toBase(base, ValueTy(record = ObjectT.record.update(prop, desc)))
@@ -815,7 +816,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val call = CallDesc.Elem(
           exc = givenTy overlap ThrowT,
           ret =
-            if (givenTy overlap NormalT) st.get(givenTy, StrT("Value"))
+            if (givenTy overlap NormalT)
+              st.get(givenTy && NormalT, StrT("Value"))
             else BotT,
         )
         toBase(base, ValueTy(record = ObjectT.record.update(call)))
@@ -823,7 +825,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val construct = ConstructDesc.Elem(
           exc = givenTy overlap ThrowT,
           ret =
-            if (givenTy overlap NormalT) st.get(givenTy, StrT("Value"))
+            if (givenTy overlap NormalT)
+              st.get(givenTy && NormalT, StrT("Value"))
             else BotT,
         )
         toBase(base, ValueTy(record = ObjectT.record.update(construct)))
