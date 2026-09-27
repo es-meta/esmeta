@@ -278,7 +278,7 @@ case object ConformTest extends Phase[CFG, Unit] {
       }
   }
 
-  private val errorName = """\b([A-Za-z]*Error)(?=[:\r\n])""".r
+  private val errorName = """\b([A-Za-z]*Error)(?=[:\r\n]|$)""".r
 
   private case class Execution(
     timedOut: Boolean,
