@@ -120,47 +120,73 @@ class ExprSynthesizer(
     else if (d.isWhole && d.abs <= 9007199254740991.0) d.toLong.toString
     else d.toString
 
+  private enum PropDef {
+    case Data(expr: String, readOnly: Boolean)
+    case Accessor(getExc: Boolean, setExc: Boolean)
+  }
+
   // synthesize structural object requirements
   private def fromShape(ty: ValueTy)(using
     checkDeadline: () => Unit,
   ): Option[String] = ty.record match {
     case RecordTy.Elem(map, ObjShape(props, call, construct))
         if props.nonEmpty =>
+      import PropDef.*
       val ordered = props.toList.sortBy { case (prop, _) => propKey(prop) }
-      def members(): Option[List[(Property, String, String)]] =
+      def members(): Option[List[(Property, PropDef)]] =
         ordered
-          .foldLeft(Option(List.empty[(Property, String, String)])) {
+          .foldLeft(Option(List.empty[(Property, PropDef)])) {
             case (members, (prop, desc)) =>
               members.flatMap { ms =>
-                val member = firstSuccess(
-                  List(
-                    () => Option.when(desc.getExc)("get" -> ""),
-                    () => Option.when(desc.setExc)("set" -> ""),
-                    () => synthesize(desc.ty).map("value" -> _),
-                  ),
-                )
-                member.map((kind, value) => (prop, kind, value) :: ms)
+                val member: Option[PropDef] =
+                  if (desc == Desc.SetExc) Some(Accessor(false, true))
+                  else
+                    firstSuccess(
+                      List(
+                        () =>
+                          Option.when(desc.getExc)(Accessor(true, desc.setExc)),
+                        () => synthesize(desc.ty).map(Data(_, desc.setExc)),
+                      ),
+                    )
+                member.map(value => (prop -> value) :: ms)
               }
           }
           .map(_.reverse)
-      def literal(ms: List[(Property, String, String)]): String =
-        ms.map { (prop, kind, value) =>
+      def literal(ms: List[(Property, PropDef)]): String =
+        ms.map { (prop, member) =>
           val key = propKey(prop)
-          kind match
-            case "get" => s"get $key() { throw 0; }"
-            case "set" => s"set $key(_) { throw 0; }"
-            case _     => s"$key: $value"
+          member match
+            case Data(value, _) => s"$key: $value"
+            case Accessor(getExc, setExc) =>
+              List(
+                Option.when(getExc)(s"get $key() { throw 0; }"),
+                Option.when(setExc)(s"set $key(_) { throw 0; }"),
+              ).flatten.mkString(", ")
         }.mkString("{ ", ", ", " }")
-      def descriptors(ms: List[(Property, String, String)]): String =
-        ms.map { (prop, kind, value) =>
+      def descriptors(ms: List[(Property, PropDef)]): String =
+        ms.map { (prop, member) =>
           val key = propKey(prop)
-          kind match
-            case "get" => s"$key: { get() { throw 0; } }"
-            case "set" => s"$key: { set(_) { throw 0; } }"
-            case _     => s"$key: { value: $value }"
+          member match
+            case Data(value, readOnly) =>
+              val writable = if (readOnly) ", writable: false" else ""
+              s"$key: { value: $value$writable }"
+            case Accessor(getExc, setExc) =>
+              val accessors = List(
+                Option.when(getExc)("get() { throw 0; }"),
+                Option.when(setExc)("set(_) { throw 0; }"),
+              ).flatten.mkString(", ")
+              s"$key: { $accessors }"
         }.mkString("{ ", ", ", " }")
-      if (isPlainObject(ty) && !call.exists && !construct.exists)
-        members().map(literal)
+      if (allowsPlainObject(ty) && !call.exists && !construct.exists)
+        members().map { ms =>
+          val (readOnly, rest) = ms.partition {
+            case (_, Data(_, true)) => true
+            case _                  => false
+          }
+          if (readOnly.nonEmpty)
+            s"Object.defineProperties(${literal(rest)}, ${descriptors(readOnly)})"
+          else literal(ms)
+        }
       else {
         val baseTy = ty.copied(record =
           RecordTy.Elem(map, ObjShape(Map.empty, call, construct)),
@@ -177,29 +203,34 @@ class ExprSynthesizer(
               val key = propExpr(prop)
               for {
                 base <- synthesize(baseTy)
-                handler <- firstSuccess(
-                  List(
-                    () =>
-                      Option.when(desc.getExc)(
-                        oneLine(
-                          s"""get(t, p, r) {
-                           |  if (p === $key) throw 0;
-                           |  return Reflect.get(t, p, r);
-                           |}""",
-                        ),
-                      ),
-                    () =>
-                      Option.when(desc.setExc)(
-                        oneLine(
-                          s"""set(t, p, v, r) {
-                           |  if (p === $key) throw 0;
-                           |  return Reflect.set(t, p, v, r);
-                           |}""",
-                        ),
-                      ),
-                  ),
-                )
-              } yield s"new Proxy($base, { $handler })"
+                ms <- members()
+              } yield {
+                val (_, member) = ms.head
+                val getTrap = member match
+                  case Accessor(false, _) => ""
+                  case _ =>
+                    val action = member match
+                      case Data(value, _) => s"return ($value);"
+                      case Accessor(_, _) => "throw 0;"
+                    oneLine(
+                      s"""get(t, p, r) {
+                       |  if (p === $key) { $action }
+                       |  return Reflect.get(t, p, r);
+                       |}""",
+                    )
+                val setTrap =
+                  if (desc.setExc)
+                    oneLine(
+                      s"""set(t, p, v, r) {
+                   |  if (p === $key) throw 0;
+                   |  return Reflect.set(t, p, v, r);
+                   |}""",
+                    )
+                  else ""
+                val handler =
+                  List(getTrap, setTrap).filter(_.nonEmpty).mkString(", ")
+                s"new Proxy($base, { $handler })"
+              }
             })
           case _ => Nil
         }
@@ -251,7 +282,7 @@ class ExprSynthesizer(
       ),
     )
 
-  private def isPlainObject(ty: ValueTy): Boolean = ty.record match
+  private def allowsPlainObject(ty: ValueTy): Boolean = ty.record match
     case RecordTy.Elem(map, _) =>
       ObjectT ⊑ ty.copied(record = RecordTy.Elem(map))
     case _ => ObjectT ⊑ ty

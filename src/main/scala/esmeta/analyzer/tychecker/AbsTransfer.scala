@@ -1558,9 +1558,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         val ty = vs(1).ty
         val guard = ty.getProperty match
           case Some(p) =>
-            val abruptT = ValueTy(
-              record = ObjectT.record.update(p, Desc(setExc = true)),
-            )
+            val abruptT =
+              ValueTy(record = ObjectT.record.update(p, Desc.SetExc))
             TypeGuard(
               TargetType(AbruptT) -> TypeProp(0 -> abruptT),
             )

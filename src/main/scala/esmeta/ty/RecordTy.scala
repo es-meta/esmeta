@@ -365,29 +365,37 @@ case class Desc(
   setExc: Boolean = false,
   ty: ValueTy = BotT,
 ) extends TyElem {
-  def isBottom: Boolean = !getExc && !setExc && ty.isBottom
-  def isTop: Boolean = getExc && setExc && ty.isTop
+  def isBottom: Boolean = !getExc && ty.isBottom
+  def isTop: Boolean = getExc && !setExc && (ESValueT <= ty)
   def <=(that: Desc): Boolean =
+    this.isBottom || (!that.isBottom &&
     (this.getExc <= that.getExc) &&
-    (this.setExc <= that.setExc) &&
-    (this.ty <= that.ty)
-  def &&(that: Desc): Desc = Desc(
-    this.getExc && that.getExc,
-    this.setExc && that.setExc,
-    this.ty && that.ty,
-  )
-  def ||(that: Desc): Desc = Desc(
-    this.getExc || that.getExc,
-    this.setExc || that.setExc,
-    this.ty || that.ty,
-  )
+    (!that.setExc || this.setExc) &&
+    (this.ty <= that.ty))
+  def &&(that: Desc): Desc = {
+    val result = Desc(
+      this.getExc && that.getExc,
+      this.setExc || that.setExc,
+      this.ty && that.ty,
+    )
+    if (result.isBottom) Desc.Bot else result
+  }
+  def ||(that: Desc): Desc =
+    if (this.isBottom) that
+    else if (that.isBottom) this
+    else
+      Desc(
+        this.getExc || that.getExc,
+        this.setExc && that.setExc,
+        this.ty || that.ty,
+      )
   def getTy: ValueTy = NormalT(ty) || (if (getExc) ThrowT else BotT)
 }
 object Desc {
   val Bot: Desc = Desc()
-  val Top: Desc = Desc(getExc = true, setExc = true, ESValueT)
+  val Top: Desc = Desc(getExc = true, ty = ESValueT)
   val GetExc: Desc = Desc(getExc = true)
-  val SetExc: Desc = Desc(setExc = true)
+  val SetExc: Desc = Top.copy(setExc = true)
 }
 
 enum CallDesc extends TyElem {

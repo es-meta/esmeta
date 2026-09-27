@@ -269,10 +269,14 @@ class Stringifier(
     val Desc(getExc, setExc, ty) = desc
     var strs = Vector[String]()
     if (getExc) strs :+= "<GET-EXC>"
-    if (setExc) strs :+= "<SET-EXC>"
     if (!ty.isBottom) strs :+= ty.toString
-    if (strs.isEmpty) app >> "⊥"
-    else app >> strs.mkString("|")
+    if (desc.isBottom) app >> "⊥"
+    else if (desc == Desc.SetExc) app >> "<SET-EXC>"
+    else {
+      app >> strs.mkString("|")
+      if (setExc) app >> " & <SET-EXC>"
+      app
+    }
 
   /** call descriptors */
   given callDescRule: Rule[CallDesc] = (app, call) =>

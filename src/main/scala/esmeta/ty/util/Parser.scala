@@ -211,8 +211,11 @@ trait Parsers extends BasicParsers {
       "<GET-EXC>" ^^^ GetExc |
       "<SET-EXC>" ^^^ SetExc |
       valueTy ^^ { ty => Desc(ty = ty) }
-    "⊥" ^^^ Bot |
-    rep1sep(single, "|") ^^ { ds => ds.foldLeft(Bot)(_ || _) }
+    ("⊥" ^^^ Bot | rep1sep(single, "|") ^^ { ds =>
+      ds.foldLeft(Bot)(_ || _)
+    }) ~ opt("&" ~> "<SET-EXC>") ^^ {
+      case r ~ w => if (w.isDefined) r && SetExc else r
+    }
   }
 
   given callDesc: Parser[CallDesc] = "[call:" ~> {
