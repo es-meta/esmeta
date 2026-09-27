@@ -201,7 +201,7 @@ trait Parsers extends BasicParsers {
 
   given prop: Parser[Property] = {
     import Property.*
-    stringLiteral ^^ { PStr(_) } |
+    string ^^ { PStr(_) } |
     "@@" ~> word ^^ { PSym(_) }
   }
 
