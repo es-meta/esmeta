@@ -14,118 +14,30 @@ class Stringifier(detail: Boolean, location: Boolean) {
   val tyStringifier = TyElem.getStringifier(false, false)
   import tyStringifier.{*, given}
 
-  // elements
-  given elemRule: Rule[IRElem] = (app, elem) =>
-    elem match {
-      case elem: Program  => programRule(app, elem)
-      case elem: Func     => funcRule(app, elem)
-      case elem: FuncKind => funcKindRule(app, elem)
-      case elem: Param    => paramRule(app, elem)
-      case elem: Inst     => instRule(app, elem)
-      case elem: Expr     => exprRule(app, elem)
-      case elem: UOp      => uopRule(app, elem)
-      case elem: BOp      => bopRule(app, elem)
-      case elem: VOp      => vopRule(app, elem)
-      case elem: MOp      => mopRule(app, elem)
-      case elem: COp      => copRule(app, elem)
-      case elem: Ref      => refRule(app, elem)
-      case elem: Type     => tyRule(app, elem)
+  // types and base rules
+  given tyRule: Rule[Type] = (app, ty) => app >> ty.ty
+
+  given varRule: Rule[Var] = (app, x) =>
+    x match {
+      case Global(name) => app >> "@" >> name
+      case Name(name)   => app >> name
+      case Temp(idx)    => app >> "%" >> idx
     }
 
-  // programs
-  given programRule: Rule[Program] = (app, program) =>
-    given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP)
-    app >> program.funcs
-
-  // functions
-  given funcRule: Rule[Func] = (app, func) =>
-    funcHeadRule(false)(app, func)
-    app >> " = " >> func.body
-
-  def funcHeadRule(inline: Boolean): Rule[Func] = (app, func) =>
-    val Func(main, kind, name, params, retTy, body, _) = func
-    app >> (if (main) "@main " else "") >> "def " >> kind
-    app >> name
-    if (inline)
-      given Rule[List[Param]] = iterableRule("(", ", ", ")")
-      app >> params
-    else app.wrap("(", ")")(for (param <- params) app :> param >> ",")
-    app >> ": " >> retTy
-
-  // function kinds
-  given funcKindRule: Rule[FuncKind] = (app, kind) =>
-    import FuncKind.*
-    app >> (kind match {
-      case AbsOp        => ""
-      case NumMeth      => "<NUM>:"
-      case SynDirOp     => "<SYNTAX>:"
-      case ConcMeth     => "<CONC>:"
-      case InternalMeth => "<INTERNAL>:"
-      case Builtin      => "<BUILTIN>:"
-      case Clo          => "<CLO>:"
-      case Cont         => "<CONT>:"
-      case Aux          => "<AUX>:"
-    })
-
-  // function parameters
-  given paramRule: Rule[Param] = (app, param) =>
-    val Param(name, ty, optional, _) = param
-    app >> name >> (if (optional) "?" else "") >> ": " >> ty
-
-  // instructions
-  given instRule: Rule[Inst] = withLoc('i') { (app, inst) =>
-    inst match
-      case IExpr(expr) =>
-        app >> expr
-      case ILet(lhs, expr) =>
-        app >> "let " >> lhs >> " = " >> expr
-      case IAssign(ref, expr) =>
-        app >> ref >> " = " >> expr
-      case IExpand(base, expr) =>
-        app >> "expand " >> Field(base, expr)
-      case IDelete(base, expr) =>
-        app >> "delete " >> Field(base, expr)
-      case IPush(from, to, front) =>
-        app >> "push "
-        if (front) app >> from >> " > " >> to
-        else app >> to >> " < " >> from
-      case IPop(lhs, list, front) =>
-        app >> "pop "
-        if (front) app >> lhs >> " < " >> list
-        else app >> list >> " > " >> lhs
-      case IReturn(expr) =>
-        app >> "return " >> expr
-      case IAssert(expr) =>
-        app >> "assert " >> expr
-      case IPrint(expr) =>
-        app >> "print " >> expr
-      case INop() =>
-        app >> "nop"
-      case ISeq(insts) =>
-        if (insts.isEmpty) app >> "{}"
-        else app.wrap(for { i <- insts } app :> i)
-      case IIf(cond, thenInst, elseInst, _) =>
-        app >> "if " >> cond >> " " >> thenInst
-        (thenInst, elseInst) match
-          case (_, ISeq(List())) => app
-          case (ISeq(_), _)      => app >> " else " >> elseInst
-          case _                 => app :> "else " >> elseInst
-      case IWhile(cond, body) =>
-        app >> "while " >> cond >> " " >> body
-      case ICall(lhs, fexpr, args) =>
-        given Rule[List[Expr]] = iterableRule("(", ", ", ")")
-        app >> "call " >> lhs >> " = " >> fexpr >> args
-      case ISdoCall(lhs, ast, method, args) =>
-        given Rule[List[Expr]] = iterableRule("(", ", ", ")")
-        app >> "sdo-call " >> lhs >> " = "
-        app >> ast >> "->" >> method >> args
+  lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
+  private val refRule: Rule[Ref] = { (app, ref) =>
+    ref match {
+      case Field(base, EStr(inlineField(str))) => refRule(app, base) >> "." >> str
+      case Field(base, expr) => refRule(app, base) >> "[" >> expr >> "]"
+      case x: Var => varRule(app, x)
+    }
   }
+  given Rule[Ref] = refRule
 
-  // expressions
-  given exprRule: Rule[Expr] = withLoc('e') { (app, expr) =>
+  private val exprRule: Rule[Expr] = withLoc('e') { (app, expr) =>
     expr match
       case EParse(code, rule) =>
-        app >> "(parse " >> code >> " " >> rule >> ")"
+        exprRule(exprRule(app >> "(parse ", code) >> " ", rule) >> ")"
       case EGrammarSymbol(name, params) =>
         app >> "(grammar-symbol |" >> name >> "|"
         given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
@@ -186,28 +98,104 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case expr: LiteralExpr =>
         literalExprRule(app, expr)
   }
+  given Rule[Expr] = exprRule
 
-  // random number expressions
-  lazy val randRule: Rule[ERandom] = (app, rand) => app >> "(random)"
-
-  // abstract syntax tree (AST) expressions
-  lazy val astExprRule: Rule[AstExpr] = (app, ast) =>
-    ast match {
-      case ESyntactic(name, args, rhsIdx, children) =>
-        app >> "|" >> name >> "|"
-        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
-        given Rule[List[Boolean]] = iterableRule("[", "", "]")
-        if (!args.isEmpty) app >> args
-        app >> "<" >> rhsIdx >> ">"
-        given eo: Rule[Option[Expr]] = optionRule("")
-        given el: Rule[Iterable[Option[Expr]]] = iterableRule("(", ", ", ")")
-        if (!children.isEmpty) app >> children
-        app
-      case ELexical(name, expr) =>
-        app >> "|" >> name >> "|(" >> expr >> ")"
+  given copRule: Rule[COp] = (app, cop) =>
+    import COp.*
+    cop match {
+      case ToApproxNumber => app >> "[approx-number]"
+      case ToNumber       => app >> "[number]"
+      case ToBigInt       => app >> "[bigInt]"
+      case ToMath         => app >> "[math]"
+      case ToStr(radix) =>
+        app >> "[str"
+        radix.map(app >> " " >> _)
+        app >> "]"
+      case ToCodeUnit => app >> "[codeUnit]"
     }
 
-  // allocation expressions
+  given mopRule: Rule[MOp] = (app, mop) =>
+    import MOp.*
+    app >> (mop match
+      case Expm1 => "[math:expm1]"
+      case Log10 => "[math:log10]"
+      case Log2  => "[math:log2]"
+      case Cos   => "[math:cos]"
+      case Cbrt  => "[math:cbrt]"
+      case Exp   => "[math:exp]"
+      case Cosh  => "[math:cosh]"
+      case Sinh  => "[math:sinh]"
+      case Tanh  => "[math:tanh]"
+      case Acos  => "[math:acos]"
+      case Acosh => "[math:acosh]"
+      case Asinh => "[math:asinh]"
+      case Atanh => "[math:atanh]"
+      case Asin  => "[math:asin]"
+      case Atan2 => "[math:atan2]"
+      case Atan  => "[math:atan]"
+      case Log   => "[math:log]"
+      case Sin   => "[math:sin]"
+      case Sqrt  => "[math:sqrt]"
+      case Tan   => "[math:tan]"
+    )
+
+  given vopRule: Rule[VOp] = (app, vop) =>
+    import VOp.*
+    app >> (vop match
+      case Min    => "min"
+      case Max    => "max"
+      case Concat => "concat"
+    )
+
+  given bopRule: Rule[BOp] = (app, bop) =>
+    import BOp.*
+    app >> (bop match
+      case Add    => "+"
+      case Sub    => "-"
+      case Mul    => "*"
+      case Pow    => "**"
+      case Div    => "/"
+      case Mod    => "%"
+      case Eq     => "="
+      case Equal  => "=="
+      case And    => "&&"
+      case Or     => "||"
+      case Xor    => "^^"
+      case BAnd   => "&"
+      case BOr    => "|"
+      case BXOr   => "^"
+      case LShift => "<<"
+      case Lt     => "<"
+      case RShift => ">>"
+    )
+
+  given uopRule: Rule[UOp] = (app, uop) =>
+    import UOp.*
+    app >> (uop match {
+      case Abs   => "abs"
+      case Floor => "floor"
+      case Neg   => "-"
+      case Not   => "!"
+      case BNot  => "~"
+    })
+
+  lazy val literalExprRule: Rule[LiteralExpr] = (app, lit) =>
+    lit match {
+      case EMath(n)     => app >> n
+      case EInfinity(p) => app >> (if (p) "+" else "-") >> "INF"
+      case ENumber(Double.PositiveInfinity) => app >> "+NUM_INF"
+      case ENumber(Double.NegativeInfinity) => app >> "-NUM_INF"
+      case ENumber(n) if n.isNaN            => app >> "NaN"
+      case ENumber(n)                       => app >> n >> "f"
+      case EBigInt(n)                       => app >> n >> "n"
+      case EStr(str)    => app >> "\"" >> normStr(str) >> "\""
+      case EBool(b)     => app >> b
+      case EUndef()     => app >> "undefined"
+      case ENull()      => app >> "null"
+      case EEnum(name)  => app >> "~" >> name >> "~"
+      case ECodeUnit(c) => app >> c.toInt >> "cu"
+    }
+
   lazy val allocExprRule: Rule[AllocExpr] = (app, expr) =>
     expr match {
       case ERecord(tname, fields) =>
@@ -235,134 +223,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
     if (expr.asite == -1) app
     else app >> "[#" >> expr.asite >> "]"
 
-  // literals
-  lazy val literalExprRule: Rule[LiteralExpr] = (app, lit) =>
-    lit match {
-      case EMath(n)     => app >> n
-      case EInfinity(p) => app >> (if (p) "+" else "-") >> "INF"
-      case ENumber(Double.PositiveInfinity) => app >> "+NUM_INF"
-      case ENumber(Double.NegativeInfinity) => app >> "-NUM_INF"
-      case ENumber(n) if n.isNaN            => app >> "NaN"
-      case ENumber(n)                       => app >> n >> "f"
-      case EBigInt(n)                       => app >> n >> "n"
-      case EStr(str)    => app >> "\"" >> normStr(str) >> "\""
-      case EBool(b)     => app >> b
-      case EUndef()     => app >> "undefined"
-      case ENull()      => app >> "null"
-      case EEnum(name)  => app >> "~" >> name >> "~"
-      case ECodeUnit(c) => app >> c.toInt >> "cu"
+  lazy val astExprRule: Rule[AstExpr] = (app, ast) =>
+    ast match {
+      case ESyntactic(name, args, rhsIdx, children) =>
+        app >> "|" >> name >> "|"
+        given Rule[Boolean] = (app, bool) => app >> (if (bool) "T" else "F")
+        given Rule[List[Boolean]] = iterableRule("[", "", "]")
+        if (!args.isEmpty) app >> args
+        app >> "<" >> rhsIdx >> ">"
+        given eo: Rule[Option[Expr]] = optionRule("")
+        given el: Rule[Iterable[Option[Expr]]] = iterableRule("(", ", ", ")")
+        if (!children.isEmpty) app >> children
+        app
+      case ELexical(name, expr) =>
+        app >> "|" >> name >> "|(" >> expr >> ")"
     }
 
-  // unary operators
-  given uopRule: Rule[UOp] = (app, uop) =>
-    import UOp.*
-    app >> (uop match {
-      case Abs   => "abs"
-      case Floor => "floor"
-      case Neg   => "-"
-      case Not   => "!"
-      case BNot  => "~"
-    })
+  lazy val randRule: Rule[ERandom] = (app, rand) => app >> "(random)"
 
-  // binary operators
-  given bopRule: Rule[BOp] = (app, bop) =>
-    import BOp.*
-    app >> (bop match
-      case Add    => "+"
-      case Sub    => "-"
-      case Mul    => "*"
-      case Pow    => "**"
-      case Div    => "/"
-      case Mod    => "%"
-      case Eq     => "="
-      case Equal  => "=="
-      case And    => "&&"
-      case Or     => "||"
-      case Xor    => "^^"
-      case BAnd   => "&"
-      case BOr    => "|"
-      case BXOr   => "^"
-      case LShift => "<<"
-      case Lt     => "<"
-      case RShift => ">>"
-    )
-
-  // variadic operators
-  given vopRule: Rule[VOp] = (app, vop) =>
-    import VOp.*
-    app >> (vop match
-      case Min    => "min"
-      case Max    => "max"
-      case Concat => "concat"
-    )
-
-  // mathematical operators
-  given mopRule: Rule[MOp] = (app, mop) =>
-    import MOp.*
-    app >> (mop match
-      case Expm1 => "[math:expm1]"
-      case Log10 => "[math:log10]"
-      case Log2  => "[math:log2]"
-      case Cos   => "[math:cos]"
-      case Cbrt  => "[math:cbrt]"
-      case Exp   => "[math:exp]"
-      case Cosh  => "[math:cosh]"
-      case Sinh  => "[math:sinh]"
-      case Tanh  => "[math:tanh]"
-      case Acos  => "[math:acos]"
-      case Acosh => "[math:acosh]"
-      case Asinh => "[math:asinh]"
-      case Atanh => "[math:atanh]"
-      case Asin  => "[math:asin]"
-      case Atan2 => "[math:atan2]"
-      case Atan  => "[math:atan]"
-      case Log   => "[math:log]"
-      case Sin   => "[math:sin]"
-      case Sqrt  => "[math:sqrt]"
-      case Tan   => "[math:tan]"
-    )
-
-  // conversion operators
-  given copRule: Rule[COp] = (app, cop) =>
-    import COp.*
-    cop match {
-      case ToApproxNumber => app >> "[approx-number]"
-      case ToNumber       => app >> "[number]"
-      case ToBigInt       => app >> "[bigInt]"
-      case ToMath         => app >> "[math]"
-      case ToStr(radix) =>
-        app >> "[str"
-        radix.map(app >> " " >> _)
-        app >> "]"
-      case ToCodeUnit => app >> "[codeUnit]"
-    }
-
-  // references
-  lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-  given refRule: Rule[Ref] = { (app, ref) =>
-    ref match {
-      case Field(base, EStr(inlineField(str))) => app >> base >> "." >> str
-      case Field(base, expr) => app >> base >> "[" >> expr >> "]"
-      case x: Var            => varRule(app, x)
-    }
-  }
-
-  // identifiers
-  given varRule: Rule[Var] = (app, x) =>
-    x match {
-      case Global(name) => app >> "@" >> name
-      case Name(name)   => app >> name
-      case Temp(idx)    => app >> "%" >> idx
-    }
-
-  // types
-  given tyRule: Rule[Type] = (app, ty) => app >> ty.ty
-
-  // ---------------------------------------------------------------------------
-  // private helpers
-  // ---------------------------------------------------------------------------
-  // append locations
-  private def withLoc[T <: IRElem with LangEdge](tag: Char)(
+  private def withLoc[T <: IRElem & LangEdge](tag: Char)(
     rule: Rule[T],
   ): Rule[T] =
     (app, elem) =>
@@ -376,4 +255,106 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app
       rule(app, elem)
       if (location) app >> elem.langOpt else app
+
+  private val instRule: Rule[Inst] = withLoc('i') { (app, inst) =>
+    inst match
+      case IExpr(expr) =>
+        app >> expr
+      case ILet(lhs, expr) =>
+        app >> "let " >> lhs >> " = " >> expr
+      case IAssign(ref, expr) =>
+        app >> ref >> " = " >> expr
+      case IExpand(base, expr) =>
+        app >> "expand " >> Field(base, expr)
+      case IDelete(base, expr) =>
+        app >> "delete " >> Field(base, expr)
+      case IPush(from, to, front) =>
+        app >> "push "
+        if (front) app >> from >> " > " >> to
+        else app >> to >> " < " >> from
+      case IPop(lhs, list, front) =>
+        app >> "pop "
+        if (front) app >> lhs >> " < " >> list
+        else app >> list >> " > " >> lhs
+      case IReturn(expr) =>
+        app >> "return " >> expr
+      case IAssert(expr) =>
+        app >> "assert " >> expr
+      case IPrint(expr) =>
+        app >> "print " >> expr
+      case INop() =>
+        app >> "nop"
+      case ISeq(insts) =>
+        if (insts.isEmpty) app >> "{}"
+        else app.wrap(for { i <- insts } app.:>(i)(using instRule))
+      case IIf(cond, thenInst, elseInst, _) =>
+        app >> "if " >> cond >> " " >> thenInst
+        (thenInst, elseInst) match
+          case (_, ISeq(List())) => app
+          case (ISeq(_), _)      => app >> " else " >> elseInst
+          case _                 => app :> "else " >> elseInst
+      case IWhile(cond, body) =>
+        app >> "while " >> cond >> " " >> body
+      case ICall(lhs, fexpr, args) =>
+        given Rule[List[Expr]] = iterableRule("(", ", ", ")")
+        app >> "call " >> lhs >> " = " >> fexpr >> args
+      case ISdoCall(lhs, ast, method, args) =>
+        given Rule[List[Expr]] = iterableRule("(", ", ", ")")
+        app >> "sdo-call " >> lhs >> " = "
+        app >> ast >> "->" >> method >> args
+  }
+  given Rule[Inst] = instRule
+
+  given funcKindRule: Rule[FuncKind] = (app, kind) =>
+    import FuncKind.*
+    app >> (kind match {
+      case AbsOp        => ""
+      case NumMeth      => "<NUM>:"
+      case SynDirOp     => "<SYNTAX>:"
+      case ConcMeth     => "<CONC>:"
+      case InternalMeth => "<INTERNAL>:"
+      case Builtin      => "<BUILTIN>:"
+      case Clo          => "<CLO>:"
+      case Cont         => "<CONT>:"
+      case Aux          => "<AUX>:"
+    })
+
+  given paramRule: Rule[Param] = (app, param) =>
+    val Param(name, ty, optional, _) = param
+    app >> name >> (if (optional) "?" else "") >> ": " >> ty
+
+  def funcHeadRule(inline: Boolean): Rule[Func] = (app, func) =>
+    val Func(main, kind, name, params, retTy, body, _) = func
+    app >> (if (main) "@main " else "") >> "def " >> kind
+    app >> name
+    if (inline)
+      given Rule[List[Param]] = iterableRule("(", ", ", ")")
+      app >> params
+    else app.wrap("(", ")")(for (param <- params) app :> param >> ",")
+    app >> ": " >> retTy
+
+  given funcRule: Rule[Func] = (app, func) =>
+    funcHeadRule(false)(app, func)
+    app >> " = " >> func.body
+
+  given programRule: Rule[Program] = (app, program) =>
+    given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP)
+    app >> program.funcs
+
+  given elemRule: Rule[IRElem] = (app, elem) =>
+    elem match {
+      case elem: Program  => programRule(app, elem)
+      case elem: Func     => funcRule(app, elem)
+      case elem: FuncKind => funcKindRule(app, elem)
+      case elem: Param    => paramRule(app, elem)
+      case elem: Inst     => instRule(app, elem)
+      case elem: Expr     => exprRule(app, elem)
+      case elem: UOp      => uopRule(app, elem)
+      case elem: BOp      => bopRule(app, elem)
+      case elem: VOp      => vopRule(app, elem)
+      case elem: MOp      => mopRule(app, elem)
+      case elem: COp      => copRule(app, elem)
+      case elem: Ref      => refRule(app, elem)
+      case elem: Type     => tyRule(app, elem)
+    }
 }

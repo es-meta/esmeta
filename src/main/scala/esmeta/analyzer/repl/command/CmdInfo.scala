@@ -28,7 +28,7 @@ trait CmdInfoDecl { self: Self =>
           case Some(cp) =>
             val detail = args.headOption == Some("-detail")
             println(Repl.cpInfo(cp, detail))
-            println
+            println()
           case None =>
             showInfo(ret, List("RunJobs"))
         }
@@ -51,7 +51,7 @@ trait CmdInfoDecl { self: Self =>
           println("Inappropriate argument")
           Set()
       }
-      info.foreach(cp => { println(Repl.cpInfo(cp, true)); println })
+      info.foreach(cp => { println(Repl.cpInfo(cp, true)); println() })
     }
   }
 }

@@ -6,7 +6,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 ThisBuild / version := "0.8.1"
 
 // Scala version
-ThisBuild / scalaVersion := "3.3.6"
+ThisBuild / scalaVersion := "3.9.0"
 
 // ESMeta organization
 ThisBuild / organization := "esmeta"

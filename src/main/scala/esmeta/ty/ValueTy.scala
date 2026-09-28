@@ -172,18 +172,18 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
         case obj: MapObj    => map.contains(obj, heap)
         case obj: ListObj   => list.contains(obj, heap)
         case obj: YetObj    => throw NotSupported(Feature)(obj.msg)
-    case Clo(func, captured)             => clo contains func.irFunc.name
-    case Cont(func, captured, callStack) => cont contains func.id
+    case Clo(func, captured)             => clo `contains` func.irFunc.name
+    case Cont(func, captured, callStack) => cont `contains` func.id
     case v: AstValue                     => ast.contains(v)
-    case x @ GrammarSymbol(name, params) => grammarSymbol contains x
-    case m: Math                         => math contains m
-    case Infinity(p)                     => infinity contains p
-    case Enum(name)                      => enumv contains name
+    case x @ GrammarSymbol(name, params) => grammarSymbol `contains` x
+    case m: Math                         => math `contains` m
+    case Infinity(p)                     => infinity `contains` p
+    case Enum(name)                      => enumv `contains` name
     case CodeUnit(c)                     => codeUnit
-    case n: Number                       => number contains n
+    case n: Number                       => number `contains` n
     case BigInt(n)                       => bigInt
-    case Str(s)                          => str contains s
-    case Bool(b)                         => bool contains b
+    case Str(s)                          => str `contains` s
+    case Bool(b)                         => bool `contains` b
     case Undef                           => undef
     case Null                            => nullv
 

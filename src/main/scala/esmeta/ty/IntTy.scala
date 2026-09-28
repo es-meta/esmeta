@@ -123,12 +123,12 @@ sealed trait IntTy extends TyElem with Lattice[IntTy] {
     case IntSignTy(sign) => IntSignTy(sign)
 
   def min(that: => IntTy): IntTy = (this.canon, that.canon) match
-    case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign min rsign)
-    case _ => IntSignTy(this.toSign min that.toSign)
+    case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign `min` rsign)
+    case _ => IntSignTy(this.toSign `min` that.toSign)
 
   def max(that: => IntTy): IntTy = (this.canon, that.canon) match
-    case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign max rsign)
-    case _ => IntSignTy(this.toSign max that.toSign)
+    case (IntSignTy(lsign), IntSignTy(rsign)) => IntSignTy(lsign `max` rsign)
+    case _ => IntSignTy(this.toSign `max` that.toSign)
 
   def contains(value: Int): Boolean = this.canon match
     case IntSetTy(set)   => set.contains(value)

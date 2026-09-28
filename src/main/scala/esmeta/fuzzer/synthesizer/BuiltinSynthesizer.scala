@@ -67,14 +67,23 @@ class BuiltinSynthesizer(
   // get string of builtin path
   private def getString(path: BuiltinPath): String =
     (new Appender >> path).toString
-  private given builtinPathRule: Rule[BuiltinPath] = (app, path) =>
+  // private given builtinPathRule: Rule[BuiltinPath] = (app, path) =>
+  //   path match
+  //     case Base(name)               => app >> name
+  //     case NormalAccess(base, name) => app >> base >> "." >> name
+  //     case Getter(base)             => app >> base
+  //     case Setter(base)             => app >> base
+  //     case SymbolAccess(base, symbol) =>
+  //       app >> base >> "[Symbol." >> symbol >> "]"
+  private val builtinPathRule: Rule[BuiltinPath] = (app, path) =>
     path match
       case Base(name)               => app >> name
-      case NormalAccess(base, name) => app >> base >> "." >> name
-      case Getter(base)             => app >> base
-      case Setter(base)             => app >> base
+      case NormalAccess(base, name) => builtinPathRule(app, base) >> "." >> name
+      case Getter(base)             => builtinPathRule(app, base)
+      case Setter(base)             => builtinPathRule(app, base)
       case SymbolAccess(base, symbol) =>
-        app >> base >> "[Symbol." >> symbol >> "]"
+        builtinPathRule(app, base) >> "[Symbol." >> symbol >> "]"
+  private given Rule[BuiltinPath] = builtinPathRule
 
   /** for syntactic production */
   def apply(name: String, args: List[Boolean]): Syntactic =

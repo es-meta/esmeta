@@ -111,7 +111,7 @@ trait AbsValueDecl { self: TyChecker =>
         }
       }
 
-    def weakenMutable(using np: NodePoint[_], st: AbsState) =
+    def weakenMutable(using np: NodePoint[?], st: AbsState) =
       this.copy(guard = this.guard.weaken(np.func.mutableLocals))
 
     def isSymbolic: Boolean = symty.isSymbolic

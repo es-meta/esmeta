@@ -68,7 +68,7 @@ case class ProgressBar[T](
         f"[$bars] $percent%2.2f%% ($count%,d/$size%,d)$postfix"
       print("\r" + msg)
       if (count != size) { Thread.sleep(term); show }
-      else println
+      else println()
     }
 
     if (verbose)
@@ -92,7 +92,7 @@ case class ProgressBar[T](
       gcount.incrementAndGet
 
     concurrent match
-      case CP.Single => tests.foreach(_.apply)
+      case CP.Single => tests.foreach(_.apply())
       case CP.Fixed(n) =>
         val (service, eCtxt) = fixedThread(n)
         try {

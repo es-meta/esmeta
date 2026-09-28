@@ -17,10 +17,11 @@ object FlowStringifier {
       case elem: BranchKind => branchKindRule(app, elem)
   }
 
-  given cfgRule: Rule[CFG] = (app, cfg) => {
-    (app >> "CFG").wrap(" {", "}") {
-      for (func <- cfg.funcs) app :> func
-    }
+  given nodeRule: Rule[Node] = (app, node) => {
+    app >> node.id
+    val nexts = node.succs.map(_.id).toList.sorted
+    if (nexts.nonEmpty) app >> " -> " >> nexts.mkString(", ")
+    app
   }
 
   given funcRule: Rule[Func] = (app, func) => {
@@ -29,11 +30,10 @@ object FlowStringifier {
     }
   }
 
-  given nodeRule: Rule[Node] = (app, node) => {
-    app >> node.id
-    val nexts = node.succs.map(_.id).toList.sorted
-    if (nexts.nonEmpty) app >> " -> " >> nexts.mkString(", ")
-    app
+  given cfgRule: Rule[CFG] = (app, cfg) => {
+    (app >> "CFG").wrap(" {", "}") {
+      for (func <- cfg.funcs) app :> func
+    }
   }
 
   given branchKindRule: Rule[BranchKind] = (app, kind) => {

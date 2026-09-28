@@ -43,7 +43,7 @@ case object Extract extends Phase[Unit, Spec] {
     val parent = Paths.get(EXTRACT_LOG_DIR).toAbsolutePath.normalize
     val child = Paths.get(p).toAbsolutePath.normalize
 
-    if (child startsWith parent)
+    if (child `startsWith` parent)
       warn("`allowed-yets` is set to a path under the `logs` directory.")
       warn("`-extract:log` option may overwrite the given allowlist file.")
   }
@@ -167,7 +167,7 @@ case object Extract extends Phase[Unit, Spec] {
         } warn(getMessage(e))
 
   // stop and read user message
-  private def stop(msg: String): String = { print(msg); readLine }
+  private def stop(msg: String): String = { print(msg); readLine() }
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

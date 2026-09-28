@@ -31,17 +31,29 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Feature     => featureRule(app, elem)
       case elem: CallPath    => callPathRule(app, elem)
 
-  // states
-  given stRule: Rule[State] = (app, st) =>
-    app.wrap {
-      st.filename.map(app :> "filename: " >> _)
-      app :> "context: " >> st.context
-      given Rule[List[String]] = iterableRule("[", ", ", "]")
-      app :> "call-stack: "
-      app.wrapIterable("[", ",", "]")(st.callStack)
-      app :> "globals: " >> st.globals
-      app :> "heap: " >> st.heap
-    }
+  // cursor
+  given cursorRule: Rule[Cursor] = (app, cursor) =>
+    cursor match
+      case NodeCursor(func, node, idx) =>
+        app >> func.simpleString
+        app >> ":" >> node.simpleString
+        app >> ":" >> idx
+        node.loc.fold(app)(app >> " (" >> _ >> ")")
+      case ExitCursor(func) => app >> func.simpleString
+
+  // values
+  given valueRule: Rule[Value] = (app, value) =>
+    value match
+      case addr: Addr        => addrRule(app, addr)
+      case clo: Clo          => cloRule(app, clo)
+      case cont: Cont        => contRule(app, cont)
+      case AstValue(ast)     => app >> ast
+      case gr: GrammarSymbol => grammarSymbolRule(app, gr)
+      case m: Math           => mathRule(app, m)
+      case i: Infinity       => infinityRule(app, i)
+      case e: Enum           => enumRule(app, e)
+      case cu: CodeUnit      => cuRule(app, cu)
+      case sv: SimpleValue   => svRule(app, sv)
 
   // contexts
   given ctxtRule: Rule[Context] = (app, ctxt) =>
@@ -53,25 +65,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
       ctxt.retVal.map(app :> "return: " >> _)
     }
 
-  // cursor
-  given cursorRule: Rule[Cursor] = (app, cursor) =>
-    cursor match
-      case NodeCursor(func, node, idx) =>
-        app >> func.simpleString
-        app >> ":" >> node.simpleString
-        app >> ":" >> idx
-        node.loc.fold(app)(app >> " (" >> _ >> ")")
-      case ExitCursor(func) => app >> func.simpleString
-
   // calling contexts
   given callCtxtRule: Rule[CallContext] = (app, callCtxt) =>
     val CallContext(context, retId) = callCtxt
     app >> retId >> " @ " >> context.cursor
 
-  // heaps
-  given heapRule: Rule[Heap] = (app, heap) =>
-    val Heap(map, size) = heap
-    app >> s"(SIZE = " >> size.toString >> "): " >> map
+  // addresses
+  given addrRule: Rule[Addr] = (app, addr) =>
+    addr match
+      case NamedAddr(name)   => app >> "#" >> name
+      case DynamicAddr(long) => app >> "#" >> long.toString
 
   // objects
   given objRule: Rule[Obj] = (app, obj) =>
@@ -90,25 +93,22 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case YetObj(tname, msg) =>
         app >> "Yet[" >> tname >> "](\"" >> msg >> "\")"
 
-  // values
-  given valueRule: Rule[Value] = (app, value) =>
-    value match
-      case addr: Addr        => addrRule(app, addr)
-      case clo: Clo          => cloRule(app, clo)
-      case cont: Cont        => contRule(app, cont)
-      case AstValue(ast)     => app >> ast
-      case gr: GrammarSymbol => grammarSymbolRule(app, gr)
-      case m: Math           => mathRule(app, m)
-      case i: Infinity       => infinityRule(app, i)
-      case e: Enum           => enumRule(app, e)
-      case cu: CodeUnit      => cuRule(app, cu)
-      case sv: SimpleValue   => svRule(app, sv)
+  // heaps
+  given heapRule: Rule[Heap] = (app, heap) =>
+    val Heap(map, size) = heap
+    app >> s"(SIZE = " >> size.toString >> "): " >> map
 
-  // addresses
-  given addrRule: Rule[Addr] = (app, addr) =>
-    addr match
-      case NamedAddr(name)   => app >> "#" >> name
-      case DynamicAddr(long) => app >> "#" >> long.toString
+  // states
+  given stRule: Rule[State] = (app, st) =>
+    app.wrap {
+      st.filename.map(app :> "filename: " >> _)
+      app :> "context: " >> st.context
+      given Rule[List[String]] = iterableRule("[", ", ", "]")
+      app :> "call-stack: "
+      app.wrapIterable("[", ",", "]")(st.callStack)
+      app :> "globals: " >> st.globals
+      app :> "heap: " >> st.heap
+    }
 
   // closures
   given cloRule: Rule[Clo] = (app, clo) =>

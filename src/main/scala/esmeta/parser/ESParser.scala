@@ -109,7 +109,7 @@ case class ESParser(
     syn: Syntactic,
     astStart: Ast,
     astEnd: Ast,
-  ): Syntactic = syn.setLoc(astStart mergeLoc astEnd)
+  ): Syntactic = syn.setLoc(astStart `mergeLoc` astEnd)
 
   // get a parser
   private def getParser(prod: Production): ESParser[Ast] = memo(args =>
@@ -253,7 +253,7 @@ case class ESParser(
           println(s"----------------------------------------")
           println(s"trying to insert a semicolon")
           println(s"at line: $line, column: $column:")
-          println
+          println()
           lines.zipWithIndex.foreach {
             case (x, i) => println(f"$i%4d: $x")
           }
@@ -389,7 +389,7 @@ case class ESParser(
                 if (debug && keepLog) {
                   println("----------------------------------------")
                   println("result after inserting a semicolon:")
-                  println
+                  println()
                   str
                     .replace("\r\n", "\n")
                     .split(Array('\n', '\r'))

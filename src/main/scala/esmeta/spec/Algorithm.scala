@@ -75,7 +75,7 @@ object Algorithm {
     val level = code.linesIterator
       .filter(_.nonEmpty)
       .map(_.takeWhile(_.isWhitespace).length / 2)
-      .nextOption
+      .nextOption()
       .getOrElse(0)
     val numDrops = (level - 1) * 2
     // normalize the code

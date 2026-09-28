@@ -49,14 +49,14 @@ case class FuncBuilder(
 
   /** create a new scope with a given procedure */
   def newScope(f: => Unit): Inst =
-    scopes.push(ListBuffer()); f; ISeq(scopes.pop.toList)
+    scopes.push(ListBuffer()); f; ISeq(scopes.pop().toList)
 
   /** set backward edge from ir to lang */
   def withLang(lang: Syntax)(f: => Unit): Unit =
-    langs.push(lang); val result = f; langs.pop
+    langs.push(lang); val result = f; langs.pop()
     result
   def withLang[T <: IRElem](lang: Syntax)(f: => T): T =
-    langs.push(lang); val result = backEdgeWalker(f); langs.pop
+    langs.push(lang); val result = backEdgeWalker(f); langs.pop()
     result
 
   /** add instructions to the current scope */

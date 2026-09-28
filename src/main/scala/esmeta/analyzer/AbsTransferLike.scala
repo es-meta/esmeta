@@ -47,7 +47,7 @@ trait AbsTransferLikeDecl { self: Analyzer =>
       case (rp: ReturnPoint)  => this(rp)
 
     /** transfer function for node points */
-    def apply(np: NodePoint[_]): Unit
+    def apply(np: NodePoint[?]): Unit
 
     /** transfer function for return points */
     def apply(rp: ReturnPoint): Unit
@@ -55,7 +55,7 @@ trait AbsTransferLikeDecl { self: Analyzer =>
     /** transfer function for normal instructions */
     def transfer(
       inst: NormalInst,
-    )(using np: NodePoint[_]): Updater
+    )(using np: NodePoint[?]): Updater
 
     /** transfer function for expressions */
     def transfer(
