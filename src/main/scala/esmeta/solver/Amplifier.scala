@@ -70,9 +70,7 @@ class Amplifier(cfg: CFG) {
   lazy val rules: List[Rule] =
     accessorToProperty :: // accessor calls to property accesses
     positions(omitFrom) ::: // omit the arguments from a position on
-    positions(weakenArg) ::: // pass `undefined` explicitly at a position
-    positions(poisonArg) ::: // poison the argument at a position
-    positions(proxyArg) // wrap the argument at a position in a Proxy
+    substitutes.flatMap(v => positions(substituteArg(v))) // replace an argument
 
   private def positions(rule: Int => Rule): List[Rule] =
     (0 until maxArgs).map(rule).toList
@@ -244,14 +242,6 @@ class Amplifier(cfg: CFG) {
       if (idx < list.size && list.drop(idx).forall(!_._1))
     } yield s"(${render(list.take(idx), text)})"
 
-  /** pass `undefined` explicitly at a position, present but without a value */
-  def weakenArg(idx: Int)(ast: Syntactic, text: Ast => String): Option[String] =
-    for {
-      list <- if (ast.name == "Arguments") args(ast) else None
-      (isSpread, arg) <- list.lift(idx)
-      if (!isSpread && text(arg) != "undefined")
-    } yield replaceAt(list, idx, "undefined", text)
-
   private def replaceAt(
     list: List[(Boolean, Ast)],
     idx: Int,
@@ -268,21 +258,23 @@ class Amplifier(cfg: CFG) {
   val poison =
     "new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } }))"
 
-  /** poison the argument at a position */
-  def poisonArg(idx: Int)(ast: Syntactic, text: Ast => String): Option[String] =
-    for {
-      list <- if (ast.name == "Arguments") args(ast) else None
-      (isSpread, _) <- list.lift(idx)
-      if (!isSpread)
-    } yield replaceAt(list, idx, poison, text)
+  /** values that replace an argument */
+  val substitutes: List[String => String] = List(
+    _ => "undefined", // present, without a value
+    _ => poison, // every use throws
+    arg => s"new Proxy($arg, {})", // the same value, wrapped
+  )
 
-  /** wrap the argument at a position in a Proxy without traps */
-  def proxyArg(idx: Int)(ast: Syntactic, text: Ast => String): Option[String] =
+  /** replace the argument at a position with a substitute value */
+  def substituteArg(
+    subst: String => String,
+  )(idx: Int)(ast: Syntactic, text: Ast => String): Option[String] =
     for {
       list <- if (ast.name == "Arguments") args(ast) else None
       (isSpread, arg) <- list.lift(idx)
-      if (!isSpread)
-    } yield replaceAt(list, idx, s"new Proxy(${text(arg)}, {})", text)
+      next = subst(text(arg))
+      if (!isSpread && next != text(arg))
+    } yield replaceAt(list, idx, next, text)
 
   /** the widest argument list a builtin call can take, plus its receiver */
   private lazy val maxArgs: Int = (for {
