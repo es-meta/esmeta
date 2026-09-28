@@ -57,7 +57,10 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def fieldUpdate(fld: String, ty: ValueTy): TypeGuard =
       val m = for {
-        (dty, p) <- map
+        // Added conversion to Iterable because of:
+        // https://www.scala-lang.org/news/3.8.2/
+        (dty, p) <- map.iterator.to(Iterable)
+
         newTy = dty.ty.record.update(fld, ty, refine = false)
         newProp = p.fieldUpdate(fld, ty)
       } yield dty -> newProp
