@@ -1,2 +1,2 @@
 "use strict";
-decodeURIComponent ( ) ; 
+decodeURIComponent.call(0);

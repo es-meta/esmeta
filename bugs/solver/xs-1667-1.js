@@ -1,1 +1,1 @@
-Math.atan2({ [Symbol.toPrimitive]: -1n });
+const __res0 = Math.atan2.call(0, 0n);

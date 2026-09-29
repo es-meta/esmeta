@@ -1,1 +1,1 @@
-Reflect.has(function(){});
+const __res0 = Reflect.has.call(false, Symbol);

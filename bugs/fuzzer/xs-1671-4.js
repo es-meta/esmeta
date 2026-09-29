@@ -1,2 +1,2 @@
 "use strict";
-encodeURIComponent ( ) ; 
+encodeURIComponent.call(0);

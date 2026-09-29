@@ -1,2 +1,2 @@
 "use strict";
-'' . indexOf . call ( typeof x ) ; 
+const __res0 = `` . indexOf . call ( typeof x );

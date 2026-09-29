@@ -1,2 +1,2 @@
 "use strict";
-Math . pow ( 0n ) ; 
+Math . pow ( 0n ) ;

@@ -1,3 +1,1 @@
-const r = Proxy.revocable(function(){}, {});
-r.revoke();
-Function.prototype.toString.call(r.proxy);
+Function.prototype.toString.call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());

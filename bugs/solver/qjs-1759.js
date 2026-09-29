@@ -1,0 +1,1 @@
+const __res0 = Object.getPrototypeOf(Uint8Array).prototype.with.call((() => { const buffer = new ArrayBuffer(8); const value = new Int8Array(buffer); buffer.transfer(); return value; })(), new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })), -0);

@@ -1,0 +1,1 @@
+Reflect.construct(Float16Array, [...[(() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })()]], new Proxy(Object.getOwnPropertyDescriptor(Iterator.prototype, "constructor").get.call(false), { get(t, p, r) { if (p === "prototype") { throw 0; } return Reflect.get(t, p, r); } }));

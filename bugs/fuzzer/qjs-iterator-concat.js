@@ -1,2 +1,2 @@
 "use strict";
-Iterator.concat.call(0);
+const __res0 = Iterator.concat.call();

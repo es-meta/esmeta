@@ -1,2 +1,2 @@
 "use strict";
-encodeURI ( ) ; 
+encodeURI.call(0);

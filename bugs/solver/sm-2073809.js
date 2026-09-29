@@ -1,1 +1,1 @@
-const __res0 = new Function("a");
+const __res0 = Reflect.ownKeys.call(null, EvalError);

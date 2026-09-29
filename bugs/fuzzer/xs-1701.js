@@ -1,2 +1,2 @@
 "use strict";
-; '' . __proto__ = [ ] ; 
+; '' . __proto__ = [ ] ;

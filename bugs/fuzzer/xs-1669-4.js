@@ -1,2 +1,2 @@
 "use strict";
-Reflect . deleteProperty ( [ ] ) ; 
+Reflect . deleteProperty ( [ ] ) ;

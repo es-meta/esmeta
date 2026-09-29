@@ -1,4 +1,1 @@
-const buffer = new ArrayBuffer();
-const value = new Float64Array();
-buffer.transfer();
-Reflect.getOwnPropertyDescriptor(value);
+const __res0 = Reflect.getOwnPropertyDescriptor.call(1, Map);

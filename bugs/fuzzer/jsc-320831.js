@@ -1,2 +1,2 @@
 "use strict";
-Promise . withResolvers ( ) ; 
+const __res0 = Promise . withResolvers ();

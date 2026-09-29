@@ -1,2 +1,2 @@
 "use strict";
-Function ( ) ; 
+Array . of . call ( function ( ) { return [ x ] ; } ) ; function x ( ) { }

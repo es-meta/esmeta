@@ -1,2 +1,2 @@
 "use strict";
-Reflect . has ( [ ] ) ; 
+Reflect . has ( [ ] ) ;

@@ -1,1 +1,1 @@
-Object.defineProperty(Promise.reject(0), Infinity, { get get() { throw 0; } });
+Object.defineProperty.call(1, Symbol, Symbol(), { get get() { throw 0; } });

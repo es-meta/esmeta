@@ -1,1 +1,1 @@
-Object.getOwnPropertyDescriptor(Iterator.prototype, "constructor").set.call(Function.prototype, null);
+Object.getOwnPropertyDescriptor(Iterator.prototype, "constructor").set.call(Promise, true);

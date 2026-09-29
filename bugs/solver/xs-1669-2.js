@@ -1,4 +1,1 @@
-const buffer = new ArrayBuffer();
-const value = new Uint16Array();
-buffer.transfer();
-Reflect.set(value);
+const __res0 = Reflect.set.call("a", class {});

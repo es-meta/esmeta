@@ -1,1 +1,1 @@
-Array.prototype.sort.call("aa");
+Array.prototype.sort.call("aa", undefined);

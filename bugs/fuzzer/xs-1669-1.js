@@ -1,2 +1,2 @@
 "use strict";
-Reflect . get ( [ ] ) ; 
+Reflect . get ( { } ) ;
