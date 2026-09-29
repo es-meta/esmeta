@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import json
-import textwrap
 from pathlib import Path
 
 import matplotlib
@@ -26,11 +25,11 @@ def config_runs(data: Path, config: str) -> list[Path]:
     return runs
 
 
-def label(config: str, amplified: bool = False) -> str:
-    """the tool names the Venn legends use"""
-    setting = ["with amplifier"] if amplified else []
-    tool = "Synth262" if config == "solve" else "JEST"
-    return f"{tool} ({', '.join(setting)})" if setting else tool
+def label(config: str, amplified: bool | None = None) -> str:
+    """the tool names the Venn legends use: as shipped, Synth262 has the amplifier and JEST does not"""
+    if config == "solve":
+        return "Synth262 - amplifier" if amplified is False else "Synth262"
+    return "JEST + amplifier" if amplified else "JEST"
 
 
 def render(
@@ -47,10 +46,10 @@ def render(
     plt.rcParams.update({"font.family": "serif", "font.size": 8, "pdf.fonttype": 42})
     fig, ax = plt.subplots(figsize=(width_pt * PT, width_pt * PT * 0.75))
     labels = list(groups)
-    colours = [venn.colour_of(k.split(" (")[0], i) for i, k in enumerate(labels)]
+    colours = [venn.colour_of(k.split(" ")[0], i) for i, k in enumerate(labels)]
     boxes = ax.boxplot(
         [groups[k] for k in labels],
-        tick_labels=[textwrap.fill(k, 9, break_on_hyphens=False) for k in labels],
+        tick_labels=[k.replace(" + ", "\n+ ").replace(" - ", "\n\u2212 ") for k in labels],
         widths=0.5,
         patch_artist=True,
         showfliers=False,

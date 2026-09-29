@@ -43,8 +43,8 @@ DECL_RE = re.compile(r"\b(?:var|let|const|function|class)\s+([A-Za-z_$][\w$]*)")
 KEYWORDS = {"var", "let", "const", "function", "class", "new", "typeof", "undefined", "use", "strict"}
 # box label -> (run prefix, conform log)
 GROUPS = {
-    box.label("solve"): ("solve", "conform-programs.json"),
-    box.label("solve", True): ("solve", "conform-amplified.json"),
+    box.label("solve"): ("solve", "conform-amplified.json"),
+    box.label("solve", False): ("solve", "conform-programs.json"),
     box.label("fuzz"): ("fuzz", "conform-minimal.json"),
     box.label("fuzz", True): ("fuzz", "conform-amplified.json"),
 }

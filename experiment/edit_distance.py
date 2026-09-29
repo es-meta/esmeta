@@ -83,7 +83,7 @@ def draw_bars(rows: list[dict], configs: list[str], out: Path, width_pt: float) 
     width = 0.8 / len(configs)
     handles = []
     for i, config in enumerate(configs):
-        colour = venn.colour_of(box.label(config).split(" (")[0], i)
+        colour = venn.colour_of(box.label(config).split(" ")[0], i)
         xs = [j + (i - (len(configs) - 1) / 2) * width for j in range(len(rows))]
         runs = [r[config] for r in rows]
         means = [sum(v) / len(v) for v in runs]
