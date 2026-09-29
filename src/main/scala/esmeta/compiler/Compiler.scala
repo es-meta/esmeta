@@ -52,7 +52,7 @@ class Compiler(
   val manualRules: ManualInfo.CompileRule = ManualInfo.compileRule
 
   /** load manual compile rules */
-  val tyModel: TyModel = ManualInfo.tyModel
+  val tyModel: TyModel = spec.tyModel
 
   /** load manual compile rules for expressions */
   val exprRules: Map[String, Expr] = for {

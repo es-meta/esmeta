@@ -356,12 +356,13 @@ trait Parsers extends LangParsers {
     } ^^ { case t ~ k ~ y => TypeSummary(t, k, y) }
     val constants = empty ~ "- constants:" ~> int
     val tables = empty ~ "- tables:" ~> int
+    val dfns = empty ~ "- dfns:" ~> int
     val tyModel = empty ~ "- type model:" ~> int <~ empty
     val intr = empty ~ "- intrinsics:" ~> int <~ empty
     version ~ grammar ~ algos ~ steps ~ types ~
-    constants ~ tables ~ tyModel ~ intr ^^ {
-      case v ~ g ~ a ~ s ~ ty ~ c ~ t ~ m ~ i =>
-        Summary(v, g, a, s, ty, c, t, m, i)
+    constants ~ tables ~ dfns ~ tyModel ~ intr ^^ {
+      case v ~ g ~ a ~ s ~ ty ~ c ~ t ~ d ~ m ~ i =>
+        Summary(v, g, a, s, ty, c, t, d, m, i)
     }
   }.named("spec.Summary")
 

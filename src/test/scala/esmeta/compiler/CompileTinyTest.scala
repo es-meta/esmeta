@@ -920,7 +920,12 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       Constant("HoursPerDay", DecimalMathValueLiteral(BigDecimal(24))),
     ),
     tables = Map(
-      "sec-x" -> Table("sec-x", List("Internal Slot"), List(List("[[Value]]"))),
+      "sec-x" -> Table(
+        "sec-x",
+        "section X table",
+        List("Internal Slot"),
+        List(List("[[Value]]")),
+      ),
     ),
   )
   private lazy val compiler: Compiler = new Compiler(fixture)

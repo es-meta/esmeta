@@ -45,7 +45,7 @@ trait EffectDecl { self: TyChecker =>
         value.ty.record.bases match
           case Inf => Map()
           case Fin(set) =>
-            val baseTys = set.map(ManualInfo.tyModel.baseOf(_))
+            val baseTys = set.map(self.cfg.tyModel.baseOf(_))
             baseTys.map { baseTy => baseTy -> Set(fld) }.toMap
       }) ⊔ this
 
@@ -57,7 +57,7 @@ trait EffectDecl { self: TyChecker =>
       case RecordTy.Top => rec // unsound here
       case RecordTy.Elem(rmap) => {
         RecordTy(rmap.map((nty, fm) => {
-          val base = ManualInfo.tyModel.baseOf(nty)
+          val base = cfg.tyModel.baseOf(nty)
           val kfield = map.getOrElse(base, Set.empty)
           nty -> fm.weaken(kfield)
         }))

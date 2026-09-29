@@ -40,6 +40,7 @@ object Stringifier {
       case elem: ParamKind      => paramKindRule(app, elem)
       case elem: Table          => tableRule(app, elem)
       case elem: Constant       => constantRule(app, elem)
+      case elem: Dfn            => dfnRule(app, elem)
 
   // for specifications
   given specRule: Rule[Spec] = (app, spec) =>
@@ -56,6 +57,7 @@ object Stringifier {
       types,
       constants,
       tables,
+      dfns,
       tyModel,
       intr,
     ) = summary
@@ -76,6 +78,7 @@ object Stringifier {
     app :> "  - yet: " >> types.yet >> " " >> types.yetRatio
     app :> "- constants: " >> constants
     app :> "- tables: " >> tables
+    app :> "- dfns: " >> dfns
     app :> "- type model: " >> tyModel
     app :> "- intrinsics: " >> intr
 
@@ -246,4 +249,12 @@ object Stringifier {
   // for constants defined by `emu-eqn` elements
   given constantRule: Rule[Constant] = (app, constant) =>
     app >> constant.name >> " = " >> constant.value
+
+  // for glossaries defined by `dfn` elements
+  given dfnRule: Rule[Dfn] = (app, dfn) =>
+    app >> dfn.name
+    if (dfn.variants.nonEmpty)
+      given Rule[List[String]] = iterableRule(sep = ", ")
+      app >> " (" >> dfn.variants >> ")"
+    app
 }
