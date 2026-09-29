@@ -388,7 +388,7 @@ class ExprSynthesizer(
   }
 
   lazy val manuals: List[String] =
-    // primitive values (26)
+    // primitive values (28)
     val nullish = List("undefined", "null")
     val booleans = List("true", "false")
     val strings = List("\"\"", "\"a\"", "\"aa\"")
@@ -399,6 +399,8 @@ class ExprSynthesizer(
     val integers = List("-1", "1", "2", "4", "8")
     val limits = List(
       "Number.MIN_VALUE",
+      "2 ** 31", // int32 bound
+      "2 ** 32", // uint32 bound
       "Number.MAX_SAFE_INTEGER",
       "Number.MAX_VALUE",
     )
