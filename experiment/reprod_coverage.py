@@ -49,7 +49,7 @@ def main() -> int:
         groups[box.label(config)] = counts
 
     box.render(
-        args.out, groups, "Coverage (%)", args.width, integer=False, total=len(universe),
+        args.out, groups, "covered targets (%)", args.width, integer=False, total=len(universe),
     )
     json_out = args.out.with_suffix(".json")
     box.write_json(

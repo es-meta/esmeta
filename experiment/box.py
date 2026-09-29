@@ -64,7 +64,7 @@ def render(
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     if total:
         right = ax.secondary_yaxis("right", functions=(lambda p: p * total / 100, lambda c: c * 100 / total))
-        right.set_ylabel("# covered")
+        right.set_ylabel("# covered targets")
         ax.spines["top"].set_visible(False)
     else:
         ax.spines[["top", "right"]].set_visible(False)
