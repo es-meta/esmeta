@@ -1,1 +1,1 @@
-Object.defineProperty.call(1, Symbol, Symbol(), { get get() { throw 0; } });
+Object.defineProperty.call(true, String, 2, { get set() { throw 0; } });

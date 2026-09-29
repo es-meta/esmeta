@@ -1,1 +1,1 @@
-const __res0 = Reflect.construct(Float64Array, [...[Object.defineProperties(new Proxy(Number, {}), { [Symbol.iterator]: { value: undefined }, length: { value: 1n } })]], BigInt);
+ArrayBuffer.prototype.resize.call(new ArrayBuffer(8, { maxByteLength: 16 }), Number.MAX_VALUE);

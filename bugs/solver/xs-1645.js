@@ -1,1 +1,1 @@
-Array.from.call(null, true, undefined, -1n);
+Array.from.call("aa", Array, undefined, "");

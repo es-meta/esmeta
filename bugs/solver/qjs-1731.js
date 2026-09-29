@@ -1,1 +1,1 @@
-Set.prototype.isDisjointFrom.call(Reflect.construct(Set, [null], Float32Array), { has: "aa", size: -0.5 });
+Set.prototype.intersection.call(Reflect.construct(Set, [null], (async function* () {}).constructor), { get has() { throw 0; }, size: -0.5 });

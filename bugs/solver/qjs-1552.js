@@ -1,1 +1,1 @@
-Object.getOwnPropertyDescriptor(Iterator.prototype, "constructor").set.call(Promise, true);
+Object.getOwnPropertyDescriptor(Iterator.prototype, "constructor").set.call(Array, 0n);

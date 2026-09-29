@@ -1,1 +1,1 @@
-Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.map.call({ next: 1 }, Array));
+Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.flatMap.call({ next: null }, ReferenceError));

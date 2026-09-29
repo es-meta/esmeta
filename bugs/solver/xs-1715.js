@@ -1,1 +1,1 @@
-Array.from.call(undefined, { [Symbol.iterator]: undefined, length: URIError }, Set, 1);
+Array.from.call(Proxy, { [Symbol.iterator]: undefined, length: "aa" }, Float32Array, "");

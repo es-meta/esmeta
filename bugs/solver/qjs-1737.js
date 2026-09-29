@@ -1,1 +1,1 @@
-Function.prototype.toString.call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());
+const __res0 = Function.prototype.toString.call(new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })));

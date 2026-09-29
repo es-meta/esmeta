@@ -1,0 +1,1 @@
+const __res0 = Reflect.construct(Uint16Array, [...[Reflect.construct(ArrayBuffer, [Infinity, Symbol()], new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })))]], Object.defineProperties(WeakMap, { prototype: { value: -Infinity } }));

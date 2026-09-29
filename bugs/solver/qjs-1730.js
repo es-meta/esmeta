@@ -1,1 +1,1 @@
-Reflect.set.call(-1n, Object.getPrototypeOf(Uint8Array), 0, false, null);
+Reflect.set.call(NaN, Symbol, undefined, 0n, null);

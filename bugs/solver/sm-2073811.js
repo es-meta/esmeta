@@ -1,1 +1,1 @@
-RangeError.call("a", Promise.resolve(0), Symbol());
+Error.call(null, null, Symbol());

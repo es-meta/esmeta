@@ -1,1 +1,1 @@
-Reflect.construct(Uint16Array, [...[]], new Proxy((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })(), { get(t, p, r) { if (p === "prototype") { throw 0; } return Reflect.get(t, p, r); } }));
+const __res0 = Reflect.construct(WeakSet, [Symbol()], new Proxy((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })(), new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } }))));

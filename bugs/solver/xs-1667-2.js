@@ -1,1 +1,1 @@
-const __res0 = Math.pow.call(8, 0n);
+const __res0 = Math.pow.call(true, 1n);

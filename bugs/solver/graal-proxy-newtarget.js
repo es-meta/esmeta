@@ -1,1 +1,1 @@
-const __res0 = Reflect.construct(Proxy, [() => {}, Array], new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })));
+const __res0 = Reflect.construct(Proxy, [() => {}, Int8Array], new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })));

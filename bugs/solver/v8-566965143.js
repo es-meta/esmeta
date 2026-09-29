@@ -1,1 +1,1 @@
-Reflect.construct(Float16Array, [...[(() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })()]], new Proxy(Object.getOwnPropertyDescriptor(Iterator.prototype, "constructor").get.call(false), { get(t, p, r) { if (p === "prototype") { throw 0; } return Reflect.get(t, p, r); } }));
+const __res0 = Reflect.construct(Uint16Array, [...[Object.defineProperties(Float64Array, { [Symbol.iterator]: { value: undefined }, length: { get() { throw 0; } } })]], new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })));

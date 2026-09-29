@@ -1,1 +1,1 @@
-const __res0 = Reflect.getOwnPropertyDescriptor.call(1, Map);
+const __res0 = Reflect.getOwnPropertyDescriptor.call(null, function(){});

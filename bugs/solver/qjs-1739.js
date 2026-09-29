@@ -1,1 +1,1 @@
-Reflect.construct(Int8Array, [...[Number.MAX_SAFE_INTEGER]], (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());
+Reflect.construct(Uint8Array, [...[2 ** 32]], (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());

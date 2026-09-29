@@ -1,1 +1,1 @@
-const __res0 = Reflect.apply.call(Symbol(), new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })), -1n, { length: (() => { const buffer = new ArrayBuffer(8); const value = new Uint8ClampedArray(buffer); buffer.transfer(); return value; })() });
+const __res0 = Reflect.apply.call(undefined, new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })), 0.5, { length: (() => { const buffer = new ArrayBuffer(8); const value = new Uint8ClampedArray(buffer); buffer.transfer(); return value; })() });
