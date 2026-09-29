@@ -30,9 +30,7 @@
       "v8-fromasync-proxy-hang", "graal-proxy-newtarget",
       "jsc-setfrombase64-maxlength0", "jsc-ta-newtarget-order"
     ],
-    "invalid": [
-      "xs-1707"
-    ]
+    "invalid": []
   },
   "tags": {
     "implicit undefined": [
