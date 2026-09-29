@@ -1,0 +1,4 @@
+// not yet compiled assertions are skipped
+@main def main() = {
+  assert (yet "not yet compiled")
+}
