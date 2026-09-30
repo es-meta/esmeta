@@ -1,1 +1,0 @@
-const __res0 = Array.from.call(new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })), { [Symbol.iterator]: (() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })() }, Symbol, false);

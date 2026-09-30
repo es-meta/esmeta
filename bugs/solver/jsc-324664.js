@@ -1,1 +1,0 @@
-const __res0 = Reflect.construct(WeakSet, [Symbol()], new Proxy((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })(), new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } }))));

@@ -4,7 +4,7 @@
 #
 # The region counts of the two RQ1 Venn diagrams, which the paper draws by hand
 # in fse27/fig/images.key: branch sides covered by the union of each tool's
-# runs, and the defect rows each tool left a reproduction for under bugs/.
+# runs, and the defect rows the triage ledger finds in their conform logs.
 # --tex also writes the coverage numbers the introduction gives within the
 # solver's targets, and the defect counts by status.
 
@@ -14,7 +14,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from rq1_table import BRANCH_RE, BUGS, DATA, Tex, bug_status, covered, mean, runs
+from rq1_table import BRANCH_RE, DATA, INTERACTION, PLAIN, Defects, Tex, bug_status, covered, mean, runs
 
 
 def universe(run: Path) -> set[tuple[int, str]]:
@@ -55,9 +55,14 @@ def main() -> int:
     show("branch coverage (union of runs, including outside targets)", {"Synth262": S, "Test262": T, "JEST": F})
     status = bug_status()
     rows = set(status)
-    stored = {src: {p.stem for p in (BUGS / src).glob("*.js")} & rows for src in ("solver", "fuzzer")}
-    show(f"\ndefects ({len(rows)} rows; {len(rows - stored['solver'] - stored['fuzzer'])} reproduced by neither)",
-         {"Synth262": stored["solver"], "JEST": stored["fuzzer"]})
+    defects = Defects()
+    # rows either oracle reproduces in any run of the tool
+    stored = {
+        src: set().union(*(defects.found(r / log) or set() for r in rs for log in (PLAIN[src], INTERACTION)))
+        for src, rs in (("solve", solve), ("fuzz", fuzz))
+    }
+    show(f"\ndefects ({len(rows)} rows; {len(rows - stored['solve'] - stored['fuzz'])} reproduced by neither)",
+         {"Synth262": stored["solve"], "JEST": stored["fuzz"]})
 
     tex = Tex("rq1_venn.py")
     tex.count("NumOnlySynthAll", len(S - T - F))
@@ -76,7 +81,7 @@ def main() -> int:
     tex.count("NumFuzzOfTestMissed", len(F & missed))
     tex.count("NumOnlySynth", len((S & U) - T - F))
     # defects Synth262 found, by status
-    found = stored["solver"]
+    found = stored["solve"]
     novel = {n for n in found if status[n] != "known-upstream"}
     tex.count("NumSolverBugs", len(found))
     tex.count("NumSolverNovelBugs", len(novel))

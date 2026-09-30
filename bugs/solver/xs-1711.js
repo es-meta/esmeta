@@ -1,1 +1,0 @@
-const __res0 = Object.getPrototypeOf(Uint8Array).prototype.fill.call(Reflect.construct(Float16Array, [...[Map]], Error), 1n, new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })), 1n);

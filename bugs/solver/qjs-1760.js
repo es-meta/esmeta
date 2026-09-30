@@ -1,1 +1,0 @@
-const __res0 = Reflect.construct(ArrayBuffer, [(() => { const g = (async function*(){ yield 0; })(); g.next(); return g; })(), { maxByteLength: -1 }], new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })));

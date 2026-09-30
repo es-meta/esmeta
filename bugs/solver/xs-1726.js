@@ -1,1 +1,0 @@
-const __res0 = Object.getPrototypeOf(Uint8Array).prototype.set.call(Reflect.construct(Uint8ClampedArray, [...[EvalError]], SyntaxError), new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })), Number.MAX_SAFE_INTEGER);

@@ -1,1 +1,0 @@
-Array.prototype.toSpliced.call({ length: Number.MAX_SAFE_INTEGER }, undefined, -0);

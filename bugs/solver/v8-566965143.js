@@ -1,1 +1,0 @@
-const __res0 = Reflect.construct(Uint16Array, [...[Object.defineProperties(Float64Array, { [Symbol.iterator]: { value: undefined }, length: { get() { throw 0; } } })]], new Proxy(function(){}, new Proxy({}, { get() { throw new EvalError; } })));

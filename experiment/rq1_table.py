@@ -33,7 +33,6 @@ from pathlib import Path
 HOME = Path(os.environ.get("ESMETA_HOME", Path(__file__).resolve().parents[1]))
 DATA = HOME / "experiment" / "data"
 TABLE = HOME / "experiment" / "bugs.json"
-BUGS = HOME / "bugs"
 LEDGER = HOME / "experiment" / "conform" / "triage.json"
 
 # the log of each oracle: final-state assertions only, and the interaction-based one
@@ -198,12 +197,13 @@ class Defects:
 
     def draft(self) -> int:
         """adds every unseen failure as a guess; returns how many"""
-        stored = {
-            p.stem: p.read_text(encoding="utf-8")
-            for source in ("solver", "fuzzer")
-            for p in (BUGS / source).glob("*.js")
-            if p.stem in self.rows
-        }
+        # the shortest program the ledger already gives each row
+        stored: dict[str, str] = {}
+        for programs in self.ledger.values():
+            for program, verdicts in programs.items():
+                for row in [verdicts] if isinstance(verdicts, str) else verdicts:
+                    if row in self.rows and len(program) < len(stored.get(row, program + " ")):
+                        stored[row] = program
         added = 0
         for engine, program in sorted(self.seen):
             if program not in self.ledger.setdefault(engine, {}):
