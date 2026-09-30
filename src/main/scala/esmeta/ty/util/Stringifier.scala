@@ -266,15 +266,17 @@ class Stringifier(
 
   /** property descriptors */
   given descRule: Rule[Desc] = (app, desc) =>
-    val Desc(getExc, setExc, ty) = desc
+    val Desc(getExc, ty, _, _) = desc
     var strs = Vector[String]()
     if (getExc) strs :+= "<GET-EXC>"
     if (!ty.isBottom) strs :+= ty.toString
     if (desc.isBottom) app >> "⊥"
     else if (desc == Desc.SetExc) app >> "<SET-EXC>"
+    else if (desc == Desc.SetOk) app >> "<SET-OK>"
     else {
       app >> strs.mkString("|")
-      if (setExc) app >> " & <SET-EXC>"
+      if (desc.mustSetExc) app >> " & <SET-EXC>"
+      if (desc.mustSetOk) app >> " & <SET-OK>"
       app
     }
 

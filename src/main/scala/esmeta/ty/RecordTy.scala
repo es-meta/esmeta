@@ -360,23 +360,41 @@ enum Property extends TyElem:
   case PStr(str: String)
   case PSym(sym: String)
 
+/** property descriptor types
+  *
+  * Every component describes the *allowed* results of an operation on the
+  * property:
+  *   - get: a normal result of type `ty`, and an exception if `getExc`
+  *   - set: a normal (successful) write if `setOk`, and an exception if
+  *     `setExc`
+  */
 case class Desc(
   getExc: Boolean = false,
-  setExc: Boolean = false,
   ty: ValueTy = BotT,
+  setOk: Boolean = true,
+  setExc: Boolean = true,
 ) extends TyElem {
-  def isBottom: Boolean = !getExc && ty.isBottom
-  def isTop: Boolean = getExc && !setExc && (ESValueT <= ty)
+  def isBottom: Boolean = (!getExc && ty.isBottom) || (!setOk && !setExc)
+  def isTop: Boolean = getExc && (ESValueT <= ty) && setOk && setExc
+
+  /** the write must throw */
+  def mustSetExc: Boolean = setExc && !setOk
+
+  /** the write must succeed */
+  def mustSetOk: Boolean = setOk && !setExc
+
   def <=(that: Desc): Boolean =
     this.isBottom || (!that.isBottom &&
     (this.getExc <= that.getExc) &&
-    (!that.setExc || this.setExc) &&
+    (this.setOk <= that.setOk) &&
+    (this.setExc <= that.setExc) &&
     (this.ty <= that.ty))
   def &&(that: Desc): Desc = {
     val result = Desc(
-      this.getExc && that.getExc,
-      this.setExc || that.setExc,
-      this.ty && that.ty,
+      getExc = this.getExc && that.getExc,
+      ty = this.ty && that.ty,
+      setOk = this.setOk && that.setOk,
+      setExc = this.setExc && that.setExc,
     )
     if (result.isBottom) Desc.Bot else result
   }
@@ -385,9 +403,10 @@ case class Desc(
     else if (that.isBottom) this
     else
       Desc(
-        this.getExc || that.getExc,
-        this.setExc && that.setExc,
-        this.ty || that.ty,
+        getExc = this.getExc || that.getExc,
+        ty = this.ty || that.ty,
+        setOk = this.setOk || that.setOk,
+        setExc = this.setExc || that.setExc,
       )
   def getTy: ValueTy = NormalT(ty) || (if (getExc) ThrowT else BotT)
 }
@@ -395,7 +414,8 @@ object Desc {
   val Bot: Desc = Desc()
   val Top: Desc = Desc(getExc = true, ty = ESValueT)
   val GetExc: Desc = Desc(getExc = true)
-  val SetExc: Desc = Top.copy(setExc = true)
+  val SetExc: Desc = Top.copy(setOk = false)
+  val SetOk: Desc = Top.copy(setExc = false)
 }
 
 enum CallDesc extends TyElem {

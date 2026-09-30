@@ -207,14 +207,15 @@ trait Parsers extends BasicParsers {
 
   given desc: Parser[Desc] = {
     import Desc.*
+    val set = "<SET-EXC>" ^^^ SetExc | "<SET-OK>" ^^^ SetOk
     val single =
       "<GET-EXC>" ^^^ GetExc |
-      "<SET-EXC>" ^^^ SetExc |
+      set |
       valueTy ^^ { ty => Desc(ty = ty) }
     ("⊥" ^^^ Bot | rep1sep(single, "|") ^^ { ds =>
       ds.foldLeft(Bot)(_ || _)
-    }) ~ opt("&" ~> "<SET-EXC>") ^^ {
-      case r ~ w => if (w.isDefined) r && SetExc else r
+    }) ~ opt("&" ~> set) ^^ {
+      case r ~ w => w.fold(r)(r && _)
     }
   }
 

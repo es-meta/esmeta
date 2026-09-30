@@ -181,10 +181,11 @@ trait UnitWalker extends BasicUnitWalker {
 
   /** property descriptors */
   def walk(desc: Desc): Unit =
-    val Desc(getExc, setExc, ty) = desc
+    val Desc(getExc, ty, setOk, setExc) = desc
     walk(getExc)
-    walk(setExc)
     walk(ty)
+    walk(setOk)
+    walk(setExc)
 
   /** call descriptors */
   def walk(call: CallDesc): Unit =

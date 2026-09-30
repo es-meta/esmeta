@@ -122,7 +122,7 @@ class ExprSynthesizer(
 
   private enum PropDef {
     case Data(expr: String, readOnly: Boolean)
-    case Accessor(getExc: Boolean, setExc: Boolean)
+    case Accessor(getExc: Boolean, setExc: Boolean, setOk: Boolean = false)
   }
 
   // synthesize structural object requirements
@@ -140,12 +140,17 @@ class ExprSynthesizer(
               members.flatMap { ms =>
                 val member: Option[PropDef] =
                   if (desc == Desc.SetExc) Some(Accessor(false, true))
+                  else if (desc == Desc.SetOk)
+                    // a plain writable data property accepts any write
+                    synthesize(desc.ty).map(Data(_, false))
                   else
                     firstSuccess(
                       List(
                         () =>
-                          Option.when(desc.getExc)(Accessor(true, desc.setExc)),
-                        () => synthesize(desc.ty).map(Data(_, desc.setExc)),
+                          Option.when(desc.getExc)(
+                            Accessor(true, desc.mustSetExc, desc.mustSetOk),
+                          ),
+                        () => synthesize(desc.ty).map(Data(_, desc.mustSetExc)),
                       ),
                     )
                 member.map(value => (prop -> value) :: ms)
@@ -157,10 +162,11 @@ class ExprSynthesizer(
           val key = propKey(prop)
           member match
             case Data(value, _) => s"$key: $value"
-            case Accessor(getExc, setExc) =>
+            case Accessor(getExc, setExc, setOk) =>
               List(
                 Option.when(getExc)(s"get $key() { throw 0; }"),
                 Option.when(setExc)(s"set $key(_) { throw 0; }"),
+                Option.when(setOk)(s"set $key(_) {}"),
               ).flatten.mkString(", ")
         }.mkString("{ ", ", ", " }")
       def descriptors(ms: List[(Property, PropDef)]): String =
@@ -170,10 +176,11 @@ class ExprSynthesizer(
             case Data(value, readOnly) =>
               val writable = if (readOnly) ", writable: false" else ""
               s"$key: { value: $value$writable }"
-            case Accessor(getExc, setExc) =>
+            case Accessor(getExc, setExc, setOk) =>
               val accessors = List(
                 Option.when(getExc)("get() { throw 0; }"),
                 Option.when(setExc)("set(_) { throw 0; }"),
+                Option.when(setOk)("set(_) {}"),
               ).flatten.mkString(", ")
               s"$key: { $accessors }"
         }.mkString("{ ", ", ", " }")
@@ -198,7 +205,7 @@ class ExprSynthesizer(
           } yield s"Object.defineProperties($base, ${descriptors(ms)})"
         }
         val proxy = ordered match {
-          case (prop, desc) :: Nil if (desc.getExc || desc.setExc) =>
+          case (prop, desc) :: Nil if (desc.getExc || desc.mustSetExc) =>
             List(() => {
               val key = propExpr(prop)
               for {
@@ -207,11 +214,11 @@ class ExprSynthesizer(
               } yield {
                 val (_, member) = ms.head
                 val getTrap = member match
-                  case Accessor(false, _) => ""
+                  case Accessor(false, _, _) => ""
                   case _ =>
                     val action = member match
-                      case Data(value, _) => s"return ($value);"
-                      case Accessor(_, _) => "throw 0;"
+                      case Data(value, _)    => s"return ($value);"
+                      case Accessor(_, _, _) => "throw 0;"
                     oneLine(
                       s"""get(t, p, r) {
                        |  if (p === $key) { $action }
@@ -219,7 +226,7 @@ class ExprSynthesizer(
                        |}""",
                     )
                 val setTrap =
-                  if (desc.setExc)
+                  if (desc.mustSetExc)
                     oneLine(
                       s"""set(t, p, v, r) {
                    |  if (p === $key) throw 0;
