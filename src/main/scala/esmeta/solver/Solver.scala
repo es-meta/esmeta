@@ -13,12 +13,19 @@ import esmeta.ty.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.{ConcurrentPolicy => CP, ProgressBar}
 import esmeta.util.SystemUtils.*
+import io.circe.Json
 import java.util.concurrent.{
   ConcurrentHashMap => CMMap,
   ConcurrentLinkedQueue,
   TimeoutException,
 }
-import scala.collection.mutable.{Map => MMap, Set => MSet, Stack, Queue}
+import scala.collection.mutable.{
+  ListBuffer,
+  Map => MMap,
+  Set => MSet,
+  Stack,
+  Queue,
+}
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.*
 
@@ -189,6 +196,10 @@ class Solver(
 
   // outcomes and their summary, kept from solve for report
   private val completed = ConcurrentLinkedQueue[BranchResult]()
+  private val stats = ConcurrentLinkedQueue[TargetStat]()
+
+  // clock for statistics, read only in logging mode
+  private inline def now: Long = if (log) System.nanoTime() else 0L
   private var summary = ""
 
   /** solve the targets, and return a witness of each branch side touched */
@@ -214,11 +225,24 @@ class Solver(
     solving.foreach { (entries, cond) =>
       // reuse known coverage without changing the target set
       val r = Option(condMap.get((cond.branch.id, cond.cond))) match
-        case Some(js) => BranchResult(cond, "pass", Some(js))
-        case None     => solveTarget(entries, cond)
+        case Some(js) =>
+          val stat = TargetStat(cond, entries.size, reused = true)
+          stat.status = "pass"
+          if (log) stats.add(stat)
+          BranchResult(cond, "pass", Some(js))
+        case None => solveTarget(entries, cond)
       completed.add(r)
     }
     val witnesses = condMap.asScala.toMap
+    for (dir <- logDir)
+      dumpFile(
+        name = "solver statistics",
+        data = stats.asScala.toList
+          .sortBy(s => (s.cond.branch.id, !s.cond.cond))
+          .map(_.json(witnesses).noSpaces)
+          .mkString("", "\n", "\n"),
+        filename = s"$dir/stats.jsonl",
+      )
     val conds = witnesses.keySet
     val reached = (conds intersect targetKeys).size
     val outside = (conds -- targetKeys).size
@@ -283,16 +307,25 @@ class Solver(
   // ---------------------------------------------------------------------------
 
   private def solveTarget(entries: List[Func], cond: Cond): BranchResult = {
-    val targetDeadline = System.nanoTime() + solveTimeout.toNanos
+    val start = System.nanoTime()
+    val targetDeadline = start + solveTimeout.toNanos
     val perEntry = solveTimeout.toNanos / entries.size
+    val stat = TargetStat(cond, entries.size)
     def solveNext(f: Func): BranchResult = {
       val deadline = (System.nanoTime() + perEntry).min(targetDeadline)
-      try solveEntry(f, cond, deadline)
-      catch {
-        case e: Throwable =>
-          println(s"[error] ${f.name} -> $cond  $e")
-          BranchResult(cond, "error")
-      }
+      val entryStat = EntryStat(f.name)
+      if (log) stat.entries += entryStat
+      val entryStart = now
+      val r =
+        try solveEntry(f, cond, deadline, entryStat)
+        catch {
+          case e: Throwable =>
+            println(s"[error] ${f.name} -> $cond  $e")
+            BranchResult(cond, "error")
+        }
+      entryStat.ns = now - entryStart
+      entryStat.status = r.status
+      r
     }
     def rank(status: String): Int = status match
       case "pass"        => 0
@@ -311,10 +344,18 @@ class Solver(
       val other = solveNext(rest.next())
       if (rank(other.status) < rank(best.status)) best = other
     }
+    stat.status = best.status
+    stat.ns = now - start
+    if (log) stats.add(stat)
     best
   }
 
-  private def solveEntry(f: Func, cond: Cond, deadline: Long): BranchResult = {
+  private def solveEntry(
+    f: Func,
+    cond: Cond,
+    deadline: Long,
+    entryStat: EntryStat,
+  ): BranchResult = {
     def expired: Boolean = System.nanoTime() > deadline
     given checkTimeout: (() => Unit) =
       () => if (expired) throw TimeoutException("solver")
@@ -330,13 +371,31 @@ class Solver(
     // sample each distinct invocation once per entry
     val invocations = Iterator
       .unfold(())(_ => interp.nextCandidate.map(_ -> ()))
-      .map { conf => Solver.getInvocation(interp.analyzer)(f, conf.state) }
+      .map { conf =>
+        entryStat.symPaths += 1
+        Solver.getInvocation(interp.analyzer)(f, conf.state)
+      }
       .distinct
+    // the path being tried, closed when it ends or the deadline expires
+    var current: Option[PathStat] = None
+    def close(p: PathStat, outcome: String): Unit =
+      p.outcome = outcome
+      p.ns = now - p.start
+      current = None
     @scala.annotation.tailrec
     def retry(rejected: Option[BranchResult]): BranchResult = {
       checkTimeout()
-      invocations.nextOption match {
+      val before = entryStat.symPaths
+      val searchStart = now
+      val next = invocations.nextOption
+      entryStat.searchNs += now - searchStart
+      next match {
         case Some(invocation) =>
+          val p = PathStat(entryStat.paths.size)
+          p.symPaths = entryStat.symPaths - before
+          p.reified = invocation.flatMap(_.form).isDefined
+          if (log) entryStat.paths += p
+          current = Some(p)
           val seen = MSet.empty[String]
           val candidates = invocation
             .to(LazyList)
@@ -353,32 +412,49 @@ class Solver(
             }
             .map(_ + ";")
             .take(Solver.maxCandidatesPerPath)
+            .map { js => p.generated += 1; js }
             .filter(seen.add)
           candidates.headOption match {
             case Some(_) =>
               val passing = candidates.iterator.find { js =>
-                val conds = touched(js, checkTimeout)
-                for (c <- conds) condMap.putIfAbsent(c, js)
+                val execStart = now
+                p.aborted = true
+                val result = touched(js, checkTimeout)
+                p.aborted = false
+                p.executed += 1
+                p.execNs += now - execStart
+                val conds = result.getOrElse { p.errors += 1; Set.empty }
+                for (c <- conds if condMap.putIfAbsent(c, js) == null)
+                  if (c != (cond.branch.id, cond.cond)) p.incidental += 1
                 conds((cond.branch.id, cond.cond))
               }
               passing match {
-                case Some(js) => BranchResult(cond, "pass", Some(js))
+                case Some(js) =>
+                  close(p, "pass")
+                  BranchResult(cond, "pass", Some(js))
                 case None =>
+                  close(p, "fail")
                   val next = rejected
                     .filter(_.status == "fail-verify")
                     .orElse(Some(BranchResult(cond, "fail-verify")))
                   retry(next)
               }
             case None =>
+              close(p, "no-candidate")
               retry(rejected.orElse(Some(BranchResult(cond, "fail-reify"))))
           }
         case None =>
+          entryStat.exhausted = !expired
           if (expired) BranchResult(cond, "timeout")
           else rejected.getOrElse(BranchResult(cond, "unsolved"))
       }
     }
     try retry(None)
-    catch { case _: TimeoutException => BranchResult(cond, "timeout") }
+    catch {
+      case _: TimeoutException =>
+        for (p <- current) close(p, "timeout")
+        BranchResult(cond, "timeout")
+    }
   }
 
   /** assemble a target call from synthesized input expressions */
@@ -395,7 +471,7 @@ class Solver(
   private def touched(
     js: String,
     checkTimeout: () => Unit,
-  ): Set[(Int, Boolean)] = {
+  ): Option[Set[(Int, Boolean)]] = {
     checkTimeout()
     try {
       val interp = Coverage.Interp(
@@ -409,13 +485,13 @@ class Solver(
       )
       interp.result
       checkTimeout()
-      (for {
+      Some((for {
         cv <- interp.touchedCondViews.keys
         if candidateBranches(cv.cond.branch.id)
-      } yield (cv.cond.branch.id, cv.cond.cond)).toSet
+      } yield (cv.cond.branch.id, cv.cond.cond)).toSet)
     } catch {
       case e: TimeoutException => throw e
-      case _: Throwable        => Set.empty
+      case _: Throwable        => None
     }
   }
 
@@ -424,6 +500,83 @@ class Solver(
     status: String,
     js: Option[String] = None,
   )
+
+  // ---------------------------------------------------------------------------
+  // statistics (stats.jsonl in the log directory, one target side per line)
+  // ---------------------------------------------------------------------------
+
+  private def ms(ns: Long): Json = Json.fromDoubleOrNull(ns / 1e6)
+
+  /** one distinct invocation (path) tried for an entry */
+  private class PathStat(val index: Int) {
+    val start = now
+    var symPaths = 0 // symbolic paths found, including duplicate invocations
+    var reified = false // has an invocation form
+    var generated = 0 // programs taken within the per-path budget
+    var executed = 0 // programs executed after deduplication
+    var aborted = false // an execution cut off by the deadline
+    var errors = 0 // executions that threw or hit the coverage time limit
+    var incidental = 0 // other branch sides first covered by these programs
+    var outcome = "" // pass | fail | no-candidate | timeout
+    var execNs = 0L
+    var ns = 0L
+    def json: Json = Json.obj(
+      "index" -> Json.fromInt(index),
+      "symPaths" -> Json.fromInt(symPaths),
+      "reified" -> Json.fromBoolean(reified),
+      "generated" -> Json.fromInt(generated),
+      "executed" -> Json.fromInt(executed),
+      "aborted" -> Json.fromBoolean(aborted),
+      "errors" -> Json.fromInt(errors),
+      "incidental" -> Json.fromInt(incidental),
+      "outcome" -> Json.fromString(outcome),
+      "execMs" -> ms(execNs),
+      "ms" -> ms(ns),
+    )
+  }
+
+  /** one entry function tried for a target side */
+  private class EntryStat(val name: String) {
+    val paths = ListBuffer[PathStat]()
+    var symPaths = 0
+    var exhausted = false // no more paths before the deadline
+    var status = ""
+    var searchNs = 0L
+    var ns = 0L
+    def json: Json = Json.obj(
+      "name" -> Json.fromString(name),
+      "status" -> Json.fromString(status),
+      "symPaths" -> Json.fromInt(symPaths),
+      "exhausted" -> Json.fromBoolean(exhausted),
+      "searchMs" -> ms(searchNs),
+      "ms" -> ms(ns),
+      "paths" -> Json.fromValues(paths.map(_.json)),
+    )
+  }
+
+  /** one target branch side */
+  private class TargetStat(
+    val cond: Cond,
+    val nEntries: Int,
+    val reused: Boolean = false, // covered before its own turn
+  ) {
+    val entries = ListBuffer[EntryStat]()
+    var status = ""
+    var ns = 0L
+    def json(witnesses: Map[(Int, Boolean), String]): Json = Json.obj(
+      "branch" -> Json.fromInt(cond.branch.id),
+      "side" -> Json.fromBoolean(cond.cond),
+      "func" -> Json.fromString(cfg.funcOf(cond.branch).name),
+      "nEntries" -> Json.fromInt(nEntries),
+      "reused" -> Json.fromBoolean(reused),
+      "status" -> Json.fromString(status),
+      "covered" -> Json.fromBoolean(
+        witnesses.contains((cond.branch.id, cond.cond)),
+      ),
+      "ms" -> ms(ns),
+      "entries" -> Json.fromValues(entries.map(_.json)),
+    )
+  }
 }
 
 object Solver {
