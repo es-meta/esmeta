@@ -244,7 +244,7 @@ case object CmdSolve extends Command("solve", CmdBuildCFG >> Solve) {
 /** `instrument` command */
 case object CmdInstrument
   extends Command("instrument", CmdBuildCFG >> Instrument) {
-  val help = "records object operations, keeping each represented branch side"
+  val help = "adds instrumentation variants while keeping original programs"
   val examples = List(
     "esmeta instrument dir                      # instrument programs in dir.",
     "esmeta instrument dir -instrument:out=out  # dump data into out.",

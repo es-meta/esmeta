@@ -11,7 +11,7 @@ import io.circe.Decoder
 /** `instrument` phase */
 case object Instrument extends Phase[CFG, Unit] {
   val name = "instrument"
-  val help = "records object operations, keeping each represented branch side."
+  val help = "keeps originals and adds instrumentation preserving coverage."
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): Unit =
     val dir = getFirstFilename(cmdConfig, name)
@@ -29,20 +29,18 @@ case object Instrument extends Phase[CFG, Unit] {
     def read(script: String): String =
       val path = s"$dir/$script"
       readFile(if (exists(path)) path else s"$dir/minimal/$script")
-    val conds = infos.map((c, _) => (c.branch.id, c.cond) -> c)
+    val conds = infos.map((c, _) => (c.branch.id, c.cond) -> c).toMap
     // the shortest program of each branch side
     val programs = infos
       .groupMap((c, _) => (c.branch.id, c.cond))(_._2)
       .map((key, scripts) =>
         key -> scripts.distinct.map(read).minBy(js => (js.length, js)),
       )
-    val instrumented = Instrumenter(cfg)(programs)
+    val results = Instrumenter(cfg)(programs)
     val out = config.out.getOrElse(s"$dir/instrumented")
     mkdir(out)
-    val results = conds.toMap.toList.sortBy(_._1).map { (k, c) =>
-      c -> instrumented(k)
-    }
-    Solve.dumpPrograms(cfg, out, results)
+    val entries = results.map { (key, js) => conds(key) -> js }
+    Solve.dumpPrograms(cfg, out, entries)
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(

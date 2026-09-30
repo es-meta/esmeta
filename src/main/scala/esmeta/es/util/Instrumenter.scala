@@ -16,9 +16,10 @@ import scala.util.Try
 class Instrumenter(cfg: CFG) {
   private val cov = Coverage(cfg, timeLimit = Some(2))
 
+  /** keep the original and instrumented program for each branch side */
   def apply(
     programsBySide: Map[(Int, Boolean), String],
-  ): Map[(Int, Boolean), String] = {
+  ): List[((Int, Boolean), String)] = {
     val programs = programsBySide.toList.groupMap(_._2)(_._1)
     val result = CMMap[(Int, Boolean), String](programsBySide.asJava)
     val bar = ProgressBar(
@@ -32,7 +33,7 @@ class Instrumenter(cfg: CFG) {
       } result.put(cond, program)
     }
     println(s"Instrumentation: ${bar.summary.time.simpleString}")
-    result.asScala.toMap
+    (programsBySide.toList ++ result.asScala.toList).distinct.sortBy(_._1)
   }
 
   def instrument(

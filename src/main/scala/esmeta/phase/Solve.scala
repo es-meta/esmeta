@@ -27,19 +27,19 @@ case object Solve extends Phase[CFG, Unit] {
     val witnesses = solver.solve
     val programs =
       if (config.instrument) Instrumenter(cfg)(witnesses)
-      else witnesses
+      else witnesses.toList.sortBy(_._1)
     for (dir <- solver.logDir)
       dumpPrograms(
         cfg,
         dir,
-        programs.toList.sortBy(_._1).map {
+        programs.map {
           case ((id, side), js) =>
             cfg.nodeMap.get(id) match
               case Some(branch: Branch) => Cond(branch, side) -> js
               case _ => raise(s"solve: node $id is not a branch")
         },
       )
-    solver.report(programs)
+    solver.report(witnesses)
 
   /** dump numbered programs with a branch coverage file */
   def dumpPrograms(
@@ -103,7 +103,7 @@ case object Solve extends Phase[CFG, Unit] {
     (
       "instrument",
       BoolOption((c, b) => c.instrument = b),
-      "instrument the witnesses after solving (default: false).",
+      "add instrumentation variants after solving (default: false).",
     ),
     (
       "no-shape",
