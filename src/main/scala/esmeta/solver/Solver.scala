@@ -412,7 +412,10 @@ class Solver(
             }
             .map(_ + ";")
             .take(Solver.maxCandidatesPerPath)
-            .map { js => p.generated += 1; js }
+            .map { js =>
+              p.generated += 1
+              js
+            }
             .filter(seen.add)
           candidates.headOption match {
             case Some(_) =>
