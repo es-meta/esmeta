@@ -163,16 +163,25 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         ) =
           getResult(rp)
         if (!oldV.isBottom && useRepl) Repl.merged = true
-        if ((newV !⊑ oldV)(using entrySt) || (effect !⊑ oldEffect)) {
-          val constr = givenSt.constr.onlySym
-          val hasSym = v.symty.hasSym
-          val newRet = AbsRet(
-            oldV ⊔ newV,
-            if (hasSym) noSym else (noSymV ⊔ newV, noSymConstr || constr),
-            if (hasSym) syms + (np -> (v.onlySym(using givenSt), constr))
-            else syms - np,
-            oldEffect ⊔ effect,
-          )
+        val constr = givenSt.constr.onlySym
+        val hasSym = v.symty.hasSym
+        // join each return point into its own part of the summary, even when
+        // the merged return value does not grow
+        val newRet = AbsRet(
+          oldV ⊔ newV,
+          if (hasSym) noSym else (noSymV ⊔ newV, noSymConstr || constr),
+          if (hasSym) {
+            val symV = v.onlySym(using givenSt)
+            syms + (np -> syms.get(np).fold((symV, constr)) { (oldSymV, c) =>
+              (oldSymV ⊔ symV, c || constr)
+            })
+          } else syms - np,
+          oldEffect ⊔ effect,
+        )
+        if (
+          (newV !⊑ oldV)(using entrySt) || (effect !⊑ oldEffect) ||
+          newRet.noSym != noSym || newRet.syms != syms
+        ) {
           rpMap += rp -> newRet
           worklist += rp
         }
