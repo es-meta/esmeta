@@ -18,13 +18,7 @@ import java.util.concurrent.{
   ConcurrentLinkedQueue,
   TimeoutException,
 }
-import scala.collection.mutable.{
-  Map => MMap,
-  Set => MSet,
-  ListBuffer,
-  Stack,
-  Queue,
-}
+import scala.collection.mutable.{Map => MMap, Set => MSet, Stack, Queue}
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.*
 
@@ -355,6 +349,7 @@ class Solver(
                 }
                 .takeWhile(_.isDefined)
                 .flatten
+                .flatMap(_.to(LazyList))
             }
             .map(_ + ";")
             .take(Solver.maxCandidatesPerPath)
@@ -389,10 +384,10 @@ class Solver(
   /** assemble a target call from synthesized input expressions */
   private def assemble(invocation: Invocation, first: Boolean)(using
     checkDeadline: () => Unit,
-  ): Option[String] = {
+  ): Option[List[String]] = {
     checkDeadline()
-    invocation.form.flatMap { (expr, holes) =>
-      synth.synthesize(holes, first).map(vs => Invocation.fill(expr, vs))
+    invocation.form.flatMap { (_, holes) =>
+      synth.synthesize(holes, first).map(invocation.candidates)
     }
   }
 
@@ -497,26 +492,35 @@ object Solver {
 
     private val path = head.path
 
-    /** choose call when allowed, otherwise construct */
-    val form: Option[(String, List[(String, ValueTy)])] = {
-      val holes = ListBuffer.empty[(String, ValueTy)]
-      val args = head.params.zip(paramTys).zipWithIndex.map {
-        case ((param, ty), i) =>
-          if (param.kind == ParamKind.Variadic)
-            variadicTys.zipWithIndex
-              .map { (ty, k) =>
-                val hole = s"#VAR[$k]"
-                holes += hole -> ty
-                hole
-              }
-              .mkString("...[", ", ", "]")
-          else {
-            val hole = s"#$i"
-            holes += hole -> ty
-            hole
+    private val inputs = head.params.zip(paramTys).zipWithIndex.flatMap {
+      case ((param, ty), i) =>
+        if (param.kind == ParamKind.Variadic)
+          variadicTys.zipWithIndex.map((ty, k) => s"#VAR[$k]" -> ty)
+        else List(s"#$i" -> ty)
+    }
+
+    val form: Option[(String, List[(String, ValueTy)])] = formFor(inputs)
+
+    def candidates(values: Map[String, String]): List[String] = {
+      val count =
+        inputs.reverse.takeWhile((hole, _) => values(hole) == "undefined").size
+      (count to 0 by -1).toList.flatMap { n =>
+        formFor(inputs.dropRight(n)).map((expr, _) =>
+          Invocation.fill(expr, values),
+        )
+      }.distinct
+    }
+
+    private def formFor(
+      argHoles: List[(String, ValueTy)],
+    ): Option[(String, List[(String, ValueTy)])] = {
+      val fixed = head.params.takeWhile(_.kind != ParamKind.Variadic).size
+      val args = argHoles.take(fixed).map(_._1) ++
+        Option
+          .when(fixed < head.params.size) {
+            argHoles.drop(fixed).map(_._1).mkString("...[", ", ", "]")
           }
-      }
-      val argHoles = holes.toList
+          .toList
       if (UndefT ⊑ newTargetTy)
         call("#THIS", args).map(_ -> (("#THIS" -> thisTy) :: argHoles))
       else {
@@ -533,8 +537,8 @@ object Solver {
         case BuiltinPath.Getter(base) =>
           descriptor(base).map(d => s"$d.get.call($receiver)")
         case BuiltinPath.Setter(base) =>
-          val value = args.headOption.getOrElse("undefined")
-          descriptor(base).map(d => s"$d.set.call($receiver, $value)")
+          val values = (receiver :: args).mkString(", ")
+          descriptor(base).map(d => s"$d.set.call($values)")
         case _ =>
           val values = (receiver :: args).mkString(", ")
           access(path).map(fn => s"$fn.call($values)")
