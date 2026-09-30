@@ -3,7 +3,7 @@ package esmeta.phase
 import esmeta.*
 import esmeta.cfg.CFG
 import esmeta.error.{NotSupported => NSError, InterpreterError}
-import esmeta.injector.Injector
+import esmeta.injector.{ConformTest => InjectedTest, Injector}
 import esmeta.interpreter.Interpreter
 import esmeta.es.*
 import esmeta.state.*
@@ -18,16 +18,18 @@ case object Inject extends Phase[CFG, String] {
   val name = "inject"
   val help = "injects assertions to check final state of an ECMAScript file."
 
-  private def injectFile(cfg: CFG, filename: String, config: Config): String =
-    Injector
-      .fromFile(cfg, filename, config.log, config.timeLimit)
-      .toString(detail = config.defs)
+  private def injectFile(
+    cfg: CFG,
+    filename: String,
+    config: Config,
+  ): InjectedTest =
+    Injector.fromFile(cfg, filename, config.log, config.timeLimit)
 
   private[phase] def injectFiles(
     cfg: CFG,
     dirname: String,
     config: Config,
-  ): (List[(String, String)], List[File]) = {
+  ): (List[(String, InjectedTest)], List[File]) = {
     val files = listFiles(dirname)
       .filter(f => f.isFile && jsFilter(f.getName))
       .sortBy(_.getName)
@@ -52,14 +54,17 @@ case object Inject extends Phase[CFG, String] {
       config.out match
         case Some(dirname) =>
           mkdir(dirname, remove = true)
-          for ((filename, source) <- injected)
-            dumpFile(source, s"$dirname/$filename")
+          for ((filename, test) <- injected)
+            dumpFile(test.toString(detail = config.defs), s"$dirname/$filename")
           s"Injected ${injected.size}/$total ECMAScript program(s), " +
           s"skipped ${skipped.size}."
         case None =>
-          injected.map(_._2).mkString(LINE_SEP + LINE_SEP)
+          injected
+            .map(_._2.toString(detail = config.defs))
+            .mkString(LINE_SEP + LINE_SEP)
     } else {
-      val injected = injectFile(cfg, path, config)
+      val injected =
+        injectFile(cfg, path, config).toString(detail = config.defs)
 
       // dump the assertion-injected ECMAScript program
       for (filename <- config.out)

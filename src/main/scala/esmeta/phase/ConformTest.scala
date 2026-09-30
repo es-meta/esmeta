@@ -112,12 +112,14 @@ case object ConformTest extends Phase[CFG, Unit] {
 
     val injectedDir = workDir.resolve("minimal-injected").toString
     mkdir(injectedDir)
-    val tests = injected.map { (filename, source) =>
+    val tests = injected.map { (filename, test) =>
+      val source = test.toString(detail = injectConfig.defs)
       dumpFile(source, s"$injectedDir/$filename")
       TestInput(
         filename,
         readFile(File(scriptDir, filename).getPath),
         source,
+        test.async,
       )
     }
     val skipped = skippedFiles.map(f => f.getName -> readFile(f.getPath))
@@ -136,6 +138,7 @@ case object ConformTest extends Phase[CFG, Unit] {
     name: String,
     source: String,
     injected: String,
+    async: Boolean,
   ) {
     val expected: String =
       injected.linesIterator
@@ -151,7 +154,6 @@ case object ConformTest extends Phase[CFG, Unit] {
             case _                   => None,
         )
         .getOrElse(raise(s"Invalid injected artifact: $name"))
-    val async: Boolean = source.contains("async") || source.contains("Promise")
   }
 
   private def runEngine(
