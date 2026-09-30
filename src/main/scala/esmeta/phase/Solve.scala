@@ -2,7 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.{Branch, CFG}
-import esmeta.es.util.{Instrumenter, JsonProtocol}
+import esmeta.es.util.JsonProtocol
 import esmeta.es.util.Coverage.{Cond, CondView, CondViewInfo}
 import esmeta.solver.Solver
 import esmeta.util.*
@@ -25,9 +25,7 @@ case object Solve extends Phase[CFG, Unit] {
       detail = config.detail,
     )
     val witnesses = solver.solve
-    val programs =
-      if (config.instrument) Instrumenter(cfg)(witnesses)
-      else witnesses.toList.sortBy(_._1)
+    val programs = witnesses.toList.sortBy(_._1)
     for (dir <- solver.logDir)
       dumpPrograms(
         cfg,
@@ -101,11 +99,6 @@ case object Solve extends Phase[CFG, Unit] {
       "logging mode with detailed information.",
     ),
     (
-      "instrument",
-      BoolOption((c, b) => c.instrument = b),
-      "add instrumentation variants after solving (default: false).",
-    ),
-    (
       "no-shape",
       BoolOption((c, b) => c.noShape = b),
       "ablation: drop the object structure from the type domain.",
@@ -121,7 +114,6 @@ case object Solve extends Phase[CFG, Unit] {
     var side: Option[Boolean] = None,
     var log: Boolean = false,
     var detail: Boolean = false,
-    var instrument: Boolean = false,
     var noShape: Boolean = false,
     var noTemplate: Boolean = false,
   )

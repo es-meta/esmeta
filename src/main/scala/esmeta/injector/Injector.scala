@@ -2,11 +2,13 @@ package esmeta.injector
 
 import esmeta.INJECT_LOG_DIR
 import esmeta.cfg.CFG
+import esmeta.error.{NotSupported => NSError, InterpreterError}
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.es.*
-import esmeta.es.util.Instrumenter
+import esmeta.es.util.UnitWalker
 import esmeta.es.builtin.INNER_MAP
+import esmeta.parser.ESValueParser
 import esmeta.spec.*
 import esmeta.state.*
 import esmeta.util.*
@@ -15,8 +17,7 @@ import esmeta.util.SystemUtils.*
 import esmeta.{LINE_SEP, RESOURCE_DIR}
 import java.io.PrintWriter
 import java.util.concurrent.TimeoutException
-import scala.collection.mutable.{Map => MMap}
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{Map => MMap, Set => MSet, ListBuffer}
 
 /** assertion injector */
 object Injector {
@@ -29,7 +30,7 @@ object Injector {
     src: String,
     log: Boolean = false,
     timeLimit: Option[Int] = Some(10),
-  ): ConformTest = fromState(cfg, cfg.init.from(src), log, timeLimit)
+  ): ConformTest = fromSource(cfg, src, None, log, timeLimit)
 
   /** injection from files */
   def fromFile(
@@ -37,19 +38,65 @@ object Injector {
     filename: String,
     log: Boolean = false,
     timeLimit: Option[Int] = Some(10),
-  ): ConformTest = fromState(cfg, cfg.init.fromFile(filename), log, timeLimit)
+  ): ConformTest =
+    fromSource(cfg, readFile(filename), Some(filename), log, timeLimit)
 
-  /** injection from an initial state */
-  private def fromState(
+  /** keep the original test and optionally add interaction-based variants */
+  def tests(
     cfg: CFG,
-    initSt: State,
+    source: String,
+    interaction: Boolean = false,
+    log: Boolean = false,
+    timeLimit: Option[Int] = Some(10),
+    filename: Option[String] = None,
+    ownedCoverage: Option[Set[(Int, Boolean)]] = None,
+  ): List[ConformTest] = {
+    val original = fromSource(cfg, source, filename, log, timeLimit)
+    if (!interaction || original.stopLogging.nonEmpty) List(original)
+    else {
+      val variants = new InteractionOracle(cfg)(source, ownedCoverage).flatMap {
+        code =>
+          try Some(fromSource(cfg, code, filename, log, timeLimit))
+          catch {
+            case _: InterpreterError | _: NSError | _: TimeoutException => None
+          }
+      }
+      original :: variants
+    }
+  }
+
+  /** bind discarded results before executing an uninstrumented program */
+  private def fromSource(
+    cfg: CFG,
+    source: String,
+    filename: Option[String],
     log: Boolean,
     timeLimit: Option[Int],
   ): ConformTest = {
+    val (ast, text) = cfg.scriptParser.fromWithSourceText(source)
+    val observers = InteractionOracle.observers(cfg, ast)
+    val boundSource =
+      if (observers.isEmpty) bindResults(cfg, ast, text)
+      else None
+    val script = boundSource.getOrElse(text)
+    val evaluationSource =
+      if (observers.nonEmpty)
+        Some(InteractionOracle.withoutTraps(cfg, ast, text, observers))
+      else boundSource
+    val (evaluationAst, evaluationText) = evaluationSource.fold((ast, text)) {
+      code =>
+        cfg.scriptParser.fromWithSourceText(code)
+    }
+    filename.foreach(cfg.esParser.updateFilename(evaluationAst, _))
+    val initSt = cfg.init.from(evaluationText, evaluationAst, filename)
     val deadline = timeLimit.map { seconds =>
       System.currentTimeMillis + seconds.toLong * 1000
     }
-    val extractor = ExitStateExtractor(initSt, timeLimit)
+    val recorder = Option.when(observers.nonEmpty) {
+      new InteractionRecorder(initSt, observers, timeLimit)
+    }
+    val extractor =
+      recorder.getOrElse(new ExitStateExtractor(initSt, timeLimit))
     // Start measuring before interpretation rather than at the first periodic
     // timeout check.
     extractor.startTime
@@ -57,17 +104,70 @@ object Injector {
       try extractor.result
       catch {
         case _: TimeoutException =>
-          val script = initSt.cachedSourceText.get.trim
           return ConformTest(
             0,
-            script,
+            script.trim,
             ExitTag.Timeout,
             script.contains("async") || script.contains("Promise"),
             Vector.empty,
           )
       }
     val scriptSt = extractor.scriptSt.getOrElse(exitSt)
-    new Injector(cfg, scriptSt, exitSt, log, deadline).result
+    val expectedLogs = recorder.fold(Map.empty[String, Vector[String]])(_.logs)
+    new Injector(cfg, scriptSt, exitSt, log, deadline, expectedLogs).result
+      .replaceScript(script.trim)
+  }
+
+  def resultNames(ast: Ast, source: String): Iterator[String] = {
+    val usedNames = MSet.from("[A-Za-z_$][\\w$]*".r.findAllIn(source))
+    // Include escaped identifiers when choosing fresh bindings.
+    val walker = new UnitWalker {
+      override def walk(lex: Lexical): Unit =
+        ESValueParser.StringValue.of.get(lex.name).foreach { parse =>
+          usedNames += parse(lex.str).str
+        }
+    }
+    walker.walk(ast)
+    LazyList.from(0).map(i => s"__res$i").filterNot(usedNames).iterator
+  }
+
+  /** name each top-level expression statement so its value can be checked */
+  private def bindResults(
+    cfg: CFG,
+    ast: Ast,
+    source: String,
+  ): Option[String] = {
+    def text(node: Ast): String =
+      node.loc
+        .fold(node.toString(grammar = Some(cfg.grammar)))(_.getString(source))
+    def unwrap(node: Ast): Ast = node match
+      case syn: Syntactic =>
+        val rhs = cfg.grammar.nameMap(syn.name).rhsVec(syn.rhsIdx)
+        syn.children.flatten match
+          case Vector(child) if rhs.ts.isEmpty => unwrap(child)
+          case _                               => syn
+      case _ => node
+    def isDirective(stmt: Ast): Boolean = unwrap(stmt) match
+      case Syntactic("ExpressionStatement", _, _, Vector(Some(e))) =>
+        unwrap(e) match
+          case Lexical("StringLiteral", _) => true
+          case _                           => false
+      case _ => false
+
+    val freshNames = resultNames(ast, source)
+    val (prologue, rest) = ast.flattenStmt.span(isDirective)
+    val boundStatements = rest.map { stmt =>
+      unwrap(stmt) match
+        case Syntactic("ExpressionStatement", _, _, Vector(Some(e))) =>
+          val value = e match
+            case Syntactic("Expression", _, 1, _) => s"(${text(e)})"
+            case _                                => text(e)
+          s"const ${freshNames.next()} = $value;"
+        case _ => text(stmt)
+    }
+    Option.when(boundStatements != rest.map(text)) {
+      (prologue.map(text) ++ boundStatements).mkString("\n")
+    }
   }
 
   /** assertion definitions */
@@ -94,6 +194,7 @@ class Injector(
   drainedSt: State,
   log: Boolean,
   deadline: Option[Long],
+  expectedLogs: Map[String, Vector[String]] = Map.empty,
 ) {
 
   /** the state the assertions see, which `$delay` defers for an async test */
@@ -115,16 +216,17 @@ class Injector(
     }
   }
 
-  private lazy val observers = drainedSt.cachedAst.toList
-    .flatMap(Instrumenter.observers(cfg, _))
+  private lazy val observers = expectedLogs.keys.toList.sorted
 
   /** generated assertions */
   lazy val assertions: Vector[Assertion] =
     checkTimeout()
     _assertions.clear
     if (normalExit)
-      handleVariable // inject assertions from variables
-      handleLet // inject assertions from lexical variables
+      if (observers.nonEmpty) handleInteractions
+      else
+        handleVariable // inject assertions from variables
+        handleLet // inject assertions from lexical variables
     checkTimeout()
     if (log)
       pw.close
@@ -185,6 +287,23 @@ class Injector(
 
   // internal assertions
   private val _assertions: ListBuffer[Assertion] = ListBuffer()
+
+  // check only the trace and completion of instrumented programs
+  private def handleInteractions: Unit = {
+    val global = access(exitSt(GLOBAL_REALM), Str("GlobalObject"))
+    def property(obj: Value, key: String): Value =
+      access(obj, Str(INNER_MAP), Str(key), Str("Value"))
+    for (name <- observers) {
+      checkTimeout()
+      val logName = s"logs${name.stripPrefix("logState")}"
+      _assertions += CompareLog(s"globalThis[\"$logName\"]", expectedLogs(name))
+      val state = property(global, name)
+      for (key <- List("threw", "error")) property(state, key) match
+        case value: SimpleValue =>
+          _assertions += HasValue(s"globalThis[\"$name\"].$key", value)
+        case _ =>
+    }
+  }
 
   // handle variables
   private def handleVariable: Unit = for (x <- createdVars.toList.sorted) {

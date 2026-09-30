@@ -177,6 +177,7 @@ case object CmdInject extends Command("inject", CmdBuildCFG >> Inject) {
   val help = "injects assertions to check final state of an ECMAScript file."
   val examples = List(
     "esmeta inject a.js                               # inject assertions.",
+    "esmeta inject a.js -inject:interaction -inject:defs -inject:out=a.test.js",
     "esmeta inject a.js -inject:defs -inject:out=b.js # dump with definitions.",
     "esmeta inject dir -inject:batch -inject:defs " +
     "-inject:out=base/minimal-injected",
@@ -190,6 +191,8 @@ case object CmdConformTest
   val help = "injects and runs conformance tests on JavaScript engines."
   val examples = List(
     "esmeta conform-test minimal -conform-test:out=bugs.json",
+    "esmeta conform-test injected -conform-test:injected",
+    "esmeta conform-test minimal -conform-test:interaction",
     "esmeta conform-test minimal -conform-test:engine=v8 " +
     "-conform-test:out=v8-bugs.json",
   )
@@ -239,17 +242,6 @@ case object CmdSolve extends Command("solve", CmdBuildCFG >> Solve) {
     "esmeta solve -solve:branch=1234  # solve both sides of one target branch.",
     "esmeta solve -solve:branch=1234 -solve:side=true  # solve true side only.",
   )
-}
-
-/** `instrument` command */
-case object CmdInstrument
-  extends Command("instrument", CmdBuildCFG >> Instrument) {
-  val help = "adds instrumentation variants while keeping original programs"
-  val examples = List(
-    "esmeta instrument dir                      # instrument programs in dir.",
-    "esmeta instrument dir -instrument:out=out  # dump data into out.",
-  )
-  override val targetName = "<log-dir>"
 }
 
 // ECMA-262 GitHub Actions

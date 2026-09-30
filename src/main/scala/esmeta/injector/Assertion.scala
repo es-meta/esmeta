@@ -6,6 +6,7 @@ import esmeta.state.*
 trait Assertion extends InjectorElem
 
 case class HasValue(x: String, v: SimpleValue) extends Assertion
+case class CompareLog(path: String, entries: Vector[String]) extends Assertion
 
 trait ObjectAssertion extends Assertion
 case class IsExtensible(addr: Addr, path: String, extensible: Boolean = true)

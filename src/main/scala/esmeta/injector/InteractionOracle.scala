@@ -1,42 +1,51 @@
-package esmeta.es.util
+package esmeta.injector
 
 import esmeta.RESOURCE_DIR
 import esmeta.cfg.CFG
 import esmeta.es.*
+import esmeta.es.util.{Coverage, JsonProtocol, UnitWalker}
+import esmeta.es.util.Coverage.Cond
 import esmeta.parser.ESValueParser
 import esmeta.spec.*
 import esmeta.state.{GLOBAL_RESULT, Undef}
-import esmeta.util.{ConcurrentPolicy => CP, ProgressBar}
-import esmeta.util.SystemUtils.readFile
-import java.util.concurrent.{ConcurrentHashMap => CMMap}
-import scala.collection.mutable.LinkedHashSet
-import scala.jdk.CollectionConverters.*
+import esmeta.util.SystemUtils.{readFile, readJson}
+import io.circe.Decoder
+import java.io.File
+import scala.collection.mutable.{LinkedHashSet, ListBuffer}
 import scala.util.Try
 
-class Instrumenter(cfg: CFG) {
+class InteractionOracle(cfg: CFG) {
   private val cov = Coverage(cfg, timeLimit = Some(2))
 
-  /** keep the original and instrumented program for each branch side */
+  /** select interaction tests for the branch sides represented by this program
+    */
   def apply(
-    programsBySide: Map[(Int, Boolean), String],
-  ): List[((Int, Boolean), String)] = {
-    val programs = programsBySide.toList.groupMap(_._2)(_._1)
-    val result = CMMap[(Int, Boolean), String](programsBySide.asJava)
-    val bar = ProgressBar(
-      msg = s"instrumenting ${programs.size} programs",
-      iterable = programs,
-      concurrent = CP.Fixed(Runtime.getRuntime.availableProcessors),
-    )
-    bar.foreach { (js, conds) =>
-      for {
-        (cond, program) <- instrument(js, conds.toSet)
-      } result.put(cond, program)
+    source: String,
+    ownedCoverage: Option[Set[(Int, Boolean)]] = None,
+  ): List[String] = {
+    val sides = ownedCoverage.getOrElse {
+      Try {
+        val interp = cov.run(source)
+        if (
+          !interp.isTimeout && interp.supported &&
+          interp.result.globals.contains(GLOBAL_RESULT)
+        )
+          interp.touchedCondViews.keys
+            .map(c => (c.cond.branch.id, c.cond.cond))
+            .toSet
+        else Set.empty[(Int, Boolean)]
+      }.getOrElse(Set.empty)
     }
-    println(s"Instrumentation: ${bar.summary.time.simpleString}")
-    (programsBySide.toList ++ result.asScala.toList).distinct.sortBy(_._1)
+    if (sides.isEmpty) Nil
+    else
+      select(source, sides).toList
+        .sortBy(_._1)
+        .map(_._2)
+        .distinct
+        .filterNot(_ == source)
   }
 
-  def instrument(
+  private def select(
     js: String,
     conds: Set[(Int, Boolean)],
   ): Map[(Int, Boolean), String] = {
@@ -45,6 +54,7 @@ class Instrumenter(cfg: CFG) {
     val name = loggerName(js, ast)
     def probe(selected: Set[Int]): String =
       render(ast, sites, selected, name, logging = false)
+    lazy val initial = touched(probe(Set.empty))
     val groups = sites.values.toList.sorted.foldLeft(Map(Set[Int]() -> conds)) {
       (groups, site) =>
         groups.toList
@@ -58,9 +68,9 @@ class Instrumenter(cfg: CFG) {
     }
     groups.toList.flatMap { (selected, keys) =>
       val wrapped = render(ast, sites, selected, name)
-      // Validate the emitted program after installing its logging traps.
-      val kept = keys intersect touched(wrapped)
-      keys.map { key => key -> (if (kept(key)) wrapped else js) }
+      keys.map { key =>
+        key -> (if (selected.nonEmpty || initial(key)) wrapped else js)
+      }
     }.toMap
   }
 
@@ -207,27 +217,35 @@ class Instrumenter(cfg: CFG) {
     name: String,
     logging: Boolean = true,
   ): String = {
-    val state = s"logState${name.stripPrefix("L")}"
-    def text(ast: Ast, path: Vector[Int], top: Boolean): String = {
+    val logStateName = s"logState${name.stripPrefix("L")}"
+    val prologue = ast.flattenStmt.takeWhile(stringLiteral)
+    val freshNames =
+      Injector.resultNames(ast, ast.toString(grammar = Some(cfg.grammar)))
+    val resultNames = ListBuffer.empty[String]
+    def text(ast: Ast, path: Vector[Int], isTopLevel: Boolean): String = {
       val code = ast match {
         case Lexical(_, str) => str
         case syn: Syntactic =>
           val children = syn.children.zipWithIndex
-          val nested = top && Set(
+          val childrenAreTopLevel = isTopLevel && Set(
             "Script",
             "ScriptBody",
             "StatementList",
             "StatementListItem",
             "Statement",
           )(syn.name)
-          if (top && syn.name == "ExpressionStatement" && stringLiteral(syn)) ""
-          else if (top && syn.name == "ExpressionStatement")
-            val expr = children.collectFirst {
-              case (Some(child), i) => text(child, path :+ i, false)
-            }.get
-            s"$state.results.push(($expr));"
-          else {
-            val cs = children.iterator
+          if (isTopLevel && syn.name == "ExpressionStatement") {
+            if (prologue.exists(_.chains.exists(_ eq syn))) ""
+            else {
+              val resultName = freshNames.next()
+              resultNames += resultName
+              val expr = children.collectFirst {
+                case (Some(child), i) => text(child, path :+ i, false)
+              }.get
+              s"$resultName = ($expr);"
+            }
+          } else {
+            val childIterator = children.iterator
             cfg.grammar
               .nameMap(syn.name)
               .rhsVec(syn.rhsIdx)
@@ -236,8 +254,8 @@ class Instrumenter(cfg: CFG) {
                 case Terminal(term)                          => term
                 case Empty | NoLineTerminator | _: Lookahead => ""
                 case symbol if symbol.getNt.isDefined =>
-                  val (child, i) = cs.next()
-                  child.fold("")(text(_, path :+ i, nested))
+                  val (child, i) = childIterator.next()
+                  child.fold("")(text(_, path :+ i, childrenAreTopLevel))
                 case _ => ""
               }
               .filter(_.nonEmpty)
@@ -247,50 +265,83 @@ class Instrumenter(cfg: CFG) {
       sites.get(path).filter(selected).fold(code) { _ => s"($name(($code)))" }
     }
     val body = text(ast, Vector.empty, true)
-    val directives = ast.flattenStmt
-      .takeWhile(stringLiteral)
+    val directives = prologue
       .map(_.toString(grammar = Some(cfg.grammar)))
       .mkString("\n")
-    val names = LinkedHashSet[String]()
-    def bindings(ast: Ast): Unit = ast match {
-      case syn: Syntactic if syn.name == "BindingIdentifier" =>
-        names += syn.toString(grammar = Some(cfg.grammar))
-      case syn: Syntactic
-          if Set(
-            "Initializer",
-            "FormalParameters",
-            "FunctionBody",
-            "GeneratorBody",
-            "AsyncFunctionBody",
-            "AsyncGeneratorBody",
-            "ClassTail",
-            "ComputedPropertyName",
-          )(syn.name) =>
-      case _ => ast.children.flatten.foreach(bindings)
-    }
-    ast.flattenStmt
-      .filter { stmt =>
-        stmt.chains.exists(c =>
-          c.name == "Declaration" || c.name == "VariableStatement",
-        )
-      }
-      .foreach(bindings)
-    val capture = names.toList
-      .map(n => s"$state.results.push($n);")
-      .mkString("\n")
+    val declarations =
+      if (resultNames.isEmpty) "" else resultNames.mkString("let ", ", ", ";")
     s"""$directives
-${Instrumenter.runtime(name, logging)}
+${InteractionOracle.runtime(name, logging)}
+$declarations
 try {
 $body
-$capture
 } catch (e) {
-  $state.threw = true;
-  $state.error = e instanceof Error ? e.name : e;
+  $logStateName.threw = true;
+  $logStateName.error = e instanceof Error ? e.name : e;
 }"""
   }
 }
 
-object Instrumenter {
+object InteractionOracle {
+
+  /** reuse solver or fuzzer ownership data when it accompanies the input */
+  def loadOwnedCoverage(
+    cfg: CFG,
+    dir: File,
+  ): Map[String, Set[(Int, Boolean)]] = {
+    val roots = List(dir, dir.getParentFile).filter(_ != null)
+    roots
+      .find(root => new File(root, "branch-coverage.json").isFile)
+      .fold(
+        Map.empty[String, Set[(Int, Boolean)]],
+      ) { root =>
+        val protocol = JsonProtocol(cfg)
+        import protocol.given
+        given Decoder[(Cond, String)] = c =>
+          for {
+            cond <- c.downField("condView").downField("cond").as[Cond]
+            script <- c.downField("script").as[String]
+          } yield (cond, script)
+        readJson[List[(Cond, String)]](
+          new File(root, "branch-coverage.json").getPath,
+        ).groupMap { (_, script) =>
+          val direct = new File(root, script)
+          val file =
+            if (direct.isFile) direct else new File(root, s"minimal/$script")
+          file.getCanonicalPath
+        } { (cond, _) => (cond.branch.id, cond.cond) }
+          .map((path, sides) => path -> sides.toSet)
+      }
+  }
+
+  /** replace logging helpers with trap-free helpers for spec execution */
+  def withoutTraps(
+    cfg: CFG,
+    ast: Ast,
+    source: String,
+    observers: List[String],
+  ): String = {
+    val names = observers.map(name => s"L${name.stripPrefix("logState")}").toSet
+    val edits = ast.flattenStmt.flatMap { stmt =>
+      for {
+        name <- stmt.chains.collectFirst {
+          case Syntactic("VariableDeclaration", _, _, Some(binding) +: _) =>
+            binding.toString(grammar = Some(cfg.grammar)).trim
+        }
+        if names(name)
+        loc <- stmt.loc
+      } yield {
+        val template = runtime(name, logging = false)
+        val helper = template.substring(template.indexOf(s"var $name ="))
+        (loc.start.offset, loc.end.offset, helper)
+      }
+    }
+    edits.sortBy(-_._1).foldLeft(source) {
+      case (text, (start, end, helper)) =>
+        text.patch(start, helper, end - start)
+    }
+  }
+
   def observers(cfg: CFG, ast: Ast): List[String] =
     ast.flattenStmt.toList.flatMap { stmt =>
       stmt.chains
@@ -310,11 +361,11 @@ object Instrumenter {
     }
 
   private lazy val runtimeTemplate =
-    readFile(s"$RESOURCE_DIR/instrumentation.js").trim
+    readFile(s"$RESOURCE_DIR/interaction-oracle.js").trim
 
   private lazy val probeTemplate = runtimeTemplate.replaceAll(
     """(?s)/\* \$traps:start \*/.*?/\* \$traps:end \*/""",
-    "",
+    "id,",
   )
 
   private def runtime(name: String, logging: Boolean = true): String = {

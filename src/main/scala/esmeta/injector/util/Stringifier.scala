@@ -60,6 +60,7 @@ class Stringifier(detail: Boolean) {
       app >> (
         value match
           case Number(n) => n.toString
+          case Str(str)  => io.circe.Json.fromString(str).noSpaces
           case v         => v.toString
       )
 
@@ -73,6 +74,13 @@ class Stringifier(detail: Boolean) {
     assert match
       case HasValue(x, v) =>
         app >> s"$$assert.sameValue($x, " >> v >> ");"
+      case CompareLog(path, entries) =>
+        val expected = entries
+          .map(entry => io.circe.Json.fromString(entry).noSpaces)
+          .mkString("[", ", ", "]")
+        // compareArray permits extra property keys, but logs must match exactly.
+        app >> s"$$assert.sameValue($path.length, ${entries.length});"
+        app :> s"$$assert.compareArray($path, $expected);"
       case IsExtensible(addr, path, b) =>
         app >> s"$$assert.sameValue(Object.isExtensible($path), $b);"
       case IsCallable(addr, path, b) =>

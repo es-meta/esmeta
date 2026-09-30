@@ -1,6 +1,5 @@
 var $logs = [];
 var $logState = {
-  results: [],
   threw: false,
   error: undefined,
   active: true,
