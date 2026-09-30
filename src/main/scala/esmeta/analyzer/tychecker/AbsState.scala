@@ -171,6 +171,14 @@ trait AbsStateDecl { self: TyChecker =>
         case _           => AbsValue(STy(base.ty.record(prop).getTy))
     }
 
+    /** property setter completion getter */
+    def getSet(base: AbsValue, prop: Property)(using AbsState): AbsValue = {
+      import SymTy.*
+      base.symty match
+        case ref: SymRef => AbsValue(SSet(ref, prop))
+        case _           => AbsValue(STy(base.ty.record(prop).setTy))
+    }
+
     /** function call return getter */
     def getCall(base: AbsValue)(using AbsState): AbsValue = {
       import SymTy.*

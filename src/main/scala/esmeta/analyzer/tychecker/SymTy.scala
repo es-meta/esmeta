@@ -17,7 +17,7 @@ trait SymTyDecl { self: TyChecker =>
   type Sym = Int
   type Base = Sym | Local
   type SymBase = SSym | SVar
-  type SymRef = SSym | SVar | SField | SProp | SCall | SConstruct
+  type SymRef = SSym | SVar | SField | SProp | SSet | SCall | SConstruct
 
   lazy val SThis: SSym = SSym(-1)
   lazy val SArgs: SSym = SSym(-2)
@@ -33,6 +33,7 @@ trait SymTyDecl { self: TyChecker =>
     case SSym(sym: Sym)
     case SField(base: SymRef, field: SymTy)
     case SProp(base: SymRef, prop: Property)
+    case SSet(base: SymRef, prop: Property)
     case SCall(base: SymRef)
     case SConstruct(base: SymRef)
     case SRecord(base: ValueTy, fields: Map[String, SymTy])
@@ -54,6 +55,7 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(sym)           => st.get(sym)
       case SField(base, field) => st.get(base.ty, field.ty)
       case SProp(base, prop)   => base.ty.record(prop).getTy
+      case SSet(base, prop)    => base.ty.record(prop).setTy
       case SCall(base)         => base.ty.record.call.getTy
       case SConstruct(base)    => base.ty.record.construct.getTy
       case SRecord(base, fields) =>
@@ -70,6 +72,7 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(sym)          => base == SSym(sym)
       case SField(b, f)       => b.has(base) || f.has(base)
       case SProp(b, _)        => b.has(base)
+      case SSet(b, _)         => b.has(base)
       case SCall(b)           => b.has(base)
       case SConstruct(b)      => b.has(base)
       case SRecord(_, fields) => fields.values.exists(_.has(base))
@@ -80,6 +83,7 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(_)            => false
       case SField(b, f)       => b.hasLocal || f.hasLocal
       case SProp(b, _)        => b.hasLocal
+      case SSet(b, _)         => b.hasLocal
       case SCall(b)           => b.hasLocal
       case SConstruct(b)      => b.hasLocal
       case SRecord(_, fields) => fields.values.exists(_.hasLocal)
@@ -90,6 +94,7 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(_)            => true
       case SField(b, f)       => b.hasSym || f.hasSym
       case SProp(b, _)        => b.hasSym
+      case SSet(b, _)         => b.hasSym
       case SCall(b)           => b.hasSym
       case SConstruct(b)      => b.hasSym
       case SRecord(_, fields) => fields.values.exists(_.hasSym)
@@ -100,6 +105,7 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(sym)           => Set(sym)
       case SField(base, field) => base.bases ++ field.bases
       case SProp(base, _)      => base.bases
+      case SSet(base, _)       => base.bases
       case SCall(base)         => base.bases
       case SConstruct(base)    => base.bases
       case SRecord(_, fields)  => fields.values.flatMap(_.bases).toSet
@@ -129,6 +135,10 @@ trait SymTyDecl { self: TyChecker =>
         for {
           b <- weakenRef(b, bases, update)
         } yield SProp(b, prop)
+      case SSet(b, prop) =>
+        for {
+          b <- weakenRef(b, bases, update)
+        } yield SSet(b, prop)
       case SCall(base) =>
         for {
           b <- weakenRef(base, bases, update)
@@ -150,6 +160,7 @@ trait SymTyDecl { self: TyChecker =>
       case SSym(sym)     => this
       case SField(b, f)  => SField(weakenRef(b, effect), f.weaken(effect))
       case SProp(b, p)   => SProp(weakenRef(b, effect), p)
+      case SSet(b, p)    => SSet(weakenRef(b, effect), p)
       case SCall(b)      => SCall(weakenRef(b, effect))
       case SConstruct(b) => SConstruct(weakenRef(b, effect))
       case record @ SRecord(_, fields) =>
@@ -267,6 +278,7 @@ trait SymTyDecl { self: TyChecker =>
             case _           => app >> base >> "[" >> x >> "]"
         case SField(base, field)   => app >> base >> "[" >> field >> "]"
         case SProp(base, prop)     => app >> base >> "[[" >> prop >> "]]"
+        case SSet(base, prop)      => app >> base >> ".set(" >> prop >> ")"
         case SCall(base)           => app >> base >> ".call(...)"
         case SConstruct(base)      => app >> base >> ".construct(...)"
         case SRecord(base, fields) => app >> "SRecord[" >> base >> "]" >> fields

@@ -409,6 +409,10 @@ case class Desc(
         setExc = this.setExc || that.setExc,
       )
   def getTy: ValueTy = NormalT(ty) || (if (getExc) ThrowT else BotT)
+
+  /** completion types of writing the property with a throwing failure */
+  def setTy: ValueTy =
+    (if (setOk) NormalT else BotT) || (if (setExc) ThrowT else BotT)
 }
 object Desc {
   val Bot: Desc = Desc()

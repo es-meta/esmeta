@@ -772,6 +772,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         st.get(instantiate(b, argsMap), instantiate(f, argsMap))
       case SProp(b, p) =>
         st.getProp(instantiate(b, argsMap), p)
+      case SSet(b, p) =>
+        st.getSet(instantiate(b, argsMap), p)
       case SCall(b) =>
         st.getCall(instantiate(b, argsMap))
       case SConstruct(b) =>
@@ -810,6 +812,12 @@ trait AbsTransferDecl { analyzer: TyChecker =>
             if (givenTy overlap NormalT)
               st.get(givenTy && NormalT, StrT("Value"))
             else BotT,
+        )
+        toBase(base, ValueTy(record = ObjectT.record.update(prop, desc)))
+      case SSet(base, prop) =>
+        val desc = Desc.Top.copy(
+          setOk = givenTy overlap NormalT,
+          setExc = givenTy overlap ThrowT,
         )
         toBase(base, ValueTy(record = ObjectT.record.update(prop, desc)))
       case SCall(base) =>
@@ -1559,22 +1567,21 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       "Set" -> { (func, vs, retTy, st) =>
         given AbsState = st
         val ty = vs(1).ty
-        val guard = ty.getProperty match
+        // Set(O, P, V, Throw) completes normally with a failed write unless
+        // Throw is true, so only then does its completion tell whether the
+        // write succeeded or threw.
+        val throwOnFailure = vs.lift(3).exists(_.ty <= TrueT)
+        ty.getProperty match
+          case Some(p) if throwOnFailure =>
+            AbsValue(SSet(SSym(0), p))
           case Some(p) =>
             val abruptT =
               ValueTy(record = ObjectT.record.update(p, Desc.SetExc))
-            // Set(O, P, V, Throw) completes normally with a failed write
-            // unless Throw is true, so only then does the normal side imply
-            // a successful write.
-            val throwOnFailure = vs.lift(3).exists(_.ty <= TrueT)
-            val normalT =
-              ValueTy(record = ObjectT.record.update(p, Desc.SetOk))
-            val abrupt = TargetType(AbruptT) -> TypeProp(0 -> abruptT)
-            val normal = TargetType(NormalT) -> TypeProp(0 -> normalT)
-            if (throwOnFailure) TypeGuard(abrupt, normal)
-            else TypeGuard(abrupt)
-          case None => TypeGuard()
-        AbsValue(STy(retTy), guard)
+            AbsValue(
+              STy(retTy),
+              TypeGuard(TargetType(AbruptT) -> TypeProp(0 -> abruptT)),
+            )
+          case None => AbsValue(STy(retTy))
       },
       "Call" -> { (func, vs, retTy, st) =>
         given AbsState = st
