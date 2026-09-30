@@ -269,8 +269,9 @@ function $delay(f) {
   var DELAY = 100;
   var setTimeout = globalThis.setTimeout;
   import("os")
+    .catch(() => import("qjs:os"))
     .then((os) => {
-      // qjs
+      // QuickJS exposes setTimeout through its os module.
       if (!setTimeout) setTimeout = os?.setTimeout;
     })
     .catch(() => {})
