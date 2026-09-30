@@ -266,10 +266,6 @@ class Solver(
         println(s"[${r.status}] ${r.cond}: ${r.js.getOrElse("no program")}")
   }
 
-  /** the witnesses of the selected targets */
-  def targeted(witnesses: Map[(Int, Boolean), String]): List[(Cond, String)] =
-    outcomes(witnesses).flatMap(r => r.js.map(r.cond -> _))
-
   // count all observed targets as passes
   private def outcomes(
     witnesses: Map[(Int, Boolean), String],

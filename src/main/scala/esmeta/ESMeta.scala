@@ -88,7 +88,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdDumpVisualizer,
     // Constraint Solver
     CmdSolve,
-    CmdAmplify,
+    CmdInstrument,
     // ECMA-262 GitHub Actions
     CmdYetCheck,
   )
@@ -120,7 +120,7 @@ object ESMeta extends Git(BASE_DIR) {
     DumpVisualizer,
     // Constraint Solver
     Solve,
-    Amplify,
+    Instrument,
     // ECMA-262 GitHub Actions
     YetCheck,
   )

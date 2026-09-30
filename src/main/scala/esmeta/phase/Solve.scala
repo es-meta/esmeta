@@ -1,11 +1,12 @@
 package esmeta.phase
 
 import esmeta.*
-import esmeta.cfg.CFG
-import esmeta.es.util.JsonProtocol
+import esmeta.cfg.{Branch, CFG}
+import esmeta.es.util.{Instrumenter, JsonProtocol}
 import esmeta.es.util.Coverage.{Cond, CondView, CondViewInfo}
-import esmeta.solver.{Amplifier, Solver}
+import esmeta.solver.Solver
 import esmeta.util.*
+import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 
 /** `solve` phase */
@@ -23,28 +24,30 @@ case object Solve extends Phase[CFG, Unit] {
       log = config.log,
       detail = config.detail,
     )
-    val solved = solver.solve
-    val amplified =
-      if (config.amplify) Amplifier(cfg)(solved)
-      else solved.map((k, js) => k -> List(js))
-    val witnesses = amplified.map((k, l) => k -> l.head)
+    val witnesses = solver.solve
+    val programs =
+      if (config.instrument) Instrumenter(cfg)(witnesses)
+      else witnesses
     for (dir <- solver.logDir)
-      dumpWitnesses(
+      dumpPrograms(
         cfg,
         dir,
-        solver.targeted(witnesses).flatMap { (c, _) =>
-          amplified((c.branch.id, c.cond)).map(c -> _)
+        programs.toList.sortBy(_._1).map {
+          case ((id, side), js) =>
+            cfg.nodeMap.get(id) match
+              case Some(branch: Branch) => Cond(branch, side) -> js
+              case _ => raise(s"solve: node $id is not a branch")
         },
       )
-    solver.report(witnesses)
+    solver.report(programs)
 
-  /** dump witnesses as numbered programs with a branch coverage file */
-  def dumpWitnesses(
+  /** dump numbered programs with a branch coverage file */
+  def dumpPrograms(
     cfg: CFG,
     dir: String,
-    witnesses: List[(Cond, String)],
+    entries: List[(Cond, String)],
   ): Unit = {
-    val programs = witnesses
+    val programs = entries
       .map(_._2)
       .distinct
       .zipWithIndex
@@ -60,7 +63,7 @@ case object Solve extends Phase[CFG, Unit] {
     // reuse the Fuzzer coverage format
     val jsonProtocol = JsonProtocol(cfg)
     import jsonProtocol.given
-    val coverage = witnesses.zipWithIndex.map {
+    val coverage = entries.zipWithIndex.map {
       case ((cond, js), index) =>
         CondViewInfo(
           index,
@@ -98,9 +101,9 @@ case object Solve extends Phase[CFG, Unit] {
       "logging mode with detailed information.",
     ),
     (
-      "amplify",
-      BoolOption((c, b) => c.amplify = b),
-      "amplify the witnesses after solving (default: false).",
+      "instrument",
+      BoolOption((c, b) => c.instrument = b),
+      "instrument the witnesses after solving (default: false).",
     ),
     (
       "no-shape",
@@ -118,7 +121,7 @@ case object Solve extends Phase[CFG, Unit] {
     var side: Option[Boolean] = None,
     var log: Boolean = false,
     var detail: Boolean = false,
-    var amplify: Boolean = false,
+    var instrument: Boolean = false,
     var noShape: Boolean = false,
     var noTemplate: Boolean = false,
   )

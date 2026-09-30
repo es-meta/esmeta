@@ -2,17 +2,16 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.es.util.JsonProtocol
+import esmeta.es.util.{Instrumenter, JsonProtocol}
 import esmeta.es.util.Coverage.Cond
-import esmeta.solver.Amplifier
 import esmeta.util.*
 import esmeta.util.SystemUtils.*
 import io.circe.Decoder
 
-/** `amplify` phase */
-case object Amplify extends Phase[CFG, Unit] {
-  val name = "amplify"
-  val help = "amplifies programs, keeping the branch sides they cover."
+/** `instrument` phase */
+case object Instrument extends Phase[CFG, Unit] {
+  val name = "instrument"
+  val help = "records object operations, keeping each represented branch side."
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): Unit =
     val dir = getFirstFilename(cmdConfig, name)
@@ -32,23 +31,25 @@ case object Amplify extends Phase[CFG, Unit] {
       readFile(if (exists(path)) path else s"$dir/minimal/$script")
     val conds = infos.map((c, _) => (c.branch.id, c.cond) -> c)
     // the shortest program of each branch side
-    val witnesses = infos
+    val programs = infos
       .groupMap((c, _) => (c.branch.id, c.cond))(_._2)
-      .map((key, scripts) => key -> scripts.distinct.map(read).minBy(_.length))
-    val amplified = Amplifier(cfg)(witnesses)
-    val out = config.out.getOrElse(s"$dir/amplified")
+      .map((key, scripts) =>
+        key -> scripts.distinct.map(read).minBy(js => (js.length, js)),
+      )
+    val instrumented = Instrumenter(cfg)(programs)
+    val out = config.out.getOrElse(s"$dir/instrumented")
     mkdir(out)
-    val results = conds.toMap.toList.sortBy(_._1).flatMap { (k, c) =>
-      amplified.getOrElse(k, List(witnesses(k))).map(c -> _)
+    val results = conds.toMap.toList.sortBy(_._1).map { (k, c) =>
+      c -> instrumented(k)
     }
-    Solve.dumpWitnesses(cfg, out, results)
+    Solve.dumpPrograms(cfg, out, results)
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
       "out",
       StrOption((c, s) => c.out = Some(s)),
-      "output directory (default: amplified in the input directory).",
+      "output directory (default: instrumented in the input directory).",
     ),
   )
   case class Config(var out: Option[String] = None)

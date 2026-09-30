@@ -5,6 +5,7 @@ import esmeta.cfg.CFG
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.es.*
+import esmeta.es.util.Instrumenter
 import esmeta.es.builtin.INNER_MAP
 import esmeta.spec.*
 import esmeta.state.*
@@ -96,7 +97,26 @@ class Injector(
 ) {
 
   /** the state the assertions see, which `$delay` defers for an async test */
-  private lazy val exitSt: State = if (async) drainedSt else scriptSt
+  private lazy val exitSt: State = {
+    val state = if (async) drainedSt else scriptSt
+    if (observers.isEmpty) state
+    else {
+      val frozen = state.copied
+      val interp = new Interpreter(frozen)
+      for (name <- observers) {
+        val descriptor = interp.eval(
+          Expr.from(
+            s"""@REALM.GlobalObject.$INNER_MAP["$name"].Value.$INNER_MAP["active"]""",
+          ),
+        )
+        frozen.update(descriptor, Str("Value"), Bool(false))
+      }
+      frozen
+    }
+  }
+
+  private lazy val observers = drainedSt.cachedAst.toList
+    .flatMap(Instrumenter.observers(cfg, _))
 
   /** generated assertions */
   lazy val assertions: Vector[Assertion] =
@@ -118,6 +138,9 @@ class Injector(
     exitTag,
     async,
     assertions,
+    Option.when(observers.nonEmpty)(
+      observers.map(name => s"$name.stop();").mkString(LINE_SEP),
+    ),
   )
 
   /** injected script */
@@ -135,7 +158,8 @@ class Injector(
   /** check whether it uses asynchronous features */
   // TODO more precise detection
   lazy val async: Boolean =
-    script.contains("async") || script.contains("Promise")
+    script.contains("async") || script.contains("Promise") ||
+    (observers.nonEmpty && (scriptSt ne drainedSt))
 
   // ---------------------------------------------------------------------------
   // private helpers
@@ -252,15 +276,16 @@ class Injector(
   // handle [[Prototype]]
   private def handlePrototype(addr: Addr, path: String): Unit =
     log(s"handlePrototype: $addr, $path")
-    access(addr, Str("Prototype")) match
-      case addr: Addr => handleObject(addr, s"Object.getPrototypeOf($path)")
-      case _          => warning("non-address [[Prototype]]: $path")
+    exitSt.get(addr, Str("Prototype")).toOption match
+      case Some(addr: Addr) =>
+        handleObject(addr, s"Object.getPrototypeOf($path)")
+      case _ => warning("non-address [[Prototype]]: $path")
 
   // handle [[Extensible]]
   private def handleExtensible(addr: Addr, path: String): Unit =
     log(s"handleExtensible: $addr, $path")
-    access(addr, Str("Extensible")) match
-      case Bool(b) =>
+    exitSt.get(addr, Str("Extensible")).toOption match
+      case Some(Bool(b)) =>
         _assertions += IsExtensible(addr, path, b)
       case _ => warning("non-boolean [[Extensible]]: $path")
 

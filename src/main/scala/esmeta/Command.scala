@@ -241,12 +241,13 @@ case object CmdSolve extends Command("solve", CmdBuildCFG >> Solve) {
   )
 }
 
-/** `amplify` command */
-case object CmdAmplify extends Command("amplify", CmdBuildCFG >> Amplify) {
-  val help = "amplifies programs, keeping the branch sides they cover"
+/** `instrument` command */
+case object CmdInstrument
+  extends Command("instrument", CmdBuildCFG >> Instrument) {
+  val help = "records object operations, keeping each represented branch side"
   val examples = List(
-    "esmeta amplify dir                   # amplify programs in dir.",
-    "esmeta amplify dir -amplify:out=out  # dump amplified programs into out.",
+    "esmeta instrument dir                      # instrument programs in dir.",
+    "esmeta instrument dir -instrument:out=out  # dump data into out.",
   )
   override val targetName = "<log-dir>"
 }

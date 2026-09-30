@@ -16,6 +16,7 @@ case class ConformTest(
   exitTag: ExitTag,
   async: Boolean,
   assertions: Vector[Assertion],
+  stopLogging: Option[String] = None,
 ) extends InjectorElem
   with UId {
 
@@ -40,6 +41,7 @@ case class ConformTest(
         context,
         Some(Engine.DEFAULT_TIMEOUT),
       )
+      stopLogging.foreach(code => GraalJS.runGraalUsingContext(code, context))
       GraalJS.runGraalUsingContext(Injector.header, context)
 
       val (passes, fails) = assertions

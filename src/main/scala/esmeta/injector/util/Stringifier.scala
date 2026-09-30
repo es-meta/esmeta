@@ -18,7 +18,8 @@ class Stringifier(detail: Boolean) {
 
   // conformance tests
   given testRule: Rule[ConformTest] = (app, test) =>
-    val ConformTest(id, script, exitTag, isAsync, assertions) = test
+    val ConformTest(id, script, exitTag, isAsync, assertions, stopLogging) =
+      test
     val delayHead = "$delay(() => {"
     val delayTail = "});"
 
@@ -30,11 +31,13 @@ class Stringifier(detail: Boolean) {
       def body = {
         // prepend auxiliary definitions for assertions
         if (detail) app >> header
-        // handle async tests by delaying the execution
-        if (isAsync) (app :> "").wrap(delayHead, delayTail) {
+        def checks = {
+          stopLogging.foreach(app :> _)
           assertions.foreach(app :> _)
         }
-        else assertions.foreach(app :> _)
+        // handle async tests by delaying the execution
+        if (isAsync) (app :> "").wrap(delayHead, delayTail) { checks }
+        else checks
       }
       if (detail) (app :> "").wrap("(() => {", "})();")(body)
       else body
