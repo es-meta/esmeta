@@ -19,24 +19,25 @@ class ExprSynthesizer(
 ) {
 
   /** sample a candidate expression for a required type */
-  def synthesize(ty: ValueTy)(using
+  def synthesize(ty: ValueTy, first: Boolean = false)(using
     checkDeadline: () => Unit = () => (),
   ): Option[String] = {
     checkDeadline()
     val valueTy = ty && ESValueT
     if (valueTy.isBottom) None
+    else if (first && (UndefT ⊑ valueTy)) Some("undefined")
     else
       firstSuccess(
         List(
           () => fromDirect(valueTy),
-          () => fromShape(valueTy),
-          () => fromTemplate(valueTy),
+          () => fromShape(valueTy, first),
+          () => fromTemplate(valueTy, first),
         ),
       )
   }
 
   /** synthesize an expression for each hole */
-  def synthesize(holes: List[(String, ValueTy)])(using
+  def synthesize(holes: List[(String, ValueTy)], first: Boolean)(using
     checkDeadline: () => Unit,
   ): Option[Map[String, String]] = {
     checkDeadline()
@@ -44,7 +45,7 @@ class ExprSynthesizer(
       case (values, (hole, ty)) =>
         values.flatMap { vs =>
           checkDeadline()
-          synthesize(ty).map(value => vs.updated(hole, value))
+          synthesize(ty, first).map(value => vs.updated(hole, value))
         }
     }
   }
@@ -67,8 +68,7 @@ class ExprSynthesizer(
           case Inf => Nil
         val withoutShape = ty.copied(record = ty.record match
           case RecordTy.Elem(map, _) => RecordTy.Elem(map)
-          case other                 => other,
-        )
+          case other                 => other)
         val observed = observations.toList.filter(_._2 <= withoutShape)
         (numbers ++ strings ++ observed)
           .groupMap((_, valueTy) => kindOf(valueTy))(_._1)
@@ -126,7 +126,7 @@ class ExprSynthesizer(
   }
 
   // synthesize structural object requirements
-  private def fromShape(ty: ValueTy)(using
+  private def fromShape(ty: ValueTy, first: Boolean)(using
     checkDeadline: () => Unit,
   ): Option[String] = ty.record match {
     case RecordTy.Elem(map, ObjShape(props, call, construct))
@@ -145,7 +145,8 @@ class ExprSynthesizer(
                       List(
                         () =>
                           Option.when(desc.getExc)(Accessor(true, desc.setExc)),
-                        () => synthesize(desc.ty).map(Data(_, desc.setExc)),
+                        () =>
+                          synthesize(desc.ty, first).map(Data(_, desc.setExc)),
                       ),
                     )
                 member.map(value => (prop -> value) :: ms)
@@ -193,7 +194,7 @@ class ExprSynthesizer(
         )
         val overlay = () => {
           for {
-            base <- synthesize(baseTy)
+            base <- synthesize(baseTy, first)
             ms <- members()
           } yield s"Object.defineProperties($base, ${descriptors(ms)})"
         }
@@ -202,7 +203,7 @@ class ExprSynthesizer(
             List(() => {
               val key = propExpr(prop)
               for {
-                base <- synthesize(baseTy)
+                base <- synthesize(baseTy, first)
                 ms <- members()
               } yield {
                 val (_, member) = ms.head
@@ -239,25 +240,25 @@ class ExprSynthesizer(
     case _ =>
       firstSuccess(
         List(
-          () => fromConstruct(ty),
-          () => fromCall(ty),
+          () => fromConstruct(ty, first),
+          () => fromCall(ty, first),
         ),
       )
   }
 
-  private def fromConstruct(ty: ValueTy)(using
+  private def fromConstruct(ty: ValueTy, first: Boolean)(using
     checkDeadline: () => Unit,
   ): Option[String] = ty.record.construct match {
     case ConstructDesc.Elem(exc, ret) =>
-      funcExpr(exc, ret, constructable = true)
+      funcExpr(exc, ret, constructable = true, first = first)
     case ConstructDesc.Top => None
   }
 
-  private def fromCall(ty: ValueTy)(using
+  private def fromCall(ty: ValueTy, first: Boolean)(using
     checkDeadline: () => Unit,
   ): Option[String] = ty.record.call match {
     case CallDesc.Elem(exc, ret) =>
-      funcExpr(exc, ret, constructable = ty <= ConstructorT)
+      funcExpr(exc, ret, constructable = ty <= ConstructorT, first = first)
     case CallDesc.Top => None
   }
 
@@ -265,6 +266,7 @@ class ExprSynthesizer(
     exc: Boolean,
     ret: ValueTy,
     constructable: Boolean,
+    first: Boolean,
   )(using checkDeadline: () => Unit): Option[String] =
     firstSuccess(
       List(
@@ -274,7 +276,7 @@ class ExprSynthesizer(
             else "() => { throw 0; }",
           ),
         () =>
-          synthesize(ret).map { value =>
+          synthesize(ret, first).map { value =>
             if (constructable) s"function() { return $value; }"
             else if (value.startsWith("{")) s"() => ($value)"
             else s"() => $value"
@@ -299,15 +301,15 @@ class ExprSynthesizer(
     case Property.PStr(str) => s"\"${normStr(str)}\""
     case Property.PSym(sym) => s"[Symbol.$sym]"
 
-  private def fromTemplate(ty: ValueTy)(using
+  private def fromTemplate(ty: ValueTy, first: Boolean)(using
     checkDeadline: () => Unit,
   ): Option[String] =
     shuffle(matchingTemplates(ty)).iterator
-      .flatMap(instantiate)
+      .flatMap(instantiate(_, first))
       .nextOption()
 
   /** instantiate constrained holes with recursively synthesized expressions */
-  private def instantiate(invocation: Invocation)(using
+  private def instantiate(invocation: Invocation, first: Boolean)(using
     checkDeadline: () => Unit,
   ): Option[String] = {
     checkDeadline()
@@ -319,7 +321,7 @@ class ExprSynthesizer(
         }
       }
       .flatMap { (expr, holes) =>
-        synthesize(holes).map(values => Invocation.fill(expr, values))
+        synthesize(holes, first).map(values => Invocation.fill(expr, values))
       }
   }
 
@@ -360,8 +362,7 @@ class ExprSynthesizer(
     } && (path match
       case NormalAccess(base, _) => modeled(base)
       case SymbolAccess(base, _) => modeled(base)
-      case _                     => true
-    )
+      case _                     => true)
 
   // evaluate the candidate expressions once to match them against types
   private val observations: Map[String, ValueTy] = {

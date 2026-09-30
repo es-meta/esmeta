@@ -348,9 +348,10 @@ class Solver(
             .to(LazyList)
             .flatMap { invocation =>
               LazyList
-                .continually {
+                .from(0)
+                .map { attempt =>
                   checkTimeout()
-                  assemble(invocation)
+                  assemble(invocation, first = attempt == 0)
                 }
                 .takeWhile(_.isDefined)
                 .flatten
@@ -386,12 +387,12 @@ class Solver(
   }
 
   /** assemble a target call from synthesized input expressions */
-  private def assemble(invocation: Invocation)(using
+  private def assemble(invocation: Invocation, first: Boolean)(using
     checkDeadline: () => Unit,
   ): Option[String] = {
     checkDeadline()
     invocation.form.flatMap { (expr, holes) =>
-      synth.synthesize(holes).map(vs => Invocation.fill(expr, vs))
+      synth.synthesize(holes, first).map(vs => Invocation.fill(expr, vs))
     }
   }
 
