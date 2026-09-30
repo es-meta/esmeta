@@ -109,6 +109,27 @@ class StringifyTinyTest extends TyTest {
       ConstructorT.copied(record =
         ConstructorT.record.update(ConstructDesc.Exc),
       ) -> "Record[Constructor][construct: <EXC>]",
+      ObjectT.copied(record =
+        ObjectT.record.update(Property.PStr("p"), Desc.GetExc),
+      ) -> "Record[Object]{{ \"p\": <GET-EXC> }}",
+      ObjectT.copied(record =
+        ObjectT.record.update(Property.PStr("p"), Desc.SetExc),
+      ) -> "Record[Object]{{ \"p\": <SET-EXC> }}",
+      ObjectT.copied(record =
+        ObjectT.record.update(Property.PStr("p"), Desc.SetOk),
+      ) -> "Record[Object]{{ \"p\": <SET-OK> }}",
+      ObjectT.copied(record =
+        ObjectT.record.update(
+          Property.PStr("p"),
+          Desc(ty = NumberT) && Desc.SetExc,
+        ),
+      ) -> "Record[Object]{{ \"p\": Number & <SET-EXC> }}",
+      ObjectT.copied(record =
+        ObjectT.record.update(
+          Property.PStr("p"),
+          Desc.GetExc && Desc.SetOk,
+        ),
+      ) -> "Record[Object]{{ \"p\": <GET-EXC> & <SET-OK> }}",
       NilT -> "Nil",
       ListT(NumberT) -> "List[Number]",
       SymbolT -> "Record[Symbol]",

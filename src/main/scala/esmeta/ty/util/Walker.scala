@@ -188,8 +188,8 @@ trait Walker extends BasicWalker {
 
   /** property descriptors */
   def walk(desc: Desc): Desc =
-    val Desc(getExc, setExc, ty) = desc
-    Desc(walk(getExc), walk(setExc), walk(ty))
+    val Desc(getExc, ty, setOk, setExc) = desc
+    Desc(walk(getExc), walk(ty), walk(setOk), walk(setExc))
 
   /** call descriptors */
   def walk(call: CallDesc): CallDesc =

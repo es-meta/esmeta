@@ -1563,9 +1563,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           case Some(p) =>
             val abruptT =
               ValueTy(record = ObjectT.record.update(p, Desc.SetExc))
-            TypeGuard(
-              TargetType(AbruptT) -> TypeProp(0 -> abruptT),
-            )
+            // Set(O, P, V, Throw) completes normally with a failed write
+            // unless Throw is true, so only then does the normal side imply
+            // a successful write.
+            val throwOnFailure = vs.lift(3).exists(_.ty <= TrueT)
+            val normalT =
+              ValueTy(record = ObjectT.record.update(p, Desc.SetOk))
+            val abrupt = TargetType(AbruptT) -> TypeProp(0 -> abruptT)
+            val normal = TargetType(NormalT) -> TypeProp(0 -> normalT)
+            if (throwOnFailure) TypeGuard(abrupt, normal)
+            else TypeGuard(abrupt)
           case None => TypeGuard()
         AbsValue(STy(retTy), guard)
       },
