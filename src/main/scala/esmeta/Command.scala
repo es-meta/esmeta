@@ -191,7 +191,6 @@ case object CmdConformTest
   val help = "injects and runs conformance tests on JavaScript engines."
   val examples = List(
     "esmeta conform-test minimal -conform-test:out=bugs.json",
-    "esmeta conform-test injected -conform-test:injected",
     "esmeta conform-test minimal -conform-test:interaction",
     "esmeta conform-test minimal -conform-test:engine=v8 " +
     "-conform-test:out=v8-bugs.json",

@@ -25,10 +25,6 @@ case object ConformTest extends Phase[CFG, Unit] {
     cmdConfig: CommandConfig,
     config: Config,
   ): Unit = {
-    if (config.injected && config.interaction)
-      raise(
-        "-conform-test:injected cannot be combined with -conform-test:interaction",
-      )
     val scriptDir = File(getFirstFilename(cmdConfig, name)).getAbsoluteFile
     if (!scriptDir.isDirectory)
       raise(
@@ -39,9 +35,7 @@ case object ConformTest extends Phase[CFG, Unit] {
     val workDir = Files.createTempDirectory("esmeta-conform-work-")
     val (results, divergences) =
       try {
-        val (tests, skipped) =
-          if (config.injected) (loadInjected(scriptDir), Nil)
-          else inject(cfg, scriptDir, workDir, config)
+        val (tests, skipped) = inject(cfg, scriptDir, workDir, config)
         val results =
           engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
         (results, differential(skipped, engines, config.timeLimit))
@@ -138,26 +132,6 @@ case object ConformTest extends Phase[CFG, Unit] {
       s"skipped ${skipped.size} input(s).",
     )
     (tests, skipped)
-  }
-
-  /** reuse assertions already emitted by inject */
-  private def loadInjected(scriptDir: File): List[TestInput] = {
-    val tests = listFiles(scriptDir.getPath)
-      .filter(f => f.isFile && jsFilter(f.getName))
-      .sortBy(_.getName)
-      .map { file =>
-        val code = readFile(file.getPath)
-        val boundary = code.lastIndexOf(LINE_SEP + "// Assertions")
-        val source = if (boundary < 0) code else code.take(boundary)
-        val assertions = if (boundary < 0) "" else code.drop(boundary)
-        val async = assertions.linesIterator.exists(_.trim == "$delay(() => {")
-        TestInput(file.getName, source, code, async)
-      }
-    if (tests.isEmpty) raise(s"No injected ECMAScript programs in $scriptDir")
-    println(
-      s"Loaded ${tests.size} injected test(s); skipping assertion injection.",
-    )
-    tests
   }
 
   // -------------------------------------------------------------------------
@@ -563,11 +537,6 @@ case object ConformTest extends Phase[CFG, Unit] {
   val defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
     (
-      "injected",
-      BoolOption(_.injected = _),
-      "run files already emitted by inject -inject:defs without reinjecting them.",
-    ),
-    (
       "interaction",
       BoolOption(_.interaction = _),
       "add interaction-based tests alongside final-state tests (default: false).",
@@ -593,6 +562,5 @@ case object ConformTest extends Phase[CFG, Unit] {
     var out: Option[String] = None,
     var engine: String = "all",
     var timeLimit: Option[Int] = Some(10),
-    var injected: Boolean = false,
   )
 }
