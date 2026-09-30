@@ -68,7 +68,8 @@ class ExprSynthesizer(
           case Inf => Nil
         val withoutShape = ty.copied(record = ty.record match
           case RecordTy.Elem(map, _) => RecordTy.Elem(map)
-          case other                 => other)
+          case other                 => other,
+        )
         val observed = observations.toList.filter(_._2 <= withoutShape)
         (numbers ++ strings ++ observed)
           .groupMap((_, valueTy) => kindOf(valueTy))(_._1)
@@ -370,7 +371,8 @@ class ExprSynthesizer(
     } && (path match
       case NormalAccess(base, _) => modeled(base)
       case SymbolAccess(base, _) => modeled(base)
-      case _                     => true)
+      case _                     => true
+    )
 
   // evaluate the candidate expressions once to match them against types
   private val observations: Map[String, ValueTy] = {
