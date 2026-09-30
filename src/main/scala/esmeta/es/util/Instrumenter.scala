@@ -43,26 +43,24 @@ class Instrumenter(cfg: CFG) {
     val ast = cfg.scriptParser.fromWithSourceText(js)._1
     val sites = positions(ast).zipWithIndex.toMap
     val name = loggerName(js, ast)
-    def program(selected: Set[Int]): String =
-      render(ast, sites, selected, name)
-    val baseline = program(Set.empty)
-    val initial = touched(baseline)
+    def probe(selected: Set[Int]): String =
+      render(ast, sites, selected, name, logging = false)
     val groups = sites.values.toList.sorted.foldLeft(Map(Set[Int]() -> conds)) {
       (groups, site) =>
         groups.toList
           .flatMap { (selected, keys) =>
             val next = selected + site
-            val kept = keys intersect touched(program(next))
+            val kept = keys intersect touched(probe(next))
             List(next -> kept, selected -> (keys -- kept))
           }
           .filter(_._2.nonEmpty)
           .toMap
     }
     groups.toList.flatMap { (selected, keys) =>
-      val wrapped = program(selected)
-      keys.map { key =>
-        key -> (if (selected.nonEmpty || initial(key)) wrapped else js)
-      }
+      val wrapped = render(ast, sites, selected, name)
+      // Validate the emitted program after installing its logging traps.
+      val kept = keys intersect touched(wrapped)
+      keys.map { key => key -> (if (kept(key)) wrapped else js) }
     }.toMap
   }
 
@@ -207,6 +205,7 @@ class Instrumenter(cfg: CFG) {
     sites: Map[Vector[Int], Int],
     selected: Set[Int],
     name: String,
+    logging: Boolean = true,
   ): String = {
     val state = s"logState${name.stripPrefix("L")}"
     def text(ast: Ast, path: Vector[Int], top: Boolean): String = {
@@ -245,9 +244,7 @@ class Instrumenter(cfg: CFG) {
               .mkString(" ")
           }
       }
-      sites.get(path).filter(selected).fold(code) { id =>
-        s"($name(($code), ${id + 1}))"
-      }
+      sites.get(path).filter(selected).fold(code) { _ => s"($name(($code)))" }
     }
     val body = text(ast, Vector.empty, true)
     val directives = ast.flattenStmt
@@ -282,7 +279,7 @@ class Instrumenter(cfg: CFG) {
       .map(n => s"$state.results.push($n);")
       .mkString("\n")
     s"""$directives
-${Instrumenter.runtime(name)}
+${Instrumenter.runtime(name, logging)}
 try {
 $body
 $capture
@@ -315,9 +312,15 @@ object Instrumenter {
   private lazy val runtimeTemplate =
     readFile(s"$RESOURCE_DIR/instrumentation.js").trim
 
-  private def runtime(name: String): String = {
+  private lazy val probeTemplate = runtimeTemplate.replaceAll(
+    """(?s)/\* \$traps:start \*/.*?/\* \$traps:end \*/""",
+    "",
+  )
+
+  private def runtime(name: String, logging: Boolean = true): String = {
     val suffix = name.stripPrefix("L")
-    runtimeTemplate
+    val template = if (logging) runtimeTemplate else probeTemplate
+    template
       .replace("$L", name)
       .replace("$logs", s"logs$suffix")
       .replace("$logState", s"logState$suffix")

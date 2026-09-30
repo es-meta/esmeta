@@ -8,11 +8,14 @@ var $logState = {
 };
 var $L = (() => {
   const proxies = new WeakMap();
-  const L = (target, id) => {
+  let nextId = 0;
+  const L = target => {
     if (target === null || (typeof target !== 'object' && typeof target !== 'function'))
       return target;
     if (proxies.has(target)) return proxies.get(target);
+    const id = ++nextId;
     const proxy = new Proxy(target, {
+      /* $traps:start */
       get(...args) {
         if ($logState.active) $logs.push(id + ':get' + ':' + typeof args[1] + ':' + String(args[1]));
         return Reflect.get(...args);
@@ -65,6 +68,7 @@ var $L = (() => {
         if ($logState.active) $logs.push(id + ':construct');
         return Reflect.construct(...args);
       }
+      /* $traps:end */
     });
     proxies.set(target, proxy);
     proxies.set(proxy, proxy);
