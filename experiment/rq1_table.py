@@ -14,10 +14,11 @@
 #
 #   experiment/engine-install.sh    # the frozen engines, in ~/frozen
 #   export ESMETA_HOME=$PWD JAVA_OPTS="-Xmx32g -Xss4m -Duser.home=$HOME/frozen/home"
-#   for r in experiment/data/solve-? experiment/data/fuzz-?; do
-#     bin/esmeta conform-test $r/injected -conform-test:injected -conform-test:out=$r/conform-interaction.json
+#   for r in experiment/data/solve-?; do
+#     bin/esmeta conform-test $r/programs -conform-test:out=$r/conform-programs.json
+#     bin/esmeta conform-test $r/programs -conform-test:interaction -conform-test:out=$r/conform-interaction.json
 #   done
-# The conform-programs/minimal reports are the original-test subset of that run.
+# and likewise for experiment/data/fuzz-? with minimal and conform-minimal.json.
 
 
 from __future__ import annotations
@@ -100,6 +101,14 @@ def fuzz_at(run: Path, hours: float) -> dict[str, int]:
 
 def programs(directory: Path) -> int | None:
     return len(list(directory.glob("*.js"))) if directory.is_dir() else None
+
+
+def tests(run: Path) -> int | None:
+    """the tests the interaction-based conform run injected"""
+    log = run / INTERACTION
+    # ponytail: reports frozen before conform-test counted its tests; drop the fallback after refreezing
+    count = json.loads(log.read_text(encoding="utf-8")).get("tests") if log.is_file() else None
+    return count if count is not None else programs(run / "injected")
 
 
 def mean(values: list) -> float | None:
@@ -320,7 +329,7 @@ def main() -> int:
 
     rows = [
         ["Synth262", cell(None), cell(mean([x["coverage"] for x in s])),
-         cell(mean([programs(r / "injected") for r in solve])),
+         cell(mean([tests(r) for r in solve])),
          cell(mean(aware), p2)],
         ["  w/o interaction-based", cell(mean([x["time"] for x in s]), time=True),
          cell(mean([x["coverage"] for x in s])), cell(mean([programs(r / "programs") for r in solve])),
@@ -333,7 +342,7 @@ def main() -> int:
                      cell(mean(fplain), p3) if hours == 50 else "--"])
     rows.append(["  w/ interaction-based", cell(50 * 3600, time=True),
                  cell(mean([fuzz_at(r, 50)["coverage"] for r in fuzz])),
-                 cell(mean([programs(r / "injected") for r in fuzz])),
+                 cell(mean([tests(r) for r in fuzz])),
                  cell(mean(faware), p4)])
     rows.append(["Test262", "--", cell(len(test262)), "?", "?"])
     table("RQ1: five-run means (time of Synth262 = solving + interaction-based oracle, not logged)",
@@ -347,7 +356,7 @@ def main() -> int:
     tex.time("SolveSearchTime", mean([x["time"] for x in s]))
     tex.count("NumSynthCoveredAll", mean([x["coverage"] for x in s]))
     tex.count("NumSynthPrograms", mean([programs(r / "programs") for r in solve]))
-    tex.count("NumSynthProgramsOracle", mean([programs(r / "injected") for r in solve]))
+    tex.count("NumSynthProgramsOracle", mean([tests(r) for r in solve]))
     tex.count("NumBugsPlainMean", mean(plain), p1)
     tex.count("NumBugsOracleMean", mean(aware), p2)
     # rows only the interaction-based oracle reproduces, per run
@@ -360,7 +369,7 @@ def main() -> int:
         at = [fuzz_at(r, hours) for r in fuzz]
         tex.count(f"NumFuzzCovered{name}", mean([x["coverage"] for x in at]))
         tex.count(f"NumFuzzPrograms{name}", mean([x["programs"] for x in at]))
-    tex.count("NumFuzzProgramsOracle", mean([programs(r / "injected") for r in fuzz]))
+    tex.count("NumFuzzProgramsOracle", mean([tests(r) for r in fuzz]))
     tex.count("NumBugsFuzzPlainMean", mean(fplain), p3)
     tex.count("NumBugsFuzzOracleMean", mean(faware), p4)
     tex.count("NumTestCoveredAll", len(test262))

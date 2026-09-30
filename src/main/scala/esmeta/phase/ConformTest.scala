@@ -33,16 +33,19 @@ case object ConformTest extends Phase[CFG, Unit] {
 
     val engines = EngineSpec.resolve(config.engine)
     val workDir = Files.createTempDirectory("esmeta-conform-work-")
-    val (results, divergences) =
+    val (tests, results, divergences) =
       try {
         val (tests, skipped) = inject(cfg, scriptDir, workDir, config)
         val results =
           engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
-        (results, differential(skipped, engines, config.timeLimit))
+        (tests, results, differential(skipped, engines, config.timeLimit))
       } finally rmdir(workDir.toString)
 
     for (filename <- config.out)
-      dumpJson(reportJson(scriptDir.getPath, results, divergences), filename)
+      dumpJson(
+        reportJson(scriptDir.getPath, tests.size, results, divergences),
+        filename,
+      )
   }
 
   /** a program without an oracle, where a minority of engines stands apart */
@@ -493,10 +496,12 @@ case object ConformTest extends Phase[CFG, Unit] {
 
   private def reportJson(
     input: String,
+    tests: Int,
     results: List[EngineResult],
     divergences: List[Divergence],
   ): Json = Json.obj(
     "input" -> input.asJson,
+    "tests" -> tests.asJson,
     "engines" -> Json.fromFields(results.map { result =>
       result.engine.id -> Json.obj(
         "engine" -> result.engine.path.toString.asJson,

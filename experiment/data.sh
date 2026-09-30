@@ -9,12 +9,11 @@
 #   experiment/data.sh pack-logs     re-pack the conform-test logs
 #
 # gzip -n and COPYFILE_DISABLE are load-bearing: without the first, re-packing
-# an unchanged run writes new bytes and git stores 8M again; without the second
+# an unchanged run writes new bytes and git stores it again; without the second
 # macOS tar adds an AppleDouble ._name beside anything with an extended
-# attribute. A run's tarball keeps only what the tool wrote: amplify is
-# deterministic, the type edit distance measurement takes seconds to redo, and
-# the conform-test logs, hours on the frozen engines to redo, go together in
-# conform/logs.tar.gz, which unpack also extracts.
+# attribute. Run tarballs keep raw inputs and provenance.
+# Conform-test reports go together in conform/logs.tar.gz, which unpack also
+# extracts.
 #
 # A run is frozen from its log directory, timed since the paper reports it:
 #
