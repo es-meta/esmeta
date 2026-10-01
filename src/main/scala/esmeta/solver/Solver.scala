@@ -470,7 +470,7 @@ class Solver(
     }
   }
 
-  /** candidate branch sides touched by a program */
+  /** branch sides touched by a program */
   private def touched(
     js: String,
     checkTimeout: () => Unit,
@@ -490,7 +490,6 @@ class Solver(
       checkTimeout()
       Some((for {
         cv <- interp.touchedCondViews.keys
-        if candidateBranches(cv.cond.branch.id)
       } yield (cv.cond.branch.id, cv.cond.cond)).toSet)
     } catch {
       case e: TimeoutException => throw e
