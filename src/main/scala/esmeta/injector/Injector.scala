@@ -2,7 +2,7 @@ package esmeta.injector
 
 import esmeta.INJECT_LOG_DIR
 import esmeta.cfg.CFG
-import esmeta.error.{NotSupported => NSError, InterpreterError}
+import esmeta.error.{NotSupported => NSError, InterpreterError, ESMetaError}
 import esmeta.interpreter.Interpreter
 import esmeta.ir.*
 import esmeta.es.*
@@ -41,7 +41,15 @@ object Injector {
   ): ConformTest =
     fromSource(cfg, readFile(filename), Some(filename), log, timeLimit)
 
-  /** keep the original test and optionally add interaction-based variants */
+  /** keep the original test and optionally add interaction-based variants
+    *
+    * The variants follow the greedy selection of `InteractionOracle`: value
+    * sites are wrapped in order and kept if the owned branch sides stay
+    * covered. A tagging run (`ProxySafety`) marks the sites whose objects a
+    * trap-free proxy may not replace; only those are checked by a run on the
+    * specification, and the others are wrapped without one. If the guess loses
+    * every owned side, the plain greedy selection is used instead.
+    */
   def tests(
     cfg: CFG,
     source: String,
@@ -51,28 +59,182 @@ object Injector {
     filename: Option[String] = None,
     ownedCoverage: Option[Set[(Int, Boolean)]] = None,
   ): List[ConformTest] = {
-    val original = fromSource(cfg, source, filename, log, timeLimit)
+    val (original, originalSides) =
+      fromSourceWithSides(cfg, source, filename, log, timeLimit)
     if (!interaction || original.stopLogging.nonEmpty) List(original)
     else {
-      val variants = new InteractionOracle(cfg)(source, ownedCoverage).flatMap {
-        code =>
-          try Some(fromSource(cfg, code, filename, log, timeLimit))
-          catch {
-            case _: InterpreterError | _: NSError | _: TimeoutException => None
-          }
-      }
-      original :: variants
+      import InteractionStats.*
+      val start = System.nanoTime
+      programs.incrementAndGet
+      val owned = ownedCoverage.getOrElse(originalSides)
+      ownedSides.addAndGet(owned.size)
+      val oracle = new InteractionOracle(cfg)
+      var builds = 0
+      def build(code: String): Option[(ConformTest, Set[(Int, Boolean)])] =
+        builds += 1
+        try {
+          val (test, sides) =
+            fromSourceWithSides(cfg, code, filename, log, timeLimit)
+          if (test.exitTag == ExitTag.Timeout) { timeout.incrementAndGet; None }
+          else Some(test -> (owned intersect sides))
+        } catch {
+          case _: InterpreterError | _: NSError | _: TimeoutException =>
+            failed.incrementAndGet; None
+        }
+      var fallback = false
+      def greedy: List[(ConformTest, Set[(Int, Boolean)])] =
+        fallback = true
+        greedyFallbacks.incrementAndGet
+        oracle(source, Some(owned)).flatMap(build)
+      val unsafe = for {
+        (tagged, tagger) <- oracle.tagging(source)
+        unsafe <- unsafeSites(cfg, tagged, tagger, filename, timeLimit)
+      } yield unsafe
+      var (probes, candidates) = (0, 0)
+      val built = unsafe match
+        case None => greedy
+        case Some(unsafe) =>
+          val (codes, runs, sites) = oracle.selectGuided(source, owned, unsafe)
+          probes = runs; candidates = sites
+          probeRuns.addAndGet(runs)
+          probedSites.addAndGet(unsafe.size)
+          val guided = codes.flatMap(build)
+          if (guided.nonEmpty && guided.forall(_._2.isEmpty)) greedy
+          else guided
+      variants.addAndGet(built.size)
+      preservedSides.addAndGet(built.flatMap(_._2).toSet.size)
+      instrumentNanos.addAndGet(System.nanoTime - start)
+      // runs on the specification: original, tagging, probes, and builds;
+      // the plain greedy selection probes every candidate instead
+      if (!fallback && unsafe.nonEmpty)
+        perProgram.add((2 + probes + builds, 1 + candidates + builds))
+      original :: built.map(_._1)
     }
   }
 
-  /** bind discarded results before executing an uninstrumented program */
+  /** counters for the summary of interaction-based tests */
+  object InteractionStats {
+    import java.util.concurrent.atomic.AtomicLong
+    import java.util.concurrent.ConcurrentLinkedQueue
+    val programs, ownedSides, preservedSides, variants = AtomicLong()
+    val probedSites, probeRuns, greedyFallbacks = AtomicLong()
+    val timeout, failed, analysisFailed = AtomicLong()
+    val analysisNanos, instrumentNanos = AtomicLong()
+
+    /** specification runs per program: (this oracle, the plain greedy) */
+    val perProgram = ConcurrentLinkedQueue[(Int, Int)]()
+
+    def reset(): Unit =
+      List(
+        programs,
+        ownedSides,
+        preservedSides,
+        variants,
+        probedSites,
+        probeRuns,
+        greedyFallbacks,
+        timeout,
+        failed,
+        analysisFailed,
+        analysisNanos,
+        instrumentNanos,
+      ).foreach(_.set(0))
+      perProgram.clear()
+
+    private def distribution(xs: Vector[Int]): String =
+      if (xs.isEmpty) "(none)"
+      else {
+        val s = xs.sorted
+        def pct(p: Double): Int = s(((s.size - 1) * p).round.toInt)
+        var lo = 0
+        val hist = List(3, 4, 5, 10, 20, 50, Int.MaxValue).map { hi =>
+          val n = s.count(x => x > lo && x <= hi)
+          val label =
+            if (hi == Int.MaxValue) s">$lo"
+            else if (hi == lo + 1) s"$hi"
+            else s"${lo + 1}-$hi"
+          lo = hi
+          s"$label:$n"
+        }
+        s"total ${s.sum}, min ${s.head}, median ${pct(0.5)}, " +
+        s"p90 ${pct(0.9)}, max ${s.last}; histogram ${hist.mkString(" ")}"
+      }
+
+    def summary: String =
+      import scala.jdk.CollectionConverters.*
+      val runs = perProgram.asScala.toVector
+      f"""Interaction programs: ${programs.get}
+Interaction variants kept: ${variants.get}
+Interaction owned sides: ${ownedSides.get}
+Interaction owned sides kept by variants: ${preservedSides.get}
+Interaction sites probed (unsafe by the tagging run): ${probedSites.get}
+Interaction probe runs: ${probeRuns.get}
+Interaction plain greedy fallbacks: ${greedyFallbacks.get}
+Interaction variants dropped (timeout): ${timeout.get}
+Interaction variants dropped (interpreter error): ${failed.get}
+Interaction tagging run failures: ${analysisFailed.get}
+Interaction spec runs per program (guided): ${distribution(runs.map(_._1))}
+Interaction spec runs per program (plain greedy, estimated): ${distribution(
+        runs.map(_._2),
+      )}
+Interaction tagging runs: ${analysisNanos.get / 1e6}%.3f ms
+Interaction instrumentation: ${instrumentNanos.get / 1e6}%.3f ms
+"""
+  }
+
+  /** candidate sites whose objects a trap-free proxy may not replace, from one
+    * run of the tagging program; None if the run fails
+    */
+  private def unsafeSites(
+    cfg: CFG,
+    tagged: String,
+    tagger: String,
+    filename: Option[String],
+    timeLimit: Option[Int],
+  ): Option[Set[Int]] = {
+    import InteractionStats.*
+    val start = System.nanoTime
+    try {
+      val (ast, text) = cfg.scriptParser.fromWithSourceText(tagged)
+      filename.foreach(cfg.esParser.updateFilename(ast, _))
+      val initSt = cfg.init.from(text, ast, filename)
+      val safety = new ProxySafety(initSt, tagger, timeLimit)
+      safety.result
+      if (System.getenv("ESMETA_PROXY_DEBUG") != null)
+        System.err.println(s"[proxy-safety] tagged program:\n$tagged")
+        System.err.println(
+          s"[proxy-safety] object sites: ${safety.objectSites.toList.sorted}",
+        )
+        for ((site, why) <- safety.reasons.toList.sortBy(_._1))
+          System.err.println(
+            s"[proxy-safety] site $site: ${why.toList.sorted.mkString("; ")}",
+          )
+      Some(safety.unsafe.toSet)
+    } catch {
+      case _: InterpreterError | _: NSError | _: TimeoutException |
+          _: ESMetaError =>
+        analysisFailed.incrementAndGet; None
+    } finally analysisNanos.addAndGet(System.nanoTime - start)
+  }
+
   private def fromSource(
     cfg: CFG,
     source: String,
     filename: Option[String],
     log: Boolean,
     timeLimit: Option[Int],
-  ): ConformTest = {
+  ): ConformTest = fromSourceWithSides(cfg, source, filename, log, timeLimit)._1
+
+  /** bind discarded results before executing an uninstrumented program, and
+    * report the branch sides the specification run takes
+    */
+  private def fromSourceWithSides(
+    cfg: CFG,
+    source: String,
+    filename: Option[String],
+    log: Boolean,
+    timeLimit: Option[Int],
+  ): (ConformTest, Set[(Int, Boolean)]) = {
     val (ast, text) = cfg.scriptParser.fromWithSourceText(source)
     val observers = InteractionOracle.observers(cfg, ast)
     val boundSource =
@@ -104,18 +266,23 @@ object Injector {
       try extractor.result
       catch {
         case _: TimeoutException =>
-          return ConformTest(
-            0,
-            script.trim,
-            ExitTag.Timeout,
-            script.contains("async") || script.contains("Promise"),
-            Vector.empty,
+          return (
+            ConformTest(
+              0,
+              script.trim,
+              ExitTag.Timeout,
+              script.contains("async") || script.contains("Promise"),
+              Vector.empty,
+            ),
+            extractor.touchedSides.toSet,
           )
       }
     val scriptSt = extractor.scriptSt.getOrElse(exitSt)
     val expectedLogs = recorder.fold(Map.empty[String, Vector[String]])(_.logs)
-    new Injector(cfg, scriptSt, exitSt, log, deadline, expectedLogs).result
-      .replaceScript(script.trim)
+    val test =
+      new Injector(cfg, scriptSt, exitSt, log, deadline, expectedLogs).result
+        .replaceScript(script.trim)
+    (test, extractor.touchedSides.toSet)
   }
 
   def resultNames(ast: Ast, source: String): Iterator[String] = {

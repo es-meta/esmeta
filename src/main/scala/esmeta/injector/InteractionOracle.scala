@@ -74,6 +74,59 @@ class InteractionOracle(cfg: CFG) {
     }.toMap
   }
 
+  /** the greedy selection of `select`, running the specification only for the
+    * sites the safety analysis cannot vouch for; the others are assumed to keep
+    * every branch side. Returns the variants, the probe runs, and the number of
+    * candidate sites.
+    */
+  def selectGuided(
+    js: String,
+    conds: Set[(Int, Boolean)],
+    unsafe: Set[Int],
+  ): (List[String], Int, Int) = {
+    val ast = cfg.scriptParser.fromWithSourceText(js)._1
+    val sites = positions(ast).zipWithIndex.toMap
+    val name = loggerName(js, ast)
+    var runs = 0
+    def probe(selected: Set[Int]): String =
+      render(ast, sites, selected, name, logging = false)
+    def run(code: String): Set[(Int, Boolean)] = { runs += 1; touched(code) }
+    lazy val initial = run(probe(Set.empty))
+    val groups = sites.values.toList.sorted.foldLeft(Map(Set[Int]() -> conds)) {
+      (groups, site) =>
+        groups.toList
+          .flatMap { (selected, keys) =>
+            val next = selected + site
+            val kept =
+              if (unsafe(site)) keys intersect run(probe(next)) else keys
+            List(next -> kept, selected -> (keys -- kept))
+          }
+          .filter(_._2.nonEmpty)
+          .toMap
+    }
+    val chosen = groups.toList.flatMap { (selected, keys) =>
+      val wrapped = render(ast, sites, selected, name)
+      keys.map { key =>
+        key -> (if (selected.nonEmpty || initial(key)) wrapped else js)
+      }
+    }.toMap
+    val variants =
+      chosen.toList.sortBy(_._1).map(_._2).distinct.filterNot(_ == js)
+    (variants, runs, sites.size)
+  }
+
+  /** a program that tags the value of every candidate site (all value sites, as
+    * the greedy oracle considers), and the name of its tagger
+    */
+  def tagging(js: String): Option[(String, String)] = {
+    val ast = cfg.scriptParser.fromWithSourceText(js)._1
+    val sites = positions(ast).zipWithIndex.toMap
+    Option.when(sites.nonEmpty) {
+      val name = LazyList.from(0).map(i => s"__tag$i").find(!js.contains(_)).get
+      (render(ast, sites, sites.values.toSet, name, tag = true), name)
+    }
+  }
+
   def wrap(js: String): String = {
     val ast = cfg.scriptParser.fromWithSourceText(js)._1
     val sites = positions(ast).zipWithIndex.toMap
@@ -216,6 +269,7 @@ class InteractionOracle(cfg: CFG) {
     selected: Set[Int],
     name: String,
     logging: Boolean = true,
+    tag: Boolean = false,
   ): String = {
     val logStateName = s"logState${name.stripPrefix("L")}"
     val prologue = ast.flattenStmt.takeWhile(stringLiteral)
@@ -262,7 +316,9 @@ class InteractionOracle(cfg: CFG) {
               .mkString(" ")
           }
       }
-      sites.get(path).filter(selected).fold(code) { _ => s"($name(($code)))" }
+      sites.get(path).filter(selected).fold(code) { k =>
+        if (tag) s"($name(($code), $k))" else s"($name(($code)))"
+      }
     }
     val body = text(ast, Vector.empty, true)
     val directives = prologue
@@ -270,7 +326,13 @@ class InteractionOracle(cfg: CFG) {
       .mkString("\n")
     val declarations =
       if (resultNames.isEmpty) "" else resultNames.mkString("let ", ", ", ";")
-    s"""$directives
+    if (tag) s"""$directives
+var $name = (v, k) => v;
+$declarations
+try {
+$body
+} catch (e) {}"""
+    else s"""$directives
 ${InteractionOracle.runtime(name, logging)}
 $declarations
 try {

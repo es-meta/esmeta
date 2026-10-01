@@ -1,11 +1,12 @@
 package esmeta.injector
 
+import esmeta.cfg.Branch
 import esmeta.error.*
 import esmeta.es.builtin.JOB_QUEUE
 import esmeta.interpreter.Interpreter
 import esmeta.ir.{ERef, Global, IPop, NormalInst, Return}
 import esmeta.state.*
-import scala.collection.mutable.{Map => MMap}
+import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 /** exit state extractor */
 class ExitStateExtractor(
@@ -21,6 +22,16 @@ class ExitStateExtractor(
 
   /** the script is the first job, so the next dequeue is where it ended */
   private var dequeued: Int = 0
+
+  /** branch sides taken in built-ins, as `Coverage` counts them */
+  val touchedSides: MSet[(Int, Boolean)] = MSet()
+
+  override def moveBranch(branch: Branch, cond: Boolean): Unit =
+    if (
+      st.context.featureStack.headOption.exists(_.isInstanceOf[BuiltinFeature])
+    )
+      touchedSides += branch.id -> cond
+    super.moveBranch(branch, cond)
 
   /** transition for cursors and wrap errors with cursor info */
   override def eval(cursor: Cursor): Boolean =
