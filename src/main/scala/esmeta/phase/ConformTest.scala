@@ -73,7 +73,10 @@ case object ConformTest extends Phase[CFG, Unit] {
         results.map { result =>
           s"${result.engine.id}: ${result.bugs.size}/${tests.size} failures\n"
         }.mkString +
-        s"Differential divergences: ${divergences.size}\n"
+        s"Differential divergences: ${divergences.size}\n" +
+        (if (config.interaction)
+           esmeta.injector.Injector.InteractionStats.summary
+         else "")
       dumpFile(summary, s"$dir/summary")
     }
   }
@@ -136,6 +139,7 @@ case object ConformTest extends Phase[CFG, Unit] {
       timeLimit = config.timeLimit,
       interaction = config.interaction,
     )
+    esmeta.injector.Injector.InteractionStats.reset()
     val (injected, skippedFiles) = Inject.injectFiles(
       cfg,
       scriptDir.getPath,
@@ -164,6 +168,8 @@ case object ConformTest extends Phase[CFG, Unit] {
       s"Injected ${injected.size} test(s) from $total ECMAScript program(s), " +
       s"skipped ${skipped.size} input(s).",
     )
+    if (config.interaction)
+      print(esmeta.injector.Injector.InteractionStats.summary)
     (tests, skipped)
   }
 
@@ -453,7 +459,11 @@ case object ConformTest extends Phase[CFG, Unit] {
     injected: String,
     failure: Failure,
   )
-  private case class Bug(program: String, failures: Vector[Failure])
+  private case class Bug(
+    program: String,
+    failures: Vector[Failure],
+    names: Vector[String] = Vector.empty,
+  )
   private case class EngineResult(engine: EngineSpec, bugs: Vector[Bug])
 
   private def classify(test: TestInput, result: Execution): Outcome = {
@@ -499,7 +509,7 @@ case object ConformTest extends Phase[CFG, Unit] {
               failure.stderr,
             ),
           )
-        Bug(program, failures)
+        Bug(program, failures, grouped.map(_.test.name).distinct.sorted)
       }
 
   private def log(
@@ -560,6 +570,7 @@ case object ConformTest extends Phase[CFG, Unit] {
 
   private def bugJson(bug: Bug): Json = Json.obj(
     "program" -> bug.program.asJson,
+    "names" -> bug.names.asJson,
     "failures" -> Json.fromValues(bug.failures.map(failureJson)),
   )
 
