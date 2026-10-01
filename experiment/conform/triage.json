@@ -6,11 +6,53 @@
   "Array.prototype.sort.call(\"a\");": [
    "fp:spec-issue-sort"
   ],
+  "Function.prototype.toString.call((function(){}).bind());": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Float16Array, 8, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties(Symbol, { name: { value: false } }), true, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Proxy, null, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(URIError, undefined, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Math.atan2.call(\"\", 8, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 2 ** 31, -0.5);": [
+   "fp:ulp"
+  ],
   "Math.atan2.call(undefined, 2 ** 31, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 2 ** 32, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 4, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, Number.MAX_VALUE, -1);": [
+   "fp:ulp"
+  ],
+  "Math.expm1.call(undefined, Number.MIN_VALUE);": [
+   "fp:ulp"
+  ],
+  "Math.log1p.call(undefined, 2);": [
+   "fp:ulp"
+  ],
+  "Math.log2.call(undefined, 2 ** 31);": [
    "fp:ulp"
   ],
   "Object.getOwnPropertyDescriptor(Object.prototype, \"__proto__\").set.call(Reflect.construct(Proxy, [String, URIError], (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })()), (() => { const g = (function*(){ yield 0; })(); g.next(); return g; })());": [
    "graal-proxy-newtarget"
+  ],
+  "Object.setPrototypeOf.call(-0, (() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })(), (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "fp:harness-revoked-proxy"
   ],
   "decodeURIComponent.call(undefined, (function(){}).bind());": [
    "fp:builtin-tostring"
@@ -158,22 +200,178 @@
   ]
  },
  "jsc": {
+  "\"use strict\";\nError . toString ( ) ;": [
+   "fp:builtin-tostring"
+  ],
+  "\"use strict\";\nMath . cosh ( 1 ) ;": [
+   "fp:ulp"
+  ],
+  "\"use strict\";\nPromise . withResolvers ( 0 ) ;": [
+   "jsc-320831"
+  ],
   "Array.prototype.reduceRight.call(\"a\", RangeError, Number.MIN_VALUE);": [
    "fp:number-tostring"
   ],
+  "ArrayBuffer.prototype.resize.call(new ArrayBuffer(8, { maxByteLength: 16 }), Number.MAX_VALUE);": [
+   "new:jsc-resize-max-value-linux"
+  ],
+  "Error.call(1n, (function* () {}).constructor, Symbol());": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: BigUint64Array, name: \"\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: Map, name: \"aa\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: SyntaxError, name: \"aa\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((function(){}).bind());": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((function* () {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Float16Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Float32Array);": [
+   "fp:builtin-tostring"
+  ],
   "Function.prototype.toString.call(Float64Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Float16Array, 8, ...[]));": [
    "fp:builtin-tostring"
   ],
   "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties((async function() {}).constructor.call(String, ...[0n]), { name: { value: \"aa\" } }), 1n, ...[]));": [
    "fp:builtin-tostring"
   ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties(Symbol, { name: { value: false } }), true, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Proxy, null, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(URIError, undefined, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Int32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Int8Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Map);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Number);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(-1n));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(0n));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(Object));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(null));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(URIError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Uint32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Uint8ClampedArray);": [
+   "fp:builtin-tostring"
+  ],
+  "Iterator.prototype.drop.call({ get next() { throw 0; } }, Number.MAX_VALUE);": [
+   "fp:spec-drift-take"
+  ],
   "Iterator.prototype.take.call(Function, Number.MAX_VALUE);": [
+   "fp:spec-drift-take"
+  ],
+  "Iterator.prototype.take.call(ReferenceError, Number.MAX_VALUE);": [
+   "fp:spec-drift-take"
+  ],
+  "Iterator.prototype.take.call({ get next() { throw 0; } }, Number.MAX_VALUE);": [
    "fp:spec-drift-take"
   ],
   "Math.atan.call(undefined, -0.5);": [
    "fp:ulp"
   ],
+  "Math.atan2.call(undefined, 2 ** 31, -0.5);": [
+   "fp:ulp"
+  ],
   "Math.atan2.call(undefined, 2 ** 31, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 2 ** 32, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 2, Number.MAX_SAFE_INTEGER);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 4, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 4, Number.MAX_SAFE_INTEGER);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, Number.MAX_VALUE, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cbrt.call(false, Number.MIN_VALUE);": [
+   "fp:ulp"
+  ],
+  "Math.cbrt.call(undefined, 2);": [
+   "fp:ulp"
+  ],
+  "Math.cbrt.call(undefined, Number.MAX_SAFE_INTEGER);": [
+   "fp:ulp"
+  ],
+  "Math.cbrt.call(undefined, Number.MIN_VALUE);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, 1);": [
+   "fp:ulp"
+  ],
+  "Math.expm1.call(undefined, Number.MIN_VALUE);": [
+   "fp:ulp"
+  ],
+  "Math.log1p.call(undefined, 2);": [
+   "fp:ulp"
+  ],
+  "Math.log2.call(undefined, 2 ** 31);": [
+   "fp:ulp"
+  ],
+  "Math.pow.call(undefined, 8, -0.5);": [
+   "fp:ulp"
+  ],
+  "Math.pow.call(undefined, Number.MAX_SAFE_INTEGER, -1);": [
    "fp:ulp"
   ],
   "Object.getPrototypeOf(Uint8Array).prototype.map.call(Reflect.construct(Float16Array, [...[false]], BigUint64Array), Function.prototype.bind.call(Object.defineProperties(Function.call(false, ...[0]), { name: { value: 1n } }), undefined, ...[]), -1n);": [
@@ -182,16 +380,130 @@
   "Object.prototype.toLocaleString.call((function* () {}).constructor);": [
    "fp:builtin-tostring"
   ],
+  "Object.prototype.toLocaleString.call(Error);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Float32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Map);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(String);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Uint8ClampedArray);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(WeakSet);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.setPrototypeOf.call(-0, (() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })(), (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "fp:harness-revoked-proxy"
+  ],
   "Promise.withResolvers.call(Promise);": [
    "jsc-320831"
+  ],
+  "Reflect.construct(Error, [ArrayBuffer], Number);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(EvalError, [Set], Iterator);": [
+   "fp:builtin-tostring"
   ],
   "Reflect.construct(Float16Array, [...[-1]], (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
    "jsc-ta-newtarget-order"
   ],
+  "Reflect.construct(SyntaxError, [Uint8ClampedArray], String);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(URIError, [Set], URIError);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(URIError, [URIError], class {});": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"\", ...[EvalError]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"\", ...[Uint8Array]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[Boolean]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[Symbol]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[WeakMap]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(EvalError, ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.matchAll.call(Int8Array, { [Symbol.matchAll]: String });": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.padEnd.call(ReferenceError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replace.call(Object.getPrototypeOf(Uint8Array), Set);": [
+   "fp:builtin-tostring"
+  ],
   "String.prototype.replace.call(Uint8ClampedArray, 0, Number);": [
    "fp:builtin-tostring"
   ],
+  "String.prototype.replaceAll.call(Float32Array, (async function* () {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
   "String.prototype.replaceAll.call(Int16Array, Int32Array, Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replaceAll.call(Promise, Float32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replaceAll.call(String, { [Symbol.match]: 0n, flags: Symbol() }, AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.split.call(Map, () => {});": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.substring.call(Float16Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trim.call(AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trim.call(BigInt64Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trimEnd.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trimStart.call(ReferenceError);": [
+   "fp:builtin-tostring"
+  ],
+  "Uint8Array.prototype.setFromBase64.call(Reflect.construct(Uint8Array, [...[]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)), \"a\", (() => { const buffer = new ArrayBuffer(8); const value = new Int16Array(buffer); buffer.transfer(); return value; })());": [
+   "jsc-setfrombase64-maxlength0"
+  ],
+  "Uint8Array.prototype.setFromBase64.call(Reflect.construct(Uint8Array, [...[null]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(Number.MAX_VALUE)), \"a\", Number);": [
+   "jsc-setfrombase64-maxlength0"
+  ],
+  "Uint8Array.prototype.setFromBase64.call(Reflect.construct(Uint8Array, [...[undefined]], class {}), \"a\", Promise.reject(0));": [
+   "jsc-setfrombase64-maxlength0"
+  ],
+  "WeakMap.prototype.getOrInsertComputed.call(Reflect.construct(WeakMap, [undefined], String), AggregateError, String);": [
+   "fp:builtin-tostring"
+  ],
+  "decodeURI.call(undefined, (async function() {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
+  "decodeURI.call(undefined, Array);": [
    "fp:builtin-tostring"
   ],
   "decodeURIComponent.call(undefined, (function(){}).bind());": [
@@ -1217,31 +1529,328 @@
   ]
  },
  "qjs": {
+  "\"use strict\";\nError . toString ( ) ;": [
+   "fp:builtin-tostring"
+  ],
+  "\"use strict\";\nIterator . concat ( [ ] ) ;": [
+   "qjs-iterator-concat"
+  ],
+  "\"use strict\";\nIterator . from ( { } ) ;": [
+   "fp:prelude-derivation"
+  ],
+  "\"use strict\";\nIterator.concat.call(0);": [
+   "qjs-iterator-concat"
+  ],
+  "\"use strict\";\nMath . cosh ( 1 ) ;": [
+   "fp:ulp"
+  ],
+  "\"use strict\";\nvar x = {}; Object.setPrototypeOf(x, Iterator.prototype); x.constructor = 0;": [
+   "qjs-1552"
+  ],
+  "Array.fromAsync.call(-1n, { [Symbol.asyncIterator]: () => ({ next: Number }) }, undefined, null);": [
+   "qjs-1769"
+  ],
+  "Array.fromAsync.call(0.5, { [Symbol.asyncIterator]: () => ({ next: Boolean }) }, undefined, 0n);": [
+   "qjs-1769"
+  ],
+  "Array.fromAsync.call(2 ** 31, { [Symbol.asyncIterator]: () => ({ next: Number }) }, () => null);": [
+   "qjs-1769"
+  ],
+  "Array.fromAsync.call(Symbol(), { [Symbol.asyncIterator]: () => ({ next: Boolean }) }, undefined, Symbol());": [
+   "qjs-1769"
+  ],
+  "Array.fromAsync.call(Symbol(), { [Symbol.asyncIterator]: () => ({ next: Number }) }, function(){});": [
+   "qjs-1769"
+  ],
   "Array.fromAsync.call(false, { [Symbol.asyncIterator]: () => ({ next: Boolean }) });": [
    "qjs-1769"
   ],
   "Array.prototype.reduceRight.call(\"a\", RangeError, Number.MIN_VALUE);": [
    "fp:number-tostring"
   ],
+  "ArrayBuffer.prototype.resize.call(new ArrayBuffer(8, { maxByteLength: 16 }), -Infinity);": [
+   "qjs-1761"
+  ],
+  "ArrayBuffer.prototype.resize.call(new ArrayBuffer(8, { maxByteLength: 16 }), Number.MAX_VALUE);": [
+   "qjs-1761"
+  ],
+  "ArrayBuffer.prototype.slice.call(ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), 2 ** 31), null, false);": [
+   "qjs-1729"
+  ],
+  "ArrayBuffer.prototype.slice.call(ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), 2 ** 31), undefined, Uint8Array);": [
+   "qjs-1729"
+  ],
+  "ArrayBuffer.prototype.slice.call(ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), 2 ** 32), \"aa\", false);": [
+   "qjs-1729"
+  ],
+  "ArrayBuffer.prototype.slice.call(ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), 2 ** 32), Number.MIN_VALUE, \"aa\");": [
+   "qjs-1729"
+  ],
+  "ArrayBuffer.prototype.slice.call(ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), Number.MAX_SAFE_INTEGER), \"a\", (() => { const buffer = new ArrayBuffer(8); const value = new Float16Array(buffer); buffer.transfer(); return value; })());": [
+   "qjs-1729"
+  ],
+  "ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), 2 ** 32);": [
+   "qjs-1729"
+  ],
+  "ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), Number.MAX_SAFE_INTEGER);": [
+   "qjs-1729"
+  ],
+  "ArrayBuffer.prototype.transferToFixedLength.call(new ArrayBuffer(8, { maxByteLength: 16 }), Number.MAX_SAFE_INTEGER);": [
+   "fp:resource-limit"
+  ],
+  "Error.call(1n, (function* () {}).constructor, Symbol());": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: BigUint64Array, name: \"\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: Map, name: \"aa\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: SyntaxError, name: \"aa\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call((function* () {}).constructor.call(\"\", ...[1]), null, ...[]);": [
+   "qjs-1732"
+  ],
+  "Function.prototype.bind.call((function* () {}).constructor.call(undefined, ...[undefined]), ...[]);": [
+   "qjs-1732"
+  ],
   "Function.prototype.bind.call(Object.defineProperties((async function() {}).constructor.call(\"\", ...[false]), { length: { value: Infinity } }), 1n, ...[]);": [
    "qjs-1732"
   ],
+  "Function.prototype.bind.call(Object.defineProperties((async function* () {}).constructor.call(false, ...[1]), { length: { value: Infinity } }), -1n, ...[]);": [
+   "qjs-1732"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties((async function* () {}).constructor.call(undefined, ...[undefined]), { length: { value: undefined } }), ...[]);": [
+   "qjs-1732"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties((function* () {}).constructor.call(1n, ...[true]), { length: { value: \"a\" } }), -1, ...[]);": [
+   "qjs-1732"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(AggregateError, { length: { value: 0n } }), -1, ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(BigUint64Array, { length: { value: Infinity } }), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(Float16Array, { length: { value: -Infinity } }), Symbol(), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(Float64Array, { length: { value: undefined } }), (() => { const buffer = new ArrayBuffer(8); const value = new Int8Array(buffer); buffer.transfer(); return value; })(), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(Function.prototype.bind.call(Float32Array, undefined, ...[]), { length: { value: Infinity } }), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(Function.prototype.bind.call(SyntaxError, undefined, ...[]), { length: { value: Infinity } }), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(Int16Array, { length: { value: Infinity } }), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(Int16Array, { length: { value: false } }), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(Int16Array, { name: { value: undefined } }), ...[]);": [
+   "fp:builtin-tostring"
+  ],
   "Function.prototype.bind.call(Object.defineProperties(Int8Array, { length: { value: -Infinity } }), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(SyntaxError, { length: { value: \"a\" } }), -1n, ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(URIError, { length: { value: \"a\" } }), true, ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(URIError, { length: { value: null } }), Symbol(), ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.bind.call(Object.defineProperties(Uint8Array, { length: { value: Infinity } }), null, ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "qjs-1737"
+  ],
+  "Function.prototype.toString.call((function(){}).bind());": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((function* () {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Float16Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Float32Array);": [
    "fp:builtin-tostring"
   ],
   "Function.prototype.toString.call(Float64Array);": [
    "fp:builtin-tostring"
   ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Float16Array, 8, ...[]));": [
+   "fp:builtin-tostring"
+  ],
   "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties((async function() {}).constructor.call(String, ...[0n]), { name: { value: \"aa\" } }), 1n, ...[]));": [
    "fp:builtin-tostring"
   ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties(Symbol, { name: { value: false } }), true, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Proxy, null, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(URIError, undefined, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Int32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Int8Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Map);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Number);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(-1n));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(0n));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(Object));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(null));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(URIError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Uint32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Uint8ClampedArray);": [
+   "fp:builtin-tostring"
+  ],
+  "Iterator.concat.call((() => { const buffer = new ArrayBuffer(8); const value = new Uint8ClampedArray(buffer); buffer.transfer(); return value; })(), ...[{ [Symbol.iterator]: (function(){}).bind() }]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(-1n, ...[(() => { const buffer = new ArrayBuffer(8); const value = new Float32Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(-1n, ...[(() => { const buffer = new ArrayBuffer(8); const value = new Uint32Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(1n, ...[(() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(Function, ...[{ [Symbol.iterator]: Int32Array }]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(Infinity, ...[(() => { const buffer = new ArrayBuffer(8); const value = new Float64Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(Proxy, ...[(() => { const g = (function*(){})(); g.next(); return g; })()]);": [
+   "qjs-iterator-concat"
+  ],
   "Iterator.concat.call(null, ...[(() => { const buffer = new ArrayBuffer(8); const value = new Float16Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(undefined, ...[(() => { const buffer = new ArrayBuffer(8); const value = new BigInt64Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(undefined, ...[(() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(undefined, ...[(() => { const buffer = new ArrayBuffer(8); const value = new Float64Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(undefined, ...[(() => { const buffer = new ArrayBuffer(8); const value = new Int16Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(undefined, ...[(() => { const buffer = new ArrayBuffer(8); const value = new Int32Array(buffer); buffer.transfer(); return value; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(undefined, ...[(() => { const g = (function*(){})(); g.next(); return g; })()]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(undefined, ...[[0, 0]]);": [
+   "qjs-iterator-concat"
+  ],
+  "Iterator.concat.call(undefined, ...[[0]]);": [
    "qjs-iterator-concat"
   ],
   "Iterator.concat.call(undefined, ...[]);": [
    "qjs-iterator-concat"
   ],
+  "Iterator.from.call((() => { const buffer = new ArrayBuffer(8); const value = new Float16Array(buffer); buffer.transfer(); return value; })(), Array);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(-1n, Float16Array);": [
+   "fp:prelude-derivation"
+  ],
   "Iterator.from.call(-1n, { [Symbol.iterator]: () => ({ get next() { throw 0; } }) });": [
+   "qjs-1693"
+  ],
+  "Iterator.from.call(-Infinity, Map);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(0.5, Number);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(0n, RangeError);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(1n, { [Symbol.iterator]: () => ({ get next() { throw 0; } }) });": [
+   "qjs-1693"
+  ],
+  "Iterator.from.call(2 ** 32, { [Symbol.iterator]: () => ({ get next() { throw 0; } }) });": [
+   "qjs-1693"
+  ],
+  "Iterator.from.call(Symbol(), EvalError);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(Symbol(), { [Symbol.iterator]: () => ({ get next() { throw 0; } }) });": [
+   "qjs-1693"
+  ],
+  "Iterator.from.call(null, Float16Array);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(null, { [Symbol.iterator]: () => ({ get next() { throw 0; } }) });": [
+   "qjs-1693"
+  ],
+  "Iterator.from.call(undefined, BigInt64Array);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(undefined, Int16Array);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(undefined, Promise);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(undefined, RangeError);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(undefined, WeakMap);": [
+   "fp:prelude-derivation"
+  ],
+  "Iterator.from.call(undefined, { [Symbol.iterator]: () => ({ get next() { throw 0; } }) });": [
    "qjs-1693"
   ],
   "Iterator.from.call(undefined, { [Symbol.iterator]: undefined });": [
@@ -1250,10 +1859,100 @@
   "Math.atan.call(undefined, -0.5);": [
    "fp:ulp"
   ],
+  "Math.atan2.call(\"\", 8, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 2 ** 31, -0.5);": [
+   "fp:ulp"
+  ],
   "Math.atan2.call(undefined, 2 ** 31, -1);": [
    "fp:ulp"
   ],
+  "Math.atan2.call(undefined, 2 ** 32, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 4, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, Number.MAX_VALUE, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, 1);": [
+   "fp:ulp"
+  ],
+  "Math.expm1.call(undefined, Number.MIN_VALUE);": [
+   "fp:ulp"
+  ],
+  "Math.log1p.call(undefined, 2);": [
+   "fp:ulp"
+  ],
+  "Math.log2.call(undefined, 2 ** 31);": [
+   "fp:ulp"
+  ],
+  "Math.tan.call(Symbol(), 4);": [
+   "fp:ulp"
+  ],
+  "Object.defineProperty.call(\"a\", () => {}, false, { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(\"a\", (function(){}).bind(), true, { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(\"a\", Promise, \"aa\", { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
   "Object.defineProperty.call(\"aa\", Int32Array, Number.MAX_VALUE, { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(0n, String, Symbol(), { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(null, (() => { const buffer = new ArrayBuffer(8); const value = new Float32Array(buffer); buffer.transfer(); return value; })(), \"aa\", { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(null, Uint8ClampedArray, 2 ** 31, { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(null, [0, 0], null, { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(null, [0], undefined, { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Int16Array(buffer); buffer.transfer(); return value; })(), undefined, { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Uint16Array(buffer); buffer.transfer(); return value; })(), undefined, { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Uint8ClampedArray(buffer); buffer.transfer(); return value; })(), undefined, { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, (function(){ return arguments; })(), undefined, { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, EvalError, Error, { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, Float16Array, \"\", { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, Int16Array, undefined, { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, Map, undefined, { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, Uint16Array, undefined, { get get() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, WeakMap, undefined, { get set() { throw 0; } });": [
+   "qjs-1627"
+  ],
+  "Object.defineProperty.call(undefined, [], undefined, { get set() { throw 0; } });": [
    "qjs-1627"
   ],
   "Object.defineProperty.call(undefined, {}, undefined, { get set() { throw 0; } });": [
@@ -1262,11 +1961,74 @@
   "Object.freeze.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Uint32Array(buffer); buffer.transfer(); return value; })());": [
    "qjs-1765"
   ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call((() => { const buffer = new ArrayBuffer(8); const value = new Uint32Array(buffer); buffer.transfer(); return value; })());": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call((() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })());": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call((function* () {}).constructor);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(Error);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(Float16Array);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(Float64Array);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(Int16Array);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(Iterator);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(Object);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(Promise);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(RangeError);": [
+   "qjs-iterator-constructor-setter"
+  ],
   "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(String);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(Uint8ClampedArray);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call([0, 0]);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(class {});": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(new ArrayBuffer(8, { maxByteLength: 16 }));": [
    "qjs-iterator-constructor-setter"
   ],
   "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call(undefined);": [
    "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ constructor: -0 }, \"\");": [
+   "qjs-1552"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ constructor: 1n }, 1n);": [
+   "qjs-1552"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ constructor: true }, \"a\");": [
+   "qjs-1552"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ constructor: undefined });": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ constructor: undefined }, Symbol());": [
+   "qjs-1552"
   ],
   "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ constructor: undefined }, null);": [
    "qjs-1552"
@@ -1274,13 +2036,118 @@
   "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ set constructor(_) { throw 0; } });": [
    "qjs-iterator-constructor-setter"
   ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ set constructor(_) { throw 0; } }, Error);": [
+   "qjs-iterator-constructor-setter"
+  ],
+  "Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").set.call({ set constructor(_) { throw 0; } }, null);": [
+   "qjs-1552"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call(Array, Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "qjs-iterator-return"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call(class {}, (async function* () {}).constructor.call((() => { const buffer = new ArrayBuffer(8); const value = new Float64Array(buffer); buffer.transfer(); return value; })(), ...[undefined])));": [
+   "qjs-iterator-return"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call(new ArrayBuffer(8, { maxByteLength: 16 }), (async function() {}).constructor.call(undefined, ...[undefined])));": [
+   "qjs-iterator-return"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call({ next: null }, (function* () {}).constructor.call(Float16Array, ...[NaN])));": [
+   "qjs-iterator-return"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.flatMap.call(Object, (function* () {}).constructor.call(undefined, ...[undefined])));": [
+   "qjs-iterator-return"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.flatMap.call(Promise.reject(0), Float64Array));": [
+   "qjs-iterator-return"
+  ],
   "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.flatMap.call({ next: false }, Function.call(null, ...[false])));": [
    "qjs-iterator-return"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.flatMap.call({ next: null }, Symbol));": [
+   "qjs-iterator-return"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(\"\", (async function() {}).constructor));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(\"aa\", (() => { const g = (async function*(){})(); g.next(); return g; })()));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call((() => { const buffer = new ArrayBuffer(8); const value = new Uint16Array(buffer); buffer.transfer(); return value; })(), (() => { const g = (async function*(){ yield 0; })(); g.next(); return g; })()));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(0.5, (() => { const g = (async function*(){})(); g.next(); return g; })()));": [
+   "qjs-1693"
   ],
   "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(Float32Array, Uint8ClampedArray));": [
    "qjs-1693"
   ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(Number.MAX_SAFE_INTEGER, (() => { const g = (async function*(){})(); g.next(); return g; })()));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(Object.getPrototypeOf(Uint8Array), (function(){}).bind()));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(Proxy, Boolean));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(ReferenceError, String));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(Symbol(), (() => { const g = (async function*(){ yield 0; })(); g.next(); return g; })()));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, (() => { const g = (async function*(){ yield 0; })(); g.next(); return g; })()));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, Array));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, Float64Array));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, ReferenceError));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, Uint32Array));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, class extends Object {}));": [
+   "qjs-1693"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(BigInt64Array, [...[]], Map));": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(BigUint64Array, [...[(() => { const g = (async function*(){})(); g.next(); return g; })()]], Iterator), -1, null);": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(BigUint64Array, [...[]], class extends Object {}));": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Float16Array, [...[null]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(\"\")), \"aa\", Symbol());": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Float16Array, [...[undefined]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)), undefined, -1n);": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Float64Array, [...[() => {}]], Uint16Array), \"a\", 0n);": [
+   "qjs-1625"
+  ],
   "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Float64Array, [...[]], Float64Array), \"\", Symbol());": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Int32Array, [...[]], (function(){}).bind()), undefined, Symbol());": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Int8Array, [...[class {}]], Object.defineProperties((function(){}).bind(), { prototype: { value: undefined } })), undefined, -1n);": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Int8Array, [...[null]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(-0.5)), undefined, 1n);": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Uint8Array, [...[Promise.resolve(0)]], Uint8Array), undefined, Symbol());": [
+   "qjs-1625"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.with.call(Reflect.construct(Uint8Array, [...[false]], Int16Array), null, Symbol());": [
    "qjs-1625"
   ],
   "Object.preventExtensions.call(Symbol(), Reflect.construct(Uint8ClampedArray, [...[new ArrayBuffer(8, { maxByteLength: 16 })]], String));": [
@@ -1289,11 +2156,65 @@
   "Object.prototype.toLocaleString.call((function* () {}).constructor);": [
    "fp:builtin-tostring"
   ],
+  "Object.prototype.toLocaleString.call(Error);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Float32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Map);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(String);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Uint8ClampedArray);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(WeakSet);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.setPrototypeOf.call(-0, (() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })(), (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "fp:harness-revoked-proxy"
+  ],
   "Reflect.construct(ArrayBuffer, [\"\", { maxByteLength: Number.MAX_VALUE }], (async function() {}).constructor);": [
    "qjs-1760"
   ],
   "Reflect.construct(BigUint64Array, [...[Reflect.construct(Float16Array, [...[]], Set)]], Set);": [
    "qjs-1690"
+  ],
+  "Reflect.construct(Error, [ArrayBuffer], Number);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(EvalError, [Set], Iterator);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(Float64Array, [...[ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), 2 ** 32)]], Object.defineProperties(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(Symbol()), { prototype: { value: Number.MAX_VALUE } }));": [
+   "qjs-1729"
+  ],
+  "Reflect.construct(Float64Array, [...[Reflect.construct(BigInt64Array, [...[]], BigInt)]], Float64Array);": [
+   "qjs-1690"
+  ],
+  "Reflect.construct(Float64Array, [...[Reflect.construct(BigInt64Array, [...[]], Float16Array)]], String);": [
+   "qjs-1690"
+  ],
+  "Reflect.construct(Int16Array, [...[Reflect.construct(BigUint64Array, [...[undefined]], Symbol)]], Int8Array);": [
+   "qjs-1690"
+  ],
+  "Reflect.construct(SyntaxError, [Uint8ClampedArray], String);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(URIError, [Set], URIError);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(URIError, [URIError], class {});": [
+   "fp:builtin-tostring"
   ],
   "Reflect.construct(Uint16Array, [...[2 ** 31]], (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
    "qjs-1739"
@@ -1301,19 +2222,148 @@
   "Reflect.construct(Uint16Array, [...[ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), 2 ** 31)]], Object.defineProperties(ReferenceError, { prototype: { value: undefined } }));": [
    "qjs-1729"
   ],
+  "Reflect.construct(Uint16Array, [...[ArrayBuffer.prototype.transfer.call(new ArrayBuffer(8, { maxByteLength: 16 }), Number.MAX_SAFE_INTEGER)]], Object.defineProperties(Uint16Array, { prototype: { value: true } }));": [
+   "qjs-1729"
+  ],
   "Reflect.construct(Uint16Array, [...[ArrayBuffer.prototype.transferToFixedLength.call(new ArrayBuffer(8, { maxByteLength: 16 }), Number.MAX_SAFE_INTEGER)]], Object.defineProperties(Float16Array, { prototype: { value: 0n } }));": [
    "fp:resource-limit"
   ],
+  "Reflect.construct(Uint16Array, [...[Reflect.construct(BigInt64Array, [...[(() => { const g = (function*(){ yield 0; })(); g.next(); return g; })()]], Set)]], Uint32Array);": [
+   "qjs-1690"
+  ],
+  "Reflect.set.call(\"aa\", (() => { const buffer = new ArrayBuffer(8); const value = new Uint16Array(buffer); buffer.transfer(); return value; })(), 0n, Symbol(), null);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(2, (() => { const buffer = new ArrayBuffer(8); const value = new Uint16Array(buffer); buffer.transfer(); return value; })(), -1n, undefined, null);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(4, (() => { const buffer = new ArrayBuffer(8); const value = new Float64Array(buffer); buffer.transfer(); return value; })(), -0.5, 0.5, null);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(Symbol(), (() => { const buffer = new ArrayBuffer(8); const value = new Uint8ClampedArray(buffer); buffer.transfer(); return value; })(), 0n, -Infinity, undefined);": [
+   "qjs-1730"
+  ],
   "Reflect.set.call([0, 0], (() => { const buffer = new ArrayBuffer(8); const value = new Float32Array(buffer); buffer.transfer(); return value; })(), 2 ** 31, -0.5, null);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new BigInt64Array(buffer); buffer.transfer(); return value; })(), 0, 1n, null);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, (async function() {}).constructor, Uint8ClampedArray, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, Array, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, ArrayBuffer, Error, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, BigInt, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, BigInt64Array, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, Boolean, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, Error, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, Float16Array, (function* () {}).constructor, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, Int16Array, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, Map, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, Proxy, undefined, undefined, undefined);": [
    "qjs-1730"
   ],
   "Reflect.set.call(undefined, Set, -1n, undefined, undefined);": [
    "qjs-1730"
   ],
+  "Reflect.set.call(undefined, Uint8ClampedArray, class {}, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, [], undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, class extends Object {}, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "Reflect.set.call(undefined, class {}, undefined, undefined, undefined);": [
+   "qjs-1730"
+  ],
+  "String.prototype.concat.call(\"\", ...[EvalError]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"\", ...[Uint8Array]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[Boolean]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[Symbol]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[WeakMap]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(EvalError, ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.matchAll.call(Int8Array, { [Symbol.matchAll]: String });": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.padEnd.call(ReferenceError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replace.call(Object.getPrototypeOf(Uint8Array), Set);": [
+   "fp:builtin-tostring"
+  ],
   "String.prototype.replace.call(Uint8ClampedArray, 0, Number);": [
    "fp:builtin-tostring"
   ],
+  "String.prototype.replaceAll.call(Float32Array, (async function* () {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
   "String.prototype.replaceAll.call(Int16Array, Int32Array, Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replaceAll.call(Promise, Float32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replaceAll.call(String, { [Symbol.match]: 0n, flags: Symbol() }, AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.split.call(Map, () => {});": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.substring.call(Float16Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trim.call(AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trim.call(BigInt64Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trimEnd.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trimStart.call(ReferenceError);": [
+   "fp:builtin-tostring"
+  ],
+  "WeakMap.prototype.getOrInsertComputed.call(Reflect.construct(WeakMap, [undefined], String), AggregateError, String);": [
+   "fp:builtin-tostring"
+  ],
+  "decodeURI.call(undefined, (async function() {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
+  "decodeURI.call(undefined, Array);": [
    "fp:builtin-tostring"
   ],
   "decodeURIComponent.call(undefined, (function(){}).bind());": [
@@ -3680,31 +4730,364 @@
   ]
  },
  "sm": {
+  "\"use strict\";\nArray . fromAsync ( async function * ( ) { ; yield * x ( ) ; } `` ) ; async function * x ( ) { }": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nArray . fromAsync ( async function * ( ) { ; yield * x ( ) ; } `` ) ; function * x ( ) { }": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nArray . fromAsync ( async function * ( ) { yield * x ( ) ; } `` ) ; async function * x ( ) { }": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nArray . fromAsync ( async function * ( ) { yield * x ( ) ; } `` ) ; function * x ( ) { }": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nArray . of . call ( function ( ) { return [ x ] ; } ) ; function x ( ) { }": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nArray . of . call ( function ( ) { } ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nError . toString ( ) ;": [
+   "fp:builtin-tostring"
+  ],
+  "\"use strict\";\nFunction ( ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nFunction . apply ( ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nFunction . apply ( 0 ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nFunction . apply ( x => x ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nFunction . apply ( x => x , [ , ] ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nFunction . apply ( x => x , [ ] ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nFunction . apply ( x => x , { } ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nMath . cosh ( 1 ) ;": [
+   "fp:ulp"
+  ],
+  "\"use strict\";\nObject . defineProperty ( x => x , `` , { set : x => x } ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nReflect . construct . call ( 0 , class { } , [ ] ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nReflect . construct . call ( 0 , class { } , x => x ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nReflect . construct . call ( 0 , class { } , { } ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nasync function * x ( ) { } Array . fromAsync . call ( 0 , async function * ( ) { yield * x ( ) ; } `` ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nfunction * x ( ) { } Array . fromAsync . call ( 0 , async function * ( ) { yield * x ( ) ; } `` ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nnew Function(0);": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nnew Function;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nnew function ( [ ] ) { } ( { [ Symbol . iterator ] : async function * ( ) { } } ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nnew function ( [ ] ) { } ( { [ Symbol . iterator ] : function * ( ) { } } ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nnew function ( x , [ [ ] = x , , ] = x ) { } ( function * ( ) { yield ; } `` ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nnew function ( x , [ ] = x ) { } ( function * ( ) { } `` ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nnew function x ( [ ] , ) { } ( function * ( ) { } `` ) ;": [
+   "sm-2073809"
+  ],
+  "\"use strict\";\nnew function x ( [ ] = x , ) { ; } ( function * ( ) { } `` ) ;": [
+   "sm-2073809"
+  ],
+  "(function* () {}).constructor.call(undefined, ...[]);": [
+   "sm-2073809"
+  ],
+  "Array.from.call(SyntaxError, Function, (async function* () {}).constructor, null);": [
+   "sm-2073809"
+  ],
+  "Array.from.call(class extends Object {}, { [Symbol.iterator]: undefined, length: null }, Int8Array);": [
+   "sm-2073809"
+  ],
+  "Array.from.call(function(){}, BigUint64Array, Boolean, null);": [
+   "sm-2073809"
+  ],
+  "Array.from.call(null, ArrayBuffer, (async function* () {}).constructor, Symbol());": [
+   "sm-2073809"
+  ],
+  "Array.from.call(undefined, Float64Array, (function* () {}).constructor);": [
+   "sm-2073809"
+  ],
+  "Array.from.call(undefined, URIError, (async function* () {}).constructor, 2 ** 31);": [
+   "sm-2073809"
+  ],
   "Array.of.call((function(){}).bind(), ...[]);": [
    "sm-2073809"
   ],
   "Array.of.call(class extends Object {}, ...[]);": [
    "sm-2073809"
   ],
+  "Array.of.call(class {}, ...[]);": [
+   "sm-2073809"
+  ],
+  "Array.of.call(function(){}, ...[]);": [
+   "sm-2073809"
+  ],
   "Array.prototype.reduceRight.call(\"a\", RangeError, Number.MIN_VALUE);": [
    "fp:number-tostring"
   ],
+  "Error.prototype.toString.call({ message: BigUint64Array, name: \"\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: Map, name: \"aa\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: SyntaxError, name: \"aa\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Function.call(undefined, ...[]);": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((async function* () {}).constructor);": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((async function* () {}).constructor, \"aa\", Promise.resolve(0));": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((async function* () {}).constructor, -0.5, (() => { const g = (function*(){ yield 0; })(); g.next(); return g; })());": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((async function* () {}).constructor, null, { length: undefined });": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((async function* () {}).constructor, true, (() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })());": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((async function* () {}).constructor, undefined, Array);": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((function* () {}).constructor, (() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })(), { length: 8 });": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((function* () {}).constructor, (async function() {}).constructor, (() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })());": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((function* () {}).constructor, Symbol(), Float64Array);": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((function* () {}).constructor, undefined, Uint8ClampedArray);": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call((function* () {}).constructor, undefined, { length: String });": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call(Function, -1n, (() => { const buffer = new ArrayBuffer(8); const value = new BigInt64Array(buffer); buffer.transfer(); return value; })());": [
+   "sm-2073809"
+  ],
   "Function.prototype.apply.call(Function, 1, BigUint64Array);": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call(Function, Symbol(), (() => { const buffer = new ArrayBuffer(8); const value = buffer; buffer.transfer(); return value; })());": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call(Function, true, class extends Object {});": [
    "sm-2073809"
   ],
   "Function.prototype.apply.call(Function.prototype.bind.call((function* () {}).constructor, \"\", ...[]), Symbol(), { length: BigInt64Array });": [
    "sm-2073809"
   ],
+  "Function.prototype.apply.call(Function.prototype.bind.call((function* () {}).constructor, Symbol(), ...[]), \"a\", (function(){ return arguments; })());": [
+   "sm-2073809"
+  ],
+  "Function.prototype.apply.call(Function.prototype.bind.call(Object.defineProperties((function* () {}).constructor, { name: { value: Number.MIN_VALUE } }), Object.getPrototypeOf(Uint8Array), ...[]), undefined, (() => { const g = (function*(){})(); g.next(); return g; })());": [
+   "sm-2073809"
+  ],
+  "Function.prototype.toString.call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((function(){}).bind());": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((function* () {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Float16Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Float32Array);": [
+   "fp:builtin-tostring"
+  ],
   "Function.prototype.toString.call(Float64Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Float16Array, 8, ...[]));": [
    "fp:builtin-tostring"
   ],
   "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties((async function() {}).constructor.call(String, ...[0n]), { name: { value: \"aa\" } }), 1n, ...[]));": [
    "fp:builtin-tostring"
   ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties(Symbol, { name: { value: false } }), true, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Proxy, null, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(URIError, undefined, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Int32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Int8Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Map);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Number);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(-1n));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(0n));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(Object));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(null));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(URIError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Uint32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Uint8ClampedArray);": [
+   "fp:builtin-tostring"
+  ],
+  "Map.prototype.getOrInsertComputed.call(Reflect.construct(Map, [undefined], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)), undefined, (function* () {}).constructor);": [
+   "sm-2073809"
+  ],
+  "Math.atan2.call(\"\", 8, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 2 ** 31, -0.5);": [
+   "fp:ulp"
+  ],
   "Math.atan2.call(undefined, 2 ** 31, -1);": [
    "fp:ulp"
   ],
+  "Math.atan2.call(undefined, 2 ** 32, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 4, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, Number.MAX_VALUE, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, 1);": [
+   "fp:ulp"
+  ],
+  "Math.expm1.call(undefined, Number.MIN_VALUE);": [
+   "fp:ulp"
+  ],
+  "Math.log1p.call(undefined, 2);": [
+   "fp:ulp"
+  ],
+  "Math.log2.call(undefined, 2 ** 31);": [
+   "fp:ulp"
+  ],
+  "Math.pow.call(undefined, 8, -0.5);": [
+   "fp:ulp"
+  ],
+  "Math.pow.call(undefined, Number.MAX_SAFE_INTEGER, -1);": [
+   "fp:ulp"
+  ],
+  "Object.create.call(undefined, class extends Object {}, Promise);": [
+   "sm-2073809"
+  ],
+  "Object.create.call(undefined, class {});": [
+   "sm-2073809"
+  ],
+  "Object.defineProperty.call(Symbol(), () => {}, undefined, { writable: \"\" });": [
+   "sm-2073809"
+  ],
+  "Object.defineProperty.call(undefined, function(){}, undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Uint16Array(buffer); buffer.transfer(); return value; })());": [
+   "sm-2073809"
+  ],
+  "Object.freeze.call(true, class {});": [
+   "sm-2073809"
+  ],
+  "Object.freeze.call(undefined, function(){});": [
+   "sm-2073809"
+  ],
+  "Object.getOwnPropertyDescriptors.call(\"a\", Reflect.construct(Proxy, [Function, class extends Object {}], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(RangeError)));": [
+   "sm-2073809"
+  ],
+  "Object.getOwnPropertyDescriptors.call(Symbol(), (async function* () {}).constructor);": [
+   "sm-2073809"
+  ],
+  "Object.getOwnPropertyDescriptors.call(undefined, Array);": [
+   "sm-2073809"
+  ],
+  "Object.getOwnPropertyDescriptors.call(undefined, Reflect.construct(Proxy, [BigUint64Array, (function(){ return arguments; })()], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "sm-2073809"
+  ],
+  "Object.getOwnPropertyDescriptors.call(undefined, Reflect.construct(Proxy, [Iterator, (() => { const g = (async function*(){})(); g.next(); return g; })()], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "sm-2073809"
+  ],
+  "Object.getOwnPropertyDescriptors.call(undefined, Reflect.construct(Proxy, [Object.getPrototypeOf(Uint8Array), Uint8Array], Proxy));": [
+   "sm-2073809"
+  ],
+  "Object.getOwnPropertyDescriptors.call(undefined, String);": [
+   "sm-2073809"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.copyWithin.call(Reflect.construct(BigInt64Array, [...[(() => { const g = (function*(){ yield 0; })(); g.next(); return g; })()]], class extends Object {}), null, \"a\", null);": [
+   "sm-2073809"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.copyWithin.call(Reflect.construct(Float16Array, [...[true]], function(){}), -1, \"\");": [
+   "sm-2073809"
+  ],
   "Object.getPrototypeOf(Uint8Array).prototype.copyWithin.call(Reflect.construct(Int16Array, [...[(() => { const g = (function*(){})(); g.next(); return g; })()]], function(){}), \"a\", true, -1);": [
+   "sm-2073809"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.copyWithin.call(Reflect.construct(Uint32Array, [...[BigInt]], function(){}), null, true);": [
    "sm-2073809"
   ],
   "Object.getPrototypeOf(Uint8Array).prototype.fill.call(Reflect.construct(Uint8Array, [...[(function(){}).bind()]], class extends Object {}), Number.MAX_SAFE_INTEGER, BigInt, -Infinity);": [
@@ -3716,44 +5099,300 @@
   "Object.getPrototypeOf(Uint8Array).prototype.lastIndexOf.call(Reflect.construct(BigUint64Array, [...[2 ** 31]], EvalError), Number.MAX_SAFE_INTEGER, null);": [
    "fp:resource-limit"
   ],
+  "Object.getPrototypeOf(Uint8Array).prototype.reverse.call(Reflect.construct(Float64Array, [...[undefined]], class {}));": [
+   "sm-2073809"
+  ],
+  "Object.preventExtensions.call(NaN, Reflect.construct(Uint8ClampedArray, [...[(() => { const g = (function*(){ yield 0; })(); g.next(); return g; })()]], class extends Object {}));": [
+   "sm-2073809"
+  ],
   "Object.prototype.toLocaleString.call((function* () {}).constructor);": [
    "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Error);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Float32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Map);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(String);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Uint8ClampedArray);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(WeakSet);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.seal.call(undefined, class {});": [
+   "sm-2073809"
+  ],
+  "Object.setPrototypeOf.call(-0, (() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })(), (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "fp:harness-revoked-proxy"
+  ],
+  "Object.setPrototypeOf.call(undefined, class extends Object {}, (() => { const buffer = new ArrayBuffer(8); const value = new Uint8ClampedArray(buffer); buffer.transfer(); return value; })());": [
+   "sm-2073809"
+  ],
+  "Reflect.apply.call(\"\", Function, NaN, Float32Array);": [
+   "sm-2073809"
+  ],
+  "Reflect.apply.call(\"aa\", Function, Number.MAX_SAFE_INTEGER, function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.apply.call(0n, (async function* () {}).constructor, WeakMap, class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.apply.call(4, (function* () {}).constructor, Symbol(), (function* () {}).constructor);": [
+   "sm-2073809"
+  ],
+  "Reflect.apply.call(null, Function, false, () => {});": [
+   "sm-2073809"
+  ],
+  "Reflect.apply.call(true, Function, null, Set);": [
+   "sm-2073809"
+  ],
+  "Reflect.apply.call(undefined, Function, Boolean, { length: undefined });": [
+   "sm-2073809"
   ],
   "Reflect.construct(AggregateError, [\"\", undefined, Symbol()], EvalError);": [
    "sm-2073811"
   ],
+  "Reflect.construct(Array, [...[-0]], function(){});": [
+   "sm-2073809"
+  ],
   "Reflect.construct(Array, [...[]], function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Array, [...[function(){}]], Proxy);": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(ArrayBuffer, [(function(){ return arguments; })(), [0]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(BigInt64Array, [...[WeakMap]], function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(BigInt64Array, [...[function(){}]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(BigUint64Array, [...[Object.defineProperties(function(){}, { [Symbol.iterator]: { value: undefined }, length: { value: undefined } })]], function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(BigUint64Array, [...[Object.defineProperties({}, { [Symbol.iterator]: { value: undefined }, length: { value: undefined } })]], function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Error, [4], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Error, [ArrayBuffer], Number);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(Error, [undefined, { cause: undefined }], class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(EvalError, [Set], Iterator);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(Float16Array, [...[Reflect.construct(Uint8Array, [...[undefined]], BigInt)]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Float16Array, [...[]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Float16Array, [...[undefined]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Float32Array, [...[Reflect.construct(Uint32Array, [...[]], TypeError)]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Float32Array, [...[Reflect.construct(Uint8ClampedArray, [...[function(){}]], Proxy)]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Float32Array, [...[function(){}]], function(){});": [
    "sm-2073809"
   ],
   "Reflect.construct(Float64Array, [...[(() => { const g = (function*(){})(); g.next(); return g; })()]], function(){});": [
    "sm-2073809"
   ],
+  "Reflect.construct(Float64Array, [...[Reflect.construct(Float64Array, [...[]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined))]], function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Function, [...[\"\"]], Object.defineProperties((function(){}).bind(), { prototype: { value: undefined } }));": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Int16Array, [...[(function(){ return arguments; })()]], function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Int16Array, [...[Object.defineProperties(Promise, { [Symbol.iterator]: { value: undefined }, length: { value: undefined } })]], class {});": [
+   "sm-2073809"
+  ],
   "Reflect.construct(Int16Array, [...[Reflect.construct(Uint8Array, [...[Float16Array]], Set)]], function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Int8Array, [...[Reflect.construct(Int8Array, [...[]], (function(){}).bind())]], function(){});": [
    "sm-2073809"
   ],
   "Reflect.construct(SyntaxError, [1], function(){});": [
    "sm-2073809"
   ],
+  "Reflect.construct(SyntaxError, [Uint8ClampedArray], String);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(URIError, [Set], URIError);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(URIError, [URIError], class {});": [
+   "fp:builtin-tostring",
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint16Array, [...[ArrayBuffer.prototype.slice.call(new ArrayBuffer(8, { maxByteLength: 16 }), undefined, undefined), undefined, null]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint16Array, [...[ArrayBuffer.prototype.transferToFixedLength.call(new ArrayBuffer(8, { maxByteLength: 16 }), undefined), undefined, BigInt64Array]], class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint16Array, [...[Reflect.construct(Uint32Array, [...[true]], Promise)]], class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint16Array, [...[]], function(){});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint16Array, [...[new ArrayBuffer(8, { maxByteLength: 16 })]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint16Array, [...[undefined]], function(){});": [
+   "sm-2073809"
+  ],
   "Reflect.construct(Uint32Array, [...[Object.defineProperties([], { [Symbol.iterator]: { value: undefined }, length: { value: 2 ** 31 } })]], Int8Array);": [
    "fp:resource-limit"
   ],
+  "Reflect.construct(Uint32Array, [...[Reflect.construct(Float64Array, [...[Map]], function(){})]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint32Array, [...[Reflect.construct(Uint32Array, [...[(function* () {}).constructor]], Number)]], class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint32Array, [...[]], class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint32Array, [...[undefined]], class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint8Array, [...[Reflect.construct(Uint16Array, [...[(function(){ return arguments; })()]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined))]], class {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct(Uint8ClampedArray, [...[Reflect.construct(Float16Array, [...[(() => { const g = (async function*(){})(); g.next(); return g; })()]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined))]], class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct.call(-1n, (function* () {}).constructor, {}, BigInt64Array);": [
+   "sm-2073809"
+  ],
+  "Reflect.construct.call(0n, Function, Int16Array, Object);": [
+   "sm-2073809"
+  ],
   "Reflect.construct.call(Symbol(), Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(-1n), AggregateError, class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct.call(Symbol(), Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(-1n), Symbol, class extends Object {});": [
+   "sm-2073809"
+  ],
+  "Reflect.construct.call(false, (function* () {}).constructor, (() => { const buffer = new ArrayBuffer(8); const value = buffer; buffer.transfer(); return value; })(), Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined));": [
+   "sm-2073809"
+  ],
+  "Reflect.construct.call(true, Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined), { length: undefined }, class {});": [
    "sm-2073809"
   ],
   "Reflect.ownKeys.call(-1n, WeakSet);": [
    "sm-2073809"
   ],
+  "String.prototype.concat.call(\"\", ...[EvalError]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"\", ...[Uint8Array]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[Boolean]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[Symbol]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[WeakMap]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(EvalError, ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.matchAll.call(Int8Array, { [Symbol.matchAll]: String });": [
+   "fp:builtin-tostring"
+  ],
   "String.prototype.matchAll.call(true, { [Symbol.matchAll]: Function });": [
    "sm-2073809"
   ],
+  "String.prototype.padEnd.call(ReferenceError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replace.call(\"\", { [Symbol.replace]: (function* () {}).constructor }, -0);": [
+   "sm-2073809"
+  ],
+  "String.prototype.replace.call(Object.getPrototypeOf(Uint8Array), Set);": [
+   "fp:builtin-tostring"
+  ],
   "String.prototype.replace.call(Uint8ClampedArray, 0, Number);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replaceAll.call(\"\", { [Symbol.replace]: Function });": [
+   "sm-2073809"
+  ],
+  "String.prototype.replaceAll.call(Float32Array, (async function* () {}).constructor);": [
    "fp:builtin-tostring"
   ],
   "String.prototype.replaceAll.call(Int16Array, Int32Array, Object.getPrototypeOf(Uint8Array));": [
    "fp:builtin-tostring"
   ],
+  "String.prototype.replaceAll.call(Promise, Float32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replaceAll.call(String, { [Symbol.match]: 0n, flags: Symbol() }, AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.split.call(Map, () => {});": [
+   "fp:builtin-tostring"
+  ],
   "String.prototype.split.call(NaN, { [Symbol.split]: (function* () {}).constructor }, null);": [
    "sm-2073809"
+  ],
+  "String.prototype.substring.call(Float16Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trim.call(AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trim.call(BigInt64Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trimEnd.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trimStart.call(ReferenceError);": [
+   "fp:builtin-tostring"
+  ],
+  "WeakMap.prototype.getOrInsertComputed.call(Reflect.construct(WeakMap, [undefined], String), AggregateError, String);": [
+   "fp:builtin-tostring"
+  ],
+  "decodeURI.call(undefined, (async function() {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
+  "decodeURI.call(undefined, Array);": [
+   "fp:builtin-tostring"
   ],
   "decodeURIComponent.call(undefined, (function(){}).bind());": [
    "fp:builtin-tostring"
@@ -3956,20 +5595,83 @@
   ]
  },
  "v8": {
+  "\"use strict\";\nMath . cosh ( 1 ) ;": [
+   "fp:ulp"
+  ],
+  "\"use strict\";\nnew Float64Array ( { [ Symbol . iterator ] : async function * ( ) { } } ) ;": [
+   "fp:resource-limit"
+  ],
+  "\"use strict\";\nnew Int8Array ( { [ Symbol . iterator ] : async function * ( ) { } } ) ;": [
+   "fp:resource-limit"
+  ],
+  "\"use strict\";\nnew Uint8Array ( { [ Symbol . iterator ] : async function * ( ) { } } ) ;": [
+   "fp:resource-limit"
+  ],
+  "Array.prototype.concat.call(Iterator.prototype.toArray.call((() => { const g = (async function*(){})(); g.next(); return g; })()), ...[]);": [
+   "fp:resource-limit"
+  ],
   "Array.prototype.reduceRight.call(\"a\", RangeError, Number.MIN_VALUE);": [
    "fp:number-tostring"
+  ],
+  "Iterator.prototype.toArray.call((() => { const g = (async function*(){})(); g.next(); return g; })());": [
+   "fp:resource-limit"
+  ],
+  "Math.atan2.call(\"\", 8, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 2 ** 31, -0.5);": [
+   "fp:ulp"
   ],
   "Math.atan2.call(undefined, 2 ** 31, -1);": [
    "fp:ulp"
   ],
+  "Math.atan2.call(undefined, 2 ** 32, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 4, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, Number.MAX_VALUE, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, 1);": [
+   "fp:ulp"
+  ],
+  "Math.expm1.call(undefined, Number.MIN_VALUE);": [
+   "fp:ulp"
+  ],
+  "Math.log1p.call(undefined, 2);": [
+   "fp:ulp"
+  ],
+  "Math.log2.call(undefined, 2 ** 31);": [
+   "fp:ulp"
+  ],
+  "Math.pow.call(undefined, Number.MAX_SAFE_INTEGER, -1);": [
+   "fp:ulp"
+  ],
   "Math.sumPrecise.call(0n, \"aa\");": [
    "fp:uncaught-classification"
+  ],
+  "Math.sumPrecise.call(1n, \"a\");": [
+   "fp:uncaught-classification"
+  ],
+  "Math.sumPrecise.call(null, \"a\");": [
+   "fp:uncaught-classification"
+  ],
+  "Math.tan.call(Symbol(), 4);": [
+   "fp:ulp"
   ],
   "Object.getPrototypeOf(Uint8Array).prototype.indexOf.call(Reflect.construct(Int32Array, [...[2 ** 32]], BigInt64Array), NaN, false);": [
    "fp:resource-limit"
   ],
   "Object.getPrototypeOf(Uint8Array).prototype.lastIndexOf.call(Reflect.construct(BigUint64Array, [...[2 ** 31]], EvalError), Number.MAX_SAFE_INTEGER, null);": [
    "fp:resource-limit"
+  ],
+  "Object.setPrototypeOf.call(-0, (() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })(), (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "fp:harness-revoked-proxy"
   ],
   "Reflect.construct(Uint32Array, [...[Object.defineProperties([], { [Symbol.iterator]: { value: undefined }, length: { value: 2 ** 31 } })]], Int8Array);": [
    "fp:resource-limit"
@@ -4749,14 +6451,203 @@
   ]
  },
  "xs": {
+  "\"use strict\";\n'' . endsWith . call ( typeof x ) ;": [
+   "xs-1708"
+  ],
+  "\"use strict\";\n'' . startsWith . call ( typeof x ) ;": [
+   "xs-1708"
+  ],
+  "\"use strict\";\n; '' . __proto__ = [ ] ;": [
+   "xs-1701"
+  ],
+  "\"use strict\";\n; '' . __proto__ = { } ;": [
+   "xs-1701"
+  ],
+  "\"use strict\";\n; `` . __proto__ = { } ;": [
+   "xs-1701"
+  ],
+  "\"use strict\";\nArray.from.call(0);": [
+   "xs-1665"
+  ],
+  "\"use strict\";\nError ( [ x => x ] ) ;": [
+   "fp:xs-source-text"
+  ],
+  "\"use strict\";\nError . toString ( ) ;": [
+   "fp:builtin-tostring"
+  ],
+  "\"use strict\";\nMath . atan2 ( 0n ) ;": [
+   "xs-1667-1"
+  ],
+  "\"use strict\";\nMath . atan2 ( 1n ) ;": [
+   "xs-1667-1"
+  ],
+  "\"use strict\";\nMath . atan2 ( { [ Symbol . toPrimitive ] : ( ) => x } ) ;": [
+   "xs-1667-1"
+  ],
+  "\"use strict\";\nMath . atan2 ( { [ Symbol . toPrimitive ] : `` } ) ;": [
+   "xs-1667-1"
+  ],
+  "\"use strict\";\nMath . atan2 ( { [ Symbol . toPrimitive ] : x => [ ] } ) ;": [
+   "xs-1667-1"
+  ],
+  "\"use strict\";\nMath . cosh ( 1 ) ;": [
+   "fp:ulp"
+  ],
+  "\"use strict\";\nMath . pow ( 0n ) ;": [
+   "xs-1667-2"
+  ],
+  "\"use strict\";\nObject . groupBy ( [ , x => x ] , x => x ) ;": [
+   "fp:xs-source-text"
+  ],
+  "\"use strict\";\nProxy . revocable . call ( 0 , class { } , x => x ) ;": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "\"use strict\";\nProxy . revocable . call ( 0 , x => x , x => x ) ;": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "\"use strict\";\nProxy . revocable . call ( 0 , { } , x => x ) ;": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "\"use strict\";\nProxy . revocable . call ( `` , [ ] , { } ) ;": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "\"use strict\";\nReflect . deleteProperty ( [ ] ) ;": [
+   "xs-1669-4"
+  ],
+  "\"use strict\";\nReflect . deleteProperty ( this ) ;": [
+   "xs-1669-4"
+  ],
+  "\"use strict\";\nReflect . deleteProperty ( { } ) ;": [
+   "xs-1669-4"
+  ],
+  "\"use strict\";\nReflect . get ( [ ] ) ;": [
+   "xs-1669-1"
+  ],
+  "\"use strict\";\nReflect . get ( { } ) ;": [
+   "xs-1669-1"
+  ],
+  "\"use strict\";\nReflect . getOwnPropertyDescriptor ( [ ] ) ;": [
+   "xs-1669-5"
+  ],
+  "\"use strict\";\nReflect . getOwnPropertyDescriptor ( { } ) ;": [
+   "xs-1669-5"
+  ],
+  "\"use strict\";\nReflect . has ( [ ] ) ;": [
+   "xs-1669-3"
+  ],
+  "\"use strict\";\nReflect . has ( { } ) ;": [
+   "xs-1669-3"
+  ],
+  "\"use strict\";\nReflect . set ( [ ] ) ;": [
+   "xs-1669-2"
+  ],
+  "\"use strict\";\nReflect . set ( this ) ;": [
+   "xs-1669-2"
+  ],
+  "\"use strict\";\nReflect . set ( { } ) ;": [
+   "xs-1669-2"
+  ],
+  "\"use strict\";\nString . prototype . trimStart . call ( async function x ( ) { ; } ) ;": [
+   "fp:xs-source-text"
+  ],
+  "\"use strict\";\nSymbol.for.call(0);": [
+   "xs-1706"
+  ],
+  "\"use strict\";\n`${ x => x }` . at ( ) ;": [
+   "fp:xs-source-text"
+  ],
+  "\"use strict\";\n`${ x => x }` . replaceAll ( ) ;": [
+   "fp:xs-source-text"
+  ],
+  "\"use strict\";\n`${ x => x }` . split ( 0 ) ;": [
+   "fp:xs-source-text"
+  ],
+  "\"use strict\";\n`${ x => x }` ;": [
+   "fp:xs-source-text"
+  ],
+  "\"use strict\";\n`` . endsWith . call ( typeof x ) ;": [
+   "xs-1708"
+  ],
+  "\"use strict\";\n`` . indexOf . call ( typeof x ) ;": [
+   "xs-1708"
+  ],
+  "\"use strict\";\n`` . lastIndexOf . call ( typeof x ) ;": [
+   "xs-1708"
+  ],
+  "\"use strict\";\ndecodeURI.call(0);": [
+   "xs-1671-1"
+  ],
+  "\"use strict\";\ndecodeURIComponent.call(0);": [
+   "xs-1671-2"
+  ],
+  "\"use strict\";\nencodeURI.call(0);": [
+   "xs-1671-3"
+  ],
+  "\"use strict\";\nencodeURIComponent.call(0);": [
+   "xs-1671-4"
+  ],
+  "\"use strict\";\nlet x ; `${ x }` . lastIndexOf ( ) ;": [
+   "xs-1708"
+  ],
+  "\"use strict\";\nvar x = {}; Object.setPrototypeOf(x, Iterator.prototype); x.constructor = 0;": [
+   "xs-1672"
+  ],
+  "\"use strict\";\nvar x = {}; Object.setPrototypeOf(x, Iterator.prototype); x[Symbol.toStringTag] = 0;": [
+   "xs-1672"
+  ],
   "Array.from.call(\"a\", Float64Array, undefined, function(){});": [
+   "xs-1645"
+  ],
+  "Array.from.call(-1n, [0], undefined, null);": [
+   "xs-1645"
+  ],
+  "Array.from.call(-1n, { [Symbol.iterator]: () => ({ next: (async function() {}).constructor }) }, undefined, null);": [
+   "xs-1645"
+  ],
+  "Array.from.call(0, BigUint64Array, undefined, \"aa\");": [
+   "xs-1645"
+  ],
+  "Array.from.call(0n, String, undefined, null);": [
+   "xs-1645"
+  ],
+  "Array.from.call(1n, [0], undefined, 0);": [
+   "xs-1645"
+  ],
+  "Array.from.call(2, Uint8Array, undefined, \"a\");": [
+   "xs-1645"
+  ],
+  "Array.from.call(NaN, { [Symbol.iterator]: () => (() => { const g = (async function*(){})(); g.next(); return g; })() }, undefined, -1n);": [
    "xs-1645"
   ],
   "Array.from.call(String, { [Symbol.iterator]: undefined, length: Number.MAX_SAFE_INTEGER }, () => true, true);": [
    "xs-1715"
   ],
+  "Array.from.call(Symbol(), Int8Array, undefined, AggregateError);": [
+   "xs-1645"
+  ],
+  "Array.from.call(Symbol(), [0, 0], undefined, false);": [
+   "xs-1645"
+  ],
+  "Array.from.call(false, Proxy, undefined, Symbol);": [
+   "xs-1645"
+  ],
+  "Array.from.call(null, Boolean, undefined, TypeError);": [
+   "xs-1645"
+  ],
+  "Array.from.call(null, [0, 0], undefined, null);": [
+   "xs-1645"
+  ],
+  "Array.from.call(null, { [Symbol.iterator]: () => (() => { const g = (async function*(){})(); g.next(); return g; })() }, undefined, -1n);": [
+   "xs-1645"
+  ],
+  "Array.from.call(null, { [Symbol.iterator]: () => ({ next: EvalError }) }, undefined, Symbol());": [
+   "xs-1645"
+  ],
   "Array.from.call(undefined);": [
    "xs-1665"
+  ],
+  "Array.from.call(undefined, [0], undefined, 2 ** 32);": [
+   "xs-1645"
   ],
   "Array.fromAsync.call(false, { [Symbol.asyncIterator]: () => ({ next: Boolean }) });": [
    "xs-1722"
@@ -4764,71 +6655,908 @@
   "Array.prototype.reduceRight.call(\"a\", RangeError, Number.MIN_VALUE);": [
    "fp:number-tostring"
   ],
+  "Array.prototype.some.call(Error, (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "xs-1702"
+  ],
   "Array.prototype.sort.call(\"a\");": [
    "fp:spec-issue-sort"
+  ],
+  "Error.call(1n, (function* () {}).constructor, Symbol());": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: BigUint64Array, name: \"\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: Map, name: \"aa\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Error.prototype.toString.call({ message: SyntaxError, name: \"aa\" });": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.apply.call((async function() {}).constructor, (() => { const buffer = new ArrayBuffer(8); const value = new Int16Array(buffer); buffer.transfer(); return value; })(), Float32Array);": [
+   "new:xs-dynamic-function-parse"
+  ],
+  "Function.prototype.apply.call((async function() {}).constructor, false, Float16Array);": [
+   "new:xs-dynamic-function-parse"
+  ],
+  "Function.prototype.toString.call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "xs-1702"
+  ],
+  "Function.prototype.toString.call(() => {});": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function() {}).constructor.call(\"\", ...[true]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function() {}).constructor.call((async function() {}).constructor, ...[undefined]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function() {}).constructor.call(1n, ...[\"\"]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function() {}).constructor.call(Symbol(), ...[false]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function() {}).constructor.call(null, ...[\"a\"]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function() {}).constructor.call(null, ...[null]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function() {}).constructor.call(undefined, ...[undefined]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function* () {}).constructor.call(\"aa\", ...[null]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function* () {}).constructor.call(undefined, ...[\"\"]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((async function* () {}).constructor.call(undefined, ...[undefined]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((function(){}).bind());": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((function* () {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call((function* () {}).constructor.call(undefined, ...[1n]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((function* () {}).constructor.call(undefined, ...[false]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call((function* () {}).constructor.call(undefined, ...[null]));": [
+   "fp:xs-source-text"
   ],
   "Function.prototype.toString.call((function* () {}).constructor.call(undefined, ...[undefined]));": [
    "fp:xs-source-text"
   ],
+  "Function.prototype.toString.call(AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Float16Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Float32Array);": [
+   "fp:builtin-tostring"
+  ],
   "Function.prototype.toString.call(Float64Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.call(-0.5, ...[undefined]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call(Function.call(4, ...[null]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call(Function.call(Symbol(), ...[Number.MAX_SAFE_INTEGER]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call(Function.call(undefined, ...[undefined]));": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Float16Array, 8, ...[]));": [
    "fp:builtin-tostring"
   ],
   "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties((async function() {}).constructor.call(String, ...[0n]), { name: { value: \"aa\" } }), 1n, ...[]));": [
    "fp:builtin-tostring"
   ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Object.defineProperties(Symbol, { name: { value: false } }), true, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(Proxy, null, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Function.prototype.bind.call(URIError, undefined, ...[]));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Int32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Int8Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Map);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Number);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(-1n));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(0n));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(Object));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(null));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(URIError);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Uint32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(Uint8ClampedArray);": [
+   "fp:builtin-tostring"
+  ],
+  "Function.prototype.toString.call(function(){});": [
+   "fp:xs-source-text"
+  ],
+  "Function.prototype[Symbol.hasInstance].call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })(), (() => { const buffer = new ArrayBuffer(8); const value = new BigInt64Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1702"
+  ],
+  "Function.prototype[Symbol.hasInstance].call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })(), Number);": [
+   "xs-1702"
+  ],
+  "Function.prototype[Symbol.hasInstance].call((() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })(), Uint8ClampedArray);": [
+   "xs-1702"
+  ],
+  "Iterator.prototype.forEach.call({ get next() { throw 0; } }, (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "xs-1702"
+  ],
+  "Map.prototype.delete.call(Reflect.construct(Map, [undefined], Object));": [
+   "xs-1666"
+  ],
+  "Map.prototype.delete.call(Reflect.construct(Map, [undefined], Object.getPrototypeOf(Uint8Array)));": [
+   "xs-1666"
+  ],
+  "Map.prototype.get.call(Reflect.construct(Map, [undefined], (async function* () {}).constructor));": [
+   "xs-1666"
+  ],
+  "Map.prototype.get.call(Reflect.construct(Map, [undefined], EvalError));": [
+   "xs-1666"
+  ],
+  "Map.prototype.get.call(Reflect.construct(Map, [undefined], Iterator));": [
+   "xs-1666"
+  ],
+  "Map.prototype.get.call(Reflect.construct(Map, [undefined], Symbol));": [
+   "xs-1666"
+  ],
+  "Map.prototype.get.call(Reflect.construct(Map, [undefined], WeakSet));": [
+   "xs-1666"
+  ],
+  "Map.prototype.getOrInsert.call(Reflect.construct(Map, [undefined], Iterator));": [
+   "xs-1666"
+  ],
+  "Map.prototype.getOrInsert.call(Reflect.construct(Map, [undefined], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "xs-1666"
+  ],
+  "Map.prototype.getOrInsert.call(Reflect.construct(Map, [undefined], Uint8ClampedArray));": [
+   "xs-1666"
+  ],
+  "Map.prototype.has.call(Reflect.construct(Map, [undefined], Function));": [
+   "xs-1666"
+  ],
+  "Map.prototype.has.call(Reflect.construct(Map, [undefined], Int16Array));": [
+   "xs-1666"
+  ],
+  "Map.prototype.has.call(Reflect.construct(Map, [undefined], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "xs-1666"
+  ],
+  "Map.prototype.has.call(Reflect.construct(Map, [undefined], String));": [
+   "xs-1666"
+  ],
   "Map.prototype.set.call(Reflect.construct(Map, [undefined], Array));": [
    "xs-1666"
+  ],
+  "Map.prototype.set.call(Reflect.construct(Map, [undefined], BigInt));": [
+   "xs-1666"
+  ],
+  "Map.prototype.set.call(Reflect.construct(Map, [undefined], Error));": [
+   "xs-1666"
+  ],
+  "Map.prototype.set.call(Reflect.construct(Map, [undefined], Int8Array));": [
+   "xs-1666"
+  ],
+  "Map.prototype.set.call(Reflect.construct(Map, [undefined], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "xs-1666"
+  ],
+  "Math.atan2.call(\"\", 8, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Uint16Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1667-1"
+  ],
+  "Math.atan2.call(undefined, -1n);": [
+   "xs-1667-1"
+  ],
+  "Math.atan2.call(undefined, 1n);": [
+   "xs-1667-1"
+  ],
+  "Math.atan2.call(undefined, 2 ** 31, -0.5);": [
+   "fp:ulp"
   ],
   "Math.atan2.call(undefined, 2 ** 31, -1);": [
    "fp:ulp"
   ],
+  "Math.atan2.call(undefined, 2 ** 32, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, 4, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, Number.MAX_VALUE, -1);": [
+   "fp:ulp"
+  ],
+  "Math.atan2.call(undefined, Symbol());": [
+   "xs-1667-1"
+  ],
   "Math.atan2.call(undefined, { [Symbol.toPrimitive]: \"aa\" });": [
    "xs-1667-1"
+  ],
+  "Math.cosh.call(undefined, -1);": [
+   "fp:ulp"
+  ],
+  "Math.cosh.call(undefined, 1);": [
+   "fp:ulp"
+  ],
+  "Math.expm1.call(undefined, Number.MIN_VALUE);": [
+   "fp:ulp"
+  ],
+  "Math.log1p.call(undefined, 2);": [
+   "fp:ulp"
+  ],
+  "Math.log2.call(undefined, 2 ** 31);": [
+   "fp:ulp"
+  ],
+  "Math.pow.call(\"aa\", Symbol());": [
+   "xs-1667-2"
+  ],
+  "Math.pow.call(false, Symbol());": [
+   "xs-1667-2"
+  ],
+  "Math.pow.call(undefined, -1n);": [
+   "xs-1667-2"
+  ],
+  "Math.pow.call(undefined, 0n);": [
+   "xs-1667-2"
+  ],
+  "Math.pow.call(undefined, 8, -0.5);": [
+   "fp:ulp"
+  ],
+  "Math.pow.call(undefined, Number.MAX_SAFE_INTEGER, -1);": [
+   "fp:ulp"
+  ],
+  "Math.pow.call(undefined, Symbol());": [
+   "xs-1667-2"
+  ],
+  "Math.round.call(\"\", Number.MIN_VALUE);": [
+   "xs-1698"
+  ],
+  "Math.round.call(\"a\", Number.MIN_VALUE);": [
+   "xs-1698"
+  ],
+  "Math.round.call(\"aa\", Number.MIN_VALUE);": [
+   "xs-1698"
+  ],
+  "Math.round.call(-1n, Number.MIN_VALUE);": [
+   "xs-1698"
+  ],
+  "Math.round.call(0n, Number.MIN_VALUE);": [
+   "xs-1698"
+  ],
+  "Math.round.call(4, Number.MIN_VALUE);": [
+   "xs-1698"
+  ],
+  "Math.round.call(URIError, Number.MIN_VALUE);": [
+   "xs-1698"
+  ],
+  "Math.round.call(false, Number.MIN_VALUE);": [
+   "xs-1698"
+  ],
+  "Math.round.call(null, Number.MIN_VALUE);": [
+   "xs-1698"
   ],
   "Math.round.call(undefined, Number.MIN_VALUE);": [
    "xs-1698"
   ],
+  "Math.tan.call(Symbol(), 4);": [
+   "fp:ulp"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.concat.call(Symbol(), ...[(function(){ return arguments; })()]));": [
+   "xs-1687-2"
+  ],
   "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.prototype.drop.call((() => { const g = (function*(){})(); g.next(); return g; })(), false));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.prototype.map.call({ next: (function* () {}).constructor }, (function(){}).bind()));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.prototype.take.call(Array, null));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.prototype.take.call(Int16Array, false));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.prototype.take.call(Object.getPrototypeOf(Uint8Array), false));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.prototype.take.call(Uint8Array, false));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.prototype.take.call([0, 0], null));": [
    "xs-1687-2"
   ],
   "Object.getPrototypeOf(Iterator.from([]).drop(0)).next.call(Iterator.prototype.take.call({ next: Symbol() }, null));": [
    "xs-1687-2"
   ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call((() => { const g = (async function*(){ yield 0; })(); g.next(); return g; })(), (async function* () {}).constructor.call(undefined, ...[undefined])));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call(Array, Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call(class {}, (async function* () {}).constructor.call((() => { const buffer = new ArrayBuffer(8); const value = new Float64Array(buffer); buffer.transfer(); return value; })(), ...[undefined])));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call(new ArrayBuffer(8, { maxByteLength: 16 }), (async function() {}).constructor.call(undefined, ...[undefined])));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.filter.call({ next: null }, (function* () {}).constructor.call(Float16Array, ...[NaN])));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.flatMap.call(Object, (function* () {}).constructor.call(undefined, ...[undefined])));": [
+   "xs-1687-2"
+  ],
   "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.flatMap.call({ next: false }, Function.call(null, ...[false])));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.flatMap.call({ next: null }, Symbol));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.take.call((() => { const buffer = new ArrayBuffer(8); const value = new Float16Array(buffer); buffer.transfer(); return value; })(), Number.MIN_VALUE));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from([]).drop(0)).return.call(Iterator.prototype.take.call((async function* () {}).constructor, null));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(\"\", (async function() {}).constructor));": [
    "xs-1687-2"
   ],
   "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(Float32Array, Uint8ClampedArray));": [
    "xs-1687-2"
   ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(Object.getPrototypeOf(Uint8Array), (function(){}).bind()));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(Proxy, Boolean));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(ReferenceError, String));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, Array));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, Float64Array));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, ReferenceError));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, Uint32Array));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Iterator.from({ [Symbol.iterator](){ return {}; } })).return.call(Iterator.from.call(undefined, class extends Object {}));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(Uint8Array).from.call(Float64Array, { [Symbol.iterator]: undefined, get length() { throw 0; } }, (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "xs-1702"
+  ],
+  "Object.getPrototypeOf(Uint8Array).from.call(Uint8ClampedArray, (function(){ return arguments; })(), (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "xs-1702"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.fill.call(Reflect.construct(BigUint64Array, [...[Map]], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(false)), Error, null, Symbol());": [
+   "xs-1711"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.reduceRight.call(Reflect.construct(Int8Array, [...[]], URIError), (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })(), undefined);": [
+   "xs-1702"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.set.call((() => { const buffer = new ArrayBuffer(8); const value = new BigInt64Array(buffer); buffer.transfer(); return value; })(), 0, -1);": [
+   "xs-1703"
+  ],
   "Object.getPrototypeOf(Uint8Array).prototype.set.call((() => { const buffer = new ArrayBuffer(8); const value = new BigInt64Array(buffer); buffer.transfer(); return value; })(), Symbol(), -1);": [
    "xs-1703"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.set.call((() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })(), null, -Infinity);": [
+   "xs-1703"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.set.call((() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })(), undefined, -1);": [
+   "xs-1703"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.set.call((() => { const buffer = new ArrayBuffer(8); const value = new Uint16Array(buffer); buffer.transfer(); return value; })(), 8, -Infinity);": [
+   "xs-1703"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.set.call((() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })(), Symbol(), -Infinity);": [
+   "xs-1703"
+  ],
+  "Object.getPrototypeOf(Uint8Array).prototype.set.call((() => { const buffer = new ArrayBuffer(8); const value = new Uint8ClampedArray(buffer); buffer.transfer(); return value; })(), undefined, -Infinity);": [
+   "xs-1703"
+  ],
+  "Object.getPrototypeOf(function * () {}).prototype.next.call((() => { const g = (function*(){})(); g.next(); return g; })());": [
+   "xs-1687-1"
+  ],
+  "Object.getPrototypeOf(function * () {}).prototype.return.call((() => { const g = (function*(){ yield 0; })(); g.next(); return g; })());": [
+   "xs-1687-1"
   ],
   "Object.getPrototypeOf(function * () {}).prototype.return.call((() => { const g = (function*(){})(); g.next(); return g; })());": [
    "xs-1687-1"
   ],
+  "Object.getPrototypeOf(new Map()[Symbol.iterator]()).next.call(Map.prototype.entries.call(Reflect.construct(Map, [undefined], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(null))));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(new Map()[Symbol.iterator]()).next.call(Map.prototype.keys.call(Reflect.construct(Map, [null], (async function() {}).constructor)));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(new Map()[Symbol.iterator]()).next.call(Map.prototype.keys.call(Reflect.construct(Map, [null], BigInt)));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(new Map()[Symbol.iterator]()).next.call(Map.prototype.values.call(Reflect.construct(Map, [null], (async function* () {}).constructor)));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(new Map()[Symbol.iterator]()).next.call(Map.prototype.values.call(Reflect.construct(Map, [null], AggregateError)));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(new Map()[Symbol.iterator]()).next.call(Map.prototype.values.call(Reflect.construct(Map, [null], Iterator)));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(new Map()[Symbol.iterator]()).next.call(Map.prototype.values.call(Reflect.construct(Map, [null], RangeError)));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(new Map()[Symbol.iterator]()).next.call(Map.prototype.values.call(Reflect.construct(Map, [undefined], Symbol)));": [
+   "xs-1687-2"
+  ],
   "Object.getPrototypeOf(new Set()[Symbol.iterator]()).next.call(Set.prototype.entries.call(Reflect.construct(Set, [null], Object.getPrototypeOf(Uint8Array))));": [
+   "xs-1687-2"
+  ],
+  "Object.getPrototypeOf(new Set()[Symbol.iterator]()).next.call(Set.prototype.entries.call(Reflect.construct(Set, [undefined], (async function* () {}).constructor)));": [
    "xs-1687-2"
   ],
   "Object.prototype.toLocaleString.call((function* () {}).constructor);": [
    "fp:builtin-tostring"
   ],
+  "Object.prototype.toLocaleString.call(Error);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Float32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Map);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Object.getPrototypeOf(Uint8Array));": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(String);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(Uint8ClampedArray);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(WeakSet);": [
+   "fp:builtin-tostring"
+  ],
+  "Object.prototype.toLocaleString.call(function(){});": [
+   "fp:xs-source-text"
+  ],
+  "Object.setPrototypeOf.call(-0, (() => { const buffer = new ArrayBuffer(8); const value = new BigUint64Array(buffer); buffer.transfer(); return value; })(), (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
+   "fp:harness-revoked-proxy"
+  ],
+  "Promise.prototype.then.call(Reflect.construct(Promise, [(() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })()], Iterator), true, (() => { const buffer = new ArrayBuffer(8); const value = new Float16Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1702"
+  ],
+  "Proxy.revocable.call(BigInt, (() => { const buffer = new ArrayBuffer(8); const value = new Int32Array(buffer); buffer.transfer(); return value; })(), Int8Array);": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "Proxy.revocable.call(Symbol(), (() => { const buffer = new ArrayBuffer(8); const value = new Float64Array(buffer); buffer.transfer(); return value; })(), TypeError);": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "Proxy.revocable.call(null, () => {}, Promise);": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "Proxy.revocable.call(null, Promise.resolve(0), Map);": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "Proxy.revocable.call(undefined, () => {}, Map);": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "Proxy.revocable.call(undefined, () => {}, RangeError);": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "Proxy.revocable.call(undefined, [0], ArrayBuffer);": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "Proxy.revocable.call(undefined, [0], class extends Object {});": [
+   "new:xs-revocable-result-attributes"
+  ],
+  "Reflect.construct(Error, [ArrayBuffer], Number);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(EvalError, [Set], Iterator);": [
+   "fp:builtin-tostring"
+  ],
   "Reflect.construct(Float16Array, [...[-1]], (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })());": [
    "xs-1718"
+  ],
+  "Reflect.construct(SyntaxError, [Uint8ClampedArray], String);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(URIError, [Set], URIError);": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct(URIError, [URIError], class {});": [
+   "fp:builtin-tostring"
+  ],
+  "Reflect.construct.call(undefined, (async function() {}).constructor, Uint32Array, (async function() {}).constructor);": [
+   "new:xs-dynamic-function-parse"
   ],
   "Reflect.deleteProperty.call(\"aa\", (() => { const buffer = new ArrayBuffer(8); const value = new BigInt64Array(buffer); buffer.transfer(); return value; })());": [
    "xs-1669-4"
   ],
+  "Reflect.deleteProperty.call(Float16Array, (() => { const buffer = new ArrayBuffer(8); const value = new Uint16Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Float64Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Int32Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, (() => { const g = (async function*(){ yield 0; })(); g.next(); return g; })());": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, (function(){}).bind());": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, BigInt);": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, BigUint64Array);": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, EvalError);": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, Float32Array);": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, Number);": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, ReferenceError);": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, Set);": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, Uint16Array);": [
+   "xs-1669-4"
+  ],
+  "Reflect.deleteProperty.call(undefined, Uint8ClampedArray);": [
+   "xs-1669-4"
+  ],
+  "Reflect.get.call(undefined, (() => { const g = (function*(){})(); g.next(); return g; })());": [
+   "xs-1669-1"
+  ],
+  "Reflect.get.call(undefined, (async function() {}).constructor);": [
+   "xs-1669-1"
+  ],
+  "Reflect.get.call(undefined, (async function* () {}).constructor);": [
+   "xs-1669-1"
+  ],
+  "Reflect.get.call(undefined, AggregateError);": [
+   "xs-1669-1"
+  ],
+  "Reflect.get.call(undefined, Boolean);": [
+   "xs-1669-1"
+  ],
+  "Reflect.get.call(undefined, Uint32Array);": [
+   "xs-1669-1"
+  ],
+  "Reflect.get.call(undefined, Uint8Array);": [
+   "xs-1669-1"
+  ],
+  "Reflect.get.call(undefined, {});": [
+   "xs-1669-1"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Float64Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Uint32Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, (() => { const g = (function*(){})(); g.next(); return g; })());": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, (() => { const p = Promise.reject(0); p.then(); return p; })());": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, (async function* () {}).constructor);": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, AggregateError);": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, Array);": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, Error);": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, Iterator);": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, Number);": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, Promise);": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, Promise.resolve(0));": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, WeakMap);": [
+   "xs-1669-5"
+  ],
+  "Reflect.getOwnPropertyDescriptor.call(undefined, class extends Object {});": [
+   "xs-1669-5"
+  ],
+  "Reflect.has.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = buffer; buffer.transfer(); return value; })());": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Int16Array(buffer); buffer.transfer(); return value; })());": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, (() => { const buffer = new ArrayBuffer(8); const value = new Uint8ClampedArray(buffer); buffer.transfer(); return value; })());": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, (function(){}).bind());": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, Array);": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, BigUint64Array);": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, Boolean);": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, Object);": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, RangeError);": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, ReferenceError);": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, Set);": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, SyntaxError);": [
+   "xs-1669-3"
+  ],
+  "Reflect.has.call(undefined, WeakSet);": [
+   "xs-1669-3"
+  ],
+  "Reflect.set.call(undefined, (() => { const g = (async function*(){})(); g.next(); return g; })());": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, (function* () {}).constructor);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, Array);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, ArrayBuffer);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, BigInt);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, BigInt64Array);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, Promise);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, Promise.resolve(0));": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, URIError);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, Uint16Array);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, Uint32Array);": [
+   "xs-1669-2"
+  ],
+  "Reflect.set.call(undefined, Uint8Array);": [
+   "xs-1669-2"
+  ],
+  "Set.prototype.add.call(Reflect.construct(Set, [null], Uint8ClampedArray));": [
+   "xs-1670"
+  ],
+  "Set.prototype.add.call(Reflect.construct(Set, [undefined], (async function* () {}).constructor));": [
+   "xs-1670"
+  ],
+  "Set.prototype.add.call(Reflect.construct(Set, [undefined], Int16Array));": [
+   "xs-1670"
+  ],
+  "Set.prototype.add.call(Reflect.construct(Set, [undefined], Number));": [
+   "xs-1670"
+  ],
+  "Set.prototype.add.call(Reflect.construct(Set, [undefined], Promise));": [
+   "xs-1670"
+  ],
+  "Set.prototype.delete.call(Reflect.construct(Set, [undefined], AggregateError));": [
+   "xs-1670"
+  ],
+  "Set.prototype.delete.call(Reflect.construct(Set, [undefined], ArrayBuffer));": [
+   "xs-1670"
+  ],
+  "Set.prototype.delete.call(Reflect.construct(Set, [undefined], BigInt));": [
+   "xs-1670"
+  ],
+  "Set.prototype.delete.call(Reflect.construct(Set, [undefined], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "xs-1670"
+  ],
+  "Set.prototype.delete.call(Reflect.construct(Set, [undefined], Uint32Array));": [
+   "xs-1670"
+  ],
+  "Set.prototype.difference.call(Set.prototype.difference.call(Reflect.construct(Set, [null], Set), { has: Function.call(undefined, ...[NaN]), keys: (async function() {}).constructor.call(\"aa\", ...[1n]), size: Number.MAX_SAFE_INTEGER }), { get size() { throw 0; } });": [
+   "xs-1725"
+  ],
+  "Set.prototype.has.call(Reflect.construct(Set, [undefined], (function(){}).bind()));": [
+   "xs-1670"
+  ],
+  "Set.prototype.has.call(Reflect.construct(Set, [undefined], EvalError));": [
+   "xs-1670"
+  ],
+  "Set.prototype.has.call(Reflect.construct(Set, [undefined], Iterator));": [
+   "xs-1670"
+  ],
+  "Set.prototype.has.call(Reflect.construct(Set, [undefined], Map));": [
+   "xs-1670"
+  ],
+  "Set.prototype.has.call(Reflect.construct(Set, [undefined], Object.getOwnPropertyDescriptor(Iterator.prototype, \"constructor\").get.call(undefined)));": [
+   "xs-1670"
+  ],
+  "Set.prototype.intersection.call(Set.prototype.union.call(Set.prototype.symmetricDifference.call(Set.prototype.intersection.call(Set.prototype.union.call(Reflect.construct(Set, [undefined], function(){}), { has: (() => { const r = Proxy.revocable(function(){}, {}); r.revoke(); return r.proxy; })(), keys: (function* () {}).constructor.call(true, ...[\"aa\"]), size: true }), { has: Float16Array, keys: TypeError, size: null }), (() => { const g = (async function*(){ yield 0; })(); g.next(); return g; })()), { has: ArrayBuffer, keys: (function* () {}).constructor.call((() => { const buffer = new ArrayBuffer(8); const value = new Int32Array(buffer); buffer.transfer(); return value; })(), ...[\"a\"]), size: (() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })() }), { has: Float16Array, keys: Uint8Array, size: (function(){ return arguments; })() });": [
+   "xs-1702"
+  ],
+  "Set.prototype.isSubsetOf.call(Reflect.construct(Set, [null], Boolean), { has: Set, keys: Int16Array, size: Number.MAX_VALUE });": [
+   "xs-1725"
+  ],
   "String.prototype.charAt.call(2 ** 32, Infinity);": [
    "xs-1699-2"
   ],
+  "String.prototype.concat.call(\"\", ...[EvalError]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"\", ...[Uint8Array]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[Boolean]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[Symbol]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"a\", ...[WeakMap]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.concat.call(\"aa\", ...[class {}]);": [
+   "fp:xs-source-text"
+  ],
+  "String.prototype.concat.call(EvalError, ...[]);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.matchAll.call(Int8Array, { [Symbol.matchAll]: String });": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.padEnd.call(ReferenceError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replace.call(Object.getPrototypeOf(Uint8Array), Set);": [
+   "fp:builtin-tostring"
+  ],
   "String.prototype.replace.call(Uint8ClampedArray, 0, Number);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replace.call(class extends Object {}, { [Symbol.replace]: RangeError });": [
+   "fp:xs-source-text"
+  ],
+  "String.prototype.replaceAll.call(Float32Array, (async function* () {}).constructor);": [
    "fp:builtin-tostring"
   ],
   "String.prototype.replaceAll.call(Int16Array, Int32Array, Object.getPrototypeOf(Uint8Array));": [
    "fp:builtin-tostring"
   ],
+  "String.prototype.replaceAll.call(Promise, Float32Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.replaceAll.call(String, { [Symbol.match]: 0n, flags: Symbol() }, AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.split.call(Map, () => {});": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.substring.call(Float16Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trim.call(AggregateError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trim.call(BigInt64Array);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trimEnd.call(SyntaxError);": [
+   "fp:builtin-tostring"
+  ],
+  "String.prototype.trimStart.call(ReferenceError);": [
+   "fp:builtin-tostring"
+  ],
+  "Uint8Array.prototype.setFromHex.call((() => { const buffer = new ArrayBuffer(8); const value = new Uint8Array(buffer); buffer.transfer(); return value; })(), \"a\");": [
+   "xs-1700"
+  ],
+  "WeakMap.prototype.getOrInsertComputed.call(Reflect.construct(WeakMap, [undefined], String), AggregateError, String);": [
+   "fp:builtin-tostring"
+  ],
+  "decodeURI.call(undefined, (async function() {}).constructor);": [
+   "fp:builtin-tostring"
+  ],
+  "decodeURI.call(undefined, Array);": [
+   "fp:builtin-tostring"
+  ],
   "decodeURIComponent.call(undefined, (function(){}).bind());": [
    "fp:builtin-tostring"
+  ],
+  "decodeURIComponent.call(undefined, function(){});": [
+   "fp:xs-source-text"
   ],
   "let __res0;\ntry {\n__res0 = ((L(((L(((L(((L(((L((Object))) . getPrototypeOf ( (L((Uint8Array))) )))) . prototype))) . at))) . call ( (L(((L((Reflect))) . construct ( (L((Uint8ClampedArray))) , (L(([ ... (L(([ (L((- (L((Infinity)))))) ]))) ]))) , (L((Iterator))) )))) , \"a\" )))));\n} catch (e) {\n  logState.threw = true;\n  logState.error = e instanceof Error ? e.name : e;\n}": [
    "xs-1717",

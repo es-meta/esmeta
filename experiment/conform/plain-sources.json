@@ -1,0 +1,122 @@
+[
+  {
+    "run": "solve-2",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102657-2-recovery.tar.gz",
+    "report_sha256": "204eb7a1735d03d95efc1352792a5d2d1901799da3f786953bc7f73ef40f39e2",
+    "verified_originals": 2001
+  },
+  {
+    "run": "solve-3",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102702-3-recovery.tar.gz",
+    "report_sha256": "569c7c609babb29f24ac483dde07e02854fafcacad3995343adbd982d6e76090",
+    "verified_originals": 2014
+  },
+  {
+    "run": "solve-4",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102707-4-recovery.tar.gz",
+    "report_sha256": "05ed39b34b676de864e4e15387d9805b1b1bb9dcf22395862cdb7c909334247b",
+    "verified_originals": 2018
+  },
+  {
+    "run": "noshape-1",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102836-1-recovery.tar.gz",
+    "report_sha256": "214c14e009c789fa4d41b08cd7657ca2da92629cacdbaa0b8129c893a5d42fc9",
+    "verified_originals": 1834
+  },
+  {
+    "run": "solve-1",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102836-1-recovery.tar.gz",
+    "report_sha256": "61a5077ebaf0edbc6cc7eac76bc5e1ecd7733ae4f12f4e75001949ab5439a11c",
+    "verified_originals": 2022
+  },
+  {
+    "run": "notemplate-1",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102836-1-recovery.tar.gz",
+    "report_sha256": "3885d584fd399343738e39d6fc7e11e5cb260d1793de6adfcf421b2979485fa6",
+    "verified_originals": 1827
+  },
+  {
+    "run": "solve-5",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102909-5-recovery.tar.gz",
+    "report_sha256": "2e9524e06ba6f7b264c182601300b0c2946b0115aec895eb955d8c2a190f2d9b",
+    "verified_originals": 2001
+  },
+  {
+    "run": "notemplate-5",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102909-5-recovery.tar.gz",
+    "report_sha256": "86b08fcc7318056f2424813ae13dd0d303c2df01f797316a5e03bdc20ae68e5f",
+    "verified_originals": 1834
+  },
+  {
+    "run": "noshape-5",
+    "archive": "logs/received/refreeze-received-vIFgSqoT/refreeze-20261001-102909-5-recovery.tar.gz",
+    "report_sha256": "1961c5c44b6abad90cb8f5b2c5ecca685b9af415ee64948cad9765b8f401f675",
+    "verified_originals": 1851
+  },
+  {
+    "run": "fuzz-1",
+    "archive": "logs/received/fuzz-received-zPnJXCwK/freeze-fuzz-20261001-125404-1.tar.gz",
+    "report_sha256": "2738621aed5ab842f26fdc8a3d87f323472f0d154cde80b0838f82b5f53d748a",
+    "verified_originals": 1595
+  },
+  {
+    "run": "fuzz-2",
+    "archive": "logs/received/fuzz-received-zPnJXCwK/freeze-fuzz-20261001-125410-2.tar.gz",
+    "report_sha256": "c5859bf7f150e0e6db1ae5e64f9c059733d4239c6b9199c0a9ddb8ed855b0925",
+    "verified_originals": 1619
+  },
+  {
+    "run": "fuzz-3",
+    "archive": "logs/received/fuzz-received-zPnJXCwK/freeze-fuzz-20261001-125422-3.tar.gz",
+    "report_sha256": "d05085eb15e33694bef391d927127558ea24a34ac9b2d91605f08875191a12a9",
+    "verified_originals": 1600
+  },
+  {
+    "run": "fuzz-4",
+    "archive": "logs/received/fuzz-received-zPnJXCwK/freeze-fuzz-20261001-125428-4.tar.gz",
+    "report_sha256": "f595d091f41fb91508714fafc16d1121c9193a3122e16459e8b4a83099b3434d",
+    "verified_originals": 1590
+  },
+  {
+    "run": "fuzz-5",
+    "archive": "logs/received/fuzz-received-zPnJXCwK/freeze-fuzz-20261001-125435-5.tar.gz",
+    "report_sha256": "1849c7979a2d42413526804cc0a7fa69ccd3317c7ea946ae349528550edd6f60",
+    "verified_originals": 1607
+  },
+  {
+    "run": "noshape-2",
+    "archive": "logs/received/final-state-received-pXhdfiLS/final-state-2-Mj1ZDMYa.tar.gz",
+    "report_sha256": "99d286908f9def620a5696361abe1b5dfcb3a3f97c250fef297c513cdd816ed8",
+    "verified_originals": 1847
+  },
+  {
+    "run": "notemplate-2",
+    "archive": "logs/received/final-state-received-pXhdfiLS/final-state-2-Mj1ZDMYa.tar.gz",
+    "report_sha256": "a88bc6acd488360ff87b05a7e8b77fb073f27c46b35c2516812bb24c95b7d5d8",
+    "verified_originals": 1808
+  },
+  {
+    "run": "notemplate-3",
+    "archive": "logs/received/final-state-received-pXhdfiLS/final-state-3-0PiRADQY.tar.gz",
+    "report_sha256": "ec4ab7e012ebf653b6dedfd958ef359893629fdfad38b2fc4dae87ce8598c1df",
+    "verified_originals": 1815
+  },
+  {
+    "run": "noshape-3",
+    "archive": "logs/received/final-state-received-pXhdfiLS/final-state-3-0PiRADQY.tar.gz",
+    "report_sha256": "1848b55f7d9434d7658e1f9f44f07edf33622d86fe6aa9a22e5dcd46aef82c76",
+    "verified_originals": 1848
+  },
+  {
+    "run": "notemplate-4",
+    "archive": "logs/received/final-state-received-pXhdfiLS/final-state-4-q5ap8CQ7.tar.gz",
+    "report_sha256": "7b866e698f2574927100f9a1e5c774fb75763e246abfca0918b1d18fc29defc5",
+    "verified_originals": 1817
+  },
+  {
+    "run": "noshape-4",
+    "archive": "logs/received/final-state-received-pXhdfiLS/final-state-4-q5ap8CQ7.tar.gz",
+    "report_sha256": "9e3b65f2c0484d278f14e98cef6e1f41e4c7f1bc36010d64614929ae140f3074",
+    "verified_originals": 1857
+  }
+]

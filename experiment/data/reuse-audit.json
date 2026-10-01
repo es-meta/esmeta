@@ -1,0 +1,16 @@
+{
+  "solver_reused_commit": "e57386b29723dacc2a6a73a3440bef6b4d22179b",
+  "current_commit": "e20a9bb027617a32ee508128ebe0ef6784b8dc37",
+  "solver_source_build_spec_diff": "empty",
+  "fuzz_generation_commit": "f2e2c029197fdb3c127d7f02fc95c0322582f593",
+  "test262_generation_commit": "9dbfd9be38dceca43b93a9e770dcf2c437cd45f5",
+  "ecma262": "0248456c758431e4bb8e5d26333ff1865123c9cd",
+  "test262": "f2d1435644797268dca1f7988cad5a4e89ccd8d2",
+  "reuse_checks": [
+    "Interpreter, CFG, compiler and ES model unchanged against baseline revisions",
+    "Fuzzer change only copies coverage snapshots after collecting coverage",
+    "All five full Solve runs share target universe; summaries agree with coverage JSON",
+    "Fuzz runs reach 50 hours; final summary agrees with saved coverage"
+  ],
+  "scope": "coverage and witness-generation statistics only; no conform reports imported"
+}

@@ -15,7 +15,7 @@ import sys
 
 from pathlib import Path
 
-from rq1_table import INTERACTION, PLAIN, Defects, Tex, cell, mean, programs, runs, solver_summary, table
+from results import INTERACTION, PLAIN, Defects, Tex, cell, covered, mean, programs, runs, solver_summary, table, universe
 
 SETTINGS = {"solve": "Synth262", "noshape": "w/o structural", "notemplate": "w/o template"}
 
@@ -24,23 +24,25 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="the numbers of RQ2")
     parser.add_argument("--draft", action="store_true", help="add untriaged failures to the ledger")
     parser.add_argument("--tex", type=Path, help="write the paper's number macros here")
+    parser.add_argument("--coverage-only", action="store_true", help="update generation metrics only")
     args = parser.parse_args()
-    defects = Defects()
+    defects = None if args.coverage_only else Defects()
 
     counted = []
     for prefix, label in SETTINGS.items():
         rs = runs(prefix)
         s = [solver_summary(r) for r in rs]
-        plain = defects.group([r / PLAIN["solve"] for r in rs])
-        aware = defects.group([r / INTERACTION for r in rs])
+        plain = defects.group([r / PLAIN["solve"] for r in rs]) if defects else None
+        aware = defects.group([r / INTERACTION for r in rs]) if defects else None
         counted.append((label, s, [programs(r / "programs") for r in rs], plain, aware))
     rows = [
         [label, cell(mean([x["time"] for x in s]), time=True), cell(mean([x["coverage"] for x in s])),
-         cell(mean(ps)), cell(mean(plain[0]), plain[1]), cell(mean(aware[0]), aware[1])]
+         cell(mean(ps))] + ([] if args.coverage_only else
+         [cell(mean(plain[0]), plain[1]), cell(mean(aware[0]), aware[1])])
         for label, s, ps, plain, aware in counted
     ]
-    table("RQ2: five-run means",
-          ["", "time", "coverage", "programs", "w/o interaction-based", "w/ interaction-based"], rows)
+    table("RQ2: run means", ["", "time", "coverage", "programs"] +
+          ([] if args.coverage_only else ["w/o interaction-based", "w/ interaction-based"]), rows)
 
     # Synth262's own row comes from rq1_table.py
     tex = Tex("rq2_table.py")
@@ -48,12 +50,27 @@ def main() -> int:
         tex.time(f"{name}Time", mean([x["time"] for x in s]))
         tex.count(f"Num{name}CoveredAll", mean([x["coverage"] for x in s]))
         tex.count(f"Num{name}Programs", mean(ps))
-        tex.count(f"NumBugs{name}PlainMean", mean(plain[0]), plain[1])
-        tex.count(f"NumBugs{name}OracleMean", mean(aware[0]), aware[1])
-        tex.pct(f"Pct{name}CoveredMean", mean([x["targets"] for x in s]), s[0]["universe"])
+        if not args.coverage_only:
+            tex.count(f"NumDefects{name}PlainMean", mean(plain[0]), plain[1])
+            tex.count(f"NumDefects{name}OracleMean", mean(aware[0]), aware[1])
+    full = [covered(r / "branch-coverage.json") for r in runs("solve")]
+    targets = universe(runs("solve")[0])
+    if any(universe(r) != targets for prefix in SETTINGS for r in runs(prefix)):
+        raise ValueError("ablation runs use different target universes")
+    full_coverage = set().union(*full)
+    for (prefix, _), (_, summaries, _, _, _), name in zip(SETTINGS.items(), counted, ("Synth", "NoShape", "NoTemplate")):
+        for status, suffix in [("pass", "Pass"), ("fail-verify", "FailVerify"),
+                               ("fail-reify", "FailReify"), ("unsolved", "Unsolved"), ("timeout", "Timeout")]:
+            tex.count(f"Num{name}{suffix}", mean([s.get(status, 0) for s in summaries]))
+        if prefix != "notemplate":
+            tex.count(f"Num{name}Templates", mean([s["templates"] for s in summaries]))
+        if prefix != "solve":
+            observed = set().union(*(covered(r / "branch-coverage.json") for r in runs(prefix)))
+            tex.count(f"Num{name}Lost", len(full_coverage - observed))
     tex.write(args.tex)
 
-    defects.report(args.draft)
+    if not args.coverage_only:
+        defects.report(args.draft)
     return 0
 
 
