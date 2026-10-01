@@ -15,7 +15,7 @@ import sys
 
 from pathlib import Path
 
-from results import INTERACTION, PLAIN, Defects, Tex, cell, covered, mean, programs, runs, solver_summary, table, universe
+from results import INTERACTION, PLAIN, Defects, Tex, cell, comparison, conform_time, distribution, covered, generation_time, mean, programs, runs, solver_summary, table, universe
 
 SETTINGS = {"solve": "Synth262", "noshape": "w/o structural", "notemplate": "w/o template"}
 
@@ -31,12 +31,12 @@ def main() -> int:
     counted = []
     for prefix, label in SETTINGS.items():
         rs = runs(prefix)
-        s = [solver_summary(r) for r in rs]
+        s = [{**solver_summary(r), "wall_time": generation_time(r)["real"]} for r in rs]
         plain = defects.group([r / PLAIN["solve"] for r in rs]) if defects else None
         aware = defects.group([r / INTERACTION for r in rs]) if defects else None
         counted.append((label, s, [programs(r / "programs") for r in rs], plain, aware))
     rows = [
-        [label, cell(mean([x["time"] for x in s]), time=True), cell(mean([x["coverage"] for x in s])),
+        [label, cell(mean([x["wall_time"] for x in s]), time=True), cell(mean([x["coverage"] for x in s])),
          cell(mean(ps))] + ([] if args.coverage_only else
          [cell(mean(plain[0]), plain[1]), cell(mean(aware[0]), aware[1])])
         for label, s, ps, plain, aware in counted
@@ -47,10 +47,14 @@ def main() -> int:
     # Synth262's own row comes from rq1_table.py
     tex = Tex("rq2_table.py")
     for (label, s, ps, plain, aware), name in zip(counted[1:], ("NoShape", "NoTemplate")):
-        tex.time(f"{name}Time", mean([x["time"] for x in s]))
+        tex.put(f"{name}CoverageStats", distribution([x["coverage"] for x in s]))
+        tex.put(f"SynthVs{name}CoverageStats", comparison([x["coverage"] for x in counted[0][1]], [x["coverage"] for x in s]))
+        tex.time(f"{name}Time", mean([x["wall_time"] for x in s]))
         tex.count(f"Num{name}CoveredAll", mean([x["coverage"] for x in s]))
         tex.count(f"Num{name}Programs", mean(ps))
         if not args.coverage_only:
+            prefix = "noshape" if name == "NoShape" else "notemplate"
+            tex.time(f"{name}OracleTime", mean([conform_time(r, "injectionMs") for r in runs(prefix)]))
             tex.count(f"NumDefects{name}PlainMean", mean(plain[0]), plain[1])
             tex.count(f"NumDefects{name}OracleMean", mean(aware[0]), aware[1])
     full = [covered(r / "branch-coverage.json") for r in runs("solve")]
@@ -61,7 +65,8 @@ def main() -> int:
     for (prefix, _), (_, summaries, _, _, _), name in zip(SETTINGS.items(), counted, ("Synth", "NoShape", "NoTemplate")):
         for status, suffix in [("pass", "Pass"), ("fail-verify", "FailVerify"),
                                ("fail-reify", "FailReify"), ("unsolved", "Unsolved"), ("timeout", "Timeout")]:
-            tex.count(f"Num{name}{suffix}", mean([s.get(status, 0) for s in summaries]))
+            if name == "Synth" or (name == "NoShape" and suffix in ("FailVerify", "Timeout")) or (name == "NoTemplate" and suffix == "FailReify"):
+                tex.count(f"Num{name}{suffix}", mean([s.get(status, 0) for s in summaries]))
         if prefix != "notemplate":
             tex.count(f"Num{name}Templates", mean([s["templates"] for s in summaries]))
         if prefix != "solve":
