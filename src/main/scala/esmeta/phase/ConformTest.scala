@@ -31,21 +31,51 @@ case object ConformTest extends Phase[CFG, Unit] {
         s"conform-test requires a directory of ECMAScript files: $scriptDir",
       )
 
+    val logDir = Option.when(config.log) {
+      val base = s"$LOG_DIR/conform-test"
+      val dir = s"$base/conform-$dateStr"
+      mkdir(dir, remove = true)
+      createSymLink(s"$base/recent", dir, overwrite = true)
+      dir
+    }
     val engines = EngineSpec.resolve(config.engine)
     val workDir = Files.createTempDirectory("esmeta-conform-work-")
-    val (tests, results, divergences) =
+    val (tests, results, divergences, injectionMs, conformMs) =
       try {
+        val start = System.nanoTime()
         val (tests, skipped) = inject(cfg, scriptDir, workDir, config)
+        val injectionMs = (System.nanoTime() - start) / 1e6
+        val conformStart = System.nanoTime()
         val results =
           engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
-        (tests, results, differential(skipped, engines, config.timeLimit))
+        val divergences = differential(skipped, engines, config.timeLimit)
+        val conformMs = (System.nanoTime() - conformStart) / 1e6
+        (tests, results, divergences, injectionMs, conformMs)
       } finally rmdir(workDir.toString)
 
-    for (filename <- config.out)
-      dumpJson(
-        reportJson(scriptDir.getPath, tests.size, results, divergences),
-        filename,
-      )
+    val report = reportJson(
+      scriptDir.getPath,
+      tests.size,
+      results,
+      divergences,
+      Option.when(config.log)((injectionMs, conformMs)),
+    )
+    val outputs = config.out.toList ++ logDir.map(_ + "/conform.json")
+    for (filename <- outputs.distinct)
+      dumpJson(report, filename)
+    for (dir <- logDir) {
+      val summary =
+        s"Input: ${scriptDir.getPath}\n" +
+        s"Interaction: ${config.interaction}\n" +
+        s"Tests: ${tests.size}\n" +
+        f"Injection: $injectionMs%.3f ms\n" +
+        f"Conform-test (engines + differential): $conformMs%.3f ms\n" +
+        results.map { result =>
+          s"${result.engine.id}: ${result.bugs.size}/${tests.size} failures\n"
+        }.mkString +
+        s"Differential divergences: ${divergences.size}\n"
+      dumpFile(summary, s"$dir/summary")
+    }
   }
 
   /** a program without an oracle, where a minority of engines stands apart */
@@ -499,25 +529,34 @@ case object ConformTest extends Phase[CFG, Unit] {
     tests: Int,
     results: List[EngineResult],
     divergences: List[Divergence],
-  ): Json = Json.obj(
-    "input" -> input.asJson,
-    "tests" -> tests.asJson,
-    "engines" -> Json.fromFields(results.map { result =>
-      result.engine.id -> Json.obj(
-        "engine" -> result.engine.path.toString.asJson,
-        "bugs" -> Json.fromValues(result.bugs.map(bugJson)),
-      )
-    }),
-    "divergences" -> Json.fromValues(divergences.map { d =>
-      Json.obj(
-        "program" -> d.program.asJson,
-        "odd" -> d.odd.asJson,
-        "tags" -> Json.fromFields(
-          d.tags.toList.sorted.map((k, v) => k -> v.asJson),
-        ),
-      )
-    }),
-  )
+    timings: Option[(Double, Double)],
+  ): Json = Json
+    .obj(
+      "input" -> input.asJson,
+      "tests" -> tests.asJson,
+      "engines" -> Json.fromFields(results.map { result =>
+        result.engine.id -> Json.obj(
+          "engine" -> result.engine.path.toString.asJson,
+          "bugs" -> Json.fromValues(result.bugs.map(bugJson)),
+        )
+      }),
+      "divergences" -> Json.fromValues(divergences.map { d =>
+        Json.obj(
+          "program" -> d.program.asJson,
+          "odd" -> d.odd.asJson,
+          "tags" -> Json.fromFields(
+            d.tags.toList.sorted.map((k, v) => k -> v.asJson),
+          ),
+        )
+      }),
+    )
+    .mapObject { fields =>
+      timings.fold(fields) { (injectionMs, conformMs) =>
+        fields
+          .add("injectionMs", injectionMs.asJson)
+          .add("conformMs", conformMs.asJson)
+      }
+    }
 
   private def bugJson(bug: Bug): Json = Json.obj(
     "program" -> bug.program.asJson,
@@ -561,11 +600,17 @@ case object ConformTest extends Phase[CFG, Unit] {
       NumOption((config, seconds) => config.timeLimit = Some(seconds)),
       "set the time limit in seconds (default: 10 seconds).",
     ),
+    (
+      "log",
+      BoolOption(_.log = _),
+      "dump results, timings, and summary under logs/conform-test.",
+    ),
   )
   case class Config(
     var interaction: Boolean = false,
     var out: Option[String] = None,
     var engine: String = "all",
     var timeLimit: Option[Int] = Some(10),
+    var log: Boolean = false,
   )
 }
