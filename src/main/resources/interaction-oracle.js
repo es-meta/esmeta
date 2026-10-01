@@ -5,7 +5,9 @@ var $logState = {
   active: true,
   stop() { $logState.active = false; }
 };
-var $L = (() => {
+var $L = $L();
+
+function $L() {
   const proxies = new WeakMap();
   let nextId = 0;
   const L = target => {
@@ -74,4 +76,4 @@ var $L = (() => {
     return proxy;
   };
   return L;
-})();
+}

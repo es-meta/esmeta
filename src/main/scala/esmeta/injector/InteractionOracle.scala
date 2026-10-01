@@ -37,48 +37,18 @@ class InteractionOracle(cfg: CFG) {
       }.getOrElse(Set.empty)
     }
     if (sides.isEmpty) Nil
-    else
-      select(source, sides).toList
-        .sortBy(_._1)
-        .map(_._2)
-        .distinct
-        .filterNot(_ == source)
-  }
-
-  private def select(
-    js: String,
-    conds: Set[(Int, Boolean)],
-  ): Map[(Int, Boolean), String] = {
-    val ast = cfg.scriptParser.fromWithSourceText(js)._1
-    val sites = positions(ast).zipWithIndex.toMap
-    val name = loggerName(js, ast)
-    def probe(selected: Set[Int]): String =
-      render(ast, sites, selected, name, logging = false)
-    lazy val initial = touched(probe(Set.empty))
-    val groups = sites.values.toList.sorted.foldLeft(Map(Set[Int]() -> conds)) {
-      (groups, site) =>
-        groups.toList
-          .flatMap { (selected, keys) =>
-            val next = selected + site
-            val kept = keys intersect touched(probe(next))
-            List(next -> kept, selected -> (keys -- kept))
-          }
-          .filter(_._2.nonEmpty)
-          .toMap
+    else {
+      val ast = cfg.scriptParser.fromWithSourceText(source)._1
+      val sites = positions(ast).zipWithIndex.toMap
+      val selected = sites.values.toSet
+      val name = loggerName(source, ast)
+      val covered = touched(render(ast, sites, selected, name, logging = false))
+      Option
+        .when(sides.exists(covered)) {
+          render(ast, sites, selected, name)
+        }
+        .toList
     }
-    groups.toList.flatMap { (selected, keys) =>
-      val wrapped = render(ast, sites, selected, name)
-      keys.map { key =>
-        key -> (if (selected.nonEmpty || initial(key)) wrapped else js)
-      }
-    }.toMap
-  }
-
-  def wrap(js: String): String = {
-    val ast = cfg.scriptParser.fromWithSourceText(js)._1
-    val sites = positions(ast).zipWithIndex.toMap
-    val name = loggerName(js, ast)
-    render(ast, sites, sites.values.toSet, name)
   }
 
   private def loggerName(js: String, ast: Ast): String =
@@ -110,80 +80,98 @@ class InteractionOracle(cfg: CFG) {
     else Set.empty
   }.getOrElse(Set.empty)
 
-  private val operators = Set(
-    "Expression",
-    "ConditionalExpression",
-    "ShortCircuitExpression",
-    "CoalesceExpression",
-    "LogicalORExpression",
-    "LogicalANDExpression",
-    "BitwiseORExpression",
-    "BitwiseXORExpression",
-    "BitwiseANDExpression",
-    "EqualityExpression",
-    "RelationalExpression",
-    "ShiftExpression",
-    "AdditiveExpression",
-    "MultiplicativeExpression",
-    "ExponentiationExpression",
-  )
-
   private def positions(ast: Ast): Vector[Vector[Int]] = {
+    type Site = (Ast, Vector[Int])
     val sites = LinkedHashSet[Vector[Int]]()
-    def visit(ast: Ast, path: Vector[Int]): Unit = {
-      val children = ast.children.zipWithIndex.collect {
-        case (Some(child), i) => (child, i)
+    def children(node: Ast, path: Vector[Int]): Vector[Site] =
+      node.children.zipWithIndex.collect {
+        case (Some(child), i) => (child, path :+ i)
       }
-      for ((child, i) <- children)
-        val pattern = i == 0 &&
-          Set("AssignmentExpression", "ForInOfStatement")(ast.name) &&
-          children.size > 1 && child.chains.exists(c =>
-            c.name == "ArrayLiteral" || c.name == "ObjectLiteral",
-          )
-        if (!pattern) visit(child, path :+ i)
-      def add(child: Ast, i: Int): Unit =
-        unwrapped(child) match
-          case Lexical(
-                "NullLiteral" | "BooleanLiteral" | "NumericLiteral" |
-                "StringLiteral" | "BigIntLiteral",
-                _,
-              ) =>
-          case _ => sites += path :+ i
-      ast match {
-        case syn: Syntactic =>
-          val terms =
-            cfg.grammar.nameMap(syn.name).rhsVec(syn.rhsIdx).ts.map(_.term)
-          val values = syn.name match {
-            case "ArgumentList" | "ElementList" | "SpreadElement" |
-                "PropertyDefinition" =>
-              children.filter(_._1.name == "AssignmentExpression")
-            case "Initializer"                                => children
-            case "ExpressionStatement" if !stringLiteral(syn) => children
-            case "ReturnStatement" | "ThrowStatement" | "ConciseBody" |
-                "AsyncConciseBody" | "ComputedPropertyName" =>
-              children.filter((c, _) => c.name.endsWith("Expression"))
-            case "MemberExpression" | "CallExpression"
-                if terms.contains(".") || terms.contains("[") =>
-              children.take(1).filterNot((c, _) => c.name == "Super") ++
-              children.drop(1).filter(_._1.name == "Expression")
-            case "MemberExpression" | "NewExpression"
-                if terms.contains("new") =>
-              children.take(1)
-            case "AssignmentExpression" if children.size > 1 =>
-              children.drop(1).filter(_._1.name == "AssignmentExpression")
-            case "UnaryExpression"
-                if terms.nonEmpty &&
-                !terms.contains("typeof") &&
-                !terms.contains("delete") =>
-              children
-            case "AwaitExpression" | "YieldExpression" =>
-              children.filter((c, _) => c.name.endsWith("Expression"))
-            case name if operators(name) && children.size > 1 =>
-              children.filterNot(_._1.name == "MultiplicativeOperator")
-            case _ => Vector.empty
+    def peel(node: Ast, path: Vector[Int]): Site = node match {
+      case syn: Syntactic
+          if cfg.grammar.nameMap(syn.name).rhsVec(syn.rhsIdx).ts.isEmpty =>
+        children(node, path) match {
+          case Vector((child, childPath)) => peel(child, childPath)
+          case _                          => (node, path)
+        }
+      case _ => (node, path)
+    }
+    def add(node: Ast, path: Vector[Int]): Unit = unwrapped(node) match {
+      case Lexical(
+            "NullLiteral" | "BooleanLiteral" | "NumericLiteral" |
+            "StringLiteral" | "BigIntLiteral",
+            _,
+          ) =>
+      case _ => sites += path
+    }
+    def array(node: Ast, path: Vector[Int]): Unit = {
+      val (value, valuePath) = peel(node, path)
+      value.name match {
+        case "ArrayLiteral" | "ElementList" | "SpreadElement" =>
+          for ((child, childPath) <- children(value, valuePath)) {
+            if (
+              child.name == "AssignmentExpression" && value.name != "SpreadElement"
+            )
+              add(child, childPath)
+            else array(child, childPath)
           }
-          for ((child, i) <- values) add(child, i)
+        case "Elision" =>
+        case _         => add(node, path)
+      }
+    }
+    def arguments(node: Ast, path: Vector[Int]): Vector[Site] = {
+      if (node.name == "AssignmentExpression") Vector((node, path))
+      else
+        children(node, path).flatMap { (child, childPath) =>
+          arguments(child, childPath)
+        }
+    }
+    def visit(node: Ast, path: Vector[Int]): Unit = {
+      val (call, callPath) = peel(node, path)
+      val parts = children(call, callPath)
+      val args = parts.find(_._1.name == "Arguments")
+      args match {
+        case Some((args, argsPath))
+            if parts.size >= 2 && Set(
+              "CoverCallExpressionAndAsyncArrowHead",
+              "CallExpression",
+              "MemberExpression",
+            )(call.name) =>
+          val (callee, calleePath) = parts.head
+          val name =
+            callee.toString(grammar = Some(cfg.grammar)).replaceAll("\\s+", "")
+          val inputs = arguments(args, argsPath)
+          if (name == "Reflect.construct") {
+            inputs.zipWithIndex.foreach {
+              case ((input, inputPath), i) =>
+                if (i == 1) array(input, inputPath) else add(input, inputPath)
+            }
+          } else {
+            val (entry, entryPath) = peel(callee, calleePath)
+            val receiver = children(entry, entryPath)
+            val method = name.endsWith(".call") || (
+              entry.name == "MemberExpression" && receiver.size > 1 &&
+              !call.toString(grammar = Some(cfg.grammar)).startsWith("new ")
+            )
+            if (method) receiver.headOption.foreach { (value, valuePath) =>
+              add(value, valuePath)
+            }
+            else add(callee, calleePath)
+            inputs.foreach { (input, inputPath) =>
+              val spread = input.parent.exists {
+                case syn: Syntactic =>
+                  cfg.grammar
+                    .nameMap(syn.name)
+                    .rhsVec(syn.rhsIdx)
+                    .ts
+                    .exists(_.term == "...")
+                case _ => false
+              }
+              if (spread) array(input, inputPath) else add(input, inputPath)
+            }
+          }
         case _ =>
+          parts.foreach { (child, childPath) => visit(child, childPath) }
       }
     }
     visit(ast, Vector.empty)
@@ -270,15 +258,19 @@ class InteractionOracle(cfg: CFG) {
       .mkString("\n")
     val declarations =
       if (resultNames.isEmpty) "" else resultNames.mkString("let ", ", ", ";")
+    val runtime = InteractionOracle.runtime(name, logging)
+    val split = runtime.indexOf(s"function $name()")
     s"""$directives
-${InteractionOracle.runtime(name, logging)}
+${runtime.take(split).trim}
 $declarations
 try {
 $body
 } catch (e) {
   $logStateName.threw = true;
   $logStateName.error = e instanceof Error ? e.name : e;
-}"""
+}
+// Logging Proxy
+${runtime.drop(split)}"""
   }
 }
 
@@ -325,14 +317,14 @@ object InteractionOracle {
     val edits = ast.flattenStmt.flatMap { stmt =>
       for {
         name <- stmt.chains.collectFirst {
-          case Syntactic("VariableDeclaration", _, _, Some(binding) +: _) =>
+          case Syntactic("FunctionDeclaration", _, _, Some(binding) +: _) =>
             binding.toString(grammar = Some(cfg.grammar)).trim
         }
         if names(name)
         loc <- stmt.loc
       } yield {
         val template = runtime(name, logging = false)
-        val helper = template.substring(template.indexOf(s"var $name ="))
+        val helper = template.substring(template.indexOf(s"function $name()"))
         (loc.start.offset, loc.end.offset, helper)
       }
     }
@@ -346,7 +338,7 @@ object InteractionOracle {
     ast.flattenStmt.toList.flatMap { stmt =>
       stmt.chains
         .collectFirst {
-          case Syntactic("VariableDeclaration", _, _, Some(binding) +: _) =>
+          case Syntactic("FunctionDeclaration", _, _, Some(binding) +: _) =>
             binding.toString(grammar = Some(cfg.grammar)).trim
         }
         .filter { name =>
