@@ -69,7 +69,7 @@ def main() -> int:
         tex.seconds(f"{name}OracleTime", None if None in values else mean(values) / 1000)
     tex.count("NumNoShapeTemplates", mean([s["templates"] for s in counted[1][1]]))
     # target outcomes that explain each loss (Synth262, NoShape, NoTemplate)
-    used = {"Synth": ("fail-verify", "fail-reify", "timeout"), "NoShape": ("fail-verify", "timeout"),
+    used = {"Synth": ("pass", "fail-verify", "fail-reify", "unsolved", "timeout"), "NoShape": ("fail-verify", "timeout"),
             "NoTemplate": ("fail-reify",)}
     for (label, s, *_), name in zip(counted, ("Synth", "NoShape", "NoTemplate")):
         for status in used[name]:

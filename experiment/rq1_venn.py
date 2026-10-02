@@ -73,6 +73,7 @@ def main() -> int:
     base64 = re.compile(r"Base64|Hex|GetUint8ArrayBytes")
     tex.count("NumSynthOnlyBaseSixtyFour", sum(bool(base64.search(names.get(x, ""))) for x in S - T - F))
     U = universe(solve[0])
+    tex.count("NumBranchUniverse", len(U))
     if any(universe(r) != U for r in solve):
         raise ValueError("solver runs use different target universes")
     if not args.coverage_only:

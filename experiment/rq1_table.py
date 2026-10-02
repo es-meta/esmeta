@@ -4,9 +4,10 @@ import argparse
 import sys
 from pathlib import Path
 
+import json
 import statistics
 
-from results import (DATA, INTERACTION, PLAIN, Defects, Tex, cell, conform_time, covered, generation_time,
+from results import (DATA, INTERACTION, PLAIN, Defects, Tex, cell, conform_time, covered, failure_split, failures, generation_time,
                      fuzz_at, mann_whitney, mean, oracle_runs, programs, runs, solver_summary, table,
                      test262_counts, tests)
 
@@ -93,6 +94,19 @@ def main() -> int:
             for a, p in zip((defects.found(r / INTERACTION) for r in solve), (defects.found(r / PLAIN["solve"]) for r in solve))
         ]
         tex.mean("NumInteractionOnlyDefects", mean(only), p1 or p2)
+        # how the failing tests of a run split by triage (threats to validity)
+        splits = [failure_split(defects, r / INTERACTION) for r in solve]
+        if None not in splits:
+            total = mean([sum(x[k] for k in ("defect", "candidate", "false", "pending")) for x in splits])
+            tex.mean("NumFailingPairs", total)
+            for key, name in (("defect", "Defect"), ("candidate", "Candidate"), ("false", "False")):
+                tex.pct(f"PctFailing{name}", mean([x[key] for x in splits]), total)
+            labels: set[str] = set()
+            for r in solve:
+                for engine, program in failures(json.loads((r / INTERACTION).read_text(encoding="utf-8"))):
+                    v = defects.ledger.get(engine, {}).get(program, "?")
+                    labels |= {x for x in ([v] if isinstance(v, str) else v) if x.startswith("new:")}
+            tex.count("NumCandidateDefects", len(labels))
     for hours, name in ((1, "OneHour"), (10, "TenHours"), (50, "All")):
         at = [fuzz_at(r, hours) for r in fuzz]
         tex.mean(f"NumFuzzCovered{name}", mean([x["coverage"] for x in at]))

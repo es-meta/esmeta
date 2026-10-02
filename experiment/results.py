@@ -119,6 +119,30 @@ def oracle_runs(run: Path) -> dict[str, int] | None:
     return out
 
 
+def failure_split(defects: "Defects", log: Path) -> dict[str, int] | None:
+    """the failing engine-program pairs of one conform log by triage verdict:
+    counted defect rows, candidate defects not reported yet (new:), and false
+    alarms (fp:); a pair with several verdicts counts by the strongest one"""
+    if not log.is_file():
+        return None
+    out = {"defect": 0, "candidate": 0, "false": 0, "pending": 0}
+    labels: set[str] = set()
+    for engine, program in failures(json.loads(log.read_text(encoding="utf-8"))):
+        verdicts = defects.ledger.get(engine, {}).get(program, "?")
+        verdicts = [verdicts] if isinstance(verdicts, str) else verdicts
+        if any(v in defects.rows for v in verdicts):
+            out["defect"] += 1
+        elif any(v.startswith("new:") for v in verdicts):
+            out["candidate"] += 1
+            labels |= {v for v in verdicts if v.startswith("new:")}
+        elif all(v.startswith("fp:") for v in verdicts):
+            out["false"] += 1
+        else:
+            out["pending"] += 1
+    out["labels"] = len(labels)
+    return out
+
+
 def instrumented(run: Path) -> int | None:
     """the programs the injector turns into tests (the others fail or time out on
     ESMeta), which the final-state tests count"""
