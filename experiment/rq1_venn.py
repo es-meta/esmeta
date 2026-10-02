@@ -85,6 +85,14 @@ def main() -> int:
         tex.count("NumSolverNovelAcked", sum(status[n] in ("fixed", "confirmed") for n in novel) if complete else None)
         tex.count("NumSolverNovelPatched", sum(status[n] == "fixed" for n in novel) if complete else None)
         tex.count("NumOnlyFuzzDefects", len(stored["fuzz"] - found) if complete else None)
+        # Synth262's defects by engine and status (NumEngineXsFixed, ..., NumEngineAllTotal)
+        for engine, macro in (("v8", "VEight"), ("jsc", "Jsc"), ("sm", "Sm"), ("graal", "Graal"),
+                              ("xs", "Xs"), ("qjs", "Qjs"), (None, "All")):
+            mine = {n for n in found if engine in (None, n.split("-")[0])}
+            for name, state in (("Fixed", "fixed"), ("Confirmed", "confirmed"),
+                                ("Reported", "reported"), ("Known", "known-upstream")):
+                tex.count(f"NumEngine{macro}{name}", sum(status[n] == state for n in mine) if complete else None)
+            tex.count(f"NumEngine{macro}Total", len(mine) if complete else None)
         # defects either tool found, by kind tag (check-order -> NumKindCheckOrderAll) and by status
         either = found | stored["fuzz"]
         for kind, names in json.loads(TABLE.read_text(encoding="utf-8"))["tags"].items():
