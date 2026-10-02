@@ -91,18 +91,11 @@ def main() -> int:
                                 ("Reported", "reported"), ("Known", "known-upstream")):
                 tex.count(f"NumEngine{macro}{name}", sum(status[n] == state for n in mine) if complete else None)
             tex.count(f"NumEngine{macro}Total", len(mine) if complete else None)
-        # defects either tool found, by kind tag (check-order -> NumKindCheckOrderAll) and by status
+        # defects either tool found, by kind tag (wrong-check-order -> NumKindWrongCheckOrderAll)
         either = found | stored["fuzz"]
         for kind, names in json.loads(TABLE.read_text(encoding="utf-8"))["tags"].items():
             tex.count("NumKind" + kind.title().replace("-", "") + "All",
                       sum(n in either for n in names) if complete else None)
-        for name, state in (("Fixed", "fixed"), ("Confirmed", "confirmed"),
-                            ("Reported", "reported"), ("Known", "known-upstream")):
-            tex.count("NumStatusAll" + name, sum(status[n] == state for n in either) if complete else None)
-        tex.count("NumStatusAllTotal", len(either) if complete else None)
-        reproduced = [defects.found(r / INTERACTION) for r in solve]
-        for macro, defect in (("CaseXsRuns", "xs-1670"), ("CaseQjsRuns", "qjs-1627"), ("CaseJscRuns", "jsc-325494")):
-            tex.count(macro, sum(defect in ids for ids in reproduced) if complete else None)
 
     tex.write(args.tex)
     return 0

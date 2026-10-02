@@ -40,11 +40,11 @@
       "xs-1701", "xs-1702", "qjs-1730", "sm-2073811", "graal-proxy-newtarget",
       "v8-fromasync-proxy-hang"
     ],
-    "property-shape": [
+    "wrong-object-shape": [
       "jsc-320831", "xs-1672", "xs-1687-1", "xs-1687-2", "sm-2073809",
       "qjs-iterator-concat"
     ],
-    "check-order": [
+    "wrong-check-order": [
       "xs-1700", "qjs-1731", "xs-1703", "xs-1704", "jsc-324664", "qjs-1739", "xs-1711",
       "v8-566965143", "v8-566909177", "jsc-325494", "jsc-325496",
       "jsc-ta-newtarget-order", "xs-1718", "qjs-1772"
