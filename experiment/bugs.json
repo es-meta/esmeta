@@ -5,22 +5,26 @@
       "xs-1669-2", "xs-1669-3", "xs-1669-4", "xs-1669-5", "xs-1670", "xs-1671-1",
       "xs-1671-2", "xs-1671-3", "xs-1671-4", "xs-1672", "qjs-1625", "qjs-1627",
       "qjs-1690", "qjs-1691", "xs-1687-1", "xs-1687-2", "qjs-1693", "qjs-1732",
-      "jsc-325491", "jsc-325494", "jsc-325496"
+      "jsc-325491", "jsc-325494", "jsc-325496", "qjs-1735"
     ],
     "confirmed": [
       "xs-1698", "xs-1700", "xs-1701", "xs-1702", "sm-2073811", "xs-1703", "xs-1704",
       "jsc-324664", "xs-1706", "xs-1708", "xs-1711", "xs-1716", "xs-1717", "xs-1718",
-      "xs-1719", "xs-1721", "xs-1725"
+      "xs-1719", "xs-1721", "xs-1725", "xs-1720", "xs-1699-1", "xs-1722", "jsc-324681",
+      "xs-1715", "xs-1705"
     ],
     "reported": [
       "qjs-1737",
       "jsc-320831", "qjs-1729", "qjs-1730", "qjs-1731", "qjs-1739", "v8-566965143",
-      "v8-566909177", "qjs-1761", "qjs-1766", "qjs-1769", "qjs-1772"
+      "v8-566909177", "qjs-1761", "qjs-1766", "qjs-1769", "qjs-1772", "qjs-1765",
+      "qjs-1736", "qjs-1764", "qjs-1760", "qjs-1738"
     ],
     "known-upstream": [
       "sm-2073809", "qjs-iterator-concat", "qjs-iterator-return",
       "graal-proxy-newtarget", "v8-fromasync-proxy-hang", "jsc-setfrombase64-maxlength0",
-      "jsc-ta-newtarget-order"
+      "jsc-ta-newtarget-order", "xs-transfer-detached-order", "qjs-helper-close-on-next",
+      "qjs-proxy-gopd-accessor", "qjs-ta-set-receiver-order", "graal-close-on-next",
+      "jsc-resize-max-value", "qjs-ta-define-nan"
     ],
     "invalid": []
   },
@@ -33,24 +37,28 @@
     "missing-check": [
       "qjs-1627", "qjs-1690", "qjs-1691", "qjs-1693", "qjs-1729", "qjs-1732",
       "qjs-iterator-return", "jsc-325491", "jsc-setfrombase64-maxlength0", "qjs-1766",
-      "qjs-1769", "xs-1716", "xs-1717", "xs-1719", "xs-1721"
+      "qjs-1769", "xs-1716", "xs-1717", "xs-1719", "xs-1721", "qjs-1736", "xs-1722",
+      "jsc-resize-max-value", "qjs-ta-define-nan"
     ],
     "extra-check": [
       "qjs-1737",
       "xs-1701", "xs-1702", "qjs-1730", "sm-2073811", "graal-proxy-newtarget",
-      "v8-fromasync-proxy-hang"
+      "v8-fromasync-proxy-hang", "qjs-1765", "xs-1705", "qjs-1735",
+      "qjs-helper-close-on-next", "graal-close-on-next"
     ],
     "wrong-object-shape": [
       "jsc-320831", "xs-1672", "xs-1687-1", "xs-1687-2", "sm-2073809",
-      "qjs-iterator-concat"
+      "qjs-iterator-concat", "jsc-324681", "qjs-proxy-gopd-accessor"
     ],
     "wrong-check-order": [
       "xs-1700", "qjs-1731", "xs-1703", "xs-1704", "jsc-324664", "qjs-1739", "xs-1711",
       "v8-566965143", "v8-566909177", "jsc-325494", "jsc-325496",
-      "jsc-ta-newtarget-order", "xs-1718", "qjs-1772"
+      "jsc-ta-newtarget-order", "xs-1718", "qjs-1772", "xs-1720", "qjs-1738",
+      "xs-transfer-detached-order", "qjs-ta-set-receiver-order"
     ],
     "wrong-conversion": [
-      "qjs-1625", "xs-1698", "qjs-1761", "xs-1725"
+      "qjs-1625", "xs-1698", "qjs-1761", "xs-1725", "xs-1699-1", "qjs-1764", "xs-1715",
+      "qjs-1760"
     ]
   }
 }
