@@ -15,7 +15,7 @@ import sys
 
 from pathlib import Path
 
-from results import INTERACTION, PLAIN, Defects, Tex, cell, comparison, conform_time, distribution, covered, generation_time, mean, programs, runs, solver_summary, table, universe
+from results import INTERACTION, PLAIN, Defects, Tex, cell, conform_time, generation_time, mean, programs, runs, solver_summary, table, universe
 
 SETTINGS = {"solve": "Synth262", "noshape": "w/o structural", "notemplate": "w/o template"}
 
@@ -47,8 +47,6 @@ def main() -> int:
     # Synth262's own row comes from rq1_table.py
     tex = Tex("rq2_table.py")
     for (label, s, ps, plain, aware), name in zip(counted[1:], ("NoShape", "NoTemplate")):
-        tex.put(f"{name}CoverageStats", distribution([x["coverage"] for x in s]))
-        tex.put(f"SynthVs{name}CoverageStats", comparison([x["coverage"] for x in counted[0][1]], [x["coverage"] for x in s]))
         tex.time(f"{name}Time", mean([x["wall_time"] for x in s]))
         tex.count(f"Num{name}CoveredAll", mean([x["coverage"] for x in s]))
         tex.count(f"Num{name}Programs", mean(ps))
@@ -57,21 +55,10 @@ def main() -> int:
             tex.time(f"{name}OracleTime", mean([conform_time(r, "injectionMs") for r in runs(prefix)]))
             tex.count(f"NumDefects{name}PlainMean", mean(plain[0]), plain[1])
             tex.count(f"NumDefects{name}OracleMean", mean(aware[0]), aware[1])
-    full = [covered(r / "branch-coverage.json") for r in runs("solve")]
     targets = universe(runs("solve")[0])
     if any(universe(r) != targets for prefix in SETTINGS for r in runs(prefix)):
         raise ValueError("ablation runs use different target universes")
-    full_coverage = set().union(*full)
-    for (prefix, _), (_, summaries, _, _, _), name in zip(SETTINGS.items(), counted, ("Synth", "NoShape", "NoTemplate")):
-        for status, suffix in [("pass", "Pass"), ("fail-verify", "FailVerify"),
-                               ("fail-reify", "FailReify"), ("unsolved", "Unsolved"), ("timeout", "Timeout")]:
-            if name == "Synth" or (name == "NoShape" and suffix in ("FailVerify", "Timeout")) or (name == "NoTemplate" and suffix == "FailReify"):
-                tex.count(f"Num{name}{suffix}", mean([s.get(status, 0) for s in summaries]))
-        if prefix != "notemplate":
-            tex.count(f"Num{name}Templates", mean([s["templates"] for s in summaries]))
-        if prefix != "solve":
-            observed = set().union(*(covered(r / "branch-coverage.json") for r in runs(prefix)))
-            tex.count(f"Num{name}Lost", len(full_coverage - observed))
+    tex.count("NumSynthTemplates", mean([s["templates"] for s in counted[0][1]]))
     tex.write(args.tex)
 
     if not args.coverage_only:

@@ -14,7 +14,7 @@ import json
 import sys
 from pathlib import Path
 
-from results import DATA, INTERACTION, PLAIN, TABLE, Defects, Tex, bug_status, covered, failures, mean, runs, universe
+from results import DATA, INTERACTION, PLAIN, TABLE, Defects, Tex, bug_status, covered, runs, universe
 
 
 def regions(sets: dict[str, set]) -> list[tuple[str, int]]:
@@ -50,13 +50,11 @@ def main() -> int:
     show("branch coverage (union of runs, including outside targets)", {"Synth262": S, "Test262": T, "JEST": F})
     tex = Tex("rq1_venn.py")
     tex.count("NumOnlySynthAll", len(S - T - F))
-    tex.count("NumOnlyFuzzAll", len(F - S - T))
     tex.count("NumSynthOfTestMissedAll", len(S - T))
     tex.count("NumFuzzOfTestMissedAll", len(F - T))
     U = universe(solve[0])
     if any(universe(r) != U for r in solve):
         raise ValueError("solver runs use different target universes")
-    tex.count("NumBranchUniverse", len(U))
     if not args.coverage_only:
         status = bug_status()
         rows = set(status)
@@ -102,28 +100,10 @@ def main() -> int:
                             ("Reported", "reported"), ("Known", "known-upstream")):
             tex.count("NumStatusAll" + name, sum(status[n] == state for n in either) if complete else None)
         tex.count("NumStatusAllTotal", len(either) if complete else None)
-        # Distinct engine/program pairs across all twenty current reports.
-        reports = [r / INTERACTION for prefix in ("solve", "noshape", "notemplate", "fuzz") for r in runs(prefix)]
-        fp_complete = all(p.is_file() for p in reports)
-        fp_pairs, nested_pairs = set(), set()
-        if fp_complete:
-            all_failures = set().union(*(failures(json.loads(p.read_text())) for p in reports))
-            for engine, program in all_failures:
-                labels = defects.ledger.get(engine, {}).get(program, "?")
-                labels = [labels] if isinstance(labels, str) else labels
-                fp_complete &= not any(label.startswith("?") for label in labels)
-                if any(label.startswith("fp:") for label in labels):
-                    fp_pairs.add((engine, program))
-                if "fp:interaction-nested-proxy" in labels:
-                    nested_pairs.add((engine, program))
-        tex.count("NumFalseAlarmTests", len(fp_pairs) if fp_complete else None)
-        tex.count("NumOracleFalseAlarmTests", len(nested_pairs) if fp_complete else None)
         reproduced = [defects.found(r / INTERACTION) for r in solve]
         for macro, defect in (("CaseXsRuns", "xs-1670"), ("CaseQjsRuns", "qjs-1627"), ("CaseJscRuns", "jsc-325494")):
             tex.count(macro, sum(defect in ids for ids in reproduced) if complete else None)
 
-    tex.count("NumSynthOutsideTargets", mean([len(c - U) for c in per_solve]))
-    tex.count("NumFuzzOutsideTargets", mean([len(c - U) for c in per_fuzz]))
     tex.write(args.tex)
     return 0
 

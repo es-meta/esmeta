@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from results import (DATA, INTERACTION, PLAIN, Defects, Tex, cell, comparison, conform_time, covered, distribution, generation_time,
+from results import (DATA, INTERACTION, PLAIN, Defects, Tex, cell, conform_time, covered, generation_time,
                      fuzz_at, mean, programs, runs, solver_summary, table, test262_counts, tests)
 
 
@@ -58,13 +58,11 @@ def main() -> int:
 
     tex = Tex("rq1_table.py")
     tex.count("NumSynthCoverageRuns", len(solve))
-    tex.time("SolveSearchTime", mean([x["time"] for x in s]))
     tex.count("NumSynthCoveredAll", mean([x["coverage"] for x in s]))
     tex.count("NumSynthPrograms", mean([programs(r / "programs") for r in solve]))
     if not args.coverage_only:
         tex.time("OracleTime", injection)
         tex.time("SynthTime", total)
-        tex.time("ConformOracleTime", mean([conform_time(r, "conformMs") for r in solve]))
         tex.time("FuzzOracleTime", mean([conform_time(r, "injectionMs") for r in fuzz]))
         tex.count("NumDefectsPlainMean", mean(plain), p1)
         tex.count("NumDefectsOracleMean", mean(aware), p2)
@@ -82,21 +80,7 @@ def main() -> int:
         tex.count("NumDefectsFuzzPlainMean", mean(fplain), p3)
         tex.count("NumDefectsFuzzOracleMean", mean(faware), p4)
     tex.time("GenerationTime", mean([x["real"] for x in timing]))
-    tex.time("GenerationOverheadTime", mean([x["real"] - summary["time"] for x, summary in zip(timing, s)]))
-    tex.put("GenerationUserCPUHours", f"{mean([x['user'] for x in timing]) / 3600:.2f}")
-    tex.put("GenerationCPUHours", f"{mean([x['cpu'] for x in timing]) / 3600:.2f}")
-    tex.put("SynthCoverageStats", distribution([x["coverage"] for x in s]))
-    full = [covered(r / "branch-coverage.json") for r in solve]
-    fuzz_cov = [covered(r / "branch-coverage.json") for r in fuzz]
-    tex.put("FuzzCoverageStats", distribution([len(c) for c in fuzz_cov]))
-    tex.put("SynthVsFuzzCoverageStats", comparison([len(c) for c in full], [len(c) for c in fuzz_cov]))
-    tex.put("SynthTestMissedStats", distribution([len(c - test262) for c in full]))
-    tex.put("FuzzTestMissedStats", distribution([len(c - test262) for c in fuzz_cov]))
-    tex.count("NumSynthAlwaysCovered", len(set.intersection(*full)))
     tex.count("NumTestPrograms", test_counts["executed"])
-    tex.count("NumTestSkipped", test_counts["skipped"])
-    tex.count("NumTestBuiltinPrograms", test_counts["builtin_executed"])
-    tex.count("NumTestBuiltinSkipped", test_counts["builtin_skipped"])
     tex.put("NumTestDefects", "--")
     tex.count("NumTestCoveredAll", len(test262))
     tex.write(args.tex)

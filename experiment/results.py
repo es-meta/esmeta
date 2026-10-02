@@ -6,7 +6,6 @@ import json
 import os
 import re
 import statistics
-from itertools import combinations
 from pathlib import Path
 
 HOME = Path(os.environ.get("ESMETA_HOME", Path(__file__).resolve().parents[1]))
@@ -336,35 +335,6 @@ def generation_time(run: Path) -> dict[str, float]:
         values[field] = float(matches[0])
     values["cpu"] = values["user"] + values["sys"]
     return values
-
-
-def distribution(values: list[float]) -> str:
-    """Mean, sample SD, and observed range; at least two independent runs."""
-    if len(values) < 2:
-        raise ValueError("sample SD requires at least two runs")
-    return (f"{statistics.mean(values):,.1f} $\\pm$ {statistics.stdev(values):,.1f} "
-            f"({min(values):,g}--{max(values):,g})")
-
-
-def mann_whitney(x: list[float], y: list[float]) -> tuple[float, float, float]:
-    """U for x, two-sided exact permutation p (ties included), and A12 for x > y."""
-    n, m = len(x), len(y)
-    if n != 5 or m != 5:
-        raise ValueError("the exact comparison expects five independent runs per tool")
-    u = sum((a > b) + 0.5 * (a == b) for a in x for b in y)
-    pooled = x + y
-    ranks = [1 + sum(b < a for b in pooled) + (sum(b == a for b in pooled) - 1) / 2
-             for a in pooled]
-    distance = abs(u - n * m / 2)
-    permuted = [sum(ranks[i] for i in chosen) - n * (n + 1) / 2
-                for chosen in combinations(range(n + m), n)]
-    p = sum(abs(v - n * m / 2) >= distance for v in permuted) / len(permuted)
-    return u, p, u / (n * m)
-
-
-def comparison(x: list[float], y: list[float]) -> str:
-    u, p, a = mann_whitney(x, y)
-    return f"$U={u:g}$, $p={p:.3f}$, $\\widehat{{A}}_{{12}}={a:.2f}$"
 
 
 def test262_counts() -> dict[str, int]:
