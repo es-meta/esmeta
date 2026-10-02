@@ -2,16 +2,21 @@
 
 # python3 experiment/rq1_venn.py [--tex ../synth262-paper/fse27/numbers/rq1_venn.tex]
 #
-# The region counts of the two RQ1 Venn diagrams, which the paper draws by hand
-# in fse27/fig/images.key: branch sides covered by the union of each tool's
-# runs, and the defect rows the triage ledger finds in their conform logs.
-# --tex writes full-coverage comparisons, defect counts by status, and table rows by kind.
+# The numbers of the two RQ1 Venn diagrams (fse27/fig/rq1-venn.tex): each
+# region is the mean over all pairs of a Synth262 run and a fuzzing run, against
+# the single Test262 run, for branch sides and for the defect rows the triage
+# ledger finds in their conform logs. Stdout also shows the unions of all runs.
+# --tex also writes the defects Synth262 found by engine and status, and the
+# defects either tool found by kind.
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
+import statistics
 import sys
+from itertools import product
 from pathlib import Path
 
 from results import DATA, INTERACTION, PLAIN, TABLE, Defects, Tex, bug_status, covered, runs, universe
@@ -49,9 +54,22 @@ def main() -> int:
     T = covered(DATA / "test262" / "branch-coverage.json")
     show("branch coverage (union of runs, including outside targets)", {"Synth262": S, "Test262": T, "JEST": F})
     tex = Tex("rq1_venn.py")
-    tex.count("NumOnlySynthAll", len(S - T - F))
-    tex.count("NumSynthOfTestMissedAll", len(S - T))
-    tex.count("NumFuzzOfTestMissedAll", len(F - T))
+    # Figure 6(b) draws per-run means: each region averages all pairs of a
+    # Synth262 run and a fuzzing run, against the single Test262 run
+    tex.mean("NumSynthOfTestMissedMean", statistics.mean(len(x - T) for x in per_solve))
+    tex.mean("NumFuzzOfTestMissedMean", statistics.mean(len(x - T) for x in per_fuzz))
+    pairs = list(product(per_solve, per_fuzz))
+    for name, region in (("S", lambda s, f: s - T - f), ("T", lambda s, f: T - s - f), ("F", lambda s, f: f - s - T),
+                         ("ST", lambda s, f: (s & T) - f), ("SF", lambda s, f: (s & f) - T),
+                         ("TF", lambda s, f: (T & f) - s), ("STF", lambda s, f: s & T & f)):
+        tex.mean(f"NumVennCov{name}", statistics.mean(len(region(s, f)) for s, f in pairs))
+    # the sides only Synth262 covers in any run, by the algorithm the solver names
+    names = {}
+    for r in solve:
+        for branch, side, func in re.findall(r"Branch\[(\d+)\]:(T|F)\s+(\S+)", (r / "summary").read_text()):
+            names[(int(branch), side)] = func
+    base64 = re.compile(r"Base64|Hex|GetUint8ArrayBytes")
+    tex.count("NumSynthOnlyBaseSixtyFour", sum(bool(base64.search(names.get(x, ""))) for x in S - T - F))
     U = universe(solve[0])
     if any(universe(r) != U for r in solve):
         raise ValueError("solver runs use different target universes")
@@ -68,6 +86,14 @@ def main() -> int:
             for src, rs in (("solve", solve), ("fuzz", fuzz))
         }
         complete = all((r / INTERACTION).is_file() for r in solve + fuzz) and not defects.pending
+        # the defect Venn of Figure 6(b), also per pair of runs
+        if complete:
+            ours = [set().union(*(defects.found(r / log) or set() for log in logs["solve"])) for r in solve]
+            theirs = [defects.found(r / PLAIN["fuzz"]) or set() for r in fuzz]
+            dpairs = list(product(ours, theirs))
+            tex.mean("NumVennDefS", statistics.mean(len(a - b) for a, b in dpairs))
+            tex.mean("NumVennDefSF", statistics.mean(len(a & b) for a, b in dpairs))
+            tex.mean("NumVennDefF", statistics.mean(len(b - a) for a, b in dpairs))
         if complete:
             show(f"\ndefects ({len(rows)} rows; {len(rows - stored['solve'] - stored['fuzz'])} reproduced by neither)",
              {"Synth262": stored["solve"], "JEST": stored["fuzz"]})
@@ -82,7 +108,6 @@ def main() -> int:
         tex.count("NumSolverNovelDefects", len(novel) if complete else None)
         tex.count("NumSolverNovelAcked", sum(status[n] in ("fixed", "confirmed") for n in novel) if complete else None)
         tex.count("NumSolverNovelPatched", sum(status[n] == "fixed" for n in novel) if complete else None)
-        tex.count("NumOnlyFuzzDefects", len(stored["fuzz"] - found) if complete else None)
         # Synth262's defects by engine and status (NumEngineXsFixed, ..., NumEngineAllTotal)
         for engine, macro in (("v8", "VEight"), ("jsc", "Jsc"), ("sm", "Sm"), ("graal", "Graal"),
                               ("xs", "Xs"), ("qjs", "Qjs"), (None, "All")):
@@ -91,6 +116,7 @@ def main() -> int:
                                 ("Reported", "reported"), ("Known", "known-upstream")):
                 tex.count(f"NumEngine{macro}{name}", sum(status[n] == state for n in mine) if complete else None)
             tex.count(f"NumEngine{macro}Total", len(mine) if complete else None)
+            tex.count(f"NumEngine{macro}New", sum(status[n] != "known-upstream" for n in mine) if complete else None)
         # defects either tool found, by kind tag (wrong-check-order -> NumKindWrongCheckOrderAll)
         either = found | stored["fuzz"]
         for kind, names in json.loads(TABLE.read_text(encoding="utf-8"))["tags"].items():

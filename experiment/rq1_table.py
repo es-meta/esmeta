@@ -4,8 +4,11 @@ import argparse
 import sys
 from pathlib import Path
 
+import statistics
+
 from results import (DATA, INTERACTION, PLAIN, Defects, Tex, cell, conform_time, covered, generation_time,
-                     fuzz_at, mean, programs, runs, solver_summary, table, test262_counts, tests)
+                     fuzz_at, mann_whitney, mean, oracle_runs, programs, runs, solver_summary, table,
+                     test262_counts, tests)
 
 
 def main() -> int:
@@ -58,27 +61,46 @@ def main() -> int:
 
     tex = Tex("rq1_table.py")
     tex.count("NumSynthCoverageRuns", len(solve))
-    tex.count("NumSynthCoveredAll", mean([x["coverage"] for x in s]))
-    tex.count("NumSynthPrograms", mean([programs(r / "programs") for r in solve]))
+    tex.mean("NumSynthCoveredAll", mean([x["coverage"] for x in s]))
+    tex.mean("NumSynthPrograms", mean([programs(r / "programs") for r in solve]))
+    # every run of each generator against every run of the other (Figure 6a)
+    fuzz_all = [fuzz_at(r, 50)["coverage"] for r in fuzz]
+    p_value, a12 = mann_whitney([x["coverage"] for x in s], fuzz_all)
+    tex.put("CoveragePValue", f"{p_value:.3f}")
+    tex.put("CoverageAtwelve", f"{a12:.2f}")
     if not args.coverage_only:
         tex.time("OracleTime", injection)
         tex.time("SynthTime", total)
         tex.time("FuzzOracleTime", mean([conform_time(r, "injectionMs") for r in fuzz]))
-        tex.count("NumDefectsPlainMean", mean(plain), p1)
-        tex.count("NumDefectsOracleMean", mean(aware), p2)
+        tex.mean("NumDefectsPlainMean", mean(plain), p1)
+        tex.mean("NumDefectsOracleMean", mean(aware), p2)
+        # Synth262 as shipped: the originals and the instrumented programs
+        shipped = [None if a is None else len(a | (defects.found(r / PLAIN["solve"]) or set()))
+                   for a, r in zip((defects.found(r / INTERACTION) for r in solve), solve)]
+        tex.put("SynthDefectsRange", None if None in shipped else f"{min(shipped)}--{max(shipped)}", p1 or p2)
+        # conformance testing of a run on all engines, and the ESMeta runs of the injector
+        tex.count("NumSynthTests", mean([tests(r) for r in solve]))
+        tex.time("ConformTime", mean([conform_time(r, "conformMs") for r in solve]))
+        oracle = [oracle_runs(r) for r in solve]
+        if None not in oracle:
+            for key, name in (("guided_median", "NumOracleRunsMedian"), ("guided_p90", "NumOracleRunsPNinety")):
+                values = {o[key] for o in oracle}
+                tex.put(name, f"{values.pop()}" if len(values) == 1 else f"{statistics.mean(o[key] for o in oracle):.1f}")
+            ratio = statistics.mean(o["plain_total"] for o in oracle) / statistics.mean(o["guided_total"] for o in oracle)
+            tex.put("OracleRunsRatio", f"{ratio:.1f} times")
         # rows only the interaction-based oracle reproduces, per run
         only = [
             None if a is None or p is None else len(a - p)
             for a, p in zip((defects.found(r / INTERACTION) for r in solve), (defects.found(r / PLAIN["solve"]) for r in solve))
         ]
-        tex.count("NumInteractionOnlyDefects", mean(only), p1 or p2)
+        tex.mean("NumInteractionOnlyDefects", mean(only), p1 or p2)
     for hours, name in ((1, "OneHour"), (10, "TenHours"), (50, "All")):
         at = [fuzz_at(r, hours) for r in fuzz]
-        tex.count(f"NumFuzzCovered{name}", mean([x["coverage"] for x in at]))
-        tex.count(f"NumFuzzPrograms{name}", mean([x["programs"] for x in at]))
+        tex.mean(f"NumFuzzCovered{name}", mean([x["coverage"] for x in at]))
+        tex.mean(f"NumFuzzPrograms{name}", mean([x["programs"] for x in at]))
     if not args.coverage_only:
-        tex.count("NumDefectsFuzzPlainMean", mean(fplain), p3)
-        tex.count("NumDefectsFuzzOracleMean", mean(faware), p4)
+        tex.mean("NumDefectsFuzzPlainMean", mean(fplain), p3)
+        tex.mean("NumDefectsFuzzOracleMean", mean(faware), p4)
     tex.time("GenerationTime", mean([x["real"] for x in timing]))
     tex.count("NumTestPrograms", test_counts["executed"])
     tex.put("NumTestDefects", "--")

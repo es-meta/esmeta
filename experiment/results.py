@@ -102,6 +102,42 @@ def conform_time(run: Path, field: str) -> float | None:
     return None if value is None else value / 1000
 
 
+def oracle_runs(run: Path) -> dict[str, int] | None:
+    """ESMeta runs per program of the guided interaction oracle and the plain
+    greedy estimate, from the injector's summary"""
+    log = run / "summary-interaction"
+    if not log.is_file():
+        return None
+    text = log.read_text(encoding="utf-8")
+    out = {}
+    for key, label in (("guided", "guided"), ("plain", "plain greedy, estimated")):
+        found = re.search(rf"spec runs per program \({re.escape(label)}\): total (\d+), min \d+, "
+                          rf"median (\d+), p90 (\d+)", text)
+        if found is None:
+            return None
+        out[f"{key}_total"], out[f"{key}_median"], out[f"{key}_p90"] = map(int, found.groups())
+    return out
+
+
+def mann_whitney(a: list[float], b: list[float]) -> tuple[float, float]:
+    """the exact two-sided permutation p-value of the Mann-Whitney U test and the
+    Vargha-Delaney effect size A12 of a over b"""
+    from itertools import combinations
+    def u(x: list[float], y: list[float]) -> float:
+        return sum(1.0 if p > q else 0.5 if p == q else 0.0 for p in x for q in y)
+    observed = u(a, b)
+    center = len(a) * len(b) / 2
+    pooled = a + b
+    splits = list(combinations(range(len(pooled)), len(a)))
+    extreme = 0
+    for idx in splits:
+        x = [pooled[i] for i in idx]
+        y = [pooled[i] for i in range(len(pooled)) if i not in idx]
+        if abs(u(x, y) - center) >= abs(observed - center):
+            extreme += 1
+    return extreme / len(splits), observed / (len(a) * len(b))
+
+
 def mean(values: list) -> float | None:
     """the mean, or None when a run lacks the number"""
     return None if not values or None in values else statistics.mean(values)
@@ -281,6 +317,10 @@ class Tex:
 
     def count(self, name: str, value: float | None, pending: bool = False) -> None:
         self.put(name, None if value is None else f"{round(value):,}", pending)
+
+    def mean(self, name: str, value: float | None, pending: bool = False) -> None:
+        """a mean over runs, with one decimal"""
+        self.put(name, None if value is None else f"{value:,.1f}", pending)
 
     def pct(self, name: str, part: float | None, whole: int) -> None:
         self.put(name, None if part is None else f"{100 * part / whole:.1f}\\%")

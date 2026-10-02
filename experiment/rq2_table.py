@@ -48,13 +48,13 @@ def main() -> int:
     tex = Tex("rq2_table.py")
     for (label, s, ps, plain, aware), name in zip(counted[1:], ("NoShape", "NoTemplate")):
         tex.time(f"{name}Time", mean([x["wall_time"] for x in s]))
-        tex.count(f"Num{name}CoveredAll", mean([x["coverage"] for x in s]))
-        tex.count(f"Num{name}Programs", mean(ps))
+        tex.mean(f"Num{name}CoveredAll", mean([x["coverage"] for x in s]))
+        tex.mean(f"Num{name}Programs", mean(ps))
         if not args.coverage_only:
             prefix = "noshape" if name == "NoShape" else "notemplate"
             tex.time(f"{name}OracleTime", mean([conform_time(r, "injectionMs") for r in runs(prefix)]))
-            tex.count(f"NumDefects{name}PlainMean", mean(plain[0]), plain[1])
-            tex.count(f"NumDefects{name}OracleMean", mean(aware[0]), aware[1])
+            tex.mean(f"NumDefects{name}PlainMean", mean(plain[0]), plain[1])
+            tex.mean(f"NumDefects{name}OracleMean", mean(aware[0]), aware[1])
     targets = universe(runs("solve")[0])
     if any(universe(r) != targets for prefix in SETTINGS for r in runs(prefix)):
         raise ValueError("ablation runs use different target universes")
