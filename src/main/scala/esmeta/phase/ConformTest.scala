@@ -58,7 +58,7 @@ case object ConformTest extends Phase[CFG, Unit] {
       tests.size,
       results,
       divergences,
-      Option.when(config.log)((injectionMs, conformMs)),
+      Some((injectionMs, conformMs)),
     )
     val outputs = config.out.toList ++ logDir.map(_ + "/conform.json")
     for (filename <- outputs.distinct)

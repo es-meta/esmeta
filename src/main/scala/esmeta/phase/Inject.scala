@@ -80,8 +80,9 @@ case object Inject extends Phase[CFG, String] {
     val bar = ProgressBar(
       msg = "injecting assertions",
       iterable = files,
+      // logging keeps one thread so that the logs stay in order
       concurrent =
-        if (config.interaction && !config.log)
+        if (!config.log)
           ConcurrentPolicy.Fixed(Runtime.getRuntime.availableProcessors)
         else ConcurrentPolicy.Single,
     )

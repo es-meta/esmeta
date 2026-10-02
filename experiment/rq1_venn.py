@@ -58,6 +58,8 @@ def main() -> int:
     # Synth262 run and a fuzzing run, against the single Test262 run
     tex.mean("NumSynthOfTestMissedMean", statistics.mean(len(x - T) for x in per_solve))
     tex.mean("NumFuzzOfTestMissedMean", statistics.mean(len(x - T) for x in per_fuzz))
+    synth_missed, fuzz_missed = (statistics.mean(len(x - T) for x in xs) for xs in (per_solve, per_fuzz))
+    tex.pct("PctSynthOverFuzzMissed", synth_missed - fuzz_missed, fuzz_missed)
     pairs = list(product(per_solve, per_fuzz))
     for name, region in (("S", lambda s, f: s - T - f), ("T", lambda s, f: T - s - f), ("F", lambda s, f: f - s - T),
                          ("ST", lambda s, f: (s & T) - f), ("SF", lambda s, f: (s & f) - T),
@@ -118,10 +120,20 @@ def main() -> int:
             tex.count(f"NumEngine{macro}Total", len(mine) if complete else None)
             tex.count(f"NumEngine{macro}New", sum(status[n] != "known-upstream" for n in mine) if complete else None)
         # defects either tool found, by kind tag (wrong-check-order -> NumKindWrongCheckOrderAll)
-        either = found | stored["fuzz"]
+        # Synth262's defects by kind (Table 5): those its final-state assertions
+        # reproduce in any run, and those only its instrumented programs reveal
+        plain = set().union(*(defects.found(r / PLAIN["solve"]) or set() for r in solve))
         for kind, names in json.loads(TABLE.read_text(encoding="utf-8"))["tags"].items():
-            tex.count("NumKind" + kind.title().replace("-", "") + "All",
-                      sum(n in either for n in names) if complete else None)
+            macro = "NumKind" + kind.title().replace("-", "")
+            tex.count(macro + "All", sum(n in found for n in names) if complete else None)
+            tex.count(macro + "Plain", sum(n in found & plain for n in names) if complete else None)
+            tex.count(macro + "Oracle", sum(n in found - plain for n in names) if complete else None)
+        tex.count("NumKindTotalAll", len(found) if complete else None)
+        tex.count("NumKindTotalPlain", len(found & plain) if complete else None)
+        tex.count("NumKindTotalOracle", len(found - plain) if complete else None)
+        order = {n for k in ("missing-check", "wrong-check-order", "extra-check")
+                 for n in json.loads(TABLE.read_text(encoding="utf-8"))["tags"][k]}
+        tex.count("NumKindOrderOracle", len((found - plain) & order) if complete else None)
 
     tex.write(args.tex)
     return 0

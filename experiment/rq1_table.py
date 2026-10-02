@@ -65,13 +65,12 @@ def main() -> int:
     tex.mean("NumSynthPrograms", mean([programs(r / "programs") for r in solve]))
     # every run of each generator against every run of the other (Figure 6a)
     fuzz_all = [fuzz_at(r, 50)["coverage"] for r in fuzz]
-    p_value, a12 = mann_whitney([x["coverage"] for x in s], fuzz_all)
-    tex.put("CoveragePValue", f"{p_value:.3f}")
-    tex.put("CoverageAtwelve", f"{a12:.2f}")
+    tex.pct("PctSynthOverFuzz", mean([x["coverage"] for x in s]) - mean(fuzz_all), mean(fuzz_all))
     if not args.coverage_only:
-        tex.time("OracleTime", injection)
-        tex.time("SynthTime", total)
-        tex.time("FuzzOracleTime", mean([conform_time(r, "injectionMs") for r in fuzz]))
+        tex.seconds("OracleTime", injection)
+        tex.seconds("SynthTime", total)
+        tex.put("SynthMinutes", None if total is None else f"{round(total / 60)}")
+        tex.seconds("FuzzOracleTime", mean([conform_time(r, "injectionMs") for r in fuzz]))
         tex.mean("NumDefectsPlainMean", mean(plain), p1)
         tex.mean("NumDefectsOracleMean", mean(aware), p2)
         # Synth262 as shipped: the originals and the instrumented programs
@@ -79,8 +78,8 @@ def main() -> int:
                    for a, r in zip((defects.found(r / INTERACTION) for r in solve), solve)]
         tex.put("SynthDefectsRange", None if None in shipped else f"{min(shipped)}--{max(shipped)}", p1 or p2)
         # conformance testing of a run on all engines, and the ESMeta runs of the injector
-        tex.count("NumSynthTests", mean([tests(r) for r in solve]))
-        tex.time("ConformTime", mean([conform_time(r, "conformMs") for r in solve]))
+        tex.mean("NumSynthTests", mean([tests(r) for r in solve]))
+        tex.seconds("ConformTime", mean([conform_time(r, "conformMs") for r in solve]))
         oracle = [oracle_runs(r) for r in solve]
         if None not in oracle:
             for key, name in (("guided_median", "NumOracleRunsMedian"), ("guided_p90", "NumOracleRunsPNinety")):
@@ -101,7 +100,7 @@ def main() -> int:
     if not args.coverage_only:
         tex.mean("NumDefectsFuzzPlainMean", mean(fplain), p3)
         tex.mean("NumDefectsFuzzOracleMean", mean(faware), p4)
-    tex.time("GenerationTime", mean([x["real"] for x in timing]))
+    tex.seconds("GenerationTime", mean([x["real"] for x in timing]))
     tex.count("NumTestPrograms", test_counts["executed"])
     tex.put("NumTestDefects", "--")
     tex.count("NumTestCoveredAll", len(test262))

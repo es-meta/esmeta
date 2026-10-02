@@ -119,6 +119,14 @@ def oracle_runs(run: Path) -> dict[str, int] | None:
     return out
 
 
+def instrumented(run: Path) -> int | None:
+    """the programs the injector turns into tests (the others fail or time out on
+    ESMeta), which the final-state tests count"""
+    log = run / "summary-interaction"
+    found = re.search(r"Interaction programs: (\d+)", log.read_text(encoding="utf-8")) if log.is_file() else None
+    return None if found is None else int(found.group(1))
+
+
 def mann_whitney(a: list[float], b: list[float]) -> tuple[float, float]:
     """the exact two-sided permutation p-value of the Mann-Whitney U test and the
     Vargha-Delaney effect size A12 of a over b"""
@@ -325,10 +333,16 @@ class Tex:
     def pct(self, name: str, part: float | None, whole: int) -> None:
         self.put(name, None if part is None else f"{100 * part / whole:.1f}\\%")
 
+    def seconds(self, name: str, seconds: float | None) -> None:
+        """a mean duration in seconds, with one decimal"""
+        self.put(name, None if seconds is None else f"{seconds:,.1f}\\,s")
+
     def time(self, name: str, seconds: float | None) -> None:
         if seconds is None:
             return self.put(name, None)
         t = round(seconds)
+        if t < 60:
+            return self.put(name, f"{t}\\,s")
         self.put(name, f"{t // 60}\\,min {t % 60}\\,s" if t < 3600 else f"{t / 3600:g}\\,h")
 
     def write(self, path: Path | None) -> None:
