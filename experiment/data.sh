@@ -24,6 +24,13 @@
 #   time bin/esmeta fuzz -fuzz:log -fuzz:duration=180000   # 50 hours
 #   cp -R logs/fuzz/recent/ experiment/data/fuzz-6
 #   experiment/data.sh pack solve-6 fuzz-6
+#
+# Test262 runs once, on its built-ins tests only:
+#
+#   sbt "run test262-test -test262-test:progress -test262-test:coverage \
+#     -test262-test:detail-log -test262-test:concurrent=0 tests/test262/test/built-ins"
+#   cp logs/test262/recent/{branch-coverage.json,ecma262-version,esmeta-version,not-supported.json,pass.json,summary} experiment/data/test262/
+#   experiment/data.sh pack test262
 
 set -eu
 
