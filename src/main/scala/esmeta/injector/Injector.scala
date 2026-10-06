@@ -86,15 +86,17 @@ object Injector {
         fallback = true
         greedyFallbacks.incrementAndGet
         oracle(source, Some(owned)).flatMap(build)
-      val unsafe = for {
+      val sites = for {
         (tagged, tagger) <- oracle.tagging(source)
-        unsafe <- unsafeSites(cfg, tagged, tagger, filename, timeLimit)
-      } yield unsafe
+        sites <- unsafeSites(cfg, tagged, tagger, filename, timeLimit)
+      } yield sites
       var probes = 0
-      val built = unsafe match
+      val built = sites match
         case None => greedy
-        case Some(unsafe) =>
-          val (codes, runs, _) = oracle.selectGuided(source, owned, unsafe)
+        case Some((unsafe, unspecified)) =>
+          unspecifiedSites.addAndGet(unspecified.size)
+          val (codes, runs, _) =
+            oracle.selectGuided(source, owned, unsafe, unspecified)
           probes = runs
           probeRuns.addAndGet(runs)
           probedSites.addAndGet(unsafe.size)
@@ -105,7 +107,7 @@ object Injector {
       preservedSides.addAndGet(built.flatMap(_._2).toSet.size)
       instrumentNanos.addAndGet(System.nanoTime - start)
       // runs on the specification: original, tagging, probes, and builds
-      if (!fallback && unsafe.nonEmpty) perProgram.add(2 + probes + builds)
+      if (!fallback && sites.nonEmpty) perProgram.add(2 + probes + builds)
       original :: built.map(_._1)
     }
   }
@@ -115,7 +117,7 @@ object Injector {
     import java.util.concurrent.atomic.AtomicLong
     import java.util.concurrent.ConcurrentLinkedQueue
     val programs, ownedSides, preservedSides, variants = AtomicLong()
-    val probedSites, probeRuns, greedyFallbacks = AtomicLong()
+    val probedSites, unspecifiedSites, probeRuns, greedyFallbacks = AtomicLong()
     val timeout, failed, analysisFailed = AtomicLong()
     val analysisNanos, instrumentNanos = AtomicLong()
 
@@ -129,6 +131,7 @@ object Injector {
         preservedSides,
         variants,
         probedSites,
+        unspecifiedSites,
         probeRuns,
         greedyFallbacks,
         timeout,
@@ -166,6 +169,7 @@ Interaction variants kept: ${variants.get}
 Interaction owned sides: ${ownedSides.get}
 Interaction owned sides kept by variants: ${preservedSides.get}
 Interaction sites probed (unsafe by the tagging run): ${probedSites.get}
+Interaction sites left unwrapped (implementation-defined): ${unspecifiedSites.get}
 Interaction probe runs: ${probeRuns.get}
 Interaction plain greedy fallbacks: ${greedyFallbacks.get}
 Interaction variants dropped (timeout): ${timeout.get}
@@ -186,7 +190,7 @@ Interaction instrumentation: ${instrumentNanos.get / 1e6}%.3f ms
     tagger: String,
     filename: Option[String],
     timeLimit: Option[Int],
-  ): Option[Set[Int]] = {
+  ): Option[(Set[Int], Set[Int])] = {
     import InteractionStats.*
     val start = System.nanoTime
     try {
@@ -200,11 +204,14 @@ Interaction instrumentation: ${instrumentNanos.get / 1e6}%.3f ms
         System.err.println(
           s"[proxy-safety] object sites: ${safety.objectSites.toList.sorted}",
         )
+        System.err.println(
+          s"[proxy-safety] unspecified: ${safety.unspecified.toList.sorted}",
+        )
         for ((site, why) <- safety.reasons.toList.sortBy(_._1))
           System.err.println(
             s"[proxy-safety] site $site: ${why.toList.sorted.mkString("; ")}",
           )
-      Some(safety.unsafe.toSet)
+      Some((safety.unsafe.toSet, safety.unspecified.toSet))
     } catch {
       case _: InterpreterError | _: NSError | _: TimeoutException |
           _: ESMetaError =>

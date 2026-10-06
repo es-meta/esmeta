@@ -1,11 +1,12 @@
 package esmeta.injector
 
-import esmeta.cfg.{Call, Func}
+import esmeta.cfg.{Block, CFG, Call, Func, NodeWithInst}
 import esmeta.es.builtin.INNER_MAP
 import esmeta.interpreter.Interpreter
-import esmeta.ir.{ETypeCheck, Expr, GLOBAL_REALM, Local, Ref}
+import esmeta.ir.{ETypeCheck, Expr, GLOBAL_REALM, Inst, Local, Ref}
 import esmeta.state.*
 import esmeta.ty.ValueTy
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 /** finds the value sites whose objects a trap-free proxy cannot replace
@@ -22,6 +23,13 @@ import scala.collection.mutable.{Map => MMap, Set => MSet}
   * Inside its own internal methods the object is the target the proxy forwards
   * to, so accesses there are kept by the proxy. The result is a guess; the
   * instrumented run on the specification decides.
+  *
+  * A site is unspecified if some tagged object is used, by a field access, a
+  * type check, or one of its internal methods, during an implementation-defined
+  * step, such as the source text of a built-in function or the sequence of
+  * comparisons in a sort. The specification does not fix what an engine
+  * observes there, so its log is no oracle, and no run on the specification can
+  * tell otherwise.
   */
 class ProxySafety(initSt: State, tagger: String, timeLimit: Option[Int])
   extends Interpreter(initSt, timeLimit = timeLimit) {
@@ -31,6 +39,10 @@ class ProxySafety(initSt: State, tagger: String, timeLimit: Option[Int])
 
   /** sites some of whose objects a proxy cannot replace */
   val unsafe: MSet[Int] = MSet()
+
+  /** sites some of whose objects are observed in an implementation-defined step
+    */
+  val unspecified: MSet[Int] = MSet()
 
   /** why each site is unsafe: the access and the function it happened in */
   val reasons: MMap[Int, MSet[String]] = MMap()
@@ -56,10 +68,30 @@ class ProxySafety(initSt: State, tagger: String, timeLimit: Option[Int])
         func.irFunc.params.headOption.flatMap(p => locals.get(p.lhs)) match
           case Some(addr: Addr) if tags.contains(addr) =>
             selfOf.put(context, addr)
+            observe(addr)
           case _ =>
       case _ =>
     context
   }
+
+  private val (implSteps, implFuncs) =
+    ProxySafety.implementationDefined(initSt.cfg)
+
+  /** whether some frame is running an implementation-defined step */
+  private def inImplementationDefined: Boolean =
+    (st.context :: st.callStack.map(_.context)).exists { c =>
+      implFuncs(c.func) || (c.cursor match
+        case NodeCursor(_, block: Block, idx) => implSteps((block.id, idx))
+        case NodeCursor(_, node, _)           => implSteps((node.id, 0))
+        case _                                => false
+      )
+    }
+
+  /** a tagged object used here: unspecified if an implementation-defined step
+    * is running, since an engine may observe it in any way there
+    */
+  private def observe(addr: Addr): Unit =
+    if (inImplementationDefined) unspecified ++= tags(addr)
 
   /** whether a tagged object runs one of its own internal methods */
   private def inSelf(addr: Addr): Boolean =
@@ -80,9 +112,9 @@ class ProxySafety(initSt: State, tagger: String, timeLimit: Option[Int])
   override def eval(ref: Ref): RefTarget = {
     val target = super.eval(ref)
     target match
-      case FieldTarget(addr: Addr, Str(field))
-          if tags.contains(addr) && !ProxySafety.proxyFields(field) =>
-        flag(addr, s"field $field")
+      case FieldTarget(addr: Addr, Str(field)) if tags.contains(addr) =>
+        observe(addr)
+        if (!ProxySafety.proxyFields(field)) flag(addr, s"field $field")
       case _ =>
     target
   }
@@ -93,6 +125,7 @@ class ProxySafety(initSt: State, tagger: String, timeLimit: Option[Int])
       val result = ty.ty.contains(value, st)
       value match
         case addr: Addr if tags.contains(addr) =>
+          observe(addr)
           (st(addr), ty.ty) match
             case (obj: RecordObj, vty: ValueTy)
                 if vty.record.contains(proxyOf(addr, obj), st.heap) != result =>
@@ -159,4 +192,42 @@ object ProxySafety {
 
   /** fields a trap-free proxy answers like its target */
   val proxyFields = methods
+
+  private val cache = TrieMap[CFG, (Set[(Int, Int)], Set[Func])]()
+
+  /** the instructions compiled from implementation-defined steps, as a node id
+    * and an index in it, and the functions whose algorithm has such a step but
+    * no instruction linked to its steps
+    */
+  def implementationDefined(cfg: CFG): (Set[(Int, Int)], Set[Func]) =
+    cache.getOrElseUpdate(
+      cfg, {
+        val word = "implementation-defined"
+        val found = for {
+          func <- cfg.funcs
+          algo <- func.irFunc.algo
+          if algo.code.contains(word)
+        } yield {
+          val code = algo.code
+          // the step itself, without the substeps a compound instruction spans
+          def fromStep(inst: Inst): Boolean = inst.loc.exists { loc =>
+            val from = loc.start.offset.max(0)
+            val to = loc.end.offset.min(code.length)
+            from < to &&
+            code.substring(from, to).takeWhile(_ != '\n').contains(word)
+          }
+          val insts = func.nodes.toList.flatMap {
+            case block: Block =>
+              block.insts.toList.zipWithIndex.map((i, k) => (block.id, k) -> i)
+            case node: NodeWithInst => node.inst.toList.map((node.id, 0) -> _)
+            case _                  => Nil
+          }
+          val steps = insts.collect {
+            case (key, inst) if fromStep(inst) => key
+          }
+          (steps, Option.when(insts.forall(_._2.loc.isEmpty))(func))
+        }
+        (found.flatMap(_._1).toSet, found.flatMap(_._2).toSet)
+      },
+    )
 }

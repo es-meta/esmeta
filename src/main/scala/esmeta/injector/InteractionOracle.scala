@@ -83,6 +83,7 @@ class InteractionOracle(cfg: CFG) {
     js: String,
     conds: Set[(Int, Boolean)],
     unsafe: Set[Int],
+    unspecified: Set[Int],
   ): (List[String], Int, Int) = {
     val ast = cfg.scriptParser.fromWithSourceText(js)._1
     val sites = positions(ast).zipWithIndex.toMap
@@ -92,7 +93,8 @@ class InteractionOracle(cfg: CFG) {
       render(ast, sites, selected, name, logging = false)
     def run(code: String): Set[(Int, Boolean)] = { runs += 1; touched(code) }
     lazy val initial = run(probe(Set.empty))
-    val groups = sites.values.toList.sorted.foldLeft(Map(Set[Int]() -> conds)) {
+    val candidates = sites.values.toList.sorted.filterNot(unspecified)
+    val groups = candidates.foldLeft(Map(Set[Int]() -> conds)) {
       (groups, site) =>
         groups.toList
           .flatMap { (selected, keys) =>
