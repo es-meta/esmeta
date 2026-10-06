@@ -378,7 +378,7 @@ object InteractionOracle {
       }
   }
 
-  /** replace logging helpers with trap-free helpers for spec execution */
+  /** replace logging helpers with non-logging helpers for spec execution */
   def withoutTraps(
     cfg: CFG,
     ast: Ast,
@@ -427,9 +427,23 @@ object InteractionOracle {
   private lazy val runtimeTemplate =
     readFile(s"$RESOURCE_DIR/interaction-oracle.js").trim
 
+  // forwarding traps, so that invariant checks after traps run as in engines
   private lazy val probeTemplate = runtimeTemplate.replaceAll(
     """(?s)/\* \$traps:start \*/.*?/\* \$traps:end \*/""",
-    "id,",
+    """id,
+      |get: Reflect.get,
+      |set: Reflect.set,
+      |has: Reflect.has,
+      |deleteProperty: Reflect.deleteProperty,
+      |defineProperty: Reflect.defineProperty,
+      |getOwnPropertyDescriptor: Reflect.getOwnPropertyDescriptor,
+      |ownKeys: Reflect.ownKeys,
+      |getPrototypeOf: Reflect.getPrototypeOf,
+      |setPrototypeOf: Reflect.setPrototypeOf,
+      |isExtensible: Reflect.isExtensible,
+      |preventExtensions: Reflect.preventExtensions,
+      |apply: Reflect.apply,
+      |construct: Reflect.construct,""".stripMargin,
   )
 
   private def runtime(name: String, logging: Boolean = true): String = {
