@@ -275,10 +275,9 @@ class Fuzzer(
           "GivenByUser" -> sourceText
         }
       case None =>
-        // FIXME: only builtin synthesizer
-        // val simpleSyn = SimpleSynthesizer(grammar)
+        val simpleSyn = SimpleSynthesizer(grammar)
         val builtinSyn = BuiltinSynthesizer(cfg.spec.algorithms)
-        // simpleSyn.initPool.map(code => simpleSyn.name -> code) ++
+        simpleSyn.initPool.map(code => simpleSyn.name -> code) ++
         builtinSyn.initPool.map(code => builtinSyn.name -> code)
 
   lazy val logDir: String = s"$FUZZ_LOG_DIR/fuzz-$dateStr"
