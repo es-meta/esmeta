@@ -15,6 +15,7 @@ case object Solve extends Phase[CFG, Unit] {
   val help = "generates ECMAScript programs for selected builtin branch sides"
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): Unit =
+    config.seed.foreach(setSeed)
     Ablation.noShape = config.noShape
     Ablation.noTemplate = config.noTemplate
     val solver = new Solver(
@@ -99,6 +100,11 @@ case object Solve extends Phase[CFG, Unit] {
       "logging mode with detailed information.",
     ),
     (
+      "seed",
+      NumOption((c, k) => c.seed = Some(k)),
+      "set the specific seed for the random number generator (default: None).",
+    ),
+    (
       "no-shape",
       BoolOption((c, b) => c.noShape = b),
       "ablation: drop the object structure from the type domain.",
@@ -116,5 +122,6 @@ case object Solve extends Phase[CFG, Unit] {
     var detail: Boolean = false,
     var noShape: Boolean = false,
     var noTemplate: Boolean = false,
+    var seed: Option[Int] = None,
   )
 }

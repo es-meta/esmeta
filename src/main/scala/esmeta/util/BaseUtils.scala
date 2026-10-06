@@ -140,7 +140,16 @@ object BaseUtils {
   def setSeed(seed: Int) = { _seed = seed; rand.setSeed(seed) }
   def resetSeed = setSeed(getSeed)
   private var _seed: Int = Random().nextInt
-  private val rand = Random(_seed)
+  // one generator per thread, so the draws of a thread do not depend on others
+  private val local = ThreadLocal.withInitial(() => Random(_seed))
+  private def rand: Random = local.get
+
+  /** run with the generator of this thread seeded by `seed` */
+  def withSeed[T](seed: Int)(body: => T): T =
+    val saved = local.get
+    local.set(Random(seed))
+    try body
+    finally local.set(saved)
 
   /** randomly choose an element in a list */
   def choose[T](vec: Vector[T]): T = vec(rand.nextInt(vec.length))

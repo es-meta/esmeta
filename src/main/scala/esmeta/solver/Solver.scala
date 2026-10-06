@@ -49,8 +49,8 @@ class Solver(
   private lazy val synth = ExprSynthesizer(cfg, templateGen.templatesBySlot)
   private lazy val cov = Coverage(cfg, timeLimit = Some(2))
 
-  // branch-side witnesses with a builtin as the nearest feature
-  private val condMap = CMMap[(Int, Boolean), String]()
+  // branch sides each target's programs touched, shortest program per side
+  private val touchedBy = CMMap[(Int, Boolean), Map[(Int, Boolean), String]]()
 
   // check for `yet`, ignoring assertions
   private def hasYet(elem: IRElem): Boolean = elem match
@@ -191,6 +191,7 @@ class Solver(
     val dir = s"$SOLVER_LOG_DIR/solve-$dateStr"
     mkdir(dir, remove = true)
     createSymLink(s"$SOLVER_LOG_DIR/recent", dir, overwrite = true)
+    dumpFile(getSeed, s"$dir/seed")
     dir
   }
 
@@ -223,10 +224,16 @@ class Solver(
       concurrent = CP.Fixed(nThreads),
     )
     solving.foreach { (entries, cond) =>
-      val r = solveTarget(entries, cond)
+      val seed = (getSeed, cond.branch.id, cond.cond).hashCode
+      val r = withSeed(seed)(solveTarget(entries, cond))
       completed.add(r)
     }
-    val witnesses = condMap.asScala.toMap
+    val merged = MMap[(Int, Boolean), String]()
+    for {
+      found <- touchedBy.values.asScala
+      (c, js) <- found
+    } merged(c) = merged.get(c).fold(js)(shorter(_, js))
+    val witnesses = merged.toMap
     for (dir <- logDir)
       dumpFile(
         name = "solver statistics",
@@ -304,13 +311,15 @@ class Solver(
     val targetDeadline = start + solveTimeout.toNanos
     val perEntry = solveTimeout.toNanos / entries.size
     val stat = TargetStat(cond, entries.size)
+    val key = (cond.branch.id, cond.cond)
+    val found = MMap[(Int, Boolean), String]()
     def solveNext(f: Func): BranchResult = {
       val deadline = (System.nanoTime() + perEntry).min(targetDeadline)
       val entryStat = EntryStat(f.name)
       if (log) stat.entries += entryStat
       val entryStart = now
       val r =
-        try solveEntry(f, cond, deadline, entryStat)
+        try solveEntry(f, cond, deadline, entryStat, found)
         catch {
           case e: Throwable =>
             println(s"[error] ${f.name} -> $cond  $e")
@@ -338,8 +347,10 @@ class Solver(
       if (rank(other.status) < rank(best.status)) best = other
     }
     stat.status = best.status
+    stat.js = best.js
     stat.ns = now - start
     if (log) stats.add(stat)
+    touchedBy.put(key, found.toMap)
     best
   }
 
@@ -348,6 +359,7 @@ class Solver(
     cond: Cond,
     deadline: Long,
     entryStat: EntryStat,
+    found: MMap[(Int, Boolean), String],
   ): BranchResult = {
     def expired: Boolean = System.nanoTime() > deadline
     given checkTimeout: (() => Unit) =
@@ -420,8 +432,10 @@ class Solver(
                 p.executed += 1
                 p.execNs += now - execStart
                 val conds = result.getOrElse { p.errors += 1; Set.empty }
-                for (c <- conds if condMap.putIfAbsent(c, js) == null)
-                  if (c != (cond.branch.id, cond.cond)) p.incidental += 1
+                for (c <- conds)
+                  if (!found.contains(c) && c != (cond.branch.id, cond.cond))
+                    p.incidental += 1
+                  found(c) = found.get(c).fold(js)(shorter(_, js))
                 conds((cond.branch.id, cond.cond))
               }
               passing match {
@@ -452,6 +466,10 @@ class Solver(
         BranchResult(cond, "timeout")
     }
   }
+
+  /** the shorter program, the smaller one on a tie */
+  private def shorter(a: String, b: String): String =
+    if (a.length < b.length || (a.length == b.length && a <= b)) a else b
 
   /** assemble a target call from synthesized input expressions */
   private def assemble(invocation: Invocation, first: Boolean)(using
@@ -511,7 +529,7 @@ class Solver(
     var executed = 0 // programs executed after deduplication
     var aborted = false // an execution cut off by the deadline
     var errors = 0 // executions that threw or hit the coverage time limit
-    var incidental = 0 // other branch sides first covered by these programs
+    var incidental = 0 // other branch sides first covered within the target
     var outcome = "" // pass | fail | no-candidate | timeout
     var execNs = 0L
     var ns = 0L
@@ -556,6 +574,7 @@ class Solver(
   ) {
     val entries = ListBuffer[EntryStat]()
     var status = ""
+    var js: Option[String] = None // the program the target itself found
     var ns = 0L
     def json(witnesses: Map[(Int, Boolean), String]): Json = Json.obj(
       "branch" -> Json.fromInt(cond.branch.id),
@@ -563,6 +582,7 @@ class Solver(
       "func" -> Json.fromString(cfg.funcOf(cond.branch).name),
       "nEntries" -> Json.fromInt(nEntries),
       "status" -> Json.fromString(status),
+      "program" -> js.fold(Json.Null)(Json.fromString),
       "covered" -> Json.fromBoolean(
         witnesses.contains((cond.branch.id, cond.cond)),
       ),
