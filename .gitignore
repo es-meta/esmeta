@@ -40,9 +40,3 @@ tests/result/test262
 ## local .bashrc/.zshrc files
 .bashrc
 .zshrc
-
-## python byproducts
-__pycache__/
-
-## FIXME: manual
-experiment/data/*/
