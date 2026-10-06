@@ -90,12 +90,12 @@ object Injector {
         (tagged, tagger) <- oracle.tagging(source)
         unsafe <- unsafeSites(cfg, tagged, tagger, filename, timeLimit)
       } yield unsafe
-      var (probes, candidates) = (0, 0)
+      var probes = 0
       val built = unsafe match
         case None => greedy
         case Some(unsafe) =>
-          val (codes, runs, sites) = oracle.selectGuided(source, owned, unsafe)
-          probes = runs; candidates = sites
+          val (codes, runs, _) = oracle.selectGuided(source, owned, unsafe)
+          probes = runs
           probeRuns.addAndGet(runs)
           probedSites.addAndGet(unsafe.size)
           val guided = codes.flatMap(build)
@@ -104,10 +104,8 @@ object Injector {
       variants.addAndGet(built.size)
       preservedSides.addAndGet(built.flatMap(_._2).toSet.size)
       instrumentNanos.addAndGet(System.nanoTime - start)
-      // runs on the specification: original, tagging, probes, and builds;
-      // the plain greedy selection probes every candidate instead
-      if (!fallback && unsafe.nonEmpty)
-        perProgram.add((2 + probes + builds, 1 + candidates + builds))
+      // runs on the specification: original, tagging, probes, and builds
+      if (!fallback && unsafe.nonEmpty) perProgram.add(2 + probes + builds)
       original :: built.map(_._1)
     }
   }
@@ -121,8 +119,8 @@ object Injector {
     val timeout, failed, analysisFailed = AtomicLong()
     val analysisNanos, instrumentNanos = AtomicLong()
 
-    /** specification runs per program: (this oracle, the plain greedy) */
-    val perProgram = ConcurrentLinkedQueue[(Int, Int)]()
+    /** specification runs per program */
+    val perProgram = ConcurrentLinkedQueue[Int]()
 
     def reset(): Unit =
       List(
@@ -173,10 +171,7 @@ Interaction plain greedy fallbacks: ${greedyFallbacks.get}
 Interaction variants dropped (timeout): ${timeout.get}
 Interaction variants dropped (interpreter error): ${failed.get}
 Interaction tagging run failures: ${analysisFailed.get}
-Interaction spec runs per program (guided): ${distribution(runs.map(_._1))}
-Interaction spec runs per program (plain greedy, estimated): ${distribution(
-        runs.map(_._2),
-      )}
+Interaction spec runs per program: ${distribution(runs)}
 Interaction tagging runs: ${analysisNanos.get / 1e6}%.3f ms
 Interaction instrumentation: ${instrumentNanos.get / 1e6}%.3f ms
 """

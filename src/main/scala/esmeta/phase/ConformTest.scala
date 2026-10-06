@@ -40,17 +40,13 @@ case object ConformTest extends Phase[CFG, Unit] {
     }
     val engines = EngineSpec.resolve(config.engine)
     val workDir = Files.createTempDirectory("esmeta-conform-work-")
-    val (tests, results, divergences, injectionMs, conformMs) =
+    val (tests, results, divergences) =
       try {
-        val start = System.nanoTime()
         val (tests, skipped) = inject(cfg, scriptDir, workDir, config)
-        val injectionMs = (System.nanoTime() - start) / 1e6
-        val conformStart = System.nanoTime()
         val results =
           engines.map(runEngine(workDir.toString, tests, _, config.timeLimit))
         val divergences = differential(skipped, engines, config.timeLimit)
-        val conformMs = (System.nanoTime() - conformStart) / 1e6
-        (tests, results, divergences, injectionMs, conformMs)
+        (tests, results, divergences)
       } finally rmdir(workDir.toString)
 
     val report = reportJson(
@@ -58,7 +54,6 @@ case object ConformTest extends Phase[CFG, Unit] {
       tests.size,
       results,
       divergences,
-      Some((injectionMs, conformMs)),
     )
     val outputs = config.out.toList ++ logDir.map(_ + "/conform.json")
     for (filename <- outputs.distinct)
@@ -68,8 +63,6 @@ case object ConformTest extends Phase[CFG, Unit] {
         s"Input: ${scriptDir.getPath}\n" +
         s"Interaction: ${config.interaction}\n" +
         s"Tests: ${tests.size}\n" +
-        f"Injection: $injectionMs%.3f ms\n" +
-        f"Conform-test (engines + differential): $conformMs%.3f ms\n" +
         results.map { result =>
           s"${result.engine.id}: ${result.bugs.size}/${tests.size} failures\n"
         }.mkString +
@@ -539,34 +532,25 @@ case object ConformTest extends Phase[CFG, Unit] {
     tests: Int,
     results: List[EngineResult],
     divergences: List[Divergence],
-    timings: Option[(Double, Double)],
-  ): Json = Json
-    .obj(
-      "input" -> input.asJson,
-      "tests" -> tests.asJson,
-      "engines" -> Json.fromFields(results.map { result =>
-        result.engine.id -> Json.obj(
-          "engine" -> result.engine.path.toString.asJson,
-          "bugs" -> Json.fromValues(result.bugs.map(bugJson)),
-        )
-      }),
-      "divergences" -> Json.fromValues(divergences.map { d =>
-        Json.obj(
-          "program" -> d.program.asJson,
-          "odd" -> d.odd.asJson,
-          "tags" -> Json.fromFields(
-            d.tags.toList.sorted.map((k, v) => k -> v.asJson),
-          ),
-        )
-      }),
-    )
-    .mapObject { fields =>
-      timings.fold(fields) { (injectionMs, conformMs) =>
-        fields
-          .add("injectionMs", injectionMs.asJson)
-          .add("conformMs", conformMs.asJson)
-      }
-    }
+  ): Json = Json.obj(
+    "input" -> input.asJson,
+    "tests" -> tests.asJson,
+    "engines" -> Json.fromFields(results.map { result =>
+      result.engine.id -> Json.obj(
+        "engine" -> result.engine.path.toString.asJson,
+        "bugs" -> Json.fromValues(result.bugs.map(bugJson)),
+      )
+    }),
+    "divergences" -> Json.fromValues(divergences.map { d =>
+      Json.obj(
+        "program" -> d.program.asJson,
+        "odd" -> d.odd.asJson,
+        "tags" -> Json.fromFields(
+          d.tags.toList.sorted.map((k, v) => k -> v.asJson),
+        ),
+      )
+    }),
+  )
 
   private def bugJson(bug: Bug): Json = Json.obj(
     "program" -> bug.program.asJson,
@@ -614,7 +598,7 @@ case object ConformTest extends Phase[CFG, Unit] {
     (
       "log",
       BoolOption(_.log = _),
-      "dump results, timings, and summary under logs/conform-test.",
+      "dump results and summary under logs/conform-test.",
     ),
   )
   case class Config(

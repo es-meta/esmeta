@@ -385,13 +385,6 @@ class Fuzzer(
     addRow(row)
     // dump coverage
     cov.dumpToWithDetail(logDir, withMsg = (debug == ALL))
-    // snapshot the coverage, which the next logging overwrites
-    val minutes = (e + 30000) / 60000
-    mkdir(s"$logDir/coverage-snapshots")
-    copyFile(
-      s"$logDir/branch-coverage.json",
-      f"$logDir/coverage-snapshots/snapshot-${minutes / 60}%02dh${minutes % 60}%02dm.json",
-    )
     dumpStat(selector.names, selectorStat, selStatTsv)
     dumpStat(mutator.names, mutatorStat, mutStatTsv)
     // dump spec type error
