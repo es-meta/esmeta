@@ -223,14 +223,7 @@ class Solver(
       concurrent = CP.Fixed(nThreads),
     )
     solving.foreach { (entries, cond) =>
-      // reuse known coverage without changing the target set
-      val r = Option(condMap.get((cond.branch.id, cond.cond))) match
-        case Some(js) =>
-          val stat = TargetStat(cond, entries.size, reused = true)
-          stat.status = "pass"
-          if (log) stats.add(stat)
-          BranchResult(cond, "pass", Some(js))
-        case None => solveTarget(entries, cond)
+      val r = solveTarget(entries, cond)
       completed.add(r)
     }
     val witnesses = condMap.asScala.toMap
@@ -560,7 +553,6 @@ class Solver(
   private class TargetStat(
     val cond: Cond,
     val nEntries: Int,
-    val reused: Boolean = false, // covered before its own turn
   ) {
     val entries = ListBuffer[EntryStat]()
     var status = ""
@@ -570,7 +562,6 @@ class Solver(
       "side" -> Json.fromBoolean(cond.cond),
       "func" -> Json.fromString(cfg.funcOf(cond.branch).name),
       "nEntries" -> Json.fromInt(nEntries),
-      "reused" -> Json.fromBoolean(reused),
       "status" -> Json.fromString(status),
       "covered" -> Json.fromBoolean(
         witnesses.contains((cond.branch.id, cond.cond)),

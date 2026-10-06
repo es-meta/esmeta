@@ -56,6 +56,9 @@ def load(run: Path):
             entries.append(e)
         targets.append(t)
     T, E, P = pd.DataFrame(targets), pd.DataFrame(entries), pd.DataFrame(paths)
+    # runs since the solver stopped skipping covered targets carry no flag
+    if "reused" not in T:
+        T["reused"] = False
     # per-target aggregates
     agg = P.groupby("target").agg(
         paths=("index", "size"), symPaths=("symPaths", "sum"),
