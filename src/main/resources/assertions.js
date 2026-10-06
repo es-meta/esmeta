@@ -55,7 +55,26 @@ function $toString(value) {
   return String(value);
 }
 
+// an implementation-defined source text of a function, which only has to
+// match the NativeFunction syntax, and whose name must be `name` if given
+function $NativeFunction(name) {
+  this.name = name;
+}
+$NativeFunction.prototype.matches = function (text) {
+  if (typeof text !== "string") return false;
+  var m =
+    /^function\b\s*([^(]*?)\s*\([^)]*\)\s*\{\s*\[\s*native\s+code\s*\]\s*\}$/.exec(
+      text
+    );
+  return m !== null && (!this.name || m[1].replace(/\s+/g, " ") === this.name);
+};
+$NativeFunction.prototype.toString = function () {
+  return "a NativeFunction source text" + (this.name ? " named " + this.name : "");
+};
+
 function $isSameValue(x, y) {
+  if (x instanceof $NativeFunction) return x.matches(y);
+  if (y instanceof $NativeFunction) return y.matches(x);
   if (x === y) return x !== 0 || 1 / x === 1 / y;
   return x !== x && y !== y;
 }

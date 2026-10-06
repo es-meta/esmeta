@@ -54,14 +54,21 @@ class Stringifier(detail: Boolean) {
       case ThrowValue(values)       => app >> s"throw: ${values.mkString(", ")}"
       case ThrowError(name)         => app >> s"throw-error: $name"
 
+  // the implementation-defined source text that the model of
+  // Function.prototype.toString gives a built-in or other non-ECMAScript
+  // function, with the name it uses, if any
+  private val nativeFunction = """function (.*)\(\) \{ \[native code\] \}""".r
+
   // assertions
   given assertRule: Rule[Assertion] = (app, assert) =>
     given Rule[SimpleValue] = (app, value) =>
       app >> (
         value match
           case Number(n) => n.toString
-          case Str(str)  => io.circe.Json.fromString(str).noSpaces
-          case v         => v.toString
+          case Str(nativeFunction(name)) =>
+            s"new $$NativeFunction(${io.circe.Json.fromString(name).noSpaces})"
+          case Str(str) => io.circe.Json.fromString(str).noSpaces
+          case v        => v.toString
       )
 
     given Rule[Map[String, SimpleValue]] = (app, desc) =>
