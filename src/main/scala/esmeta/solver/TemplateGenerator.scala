@@ -1,6 +1,5 @@
 package esmeta.solver
 
-import esmeta.Ablation
 import esmeta.cfg.Func
 import esmeta.es.builtin.{INNER_CODE, intrAddr}
 import esmeta.solver.Solver.{Invocation, getInvocation}
@@ -88,11 +87,9 @@ class TemplateGenerator(analyzer: SymAnalyzer) {
   }
 
   val templatesBySlot: Map[String, List[Template]] =
-    if (Ablation.noTemplate) Map.empty
-    else
-      templates
-        .flatMap { template => template.slots.toList.sorted.map(_ -> template) }
-        .groupMap(_._1)(_._2)
+    templates
+      .flatMap { template => template.slots.toList.sorted.map(_ -> template) }
+      .groupMap(_._1)(_._2)
 
   val summary: String = {
     val seconds = (System.nanoTime() - startTime) / 1e9

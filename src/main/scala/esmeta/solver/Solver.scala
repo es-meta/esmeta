@@ -1,6 +1,6 @@
 package esmeta.solver
 
-import esmeta.{Ablation, SOLVER_LOG_DIR}
+import esmeta.SOLVER_LOG_DIR
 import esmeta.cfg.*
 import esmeta.es.builtin.{INNER_CODE, intrAddr}
 import esmeta.es.util.Coverage
@@ -247,11 +247,7 @@ class Solver(
     val reached = (conds intersect targetKeys).size
     val outside = (conds -- targetKeys).size
     val reachedPct = reached * 100.0 / selected.size
-    val ablated = Ablation.enabled match
-      case Nil  => ""
-      case offs => s"Ablation: ${offs.mkString(", ")}\n"
-    summary = ablated +
-      templateGen.summary +
+    summary = templateGen.summary +
       s"Solving: ${solving.summary.time.simpleString}\n" +
       "Status breakdown:\n" +
       statusGroups(outcomes(witnesses)).map { (status, rs) =>

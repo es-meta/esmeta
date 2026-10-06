@@ -16,8 +16,6 @@ case object Solve extends Phase[CFG, Unit] {
 
   def apply(cfg: CFG, cmdConfig: CommandConfig, config: Config): Unit =
     config.seed.foreach(setSeed)
-    Ablation.noShape = config.noShape
-    Ablation.noTemplate = config.noTemplate
     val solver = new Solver(
       cfg,
       branch = config.branch,
@@ -104,24 +102,12 @@ case object Solve extends Phase[CFG, Unit] {
       NumOption((c, k) => c.seed = Some(k)),
       "set the specific seed for the random number generator (default: None).",
     ),
-    (
-      "no-shape",
-      BoolOption((c, b) => c.noShape = b),
-      "ablation: drop the object structure from the type domain.",
-    ),
-    (
-      "no-template",
-      BoolOption((c, b) => c.noTemplate = b),
-      "ablation: drop the call templates derived from the specification.",
-    ),
   )
   case class Config(
     var branch: Option[Int] = None,
     var side: Option[Boolean] = None,
     var log: Boolean = false,
     var detail: Boolean = false,
-    var noShape: Boolean = false,
-    var noTemplate: Boolean = false,
     var seed: Option[Int] = None,
   )
 }
