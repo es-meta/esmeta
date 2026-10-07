@@ -12,12 +12,12 @@ import esmeta.util.SystemUtils.exists
 trait TypeGuardDecl { self: TyChecker =>
 
   /** type guard */
-  case class TypeGuard(map: Map[DemandType, TypeProp] = Map()) {
+  case class TypeGuard(map: Map[TargetType, TypeProp] = Map()) {
     def isEmpty: Boolean = map.isEmpty
     def nonEmpty: Boolean = !isEmpty
-    def dtys: Set[DemandType] = map.keySet
+    def ttys: Set[TargetType] = map.keySet
 
-    private def get(dty: DemandType): Option[TypeProp] = map.get(dty)
+    private def get(tty: TargetType): Option[TypeProp] = map.get(tty)
 
     def apply(ty: ValueTy): TypeProp = lookup(ty)
 
@@ -25,14 +25,14 @@ trait TypeGuardDecl { self: TyChecker =>
       if (map.isEmpty) TypeProp()
       else
         var acc: TypeProp = null
-        for ((dty, p) <- map if ty <= dty.ty)
+        for ((tty, p) <- map if ty <= tty.ty)
           acc = if (acc eq null) p else acc && p
         if (acc eq null) TypeProp() else acc
 
     def update(ty: ValueTy, prop: TypeProp): TypeGuard =
-      val r = for dty <- DemandType.all yield dty -> {
-        val p = map.getOrElse(dty, TypeProp())
-        if ty <= dty.ty then prop && p
+      val r = for tty <- TargetType.all yield tty -> {
+        val p = map.getOrElse(tty, TypeProp())
+        if ty <= tty.ty then prop && p
         else p
       }
       TypeGuard(r.toMap)
@@ -41,101 +41,101 @@ trait TypeGuardDecl { self: TyChecker =>
       if (map.isEmpty) this
       else
         TypeGuard(for {
-          (dty, p) <- map
-          if ty overlaps dty.ty
-        } yield dty -> this.lookup(dty.ty))
+          (tty, p) <- map
+          if ty overlaps tty.ty
+        } yield tty -> this.lookup(tty.ty))
 
     def fieldLookup(fld: String): TypeGuard =
       val m = for
-        (dty, p) <- map
-        ity = dty.ty.record(fld).value
-        if DemandType.set.contains(ity)
-      yield DemandType(ity) -> p
+        (tty, p) <- map
+        ity = tty.ty.record(fld).value
+        if TargetType.set.contains(ity)
+      yield TargetType(ity) -> p
       m.foldLeft(TypeGuard.Empty) {
         case (acc, curr) =>
-          val (dty, p) = curr
-          acc.update(dty.ty, p)
+          val (tty, p) = curr
+          acc.update(tty.ty, p)
       }
 
     def fieldUpdate(fld: String, ty: ValueTy): TypeGuard =
       val m = for {
-        (dty, p) <- map
-        newTy = dty.ty.record.update(fld, ty, refine = false)
+        (tty, p) <- map
+        newTy = tty.ty.record.update(fld, ty, refine = false)
         newProp = p.fieldUpdate(fld, ty)
-      } yield dty -> newProp
+      } yield tty -> newProp
       m.foldLeft(TypeGuard.Empty) {
         case (acc, curr) =>
-          val (dty, p) = curr
-          acc.update(dty.ty, p)
+          val (tty, p) = curr
+          acc.update(tty.ty, p)
       }
 
-    def apply(dty: DemandType): TypeProp =
-      map.getOrElse(dty, TypeProp())
+    def apply(tty: TargetType): TypeProp =
+      map.getOrElse(tty, TypeProp())
 
     def bases: Set[Base] = map.values.flatMap(_.bases).toSet
 
     def weaken(bases: Set[Base])(using AbsState): TypeGuard = TypeGuard(for {
-      (dty, prop) <- map
+      (tty, prop) <- map
       newProp = prop.weaken(bases)
       if newProp.nonTop
-    } yield dty -> newProp)
+    } yield tty -> newProp)
 
     def weaken(effect: Effect): TypeGuard = TypeGuard(for {
-      (dty, prop) <- map
+      (tty, prop) <- map
       newProp = prop.weaken(effect)
       if newProp.nonTop
-    } yield dty -> newProp)
+    } yield tty -> newProp)
 
     def forReturn(symEnv: Map[Sym, ValueTy]): TypeGuard = TypeGuard(for {
-      (dty, prop) <- map
+      (tty, prop) <- map
       newProp = prop.forReturn(symEnv)
       if newProp.nonTop
-    } yield dty -> newProp)
+    } yield tty -> newProp)
 
     def bind(ty: ValueTy = ValueTy.Top)(using st: AbsState): TypeGuard =
-      // the bound property does not depend on the demand type
+      // the bound property does not depend on the target type
       val prop = TypeProp().bind
       if (prop.isTop) this
-      else this && TypeGuard(DemandType.from(ty).map(_ -> prop).toMap)
+      else this && TypeGuard(TargetType.from(ty).map(_ -> prop).toMap)
 
     def has(x: Base): Boolean = map.values.exists(_.has(x))
 
-    def <=(that: TypeGuard): Boolean = that.map.forall { (dty, r) =>
-      this.map.get(dty) match
+    def <=(that: TypeGuard): Boolean = that.map.forall { (tty, r) =>
+      this.map.get(tty) match
         case Some(l) => l <= r
         case None    => false
     }
 
     def ||(that: TypeGuard)(lty: ValueTy, rty: ValueTy): TypeGuard =
-      val (ldtys, rdtys) = (this.dtys, that.dtys)
-      val dtys =
-        ldtys.filter(k => !(k.ty overlaps rty) || rdtys.contains(k)) ++
-        rdtys.filter(k => !(k.ty overlaps lty) || ldtys.contains(k))
+      val (lttys, rttys) = (this.ttys, that.ttys)
+      val ttys =
+        lttys.filter(k => !(k.ty overlaps rty) || rttys.contains(k)) ++
+        rttys.filter(k => !(k.ty overlaps lty) || lttys.contains(k))
       TypeGuard((for {
-        dty <- dtys.toList
+        tty <- ttys.toList
         ty = lty || rty
-        prop = (this(dty.ty), that(dty.ty)) match
-          case (l, r) if (lty && dty.ty).isBottom => r
-          case (l, r) if (rty && dty.ty).isBottom => l
+        prop = (this(tty.ty), that(tty.ty)) match
+          case (l, r) if (lty && tty.ty).isBottom => r
+          case (l, r) if (rty && tty.ty).isBottom => l
           case (l, r)                             => l || r
         if !prop.isTop
-      } yield dty -> prop).toMap)
+      } yield tty -> prop).toMap)
 
     def &&(that: TypeGuard): TypeGuard =
       if (this.map.isEmpty) that
       else if (that.map.isEmpty) this
       else
         TypeGuard((for {
-          dty <- (this.dtys ++ that.dtys).toList
-          prop = this(dty) && that(dty)
+          tty <- (this.ttys ++ that.ttys).toList
+          prop = this(tty) && that(tty)
           if !prop.isTop
-        } yield dty -> prop).toMap)
+        } yield tty -> prop).toMap)
 
     override def toString: String = stringify(this)
   }
   object TypeGuard {
     val Empty: TypeGuard = TypeGuard()
-    def apply(ps: (DemandType, TypeProp)*): TypeGuard = TypeGuard(
+    def apply(ps: (TargetType, TypeProp)*): TypeGuard = TypeGuard(
       ps.toMap,
     )
   }
@@ -151,11 +151,11 @@ trait TypeGuardDecl { self: TyChecker =>
       case NodeTarget(nd)          => nd
     def func: Func = cfg.funcOf(node)
 
-  case class DemandType(private val _ty: ValueTy) {
+  case class TargetType(private val _ty: ValueTy) {
     def ty: ValueTy = _ty
   }
 
-  object DemandType {
+  object TargetType {
     val set: Set[ValueTy] =
       if (useBooleanGuard) Set(TrueT, FalseT)
       else
@@ -170,18 +170,18 @@ trait TypeGuardDecl { self: TyChecker =>
           ENUMT_ASYNC,
         )
 
-    def apply(ty: ValueTy): DemandType =
-      if (DemandType.set.contains(ty)) new DemandType(ty)
+    def apply(ty: ValueTy): TargetType =
+      if (TargetType.set.contains(ty)) new TargetType(ty)
       else {
         Thread.dumpStack()
-        throw notSupported(s"Unsupported DemandType: $ty")
+        throw notSupported(s"Unsupported TargetType: $ty")
       }
 
-    /** the demand types, built once, since `set` is fixed */
-    val all: Set[DemandType] = set.map(new DemandType(_))
+    /** the target types, built once, since `set` is fixed */
+    val all: Set[TargetType] = set.map(new TargetType(_))
 
-    def from(givenTy: ValueTy): Set[DemandType] =
-      all.filter(dty => givenTy overlaps dty.ty)
+    def from(givenTy: ValueTy): Set[TargetType] =
+      all.filter(tty => givenTy overlaps tty.ty)
   }
 
   case class TypeProp(
@@ -784,14 +784,14 @@ trait TypeGuardDecl { self: TyChecker =>
 
   /** TypeGuard */
   given Rule[TypeGuard] = (app, guard) =>
-    given Ordering[DemandType] = Ordering.by(_.toString)
-    given Rule[DemandType] = (app, dty) => app >> dty.ty
-    given Rule[Map[DemandType, TypeProp]] =
+    given Ordering[TargetType] = Ordering.by(_.toString)
+    given Rule[TargetType] = (app, tty) => app >> tty.ty
+    given Rule[Map[TargetType, TypeProp]] =
       sortedMapRule("{", "}", " => ")
     def simple(g: TypeGuard): TypeGuard =
-      TypeGuard(g.map.filterNot { (dty, prop) =>
-        g.map.exists { (tdty, tconstr) =>
-          (dty.ty != tdty.ty && dty.ty <= tdty.ty && tconstr <= prop)
+      TypeGuard(g.map.filterNot { (tty, prop) =>
+        g.map.exists { (ttty, tconstr) =>
+          (tty.ty != ttty.ty && tty.ty <= ttty.ty && tconstr <= prop)
         }
       })
     app >> simple(guard).map
