@@ -54,16 +54,27 @@ trait EffectDecl { self: TyChecker =>
     def nonEmpty: Boolean = map.nonEmpty
 
     private def apply(rec: RecordTy): RecordTy = rec match
-      case RecordTy.Top => rec // unsound here
+      case RecordTy.Top => rec
       case RecordTy.Elem(rmap) => {
         RecordTy(rmap.map((nty, fm) => {
           val base = ManualInfo.tyModel.baseOf(nty)
           val kfield = map.getOrElse(base, Set.empty)
-          nty -> fm.weaken(kfield)
+          val fields = fm.weaken(kfield).map.map { (field, binding) =>
+            field -> binding.copy(value = apply(binding.value))
+          }
+          nty -> FieldMap(fields)
         }))
       }
     def apply(ty: ValueTy): ValueTy =
-      ty.copied(record = apply(ty.record))
+      if (isBottom) ty
+      else
+        ty.copied(
+          record = apply(ty.record),
+          list = ty.list.map(apply),
+          map = ty.map match
+            case MapTy.Elem(key, value) => MapTy(apply(key), apply(value))
+            case other                  => other,
+        )
   }
   object Effect extends DomainLike[Effect] {
 

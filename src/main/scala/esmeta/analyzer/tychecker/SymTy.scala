@@ -109,10 +109,12 @@ trait SymTyDecl { self: TyChecker =>
         case STy(ty)   => STy(effect(ty))
         case SVar(x)   => SVar(x) // killed by abstract environment
         case SSym(sym) => SSym(sym) // killed by symbolic environment
-        case SField(b, f) => // maybe unsound
-          val weakenedb = b.weaken(effect)
-          val weakenedf = f.weaken(effect)
-          SField(weakenedb.asInstanceOf[SymRef], weakenedf)
+        case field: SField =>
+          if (field.isStable(effect)) field
+          else
+            // Read the old type before the heap change, then drop the link.
+            val snapshot = STy(field.upper)
+            if (snapshot.isStable(effect)) snapshot else STy(ValueTy.Top)
         case SNormal(symty) => SNormal(symty.weaken(effect)) // sound by spec
 
     def weakenRef(

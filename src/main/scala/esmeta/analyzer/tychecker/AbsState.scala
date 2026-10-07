@@ -118,12 +118,12 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** weaken effect */
     def weaken(ef: Effect): AbsState =
-      if (!useEffect || ef.isBottom) this
+      if (ef.isBottom) this
       else
         val newLocals = for { (x, v) <- locals } yield x -> v.weaken(ef)
         val newSymEnv = for { (sym, ty) <- symEnv } yield sym -> ef(ty)
         val newProp = prop.weaken(ef)
-        AbsState(reachable, newLocals, newSymEnv, newProp, ef)
+        AbsState(reachable, newLocals, newSymEnv, newProp, effect ⊔ ef)
 
     /** has imprecise elements */
     def hasImprec: Boolean = locals.values.exists(_.ty.isImprec)
@@ -267,16 +267,17 @@ trait AbsStateDecl { self: TyChecker =>
 
     /** field update */
     def update(lx: Local, fld: String, value: AbsValue): AbsState = {
-      val newLocals = (for (x, v) <- locals
-      yield
-        if v.ty.record.names.contains(fld) then
-          x -> v ⊔ v.fieldUpdate(fld, value)
-        else x -> v)
-        .updated(lx, this.get(lx).fieldUpdate(fld, value)) // strong update
-      if (!useEffect) this.copy(locals = newLocals.toMap)
-      else
-        val newEffect = effect.fieldUpdate(fld, this.get(lx).ty)
-        this.copy(locals = newLocals.toMap, effect = newEffect)
+      val writeEffect = Effect.Empty.fieldUpdate(fld, this.get(lx).ty)
+      // Stored values and the RHS still describe the heap before this write.
+      val weakenedSt = this.weaken(writeEffect)
+      val weakenedValue = value.weaken(writeEffect)
+      val newValue =
+        weakenedSt.get(lx).fieldUpdate(fld, weakenedValue)(using weakenedSt)
+      val newEffect = if (useEffect) effect ⊔ writeEffect else effect
+      weakenedSt.copy(
+        locals = weakenedSt.locals.updated(lx, newValue),
+        effect = newEffect,
+      )
     }
 
     /** type check */

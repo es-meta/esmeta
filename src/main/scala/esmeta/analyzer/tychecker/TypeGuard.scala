@@ -82,20 +82,16 @@ trait TypeGuardDecl { self: TyChecker =>
       if newProp.nonTop
     } yield tty -> newProp)
 
-    def weaken(effect: Effect): TypeGuard = TypeGuard(for {
-      (tty, prop) <- map
-      newProp = prop.weaken(effect)
-      if newProp.nonTop
-    } yield tty -> newProp)
+    def weaken(effect: Effect)(using AbsState): TypeGuard = transport(effect)
 
     /** transport an argument guard across a call's heap changes */
-    def transport(effect: Effect): TypeGuard =
+    def transport(effect: Effect)(using AbsState): TypeGuard =
       if (effect.isBottom) this
       else
         TypeGuard(for {
           (tty, prop) <- map
           // A changed target could admit values the old guard did not cover.
-          if effect(tty.ty) == tty.ty
+          if SymTy.STy(tty.ty).isStable(effect)
           newProp = prop.weaken(effect)
           if newProp.nonTop
         } yield tty -> newProp)
