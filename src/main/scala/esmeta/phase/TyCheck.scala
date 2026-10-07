@@ -88,7 +88,7 @@ case object TyCheck extends Phase[CFG, Unit] {
     (
       "effect",
       BoolOption(_.effect = _),
-      "enable effect system (default: false).",
+      "enable effect system (default: true).",
     ),
   )
   case class Config(
@@ -101,6 +101,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var detail: Boolean = false,
     var typeSens: Boolean = false,
     var inferTypeGuard: Boolean = true,
-    var effect: Boolean = false,
+    var effect: Boolean = true,
   )
 }
