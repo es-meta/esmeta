@@ -40,9 +40,9 @@ trait EffectDecl { self: TyChecker =>
           .getOrElse(k, Set.empty))).toMap,
       )
 
-    def fieldUpdate(fld: String, value: AbsValue)(using AbsState): Effect =
+    def fieldUpdate(fld: String, baseTy: ValueTy)(using AbsState): Effect =
       Effect({
-        value.ty.record.bases match
+        baseTy.record.bases match
           case Inf => Map()
           case Fin(set) =>
             val baseTys = set.map(ManualInfo.tyModel.baseOf(_))

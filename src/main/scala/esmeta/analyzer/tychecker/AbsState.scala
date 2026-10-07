@@ -275,7 +275,7 @@ trait AbsStateDecl { self: TyChecker =>
         .updated(lx, this.get(lx).fieldUpdate(fld, value)) // strong update
       if (!useEffect) this.copy(locals = newLocals.toMap)
       else
-        val newEffect = effect.fieldUpdate(fld, value)
+        val newEffect = effect.fieldUpdate(fld, this.get(lx).ty)
         this.copy(locals = newLocals.toMap, effect = newEffect)
     }
 
