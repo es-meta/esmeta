@@ -45,17 +45,19 @@ trait TypeGuardDecl { self: TyChecker =>
           if ty overlaps tty.ty
         } yield tty -> this.lookup(tty.ty))
 
-    def fieldLookup(fld: String): TypeGuard =
-      val m = for
-        (tty, p) <- map
-        ity = tty.ty.record(fld).value
-        if TargetType.set.contains(ity)
-      yield TargetType(ity) -> p
-      m.foldLeft(TypeGuard.Empty) {
-        case (acc, curr) =>
-          val (tty, p) = curr
-          acc.update(tty.ty, p)
-      }
+    def fieldLookup(fld: String, baseTy: ValueTy): TypeGuard =
+      if (map.isEmpty) this
+      else
+        TypeGuard((for {
+          tty <- TargetType.all
+          // Keep known base conditions; add the field condition before lookup.
+          ty = baseTy.copied(record =
+            baseTy.record.update(fld, tty.ty, refine = true),
+          )
+          if !ty.isBottom
+          prop = lookup(ty)
+          if prop.nonTop
+        } yield tty -> prop).toMap)
 
     def fieldUpdate(fld: String, ty: ValueTy): TypeGuard =
       val m = for {

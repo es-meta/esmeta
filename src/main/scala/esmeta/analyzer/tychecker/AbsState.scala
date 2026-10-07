@@ -159,7 +159,7 @@ trait AbsStateDecl { self: TyChecker =>
     def get(base: AbsValue, field: AbsValue)(using AbsState): AbsValue = {
       import SymExpr.*, SymTy.*
       val guard = field.ty.str.getSingle match
-        case One(s) => base.guard.fieldLookup(s)
+        case One(s) => base.guard.fieldLookup(s, base.ty)
         case _      => TypeGuard.Empty
       (base.symty, field.ty.getSingle) match
         case (ref: SymRef, One(Str(f))) =>

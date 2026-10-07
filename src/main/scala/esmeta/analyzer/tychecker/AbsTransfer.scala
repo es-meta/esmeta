@@ -1622,7 +1622,8 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState <- get
           refinedV = v.refine(ty)
           _ <- modify(_.strongUpdate(x, refinedV))
-          _ <- modify(refine(v.guard(ty)))
+          // Query with accumulated facts so earlier checks also enable guards.
+          _ <- modify(st => refine(v.guard(st.get(x).ty(using st)))(st))
         } yield ()
 
     def toBase(
