@@ -179,8 +179,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       } {
         given callerSt: AbsState = callInfo(callerNp)
         val retTy = rp.func.retTy.ty.toValue
-        val newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
         val weakenedSt = if (useEffect) callerSt.weaken(effect) else callerSt
+        val newV = {
+          given AbsState = weakenedSt
+          instantiate(value, callerNp, effect) ⊓ AbsValue(retTy)
+        }
         val nextSt = weakenedSt.update(callerNp.node.lhs, newV)
         analyzer += nextNp -> nextSt
       }
@@ -407,12 +410,16 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           callerSt = callInfo(callerNp)
           given AbsState = callerSt
           retTy = rp.func.retTy.ty.toValue
-          newV = instantiate(value, callerNp) ⊓ AbsValue(retTy)
+          weakenedSt = if (useEffect) callerSt.weaken(effect) else callerSt
+          newV = {
+            given AbsState = weakenedSt
+            instantiate(value, callerNp, effect) ⊓ AbsValue(retTy)
+          }
           if !newV.isBottom
-        } yield
-          val weakenedSt = if (useEffect) callerSt.weaken(effect) else callerSt
-          analyzer += nextNp -> weakenedSt.define(callerNp.node.lhs, newV)
-        )
+        } yield analyzer += nextNp -> weakenedSt.define(
+          callerNp.node.lhs,
+          newV,
+        ))
           .getOrElse {
             if (!getResult(rp).isBottom) worklist += rp
           }
@@ -1336,6 +1343,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     def instantiate(
       value: AbsValue,
       callerNp: NodePoint[Call],
+      effect: Effect = Effect.Empty,
     ): AbsValue =
       import TargetType.*
       given callerSt: AbsState = callInfo(callerNp)
@@ -1344,10 +1352,11 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       val map = vs.zipWithIndex.map {
         case (v, i) => i -> v
       }.toMap
-      val newV = instantiate(call, value, map)
+      val newV = instantiate(call, value, map, effect)
+      val weakenedSt = if (useEffect) callerSt.weaken(effect) else callerSt
       if (inferTypeGuard && useSyntacticweaken)
-        newV.bind.weakenMutable(using callerNp)
-      else if (inferTypeGuard) newV.bind
+        newV.bind(using weakenedSt).weakenMutable(using callerNp, weakenedSt)
+      else if (inferTypeGuard) newV.bind(using weakenedSt)
       else newV
 
     /** instantiation of abstract values */
@@ -1355,14 +1364,19 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       call: Call,
       value: AbsValue,
       map: Map[Sym, AbsValue],
+      effect: Effect,
     )(using st: AbsState): AbsValue =
       val AbsValue(symty, guard) = value
       val newGuard = TypeGuard((for {
         (tty, prop) <- guard.map
-        newProp = instantiate(call, prop, map)
+        newProp = instantiate(call, prop, map, effect)
         if newProp.nonTop
       } yield tty -> newProp).toMap)
-      val ivalue @ AbsValue(isymty, iguard) = instantiate(symty, map)
+      // Transport argument guards before substituting the symbolic shape.
+      val transported = map.map { (sym, value) =>
+        sym -> value.copy(guard = value.guard.transport(effect))
+      }
+      val ivalue @ AbsValue(isymty, iguard) = instantiate(symty, transported)
       AbsValue(isymty, newGuard && iguard)
 
     /** instantiation of type proposition */
@@ -1370,6 +1384,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       call: Call,
       prop: TypeProp,
       map: Map[Sym, AbsValue],
+      effect: Effect,
     )(using st: AbsState): TypeProp =
       val newEnv = (for {
         case (x: Sym, (ty, prov)) <- prop.map
@@ -1386,7 +1401,9 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         newExpr <- instantiate(e, map)
       } yield newExpr
 
-      TypeProp(newEnv).copy(sexpr = newSexpr)
+      val newProp = TypeProp(newEnv).copy(sexpr = newSexpr)
+      // The inferred caller proposition describes the pre-call heap.
+      if (effect.isBottom) newProp else newProp.weaken(effect)
 
     /** instantiation of symbolic expressions */
     def instantiate(
