@@ -1374,10 +1374,23 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       } yield tty -> newProp).toMap)
       // Transport argument guards before substituting the symbolic shape.
       val transported = map.map { (sym, value) =>
-        sym -> value.copy(guard = value.guard.transport(effect))
+        sym -> stableArgument(value, effect).copy(guard =
+          value.guard.transport(effect),
+        )
       }
       val ivalue @ AbsValue(isymty, iguard) = instantiate(symty, transported)
       AbsValue(isymty, newGuard && iguard)
+
+    /** describe the argument value, not a field read in the return heap */
+    private def stableArgument(value: AbsValue, effect: Effect)(using
+      st: AbsState,
+    ): AbsValue =
+      if (value.symty.isStable(effect)) value
+      else
+        val snapshot = STy(value.ty)
+        value.copy(symty =
+          if (snapshot.isStable(effect)) snapshot else STy(ValueTy.Top),
+        )
 
     /** instantiation of type proposition */
     def instantiate(
