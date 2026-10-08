@@ -25,6 +25,7 @@ case object TyCheck extends Phase[CFG, Unit] {
       inferTypeGuard = !config.noRefine && config.inferTypeGuard,
       noRefine = config.noRefine,
       useBooleanGuard = !config.noRefine && config.useBooleanGuard,
+      useProvenance = config.useProvenance,
       useSyntacticweaken = config.syntacticKill,
       typeSens = config.typeSens,
       useEffect = config.effect,
@@ -108,6 +109,11 @@ case object TyCheck extends Phase[CFG, Unit] {
       BoolOption(_.syntacticKill = _),
       "discard guards involving mutable locals (default: false).",
     ),
+    (
+      "provenance",
+      BoolOption(_.useProvenance = _),
+      "enable provenance tracking (default: false).",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -123,5 +129,6 @@ case object TyCheck extends Phase[CFG, Unit] {
     var noRefine: Boolean = false,
     var useBooleanGuard: Boolean = false,
     var syntacticKill: Boolean = false,
+    var useProvenance: Boolean = false,
   )
 }
