@@ -111,10 +111,7 @@ trait SymTyDecl { self: TyChecker =>
         case SSym(sym) => SSym(sym) // killed by symbolic environment
         case field: SField =>
           if (field.isStable(effect)) field
-          else
-            // Read the old type before the heap change, then drop the link.
-            val snapshot = STy(field.upper)
-            if (snapshot.isStable(effect)) snapshot else STy(ValueTy.Top)
+          else STy(effect(field.upper)) // weaken the old value's type
         case SNormal(symty) => SNormal(symty.weaken(effect)) // sound by spec
 
     def weakenRef(
