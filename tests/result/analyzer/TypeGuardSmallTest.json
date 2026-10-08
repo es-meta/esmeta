@@ -1,0 +1,8 @@
+{
+  "field lookup (abrupt completion)" : true,
+  "field lookup (single-field target)" : true,
+  "guard instantiation" : true,
+  "refinement (accumulated conditions)" : true,
+  "symbolic instantiation (changed field)" : true,
+  "symbolic instantiation (unchanged field)" : true
+}
