@@ -22,7 +22,10 @@ case object TyCheck extends Phase[CFG, Unit] {
     val tychecker = TyChecker(
       cfg = cfg,
       targetPattern = config.target,
-      inferTypeGuard = config.inferTypeGuard,
+      inferTypeGuard = !config.noRefine && config.inferTypeGuard,
+      noRefine = config.noRefine,
+      useBooleanGuard = !config.noRefine && config.useBooleanGuard,
+      useSyntacticweaken = config.syntacticKill,
       typeSens = config.typeSens,
       useEffect = config.effect,
       config = TyChecker.Config(),
@@ -90,6 +93,21 @@ case object TyCheck extends Phase[CFG, Unit] {
       BoolOption(_.effect = _),
       "enable effect system (default: true).",
     ),
+    (
+      "no-refine",
+      BoolOption(_.noRefine = _),
+      "disable type refinement (default: false).",
+    ),
+    (
+      "use-boolean-guard",
+      BoolOption(_.useBooleanGuard = _),
+      "use only boolean type guard targets (default: false).",
+    ),
+    (
+      "syntactic-kill",
+      BoolOption(_.syntacticKill = _),
+      "discard guards involving mutable locals (default: false).",
+    ),
   )
   case class Config(
     var target: Option[String] = None,
@@ -102,5 +120,8 @@ case object TyCheck extends Phase[CFG, Unit] {
     var typeSens: Boolean = false,
     var inferTypeGuard: Boolean = true,
     var effect: Boolean = true,
+    var noRefine: Boolean = false,
+    var useBooleanGuard: Boolean = false,
+    var syntacticKill: Boolean = false,
   )
 }
