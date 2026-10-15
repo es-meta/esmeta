@@ -59,7 +59,7 @@ trait SymTyDecl { self: TyChecker =>
 
     /** whether this description still denotes the argument after a call */
     def isStable(effect: Effect)(using st: AbsState): Boolean =
-      val written = effect.map.values.flatten.toSet
+      val written = effect.changed
 
       def stableType(ty: ValueTy, seen: Set[ValueTy] = Set()): Boolean =
         if (seen.contains(ty)) false

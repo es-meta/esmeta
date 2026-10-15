@@ -427,25 +427,30 @@ trait AbsTransferDecl { analyzer: TyChecker =>
     }
 
     /** weaken the state by a write to the field reference `ref` */
-    private def weaken(ref: Ref)(using np: NodePoint[?]): Updater =
-      def effectOf(ref: Ref): Result[Effect] = ref match
+    private def weaken(
+      ref: Ref,
+      delete: Boolean = false,
+    )(using np: NodePoint[?]): Updater =
+      def effectOf(ref: Ref, delete: Boolean): Result[Effect] = ref match
         case Field(base, fexpr) =>
           for {
             bv <- transfer(ERef(base))
             fv <- transfer(fexpr)
             given AbsState <- get
             // unknown field name: every field of the base object
-            own = fv.ty.str.getSingle match
-              case One(f) => Effect.Empty.fieldUpdate(f, bv.ty)
-              case _      => Effect.Empty.allFieldsUpdate(bv.ty)
+            own = (fv.ty.str.getSingle, delete) match
+              case (One(f), false) => Effect.Empty.fieldUpdate(f, bv.ty)
+              case (One(f), true)  => Effect.Empty.fieldDelete(f, bv.ty)
+              case (_, false)      => Effect.Empty.allFieldsUpdate(bv.ty)
+              case (_, true)       => Effect.Empty.allFieldsDelete(bv.ty)
             // a list or map in a field is changed in place
             outer <-
               if (bv.ty.list.isBottom && bv.ty.map.isBottom) pure(Effect.Empty)
-              else effectOf(base)
+              else effectOf(base, delete = false)
           } yield own ⊔ outer
         case _ => pure(Effect.Empty)
       for {
-        effect <- effectOf(ref)
+        effect <- effectOf(ref, delete)
         _ <- modify(weakenBy(effect))
       } yield ()
 
@@ -507,7 +512,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
         } yield ()
       case IAssign(ref, expr)  => weaken(ref)
       case IExpand(base, expr) => weaken(Field(base, expr))
-      case IDelete(base, expr) => weaken(Field(base, expr))
+      case IDelete(base, expr) => weaken(Field(base, expr), delete = true)
       case IPush(expr, ERef(list: Local), _) =>
         for {
           given AbsState <- get
