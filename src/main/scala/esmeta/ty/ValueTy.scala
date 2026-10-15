@@ -61,24 +61,26 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
   def <=(that: => ValueTy): Boolean =
     if ((this eq that) || (this eq Bot) || (that eq Top)) true
     else if (this eq Top) false
-    else
-      this.clo <= that.clo &&
-      this.cont <= that.cont &&
-      this.record <= that.record &&
-      this.map <= that.map &&
-      this.list <= that.list &&
-      this.ast <= that.ast &&
-      this.grammarSymbol <= that.grammarSymbol &&
-      this.codeUnit <= that.codeUnit &&
-      this.enumv <= that.enumv &&
-      this.math <= that.math &&
-      this.infinity <= that.infinity &&
-      this.number <= that.number &&
-      this.bigInt <= that.bigInt &&
-      this.str <= that.str &&
-      this.bool <= that.bool &&
-      this.undef <= that.undef &&
-      this.nullv <= that.nullv
+    else ValueTy.opCache.leq(this, that)(leqBody(that))
+
+  private def leqBody(that: ValueTy): Boolean =
+    this.clo <= that.clo &&
+    this.cont <= that.cont &&
+    this.record <= that.record &&
+    this.map <= that.map &&
+    this.list <= that.list &&
+    this.ast <= that.ast &&
+    this.grammarSymbol <= that.grammarSymbol &&
+    this.codeUnit <= that.codeUnit &&
+    this.enumv <= that.enumv &&
+    this.math <= that.math &&
+    this.infinity <= that.infinity &&
+    this.number <= that.number &&
+    this.bigInt <= that.bigInt &&
+    this.str <= that.str &&
+    this.bool <= that.bool &&
+    this.undef <= that.undef &&
+    this.nullv <= that.nullv
 
   /** union type */
   def ||(that: => ValueTy): ValueTy =
@@ -87,26 +89,28 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     else if (this eq Top) Top
     else if (that eq Bot) this
     else if (that eq Top) Top
-    else
-      ValueTy(
-        this.clo || that.clo,
-        this.cont || that.cont,
-        this.record || that.record,
-        this.map || that.map,
-        this.list || that.list,
-        this.ast || that.ast,
-        this.grammarSymbol || that.grammarSymbol,
-        this.codeUnit || that.codeUnit,
-        this.enumv || that.enumv,
-        this.math || that.math,
-        this.infinity || that.infinity,
-        this.number || that.number,
-        this.bigInt || that.bigInt,
-        this.str || that.str,
-        this.bool || that.bool,
-        this.undef || that.undef,
-        this.nullv || that.nullv,
-      ).norm
+    else ValueTy.opCache.join(this, that)(joinBody(that))
+
+  private def joinBody(that: ValueTy): ValueTy =
+    ValueTy(
+      this.clo || that.clo,
+      this.cont || that.cont,
+      this.record || that.record,
+      this.map || that.map,
+      this.list || that.list,
+      this.ast || that.ast,
+      this.grammarSymbol || that.grammarSymbol,
+      this.codeUnit || that.codeUnit,
+      this.enumv || that.enumv,
+      this.math || that.math,
+      this.infinity || that.infinity,
+      this.number || that.number,
+      this.bigInt || that.bigInt,
+      this.str || that.str,
+      this.bool || that.bool,
+      this.undef || that.undef,
+      this.nullv || that.nullv,
+    ).norm
 
   /** intersection type */
   def &&(that: => ValueTy): ValueTy =
@@ -115,26 +119,28 @@ sealed trait ValueTy extends Ty with Lattice[ValueTy] {
     else if (this eq Top) that
     else if (that eq Bot) Bot
     else if (that eq Top) this
-    else
-      ValueTy(
-        this.clo && that.clo,
-        this.cont && that.cont,
-        this.record && that.record,
-        this.map && that.map,
-        this.list && that.list,
-        this.ast && that.ast,
-        this.grammarSymbol && that.grammarSymbol,
-        this.codeUnit && that.codeUnit,
-        this.enumv && that.enumv,
-        this.math && that.math,
-        this.infinity && that.infinity,
-        this.number && that.number,
-        this.bigInt && that.bigInt,
-        this.str && that.str,
-        this.bool && that.bool,
-        this.undef && that.undef,
-        this.nullv && that.nullv,
-      )
+    else ValueTy.opCache.meet(this, that)(meetBody(that))
+
+  private def meetBody(that: ValueTy): ValueTy =
+    ValueTy(
+      this.clo && that.clo,
+      this.cont && that.cont,
+      this.record && that.record,
+      this.map && that.map,
+      this.list && that.list,
+      this.ast && that.ast,
+      this.grammarSymbol && that.grammarSymbol,
+      this.codeUnit && that.codeUnit,
+      this.enumv && that.enumv,
+      this.math && that.math,
+      this.infinity && that.infinity,
+      this.number && that.number,
+      this.bigInt && that.bigInt,
+      this.str && that.str,
+      this.bool && that.bool,
+      this.undef && that.undef,
+      this.nullv && that.nullv,
+    )
 
   /** prune type */
   def --(that: => ValueTy): ValueTy =
@@ -432,8 +438,43 @@ case class ValueElemTy(
   bool: BoolTy = BoolTy.Bot,
   undef: Boolean = false,
   nullv: Boolean = false,
-) extends ValueTy
+) extends ValueTy {
+  // computed once since value types are immutable and used as cache keys
+  override lazy val hashCode: Int =
+    scala.util.hashing.MurmurHash3.productHash(this)
+}
 object ValueTy extends Parser.From(Parser.valueTy) {
+
+  /** caches of binary operations on value types; the operations are pure
+    * because the type model is fixed during an analysis
+    */
+  object opCache {
+    import scala.collection.mutable.HashMap
+    private type Cache[R] = HashMap[ValueTy, HashMap[ValueTy, R]]
+    private val leqMap: Cache[Boolean] = HashMap()
+    private val joinMap: Cache[ValueTy] = HashMap()
+    private val meetMap: Cache[ValueTy] = HashMap()
+    // a canonical object for each value type so that equal types are
+    // usually identical and later comparisons end with a reference check
+    private val canonMap: HashMap[ValueTy, ValueTy] = HashMap()
+    def canon(v: ValueTy): ValueTy = canonMap.getOrElseUpdate(v, v)
+    private def lookup[R](c: Cache[R], l: ValueTy, r: ValueTy, f: => R): R =
+      val inner = c.getOrElseUpdate(canon(l), HashMap())
+      val cr = canon(r)
+      inner.get(cr) match
+        case Some(v) => v
+        case None =>
+          val v = f
+          inner.update(cr, v)
+          v
+    def leq(l: ValueTy, r: ValueTy)(f: => Boolean): Boolean =
+      lookup(leqMap, l, r, f)
+    def join(l: ValueTy, r: ValueTy)(f: => ValueTy): ValueTy =
+      lookup(joinMap, l, r, canon(f))
+    def meet(l: ValueTy, r: ValueTy)(f: => ValueTy): ValueTy =
+      lookup(meetMap, l, r, canon(f))
+  }
+
   def apply(
     clo: CloTy = CloTy.Bot,
     cont: BSet[Int] = Fin(),
