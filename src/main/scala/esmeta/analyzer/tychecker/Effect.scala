@@ -3,6 +3,7 @@ package esmeta.analyzer.tychecker
 import esmeta.util.Appender.*
 import esmeta.ty.*
 import esmeta.util.*
+import esmeta.util.BaseUtils.cached
 
 /** abstract return values */
 trait EffectDecl { self: TyChecker =>
@@ -43,6 +44,10 @@ trait EffectDecl { self: TyChecker =>
     /** effect of writing a field of an object described by `baseTy` */
     def fieldUpdate(fld: String, baseTy: ValueTy)(using AbsState): Effect =
       Effect(basesOf(baseTy).map(_ -> Set(fld)).toMap) ⊔ this
+
+    /** effect of writing an unknown field of an object described by `baseTy` */
+    def allFieldsUpdate(baseTy: ValueTy)(using AbsState): Effect =
+      Effect(basesOf(baseTy).map(b => b -> declaredFieldsOf(b)).toMap) ⊔ this
 
     /** base types of an object (every base type if unknown) */
     private def basesOf(baseTy: ValueTy): Set[String] =
@@ -87,9 +92,21 @@ trait EffectDecl { self: TyChecker =>
 
     lazy val Empty: Effect = Effect()
 
-    /** all base types */
+    /** all base types, including the one of anonymous record types */
     lazy val allBases: Set[String] =
-      ManualInfo.tyModel.declMap.keySet.map(ManualInfo.tyModel.baseOf(_))
+      ManualInfo.tyModel.declMap.keySet.map(ManualInfo.tyModel.baseOf(_)) + ""
+
+    /** all fields declared for a base type and its subtypes */
+    lazy val declaredFieldsOf: String => Set[String] = cached { base =>
+      val tyModel = ManualInfo.tyModel
+      (tyModel.strictSubTysOf(base) + base).flatMap(
+        tyModel.ownFieldsOf(_).keySet,
+      )
+    }
+
+    /** any field of any object may be written */
+    lazy val All: Effect =
+      Effect(allBases.map(b => b -> declaredFieldsOf(b)).toMap)
 
     /** appender */
     private given Rule[Set[String]] = iterableRule("(", ", ", ")")
