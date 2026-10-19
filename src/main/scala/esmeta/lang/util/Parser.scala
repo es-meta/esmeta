@@ -1077,6 +1077,10 @@ trait Parsers extends IndentParsers {
       "finite" ^^^ Finite |
       "a finite Number" ^^^ FiniteNumber |
       "a non-zero finite Number" ^^^ NonZeroFiniteNumber |
+      "even" ^^^ Even |
+      "odd" ^^^ Odd |
+      "an even integral Number" ^^^ EvenIntegralNumber |
+      "an odd integral Number" ^^^ OddIntegralNumber |
       "a normal completion" ^^^ Normal |
       "an abrupt completion" ^^^ Abrupt |
       "a throw completion" ^^^ Throw |

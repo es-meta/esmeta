@@ -954,6 +954,15 @@ class Compiler(
                 case Finite => or(finiteNum, isTy(MathT || BigIntT))
                 case NonZeroFiniteNumber => and(finiteNum, isTy(NonZeroNumberT))
                 case _                   => finiteNum
+            case Even | Odd | EvenIntegralNumber | OddIntegralNumber =>
+              def checkParity(m: Expr): Expr =
+                val even = op == Even || op == EvenIntegralNumber
+                is(EBinary(BOp.Mod, m, two), if (even) zero else one)
+              op match
+                case Even | Odd => checkParity(x)
+                case _ =>
+                  val m = EConvert(COp.ToMath, x)
+                  and(ETypeCheck(x, IRType(NumberIntT)), checkParity(m))
             case Duplicated =>
               val (b, bExpr) = fb.newTIdWithExpr
               fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
@@ -1188,6 +1197,7 @@ class Compiler(
   /** literal helpers */
   def zero = EMath(BigDecimal(0, UNLIMITED))
   def one = EMath(BigDecimal(1, UNLIMITED))
+  def two = EMath(BigDecimal(2, UNLIMITED))
   def posInf = ENumber(Double.PositiveInfinity)
   def negInf = ENumber(Double.NegativeInfinity)
   def T = EBool(true)
