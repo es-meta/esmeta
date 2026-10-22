@@ -384,14 +384,14 @@ class TyChecker(
       AbsRet(value, _) = getResult(ReturnPoint(func, emptyView))
       if value.hasTypeGuard(entrySt)
       guard = TypeGuard(for {
-        (dty, pred) <- value.guard.map
+        (tty, pred) <- value.guard.map
         newPred = TypeProp(for {
           pair <- pred.map
           (x, (ty, prov)) = pair
           if !(entrySt.getTy(x) <= ty)
         } yield pair)
         if newPred.nonTop
-      } yield dty -> newPred)
+      } yield tty -> newPred)
     } yield func -> value.copy(guard = guard)
 
   // ---------------------------------------------------------------------------

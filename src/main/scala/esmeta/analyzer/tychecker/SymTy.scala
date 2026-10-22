@@ -57,6 +57,48 @@ trait SymTyDecl { self: TyChecker =>
       case SField(base, field) => base.bases ++ field.bases
       case SNormal(symty)      => symty.bases
 
+    /** whether this description still denotes the argument after a call */
+    def isStable(effect: Effect)(using st: AbsState): Boolean =
+      val written = effect.changed
+
+      def stableType(ty: ValueTy, seen: Set[ValueTy] = Set()): Boolean =
+        if (seen.contains(ty)) false
+        else
+          val recordStable = ty.record match
+            case RecordTy.Top => true
+            case RecordTy.Elem(map) =>
+              map.forall { (name, fm) =>
+                val fields =
+                  ManualInfo.tyModel.fieldsOf(name).toList ++ fm.map.toList
+                fields.forall { (field, binding) =>
+                  !written.contains(field) &&
+                  stableType(binding.value, seen + ty)
+                }
+              }
+          // Element/key constraints can depend on mutable heap contents.
+          recordStable && (ty.list match
+            case ListTy.Elem(_) => false
+            case _              => true
+          ) && (ty.map match
+            case MapTy.Elem(_, _) => false
+            case _                => true
+          )
+
+      def stable(symty: SymTy): Boolean = symty match
+        case STy(ty) => stableType(ty)
+        // Callees do not reassign caller locals or argument value aliases.
+        case SVar(_) | SSym(_) => true
+        case SField(base, field) =>
+          stable(base) && stable(field) && (field.upper.getSingle match
+            case One(Str(name)) => !written.contains(name)
+            case _              => false
+          )
+        case SNormal(inner) =>
+          !Set("Type", "Value", "Target").exists(written.contains) &&
+          stable(inner)
+
+      written.isEmpty || stable(this)
+
     def weaken(bases: Set[Base], update: Boolean): Option[SymTy] = this match
       case t: SymRef      => weakenRef(t, bases, update)
       case STy(ty)        => Some(STy(ty))
@@ -67,10 +109,9 @@ trait SymTyDecl { self: TyChecker =>
         case STy(ty)   => STy(effect(ty))
         case SVar(x)   => SVar(x) // killed by abstract environment
         case SSym(sym) => SSym(sym) // killed by symbolic environment
-        case SField(b, f) => // maybe unsound
-          val weakenedb = b.weaken(effect)
-          val weakenedf = f.weaken(effect)
-          SField(weakenedb.asInstanceOf[SymRef], weakenedf)
+        case field: SField =>
+          if (field.isStable(effect)) field
+          else STy(effect(field.upper)) // weaken the old value's type
         case SNormal(symty) => SNormal(symty.weaken(effect)) // sound by spec
 
     def weakenRef(

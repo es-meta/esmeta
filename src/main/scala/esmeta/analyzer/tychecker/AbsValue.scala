@@ -74,8 +74,8 @@ trait AbsValueDecl { self: TyChecker =>
       val newSymTy = STy(
         tty.copied(record = tty.record.update(fld, vty, refine = false)),
       )
-      val newGuard = guard.fieldUpdate(fld, vty)
-      AbsValue(newSymTy, newGuard)
+      // The state update already weakened the guard for this mutation.
+      AbsValue(newSymTy, guard)
 
     /** remove non-parameter local variables */
     def forReturn(
