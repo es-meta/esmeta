@@ -246,7 +246,7 @@ class Fuzzer(
           "fail" -> fail.asJson,
         ).asJson
         key -> obj
-      })*
+      }) *,
     ).asJson
 
   /** coverage */

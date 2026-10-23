@@ -41,6 +41,11 @@ object Stringifier {
       case elem: Table          => tableRule(app, elem)
       case elem: Constant       => constantRule(app, elem)
 
+  // for specifications
+  given Rule[Spec] = specRule
+  lazy val specRule: Rule[Spec] = (app, spec) =>
+    if (!spec.isEmpty) app >> spec.summary else app
+
   // for specification summaries
   given summaryRule: Rule[Summary] = (app, summary) =>
     import ProductionKind.*
@@ -75,9 +80,24 @@ object Stringifier {
     app :> "- type model: " >> tyModel
     app :> "- intrinsics: " >> intr
 
-  // for specifications
-  given specRule: Rule[Spec] = (app, spec) =>
-    if (!spec.isEmpty) app >> spec.summary else app
+  // for grammars
+  given Rule[Grammar] = grammarRule
+  lazy val grammarRule: Rule[Grammar] = (app, grammar) =>
+    given Rule[List[Production]] = iterableRule(sep = LINE_SEP * 2)
+    app >> "<Productions>"
+    app :> grammar.prods
+    app :> ""
+    app :> "<Productions for Web>"
+    app :> grammar.prodsForWeb
+
+  // for productions
+  given Rule[Production] = prodRule
+  lazy val prodRule: Rule[Production] = (app, prod) =>
+    val Production(lhs, kind, oneof, rhsVec) = prod
+    app >> lhs >> " " >> kind
+    given Rule[List[Rhs]] = iterableRule(sep = " ")
+    if (oneof) app.wrap(" one of", "")(app :> rhsVec)
+    else app.wrap("", "")(for (rhs <- rhsVec) app :> rhs)
 
   // for production left-hand-sides (LHSs)
   given lhsRule: Rule[Lhs] = (app, lhs) =>
@@ -95,28 +115,34 @@ object Stringifier {
       case NumericString => ":::"
     )
 
-  // for conditions for nonterminal argument kinds
-  given ntArgKindRule: Rule[NtArgKind] = (app, kind) =>
-    import NonterminalArgumentKind.*
-    app >> (kind match
-      case True  => "+"
-      case False => "~"
-      case Pass  => "?"
-    )
+  // for production alternative right-hand-sides (RHSs)
+  given Rule[Rhs] = rhsRule
+  lazy val rhsRule: Rule[Rhs] = (app, rhs) =>
+    val Rhs(conditions, symbols, id) = rhs
+    given Rule[List[Symbol]] = iterableRule(sep = " ")
+    if (conditions.nonEmpty) app >> conditions >> " "
+    app >> symbols
+    id.foreach(app >> " #" >> _)
+    app
 
-  // for conditions for nonterminal arguments
-  given ntArgRule: Rule[NtArg] = (app, ntArg) =>
-    val NtArg(kind, name) = ntArg
-    app >> kind >> name
+  // for list of conditions for RHSs
+  given Rule[List[RhsCond]] = rhsCondsRule
+  lazy val rhsCondsRule: Rule[List[RhsCond]] = iterableRule("[", ", ", "]")
+
+  // for conditions for RHSs
+  given rhsCondRule: Rule[RhsCond] = (app, rhsCond) =>
+    val RhsCond(name, pass) = rhsCond
+    app >> (if (pass) "+" else "~") >> name
 
   // for conditions for symbols
-  private val symbolRule: Rule[Symbol] = (app, symbol) =>
+  given Rule[Symbol] = symbolRule
+  lazy val symbolRule: Rule[Symbol] = (app, symbol) =>
     given n: Rule[List[NtArg]] = iterableRule("[", ", ", "]")
-    given t: Rule[List[Symbol]] = iterableRule(sep = " ")(using symbolRule)
+    given t: Rule[List[Symbol]] = iterableRule(sep = " ")
     given ts: Rule[List[List[Symbol]]] = iterableRule("{", ", ", "}")
     symbol match
       case Terminal(term)      => app >> s"`$term`"
-      case ButNot(base, cases) => symbolRule(app, base) >> " but not " >> cases
+      case ButNot(base, cases) => app >> base >> " but not " >> cases
       case Empty               => app >> "[empty]"
       case NoLineTerminator    => app >> "[no LineTerminator here]"
       case CodePoint(cp, desc) =>
@@ -126,86 +152,42 @@ object Stringifier {
         app >> name
         if (!args.isEmpty) app >> args else app
       case Optional(symbol) =>
-        symbolRule(app, symbol) >> "?"
+        app >> symbol >> "?"
       case Lookahead(b, cases) =>
         app >> "[lookahead " >> (if (b) "<" else "<!") >> " " >> cases >> "]"
       case ButOnlyIf(base, name, cond) =>
-        symbolRule(app, base) >> " [> but only if " >> name >> " of "
+        app >> base >> " [> but only if " >> name >> " of "
         app >> "|" >> base.name >> "|" >> cond >> "]"
       case UnicodeSet(cond) =>
         app >> "> any Unicode code point"
         cond.map(app >> " " >> _)
         app
-  given Rule[Symbol] = symbolRule
 
-  // for conditions for RHSs
-  given rhsCondRule: Rule[RhsCond] = (app, rhsCond) =>
-    val RhsCond(name, pass) = rhsCond
-    app >> (if (pass) "+" else "~") >> name
+  // for conditions for nonterminal arguments
+  given Rule[NtArg] = ntArgRule
+  lazy val ntArgRule: Rule[NtArg] = (app, ntArg) =>
+    val NtArg(kind, name) = ntArg
+    app >> kind >> name
 
-  // for list of conditions for RHSs
-  given rhsCondsRule: Rule[List[RhsCond]] = iterableRule("[", ", ", "]")
+  // for conditions for nonterminal argument kinds
+  given ntArgKindRule: Rule[NtArgKind] = (app, kind) =>
+    import NonterminalArgumentKind.*
+    app >> (kind match
+      case True  => "+"
+      case False => "~"
+      case Pass  => "?"
+    )
 
-  // for production alternative right-hand-sides (RHSs)
-  given rhsRule: Rule[Rhs] = (app, rhs) =>
-    val Rhs(conditions, symbols, id) = rhs
-    given Rule[List[Symbol]] = iterableRule(sep = " ")
-    if (conditions.nonEmpty) app >> conditions >> " "
-    app >> symbols
-    id.foreach(app >> " #" >> _)
-    app
-
-  // for productions
-  given prodRule: Rule[Production] = (app, prod) =>
-    val Production(lhs, kind, oneof, rhsVec) = prod
-    app >> lhs >> " " >> kind
-    given Rule[List[Rhs]] = iterableRule(sep = " ")
-    if (oneof) app.wrap(" one of", "")(app :> rhsVec)
-    else app.wrap("", "")(for (rhs <- rhsVec) app :> rhs)
-
-  // for grammars
-  given grammarRule: Rule[Grammar] = (app, grammar) =>
-    given Rule[List[Production]] = iterableRule(sep = LINE_SEP * 2)
-    app >> "<Productions>"
-    app :> grammar.prods
-    app :> ""
-    app :> "<Productions for Web>"
-    app :> grammar.prodsForWeb
-
-  // for algorithm parameter kinds
-  given paramKindRule: Rule[ParamKind] = (app, param) =>
-    import ParamKind.*
-    param match
-      case Normal   => app
-      case Optional => app >> "optional "
-      case Variadic => app >> "..."
-
-  // for algorithm parameters
-  given paramRule: Rule[Param] = (app, param) =>
-    val Param(name, ty, kind) = param
-    app >> kind >> "_" >> name >> "_"
-    if (ty.isUnknown) app
-    else app >> ": " >> ty
-
-  // for syntax-directed operation head targets
-  given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>
-    given Rule[List[Param]] = iterableRule("(", ", ", ")")
-    val SdoHeadTarget(lhsName, idx, subIdx) = target
-    app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]."
-
-  private val builtinPathRule: Rule[BuiltinPath] = (app, path) =>
-    import BuiltinPath.*
-    path match
-      case Base(name)               => app >> name
-      case NormalAccess(base, name) => builtinPathRule(app, base) >> "." >> name
-      case Getter(base)             => builtinPathRule(app >> "get:", base)
-      case Setter(base)             => builtinPathRule(app >> "set:",  base)
-      case SymbolAccess(base, symbol) =>
-        builtinPathRule(app, base) >> "[%Symbol." >> symbol >> "%]"
-  given Rule[BuiltinPath] = builtinPathRule
+  // for algorithms
+  given Rule[Algorithm] = algoRule
+  lazy val algoRule: Rule[Algorithm] = (app, algo) => {
+    val Algorithm(head, body, code) = algo
+    app >> head >> body
+  }
 
   // for algorithm heads
-  given headRule: Rule[Head] = (app, head) =>
+  given Rule[Head] = headRule
+  lazy val headRule: Rule[Head] = (app, head) =>
     given Rule[List[Param]] = _.wrapIterable("(", ",", ")")(_)
     head match
       case AbstractOperationHead(isHostDefined, name, params, rty) =>
@@ -231,16 +213,44 @@ object Stringifier {
       case BuiltinHead(path, params, rty) =>
         app >> "[builtin] " >> path >> params >> ": " >> rty
 
-  // for algorithms
-  given algoRule: Rule[Algorithm] = (app, algo) => {
-    val Algorithm(head, body, code) = algo
-    app >> head >> body
-  }
+  given Rule[BuiltinPath] = builtinPathRule
+  lazy val builtinPathRule: Rule[BuiltinPath] = (app, path) =>
+    import BuiltinPath.*
+    path match
+      case Base(name)               => app >> name
+      case NormalAccess(base, name) => app >> base >> "." >> name
+      case Getter(base)             => app >> "get:" >> base
+      case Setter(base)             => app >> "set:" >> base
+      case SymbolAccess(base, symbol) =>
+        app >> base >> "[%Symbol." >> symbol >> "%]"
+
+  // for syntax-directed operation head targets
+  given Rule[SdoHeadTarget] = sdoHeadTargetRule
+  lazy val sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>
+    given Rule[List[Param]] = iterableRule("(", ", ", ")")
+    val SdoHeadTarget(lhsName, idx, subIdx) = target
+    app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]."
+
+  // for algorithm parameters
+  given Rule[Param] = paramRule
+  lazy val paramRule: Rule[Param] = (app, param) =>
+    val Param(name, ty, kind) = param
+    app >> kind >> "_" >> name >> "_"
+    if (ty.isUnknown) app
+    else app >> ": " >> ty
 
   // for algorithm parameters
   lazy val rhsParamRule: Rule[Param] = (app, param) =>
     val Param(name, ty, kind) = param
     app >> kind >> name
+
+  // for algorithm parameter kinds
+  given paramKindRule: Rule[ParamKind] = (app, param) =>
+    import ParamKind.*
+    param match
+      case Normal   => app
+      case Optional => app >> "optional "
+      case Variadic => app >> "..."
 
   // TODO: for tables
   given tableRule: Rule[Table] = (app, table) => ???

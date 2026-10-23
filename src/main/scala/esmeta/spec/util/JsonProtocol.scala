@@ -67,18 +67,19 @@ object JsonProtocol extends BasicJsonProtocol {
     "abbr" -> (_.as[CodePointAbbr]),
     "cpCond" -> (_.as[UnicodeSet]),
   )
-  given Encoder[Symbol] = Encoder.instance {
-    case symbol: Terminal      => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_Terminal)
-    case symbol: Nonterminal   => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_Nonterminal)
-    case symbol: Optional      => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_Optional)
-    case symbol: ButNot        => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_ButNot)
-    case symbol: ButOnlyIf     => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_ButOnlyIf)
-    case symbol: Lookahead     => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_Lookahead)
+  given Encoder[Symbol] = symbolEncoder
+  private lazy val symbolEncoder: Encoder[Symbol] = Encoder.instance {
+    case symbol: Terminal      => symbol.asJson
+    case symbol: Nonterminal   => symbol.asJson
+    case symbol: Optional      => symbol.asJson
+    case symbol: ButNot        => symbol.asJson
+    case symbol: ButOnlyIf     => symbol.asJson
+    case symbol: Lookahead     => symbol.asJson
     case Empty                 => Json.obj("empty" -> Json.Null)
     case NoLineTerminator      => Json.obj("nlt" -> Json.Null)
-    case symbol: CodePoint     => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_CodePoint)
-    case symbol: CodePointAbbr => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_CodePointAbbr)
-    case symbol: UnicodeSet    => symbol.asJson (using esmeta.spec.util.JsonProtocol.given_Encoder_UnicodeSet)
+    case symbol: CodePoint     => symbol.asJson
+    case symbol: CodePointAbbr => symbol.asJson
+    case symbol: UnicodeSet    => symbol.asJson
   }
   given Decoder[Terminal] = deriveDecoder
   given Encoder[Terminal] = deriveEncoder

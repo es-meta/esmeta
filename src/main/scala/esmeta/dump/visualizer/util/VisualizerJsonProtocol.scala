@@ -22,38 +22,22 @@ class VisualizerJsonProtocol(cfg: CFG) {
         throw ESMetaError(s"invalid feature $fName")
   }
 
-  given NodeDecoder: Decoder[NodeJson] = Decoder.instance(c =>
-    for {
-      id <- c.downField("name").as[String].map(parseNodeName(_))
-      inst <- c.downField("inst").as[String]
-      func <- c.downField("func").as[String].map(cfg.getFunc)
-    } yield NodeJson(id, inst, func),
-  )
+  given Decoder[NodeViewInfoJson] = nodeViewInfoDecoder
+  lazy val nodeViewInfoDecoder: Decoder[NodeViewInfoJson] =
+    Decoder.instance(c =>
+      for {
+        index <- c.downField("index").as[Int]
+        nodeView <- c.downField("nodeView").as[NodeViewJson]
+        script <- c.downField("script").as[String].map(_.stripSuffix(".js"))
+      } yield NodeViewInfoJson(index, nodeView, script),
+    )
 
-  given ViewDecoder: Decoder[ViewJson] = Decoder.instance(c =>
-    for {
-      enclosing <- c
-        .downField("enclosing")
-        .as[List[String]]
-        .map(_.map(funcNameToFeature))
-      feature <- c.downField("feature").as[String].map(funcNameToFeature)
-      path <- c.downField("path").as[Option[String]].map(parseCallPath(_))
-    } yield ViewJson(enclosing, feature, path),
-  )
-
-  given nodeViewDecoder: Decoder[NodeViewJson] = Decoder.instance(c =>
+  given Decoder[NodeViewJson] = nodeViewDecoder
+  lazy val nodeViewDecoder: Decoder[NodeViewJson] = Decoder.instance(c =>
     for {
       node <- c.downField("node").as[NodeJson]
       view <- c.downField("view").as[Option[ViewJson]]
     } yield NodeViewJson(node, view),
-  )
-
-  given nodeViewInfoDecoder: Decoder[NodeViewInfoJson] = Decoder.instance(c =>
-    for {
-      index <- c.downField("index").as[Int]
-      nodeView <- c.downField("nodeView").as[NodeViewJson]
-      script <- c.downField("script").as[String].map(_.stripSuffix(".js"))
-    } yield NodeViewInfoJson(index, nodeView, script),
   )
 
   def parseNodeName(name: String): Int = {
@@ -62,6 +46,13 @@ class VisualizerJsonProtocol(cfg: CFG) {
       case JsonParser.Success(value, _) => value
       case _ => throw ESMetaError(s"invalid node name $name")
   }
+  given NodeDecoder: Decoder[NodeJson] = Decoder.instance(c =>
+    for {
+      id <- c.downField("name").as[String].map(parseNodeName(_))
+      inst <- c.downField("inst").as[String]
+      func <- c.downField("func").as[String].map(cfg.getFunc)
+    } yield NodeJson(id, inst, func),
+  )
 
   def parseCallPath(path: Option[String]): Option[String] = {
     def parse(path: String): String = {
@@ -85,4 +76,15 @@ class VisualizerJsonProtocol(cfg: CFG) {
       case None       => None
       case Some(path) => Some(parse(path))
   }
+
+  given ViewDecoder: Decoder[ViewJson] = Decoder.instance(c =>
+    for {
+      enclosing <- c
+        .downField("enclosing")
+        .as[List[String]]
+        .map(_.map(funcNameToFeature))
+      feature <- c.downField("feature").as[String].map(funcNameToFeature)
+      path <- c.downField("path").as[Option[String]].map(parseCallPath(_))
+    } yield ViewJson(enclosing, feature, path),
+  )
 }

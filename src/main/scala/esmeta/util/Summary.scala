@@ -95,16 +95,16 @@ case class Summary(
   private given Rule[(String, Int)] = {
     case (app, (name, count)) => app >> f"- $name: $count%,d"
   }
-  private val ruleReasonElem: Rule[(Reason, Elem)] = {
+  private given Rule[(Reason, Elem)] = reasonElemRule
+  private lazy val reasonElemRule: Rule[(Reason, Elem)] = {
     case (app, (reason, elem @ Elem(seq, map))) =>
       app >> reason -> elem.size
       if (!map.isEmpty)
         var pairs = map.toList.sortBy(-_._2.size)
         if (!seq.isEmpty) pairs :+= "others" -> Elem(seq)
-        app.wrapIterable("", "", "")(pairs)(using ruleReasonElem)
+        app.wrapIterable("", "", "")(pairs)
       app
   }
-  private given Rule[(Reason, Elem)] = ruleReasonElem
 }
 
 object Summary {

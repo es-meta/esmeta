@@ -173,10 +173,7 @@ class Initialize(cfg: CFG) {
 
     // add typed array constructors
     for {
-      // Added conversion to Iterable because of:
-      // https://www.scala-lang.org/news/3.8.2/
-      (x, m) <- taInstances.iterator.to(Iterable)
-
+      (x, m) <- taInstances.toList
       addr = taAddr(x)
       record = RecordObj("", m.map { (k, v) => k -> toValue(v) })
     } {

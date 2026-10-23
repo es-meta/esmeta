@@ -102,7 +102,8 @@ class JsonProtocol(cfg: esmeta.cfg.CFG) extends BasicJsonProtocol {
       .asJson
   }
 
-  private val astEncoder: Encoder[Ast] = Encoder.instance {
+  given Encoder[Ast] = astEncoder
+  private lazy val astEncoder: Encoder[Ast] = Encoder.instance {
     case lex @ Lexical(name, str) =>
       Json.obj(
         "Lexical" -> Json.obj(
@@ -114,25 +115,13 @@ class JsonProtocol(cfg: esmeta.cfg.CFG) extends BasicJsonProtocol {
             .asJson,
         ),
       )
-
     case syn @ Syntactic(name, args, rhsIdx, children) =>
-      // Convert the children.
-      val mappedJsonChildren: Vector[Json] = children.map { optAst =>
-        optAst match {
-          case Some(ast) =>
-            astEncoder(ast)
-          case None =>
-            Json.Null
-        }
-      }
-      val encodedChildren: Json = Json.fromValues(mappedJsonChildren)
-
       Json.obj(
         "Syntactic" -> Json.obj(
           "name" -> name.asJson,
           "args" -> args.asJson,
           "rhsIdx" -> rhsIdx.asJson,
-          "children" -> encodedChildren,
+          "children" -> children.asJson,
           "prodInfo" -> cfg.grammar.prods
             .find(_.name == name)
             .flatMap(_.rhsVec.lift(syn.idx))
@@ -165,7 +154,6 @@ class JsonProtocol(cfg: esmeta.cfg.CFG) extends BasicJsonProtocol {
         ),
       )
   }
-  given Encoder[Ast] = astEncoder
 
   /* auxiliaries for encoding */
 

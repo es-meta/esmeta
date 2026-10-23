@@ -579,7 +579,8 @@ object Interpreter {
       case (Pow, Number(l), Number(r)) => Number(math.pow(l, r))
       case (Div, Number(l), Number(r)) => Number(l / r)
       case (Mod, Number(l), Number(r)) => Number(l %% r)
-      case (Lt, Number(l), Number(r)) if (l `equals` -0.0) && (r `equals` 0.0) =>
+      case (Lt, Number(l), Number(r))
+          if (l `equals` -0.0) && (r `equals` 0.0) =>
         Bool(true)
       case (Lt, Number(l), Number(r)) => Bool(l < r)
 

@@ -31,6 +31,30 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: Feature     => featureRule(app, elem)
       case elem: CallPath    => callPathRule(app, elem)
 
+  // states
+  given Rule[State] = stRule
+  lazy val stRule: Rule[State] = (app, st) =>
+    app.wrap {
+      st.filename.map(app :> "filename: " >> _)
+      app :> "context: " >> st.context
+      given Rule[List[String]] = iterableRule("[", ", ", "]")
+      app :> "call-stack: "
+      app.wrapIterable("[", ",", "]")(st.callStack)
+      app :> "globals: " >> st.globals
+      app :> "heap: " >> st.heap
+    }
+
+  // contexts
+  given Rule[Context] = ctxtRule
+  lazy val ctxtRule: Rule[Context] = (app, ctxt) =>
+    app.wrap {
+      app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
+      app :> "local-vars: " >> ctxt.locals
+      app :> "visited: "
+      app.wrapIterable("[", ",", "]")(ctxt.visited.toList.map(_.id).sorted)
+      ctxt.retVal.map(app :> "return: " >> _)
+    }
+
   // cursor
   given cursorRule: Rule[Cursor] = (app, cursor) =>
     cursor match
@@ -41,43 +65,20 @@ class Stringifier(detail: Boolean, location: Boolean) {
         node.loc.fold(app)(app >> " (" >> _ >> ")")
       case ExitCursor(func) => app >> func.simpleString
 
-  // values
-  given valueRule: Rule[Value] = (app, value) =>
-    value match
-      case addr: Addr        => addrRule(app, addr)
-      case clo: Clo          => cloRule(app, clo)
-      case cont: Cont        => contRule(app, cont)
-      case AstValue(ast)     => app >> ast
-      case gr: GrammarSymbol => grammarSymbolRule(app, gr)
-      case m: Math           => mathRule(app, m)
-      case i: Infinity       => infinityRule(app, i)
-      case e: Enum           => enumRule(app, e)
-      case cu: CodeUnit      => cuRule(app, cu)
-      case sv: SimpleValue   => svRule(app, sv)
-
-  // contexts
-  given ctxtRule: Rule[Context] = (app, ctxt) =>
-    app.wrap {
-      app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
-      app :> "local-vars: " >> ctxt.locals
-      app :> "visited: "
-      app.wrapIterable("[", ",", "]")(ctxt.visited.toList.map(_.id).sorted)
-      ctxt.retVal.map(app :> "return: " >> _)
-    }
-
   // calling contexts
   given callCtxtRule: Rule[CallContext] = (app, callCtxt) =>
     val CallContext(context, retId) = callCtxt
     app >> retId >> " @ " >> context.cursor
 
-  // addresses
-  given addrRule: Rule[Addr] = (app, addr) =>
-    addr match
-      case NamedAddr(name)   => app >> "#" >> name
-      case DynamicAddr(long) => app >> "#" >> long.toString
+  // heaps
+  given Rule[Heap] = heapRule
+  lazy val heapRule: Rule[Heap] = (app, heap) =>
+    val Heap(map, size) = heap
+    app >> s"(SIZE = " >> size.toString >> "): " >> map
 
   // objects
-  given objRule: Rule[Obj] = (app, obj) =>
+  given Rule[Obj] = objRule
+  lazy val objRule: Rule[Obj] = (app, obj) =>
     obj match
       case MapObj(map) =>
         app >> "Map " >> map.map { case (k, v) => (k.toString, v) }
@@ -93,22 +94,25 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case YetObj(tname, msg) =>
         app >> "Yet[" >> tname >> "](\"" >> msg >> "\")"
 
-  // heaps
-  given heapRule: Rule[Heap] = (app, heap) =>
-    val Heap(map, size) = heap
-    app >> s"(SIZE = " >> size.toString >> "): " >> map
+  // values
+  given valueRule: Rule[Value] = (app, value) =>
+    value match
+      case addr: Addr        => addrRule(app, addr)
+      case clo: Clo          => cloRule(app, clo)
+      case cont: Cont        => contRule(app, cont)
+      case AstValue(ast)     => app >> ast
+      case gr: GrammarSymbol => grammarSymbolRule(app, gr)
+      case m: Math           => mathRule(app, m)
+      case i: Infinity       => infinityRule(app, i)
+      case e: Enum           => enumRule(app, e)
+      case cu: CodeUnit      => cuRule(app, cu)
+      case sv: SimpleValue   => svRule(app, sv)
 
-  // states
-  given stRule: Rule[State] = (app, st) =>
-    app.wrap {
-      st.filename.map(app :> "filename: " >> _)
-      app :> "context: " >> st.context
-      given Rule[List[String]] = iterableRule("[", ", ", "]")
-      app :> "call-stack: "
-      app.wrapIterable("[", ",", "]")(st.callStack)
-      app :> "globals: " >> st.globals
-      app :> "heap: " >> st.heap
-    }
+  // addresses
+  given addrRule: Rule[Addr] = (app, addr) =>
+    addr match
+      case NamedAddr(name)   => app >> "#" >> name
+      case DynamicAddr(long) => app >> "#" >> long.toString
 
   // closures
   given cloRule: Rule[Clo] = (app, clo) =>

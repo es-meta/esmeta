@@ -608,7 +608,8 @@ class Compiler(
       case GetItemsExpression(nt, l @ NonterminalLiteral(_, name, flags, _)) =>
         val n = compile(fb, nt)
         val e = compile(fb, l)
-        val args = List(e, n, EGrammarSymbol(name, flags.map(_ `startsWith` "+")))
+        val args =
+          List(e, n, EGrammarSymbol(name, flags.map(_ `startsWith` "+")))
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, AUX_GET_ITEMS, args))
         xExpr

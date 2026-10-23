@@ -526,10 +526,8 @@ class TyChecker(
 
   /** type analysis result string */
   def typesString: String =
-    given paramRule: Rule[(String, ValueTy)] = (app, pair) =>
-      val (param, ty) = pair
-      app >> param >> ": " >> ty
-    given getRule: Rule[Iterable[Func]] = (app, funcs) =>
+    given Rule[Iterable[Func]] = getRule
+    lazy val getRule: Rule[Iterable[Func]] = (app, funcs) =>
       given Rule[Iterable[(String, ValueTy)]] = iterableRule("(", ", ", ")")
       app >> "-" * 80
       for (func <- funcs) {
@@ -547,6 +545,9 @@ class TyChecker(
         app :> "-" * 80
       }
       app
+    given paramRule: Rule[(String, ValueTy)] = (app, pair) =>
+      val (param, ty) = pair
+      app >> param >> ": " >> ty
     (new Appender >> cfg.funcs.toList.sortBy(_.name)).toString
 
   /** For Expriement: Imitating Kent's work */
