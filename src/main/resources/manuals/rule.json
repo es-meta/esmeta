@@ -22,7 +22,6 @@
     "_genContext_ is the execution context of a generator": "(? genContext: Record[GeneratorExecutionContext])",
     "_realm_.[[Intrinsics]].[[%ThrowTypeError%]] exists and has been initialized": "(exists realm.Intrinsics[\"%ThrowTypeError%\"])",
     "_strict_ is *false* and the host is a web browser or otherwise supports <emu-xref href=\"#sec-block-level-function-declarations-web-legacy-compatibility-semantics\" title></emu-xref>": "false",
-    "_x_ and _y_ are both finite": "(&& (! (|| (= x +INF) (= x -INF))) (! (|| (= y +INF) (= y -INF))))",
     "the host is a web browser": "false",
     "the host is a web browser or otherwise supports <emu-xref href=\"#sec-block-level-function-declarations-web-legacy-compatibility-semantics\" title></emu-xref>": "false",
     "the host is a web browser or otherwise supports <emu-xref href=\"#sec-IsHTMLDDA-internal-slot\" title></emu-xref>": "false"

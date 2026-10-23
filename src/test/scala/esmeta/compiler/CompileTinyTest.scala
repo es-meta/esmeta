@@ -592,6 +592,8 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       "assert (? (grammar-symbol |Identifier|): Ast[Identifier[0]])",
       finiteCond ->
       "assert (|| (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Math | BigInt))",
+      finitePluralCond ->
+      "assert (&& (|| (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Math | BigInt)) (|| (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Math | BigInt)))",
       finiteNumberCond ->
       "assert (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN])))",
       finiteNumbersCond ->
