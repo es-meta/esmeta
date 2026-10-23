@@ -32,7 +32,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case elem: CallPath    => callPathRule(app, elem)
 
   // states
-  given stRule: Rule[State] = (app, st) =>
+  given Rule[State] = stRule
+  lazy val stRule: Rule[State] = (app, st) =>
     app.wrap {
       st.filename.map(app :> "filename: " >> _)
       app :> "context: " >> st.context
@@ -44,7 +45,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // contexts
-  given ctxtRule: Rule[Context] = (app, ctxt) =>
+  given Rule[Context] = ctxtRule
+  lazy val ctxtRule: Rule[Context] = (app, ctxt) =>
     app.wrap {
       app :> "cursor: " >> ctxt.cursor >> " @ " >> ctxt.name
       app :> "local-vars: " >> ctxt.locals
@@ -69,12 +71,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> retId >> " @ " >> context.cursor
 
   // heaps
-  given heapRule: Rule[Heap] = (app, heap) =>
+  given Rule[Heap] = heapRule
+  lazy val heapRule: Rule[Heap] = (app, heap) =>
     val Heap(map, size) = heap
     app >> s"(SIZE = " >> size.toString >> "): " >> map
 
   // objects
-  given objRule: Rule[Obj] = (app, obj) =>
+  given Rule[Obj] = objRule
+  lazy val objRule: Rule[Obj] = (app, obj) =>
     obj match
       case MapObj(map) =>
         app >> "Map " >> map.map { case (k, v) => (k.toString, v) }

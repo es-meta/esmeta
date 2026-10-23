@@ -33,12 +33,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // programs
-  given programRule: Rule[Program] = (app, program) =>
+  given Rule[Program] = programRule
+  lazy val programRule: Rule[Program] = (app, program) =>
     given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP)
     app >> program.funcs
 
   // functions
-  given funcRule: Rule[Func] = (app, func) =>
+  given Rule[Func] = funcRule
+  lazy val funcRule: Rule[Func] = (app, func) =>
     funcHeadRule(false)(app, func)
     app >> " = " >> func.body
 
@@ -68,12 +70,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // function parameters
-  given paramRule: Rule[Param] = (app, param) =>
+  given Rule[Param] = paramRule
+  lazy val paramRule: Rule[Param] = (app, param) =>
     val Param(name, ty, optional, _) = param
     app >> name >> (if (optional) "?" else "") >> ": " >> ty
 
   // instructions
-  given instRule: Rule[Inst] = withLoc('i') { (app, inst) =>
+  given Rule[Inst] = instRule
+  lazy val instRule: Rule[Inst] = withLoc('i') { (app, inst) =>
     inst match
       case IExpr(expr) =>
         app >> expr
@@ -122,7 +126,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // expressions
-  given exprRule: Rule[Expr] = withLoc('e') { (app, expr) =>
+  given Rule[Expr] = exprRule
+  lazy val exprRule: Rule[Expr] = withLoc('e') { (app, expr) =>
     expr match
       case EParse(code, rule) =>
         app >> "(parse " >> code >> " " >> rule >> ")"
@@ -339,7 +344,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // references
   lazy val inlineField = "([_a-zA-Z][_a-zA-Z0-9]*)".r
-  given refRule: Rule[Ref] = { (app, ref) =>
+  given Rule[Ref] = refRule
+  lazy val refRule: Rule[Ref] = { (app, ref) =>
     ref match {
       case Field(base, EStr(inlineField(str))) => app >> base >> "." >> str
       case Field(base, expr) => app >> base >> "[" >> expr >> "]"
@@ -362,7 +368,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   // private helpers
   // ---------------------------------------------------------------------------
   // append locations
-  private def withLoc[T <: IRElem with LangEdge](tag: Char)(
+  private def withLoc[T <: IRElem & LangEdge](tag: Char)(
     rule: Rule[T],
   ): Rule[T] =
     (app, elem) =>

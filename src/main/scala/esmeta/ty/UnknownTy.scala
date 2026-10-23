@@ -10,7 +10,7 @@ import esmeta.ty.util.*
 case class UnknownTy(msg: Option[String] = None) extends Ty {
 
   /** completion check */
-  def isCompletion: Boolean = msg.exists(_ contains "Completion")
+  def isCompletion: Boolean = msg.exists(_ `contains` "Completion")
 
   /** value containment check */
   def contains(value: Value, heap: Heap): Boolean =

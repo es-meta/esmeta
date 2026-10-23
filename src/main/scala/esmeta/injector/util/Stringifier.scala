@@ -17,7 +17,8 @@ class Stringifier(detail: Boolean) {
       case elem: Assertion   => assertRule(app, elem)
 
   // conformance tests
-  given testRule: Rule[ConformTest] = (app, test) =>
+  given Rule[ConformTest] = testRule
+  lazy val testRule: Rule[ConformTest] = (app, test) =>
     val ConformTest(id, script, exitTag, isAsync, assertions) = test
     val delayHead = "$delay(() => {"
     val delayTail = "});"

@@ -42,7 +42,8 @@ object Stringifier {
       case elem: Constant       => constantRule(app, elem)
 
   // for specifications
-  given specRule: Rule[Spec] = (app, spec) =>
+  given Rule[Spec] = specRule
+  lazy val specRule: Rule[Spec] = (app, spec) =>
     if (!spec.isEmpty) app >> spec.summary else app
 
   // for specification summaries
@@ -80,7 +81,8 @@ object Stringifier {
     app :> "- intrinsics: " >> intr
 
   // for grammars
-  given grammarRule: Rule[Grammar] = (app, grammar) =>
+  given Rule[Grammar] = grammarRule
+  lazy val grammarRule: Rule[Grammar] = (app, grammar) =>
     given Rule[List[Production]] = iterableRule(sep = LINE_SEP * 2)
     app >> "<Productions>"
     app :> grammar.prods
@@ -89,7 +91,8 @@ object Stringifier {
     app :> grammar.prodsForWeb
 
   // for productions
-  given prodRule: Rule[Production] = (app, prod) =>
+  given Rule[Production] = prodRule
+  lazy val prodRule: Rule[Production] = (app, prod) =>
     val Production(lhs, kind, oneof, rhsVec) = prod
     app >> lhs >> " " >> kind
     given Rule[List[Rhs]] = iterableRule(sep = " ")
@@ -113,7 +116,8 @@ object Stringifier {
     )
 
   // for production alternative right-hand-sides (RHSs)
-  given rhsRule: Rule[Rhs] = (app, rhs) =>
+  given Rule[Rhs] = rhsRule
+  lazy val rhsRule: Rule[Rhs] = (app, rhs) =>
     val Rhs(conditions, symbols, id) = rhs
     given Rule[List[Symbol]] = iterableRule(sep = " ")
     if (conditions.nonEmpty) app >> conditions >> " "
@@ -122,7 +126,8 @@ object Stringifier {
     app
 
   // for list of conditions for RHSs
-  given rhsCondsRule: Rule[List[RhsCond]] = iterableRule("[", ", ", "]")
+  given Rule[List[RhsCond]] = rhsCondsRule
+  lazy val rhsCondsRule: Rule[List[RhsCond]] = iterableRule("[", ", ", "]")
 
   // for conditions for RHSs
   given rhsCondRule: Rule[RhsCond] = (app, rhsCond) =>
@@ -130,7 +135,8 @@ object Stringifier {
     app >> (if (pass) "+" else "~") >> name
 
   // for conditions for symbols
-  given symbolRule: Rule[Symbol] = (app, symbol) =>
+  given Rule[Symbol] = symbolRule
+  lazy val symbolRule: Rule[Symbol] = (app, symbol) =>
     given n: Rule[List[NtArg]] = iterableRule("[", ", ", "]")
     given t: Rule[List[Symbol]] = iterableRule(sep = " ")
     given ts: Rule[List[List[Symbol]]] = iterableRule("{", ", ", "}")
@@ -158,7 +164,8 @@ object Stringifier {
         app
 
   // for conditions for nonterminal arguments
-  given ntArgRule: Rule[NtArg] = (app, ntArg) =>
+  given Rule[NtArg] = ntArgRule
+  lazy val ntArgRule: Rule[NtArg] = (app, ntArg) =>
     val NtArg(kind, name) = ntArg
     app >> kind >> name
 
@@ -172,13 +179,15 @@ object Stringifier {
     )
 
   // for algorithms
-  given algoRule: Rule[Algorithm] = (app, algo) => {
+  given Rule[Algorithm] = algoRule
+  lazy val algoRule: Rule[Algorithm] = (app, algo) => {
     val Algorithm(head, body, code) = algo
     app >> head >> body
   }
 
   // for algorithm heads
-  given headRule: Rule[Head] = (app, head) =>
+  given Rule[Head] = headRule
+  lazy val headRule: Rule[Head] = (app, head) =>
     given Rule[List[Param]] = _.wrapIterable("(", ",", ")")(_)
     head match
       case AbstractOperationHead(isHostDefined, name, params, rty) =>
@@ -204,7 +213,8 @@ object Stringifier {
       case BuiltinHead(path, params, rty) =>
         app >> "[builtin] " >> path >> params >> ": " >> rty
 
-  given builtinPathRule: Rule[BuiltinPath] = (app, path) =>
+  given Rule[BuiltinPath] = builtinPathRule
+  lazy val builtinPathRule: Rule[BuiltinPath] = (app, path) =>
     import BuiltinPath.*
     path match
       case Base(name)               => app >> name
@@ -215,13 +225,15 @@ object Stringifier {
         app >> base >> "[%Symbol." >> symbol >> "%]"
 
   // for syntax-directed operation head targets
-  given sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>
+  given Rule[SdoHeadTarget] = sdoHeadTargetRule
+  lazy val sdoHeadTargetRule: Rule[SdoHeadTarget] = (app, target) =>
     given Rule[List[Param]] = iterableRule("(", ", ", ")")
     val SdoHeadTarget(lhsName, idx, subIdx) = target
     app >> lhsName >> "[" >> idx >> ", " >> subIdx >> "]."
 
   // for algorithm parameters
-  given paramRule: Rule[Param] = (app, param) =>
+  given Rule[Param] = paramRule
+  lazy val paramRule: Rule[Param] = (app, param) =>
     val Param(name, ty, kind) = param
     app >> kind >> "_" >> name >> "_"
     if (ty.isUnknown) app

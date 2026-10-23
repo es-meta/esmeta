@@ -173,7 +173,7 @@ class Initialize(cfg: CFG) {
 
     // add typed array constructors
     for {
-      (x, m) <- taInstances
+      (x, m) <- taInstances.toList
       addr = taAddr(x)
       record = RecordObj("", m.map { (k, v) => k -> toValue(v) })
     } {

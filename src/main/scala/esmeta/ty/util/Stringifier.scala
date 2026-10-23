@@ -42,12 +42,14 @@ class Stringifier(
         collectorRule(withNames = true)(app, elem)
 
   /** type models */
-  given tyModelRule: Rule[TyModel] = (app, model) =>
+  given Rule[TyModel] = tyModelRule
+  lazy val tyModelRule: Rule[TyModel] = (app, model) =>
     given Rule[List[TyDecl]] = iterableRule(sep = LINE_SEP + LINE_SEP)
     app >> model.decls
 
   /** type declarations */
-  given tyDeclRule: Rule[TyDecl] = (app, ty) =>
+  given Rule[TyDecl] = tyDeclRule
+  lazy val tyDeclRule: Rule[TyDecl] = (app, ty) =>
     val TyDecl(name, parent, elems) = ty
     app >> "type " >> name
     parent.fold(app) { (name, extended) =>
@@ -74,7 +76,8 @@ class Stringifier(
         app >> " : " >> typeStr
 
   /** field type map */
-  given fieldMapRule(using inline: Boolean): Rule[FieldMap] = (app, fieldMap) =>
+  given (using inline: Boolean): Rule[FieldMap] = fieldMapRule
+  def fieldMapRule(using inline: Boolean): Rule[FieldMap] = (app, fieldMap) =>
     val FieldMap(map) = fieldMap
     given Rule[(String, Binding)] = {
       case (app, (field, binding)) =>
@@ -90,7 +93,8 @@ class Stringifier(
       app.wrap("{", "}") { for (pair <- map.toList.sortBy(_._1)) app :> pair }
 
   /** field binding */
-  given bindingRule: Rule[Binding] = (app, binding) =>
+  given Rule[Binding] = bindingRule
+  lazy val bindingRule: Rule[Binding] = (app, binding) =>
     if (binding != Binding.Exist)
       if (binding.absent) app >> "?"
       app >> ": " >> binding.value
@@ -113,7 +117,8 @@ class Stringifier(
   )
 
   /** value types */
-  given valueTyRule: Rule[ValueTy] = (app, origTy) =>
+  given Rule[ValueTy] = valueTyRule
+  lazy val valueTyRule: Rule[ValueTy] = (app, origTy) =>
     var ty: ValueTy = origTy
     if (ty.isTop) app >> "Any"
     else if (ty.isBottom) app >> "Bot"
@@ -157,7 +162,8 @@ class Stringifier(
         else app >> "List[" >> elem >> "]"
 
   /** closure types */
-  given cloTyRule: Rule[CloTy] = (app, ty) =>
+  given Rule[CloTy] = cloTyRule
+  lazy val cloTyRule: Rule[CloTy] = (app, ty) =>
     given Rule[Iterable[ValueTy]] = iterableRule("(", ", ", ")")
     ty match
       case CloArrowTy(ps, ret) => app >> "[" >> ps >> " => " >> ret >> "]"
@@ -166,7 +172,8 @@ class Stringifier(
     app
 
   /** record types */
-  given recordTyRule: Rule[RecordTy] = (app, ty) =>
+  given Rule[RecordTy] = recordTyRule
+  lazy val recordTyRule: Rule[RecordTy] = (app, ty) =>
     import RecordTy.*
     given Rule[FieldMap] = fieldMapRule(using true)
     given Rule[(String, FieldMap)] = {
@@ -264,7 +271,8 @@ class Stringifier(
     case _            => ""
 
   /** integer types */
-  given intRule: Rule[IntTy] = (app, ty) =>
+  given Rule[IntTy] = intRule
+  lazy val intRule: Rule[IntTy] = (app, ty) =>
     ty.canon match
       case ty if ty.isTop => app >> "Int"
       // case ty if ty.isBottom => app >> "Int[Bot]"
@@ -273,7 +281,8 @@ class Stringifier(
         app >> "Int" >> sign
 
   /** mathematical value types */
-  given mathTyRule: Rule[MathTy] = (app, ty) =>
+  given Rule[MathTy] = mathTyRule
+  lazy val mathTyRule: Rule[MathTy] = (app, ty) =>
     ty.canon match
       case ty if ty.isTop => app >> "Math"
       // case ty if ty.isBottom => app >> "Math[Bot]"
@@ -284,7 +293,8 @@ class Stringifier(
       case MathSetTy(set) => app >> "Math" >> set
 
   /** number types, whose every part goes inside one `Number[...]` */
-  given numberTyRule: Rule[NumberTy] = (app, ty) =>
+  given Rule[NumberTy] = numberTyRule
+  lazy val numberTyRule: Rule[NumberTy] = (app, ty) =>
     val NumberTy(finite, inf, nan) = ty.canon
     if (ty.isTop) app >> "Number"
     else
@@ -327,7 +337,8 @@ class Stringifier(
       case Elem(key, value) => app >> "Map[" >> key >> " -> " >> value >> "]"
 
   // specification type errors
-  given errorRule: Rule[TypeError] = (app, error) =>
+  given Rule[TypeError] = errorRule
+  lazy val errorRule: Rule[TypeError] = (app, error) =>
     import irStringifier.given
     app >> "[" >> error.getClass.getSimpleName >> "] " >> error.point
     error match
@@ -353,7 +364,8 @@ class Stringifier(
         app :> "- right   : " >> rhsTy
 
   // type error points
-  given tpRule: Rule[TypeErrorPoint] = (app, tp) =>
+  given Rule[TypeErrorPoint] = tpRule
+  lazy val tpRule: Rule[TypeErrorPoint] = (app, tp) =>
     import irStringifier.given
     given Rule[Option[Syntax]] = addLocRule
     app >> tp.node.simpleString >> " "
@@ -384,8 +396,6 @@ class Stringifier(
   def collectorRule(
     withNames: Boolean,
   ): Rule[TypeErrorCollector] = (app, c) =>
-    given Rule[Iterable[(TypeError, Iterable[String])]] =
-      iterableRule(sep = LINE_SEP + LINE_SEP)
     given Rule[(TypeError, Iterable[String])] = (app, pair) => {
       val (error, fs) = pair
       app >> error
@@ -394,6 +404,8 @@ class Stringifier(
         for (f <- fs.toList.sorted) app :> "- " >> f
       app
     }
+    given Rule[Iterable[(TypeError, Iterable[String])]] =
+      iterableRule(sep = LINE_SEP + LINE_SEP)
     app >> c.map.toList.sortBy(_._1)
 
   private val addLocRule: Rule[Option[Syntax]] = (app, opt) =>

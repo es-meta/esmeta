@@ -35,7 +35,7 @@ trait DotPrinterDecl { self: Self =>
       if (reachable(rp)) REACH else NON_REACH
     override lazy val exitBgColor: String =
       if (cur == Some(rp)) CURRENT
-      else if (worklist has rp) WORKLIST
+      else if (worklist `has` rp) WORKLIST
       else NORMAL
     override def exitEdgeColor(from: Node): String =
       if (reachable(getNp(from)) && reachable(rp)) REACH
@@ -48,7 +48,7 @@ trait DotPrinterDecl { self: Self =>
     override def getBgColor(node: Node): String =
       val np = getNp(node)
       if (cur == Some(np)) CURRENT
-      else if (worklist has np) WORKLIST
+      else if (worklist `has` np) WORKLIST
       else NORMAL
     override def getEdgeColor(from: Node, to: Node): String =
       if (reachable(getNp(from)) && reachable(getNp(to))) REACH

@@ -25,11 +25,11 @@ trait ReplDecl { self: Self =>
 
     // completer
     private val completer: TreeCompleter =
-      TreeCompleter(Command.commands.map(optionNode(_)): _*)
+      TreeCompleter(Command.commands.map(optionNode(_))*)
     private def optionNode(cmd: Command) =
-      node(cmd.name :: cmd.options.map(argNode(_)): _*)
+      node(cmd.name :: cmd.options.map(argNode(_))*)
     private def argNode(opt: String) =
-      node(s"-$opt" :: getArgNodes(opt): _*)
+      node(s"-$opt" :: getArgNodes(opt)*)
     private def getArgNodes(opt: String): List[TreeCompleter.Node] = opt match {
       case CmdBreak.func => cfg.funcs.map(x => node(x.name))
       case CmdBreak.block =>
@@ -67,7 +67,7 @@ trait ReplDecl { self: Self =>
     private val prompt: String = LINE_SEP + s"${MAGENTA}analyzer>${RESET} "
 
     // show help message at the first time
-    lazy val firstHelp: Unit = { CmdHelp.showHelp; println }
+    lazy val firstHelp: Unit = { CmdHelp.showHelp; println() }
 
     // repl stop
     private var replStop: Boolean = false

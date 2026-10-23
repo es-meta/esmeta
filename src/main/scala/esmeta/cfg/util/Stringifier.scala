@@ -25,13 +25,15 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // control-flow graphs (CFGs)
-  given cfgRule: Rule[CFG] = (app, cfg) =>
+  given Rule[CFG] = cfgRule
+  lazy val cfgRule: Rule[CFG] = (app, cfg) =>
     val CFG(funcs) = cfg
     given Rule[Iterable[Func]] = iterableRule(sep = LINE_SEP)
     app >> cfg.funcs.sorted
 
   // functions
-  given funcRule: Rule[Func] = (app, func) =>
+  given Rule[Func] = funcRule
+  lazy val funcRule: Rule[Func] = (app, func) =>
     val IRFunc(main, kind, name, params, retTy, _, _) = func.irFunc
     given Rule[Iterable[Param]] = iterableRule("(", ", ", ")")
     app >> func.id >> ": "
@@ -42,7 +44,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // nodes
-  given nodeRule: Rule[Node] = (app, node) =>
+  given Rule[Node] = nodeRule
+  lazy val nodeRule: Rule[Node] = (app, node) =>
     app >> node.id >> ": "
     node match
       case Block(_, insts, next) =>
@@ -55,7 +58,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
 
   // nodes with instruction backward edge
   // TODO handle location option
-  given nodeWithInstRule: Rule[NodeWithInst] = (app, node) =>
+  given Rule[NodeWithInst] = nodeWithInstRule
+  lazy val nodeWithInstRule: Rule[NodeWithInst] = (app, node) =>
     node match
       case Call(_, callInst, next) =>
         app >> callInst

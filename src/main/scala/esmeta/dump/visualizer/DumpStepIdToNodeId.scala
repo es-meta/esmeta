@@ -21,7 +21,7 @@ object DumpStepToNodeId {
       abruptMap.foreach {
         case (step, posSet) =>
           posSet.toSeq
-            .sorted(Ordering.by[(Pos, Int), Pos](_._1))
+            .sorted(using Ordering.by[(Pos, Int), Pos](_._1))
             .zipWithIndex
             .foreach {
               case ((pos, nodeId), idx) =>

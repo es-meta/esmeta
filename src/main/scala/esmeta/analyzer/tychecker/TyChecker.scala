@@ -526,7 +526,8 @@ class TyChecker(
 
   /** type analysis result string */
   def typesString: String =
-    given getRule: Rule[Iterable[Func]] = (app, funcs) =>
+    given Rule[Iterable[Func]] = getRule
+    lazy val getRule: Rule[Iterable[Func]] = (app, funcs) =>
       given Rule[Iterable[(String, ValueTy)]] = iterableRule("(", ", ", ")")
       app >> "-" * 80
       for (func <- funcs) {
