@@ -1,4 +1,4 @@
-- version: 0248456c758431e4bb8e5d26333ff1865123c9cd (es2026-candidate-2026-03-31)
+- version: 0248456c758431e4bb8e5d26333ff1865123c9cd (es2026)
 - grammar:
   - productions: 400
     - lexical: 179
