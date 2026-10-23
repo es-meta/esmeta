@@ -32,7 +32,8 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
     if (skipped.nonEmpty)
       println(s"- WARNING: skipped ${skipped.size} algorithms using")
       println("  metalanguage the translator does not support yet:")
-      for ((reason, names) <- skipped.groupMap(_._2)(_._1).toList.sortBy(_._1))
+      val byReason = skipped.groupMap(_._2)(_._1.fname)
+      for ((reason, names) <- byReason.toList.sortBy(_._1))
         println(
           s"    $reason (${names.size}): ${names.toList.sorted.mkString(", ")}",
         )

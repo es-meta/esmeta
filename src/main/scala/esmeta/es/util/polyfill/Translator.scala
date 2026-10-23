@@ -15,8 +15,6 @@ class Translator(spec: Spec) {
   import Polyfill.*
 
   private val IS_PRESENT = "IsPresent"
-  private val AO_HEADER = "AO";
-  private val INTERNAL_HEADER = "IN";
   private val RESERVED_WORDS = Set("return")
 
   /** a metalanguage element the translator does not know how to translate yet
@@ -35,11 +33,20 @@ class Translator(spec: Spec) {
   def compile(algo: PolyfillAlgo): Polyfill =
     val pb = Builder()
 
-    val name = algo.name
-    val params = algo.head.originalParams
     val prelude = compilePrelude(pb, algo.head, algo.body)
     val body = compileWithScope(pb, algo.body)
-    Polyfill(name, params, prelude ++ body)
+    Polyfill(algo.head, prelude ++ body, pb.deps)
+
+  /** the symbol for invoking an abstract operation
+    *
+    * Transformation rules introduce internal operations as abstract operations
+    * named `IN__<name>`, which are internal all the same.
+    */
+  private def invoke(pb: Builder, name: String): String =
+    val dep =
+      if (name.startsWith("IN__")) Dep.Internal(name.stripPrefix("IN__"))
+      else Dep.AO(name)
+    pb.use(dep)
 
   def compilePrelude(
     pb: Builder,
@@ -174,7 +181,7 @@ class Translator(spec: Spec) {
         s"(() => {var _self = $funcBody; return _self;})()"
       case Invoke(name, args, _) =>
         val compiledArgs = args.map(compile(pb, _)).mkString(", ")
-        s"${AO_HEADER}__$name($compiledArgs)"
+        s"${invoke(pb, name)}($compiledArgs)"
     }
   }
 
@@ -194,21 +201,21 @@ class Translator(spec: Spec) {
     case AppendStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
-          s"${INTERNAL_HEADER}__Append(${compile(pb, ref)}, ${compile(pb, expr)})",
+          s"${pb.use(Dep.Internal("Append"))}(${compile(pb, ref)}, ${compile(pb, expr)})",
         ),
       )
     case InsertStep(expr, ref) => unsupported(step)
     case PrependStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
-          s"${INTERNAL_HEADER}__Prepend(${compile(pb, ref)}, ${compile(pb, expr)})",
+          s"${pb.use(Dep.Internal("Prepend"))}(${compile(pb, ref)}, ${compile(pb, expr)})",
         ),
       )
     case AddStep(expr, ref) => unsupported(step)
     case ReplaceStep(oldElem, newElem, ref) =>
       pb.addStmt(
         NormalStmt(
-          s"${INTERNAL_HEADER}__Replace(${compile(pb, ref)}, ${compile(pb, oldElem)}, ${compile(pb, newElem)})",
+          s"${pb.use(Dep.Internal("Replace"))}(${compile(pb, ref)}, ${compile(pb, oldElem)}, ${compile(pb, newElem)})",
         ),
       )
     case RemoveStep(t, p, l) =>
@@ -326,9 +333,9 @@ class Translator(spec: Spec) {
     case LengthExpression(inner) => unsupported(expr, inner)
     case StringExpression(expr)  => compile(pb, expr)
     case SubstringExpression(expr, from, to) =>
-      s"${INTERNAL_HEADER}__SubString(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
+      s"${pb.use(Dep.Internal("SubString"))}(${compile(pb, expr)}, ${compile(pb, from)}, ${compile(pb, to)})"
     case TrimExpression(expr, leading, trailing) =>
-      s"${INTERNAL_HEADER}__Trim(${compile(pb, expr)}, $leading, $trailing)"
+      s"${pb.use(Dep.Internal("Trim"))}(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
       s"${compile(pb, ref)}.length"
     case NumberOfExpression(_, _, inner, _) => unsupported(expr, inner)
@@ -343,9 +350,9 @@ class Translator(spec: Spec) {
       unsupported(expr, inner)
     case _: GetItemsExpression => unsupported(expr)
     case InvokeAbstractOperationExpression(name, args, tag) =>
-      s"${AO_HEADER}__$name(${compile(pb, args)})"
+      s"${invoke(pb, name)}(${compile(pb, args)})"
     case InvokeNumericMethodExpression(ty, name, args) =>
-      s"${ty}__$name(${compile(pb, args)})"
+      s"${pb.use(Dep.Numeric(ty, name))}(${compile(pb, args)})"
     case InvokeAbstractClosureExpression(ref, args) =>
       s"${compile(pb, ref)}(${args.map(compile(pb, _)).mkString(", ")})"
     case InvokeMethodExpression(ref, args, tag) =>
@@ -372,7 +379,7 @@ class Translator(spec: Spec) {
               isToInclusive,
               isAscending,
             ) =>
-          s"${INTERNAL_HEADER}__IntRange(${compile(pb, from)}, $isFromInclusive, ${compile(pb, to)}, $isToInclusive, $isAscending)"
+          s"${pb.use(Dep.Internal("IntRange"))}(${compile(pb, from)}, $isFromInclusive, ${compile(pb, to)}, $isToInclusive, $isAscending)"
     case YetExpression(str, block) =>
       s"(function () { throw new Error(\"YET: ${str
         .replace("\\", "\\\\")
@@ -388,7 +395,7 @@ class Translator(spec: Spec) {
       s"${compile(pb, left)} ${compile(op)} ${compile(pb, right)}"
     case UnaryExpression(op, expr) => s"${compile(op)}${compile(pb, expr)}"
     case ClampExpression(target, lower, upper) =>
-      s"${INTERNAL_HEADER}__clamp(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
+      s"${pb.use(Dep.Internal("clamp"))}(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
     case MathOpExpression(op, args) =>
       import MathOpExpressionOperator.*
       (op, args) match
@@ -417,7 +424,7 @@ class Translator(spec: Spec) {
         .stripPrefix("INTRINSICS.yet:")
         .replace("`", "")
         .replace(".", "")
-      s"${AO_HEADER}__${fname}"
+      pb.use(Dep.AO(fname))
     case XRefExpression(XRefExpressionOperator.ParamLength, id) =>
       spec.getAlgoById(id).head.originalParams.length.toString
     case XRefExpression(kind, id)    => unsupported(expr)
@@ -471,13 +478,15 @@ class Translator(spec: Spec) {
       case Log      => unsupported(op)
     }
 
-  def compileTypeCheck(expr: String, ty: String): String = ty match
-    case "record[object]" | "object" => s"${AO_HEADER}__IsObject($expr)"
-    case "record[symbol]"            => s"typeof $expr === \"symbol\""
-    case "numberint"     => s"${INTERNAL_HEADER}__IsIntegralNumber($expr)"
-    case "record[array]" => s"${AO_HEADER}__IsArray($expr)"
-    case _ if ty.startsWith("record[") => "false"
-    case _                             => s"typeof $expr === \"$ty\""
+  def compileTypeCheck(pb: Builder, expr: String, ty: String): String =
+    ty match
+      case "record[object]" | "object" =>
+        s"${pb.use(Dep.AO("IsObject"))}($expr)"
+      case "record[symbol]" => s"typeof $expr === \"symbol\""
+      case "numberint" => s"${pb.use(Dep.Internal("IsIntegralNumber"))}($expr)"
+      case "record[array]" => s"${pb.use(Dep.AO("IsArray"))}($expr)"
+      case _ if ty.startsWith("record[") => "false"
+      case _                             => s"typeof $expr === \"$ty\""
 
   def negateIf(neg: Boolean)(cond: String): String =
     if (neg) s"!($cond)" else s"($cond)"
@@ -489,11 +498,11 @@ class Translator(spec: Spec) {
       val compiledExpr = compile(pb, expr)
       val tyNames = tys.map(_.normalizedName.toLowerCase())
       if (tyNames.length == 1)
-        negateIf(neg)(compileTypeCheck(compiledExpr, tyNames.head))
+        negateIf(neg)(compileTypeCheck(pb, compiledExpr, tyNames.head))
       else
         val operand = pb.newTId
         val checks =
-          tyNames.map(compileTypeCheck(operand, _)).mkString("(", "||", ")")
+          tyNames.map(compileTypeCheck(pb, operand, _)).mkString("(", "||", ")")
         negateIf(neg)(
           s"(function ($operand) { return $checks; })($compiledExpr)",
         )
@@ -541,7 +550,7 @@ class Translator(spec: Spec) {
       negateIf(neg)(s"$l >= ${compile(pb, from)} && $l <= ${compile(pb, to)}")
     case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
       negateIf(neg)(
-        s"${INTERNAL_HEADER}__Contains(${compile(pb, list)}, ${compile(pb, target)})",
+        s"${pb.use(Dep.Internal("Contains"))}(${compile(pb, list)}, ${compile(pb, target)})",
       )
     case ContainsCondition(_, _, target) => unsupported(cond, target)
     case CompoundCondition(left, op, right) =>
@@ -623,10 +632,17 @@ case class Builder() {
       case i             => List(i)
     }
 
+  /** record an operation the polyfill calls, returning its symbol */
+  def use(dep: Dep): String = { usedDeps += dep; dep.symbol }
+
+  /** operations the polyfill calls, in order of first use */
+  def deps: List[Dep] = usedDeps.toList
+
   /** get next temporal variable */
   def newTId: String = s"_x$nextTId"
 
   private def nextTId: Int = { val tid = tidCount; tidCount += 1; tid }
   private var tidCount: Int = 0
   private var scopes: Stack[ListBuffer[Stmt]] = Stack()
+  private val usedDeps: mutable.LinkedHashSet[Dep] = mutable.LinkedHashSet()
 }

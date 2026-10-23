@@ -1,6 +1,7 @@
 package esmeta.es.util.polyfill
 
 import esmeta.*
+import esmeta.spec.*
 import esmeta.util.BaseUtils.*
 import esmeta.util.SystemUtils.*
 import io.circe.yaml.scalayaml.parser as yamlParser
@@ -11,10 +12,11 @@ import scala.collection.mutable.{Queue, Map as MMap, Set as MSet}
 /** packager that turns generated polyfills into a usable CommonJS library
   *
   * A generated polyfill is a bare function body referring to abstract and
-  * internal operations by unresolved symbols (`AO__x`, `IN__x`). This packager
-  * resolves those symbols into `require` calls, wraps each polyfill in the
-  * property-installation boilerplate its kind demands, and emits the
-  * hand-written runtime it links against.
+  * internal operations by unresolved symbols (`AO__x`, `IN__x`), each of which
+  * it records as a [[Polyfill.Dep]]. This packager resolves those symbols into
+  * `require` calls, wraps each polyfill in the property-installation
+  * boilerplate its kind demands, and emits the hand-written runtime it links
+  * against.
   *
   * Only the modules reachable from the selected built-ins are emitted, so the
   * library carries no dead code. Optimized runtime implementations take the
@@ -39,7 +41,7 @@ object Packager {
     outDir: String,
     targets: List[String] = Nil,
     opt: Boolean = false,
-    skipped: Map[String, String] = Map(),
+    skipped: Map[Head, String] = Map(),
   ): Unit = new Packager(polyfills, outDir, targets, opt, skipped).generate
 
   /** abstract operations ESMeta cannot generate, backed by hand-written
@@ -119,18 +121,10 @@ object Packager {
       |);""".stripMargin,
   )
 
-  /** kind of a polyfill, derived from its ESMeta name */
+  /** kind of a polyfill, derived from its algorithm head */
   enum Kind:
-    case AO, NumberAO, BigIntAO, Obj, Method, Getter, Setter
-    def isAO: Boolean = this match
-      case AO | NumberAO | BigIntAO => true
-      case _                        => false
-
-  /** `INTRINSICS.<base>.<member>`, where `<member>` holds no dot */
-  private val methodPattern = """INTRINSICS\..+\.[^.]+""".r
-
-  /** unresolved reference to an abstract or internal operation */
-  private val depPattern = """(?:AO|IN|SH|Number|BigInt)__[a-zA-Z0-9_]+""".r
+    case AO, Obj, Method, Getter, Setter
+    def isAO: Boolean = this == AO
 
   /** `require` of a relative module, as written in the hand-written runtime,
     * which uses either quote style
@@ -138,23 +132,28 @@ object Packager {
   private val requirePattern =
     """require\(\s*["'](\.[^"']*)["']\s*\)""".r
 
-  /** classify a polyfill by its name */
-  def kindOf(name: String): Kind =
-    if (name.startsWith("BigInt::")) Kind.BigIntAO
-    else if (name.startsWith("Number::")) Kind.NumberAO
-    else if (!name.startsWith("INTRINSICS.")) Kind.AO
-    else if (name.contains("get:")) Kind.Getter
-    else if (name.contains("set:")) Kind.Setter
-    else if (methodPattern.matches(name)) Kind.Method
-    else Kind.Obj
+  /** classify a polyfill by its algorithm head */
+  def kindOf(head: Head): Kind =
+    import BuiltinPath.*
+    head match
+      case BuiltinHead(path, _, _) =>
+        path match
+          case Base(_)                                 => Kind.Obj
+          case Getter(_)                               => Kind.Getter
+          case Setter(_)                               => Kind.Setter
+          case NormalAccess(_, _) | SymbolAccess(_, _) => Kind.Method
+      case _ => Kind.AO
 
-  /** the module a polyfill is emitted as, relative to the library root */
-  def moduleOf(kind: Kind, name: String): String = kind match
-    case Kind.NumberAO | Kind.BigIntAO =>
-      val Array(prefix, rest) = name.split("::", 2)
-      s"abstract/$prefix${rest.capitalize}"
-    case Kind.AO => s"abstract/$name"
-    case _       => name.stripPrefix("INTRINSICS.")
+  /** the module a polyfill is emitted as, relative to the library root
+    *
+    * A numeric operation is named after the type it belongs to, so that
+    * `Number::lessThan` and `BigInt::lessThan` stay distinct modules.
+    */
+  def moduleOf(head: Head): String = head match
+    case NumericMethodHead(baseTy, name, _, _) =>
+      s"abstract/${baseTy.normalizedName}${name.capitalize}"
+    case BuiltinHead(path, _, _) => path.toString
+    case _                       => s"abstract/${head.fname}"
 
   /** the object a built-in installs onto, and the property it installs
     *
@@ -163,20 +162,16 @@ object Packager {
     */
   case class Target(base: String, member: String, bracketed: Boolean)
 
-  /** derive the installation target from a built-in polyfill name */
-  def targetOf(kind: Kind, name: String): Target =
-    val stripped = name
-      .stripPrefix("INTRINSICS.")
-      .replace("get:", "")
-      .replace("set:", "")
-    val open = stripped.indexOf("[%")
-    val close = stripped.indexOf("%]")
-    if (open >= 0 && close > open)
-      Target(stripped.take(open), stripped.substring(open + 2, close), true)
-    else if (kind == Kind.Obj) Target(stripped, "", false)
-    else
-      val dot = stripped.lastIndexOf('.')
-      Target(stripped.take(dot), stripped.drop(dot + 1), false)
+  /** derive the installation target from a built-in path */
+  def targetOf(path: BuiltinPath): Target =
+    import BuiltinPath.*
+    path match
+      case Base(name)               => Target(name, "", false)
+      case NormalAccess(base, name) => Target(base.toString, name, false)
+      case SymbolAccess(base, symbol) =>
+        Target(base.toString, s"Symbol.$symbol", true)
+      case Getter(base) => targetOf(base)
+      case Setter(base) => targetOf(base)
 
   /** compile a comma-separated glob list into a name predicate */
   def globFilter(patterns: List[String]): String => Boolean =
@@ -197,7 +192,7 @@ class Packager(
   outDir: String,
   targets: List[String],
   opt: Boolean,
-  skipped: Map[String, String],
+  skipped: Map[Head, String],
 ) {
 
   import Packager.*
@@ -239,23 +234,22 @@ class Packager(
   // Classification
   // ---------------------------------------------------------------------------
 
-  /** a polyfill paired with everything derived from its name */
-  private case class Entry(poly: Polyfill, kind: Kind) {
-    def name: String = poly.name
-    lazy val module: String = moduleOf(kind, name)
-    lazy val target: Target = targetOf(kind, name)
+  /** a polyfill paired with everything derived from its head */
+  private case class Entry(poly: Polyfill) {
+    val kind: Kind = kindOf(poly.head)
+    lazy val module: String = moduleOf(poly.head)
+    lazy val target: Target = poly.head match
+      case BuiltinHead(path, _, _) => targetOf(path)
+      case head                    => raise(s"not a built-in: ${head.fname}")
 
-    /** the generated body, with internal operations already unwrapped */
-    lazy val content: String = poly.toString.replace("AO__IN", "IN")
+    /** the generated body */
+    lazy val content: String = poly.toString
+
+    /** operations the body calls */
+    def deps: List[Polyfill.Dep] = poly.deps
   }
 
-  /** `INTRINSICS.yet:` polyfills stand for steps the generator could not
-    * compile, so they never reach the library
-    */
-  private lazy val entries: List[Entry] = for {
-    poly <- polyfills
-    if !poly.name.startsWith("INTRINSICS.yet:")
-  } yield Entry(poly, kindOf(poly.name))
+  private lazy val entries: List[Entry] = polyfills.map(Entry(_))
 
   private lazy val (aos, builtins) = entries.partition(_.kind.isAO)
 
@@ -294,9 +288,8 @@ class Packager(
   /** modules reachable from the selected built-ins, and the modules that were
     * named but have neither a generated nor a hand-written implementation
     *
-    * Generated operations name their dependencies through unresolved symbols,
-    * while the hand-written runtime names them through ordinary `require`
-    * calls, so both forms are followed.
+    * Generated operations record their dependencies, while the hand-written
+    * runtime names them through ordinary `require` calls, so both are followed.
     */
   private lazy val (reachable, unresolved) =
     val seen = MSet[String]()
@@ -310,13 +303,12 @@ class Packager(
         queue.enqueue(module)
     for {
       entry <- selected
-      content = entry.content + membersOf(entry).map(_.content).mkString
-      dep <- generatedDeps(content)
+      dep <- generatedDeps(entry.deps ++ membersOf(entry).flatMap(_.deps))
     } push(entry.module)(dep)
     while (queue.nonEmpty) do
       val module = queue.dequeue
       aoByModule.get(module) match
-        case Some(entry) => generatedDeps(entry.content).foreach(push(module))
+        case Some(entry) => generatedDeps(entry.deps).foreach(push(module))
         case None =>
           runtimeFile(module) match
             case Some(file) =>
@@ -324,12 +316,9 @@ class Packager(
             case None => missing(module) = namedBy.getOrElse(module, "?")
     (seen.toSet, missing.toMap)
 
-  /** modules named by unresolved symbols in generated code */
-  private def generatedDeps(content: String): List[String] =
-    for {
-      dep <- depPattern.findAllIn(content).toList.distinct
-      Array(category, fname) = dep.split("__", 2)
-    } yield moduleFor(category, fname)
+  /** modules named by the dependencies of generated code */
+  private def generatedDeps(deps: List[Polyfill.Dep]): List[String] =
+    deps.map(moduleFor).distinct
 
   /** modules named by `require` calls in the hand-written runtime */
   private def runtimeDeps(module: String, content: String): List[String] =
@@ -337,19 +326,15 @@ class Packager(
     (for (m <- requirePattern.findAllMatchIn(content))
       yield normalize(s"$dir/${m.group(1)}")).toList.distinct
 
-  /** where an unresolved symbol resolves to
-    *
-    * A numeric operation is named after the type it belongs to, so that
-    * `Number::lessThan` and `BigInt::lessThan` stay distinct modules.
-    */
-  private def moduleFor(category: String, fname: String): String =
-    if (category == "IN") s"internal/$fname"
-    else
-      val name =
-        if (category == "Number" || category == "BigInt")
-          s"$category${fname.capitalize}"
-        else fname
+  /** the module a dependency resolves to, mirroring [[moduleOf]] */
+  private def moduleFor(dep: Polyfill.Dep): String =
+    import Polyfill.Dep.*
+    def abstractOp(name: String): String =
       if (blacklist(name)) s"abstract/manual/$name" else s"abstract/$name"
+    dep match
+      case Internal(name)    => s"internal/$name"
+      case AO(name)          => abstractOp(name)
+      case Numeric(ty, name) => abstractOp(s"$ty${name.capitalize}")
 
   // ---------------------------------------------------------------------------
   // Runtime assets
@@ -398,7 +383,7 @@ class Packager(
 
   /** reasons for the skipped algorithms, keyed by the module they would be */
   private lazy val skippedByModule: Map[String, String] =
-    skipped.map((name, reason) => moduleOf(kindOf(name), name) -> reason)
+    skipped.map((head, reason) => moduleOf(head) -> reason)
 
   // ---------------------------------------------------------------------------
   // Emission
@@ -427,7 +412,7 @@ class Packager(
   } yield Out(
     module,
     join(
-      imports(entry.content, module, parentOf(module)),
+      imports(entry.deps, module, parentOf(module)),
       s"module.exports = function _self${entry.content}",
     ),
   )
@@ -446,7 +431,7 @@ class Packager(
     Out(
       entry.module,
       join(
-        imports(entry.content, entry.module, parentOf(entry.module)),
+        imports(entry.deps, entry.module, parentOf(entry.module)),
         s"""if (!$guard) {
         |${shift(install(entry), 1)}
         |}""".stripMargin,
@@ -461,11 +446,7 @@ class Packager(
     Out(
       entry.module,
       join(
-        imports(
-          entry.content + own.map(_.content).mkString(LINE_SEP),
-          entry.module,
-          dir,
-        ),
+        imports(entry.deps ++ own.flatMap(_.deps), entry.module, dir),
         s"function $base${entry.content}",
         s"""Object.defineProperty(globalThis, "$base", {
           |  value: $base,
@@ -600,23 +581,26 @@ class Packager(
   /** dependencies declared by a module, whichever form it takes */
   private def dependenciesOf(module: String): List[String] =
     aoByModule.get(module) match
-      case Some(entry) => generatedDeps(entry.content)
+      case Some(entry) => generatedDeps(entry.deps)
       case None =>
         runtimeFile(module).toList
           .flatMap(f => runtimeDeps(module, readFile(f.getPath)))
 
-  /** resolve every unresolved symbol in `content` into a `require` */
-  private def imports(content: String, self: String, dir: String): String =
+  /** resolve every dependency into a `require` bound to its symbol */
+  private def imports(
+    deps: List[Polyfill.Dep],
+    self: String,
+    dir: String,
+  ): String =
     val lines = for {
-      dep <- depPattern.findAllIn(content).toList.distinct.sorted
-      Array(category, fname) = dep.split("__", 2)
-      target = moduleFor(category, fname)
+      dep <- deps.distinct.sortBy(_.symbol)
+      target = moduleFor(dep)
       path = relative(dir, target)
     } yield
       if (cyclicEdges(self -> target))
-        s"var $dep = function () " +
+        s"var ${dep.symbol} = function () " +
         s"""{ return require("$path").apply(this, arguments); };"""
-      else s"""var $dep = require("$path");"""
+      else s"""var ${dep.symbol} = require("$path");"""
     lines.mkString(LINE_SEP)
 
   // ---------------------------------------------------------------------------

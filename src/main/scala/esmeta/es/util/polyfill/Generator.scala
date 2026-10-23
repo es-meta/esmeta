@@ -32,7 +32,7 @@ class Generator(
 ) {
 
   private val translator = Translator(spec)
-  private val skippedBuffer = mutable.ListBuffer[(String, String)]()
+  private val skippedBuffer = mutable.ListBuffer[(Head, String)]()
 
   lazy val result: List[Polyfill] =
     val optimizedTargets = optPaths.foldLeft(targets) { (x, optim) => optim(x) }
@@ -41,12 +41,12 @@ class Generator(
       catch
         case e: NotSupported =>
           if (!skipUnsupported) throw NotSupported(e.reasonPath :+ algo.name)
-          skippedBuffer += algo.name -> e.reasonPath.mkString("/")
+          skippedBuffer += algo.head -> e.reasonPath.mkString("/")
           None
     }
 
   /** algorithms dropped by `skipUnsupported`, with the reason for each */
-  lazy val skipped: Map[String, String] = { result; skippedBuffer.toMap }
+  lazy val skipped: Map[Head, String] = { result; skippedBuffer.toMap }
 
   val optPaths: List[TransformPath] =
     List(ShorthandInlinePath(spec)) ++ dslDir.map(DSLPath(_))

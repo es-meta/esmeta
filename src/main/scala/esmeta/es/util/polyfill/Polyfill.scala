@@ -3,12 +3,23 @@ package esmeta.es.util.polyfill
 import esmeta.LINE_SEP
 import esmeta.spec.*
 
-/** polyfill code */
+/** polyfill code
+  *
+  * @param head
+  *   the head of the algorithm this polyfill is compiled from, which tells what
+  *   the polyfill is (an abstract operation or a built-in) and where it belongs
+  * @param deps
+  *   the operations the body calls through unresolved symbols, in order of
+  *   first use, which the packager links to their implementations
+  */
 case class Polyfill(
-  name: String,
-  params: List[Param],
+  head: Head,
   body: Polyfill.Stmt,
+  deps: List[Polyfill.Dep] = Nil,
 ) {
+  def name: String = head.fname
+  def params: List[Param] = head.originalParams
+
   override def toString: String = headToString + " " + body.toString
 
   def headToString: String = {
@@ -22,6 +33,24 @@ case class Polyfill(
 }
 
 object Polyfill {
+
+  /** an operation a polyfill calls through an unresolved symbol */
+  enum Dep:
+    /** an abstract operation of the specification */
+    case AO(name: String)
+
+    /** an internal operation, implemented only by the hand-written runtime */
+    case Internal(name: String)
+
+    /** a numeric method of a numeric type, e.g. `Number::lessThan` */
+    case Numeric(ty: String, name: String)
+
+    /** the symbol the generated code calls it by */
+    def symbol: String = this match
+      case AO(name)          => s"AO__$name"
+      case Internal(name)    => s"IN__$name"
+      case Numeric(ty, name) => s"${ty}__$name"
+
   sealed trait Stmt {
     override def toString: String = toString(0)
 
