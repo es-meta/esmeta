@@ -1,0 +1,15 @@
+name: "SetData Has"
+pattern: |
+    1. For each element {{ elem : var }} of {{ base : ref }}, do
+      1. If {{ elem }} is not ~empty~ and SameValue({{ elem }}, {{ value : var }}) is *true*, then
+        1. {{ body : step }}
+replace: |
+    1. If IN__SetDataHas({{ base }}, {{ value }}) is *true*, then
+      1. {{ body }}
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }
+subrules:
+  - name: Rename Variable
+    pattern: "{{ elem }}"
+    replace: "{{ value }}"

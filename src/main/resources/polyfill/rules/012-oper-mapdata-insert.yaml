@@ -1,0 +1,6 @@
+name: "[OPER] MapData Insert"
+pattern: "1. Append {{ elem : expr }} to {{ base : ref }}."
+replace: "1. Perform IN__MapDataInsert({{ base }}, {{ elem }})."
+where:
+  - isMapData(base)
+  - { isMapData: "_ (.[[MapData]] | .[[WeakMapData]]) .copy*" }

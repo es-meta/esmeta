@@ -53,12 +53,14 @@ trait Walker extends BasicWalker {
     case SetAsStep(x, verb, id) => SetAsStep(walk(x), walk(verb), walk(id))
     case SetEvaluationStateStep(base, func, args) =>
       SetEvaluationStateStep(walk(base), walk(func), walkList(args, walk))
-    case PerformStep(expr)          => PerformStep(walk(expr))
-    case InvokeShorthandStep(x, a)  => InvokeShorthandStep(x, walkList(a, walk))
-    case AppendStep(expr, ref)      => AppendStep(walk(expr), walk(ref))
-    case PrependStep(expr, ref)     => PrependStep(walk(expr), walk(ref))
-    case InsertStep(expr, ref)      => InsertStep(walk(expr), walk(ref))
-    case AddStep(expr, ref)         => AddStep(walk(expr), walk(ref))
+    case PerformStep(expr)         => PerformStep(walk(expr))
+    case InvokeShorthandStep(x, a) => InvokeShorthandStep(x, walkList(a, walk))
+    case AppendStep(expr, ref)     => AppendStep(walk(expr), walk(ref))
+    case PrependStep(expr, ref)    => PrependStep(walk(expr), walk(ref))
+    case InsertStep(expr, ref)     => InsertStep(walk(expr), walk(ref))
+    case AddStep(expr, ref)        => AddStep(walk(expr), walk(ref))
+    case ReplaceStep(oldExpr, newExpr, ref, form) =>
+      ReplaceStep(walk(oldExpr), walk(newExpr), walk(ref), form)
     case RemoveStep(t, p, l)        => RemoveStep(walk(t), walk(p), walk(l))
     case PushContextStep(ref)       => PushContextStep(walk(ref))
     case SuspendStep(ref, rm)       => SuspendStep(walkOpt(ref, walk), walk(rm))
@@ -128,6 +130,7 @@ trait Walker extends BasicWalker {
       SetFieldsWithIntrinsicsStep(walk(ref), walk(desc))
     case PerformBlockStep(b, d) =>
       PerformBlockStep(walk(b), walk(d))
+    case MetaStep(name, multiline, v) => MetaStep(name, multiline, v)
   }
 
   def walk(target: RemoveStep.Target): RemoveStep.Target =
@@ -223,6 +226,7 @@ trait Walker extends BasicWalker {
     case multi: MultilineExpression => walk(multi)
     case yet: YetExpression =>
       walk(yet)
+    case MetaExpression(name, v) => MetaExpression(name, v)
   }
 
   def walk(multi: MultilineExpression): MultilineExpression = multi match {
@@ -340,6 +344,7 @@ trait Walker extends BasicWalker {
       ContainsCondition(walk(list), walk(neg), walk(target))
     case CompoundCondition(left, op, right) =>
       CompoundCondition(walk(left), walk(op), walk(right))
+    case MetaCondition(name, v) => MetaCondition(name, v)
   }
 
   def walk(form: HasFieldConditionForm): HasFieldConditionForm = form
@@ -381,9 +386,11 @@ trait Walker extends BasicWalker {
     case CurrentRealmRecord()      => CurrentRealmRecord()
     case ActiveFunctionObject()    => ActiveFunctionObject()
     case AgentRecord()             => AgentRecord()
+    case MetaReference(name, v)    => MetaReference(name, v)
   }
 
-  def walk(x: Variable): Variable = Variable(x.name, walkOpt(x.nt, walk))
+  def walk(x: Variable): Variable =
+    Variable(x.name, walkOpt(x.nt, walk), x.meta, x.variant)
 
   def walk(access: Access): Access = access match
     case Access(base, name, kind, form) =>

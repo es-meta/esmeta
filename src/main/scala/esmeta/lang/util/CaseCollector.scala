@@ -45,6 +45,12 @@ class CaseCollector extends UnitWalker {
         s"insert {{ expr }} as the first element of {{ ref }}."
       case AddStep(expr, ref) =>
         s"add {{ expr }} to {{ ref }}."
+      case ReplaceStep(oldE, newE, ref, form) =>
+        import ReplaceStep.Form.*
+        form match
+          case Plain => s"replace {{ expr }} in {{ ref }} with {{ expr }}."
+          case Element =>
+            s"replace the element of {{ ref }} whose value is {{ expr }} with an element whose value is {{ expr }}."
       case RemoveStep(target, prep, list) =>
         import RemoveStep.Target.*
         target match
@@ -153,6 +159,8 @@ class CaseCollector extends UnitWalker {
         s"set fields of {{ ref }} with the values listed in ..."
       case PerformBlockStep(block, desc) =>
         s"perform the following substeps in an implementation-defined order ..."
+      case MetaStep(name, _, _) =>
+        raise(s"polyfill DSL meta-variable cannot be collected: $name")
     })
     super.walk(step)
   }
@@ -399,6 +407,8 @@ class CaseCollector extends UnitWalker {
           if (params.isEmpty) "no parameters"
           else "parameters ({{ var }}*)"
         s"a new Abstract Closure with $p that captures {{ var }}* and performs the following steps when called: {{ step }}"
+      case MetaExpression(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be collected: $name")
     })
     super.walk(expr)
   }
@@ -445,6 +455,8 @@ class CaseCollector extends UnitWalker {
         s"if {{ expr }}, then {{ expr }}"
       case CompoundCondition(left, op, right) =>
         s"{{ expr }} $op {{ expr }}"
+      case MetaCondition(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be collected: $name")
     })
     super.walk(cond)
   }
@@ -457,9 +469,9 @@ class CaseCollector extends UnitWalker {
       case Component(false) => "{{ str }}"
       case Component(true)  => "{{ str }} component"
     add(ref match {
-      case Variable(_, None) =>
+      case Variable(_, None, _, _) =>
         "_{{ str }}_"
-      case Variable(_, Some(_)) =>
+      case Variable(_, Some(_), _, _) =>
         "|{{ str }}| _{{ str }}_"
       case Access(_, _, kind, Dot) =>
         s"{{ ref }}.${str(kind)}"
@@ -495,6 +507,8 @@ class CaseCollector extends UnitWalker {
         "the active function object"
       case AgentRecord() =>
         "the Agent Record of the surrounding agent"
+      case MetaReference(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be collected: $name")
     })
     super.walk(ref)
   }

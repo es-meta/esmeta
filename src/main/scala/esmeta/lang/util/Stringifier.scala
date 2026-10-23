@@ -118,6 +118,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("insert ") >> expr >> " as the first element of " >> ref
       case AddStep(expr, ref) =>
         app >> First("add ") >> expr >> " to " >> ref
+      case ReplaceStep(oldE, newE, ref, form) =>
+        import ReplaceStep.Form.*
+        form match
+          case Plain =>
+            app >> First("replace ") >> oldE
+            app >> " in " >> ref >> " with " >> newE
+          case Element =>
+            app >> First("replace the element of ") >> ref
+            app >> " whose value is " >> oldE
+            app >> " with an element whose value is " >> newE
       case RemoveStep(target, prep, list) =>
         app >> First("remove ") >> target >> " " >> prep >> " " >> list
       case PushContextStep(ref) =>
@@ -244,6 +254,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the following substeps in an implementation-defined order"
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
+      // Should not reach here (polyfill)
+      case MetaStep(name, true, _)  => app >> name >> ":step*"
+      case MetaStep(name, false, _) => app >> name >> ":step"
     }
     app >> step.endString
   }
@@ -410,6 +423,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> str
         block.fold(app)(app >> _)
       case multi: MultilineExpression => app >> multi
+      case MetaExpression(name, _)    => app >> name >> ":expr"
     }
   }
 
@@ -827,6 +841,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case Imply =>
             app >> "If " >> conds.head
             for (cond <- conds.tail) app >> ", then " >> cond
+      case MetaCondition(name, _) => app >> name >> ":cond"
     }
 
     if (parenthesized) app >> ")"
@@ -953,7 +968,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case Component(post) => app >> name >> (if (post) " component" else "")
     }
     ref match {
-      case Variable(name, nt) =>
+      case Variable(name, None, _, _) if name.startsWith("$") =>
+        app >> name >> ":var"
+      case Variable(name, nt, _, _) =>
         nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
       case Access(base, name, kind, AccessForm.Dot) =>
         app >> base >> "." >> (name, kind)
@@ -987,6 +1004,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the active function object"
       case AgentRecord() =>
         app >> "the Agent Record of the surrounding agent"
+      case MetaReference(name, _) => app >> name >> ":ref"
     }
   }
 

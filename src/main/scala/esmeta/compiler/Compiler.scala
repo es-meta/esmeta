@@ -266,6 +266,31 @@ class Compiler(
       // AddStep represents an element addition to a set.
       // We need to refactor this later.
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
+    case ReplaceStep(oldElem, newElem, ref, _) =>
+      val (list, listExpr) = fb.newTIdWithExpr
+      val (oldE, oldEExpr) = fb.newTIdWithExpr
+      val (newE, newEExpr) = fb.newTIdWithExpr
+      val (i, iExpr) = fb.newTIdWithExpr
+
+      fb.addInst(
+        IAssign(list, ERef(compile(fb, ref))),
+        IAssign(oldE, compile(fb, oldElem)),
+        IAssign(newE, compile(fb, newElem)),
+        IAssign(i, zero),
+        IWhile(
+          lessThan(iExpr, ESizeOf(listExpr)),
+          fb.newScope {
+            fb.addInst(
+              IIf(
+                is(toERef(list, iExpr), oldEExpr),
+                IAssign(Field(list, iExpr), newEExpr),
+                emptyInst,
+              ),
+              IAssign(i, inc(iExpr)),
+            )
+          },
+        ),
+      )
     case RemoveStep(target, prep, list) =>
       import RemoveStep.Target.*
       lazy val x = fb.newTId
@@ -529,6 +554,9 @@ class Compiler(
       fb.addInst(IAssign(compile(fb, ref), EGLOBAL_INTRINSICS))
     case PerformBlockStep(block, desc) =>
       for (substep <- block.steps) compile(fb, substep.step)
+
+    case MetaStep(name, _, _) =>
+      raise(s"polyfill DSL meta-variable cannot be compiled: $name")
   })
 
   /** compile local variable */
@@ -563,6 +591,8 @@ class Compiler(
       case CurrentRealmRecord()      => currentRealm
       case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
       case AgentRecord()             => GLOBAL_AGENT_RECORD
+      case MetaReference(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be compiled: $name")
     })
 
   /** compile expressions */
@@ -787,9 +817,14 @@ class Compiler(
         toERef(fb, compile(fb, list), zero)
       case CodeUnitAtExpression(base, index) =>
         toERef(fb, compile(fb, base), compile(fb, index))
+      // a String consisting solely of a code unit
+      case StringExpression(lit: HexLiteral) =>
+        EVariadic(VOp.Concat, List(compile(fb, lit)))
       case StringExpression(expr) =>
         compile(fb, expr)
       case lit: Literal => compile(fb, lit)
+      case MetaExpression(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be compiled: $name")
     })
 
   /** compile mathematical operators */
@@ -1060,6 +1095,8 @@ class Compiler(
           case CompoundConditionOperator.And   => and(l, r)
           case CompoundConditionOperator.Or    => or(l, r)
           case CompoundConditionOperator.Imply => or(not(l), r)
+      case MetaCondition(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be compiled: $name")
     })
 
   /** compile contains condition with additional constraints */

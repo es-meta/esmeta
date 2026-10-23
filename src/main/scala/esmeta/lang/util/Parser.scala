@@ -14,6 +14,13 @@ trait Parsers extends IndentParsers {
   type P[T] = EPackratParser[T]
   type PL[T <: Locational] = LocationalParser[T]
 
+  // extension points for DSL parser (override in DSLParsers)
+  def extraStep: PL[Step] = failure("no extra step")
+  def extraExpr: PL[Expression] = failure("no extra expr")
+  def extraCond: PL[Condition] = failure("no extra cond")
+  def extraRef: PL[Reference] = failure("no extra ref")
+  def extraVariable: PL[Variable] = failure("no extra variable")
+
   /** names of constants defined by `emu-eqn` elements in ECMA-262 */
   def constNames: Set[String] = Set()
 
@@ -67,6 +74,7 @@ trait Parsers extends IndentParsers {
   // metalanguage steps
   // ---------------------------------------------------------------------------
   given step: PL[Step] = {
+    extraStep |
     letStep |
     setStep |
     setAsStep |
@@ -77,6 +85,7 @@ trait Parsers extends IndentParsers {
     prependStep |
     insertStep |
     addStep |
+    replaceStep |
     removeStep |
     pushCtxtStep |
     suspendStep |
@@ -154,6 +163,17 @@ trait Parsers extends IndentParsers {
   lazy val addStep: PL[AddStep] =
     ("add" ~> expr) ~ ("to" ~> ref) ~ end ^^ {
       case e ~ r ~ f => f(AddStep(e, r))
+    }
+
+  // replace steps
+  lazy val replaceStep: PL[ReplaceStep] =
+    import ReplaceStep.Form.*
+    ("replace" ~> expr) ~ ("in" ~> ref) ~ ("with" ~> expr) ~ end ^^ {
+      case oldE ~ r ~ newE ~ f => f(ReplaceStep(oldE, newE, r, Plain))
+    } |
+    ("replace the element of" ~> ref) ~ ("whose value is" ~> expr) ~
+    ("with an element whose value is" ~> expr) ~ end ^^ {
+      case r ~ oldE ~ newE ~ f => f(ReplaceStep(oldE, newE, r, Element))
     }
 
   // remove step
@@ -358,6 +378,7 @@ trait Parsers extends IndentParsers {
   // metalanguage expressions
   // ---------------------------------------------------------------------------
   given expr: PL[Expression] = {
+    extraExpr |
     stringConcatExpr |
     listConcatExpr |
     copyExpr |
@@ -671,7 +692,8 @@ trait Parsers extends IndentParsers {
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
-    exists("the code unit") ~ ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
+    exists("the code unit") ~
+    ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
     opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
       case c ~ p ~ n ~ x => HexLiteral(Integer.parseInt(n, 16), c, p, x)
     }
@@ -701,7 +723,7 @@ trait Parsers extends IndentParsers {
   lazy val strLiteral: PL[StringLiteral] = opt("the String") ~> {
     """\*"[^"]*"\*""".r ^^ {
       _.drop(2).dropRight(2).replace("\\*", "*").replace("\\\\", "\\")
-    } ^^ { StringLiteral(_, StringLiteralForm.SyntaxLiteral) } |
+    } ^^ { StringLiteral(_) } |
     "<code>" ~> """"[^"]*"""".r <~ "</code>" ^^ {
       _.drop(1).dropRight(1)
     } ^^ { StringLiteral(_, StringLiteralForm.Code) }
@@ -828,7 +850,7 @@ trait Parsers extends IndentParsers {
 
   // names for operations
   lazy val opName: Parser[String] =
-    "[a-zA-Z][a-zA-Z0-9/]*".r.filter(!mathFuncNames.contains(_))
+    "[a-zA-Z][a-zA-Z0-9/_]*".r.filter(!mathFuncNames.contains(_))
 
   lazy val shorthandName: Parser[String] =
     opName <~ guard(elem('('))
@@ -941,18 +963,16 @@ trait Parsers extends IndentParsers {
 
   // string expressions
   lazy val stringExpr: PL[StringExpression] =
-    "the String value" ~> expr ^^ { StringExpression(_) }
+    ("the String value consisting solely of" ~> hexLiteral |
+    "the String value" ~> expr) ^^ { StringExpression(_) }
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
-    import StringLiteralForm.*
     // ClassStaticBlockDefinitionEvaluation
     "the empty sequence of Unicode code points" ^^! StringLiteral(
       "",
-      EmptyUnicode,
+      StringLiteralForm.EmptyUnicode,
     ) |
-    // Array.prototype.join
-    "the single-element String" ~> strLiteral |
     // MethodDefinitionEvaluation, ClassFieldDefinitionEvaluation
     "an instance of" ~> prodLiteral |
     // NumberBitwiseOp
@@ -960,7 +980,7 @@ trait Parsers extends IndentParsers {
     // _TypedArray_
     "the String value of the Constructor Name value specified in" ~
     "<emu-xref href=\"#table-the-typedarray-constructors\"></emu-xref>" ~
-    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_, SyntaxLiteral) }
+    "for this" ~> word <~ "constructor" ^^ { StringLiteral(_) }
 
   // not yet supported expressions
   lazy val yetExpr: PL[YetExpression] =
@@ -1017,6 +1037,7 @@ trait Parsers extends IndentParsers {
 
   // base conditions
   lazy val baseCond: PL[Condition] =
+    extraCond |||
     specialCond |||
     containsCond |||
     inclusiveIntervalCond |||
@@ -1268,6 +1289,7 @@ trait Parsers extends IndentParsers {
   // metalanguage references
   // ---------------------------------------------------------------------------
   given ref: PL[Reference] = {
+    extraRef |
     ("the binding for" ~> expr <~ "in") ~ ref ^^ {
       case b ~ r => BindingLookup(r, b)
     } | ("the" ~> nt <~ "of") ~ ref ^^ {
@@ -1284,9 +1306,9 @@ trait Parsers extends IndentParsers {
   }.named("lang.Reference")
 
   // variables
-  lazy val variable: PL[Variable] = opt(nt) ~ "_[^_]+_".r ^^ {
+  lazy val variable: PL[Variable] = extraVariable | (opt(nt) ~ "_[^_]+_".r ^^ {
     case n ~ s => Variable(s.substring(1, s.length - 1), n)
-  }
+  })
 
   // base references
   lazy val baseRef: PL[Reference] = variable ~ rep(

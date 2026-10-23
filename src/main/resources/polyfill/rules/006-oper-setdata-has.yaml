@@ -1,0 +1,8 @@
+name: "[OPER] SetData Has"
+pattern: |
+  SetDataHas({{ base : ref }}, {{ elem : expr }})
+replace: |
+  IN__SetDataHas({{ base }}, {{ elem }})
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }

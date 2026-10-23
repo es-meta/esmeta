@@ -1,0 +1,6 @@
+name: "[OPER] MapData Create"
+pattern: "1. Set {{ base : ref }} to a new empty List."
+replace: "1. Set {{ base }} to IN__MapDataCreate()."
+where:
+  - isMapData(base)
+  - { isMapData: "_ (.[[MapData]] | .[[WeakMapData]]) .copy*" }
