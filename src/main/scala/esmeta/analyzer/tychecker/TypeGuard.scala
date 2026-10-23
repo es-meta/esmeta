@@ -42,7 +42,7 @@ trait TypeGuardDecl { self: TyChecker =>
       else
         TypeGuard(for {
           (dty, p) <- map
-          if ty overlaps dty.ty
+          if ty `overlaps` dty.ty
         } yield dty -> this.lookup(dty.ty))
 
     def fieldLookup(fld: String): TypeGuard =
@@ -59,7 +59,7 @@ trait TypeGuardDecl { self: TyChecker =>
 
     def fieldUpdate(fld: String, ty: ValueTy): TypeGuard =
       val m = for {
-        (dty, p) <- map
+        (dty, p) <- map.toList
         newTy = dty.ty.record.update(fld, ty, refine = false)
         newProp = p.fieldUpdate(fld, ty)
       } yield dty -> newProp
@@ -109,8 +109,8 @@ trait TypeGuardDecl { self: TyChecker =>
     def ||(that: TypeGuard)(lty: ValueTy, rty: ValueTy): TypeGuard =
       val (ldtys, rdtys) = (this.dtys, that.dtys)
       val dtys =
-        ldtys.filter(k => !(k.ty overlaps rty) || rdtys.contains(k)) ++
-        rdtys.filter(k => !(k.ty overlaps lty) || ldtys.contains(k))
+        ldtys.filter(k => !(k.ty `overlaps` rty) || rdtys.contains(k)) ++
+        rdtys.filter(k => !(k.ty `overlaps` lty) || ldtys.contains(k))
       TypeGuard((for {
         dty <- dtys.toList
         ty = lty || rty
@@ -181,7 +181,7 @@ trait TypeGuardDecl { self: TyChecker =>
     val all: Set[DemandType] = set.map(new DemandType(_))
 
     def from(givenTy: ValueTy): Set[DemandType] =
-      all.filter(dty => givenTy overlaps dty.ty)
+      all.filter(dty => givenTy `overlaps` dty.ty)
   }
 
   case class TypeProp(

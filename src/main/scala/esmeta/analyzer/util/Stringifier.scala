@@ -30,6 +30,8 @@ trait StringifierDecl { self: Self =>
       elem match
         case elem: ControlPoint => cpRule(app, elem)
 
+    given Rule[View] = viewRule(detail)
+
     // control points
     given cpRule: Rule[ControlPoint] = (app, cp) =>
       app >> cp.func.name >> "[" >> cp.func.id >> "]:"
@@ -39,7 +41,5 @@ trait StringifierDecl { self: Self =>
       )
       if (cp.view.isEmpty) app
       else app >> ":" >> cp.view
-
-    given Rule[View] = viewRule(detail)
   }
 }

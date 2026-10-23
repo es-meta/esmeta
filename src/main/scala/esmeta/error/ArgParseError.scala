@@ -25,7 +25,7 @@ case class NoCmdError(str: String)
 case class NoPhaseError(str: String)
   extends ArgParseError(s"Phase '$str' does not exist.")
 
-case class NoTargetError(cmd: Command[_])
+case class NoTargetError(cmd: Command[?])
   extends ArgParseError(
     s"Command '${cmd.name}' needs target(s): ${cmd.targetName}",
   )
@@ -36,7 +36,7 @@ case class NoSupportError(str: String)
 case class NoObjError(str: String)
   extends ArgParseError(s"The json '$str' should be an object type.")
 
-case class NoOptError(str: String, cmd: Command[_])
+case class NoOptError(str: String, cmd: Command[?])
   extends ArgParseError(
     s"The option '-$str' is not available for the command '${cmd.name}'.",
   )

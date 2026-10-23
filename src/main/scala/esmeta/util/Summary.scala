@@ -95,7 +95,8 @@ case class Summary(
   private given Rule[(String, Int)] = {
     case (app, (name, count)) => app >> f"- $name: $count%,d"
   }
-  private given Rule[(Reason, Elem)] = {
+  private given Rule[(Reason, Elem)] = reasonElemRule
+  private lazy val reasonElemRule: Rule[(Reason, Elem)] = {
     case (app, (reason, elem @ Elem(seq, map))) =>
       app >> reason -> elem.size
       if (!map.isEmpty)
