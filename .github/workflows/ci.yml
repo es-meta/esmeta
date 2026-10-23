@@ -4,6 +4,8 @@ on:
   pull_request:
 jobs:
   test:
+    # skip `pull_request` runs for same-repository branches, already tested by `push`
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
 
@@ -42,6 +44,8 @@ jobs:
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   lint:
+    # skip `pull_request` runs for same-repository branches, already tested by `push`
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
 
