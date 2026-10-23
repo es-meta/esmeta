@@ -9,20 +9,7 @@ import io.circe.yaml.scalayaml.parser as yamlParser
 import java.io.File
 import scala.collection.mutable.{Queue, Map as MMap, Set as MSet}
 
-/** packager that turns generated polyfills into a usable CommonJS library
-  *
-  * A generated polyfill is a bare function body referring to abstract and
-  * internal operations by unresolved symbols (`AO__x`, `IN__x`), each of which
-  * it records as a [[Polyfill.Dep]]. This packager resolves those symbols into
-  * `require` calls, wraps each polyfill in the property-installation
-  * boilerplate its kind demands, and emits the hand-written runtime it links
-  * against.
-  *
-  * Only the modules reachable from the selected built-ins are emitted, so the
-  * library carries no dead code. Optimized runtime implementations take the
-  * place of their baseline counterparts rather than living beside them, which
-  * keeps the emitted tree the same shape either way.
-  */
+/** packager that turns generated polyfills into a usable CommonJS library */
 object Packager {
 
   /** package polyfills into a CommonJS library rooted at `outDir`
@@ -144,22 +131,14 @@ object Packager {
           case NormalAccess(_, _) | SymbolAccess(_, _) => Kind.Method
       case _ => Kind.AO
 
-  /** the module a polyfill is emitted as, relative to the library root
-    *
-    * A numeric operation is named after the type it belongs to, so that
-    * `Number::lessThan` and `BigInt::lessThan` stay distinct modules.
-    */
+  /** the module a polyfill is emitted as, relative to the library root */
   def moduleOf(head: Head): String = head match
     case NumericMethodHead(baseTy, name, _, _) =>
       s"abstract/${baseTy.normalizedName}${name.capitalize}"
     case BuiltinHead(path, _, _) => path.toString
     case _                       => s"abstract/${head.fname}"
 
-  /** the object a built-in installs onto, and the property it installs
-    *
-    * `bracketed` marks a computed key -- `Map[%Symbol.iterator%]` names the
-    * expression `Symbol.iterator`, not the string `"Symbol.iterator"`.
-    */
+  /** the object a built-in installs onto, and the property it installs */
   case class Target(base: String, member: String, bracketed: Boolean)
 
   /** derive the installation target from a built-in path */
@@ -261,10 +240,7 @@ class Packager(
   private lazy val fromScratch: List[Entry] =
     builtins.filter(_.kind == Kind.Obj)
 
-  /** a member belongs to a from-scratch built-in when its base object is rooted
-    * at one -- `Map.prototype.get` belongs to `Map`, while `Array.prototype.at`
-    * stands alone because `Array` is never built from scratch
-    */
+  /** the root object of a member's base, e.g. `Map` for `Map.prototype.get` */
   private def rootOf(entry: Entry): String =
     entry.target.base.takeWhile(_ != '.')
 
@@ -287,9 +263,6 @@ class Packager(
 
   /** modules reachable from the selected built-ins, and the modules that were
     * named but have neither a generated nor a hand-written implementation
-    *
-    * Generated operations record their dependencies, while the hand-written
-    * runtime names them through ordinary `require` calls, so both are followed.
     */
   private lazy val (reachable, unresolved) =
     val seen = MSet[String]()
@@ -340,11 +313,7 @@ class Packager(
   // Runtime assets
   // ---------------------------------------------------------------------------
 
-  /** the hand-written file backing a module
-    *
-    * In optimized mode the `.opt` implementation stands in for its baseline
-    * counterpart, so callers keep addressing the module by its plain name.
-    */
+  /** the hand-written file backing a module */
   private def runtimeFile(module: String): Option[File] =
     val optimized = File(s"$POLYFILL_RUNTIME_DIR/$module.opt.js")
     val baseline = File(s"$POLYFILL_RUNTIME_DIR/$module.js")
@@ -359,12 +328,7 @@ class Packager(
     file <- runtimeFile(module)
   } yield Out(module, readFile(file.getPath), verbatim = true)
 
-  /** a module ESMeta neither generates nor ships an implementation for
-    *
-    * A throwing stub keeps the rest of the library loadable: only a call that
-    * actually reaches the operation fails, and it fails naming the operation
-    * rather than as a missing-module error at load time.
-    */
+  /** a module ESMeta neither generates nor ships an implementation for */
   private lazy val stubFiles: List[Out] = for {
     module <- unresolved.keys.toList.sorted
   } yield
@@ -556,15 +520,7 @@ class Packager(
   // Dependency resolution
   // ---------------------------------------------------------------------------
 
-  /** dependency edges that close a cycle in the module graph
-    *
-    * A specification operation may be defined in terms of itself -- `ToNumber`
-    * on an object converts to a primitive and starts over -- and two of them
-    * may lean on each other. `require` cannot express that: whichever module
-    * loads first sees a partner whose `module.exports` is still empty. The
-    * edges reported here are resolved at first call instead, by which time
-    * every module involved has finished loading.
-    */
+  /** dependency edges that close a cycle in the module graph */
   private lazy val cyclicEdges: Set[(String, String)] =
     val onStack, done = MSet[String]()
     val edges = MSet[(String, String)]()

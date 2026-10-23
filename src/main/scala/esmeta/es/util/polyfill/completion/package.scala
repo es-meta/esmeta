@@ -30,9 +30,6 @@ case class TypeEnv(map: Map[String, CompletionType] = Map.empty) {
   )
 }
 
-/** state threaded through the rewriting: the current type environment and the
-  * steps emitted so far
-  */
 case class Config(
   env: TypeEnv = TypeEnv(),
   steps: Vector[PolyfillStep] = Vector.empty,
@@ -47,11 +44,6 @@ case class Config(
     ValueAccessUnwrapper(env).walk(step)
 }
 
-/** a rewriting rule for a single step of the erasure
-  *
-  * A rule returns `None` when it does not apply, so that the next rule of the
-  * dispatcher is tried instead.
-  */
 trait EraseRule {
   def apply(
     step: PolyfillStep,

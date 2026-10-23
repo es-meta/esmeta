@@ -17,11 +17,6 @@ class Translator(spec: Spec) {
   private val IS_PRESENT = "IsPresent"
   private val RESERVED_WORDS = Set("return")
 
-  /** a metalanguage element the translator does not know how to translate yet
-    *
-    * The reason names the element and, when the element alone is ambiguous, the
-    * parts that make it unsupported (e.g. `LengthExpression/XRefExpression`).
-    */
   private def unsupported(elem: Any, details: Any*): Nothing =
     def nameOf(x: Any): String = x match
       case p: Product => p.productPrefix
@@ -611,11 +606,7 @@ class Translator(spec: Spec) {
     }
 }
 
-/** accumulator for the JavaScript statements of one polyfill
-  *
-  * Statements are emitted into the innermost open scope; [[newScope]] opens one
-  * and returns everything emitted inside it as a single block.
-  */
+/** accumulator for the JavaScript statements of one polyfill */
 case class Builder() {
   import Polyfill.*
 

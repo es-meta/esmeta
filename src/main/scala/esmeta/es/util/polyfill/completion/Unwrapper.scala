@@ -15,13 +15,6 @@ import esmeta.util.BaseUtils.*
   */
 class ValueAccessUnwrapper(env: TypeEnv) extends PolyfillWalker {
 
-  /** the reified counterpart of the abstract-operation case below
-    *
-    * [[PolyfillExpr.lift]] turns every abstract-operation call into
-    * [[PolyfillExpr.Invoke]], so a call at the top of a step never reaches the
-    * metalanguage walker and would otherwise keep its completion arguments
-    * unsplit.
-    */
   override def walk(expr: PolyfillExpr): PolyfillExpr = expr match {
     case completionAO @ PolyfillExpr.Invoke(name, args, _)
         if name.contains("Completion") =>
@@ -122,9 +115,6 @@ class ValueAccessUnwrapper(env: TypeEnv) extends PolyfillWalker {
 
 /** an `if` step checking the completion type of a variable, e.g. `if x is an
   * abrupt completion, ...`
-  *
-  * It extracts the checked completion type and the name of the checked
-  * variable.
   */
 object CompletionCheckPattern {
   def unapply(cond: Condition): Option[(CompletionType, String)] =

@@ -3,11 +3,6 @@ package esmeta.es.util.polyfill.util
 import esmeta.es.util.polyfill.{PolyfillExpr, PolyfillStep}
 import esmeta.lang.util.UnitWalker as LangUnitWalker
 
-/** a unit walker for the polyfill pipeline language
-  *
-  * The counterpart of [[Walker]] for traversals that only collect, such as
-  * scanning a rewritten body for the variables it mentions.
-  */
 trait UnitWalker extends LangUnitWalker {
   import PolyfillStep.*
   import PolyfillExpr.*

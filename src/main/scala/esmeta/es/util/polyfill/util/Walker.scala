@@ -3,13 +3,6 @@ package esmeta.es.util.polyfill.util
 import esmeta.es.util.polyfill.{PolyfillExpr, PolyfillStep}
 import esmeta.lang.util.Walker as LangWalker
 
-/** a walker for the polyfill pipeline language
-  *
-  * Extends the metalanguage walker, so a rule that only cares about the
-  * expressions or references inside a step overrides the inherited
-  * [[esmeta.lang.util.Walker]] methods and gets the pipeline structure
-  * traversed for free.
-  */
 trait Walker extends LangWalker {
   import PolyfillStep.*
   import PolyfillExpr.*

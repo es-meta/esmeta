@@ -5,11 +5,7 @@ import esmeta.es.util.polyfill.completion.*
 import esmeta.es.util.polyfill.PolyfillStep.*
 import esmeta.lang.*
 
-/** rewrite the body of a loop step
-  *
-  * The body is rewritten in a fresh step buffer, and the environment it
-  * produces is dropped since the loop may run any number of times.
-  */
+/** rewrite the body of a loop step */
 object LoopStepTransform extends EraseRule {
   def apply(
     step: PolyfillStep,

@@ -8,12 +8,7 @@ import esmeta.es.util.polyfill.PolyfillStep.*
 import esmeta.lang.*
 import esmeta.lang.BinaryConditionOperator.Eq
 
-/** rewrite a completion check produced by [[CompletionCheckRule]]
-  *
-  * The condition is rebased onto the completion flag of the target variable,
-  * and each branch is rewritten under the completion type that branch implies.
-  * When rebasing leaves the condition vacuous, only the `then` branch survives.
-  */
+/** rewrite a completion check produced by [[CompletionCheckRule]] */
 object CompletionCheckTransform extends EraseRule {
   def apply(
     step: PolyfillStep,

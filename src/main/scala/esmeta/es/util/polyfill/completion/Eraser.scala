@@ -73,8 +73,7 @@ class Eraser(algo: Algorithm, algos: List[Algorithm]) {
 
 object Eraser {
 
-  /** replace completion checks in a condition with checks on completion flags,
-    * dropping the condition when it becomes vacuous
+  /** replace completion checks in a condition with checks on completion flags
     */
   def rebaseCondition(
     cond: Condition,

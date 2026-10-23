@@ -3,27 +3,10 @@ package esmeta.es.util.polyfill
 import esmeta.es.util.polyfill.completion.CompletionType
 import esmeta.lang.*
 
-/** the intermediate step language of the polyfill pipeline
-  *
-  * Completion erasure introduces steps the metalanguage has no syntax for: a
-  * try-catch guarding an abrupt producer, and steps annotated for a later pass.
-  * Rather than widening [[esmeta.lang.Step]] with nodes no specification can
-  * contain and no compiler can lower, an algorithm body is lifted into this
-  * language once (see [[PolyfillStep.lift]]), rewritten, and compiled from
-  * here.
-  *
-  * The language is not a complete mirror of the metalanguage: a construct that
-  * can neither contain a step nor be rewritten is carried opaquely by
-  * [[PolyfillStep.LangStep]]. Widening the mirror -- and dropping `LangStep`
-  * entirely -- is left for a later pass.
-  */
+/** the intermediate step language of the polyfill pipeline */
 sealed trait PolyfillStep
 
-/** an algorithm whose body has been lifted into the pipeline language
-  *
-  * The counterpart of [[esmeta.spec.Algorithm]] once completion erasure has
-  * run, since an erased body no longer fits [[esmeta.lang.Step]].
-  */
+/** an algorithm whose body has been lifted into the pipeline language */
 case class PolyfillAlgo(
   name: String,
   head: esmeta.spec.Head,
@@ -32,22 +15,13 @@ case class PolyfillAlgo(
 
 object PolyfillStep {
 
-  /** a metalanguage step carried as-is
-    *
-    * Named `LangStep` rather than `Plain` so that this object and
-    * [[PolyfillExpr]] can both be wildcard-imported by a rule without their
-    * embedding cases colliding, and so neither shadows [[esmeta.lang.Step]].
-    */
+  /** a metalanguage step carried as-is */
   case class LangStep(step: Step) extends PolyfillStep
 
   /** a sequence of steps, replacing [[esmeta.lang.BlockStep]] */
   case class Steps(steps: List[PolyfillStep]) extends PolyfillStep
 
-  /** a conditional whose branches may contain polyfill-specific nodes
-    *
-    * The condition stays a metalanguage condition: no rule rewrites inside one,
-    * so no polyfill-specific node can appear there.
-    */
+  /** a conditional whose branches may contain polyfill-specific nodes */
   case class Branch(
     cond: Condition,
     thenStep: PolyfillStep,
@@ -55,12 +29,7 @@ object PolyfillStep {
     elseConfig: IfStep.ElseConfig,
   ) extends PolyfillStep
 
-  /** a loop whose body may contain polyfill-specific nodes
-    *
-    * `header` is the original metalanguage loop step, kept for its loop
-    * variable and bounds; [[lift]] blanks out its body field, which is carried
-    * by `body` instead.
-    */
+  /** a loop whose body may contain polyfill-specific nodes */
   case class Loop(header: Step, body: PolyfillStep) extends PolyfillStep
 
   case class Let(variable: Variable, expr: PolyfillExpr) extends PolyfillStep
@@ -68,11 +37,7 @@ object PolyfillStep {
   case class Perform(expr: PolyfillExpr) extends PolyfillStep
   case class Return(expr: PolyfillExpr) extends PolyfillStep
 
-  /** a re-throw of a value already known to be an abrupt completion
-    *
-    * Distinct from a metalanguage `throw`, which raises a fresh error: this one
-    * rethrows the caught value as-is.
-    */
+  /** a re-throw of a value already known to be an abrupt completion */
   case class Rethrow(name: String) extends PolyfillStep
 
   /** a completion check awaiting rebasing onto a completion flag
@@ -91,11 +56,7 @@ object PolyfillStep {
     elseConfig: IfStep.ElseConfig,
   ) extends PolyfillStep
 
-  /** a try-catch introduced by completion erasure
-    *
-    * The metalanguage has no try-catch, which is why this cannot be lowered
-    * back into [[esmeta.lang.Step]].
-    */
+  /** a try-catch introduced by completion erasure */
   case class Wrapped(
     tryBlock: PolyfillStep,
     catchVar: Reference,
@@ -160,16 +121,7 @@ object PolyfillStep {
 
 }
 
-/** the expression language paired with [[PolyfillStep]]
-  *
-  * Only the forms that can carry a closure are reified, since a closure body is
-  * a step and so may hold polyfill-specific nodes after rewriting. An
-  * expression that cannot is carried opaquely by [[PolyfillExpr.LangExpr]].
-  *
-  * A closure nested somewhere other than an abstract-operation argument -- in a
-  * record field, say -- is not reached by [[PolyfillExpr.lift]] and stays
-  * inside a `LangExpr`; no rule produces one today.
-  */
+/** the expression language paired with [[PolyfillStep]] */
 sealed trait PolyfillExpr
 
 object PolyfillExpr {

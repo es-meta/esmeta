@@ -32,11 +32,7 @@ object ShorthandInliningRule extends EraseRule {
     }
 }
 
-/** replace references to a parameter with the given expression
-  *
-  * Shared with [[esmeta.es.util.polyfill.ShorthandInlinePath]], which inlines
-  * the same shorthands one pass earlier.
-  */
+/** replace references to a parameter with the given expression */
 class ParameterInlineWalker(
   paramName: String,
   replaceWith: Expression,

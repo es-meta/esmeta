@@ -19,12 +19,6 @@ object Generator {
     new Generator(spec, dslDir, skipUnsupported).result
 }
 
-/** polyfill generator
-  *
-  * @param skipUnsupported
-  *   drop algorithms whose metalanguage the translator does not support yet,
-  *   recording why in `skipped`, instead of failing on the first one
-  */
 class Generator(
   spec: Spec,
   dslDir: Option[String],
