@@ -506,6 +506,11 @@ object LangTest {
   lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
   lazy val finiteCond =
     PredicateCondition(List(refExpr), F, PredicateConditionOperator.Finite)
+  lazy val finitePluralCond = PredicateCondition(
+    List(refExpr, refExpr),
+    F,
+    PredicateConditionOperator.Finite,
+  )
   lazy val finiteNumberCond =
     PredicateCondition(
       List(refExpr),
@@ -528,6 +533,22 @@ object LangTest {
     F,
     PredicateConditionOperator.NonZeroFiniteNumber,
   )
+  lazy val evenCond =
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Even)
+  lazy val oddCond =
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Odd)
+  lazy val evenIntegralNumberCond =
+    PredicateCondition(
+      List(refExpr),
+      F,
+      PredicateConditionOperator.EvenIntegralNumber,
+    )
+  lazy val oddIntegralNumberCond =
+    PredicateCondition(
+      List(refExpr),
+      F,
+      PredicateConditionOperator.OddIntegralNumber,
+    )
   lazy val abruptCond =
     PredicateCondition(List(refExpr), F, PredicateConditionOperator.Abrupt)
   lazy val normalCond =

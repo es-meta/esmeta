@@ -576,7 +576,7 @@ class Debugger(st: State) extends Interpreter(st) {
     else false
 
   // remove breakpoint
-  final def rmBreakAll: Unit = breakpoints.clear
+  final def rmBreakAll: Unit = breakpoints.clear()
   final def rmBreak(idx: Int): Unit = breakpoints.remove(idx)
 
   // toggle breakpoints

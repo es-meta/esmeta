@@ -142,7 +142,7 @@ case object YetCheck extends Phase[Unit, (Int, Int)] {
   def getYetTypes(spec: Spec): List[Target[Type]] =
     getYets(spec, _.headElem, _.yetTypes)
 
-  def getLines(targets: List[Target[_]]): List[Int] =
+  def getLines(targets: List[Target[?]]): List[Int] =
     targets.map(_.line).toSet.toList.sorted
 
   def filterDiffs(diffs: List[Git.Diff], excluded: List[Int]): List[Git.Diff] =

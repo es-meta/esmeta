@@ -81,7 +81,8 @@ class Stringifier(
         if (detail && ast.loc.isDefined) app >> ast.loc.get else app
 
   // intrinsics
-  given intrRule: Rule[Intrinsics] = (app, intr) => {
+  given Rule[Intrinsics] = intrRule
+  lazy val intrRule: Rule[Intrinsics] = (app, intr) => {
     given iterRule[T: Rule]: Rule[Iterable[T]] =
       iterableRule(sep = LINE_SEP + LINE_SEP)
     val Intrinsics(templates, models) = intr
@@ -106,7 +107,8 @@ class Stringifier(
   }
 
   // models
-  given modelRule: Rule[Model] = (app, model) => {
+  given Rule[Model] = modelRule
+  lazy val modelRule: Rule[Model] = (app, model) => {
     val Model(name, tname, imap, nmap) = model
     app >> name >> " = " >> tname
     if (imap.nonEmpty) app.wrap(" [", "]") {

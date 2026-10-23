@@ -44,7 +44,7 @@ sealed abstract class Command[Result](
   def apply(args: String): Result = apply(args.split(" +").toList)
 
   /** a list of phases without specific IO types */
-  def phases: Vector[Phase[_, _]] = pList.phases
+  def phases: Vector[Phase[?, ?]] = pList.phases
 
   /** append a phase to create a new phase list */
   def >>[R](phase: Phase[Result, R]): PhaseList[R] = pList >> phase

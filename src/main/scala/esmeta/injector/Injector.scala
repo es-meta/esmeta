@@ -57,7 +57,7 @@ class Injector(
 
   /** generated assertions */
   lazy val assertions: Vector[Assertion] =
-    _assertions.clear
+    _assertions.clear()
     if (normalExit)
       handleVariable // inject assertions from variables
       handleLet // inject assertions from lexical variables

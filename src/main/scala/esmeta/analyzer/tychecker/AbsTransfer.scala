@@ -1553,7 +1553,7 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       target: RefinementTarget,
       prop: TypeProp,
       refinedTo: ValueTy,
-    )(using np: NodePoint[_]): Updater =
+    )(using np: NodePoint[?]): Updater =
       // Ensure nested notice() calls see this target.
       val saved = currentTarget
       currentTarget = Some(target)

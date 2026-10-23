@@ -43,7 +43,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // blocks
-  given blockRule: Rule[Block] = (app, block) =>
+  given Rule[Block] = blockRule
+  lazy val blockRule: Rule[Block] = (app, block) =>
     given Rule[Step] = stepWithUpperRule(true)
     if (detail) app.wrap("", "")(block match {
       case StepBlock(steps) =>
@@ -58,12 +59,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
     else app >> " [...]"
 
   // sub-steps
-  given subStepRule: Rule[SubStep] = (app, subStep) =>
+  given Rule[SubStep] = subStepRule
+  lazy val subStepRule: Rule[SubStep] = (app, subStep) =>
     given Rule[Step] = stepWithUpperRule(true)
     val SubStep(directive, step) = subStep
     app >> directive >> step
 
-  given directiveListRule: Rule[List[Directive]] = (app, directives) =>
+  given Rule[List[Directive]] = directiveListRule
+  lazy val directiveListRule: Rule[List[Directive]] = (app, directives) =>
     directives match
       case Nil => app
       case _ =>
@@ -258,7 +261,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     app >> step.endString
   }
 
-  given removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
+  given Rule[RemoveStep.Target] = removeStepTargetRule
+  lazy val removeStepTargetRule: Rule[RemoveStep.Target] = (app, target) => {
     import RemoveStep.Target
     given Rule[Option[Expression]] = (app, expr) =>
       expr match
@@ -270,7 +274,9 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Target.Element(expr) => app >> expr
   }
 
-  given removeCtxtStepRestoreTargetRule: Rule[RemoveContextStep.RestoreTarget] =
+  given Rule[RemoveContextStep.RestoreTarget] = removeCtxtStepRestoreTargetRule
+  lazy val removeCtxtStepRestoreTargetRule
+    : Rule[RemoveContextStep.RestoreTarget] =
     (app, target) => {
       import RemoveContextStep.RestoreTarget.*
       target match
@@ -299,7 +305,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // expressions
-  given exprRule: Rule[Expression] = withLoc { (app, expr) =>
+  given Rule[Expression] = exprRule
+  lazy val exprRule: Rule[Expression] = withLoc { (app, expr) =>
     expr match {
       case StringConcatExpression(exprs) =>
         given Rule[List[Expression]] = listNamedSepRule(namedSep = "and")
@@ -452,7 +459,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     }
 
   // multiline expressions
-  given multilineExprRule: Rule[MultilineExpression] = (app, expr) =>
+  given Rule[MultilineExpression] = multilineExprRule
+  lazy val multilineExprRule: Rule[MultilineExpression] = (app, expr) =>
     expr match {
       case AbstractClosureExpression(params, captured, body) =>
         given Rule[List[Variable]] = listNamedSepRule(namedSep = "and")
@@ -570,7 +578,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // literals
-  given litRule: Rule[Literal] = (app, lit) =>
+  given Rule[Literal] = litRule
+  lazy val litRule: Rule[Literal] = (app, lit) =>
     lit match {
       case ThisLiteral(article) =>
         val a = if (article) "the " else ""
@@ -663,7 +672,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // metalanguage invocation expressions
-  given invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
+  given Rule[InvokeExpression] = invokeExprRule
+  lazy val invokeExprRule: Rule[InvokeExpression] = (app, expr) =>
     expr match {
       case InvokeAbstractOperationExpression(name, args, tag) =>
         given Rule[Iterable[Expression]] = iterableRule("(", ", ", ")")
@@ -844,6 +854,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case Finite              => "finite"
       case FiniteNumber        => "a finite Number"
       case NonZeroFiniteNumber => "a non-zero finite Number"
+      case Even                => "even"
+      case Odd                 => "odd"
+      case EvenIntegralNumber  => "an even integral Number"
+      case OddIntegralNumber   => "an odd integral Number"
       case Abrupt              => "an abrupt completion"
       case Throw               => "a throw completion"
       case Return              => "a return completion"
@@ -867,6 +881,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
   private def pluralPredCondOpStr(op: PredicateConditionOperator): String =
     import PredicateConditionOperator.*
     op match {
+      case Finite              => "finite"
       case FiniteNumber        => "finite Numbers"
       case NonZeroFiniteNumber => "non-zero finite Numbers"
       case _                   => op.toString
@@ -886,19 +901,21 @@ class Stringifier(detail: Boolean, location: Boolean) {
     })
 
   // targets for `contains` conditions
-  given containsTargetRule: Rule[ContainsConditionTarget] = (app, target) => {
-    import ContainsConditionTarget.*
-    given Rule[Option[Type]] = (app, tyOpt) =>
-      tyOpt match
-        case Some(ty) => app >> ty
-        case None     => app >> "an element"
-    target match
-      case Expr(e) => app >> e
-      case WhoseField(tyOpt, field, expr) =>
-        app >> tyOpt >> " whose [[" >> field >> "]] is " >> expr
-      case SuchThat(tyOpt, x, cond) =>
-        app >> tyOpt >> " " >> x >> " such that " >> cond
-  }
+  given Rule[ContainsConditionTarget] = containsTargetRule
+  lazy val containsTargetRule: Rule[ContainsConditionTarget] = (app, target) =>
+    {
+      import ContainsConditionTarget.*
+      given Rule[Option[Type]] = (app, tyOpt) =>
+        tyOpt match
+          case Some(ty) => app >> ty
+          case None     => app >> "an element"
+      target match
+        case Expr(e) => app >> e
+        case WhoseField(tyOpt, field, expr) =>
+          app >> tyOpt >> " whose [[" >> field >> "]] is " >> expr
+        case SuchThat(tyOpt, x, cond) =>
+          app >> tyOpt >> " " >> x >> " such that " >> cond
+    }
 
   // operators for compound conditions
   given compCondOpRule: Rule[CompoundConditionOperator] = (app, op) => {
@@ -940,7 +957,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
   }
 
   // references
-  given refRule: Rule[Reference] = withLoc { (app, ref) =>
+  given Rule[Reference] = refRule
+  lazy val refRule: Rule[Reference] = withLoc { (app, ref) =>
     given Rule[(String, AccessKind)] = (app, pair) => {
       import AccessKind.*
       val (name, kind) = pair
@@ -1049,7 +1067,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           app.toString
         }
         app >> normalStr
-        if (both) app >> (if (normalStr contains " or ") ", or " else " or ")
+        if (both) app >> (if (normalStr `contains` " or ") ", or " else " or ")
         map.get("AbruptCompletion").map { fm =>
           m -= "AbruptCompletion"
           fm("Type").value.enumv match

@@ -35,7 +35,7 @@ class StateMonad[S] {
   implicit def modify(f: Updater): Result[Unit] = s => ((), f(s))
 
   // conversion to updater
-  implicit def toUpdater(m: Result[_]): Updater = s => m(s)._2
+  implicit def toUpdater(m: Result[?]): Updater = s => m(s)._2
 
   // list of updaters to list of results
   implicit def listModify(list: List[Updater]): List[Result[Unit]] =

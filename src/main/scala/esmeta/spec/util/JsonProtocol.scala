@@ -67,7 +67,8 @@ object JsonProtocol extends BasicJsonProtocol {
     "abbr" -> (_.as[CodePointAbbr]),
     "cpCond" -> (_.as[UnicodeSet]),
   )
-  given Encoder[Symbol] = Encoder.instance {
+  given Encoder[Symbol] = symbolEncoder
+  private lazy val symbolEncoder: Encoder[Symbol] = Encoder.instance {
     case symbol: Terminal      => symbol.asJson
     case symbol: Nonterminal   => symbol.asJson
     case symbol: Optional      => symbol.asJson

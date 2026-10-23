@@ -1098,6 +1098,10 @@ trait Parsers extends IndentParsers {
       "finite" ^^^ Finite |
       "a finite Number" ^^^ FiniteNumber |
       "a non-zero finite Number" ^^^ NonZeroFiniteNumber |
+      "even" ^^^ Even |
+      "odd" ^^^ Odd |
+      "an even integral Number" ^^^ EvenIntegralNumber |
+      "an odd integral Number" ^^^ OddIntegralNumber |
       "a normal completion" ^^^ Normal |
       "an abrupt completion" ^^^ Abrupt |
       "a throw completion" ^^^ Throw |
@@ -1118,8 +1122,10 @@ trait Parsers extends IndentParsers {
       "an instance of a nonterminal" ^^^ Nonterminal
 
     lazy val pluralOp: Parser[PredicateConditionOperator] =
+      "finite and non-zero" ^^^ NonZeroFiniteNumber |
       "finite Numbers" ^^^ FiniteNumber |
-      "non-zero finite Numbers" ^^^ NonZeroFiniteNumber
+      "non-zero finite Numbers" ^^^ NonZeroFiniteNumber |
+      "finite" ^^^ Finite
 
     lazy val neg: Parser[Boolean] =
       isNeg | ("contains" | "has") ~> ("any" ^^^ false | "no" ^^^ true)

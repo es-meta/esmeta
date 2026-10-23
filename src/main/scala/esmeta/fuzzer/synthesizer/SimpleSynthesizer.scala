@@ -159,7 +159,7 @@ class SimpleSynthesizer(
       def create(children: Vector[Option[Ast]]): Syntactic =
         astF(Syntactic(name, args, rhsIdx, children))
       for {
-        removed <- opts.toSet.subsets
+        removed <- opts.toSet.subsets()
         newChildren = for {
           (child, idx) <- children.zipWithIndex
         } yield if (removed contains idx) None else child

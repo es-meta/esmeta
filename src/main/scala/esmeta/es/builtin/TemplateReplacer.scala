@@ -6,7 +6,7 @@ object TemplateReplacer {
     /** replace template name to instance name */
     def replace(templates: List[Template]): List[Model] = {
       val Model(name, tname, imap, nmap) = model
-      templates.find(name contains _.name).fold(List(model)) { template =>
+      templates.find(name `contains` _.name).fold(List(model)) { template =>
         val Template(from, instances) = template
         for ((to, fields) <- instances.toList)
           yield Model(

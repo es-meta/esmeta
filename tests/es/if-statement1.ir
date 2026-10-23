@@ -1,5 +1,5 @@
-assert (contains @REALM.GlobalEnv.VarNames "x")
-assert (contains @REALM.GlobalEnv.VarNames "y")
+assert (exists @REALM.GlobalObject.__MAP__.x)
+assert (exists @REALM.GlobalObject.__MAP__.y)
 assert (= @REALM.GlobalObject.__MAP__.x.Value 1.0f)
 assert (= @REALM.GlobalObject.__MAP__.x.Writable true)
 assert (= @REALM.GlobalObject.__MAP__.x.Enumerable true)

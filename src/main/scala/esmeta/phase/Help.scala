@@ -20,7 +20,7 @@ case object Help extends Phase[Unit, Unit]:
         case None      => helpMessage,
   )
 
-  def cmdHelp(cmd: Command[_]): String =
+  def cmdHelp(cmd: Command[?]): String =
     val app = Appender()
     app >> "The command `" >> cmd.name >> "` " >> cmd.help
     app :> ""
@@ -58,7 +58,7 @@ case object Help extends Phase[Unit, Unit]:
     addGlobalOption(app)
     app.toString
 
-  def addPhase(app: Appender, phases: Iterable[Phase[_, _]]): Unit =
+  def addPhase(app: Appender, phases: Iterable[Phase[?, ?]]): Unit =
     app :> "- phase list:"
     app :> "    Each phase has following options."
     app :> "    format: <phase> [-<phase>:<option>[=<input>]]*"

@@ -102,7 +102,8 @@ class JsonProtocol(cfg: esmeta.cfg.CFG) extends BasicJsonProtocol {
       .asJson
   }
 
-  given astEncoder: Encoder[Ast] = Encoder.instance {
+  given Encoder[Ast] = astEncoder
+  private lazy val astEncoder: Encoder[Ast] = Encoder.instance {
     case lex @ Lexical(name, str) =>
       Json.obj(
         "Lexical" -> Json.obj(

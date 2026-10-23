@@ -145,10 +145,14 @@ class Interpreter(
       if (tyCheck) typeChecker.returnTyCheck(ret, retVal)
       st.context.retVal = Some(ret, retVal)
     case IAssert(expr) =>
-      optional(eval(expr)) match
-        case None             => /* skip not yet compiled assertions */
-        case Some(Bool(true)) =>
-        case v                => throw AssertionFail(expr)
+      try {
+        eval(expr) match {
+          case Bool(true) =>
+          case _          => throw AssertionFail(expr)
+        }
+      } catch {
+        case _: NotSupported => /* skip not yet compiled assertions */
+      }
     case IPrint(expr) =>
       val v = eval(expr)
       if (!TEST_MODE) println(st.getString(v))
@@ -331,7 +335,7 @@ class Interpreter(
       val captured = st.context.locals.collect { case (x: Name, v) => x -> v }
       Cont(func, captured.toMap, st.callStack)
     case EDebug(expr) => debug(eval(expr))
-    case ERandom()    => Number(math.random)
+    case ERandom()    => Number(math.random())
     case ESyntactic(name, args, rhsIdx, children) =>
       val asts = children.map(_.map(child => eval(child).asAst))
       AstValue(Syntactic(name, args, rhsIdx, asts))
@@ -575,7 +579,8 @@ object Interpreter {
       case (Pow, Number(l), Number(r)) => Number(math.pow(l, r))
       case (Div, Number(l), Number(r)) => Number(l / r)
       case (Mod, Number(l), Number(r)) => Number(l %% r)
-      case (Lt, Number(l), Number(r)) if (l equals -0.0) && (r equals 0.0) =>
+      case (Lt, Number(l), Number(r))
+          if (l `equals` -0.0) && (r `equals` 0.0) =>
         Bool(true)
       case (Lt, Number(l), Number(r)) => Bool(l < r)
 
@@ -646,7 +651,7 @@ object Interpreter {
       case (Xor, Bool(l), Bool(r)) => Bool(l ^ r)
 
       // equality operations
-      case (Eq, Number(l), Number(r))     => Bool(l equals r)
+      case (Eq, Number(l), Number(r))     => Bool(l `equals` r)
       case (Eq, AstValue(l), AstValue(r)) => Bool(l eq r)
       case (Eq, l, r)                     => Bool(l == r)
 

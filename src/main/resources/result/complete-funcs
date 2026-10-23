@@ -1999,8 +1999,11 @@ Number::bitwiseOR
 Number::bitwiseXOR
 Number::divide
 Number::equal
+Number::exponentiate
 Number::leftShift
+Number::lessThan
 Number::multiply
+Number::remainder
 Number::sameValue
 Number::sameValueZero
 Number::signedRightShift
