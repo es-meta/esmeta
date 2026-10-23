@@ -201,7 +201,7 @@ trait LAParsers extends Lexer {
   // stop message
   protected def stop(msg: String): String = {
     print(msg)
-    val res = scala.io.StdIn.readLine
+    val res = scala.io.StdIn.readLine()
     res
   }
 

@@ -40,13 +40,21 @@ class Compiler(
     Program(funcs.toList, spec)
 
   /** load manually created IR functions */
-  val manualFuncs: List[Func] = ManualInfo.funcFiles.sorted.map(Func.fromFile)
+  val manualFuncs: List[Func] = ManualInfo.funcFiles.map(Func.fromFile)
+
+  /** load manually created IR functions for functions without algorithms */
+  val fallbackFuncs: List[Func] =
+    ManualInfo.fallbackFuncFiles.map(Func.fromFile)
 
   /** load manually created IR functions */
   val manualFuncMap = manualFuncs.map(func => func.name -> func).toMap
 
+  /** load manually created IR functions for functions without algorithms */
+  val fallbackFuncMap = fallbackFuncs.map(func => func.name -> func).toMap
+
   /** compiled algorithms */
-  val funcs: ListBuffer[Func] = ListBuffer.from(manualFuncs)
+  val funcs: ListBuffer[Func] =
+    ListBuffer.from((manualFuncs ++ fallbackFuncs).sortBy(_.name))
 
   /** load manual compile rules */
   val manualRules: ManualInfo.CompileRule = ManualInfo.compileRule
@@ -101,9 +109,9 @@ class Compiler(
   )
 
   private def isObject(tname: String): Boolean =
-    tname endsWith "Object"
+    tname `endsWith` "Object"
   private def isEnvRec(tname: String): Boolean =
-    tname endsWith "EnvironmentRecord"
+    tname `endsWith` "EnvironmentRecord"
   private def getMapTy(tname: String): Option[(Ty, Ty)] =
     if (isObject(tname))
       Some((StrT || SymbolT) -> RecordT("PropertyDescriptor"))
@@ -178,6 +186,7 @@ class Compiler(
   ): Unit =
     val name = fb.name
     manualFuncMap.get(name).map(_.algo = Some(fb.algo))
+    fallbackFuncMap.get(name).map(func => funcs.filterInPlace(_ ne func))
     if (!excluded.contains(name))
       val inst = compileWithScope(fb, body)
       funcs += fb.getFunc(prefix match
@@ -608,7 +617,8 @@ class Compiler(
       case GetItemsExpression(nt, l @ NonterminalLiteral(_, name, flags, _)) =>
         val n = compile(fb, nt)
         val e = compile(fb, l)
-        val args = List(e, n, EGrammarSymbol(name, flags.map(_ startsWith "+")))
+        val args =
+          List(e, n, EGrammarSymbol(name, flags.map(_ `startsWith` "+")))
         val (x, xExpr) = fb.newTIdWithExpr
         fb.addInst(ICall(x, AUX_GET_ITEMS, args))
         xExpr
@@ -832,7 +842,7 @@ class Compiler(
       if (name.isDefined) ECodeUnit(hex.toChar) else EMath(hex)
     case CodeLiteral(code) => EStr(code)
     case GrammarSymbolLiteral(name, flags) =>
-      EGrammarSymbol(name, flags.map(_ startsWith "+"))
+      EGrammarSymbol(name, flags.map(_ `startsWith` "+"))
     case NonterminalLiteral(ordinal, name, flags, _) =>
       val ntNames = fb.ntBindings.map(_._1)
       // TODO ClassTail[0,3].Contains
@@ -841,7 +851,7 @@ class Compiler(
         xs(ordinal.getOrElse(1) - 1) match
           case (_, base, None)      => base
           case (_, base, Some(idx)) => toERef(fb, base, EMath(idx))
-      } else EGrammarSymbol(name, flags.map(_ startsWith "+"))
+      } else EGrammarSymbol(name, flags.map(_ `startsWith` "+"))
     case EnumLiteral(name)   => EEnum(name)
     case StringLiteral(s, _) => EStr(s)
     case FieldLiteral(field) => EStr(field)
@@ -954,6 +964,15 @@ class Compiler(
                 case Finite => or(finiteNum, isTy(MathT || BigIntT))
                 case NonZeroFiniteNumber => and(finiteNum, isTy(NonZeroNumberT))
                 case _                   => finiteNum
+            case Even | Odd | EvenIntegralNumber | OddIntegralNumber =>
+              def checkParity(m: Expr): Expr =
+                val even = op == Even || op == EvenIntegralNumber
+                is(EBinary(BOp.Mod, m, two), if (even) zero else one)
+              op match
+                case Even | Odd => checkParity(x)
+                case _ =>
+                  val m = EConvert(COp.ToMath, x)
+                  and(ETypeCheck(x, IRType(NumberIntT)), checkParity(m))
             case Duplicated =>
               val (b, bExpr) = fb.newTIdWithExpr
               fb.addInst(ICall(b, AUX_HAS_DUPLICATE, List(x)))
@@ -1188,6 +1207,7 @@ class Compiler(
   /** literal helpers */
   def zero = EMath(BigDecimal(0, UNLIMITED))
   def one = EMath(BigDecimal(1, UNLIMITED))
+  def two = EMath(BigDecimal(2, UNLIMITED))
   def posInf = ENumber(Double.PositiveInfinity)
   def negInf = ENumber(Double.NegativeInfinity)
   def T = EBool(true)

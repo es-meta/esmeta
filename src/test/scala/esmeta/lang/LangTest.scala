@@ -529,6 +529,22 @@ object LangTest {
     F,
     PredicateConditionOperator.NonZeroFiniteNumber,
   )
+  lazy val evenCond =
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Even)
+  lazy val oddCond =
+    PredicateCondition(List(refExpr), F, PredicateConditionOperator.Odd)
+  lazy val evenIntegralNumberCond =
+    PredicateCondition(
+      List(refExpr),
+      F,
+      PredicateConditionOperator.EvenIntegralNumber,
+    )
+  lazy val oddIntegralNumberCond =
+    PredicateCondition(
+      List(refExpr),
+      F,
+      PredicateConditionOperator.OddIntegralNumber,
+    )
   lazy val abruptCond =
     PredicateCondition(List(refExpr), F, PredicateConditionOperator.Abrupt)
   lazy val normalCond =

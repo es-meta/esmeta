@@ -54,7 +54,7 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Grammar] = summon
   given Encoder[Grammar] = summon
 
-  given Decoder[lang.Type] = summon
-  given Encoder[lang.Type] = summon
+  given langTypeDecoder: Decoder[lang.Type] = summon
+  given langTypeEncoder: Encoder[lang.Type] = summon
 
 }

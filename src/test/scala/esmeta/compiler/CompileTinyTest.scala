@@ -602,6 +602,12 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       "assert (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Number[NonZero, -INF, +INF, NaN]))",
       nonZeroFiniteNumbersCond ->
       "assert (&& (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Number[NonZero, -INF, +INF, NaN])) (&& (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Number[NonZero, -INF, +INF, NaN])))",
+      evenCond -> "assert (= (% x 2) 0)",
+      oddCond -> "assert (= (% x 2) 1)",
+      evenIntegralNumberCond ->
+      "assert (&& (? x: Number[Int]) (= (% ([math] x) 2) 0))",
+      oddIntegralNumberCond ->
+      "assert (&& (? x: Number[Int]) (= (% ([math] x) 2) 1))",
       abruptCond -> "assert (&& (? x: Completion) (! (= x.Type ~normal~)))",
       normalCond -> "assert (&& (? x: Completion) (= x.Type ~normal~))",
       // -----------------------------------------------------------------------

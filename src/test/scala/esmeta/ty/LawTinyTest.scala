@@ -18,7 +18,7 @@ class LawTinyTest extends TyTest {
       Domain[NumberTy, Number](
         numberTys,
         numbers,
-        _ contains _,
+        _ `contains` _,
         _ <= _,
         _ -- _,
         _ || _,
@@ -31,7 +31,7 @@ class LawTinyTest extends TyTest {
       Domain[MathTy, Math](
         mathTys,
         maths,
-        _ contains _,
+        _ `contains` _,
         _ <= _,
         _ -- _,
         _ || _,
@@ -44,7 +44,7 @@ class LawTinyTest extends TyTest {
       Domain[IntTy, BigInt](
         intTys,
         bigInts,
-        _ contains _,
+        _ `contains` _,
         _ <= _,
         _ -- _,
         _ || _,
@@ -86,7 +86,7 @@ class LawTinyTest extends TyTest {
       Domain[AstTy, AstValue](
         astTys,
         asts,
-        _ contains _,
+        _ `contains` _,
         _ <= _,
         _ -- _,
         _ || _,
@@ -100,7 +100,7 @@ class LawTinyTest extends TyTest {
       Domain[BoolTy, Boolean](
         boolTys,
         bools,
-        _ contains _,
+        _ `contains` _,
         _ <= _,
         _ -- _,
         _ || _,
@@ -114,7 +114,7 @@ class LawTinyTest extends TyTest {
       Domain[BSet[String], String](
         strTys,
         strs,
-        _ contains _,
+        _ `contains` _,
         _ <= _,
         _ -- _,
         _ || _,
@@ -176,7 +176,7 @@ class LawTinyTest extends TyTest {
       Domain[CloTy, String](
         cloTys,
         cloNames,
-        _ contains _,
+        _ `contains` _,
         _ <= _,
         _ -- _,
         _ || _,

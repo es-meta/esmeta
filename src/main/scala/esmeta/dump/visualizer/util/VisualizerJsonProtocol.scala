@@ -22,15 +22,18 @@ class VisualizerJsonProtocol(cfg: CFG) {
         throw ESMetaError(s"invalid feature $fName")
   }
 
-  given nodeViewInfoDecoder: Decoder[NodeViewInfoJson] = Decoder.instance(c =>
-    for {
-      index <- c.downField("index").as[Int]
-      nodeView <- c.downField("nodeView").as[NodeViewJson]
-      script <- c.downField("script").as[String].map(_.stripSuffix(".js"))
-    } yield NodeViewInfoJson(index, nodeView, script),
-  )
+  given Decoder[NodeViewInfoJson] = nodeViewInfoDecoder
+  lazy val nodeViewInfoDecoder: Decoder[NodeViewInfoJson] =
+    Decoder.instance(c =>
+      for {
+        index <- c.downField("index").as[Int]
+        nodeView <- c.downField("nodeView").as[NodeViewJson]
+        script <- c.downField("script").as[String].map(_.stripSuffix(".js"))
+      } yield NodeViewInfoJson(index, nodeView, script),
+    )
 
-  given nodeViewDecoder: Decoder[NodeViewJson] = Decoder.instance(c =>
+  given Decoder[NodeViewJson] = nodeViewDecoder
+  lazy val nodeViewDecoder: Decoder[NodeViewJson] = Decoder.instance(c =>
     for {
       node <- c.downField("node").as[NodeJson]
       view <- c.downField("view").as[Option[ViewJson]]

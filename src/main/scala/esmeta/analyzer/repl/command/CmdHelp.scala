@@ -22,7 +22,7 @@ trait CmdHelpDecl { self: Self =>
 
     // show help message
     def showHelp: Unit = {
-      println
+      println()
       println("command list:")
       for (cmd <- Command.commands) {
         println("- %-25s%s".format(cmd.name, cmd.help))
