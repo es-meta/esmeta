@@ -47,6 +47,7 @@ object CompletionCheckTransform extends EraseRule {
         val mergedEnv =
           (isTerminal(thenStep), elseStep.map(isTerminal)) match {
             case (true, Some(false)) => elseOptEnv
+            case (true, None)        => elseOptEnv
             case (false, Some(true)) => thenOptEnv
             case _                   => thenOptEnv ++ elseOptEnv
           }

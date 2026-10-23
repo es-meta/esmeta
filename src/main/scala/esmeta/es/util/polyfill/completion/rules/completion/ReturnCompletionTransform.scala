@@ -27,18 +27,16 @@ object ReturnCompletionTransform extends EraseRule {
               ),
             ),
           ) =>
-        Some(
-          config :+ guarded(
-            name,
-            Return(
-              LangExpr(ReferenceExpression(Variable(name, None))),
-            ),
-          ),
-        )
-      // return x, where x may be a completion
+        val ret = Return(LangExpr(ReferenceExpression(Variable(name, None))))
+        Some(config :+ (config(name) match {
+          case MayAbrupt     => Rethrow(name)
+          case MayCompletion => guarded(name, ret)
+          case _             => ret
+        }))
+      // return x, where x may be either a normal or an abrupt completion
       case ret @ Return(
             LangExpr(ReferenceExpression(Variable(name, _, _, _))),
-          ) if config(name) != NotCompletion =>
+          ) if config(name) == MayCompletion =>
         Some(config :+ guarded(name, ret))
       case _ => None
     }
