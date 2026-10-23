@@ -59,8 +59,8 @@ trait Walker extends BasicWalker {
     case PrependStep(expr, ref)    => PrependStep(walk(expr), walk(ref))
     case InsertStep(expr, ref)     => InsertStep(walk(expr), walk(ref))
     case AddStep(expr, ref)        => AddStep(walk(expr), walk(ref))
-    case ReplaceStep(oldExpr, newExpr, ref) =>
-      ReplaceStep(walk(oldExpr), walk(newExpr), walk(ref))
+    case ReplaceStep(oldExpr, newExpr, ref, form) =>
+      ReplaceStep(walk(oldExpr), walk(newExpr), walk(ref), form)
     case RemoveStep(t, p, l)        => RemoveStep(walk(t), walk(p), walk(l))
     case PushContextStep(ref)       => PushContextStep(walk(ref))
     case SuspendStep(ref, rm)       => SuspendStep(walkOpt(ref, walk), walk(rm))

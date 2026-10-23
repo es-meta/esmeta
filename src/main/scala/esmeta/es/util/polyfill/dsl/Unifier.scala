@@ -94,8 +94,8 @@ object Unifier {
     case (AssertStep(pCond), AssertStep(cCond)) =>
       unify(pCond, cCond, ctx, preds)
     case (
-          ReplaceStep(pOld, pNew, pRef),
-          ReplaceStep(cOld, cNew, cRef),
+          ReplaceStep(pOld, pNew, pRef, _),
+          ReplaceStep(cOld, cNew, cRef, _),
         ) =>
       for {
         oldEnv <- unify(pOld, cOld, ctx, preds)

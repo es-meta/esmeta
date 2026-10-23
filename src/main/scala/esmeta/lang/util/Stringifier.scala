@@ -115,8 +115,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> First("insert ") >> expr >> " as the first element of " >> ref
       case AddStep(expr, ref) =>
         app >> First("add ") >> expr >> " to " >> ref
-      case ReplaceStep(oldE, newE, ref) =>
-        app >> First("replace ") >> oldE >> " in " >> ref >> " with " >> newE
+      case ReplaceStep(oldE, newE, ref, form) =>
+        import ReplaceStep.Form.*
+        form match
+          case Plain =>
+            app >> First("replace ") >> oldE
+            app >> " in " >> ref >> " with " >> newE
+          case Element =>
+            app >> First("replace the element of ") >> ref
+            app >> " whose value is " >> oldE
+            app >> " with an element whose value is " >> newE
       case RemoveStep(target, prep, list) =>
         app >> First("remove ") >> target >> " " >> prep >> " " >> list
       case PushContextStep(ref) =>

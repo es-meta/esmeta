@@ -314,6 +314,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[PrependStep] = deriveEncoderWithType
   given Decoder[AddStep] = deriveDecoderWithType
   given Encoder[AddStep] = deriveEncoderWithType
+  given Decoder[ReplaceStep] = deriveDecoderWithType
+  given Encoder[ReplaceStep] = deriveEncoderWithType
+  given Decoder[ReplaceStep.Form] = deriveDecoderWithType
+  given Encoder[ReplaceStep.Form] = deriveEncoderWithType
   given Decoder[RepeatStep] = deriveDecoderWithType
   given Encoder[RepeatStep] = deriveEncoderWithType
   given Decoder[RepeatStep.LoopCondition] = deriveDecoderWithType

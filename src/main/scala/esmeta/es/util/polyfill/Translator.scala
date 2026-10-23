@@ -207,7 +207,7 @@ class Translator(spec: Spec) {
         ),
       )
     case AddStep(expr, ref) => unsupported(step)
-    case ReplaceStep(oldElem, newElem, ref) =>
+    case ReplaceStep(oldElem, newElem, ref, _) =>
       pb.addStmt(
         NormalStmt(
           s"${pb.use(Dep.Internal("Replace"))}(${compile(pb, ref)}, ${compile(pb, oldElem)}, ${compile(pb, newElem)})",

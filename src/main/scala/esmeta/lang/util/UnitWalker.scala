@@ -59,7 +59,7 @@ trait UnitWalker extends BasicUnitWalker {
     case PrependStep(expr, ref)          => walk(expr); walk(ref)
     case InsertStep(expr, ref)           => walk(expr); walk(ref)
     case AddStep(expr, ref)              => walk(expr); walk(ref)
-    case ReplaceStep(oldExpr, newExpr, ref) =>
+    case ReplaceStep(oldExpr, newExpr, ref, _) =>
       walk(oldExpr); walk(newExpr); walk(ref)
     case RemoveStep(target, p, list)     => walk(target); walk(p); walk(list)
     case PushContextStep(ref)            => walk(ref)

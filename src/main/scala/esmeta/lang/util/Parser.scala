@@ -167,11 +167,13 @@ trait Parsers extends IndentParsers {
 
   // replace steps
   lazy val replaceStep: PL[ReplaceStep] =
+    import ReplaceStep.Form.*
     ("replace" ~> expr) ~ ("in" ~> ref) ~ ("with" ~> expr) ~ end ^^ {
-      case oldE ~ r ~ newE ~ f => f(ReplaceStep(oldE, newE, r))
+      case oldE ~ r ~ newE ~ f => f(ReplaceStep(oldE, newE, r, Plain))
     } |
-    ("replace the element of" ~> ref) ~ ("whose value is" ~> expr) ~ ("with an element whose value is" ~> expr) ~ end ^^ {
-      case r ~ oldE ~ newE ~ f => f(ReplaceStep(oldE, newE, r))
+    ("replace the element of" ~> ref) ~ ("whose value is" ~> expr) ~
+    ("with an element whose value is" ~> expr) ~ end ^^ {
+      case r ~ oldE ~ newE ~ f => f(ReplaceStep(oldE, newE, r, Element))
     }
 
   // remove step

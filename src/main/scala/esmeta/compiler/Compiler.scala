@@ -257,7 +257,7 @@ class Compiler(
       // AddStep represents an element addition to a set.
       // We need to refactor this later.
       fb.addInst(IPush(compile(fb, expr), ERef(compile(fb, ref)), false))
-    case ReplaceStep(oldElem, newElem, ref) =>
+    case ReplaceStep(oldElem, newElem, ref, _) =>
       val (list, listExpr) = fb.newTIdWithExpr
       val (oldE, oldEExpr) = fb.newTIdWithExpr
       val (newE, newEExpr) = fb.newTIdWithExpr
