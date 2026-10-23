@@ -273,7 +273,7 @@ class Compiler(
           fb.newScope {
             fb.addInst(
               IIf(
-                equal(toERef(list, iExpr), oldEExpr),
+                is(toERef(list, iExpr), oldEExpr),
                 IAssign(Field(list, iExpr), newEExpr),
                 emptyInst,
               ),

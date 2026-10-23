@@ -54,7 +54,7 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       |%2 = x
       |%3 = 0
       |while (< %3 (sizeof %0)) {
-      |  if (== %0[%3] %1) %0[%3] = %2
+      |  if (= %0[%3] %1) %0[%3] = %2
       |  %3 = (+ %3 1)
       |}""".stripMargin,
       // -----------------------------------------------------------------------
