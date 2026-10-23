@@ -279,7 +279,7 @@ class Packager(
       dep <- generatedDeps(entry.deps ++ membersOf(entry).flatMap(_.deps))
     } push(entry.module)(dep)
     while (queue.nonEmpty) do
-      val module = queue.dequeue
+      val module = queue.dequeue()
       aoByModule.get(module) match
         case Some(entry) => generatedDeps(entry.deps).foreach(push(module))
         case None =>

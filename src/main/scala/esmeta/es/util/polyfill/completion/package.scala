@@ -25,7 +25,7 @@ case class TypeEnv(map: Map[String, CompletionType] = Map.empty) {
   def apply(name: String): CompletionType = map.getOrElse(name, NotCompletion)
   def ++(that: TypeEnv): TypeEnv = TypeEnv(
     (this.map.keySet ++ that.map.keySet).toList.map { key =>
-      key -> (this(key) join that(key))
+      key -> (this(key) `join` that(key))
     }.toMap,
   )
 }

@@ -614,7 +614,7 @@ case class Builder() {
   def newScope(doit: => Unit): Stmt =
     scopes.push(ListBuffer())
     doit
-    BlockStmt(scopes.pop.toList)
+    BlockStmt(scopes.pop().toList)
 
   /** add JS statements to the current scope */
   def addStmt(stmts: Stmt*): Unit = scopes.head ++= stmts

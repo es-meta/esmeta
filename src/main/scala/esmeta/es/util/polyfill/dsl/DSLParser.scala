@@ -83,8 +83,8 @@ trait DSLParsers extends Parsers {
     * of the specified syntactic category and captures it for later pattern
     * matching and substitution.
     */
-  private def metaDef[T <: LangElem with Locational](
-    typeTag: Parser[_],
+  private def metaDef[T <: LangElem & Locational](
+    typeTag: Parser[?],
     mkElem: (String, Int) => T,
   ): PL[T] =
     ("{{" ~> metaNameWithVariant <~ ":" <~ typeTag <~ "}}") >> {

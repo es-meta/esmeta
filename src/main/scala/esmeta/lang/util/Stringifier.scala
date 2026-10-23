@@ -841,6 +841,7 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case Imply =>
             app >> "If " >> conds.head
             for (cond <- conds.tail) app >> ", then " >> cond
+      case MetaCondition(name, _) => app >> name >> ":cond"
     }
 
     if (parenthesized) app >> ")"
