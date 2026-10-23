@@ -155,8 +155,8 @@ class CaseCollector extends UnitWalker {
         s"set fields of {{ ref }} with the values listed in ..."
       case PerformBlockStep(block, desc) =>
         s"perform the following substeps in an implementation-defined order ..."
-      // Should not reach here (polyfill)
-      case MetaStep(name, multiline, _) => ???
+      case MetaStep(name, _, _) =>
+        raise(s"polyfill DSL meta-variable cannot be collected: $name")
     })
     super.walk(step)
   }
@@ -403,7 +403,8 @@ class CaseCollector extends UnitWalker {
           if (params.isEmpty) "no parameters"
           else "parameters ({{ var }}*)"
         s"a new Abstract Closure with $p that captures {{ var }}* and performs the following steps when called: {{ step }}"
-      case MetaExpression(name, _) => ???
+      case MetaExpression(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be collected: $name")
     })
     super.walk(expr)
   }
@@ -450,7 +451,8 @@ class CaseCollector extends UnitWalker {
         s"if {{ expr }}, then {{ expr }}"
       case CompoundCondition(left, op, right) =>
         s"{{ expr }} $op {{ expr }}"
-      case MetaCondition(name, _) => ???
+      case MetaCondition(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be collected: $name")
     })
     super.walk(cond)
   }
@@ -501,7 +503,8 @@ class CaseCollector extends UnitWalker {
         "the active function object"
       case AgentRecord() =>
         "the Agent Record of the surrounding agent"
-      case MetaReference(name, _) => ???
+      case MetaReference(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be collected: $name")
     })
     super.walk(ref)
   }

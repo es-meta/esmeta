@@ -546,8 +546,8 @@ class Compiler(
     case PerformBlockStep(block, desc) =>
       for (substep <- block.steps) compile(fb, substep.step)
 
-    // Should not reach here (polyfill)
-    case MetaStep(name, multiline, _) => ???
+    case MetaStep(name, _, _) =>
+      raise(s"polyfill DSL meta-variable cannot be compiled: $name")
   })
 
   /** compile local variable */
@@ -582,7 +582,8 @@ class Compiler(
       case CurrentRealmRecord()      => currentRealm
       case ActiveFunctionObject()    => toStrRef(GLOBAL_CONTEXT, "Function")
       case AgentRecord()             => GLOBAL_AGENT_RECORD
-      case MetaReference(name, _)    => ???
+      case MetaReference(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be compiled: $name")
     })
 
   /** compile expressions */
@@ -811,8 +812,9 @@ class Compiler(
         EVariadic(VOp.Concat, List(compile(fb, lit)))
       case StringExpression(expr) =>
         compile(fb, expr)
-      case lit: Literal            => compile(fb, lit)
-      case MetaExpression(name, _) => ???
+      case lit: Literal => compile(fb, lit)
+      case MetaExpression(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be compiled: $name")
     })
 
   /** compile mathematical operators */
@@ -1074,7 +1076,8 @@ class Compiler(
           case CompoundConditionOperator.And   => and(l, r)
           case CompoundConditionOperator.Or    => or(l, r)
           case CompoundConditionOperator.Imply => or(not(l), r)
-      case MetaCondition(name, _) => ???
+      case MetaCondition(name, _) =>
+        raise(s"polyfill DSL meta-variable cannot be compiled: $name")
     })
 
   /** compile contains condition with additional constraints */
