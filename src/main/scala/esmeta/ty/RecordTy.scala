@@ -12,8 +12,6 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
   /** a record type with a named record types and refined fields */
   case Elem(map: Map[String, FieldMap])
 
-  import ManualInfo.tyModel
-  import tyModel.*
   import RecordTy.*
 
   /** top check */
@@ -27,7 +25,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     (this, that) match
       case (Bot, _) | (_, Top)      => true
       case (Top, _) | (_, Bot)      => false
-      case (Elem(lmap), Elem(rmap)) => isSubTy(lmap, rmap)
+      case (Elem(lmap), Elem(rmap)) => tyModel.isSubTy(lmap, rmap)
   }
 
   /** union type */
@@ -40,7 +38,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
         lmap: Map[String, FieldMap],
         rmap: Map[String, FieldMap],
       ): List[(String, FieldMap)] = lmap.toList.map { (t, fm) =>
-        rmap.find((u, _) => isSubTy(t, u)) match
+        rmap.find((u, _) => tyModel.isSubTy(t, u)) match
           case Some((u, ufm)) =>
             u -> FieldMap(ufm.map.map((f, _) => f -> get((t, fm), f)))
           case None => t -> fm
@@ -60,17 +58,17 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
       val ls = lm.keySet
       val rs = rm.keySet
       val lmap = for { (t, fm) <- lm } yield {
-        if (isSubTy(t, rs)) t -> fm
-        else normalizedOf(t).fold(t -> fm)((u, ufm) => u -> (ufm && fm))
+        if (tyModel.isSubTy(t, rs)) t -> fm
+        else tyModel.normalizedOf(t).fold(t -> fm)((u, ufm) => u -> (ufm && fm))
       }
       val rmap = for { (t, fm) <- rm } yield {
-        if (isSubTy(t, ls)) t -> fm
-        else normalizedOf(t).fold(t -> fm)((u, ufm) => u -> (ufm && fm))
+        if (tyModel.isSubTy(t, ls)) t -> fm
+        else tyModel.normalizedOf(t).fold(t -> fm)((u, ufm) => u -> (ufm && fm))
       }
       Elem(
         (for {
           t <- lmap.keySet ++ rmap.keySet
-          ancestors = ancestorsOf(t)
+          ancestors = tyModel.ancestorsOf(t)
           (l, lfm) <- ancestors.filter(lmap.contains).map(l => l -> lmap(l))
           (r, rfm) <- ancestors.filter(rmap.contains).map(r => r -> rmap(r))
           fm = lfm && rfm
@@ -88,7 +86,7 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case (Elem(lmap), Elem(rmap)) =>
       Elem(lmap.filter { (l, lfm) =>
         !rmap.exists { (r, rfm) =>
-          isStrictSubTy(l, r) || (l == r && lfm <= rfm)
+          tyModel.isStrictSubTy(l, r) || (l == r && lfm <= rfm)
         }
       })
 
@@ -98,13 +96,13 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       StrT((for {
         (name, fm) <- map.toList
-        f <- fm.map.keySet ++ fieldsOf(name).keySet
+        f <- fm.map.keySet ++ tyModel.fieldsOf(name).keySet
       } yield f).toSet)
 
   /** base type names */
   def bases: BSet[String] = this match
     case Top       => Inf
-    case Elem(map) => Fin(map.keySet.map(baseOf))
+    case Elem(map) => Fin(map.keySet.map(tyModel.baseOf))
 
   /** type names */
   def names: BSet[String] = this match
@@ -159,11 +157,11 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
     case Elem(map) =>
       val RecordObj(l, lfm) = record
       map.exists { (r, rfm) =>
-        isStrictSubTy(l, r) ||
+        tyModel.isStrictSubTy(l, r) ||
         (l == r && rfm.contains(record, heap)) ||
         (for {
-          lca <- lcaOf(l, r)
-          fm <- diffOf(lca, r)
+          lca <- tyModel.lcaOf(l, r)
+          fm <- tyModel.diffOf(lca, r)
         } yield fm && rfm).exists(_.contains(record, heap))
       }
 
@@ -179,7 +177,9 @@ enum RecordTy extends TyElem with Lattice[RecordTy] {
 }
 
 object RecordTy extends Parser.From(Parser.recordTy) {
-  import ManualInfo.tyModel.*
+
+  /** the globally active type model */
+  private def tyModel: TyModel = TyModel.global
 
   lazy val Bot: RecordTy = Elem(Map.empty)
 
@@ -210,7 +210,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   /** field accessor for specific record type */
   private def get(pair: (String, FieldMap), f: String): Binding =
     val (t, fm) = pair
-    getField(t, f) && fm(f)
+    tyModel.getField(t, f) && fm(f)
 
   /** field update */
   private def update(
@@ -235,27 +235,31 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   ): Map[String, FieldMap] = {
     val (t, fm) = pair
     val existCheck = bind == Binding.Exist
-    val refined = bind && (if (refine) get(pair, field) else getField(t, field))
+    val refined =
+      bind && (if (refine) get(pair, field) else tyModel.getField(t, field))
     if (refined.isBottom)
       // TODO check why this is needed and remove it if possible
-      if (!refine && !(bind <= getField(baseOf(t), field))) Map(pair)
+      if (!refine && !(bind <= tyModel.getField(tyModel.baseOf(t), field)))
+        Map(pair)
       else Map()
     else
       var newFM = fm + (field -> refined)
-      getPropRefiner(field) match
+      tyModel.getPropRefiner(field) match
         case Some(fs) =>
           for (f <- fs) newFM += f -> (get(pair, f) && Binding.Exist)
           Map(normalize(t -> newFM))
         case None =>
           val set = (
             for {
-              map <- refinerOf(t).get(field).toSet
+              map <- tyModel.refinerOf(t).get(field).toSet
               (_, u) <- map.filter { (ty, _) =>
                 existCheck || (refined <= Binding(ty))
               }
             } yield u,
           ) + t
-          val xs = set.toList.filter(x => !set.exists(y => isStrictSubTy(y, x)))
+          val xs = set.toList.filter(x =>
+            !set.exists(y => tyModel.isStrictSubTy(y, x)),
+          )
           xs.map(x => normalize(x -> newFM)).toMap
   }
 
@@ -263,7 +267,7 @@ object RecordTy extends Parser.From(Parser.recordTy) {
   private def normalize(pair: (String, FieldMap)): (String, FieldMap) =
     val (t, fm) = pair
     t -> FieldMap(fm.map.flatMap { (f, elem) =>
-      val orig = getField(t, f)
+      val orig = tyModel.getField(t, f)
       if (orig <= elem) None
       else if (orig.value <= elem.value) Some(f -> elem.copy(value = AnyT))
       else Some(f -> elem)

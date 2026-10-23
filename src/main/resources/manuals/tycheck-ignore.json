@@ -12,5 +12,7 @@
   "LocalTime",
   "MakeFullYear",
   "Record[SourceTextModuleRecord].ExecuteModule",
+  "SerializeJSONArray",
+  "SerializeJSONObject",
   "TypedArrayLength"
 ]

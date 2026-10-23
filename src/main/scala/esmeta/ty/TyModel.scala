@@ -14,6 +14,15 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     decl <- decls
   } yield decl.name -> decl).toMap
 
+  infix def merge(that: TyModel): TyModel = that.decls.foldLeft(this) {
+    case (model, decl) =>
+      if (model.declMap contains decl.name)
+        TyModel(
+          model.decls.map(d => if (d.name == decl.name) (d merge decl) else d),
+        )
+      else TyModel(decl :: model.decls)
+  }
+
   /** get method map */
   lazy val methodOf: String => Map[String, String] = cached { tname =>
     for {
@@ -251,4 +260,10 @@ case class TyModel(decls: List[TyDecl] = Nil) extends TyElem {
     } yield children += parent -> (decl :: list)
     children.map { case (k, v) => k -> v.reverse }
 }
-object TyModel extends Parser.From(Parser.tyModel)
+object TyModel extends Parser.From(Parser.tyModel) {
+
+  private var globalOpt: Option[TyModel] = None
+  def global: TyModel = globalOpt.getOrElse(ManualInfo.tyModel)
+  def global_=(model: TyModel): Unit =
+    if (model.decls.nonEmpty) globalOpt = Some(model)
+}

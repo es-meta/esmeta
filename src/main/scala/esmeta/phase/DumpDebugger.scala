@@ -8,7 +8,7 @@ import esmeta.dump.debugger.util.{
 }
 import esmeta.ir.{Type as IRType, *}
 import esmeta.ir.util.{UnitWalker as IRUnitWalker, Walker as IRWalker}
-import esmeta.spec.{Algorithm, Grammar, Spec, Table}
+import esmeta.spec.{Algorithm, Grammar, Spec, Table, Dfn}
 import esmeta.lang.{Type as LangType}
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
@@ -63,6 +63,10 @@ case object DumpDebugger extends Phase[CFG, Unit] {
 
     dumpThenRead("spec.tables")(cfg.spec.tables) tap { tables =>
       check("spec.tables")(tables == Some(cfg.spec.tables))
+    }
+
+    dumpThenRead("spec.terms")(cfg.spec.dfns) tap { terms =>
+      check("spec.terms")(terms == Some(cfg.spec.dfns))
     }
 
     dumpThenRead("spec.version")(cfg.spec.version) tap { version =>
