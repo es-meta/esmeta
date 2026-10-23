@@ -806,6 +806,9 @@ class Compiler(
         toERef(fb, compile(fb, list), zero)
       case CodeUnitAtExpression(base, index) =>
         toERef(fb, compile(fb, base), compile(fb, index))
+      // a String consisting solely of a code unit
+      case StringExpression(lit: HexLiteral) =>
+        EVariadic(VOp.Concat, List(compile(fb, lit)))
       case StringExpression(expr) =>
         compile(fb, expr)
       case lit: Literal            => compile(fb, lit)

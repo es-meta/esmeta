@@ -690,7 +690,7 @@ trait Parsers extends IndentParsers {
 
   // code unit literals with hexadecimal numbers
   lazy val hexLiteral: PL[HexLiteral] =
-    opt("consisting solely of") ~> exists("the code unit") ~
+    exists("the code unit") ~
     ("0x" ^^^ false | "U+" ^^^ true) ~ "[0-9A-F]+".r ~
     opt("(" ~> "[ A-Z-]+".r <~ ")") ^^ {
       case c ~ p ~ n ~ x => HexLiteral(Integer.parseInt(n, 16), c, p, x)
@@ -961,7 +961,8 @@ trait Parsers extends IndentParsers {
 
   // string expressions
   lazy val stringExpr: PL[StringExpression] =
-    "the String value" ~> expr ^^ { StringExpression(_) }
+    ("the String value consisting solely of" ~> hexLiteral |
+    "the String value" ~> expr) ^^ { StringExpression(_) }
 
   // rarely used expressions
   lazy val specialExpr: PL[Expression] =
