@@ -3,6 +3,7 @@ package esmeta.util
 import esmeta.MANUALS_DIR
 import esmeta.analyzer.tychecker.TyChecker.Ignore
 import esmeta.cfg.CFG
+import esmeta.error.ESMetaError
 import esmeta.es.builtin.*
 import esmeta.spec.Spec
 import esmeta.test262.util.ManualConfig
@@ -23,8 +24,11 @@ object ManualInfo {
   /** manual grammar files */
   lazy val grammarFiles: List[String] = getFileNames(grammarFilter)
 
-  /** manual IR function files */
-  lazy val funcFiles: List[String] = getFileNames(irFilter)
+  /** manual IR function files always used instead of compiled algorithms */
+  lazy val funcFiles: List[String] = getFuncFileNames("override")
+
+  /** manual IR function files used only for functions without algorithms */
+  lazy val fallbackFuncFiles: List[String] = getFuncFileNames("fallback")
 
   /** manual compilation rule */
   lazy val compileRule: CompileRule =
@@ -65,4 +69,18 @@ object ManualInfo {
   /** find all file names in the manual directory with a filter */
   private def getFileNames(filter: String => Boolean): List[String] =
     getFiles(filter).map(_.toString)
+
+  /** find all IR function file names in a kind of manual IR functions */
+  private def getFuncFileNames(kind: String): List[String] =
+    val funcsDir = s"$MANUALS_DIR/funcs"
+    val misplaced = File(funcsDir).listFiles.filter(f => irFilter(f.getName))
+    if (misplaced.nonEmpty)
+      throw ESMetaError(
+        s"manual IR functions should be in `override` or `fallback` " +
+        s"of $funcsDir: ${misplaced.map(_.getName).sorted.mkString(", ")}",
+      )
+    (for {
+      file <- walkTree(s"$funcsDir/$kind")
+      if irFilter(file.getName)
+    } yield file.toString).toList
 }

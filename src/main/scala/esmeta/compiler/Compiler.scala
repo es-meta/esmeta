@@ -40,13 +40,21 @@ class Compiler(
     Program(funcs.toList, spec)
 
   /** load manually created IR functions */
-  val manualFuncs: List[Func] = ManualInfo.funcFiles.sorted.map(Func.fromFile)
+  val manualFuncs: List[Func] = ManualInfo.funcFiles.map(Func.fromFile)
+
+  /** load manually created IR functions for functions without algorithms */
+  val fallbackFuncs: List[Func] =
+    ManualInfo.fallbackFuncFiles.map(Func.fromFile)
 
   /** load manually created IR functions */
   val manualFuncMap = manualFuncs.map(func => func.name -> func).toMap
 
+  /** load manually created IR functions for functions without algorithms */
+  val fallbackFuncMap = fallbackFuncs.map(func => func.name -> func).toMap
+
   /** compiled algorithms */
-  val funcs: ListBuffer[Func] = ListBuffer.from(manualFuncs)
+  val funcs: ListBuffer[Func] =
+    ListBuffer.from((manualFuncs ++ fallbackFuncs).sortBy(_.name))
 
   /** load manual compile rules */
   val manualRules: ManualInfo.CompileRule = ManualInfo.compileRule
@@ -178,6 +186,7 @@ class Compiler(
   ): Unit =
     val name = fb.name
     manualFuncMap.get(name).map(_.algo = Some(fb.algo))
+    fallbackFuncMap.get(name).map(func => funcs.filterInPlace(_ ne func))
     if (!excluded.contains(name))
       val inst = compileWithScope(fb, body)
       funcs += fb.getFunc(prefix match
