@@ -9,7 +9,7 @@ import esmeta.util.SystemUtils._
 import scala.collection.mutable.ListBuffer
 
 /** stringify test */
-class StringifyTinyTest extends IRTest {
+class StringifyTinyTest extends IRTest with ElemCoverage {
   val name: String = "irStringifyTest"
 
   // registration
@@ -130,6 +130,7 @@ class StringifyTinyTest extends IRTest {
       trimStart -> "(trim > x)",
       trimEnd -> "(trim x <)",
       xExpr -> "x",
+      yExpr -> "y",
       unary -> "(- x)",
       binary -> "(+ x x)",
       variadic -> "(min x x x)",
@@ -150,6 +151,8 @@ class StringifyTinyTest extends IRTest {
       astMultiple -> "|Identifier|[TF]<1>(x, y)",
       astComplex -> "|Identifier|[TF]<3>(, x, , y)",
       lex -> "|Identifier|(x)",
+      sourceText -> "(source-text x)",
+      sizeOf -> "(sizeof x)",
       // allocation expressions
       recEmpty -> """(record {
       |  "A" : true,
@@ -158,6 +161,10 @@ class StringifyTinyTest extends IRTest {
       rec -> """(record [T] {
       |  "A" : true,
       |  "B" : "a",
+      |})""".stripMargin,
+      emptyMap -> "(map[Number, Number])",
+      map -> """(map [Number, Number] {
+      |  x -> y,
       |})""".stripMargin,
       list -> "(list [undefined, null])",
       copy -> "(copy x)",
@@ -173,19 +180,20 @@ class StringifyTinyTest extends IRTest {
       keysASite -> "(keys x)[#5]",
       keysIntASite -> "(keys-int x)[#6]",
       // literals
-      EMath(4) -> "4",
-      EInfinity(true) -> "+INF",
-      EInfinity(false) -> "-INF",
-      ENumber(3.0) -> "3.0f",
-      ENumber(Double.PositiveInfinity) -> "+NUM_INF",
-      ENumber(Double.NegativeInfinity) -> "-NUM_INF",
-      ENumber(Double.NaN) -> "NaN",
-      EBigInt(1024) -> "1024n",
-      EStr("hi") -> "\"hi\"",
-      EBool(true) -> "true",
-      EBool(false) -> "false",
-      EUndef() -> "undefined",
-      ENull() -> "null",
+      math -> "4",
+      posInf -> "+INF",
+      negInf -> "-INF",
+      number -> "3.0f",
+      numberPosInf -> "+NUM_INF",
+      numberNegInf -> "-NUM_INF",
+      numberNaN -> "NaN",
+      bigInt -> "1024n",
+      str -> "\"hi\"",
+      trueExpr -> "true",
+      falseExpr -> "false",
+      undef -> "undefined",
+      nullExpr -> "null",
+      codeUnit -> "97cu",
       normal -> "~normal~",
       empty -> "~empty~",
       clo -> """clo<"f">""",
@@ -261,6 +269,7 @@ class StringifyTinyTest extends IRTest {
     checkParseAndStringify("Ref", Ref)(
       global -> "@GLOBAL",
       x -> "x",
+      y -> "y",
       temp -> "%42",
       field -> "x.p",
       fieldStr -> "x[\"!!\"]",
@@ -271,6 +280,11 @@ class StringifyTinyTest extends IRTest {
     // types
     // -------------------------------------------------------------------------
     checkParseAndStringify("Type", Type)(ty -> "Number")
+
+    // -------------------------------------------------------------------------
+    // coverage of the corpus
+    // -------------------------------------------------------------------------
+    checkCorpusCoverage("corpus")(checkedTargets)
   }
 
   init

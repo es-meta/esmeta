@@ -2,6 +2,7 @@ package esmeta
 package ir
 
 import esmeta.ty.*
+import esmeta.util.BaseUtils.*
 
 /** test for IR */
 trait IRTest extends ESMetaTest {
@@ -80,6 +81,8 @@ object IRTest {
   lazy val typeOf = ETypeOf(xExpr)
   lazy val instanceOf = EInstanceOf(xExpr, xExpr)
   lazy val typeCheck = ETypeCheck(xExpr, ty)
+  lazy val sourceText = ESourceText(xExpr)
+  lazy val sizeOf = ESizeOf(xExpr)
   // debugging expressions
   lazy val debug = EDebug(xExpr)
   // random number expressions
@@ -105,6 +108,8 @@ object IRTest {
   // allocation expressions
   lazy val recEmpty = ERecord("", List("A" -> EBool(true), "B" -> EStr("a")))
   lazy val rec = ERecord("T", List("A" -> EBool(true), "B" -> EStr("a")))
+  lazy val emptyMap = EMap(ty -> ty, Nil)
+  lazy val map = EMap(ty -> ty, List(xExpr -> yExpr))
   lazy val list = EList(List(EUndef(), ENull()))
   lazy val copy = ECopy(xExpr)
   lazy val keys = EKeys(xExpr, false)
@@ -116,6 +121,20 @@ object IRTest {
   lazy val keysASite = assignASite(keys.copy(), 5)
   lazy val keysIntASite = assignASite(keysInt.copy(), 6)
   // literals
+  lazy val math = EMath(4)
+  lazy val posInf = EInfinity(true)
+  lazy val negInf = EInfinity(false)
+  lazy val number = ENumber(3.0)
+  lazy val numberPosInf = ENumber(Double.PositiveInfinity)
+  lazy val numberNegInf = ENumber(Double.NegativeInfinity)
+  lazy val numberNaN = ENumber(Double.NaN)
+  lazy val bigInt = EBigInt(1024)
+  lazy val str = EStr("hi")
+  lazy val trueExpr = EBool(true)
+  lazy val falseExpr = EBool(false)
+  lazy val undef = EUndef()
+  lazy val nullExpr = ENull()
+  lazy val codeUnit = ECodeUnit('a')
   lazy val normal = EEnum("normal")
   lazy val empty = EEnum("empty")
   lazy val clo = EClo("f", Nil)
@@ -133,4 +152,30 @@ object IRTest {
 
   // types
   lazy val ty = Type(NumberT)
+
+  // ---------------------------------------------------------------------------
+  // the whole corpus of the IR elements defined above
+  // ---------------------------------------------------------------------------
+  /** all the elements defined above with their names, by reflection */
+  lazy val allElems: List[(String, IRElem)] = for {
+    method <- getClass.getMethods.toList.sortBy(_.getName)
+    if method.getParameterCount == 0
+    if classOf[IRElem].isAssignableFrom(method.getReturnType)
+    elem <- optional(method.invoke(this).asInstanceOf[IRElem])
+  } yield method.getName -> elem
+
+  /** all the IR instructions of the corpus */
+  lazy val allInsts: List[(String, Inst)] = allElems.collect {
+    case (name, inst: Inst) => name -> inst
+  }
+
+  /** all the IR expressions of the corpus */
+  lazy val allExprs: List[(String, Expr)] = allElems.collect {
+    case (name, expr: Expr) => name -> expr
+  }
+
+  /** all the IR references of the corpus */
+  lazy val allRefs: List[(String, Ref)] = allElems.collect {
+    case (name, ref: Ref) => name -> ref
+  }
 }

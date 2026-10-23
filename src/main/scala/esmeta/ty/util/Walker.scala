@@ -141,9 +141,10 @@ trait Walker extends BasicWalker {
     InfinityTy(infinity.pos.map(walk))
 
   /** number types */
-  def walkNumber(number: NumberTy): NumberTy = number match
-    case NumberSetTy(set) => NumberSetTy(walkSet(set, walk))
-    case _                => number
+  def walkNumber(number: NumberTy): NumberTy = number.finite match
+    case FinNumberSetTy(set) =>
+      number.copy(finite = FinNumberSetTy(walkSet(set, walk)))
+    case _ => number
   def walk(number: Number): Number = number
 
   /** big integer types */

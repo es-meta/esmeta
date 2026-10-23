@@ -2,7 +2,7 @@ package esmeta.ty
 
 import esmeta.cfg.*
 import esmeta.util.BaseUtils.*
-import esmeta.state.{GrammarSymbol, Number}
+import esmeta.state.{GrammarSymbol, Math, Number}
 import scala.collection.mutable.ListBuffer
 
 /** stringify test */
@@ -118,31 +118,67 @@ class StringifyTinyTest extends TyTest {
       EnumT("key", "value") -> "Enum[~key~, ~value~]",
       MathT -> "Math",
       IntT -> "Int",
-      NonPosIntT -> "Int[-0]",
-      NonNegIntT -> "Int[0+]",
-      NegIntT -> "Int[-]",
-      PosIntT -> "Int[+]",
+      NonPosIntT -> "Int[NonPos]",
+      NonNegIntT -> "Int[NonNeg]",
+      NegIntT -> "Int[Neg]",
+      PosIntT -> "Int[Pos]",
       IntT(0, 1) -> "Int[0, 1]",
+      ValueTy(math = MathIntTy(IntSignTy(Sign.NonZero))) -> "Int[NonZero]",
+      ValueTy(math = MathTy.Zero) -> "Int[0]",
       InfinityT -> "INF",
       NegInfinityT -> "-INF",
       PosInfinityT -> "+INF",
+      ValueTy(math = MathTy.NonNeg) -> "Math[NonNeg]",
+      ValueTy(math = MathTy.NonPos) -> "Math[NonPos]",
+      ValueTy(math = MathTy.Neg) -> "Math[Neg]",
+      ValueTy(math = MathTy.Pos) -> "Math[Pos]",
+      ValueTy(math = MathSignTy(Sign.NonZero)) -> "Math[NonZero]",
+      ValueTy(math =
+        MathSetTy(Set(Math(-1.5), Math(0.5))),
+      ) -> "Math[-1.5, 0.5]",
       NumberT -> "Number",
-      NumberIntT -> "NumberInt",
-      NumberNonPosIntT -> "NumberInt[-0]",
-      NumberNonNegIntT -> "NumberInt[0+]",
-      NumberNegIntT -> "NumberInt[-]",
-      NumberPosIntT -> "NumberInt[+]",
-      (NumberNonNegIntT || NaNT) -> "NumberInt[0+] | NaN",
+      ValueTy(number = NumberTy.Finite) -> "Number[Finite]",
+      ValueTy(number =
+        NumberTy.Finite || NumberTy.NaN,
+      ) -> "Number[Finite, NaN]",
+      ValueTy(number = NumberTy.finite(FinNumberSignTy(Sign.Pos))) ->
+      "Number[Pos]",
+      ValueTy(number = NumberTy.finite(FinNumberSignTy(Sign.NonZero))) ->
+      "Number[NonZero]",
+      ValueTy(number = NumberTy.int(IntSignTy(Sign.NonZero))) ->
+      "Number[Int[NonZero]]",
+      ValueTy(number = NumberTy.Int || NumberTy.PosInf) -> "Number[Int, +INF]",
+      ValueTy(number = NumberTy.NegInf || NumberTy.NaN) -> "Number[-INF, NaN]",
+      NumberIntT -> "Number[Int]",
+      NumberNonPosIntT -> "Number[Int[NonPos]]",
+      NumberNonNegIntT -> "Number[Int[NonNeg]]",
+      NumberNegIntT -> "Number[Int[Neg]]",
+      NumberPosIntT -> "Number[Int[Pos]]",
+      (NumberNonNegIntT || NaNT) -> "Number[Int[NonNeg], NaN]",
+      PosNumberT -> "Number[Pos, +INF]",
+      NegNumberT -> "Number[Neg, -INF]",
+      NonNegNumberT -> "Number[NonNeg, +INF]",
+      NonPosNumberT -> "Number[NonPos, -INF]",
+      NonZeroNumberT -> "Number[NonZero, -INF, +INF, NaN]",
+      InfiniteNumberT -> "Number[-INF, +INF]",
       NumberT(Number(Double.PositiveInfinity)) -> "Number[+INF]",
       NumberT(Number(Double.NegativeInfinity)) -> "Number[-INF]",
-      NumberT(Number(Double.NaN)) -> "NaN",
+      NumberT(Number(Double.NaN)) -> "Number[NaN]",
+      NumberT(Number(Double.PositiveInfinity), Number(Double.NaN)) ->
+      "Number[+INF, NaN]",
+      ValueTy(number = NumberTy.Int || NumberTy.Infinite) ->
+      "Number[Int, -INF, +INF]",
+      ValueTy(number = NumberTy.Int || NumberTy.PosInf || NumberTy.NaN) ->
+      "Number[Int, +INF, NaN]",
+      NumberT(Number(0.0)) -> "Number[0.0]",
+      NumberT(Number(-0.0)) -> "Number[-0.0]",
       NumberT(
         Number(Double.PositiveInfinity),
         Number(Double.NegativeInfinity),
         Number(Double.NaN),
         Number(-0.0),
         Number(0.0),
-      ) -> "Number[-INF, -0.0, 0.0, +INF, NaN]",
+      ) -> "Number[-0.0, 0.0, -INF, +INF, NaN]",
       BigIntT -> "BigInt",
       StrT -> "String",
       StrT("a") -> "String[\"a\"]",

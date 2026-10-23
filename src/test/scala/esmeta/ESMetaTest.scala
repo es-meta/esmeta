@@ -14,6 +14,9 @@ import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*, io.circe.parser.*, io.circe.generic.auto.*
 import java.io.*
 import org.scalatest.*
+import scala.collection.mutable.{Set => MSet}
+import scala.compiletime.{constValue, erasedValue, summonFrom}
+import scala.deriving.Mirror
 import scala.runtime.ScalaRunTime
 import scala.util.{Try, Failure, Success}
 
@@ -46,6 +49,20 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   // count tests
   protected var count: Int = 0
 
+  /** names of the leaf case classes of a sealed trait */
+  protected inline def leaves[T]: List[String] =
+    summonFrom {
+      case m: Mirror.SumOf[T]     => leavesOf[m.MirroredElemTypes]
+      case m: Mirror.ProductOf[T] => List(constValue[m.MirroredLabel])
+    }
+  protected inline def leavesOf[T <: Tuple]: List[String] =
+    inline erasedValue[T] match
+      case _: EmptyTuple => Nil
+      case _: (h *: t)   => leaves[h] ++ leavesOf[t]
+
+  /** targets of the `check*` helpers, recorded for the coverage checks */
+  protected val checkedTargets: MSet[Any] = MSet()
+
   // check result
   def check[T](name: String)(tester: => T): Unit = {
     count += 1
@@ -77,6 +94,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
 
   // check stringify
   def checkStringify[T](desc: String)(cases: (T, String)*): Unit =
+    checkedTargets ++= cases.map(_._1)
     check(desc)(cases.foreach {
       case (obj, expected) =>
         val result = obj.toString
@@ -105,6 +123,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   def checkParseAndStringify[T](desc: String, parser: BasicParsers#From[T])(
     cases: (T, String)*,
   ): Unit =
+    checkedTargets ++= cases.map(_._1)
     check(desc)(cases.foreach {
       case (obj, string) =>
         // check parse
@@ -132,6 +151,7 @@ trait ESMetaTest extends funsuite.AnyFunSuite with BeforeAndAfterAll {
   def checkParse[T](desc: String, parser: BasicParsers#From[T])(
     cases: (String, T)*,
   ): Unit =
+    checkedTargets ++= cases.map(_._2)
     check(desc)(cases.foreach {
       case (string, obj) =>
         val parsed = optional(parser.from(string))

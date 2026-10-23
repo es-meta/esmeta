@@ -108,6 +108,7 @@ class StringifyTinyTest extends LangTest {
       forEachDscOPKStep -> (
         "for each own property key _x_ of _x_ such that _x_ and _x_, in descending chronological order of property creation, let _x_ be _x_."
       ),
+      forEachParseNodeStep -> "for each child node _x_ of _x_, do let _x_ be _x_.",
       returnStep -> "return _x_.",
       throwStep -> "throw a *ReferenceError* exception.",
       toBlockStep(resumeStep) -> """
@@ -184,6 +185,7 @@ class StringifyTinyTest extends LangTest {
       xrefLenExpr -> "the number of non-optional parameters of the function definition in <emu-xref href=\"#sec-x\"></emu-xref>",
       soleExpr -> "the sole element of « _x_, _x_ »",
       codeUnitAtExpr -> "the code unit at index _x_ within _x_",
+      strValueExpr -> "the String value _x_",
     )
 
     // -------------------------------------------------------------------------
@@ -229,142 +231,52 @@ class StringifyTinyTest extends LangTest {
     // algorithm mathematical operation expressions
     // -------------------------------------------------------------------------
     checkParseAndStringify("MathOpExpression", Expression)(
-      MathOpExpression(
-        MathOpExpressionOperator.Neg,
-        List(refExpr),
-      ) -> "the negation of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Add,
-        List(refExpr, refExpr),
-      ) -> "the sum of _x_ and _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Mul,
-        List(refExpr, refExpr),
-      ) -> "the product of _x_ and _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Sub,
-        List(refExpr, refExpr),
-      ) -> "the difference _x_ minus _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Pow,
-        List(refExpr, refExpr),
-      ) -> "the raising _x_ to the _x_ power",
-      MathOpExpression(
-        MathOpExpressionOperator.Expm1,
-        List(refExpr),
-      ) -> "the subtracting 1 from the exponential function of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Cos,
-        List(refExpr),
-      ) -> "the cosine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Cbrt,
-        List(refExpr),
-      ) -> "the cube root of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Exp,
-        List(refExpr),
-      ) -> "the exponential function of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Cosh,
-        List(refExpr),
-      ) -> "the hyperbolic cosine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Sinh,
-        List(refExpr),
-      ) -> "the hyperbolic sine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Tanh,
-        List(refExpr),
-      ) -> "the hyperbolic tangent of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Acos,
-        List(refExpr),
-      ) -> "the inverse cosine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Acosh,
-        List(refExpr),
-      ) -> "the inverse hyperbolic cosine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Asinh,
-        List(refExpr),
-      ) -> "the inverse hyperbolic sine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Atanh,
-        List(refExpr),
-      ) -> "the inverse hyperbolic tangent of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Asin,
-        List(refExpr),
-      ) -> "the inverse sine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Atan2,
-        List(refExpr, refExpr),
-      ) -> "the inverse tangent of the quotient _x_ / _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Atan,
-        List(refExpr),
-      ) -> "the inverse tangent of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Sin,
-        List(refExpr),
-      ) -> "the sine of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Sqrt,
-        List(refExpr),
-      ) -> "the square root of _x_",
-      MathOpExpression(
-        MathOpExpressionOperator.Tan,
-        List(refExpr),
-      ) -> "the tangent of _x_",
+      negMathExpr -> "the negation of _x_",
+      sumMathExpr -> "the sum of _x_ and _x_",
+      prodMathExpr -> "the product of _x_ and _x_",
+      diffMathExpr -> "the difference _x_ minus _x_",
+      powMathExpr -> "the raising _x_ to the _x_ power",
+      expm1MathExpr -> "the subtracting 1 from the exponential function of _x_",
+      cosMathExpr -> "the cosine of _x_",
+      cbrtMathExpr -> "the cube root of _x_",
+      expMathExpr -> "the exponential function of _x_",
+      coshMathExpr -> "the hyperbolic cosine of _x_",
+      sinhMathExpr -> "the hyperbolic sine of _x_",
+      tanhMathExpr -> "the hyperbolic tangent of _x_",
+      acosMathExpr -> "the inverse cosine of _x_",
+      acoshMathExpr -> "the inverse hyperbolic cosine of _x_",
+      asinhMathExpr -> "the inverse hyperbolic sine of _x_",
+      atanhMathExpr -> "the inverse hyperbolic tangent of _x_",
+      asinMathExpr -> "the inverse sine of _x_",
+      atan2MathExpr -> "the inverse tangent of the quotient _x_ / _x_",
+      atanMathExpr -> "the inverse tangent of _x_",
+      sinMathExpr -> "the sine of _x_",
+      sqrtMathExpr -> "the square root of _x_",
+      tanMathExpr -> "the tangent of _x_",
     )
 
     // -------------------------------------------------------------------------
     // algorithm mathematical function expressions
     // -------------------------------------------------------------------------
     checkParseAndStringify("MathFuncExpression", Expression)(
-      MathFuncExpression(
-        MathFuncExpressionOperator.Max,
-        List(refExpr, refExpr),
-      ) -> "max(_x_, _x_)",
-      MathFuncExpression(
-        MathFuncExpressionOperator.Min,
-        List(refExpr, refExpr),
-      ) -> "min(_x_, _x_)",
-      MathFuncExpression(
-        MathFuncExpressionOperator.Abs,
-        List(refExpr),
-      ) -> "abs(_x_)",
-      MathFuncExpression(
-        MathFuncExpressionOperator.Floor,
-        List(refExpr),
-      ) -> "floor(_x_)",
-      MathFuncExpression(
-        MathFuncExpressionOperator.Log10,
-        List(refExpr),
-      ) -> "log10(_x_)",
-      MathFuncExpression(
-        MathFuncExpressionOperator.Log2,
-        List(refExpr),
-      ) -> "log2(_x_)",
-      MathFuncExpression(
-        MathFuncExpressionOperator.Log,
-        List(refExpr),
-      ) -> "ln(_x_)",
-      MathFuncExpression(
-        MathFuncExpressionOperator.Truncate,
-        List(refExpr),
-      ) -> "truncate(_x_)",
+      maxExpr -> "max(_x_, _x_)",
+      minTwoExpr -> "min(_x_, _x_)",
+      absExpr -> "abs(_x_)",
+      floorExpr -> "floor(_x_)",
+      log10Expr -> "log10(_x_)",
+      log2Expr -> "log2(_x_)",
+      lnExpr -> "ln(_x_)",
+      truncateExpr -> "truncate(_x_)",
     )
 
     // -------------------------------------------------------------------------
     // algorithm literals
     // -------------------------------------------------------------------------
     checkParseAndStringify("Literal", Expression)(
-      ThisLiteral(false) -> "*this* value",
-      ThisLiteral(true) -> "the *this* value",
-      ThisParseNodeLiteral(None) -> "this Parse Node",
-      NewTargetLiteral() -> "NewTarget",
+      thisLit -> "*this* value",
+      thisLitWithArticle -> "the *this* value",
+      thisParseNode -> "this Parse Node",
+      newTarget -> "NewTarget",
       hex -> "0x0024",
       hexWithName -> "0x0024 (DOLLAR SIGN)",
       code -> "`|`",
@@ -382,8 +294,8 @@ class StringifyTinyTest extends LangTest {
       fieldLit -> "[[Value]]",
       sym -> "%Symbol.iterator%",
       errObj -> "a newly created *TypeError* object",
-      PositiveInfinityMathValueLiteral() -> "+∞",
-      NegativeInfinityMathValueLiteral() -> "-∞",
+      posInfMathVal -> "+∞",
+      negInfMathVal -> "-∞",
       mathVal -> "0.5",
       mathPi -> "π",
       mathPiWithPre -> "2π",
@@ -394,18 +306,18 @@ class StringifyTinyTest extends LangTest {
       nan -> "*NaN*",
       number -> "*1*<sub>𝔽</sub>",
       bigint -> "*1000000000000000000000000*<sub>ℤ</sub>",
-      TrueLiteral() -> "*true*",
-      FalseLiteral() -> "*false*",
-      UndefinedLiteral() -> "*undefined*",
-      NullLiteral() -> "*null*",
-      UndefinedTypeLiteral() -> "Undefined",
-      NullTypeLiteral() -> "Null",
-      BooleanTypeLiteral() -> "Boolean",
-      StringTypeLiteral() -> "String",
-      SymbolTypeLiteral() -> "Symbol",
-      NumberTypeLiteral() -> "Number",
-      BigIntTypeLiteral() -> "BigInt",
-      ObjectTypeLiteral() -> "Object",
+      trueLit -> "*true*",
+      falseLit -> "*false*",
+      undefinedLit -> "*undefined*",
+      nullLit -> "*null*",
+      undefinedTypeLit -> "Undefined",
+      nullTypeLit -> "Null",
+      boolTypeLit -> "Boolean",
+      strTypeLit -> "String",
+      symbolTypeLit -> "Symbol",
+      numberTypeLit -> "Number",
+      bigIntTypeLit -> "BigInt",
+      objectTypeLit -> "Object",
     )
 
     // -------------------------------------------------------------------------

@@ -131,9 +131,9 @@ trait UnitWalker extends BasicUnitWalker {
   def walkInfinity(infinity: InfinityTy): Unit = infinity.pos.map(walk)
 
   /** number types */
-  def walkNumber(number: NumberTy): Unit = number match
-    case NumberSetTy(set) => walkSet(set, walk)
-    case _                =>
+  def walkNumber(number: NumberTy): Unit = number.finite match
+    case FinNumberSetTy(set) => walkSet(set, walk)
+    case _                   =>
   def walk(number: Number): Unit = {}
 
   /** big integer types */
