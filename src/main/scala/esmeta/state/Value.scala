@@ -115,7 +115,8 @@ object Math {
   val one: Math = Math(1)
   inline def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
   inline def apply(n: Long): Math = Math(BigDecimal(n, UNLIMITED))
-  inline def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
+  inline def apply(n: Double): Math =
+    Math(new BigDecimal(new java.math.BigDecimal(n), UNLIMITED))
   inline def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
   inline def apply(s: String): Math = Math(BigDecimal(s, UNLIMITED))
   inline def from(s: String, b: Int): Math = apply(scala.math.BigInt(s, b))

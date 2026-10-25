@@ -328,7 +328,7 @@ object FinNumberTy {
     /** the exact integral value of the number, if any */
     def toBigIntExact: Option[scala.math.BigInt] =
       if (n.isNaN || n.double.isInfinite) None
-      else scala.math.BigDecimal(n.double).toBigIntExact
+      else scala.math.BigDecimal.exact(n.double).toBigIntExact
   }
 }
 

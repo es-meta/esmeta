@@ -272,16 +272,6 @@
     "language/types/string/S8.4_A6.1",
     "language/types/string/S8.4_A6.2"
   ],
-  "precision": [
-    "built-ins/Math/sumPrecise/sum",
-    "language/expressions/does-not-equals/bigint-and-number-extremes",
-    "language/expressions/equals/bigint-and-number-extremes",
-    "language/expressions/greater-than-or-equal/bigint-and-number-extremes",
-    "language/expressions/greater-than/bigint-and-number-extremes",
-    "language/expressions/less-than-or-equal/bigint-and-number-extremes",
-    "language/expressions/less-than/bigint-and-number-extremes",
-    "language/expressions/modulus/S11.5.3_A4_T7"
-  ],
   "pending until tc39/ecma262#3009 merged": [
     "built-ins/String/prototype/match/cstm-matcher-on-bigint-primitive",
     "built-ins/String/prototype/match/cstm-matcher-on-boolean-primitive",
