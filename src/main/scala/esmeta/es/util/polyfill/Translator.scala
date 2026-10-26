@@ -478,7 +478,8 @@ class Translator(spec: Spec) {
       case "record[object]" | "object" =>
         s"${pb.use(Dep.AO("IsObject"))}($expr)"
       case "record[symbol]" => s"typeof $expr === \"symbol\""
-      case "numberint" => s"${pb.use(Dep.Internal("IsIntegralNumber"))}($expr)"
+      case "number[int]" =>
+        s"${pb.use(Dep.Internal("IsIntegralNumber"))}($expr)"
       case "record[array]" => s"${pb.use(Dep.AO("IsArray"))}($expr)"
       case _ if ty.startsWith("record[") => "false"
       case _                             => s"typeof $expr === \"$ty\""
