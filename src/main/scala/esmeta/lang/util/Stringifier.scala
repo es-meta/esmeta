@@ -255,8 +255,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         if (desc.nonEmpty) app >> ", " >> desc
         app >> ":" >> block
       // Should not reach here (polyfill)
-      case MetaStep(name, true, _)  => app >> name >> ":step*"
-      case MetaStep(name, false, _) => app >> name >> ":step"
+      case MetaStep(name, multi, variant) =>
+        metaVar(app, name, variant, if (multi) "step*" else "step")
     }
     app >> step.endString
   }
@@ -425,7 +425,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> str
         block.fold(app)(app >> _)
       case multi: MultilineExpression => app >> multi
-      case MetaExpression(name, _)    => app >> name >> ":expr"
+      case MetaExpression(name, variant) =>
+        metaVar(app, name, variant, "expr")
     }
   }
 
@@ -843,7 +844,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
           case Imply =>
             app >> "If " >> conds.head
             for (cond <- conds.tail) app >> ", then " >> cond
-      case MetaCondition(name, _) => app >> name >> ":cond"
+      case MetaCondition(name, variant) =>
+        metaVar(app, name, variant, "cond")
     }
 
     if (parenthesized) app >> ")"
@@ -959,6 +961,17 @@ class Stringifier(detail: Boolean, location: Boolean) {
     )
   }
 
+  // meta-variables of the polyfill DSL, printed in DSL syntax
+  // (e.g., `{{ x : var }}`, `{{ base'1 : ref }}`)
+  private def metaVar(
+    app: Appender,
+    name: String,
+    variant: Int,
+    tag: String,
+  ): Appender =
+    val suffix = if (variant == 0) "" else s"'$variant"
+    app >> "{{ " >> name >> suffix >> " : " >> tag >> " }}"
+
   // references
   given Rule[Reference] = refRule
   lazy val refRule: Rule[Reference] = withLoc { (app, ref) =>
@@ -970,8 +983,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         case Component(post) => app >> name >> (if (post) " component" else "")
     }
     ref match {
-      case Variable(name, None, _, _) if name.startsWith("$") =>
-        app >> name >> ":var"
+      case Variable(name, _, true, variant) =>
+        metaVar(app, name, variant, "var")
       case Variable(name, nt, _, _) =>
         nt.fold(app)(app >> "|" >> _ >> "| ") >> "_" >> name >> "_"
       case Access(base, name, kind, AccessForm.Dot) =>
@@ -1006,7 +1019,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the active function object"
       case AgentRecord() =>
         app >> "the Agent Record of the surrounding agent"
-      case MetaReference(name, _) => app >> name >> ":ref"
+      case MetaReference(name, variant) =>
+        metaVar(app, name, variant, "ref")
     }
   }
 
