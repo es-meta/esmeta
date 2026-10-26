@@ -417,6 +417,8 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "the sole element of " >> expr
       case CodeUnitAtExpression(base, index) =>
         app >> "the code unit at index " >> index >> " within " >> base
+      case StringExpression(lit: HexLiteral) =>
+        app >> "the String value consisting solely of " >> lit
       case StringExpression(expr) =>
         app >> "the String value " >> expr
       case YetExpression(str, block) =>
