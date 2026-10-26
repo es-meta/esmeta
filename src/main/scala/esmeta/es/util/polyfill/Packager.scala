@@ -182,7 +182,7 @@ class Packager(
       raise(
         s"no built-in matches the requested target: ${targets.mkString(",")}",
       )
-    mkdir(outDir, remove = true)
+    mkdir(outDir, remove = outDir == POLYFILL_OUT_DIR)
     val emitted = installerFiles ++ generatedFiles ++ runtimeFiles ++ stubFiles
     emitted.foreach(dump)
     dump(indexFile)
