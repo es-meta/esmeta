@@ -111,6 +111,12 @@ object Targets {
     // Unsupported
     "INTRINSICS.MapIteratorPrototype.next",
     "INTRINSICS.SetIteratorPrototype.next",
+    "INTRINSICS.String.prototype[%Symbol.iterator%]",
+    "CreateAsyncFromSyncIterator",
+
+    // Hand-written
+    "CreateMapIterator",
+    "CreateSetIterator",
 
     // Yet AOs
     "ArrayCreate",
