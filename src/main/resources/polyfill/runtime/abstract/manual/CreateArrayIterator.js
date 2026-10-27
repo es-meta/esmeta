@@ -1,20 +1,24 @@
 var ENUM__empty = require("../../internal/Enum")("empty");
 var ENUM__key = require("../../internal/Enum")("key");
 var ENUM__value = require("../../internal/Enum")("value");
-const AO__Get = require("./Get");
-const AO__LengthOfArrayLike = require("./LengthOfArrayLike");
-const AO__ToString = require("./ToString");
-const AO__CreateArrayFromList = require("./CreateArrayFromList");
-const AO__GeneratorYield = require("./GeneratorYield");
-const CreateIteratorResultObject = require("../CreateIteratorResultObject");
-const AO__CreateIteratorFromClosure = require("./CreateIteratorFromClosure");
-const AO__GeneratorResume = require("./GeneratorResume");
+var AO__Get = require("./Get");
+var AO__LengthOfArrayLike = require("../LengthOfArrayLike");
+var AO__ToString = require("./ToString");
+var AO__CreateArrayFromList = require("../CreateArrayFromList");
+var AO__GeneratorYield = require("./GeneratorYield");
+var CreateIteratorResultObject = require("../CreateIteratorResultObject");
+var AO__CreateIteratorFromClosure = require("./CreateIteratorFromClosure");
+var AO__GeneratorResume = require("./GeneratorResume");
+var IteratorPrototype = require("../../internal/IteratorPrototype");
 
-var ArrayIteratorPrototype = {
-  next: function next() {
+var ArrayIteratorPrototype = Object.create(IteratorPrototype);
+
+Object.defineProperty(ArrayIteratorPrototype, "next", {
+  value: function next() {
     return AO__GeneratorResume(this, ENUM__empty, "%ArrayIteratorPrototype%");
-  }
-}
+  },
+  writable: true, enumerable: false, configurable: true,
+});
 
 Object.defineProperty(ArrayIteratorPrototype, Symbol.toStringTag, {
   value: "Array Iterator",

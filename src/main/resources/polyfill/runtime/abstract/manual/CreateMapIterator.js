@@ -1,7 +1,7 @@
 var ENUM__empty = require("../../internal/Enum")("empty");
 var ENUM__key = require("../../internal/Enum")("key");
 var ENUM__value = require("../../internal/Enum")("value");
-var AO__RequireInternalSlot = require("./RequireInternalSlot");
+var AO__RequireInternalSlot = require("../RequireInternalSlot");
 var IteratorPrototype = require("../../internal/IteratorPrototype");
 
 var MapIteratorPrototype = Object.create(IteratorPrototype);

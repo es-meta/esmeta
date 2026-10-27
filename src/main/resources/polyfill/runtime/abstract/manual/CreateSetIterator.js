@@ -1,6 +1,6 @@
 var ENUM__empty = require("../../internal/Enum")("empty");
 var ENUM__key_value = require("../../internal/Enum")("key+value");
-var AO__RequireInternalSlot = require("./RequireInternalSlot");
+var AO__RequireInternalSlot = require("../RequireInternalSlot");
 var IteratorPrototype = require("../../internal/IteratorPrototype");
 
 // sec-%setiteratorprototype%-object

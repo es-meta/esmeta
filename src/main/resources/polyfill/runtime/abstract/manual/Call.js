@@ -14,7 +14,7 @@ function AO__Call(F, V) {
     throw new TypeError("AO__Call : F is not callable");
 
   // 3. Return ? F.[[Call]](V, argumentsList).
-  return F.call(V, ...argumentsList);
+  return F.apply(V, argumentsList);
 }
 
 module.exports = AO__Call;

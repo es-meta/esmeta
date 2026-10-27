@@ -3,8 +3,8 @@ var AO__HasProperty = require("./HasProperty");
 var AO__Get = require("./Get");
 var AO__Call = require("./Call");
 var AO__IsArray = require("./IsArray");
-var AO__LengthOfArrayLike = require("./LengthOfArrayLike");
-var AO__CreateDataPropertyOrThrow = require("./CreateDataPropertyOrThrow");
+var AO__LengthOfArrayLike = require("../LengthOfArrayLike");
+var AO__CreateDataPropertyOrThrow = require("../CreateDataPropertyOrThrow");
 
 // https://tc39.es/ecma262/multipage/indexed-collections.html#sec-flattenintoarray
 function AO__FlattenIntoArray(target, source, sourceLen, start, depth) {

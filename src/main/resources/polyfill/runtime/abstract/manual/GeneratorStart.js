@@ -29,7 +29,6 @@ function AO__GeneratorStart(generator, generatorBody) {
       case undefined: var resultValue = undefined; break;
     }
 
-    console.error(generator);
     return AO__CreateIteratorResultObject(resultValue, true);
   }
   genContext["body"] = closure;

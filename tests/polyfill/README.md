@@ -44,6 +44,26 @@ tells you the optimizer preserved behaviour.
 An intentional difference goes in `allowedDivergences` in the baseline, keyed
 by test id, with the reason -- the same discipline as a known failure.
 
+## Target environment
+
+The polyfills need an ES2015 (ES6) or later engine. They use:
+
+- syntax: arrow functions, method shorthand, rest parameters, `new.target`
+- built-ins: `Symbol`, `Reflect.construct`
+
+Nothing newer is required; `globalThis` is used only when the engine has it.
+
+### Known limitation of `opt`
+
+To find object keys of `Map` and `Set` in O(1), `opt` attaches an ID to each
+key object as a hidden property named `SET_ID_<random>`, as core-js does. So,
+unlike the native `Map` and `Set`:
+
+- the property shows up in `Object.getOwnPropertyNames` and `Reflect.ownKeys`
+  of the key (not in `Object.keys` or `for-in`);
+- a key object that cannot take new properties, e.g. a frozen one, is found by
+  a linear search instead.
+
 ## How a target is run
 
 Each entry in `targets.yaml` names a built-in, the module the packager emits

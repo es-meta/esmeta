@@ -1,5 +1,6 @@
 function AO__SameValue(x, y) {
-  return Object.is(x, y);
+  if (x === y) return x !== 0 || 1 / x === 1 / y;
+  return x !== x && y !== y;
   /*
   // 1. If SameType(_x_, _y_) is *false*, return *false*.
   // if (AO__SameType(x, y) === false) return false; // function type에 대해 검사하지 못함

@@ -1,6 +1,6 @@
 var ENUM__handle = require("../../internal/Enum")("handle");
 var ENUM__reject = require("../../internal/Enum")("reject");
-function AO_HostPromiseRejectionTracker(promise, operation) {
+function AO__HostPromiseRejectionTracker(promise, operation) {
   if (typeof process === 'undefined') return;
   if(operation === ENUM__reject) {
     process.emit('unhandledRejection', promise.PromiseResult, promise);
@@ -9,4 +9,4 @@ function AO_HostPromiseRejectionTracker(promise, operation) {
   }
 }
 
-module.exports = AO_HostPromiseRejectionTracker;
+module.exports = AO__HostPromiseRejectionTracker;

@@ -302,7 +302,7 @@ class Translator(spec: Spec) {
     case IntrinsicObject(base, expr)    => unsupported(ref)
     case RunningExecutionContext() => "this" // TODO Single-Runtime Assumption
     case SecondExecutionContext()  => unsupported(ref)
-    case CurrentRealmRecord()      => "globalThis"
+    case CurrentRealmRecord()      => pb.use(Dep.Internal("Global"))
     case ActiveFunctionObject()    => "_self"
     case AgentRecord()             => unsupported(ref)
     case MetaReference(name, _)    => unsupported(ref)

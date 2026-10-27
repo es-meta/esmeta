@@ -224,8 +224,10 @@ class Packager(
     /** the generated body */
     lazy val content: String = poly.toString
 
-    /** operations the body calls */
-    def deps: List[Polyfill.Dep] = poly.deps
+    /** operations the body calls, plus the global object it installs onto */
+    def deps: List[Polyfill.Dep] =
+      if (kind == Kind.Obj) poly.deps :+ Polyfill.Dep.Internal("Global")
+      else poly.deps
   }
 
   private lazy val entries: List[Entry] = polyfills.map(Entry(_))
@@ -413,7 +415,7 @@ class Packager(
       join(
         imports(entry.deps ++ own.flatMap(_.deps), entry.module, dir),
         s"function $base${entry.content}",
-        s"""Object.defineProperty(globalThis, "$base", {
+        s"""Object.defineProperty(IN__Global, "$base", {
           |  value: $base,
           |  writable: true,
           |  enumerable: false,

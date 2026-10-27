@@ -1,6 +1,7 @@
+var IN__Global = require("../../internal/Global");
 var ENUM__suspended_start = require("../../internal/Enum")("suspended-start");
-const AO__GeneratorStart = require("./GeneratorStart");
-const AO__OrdinaryObjectCreate = require("./OrdinaryObjectCreate");
+var AO__GeneratorStart = require("./GeneratorStart");
+var AO__OrdinaryObjectCreate = require("./OrdinaryObjectCreate");
 
 function AO__CreateIteratorFromClosure(closure, generatorBrand, generatorPrototype) {
   var extraSlots = arguments.length > 3 ? arguments[3] : [];
@@ -8,7 +9,7 @@ function AO__CreateIteratorFromClosure(closure, generatorBrand, generatorPrototy
   generator["GeneratorBrand"] = generatorBrand;
   generator["GeneratorState"] = ENUM__suspended_start;
   // Skip 7~13
-  var wrap = function(genContext) {globalThis["GeneratorContext"] = genContext; closure(genContext); globalThis["GeneratorContext"] = undefined;};
+  var wrap = function(genContext) {IN__Global["GeneratorContext"] = genContext; closure(genContext); IN__Global["GeneratorContext"] = undefined;};
   AO__GeneratorStart(generator, wrap);
   return generator;
 }

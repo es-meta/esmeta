@@ -1,5 +1,5 @@
 var ENUM__empty = require("./Enum")("empty");
-const AO__SameValue = require("../abstract/manual/SameValue");
+var AO__SameValue = require("../abstract/manual/SameValue");
 
 module.exports = function (setData, value) {
   "use strict";

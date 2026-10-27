@@ -7,7 +7,7 @@ module.exports = function (setData, value) {
     // Slow path for frozen objects (O(N))
     var frozenList = setData.frozen;
     for (var i = 0; i < frozenList.length; i++) {
-      if (frozenList[i] === value) return S;
+      if (frozenList[i] === value) return;
     }
     frozenList.push(value);
 

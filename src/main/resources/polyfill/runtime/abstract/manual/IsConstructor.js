@@ -4,12 +4,13 @@ var AO__IsCallable = require("./IsCallable");
 function AO__IsConstructor(argument) {
   if (!AO__IsCallable(argument)) return false;
 
-  // try {
-  //   Reflect.construct(function () { }, [], argument);
-  // } catch {
-  //   return false;
-  // }
-  return argument.prototype !== undefined
+  // Using argument only as newTarget probes [[Construct]] without calling it.
+  try {
+    Reflect.construct(function () {}, [], argument);
+  } catch (e) {
+    return false;
+  }
+  return true;
 }
 
 module.exports = AO__IsConstructor;
