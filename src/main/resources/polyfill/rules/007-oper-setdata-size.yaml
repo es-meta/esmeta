@@ -1,0 +1,6 @@
+name: "[OPER] SetData Size"
+pattern: "SetDataSize({{ base : ref }})"
+replace: "IN__SetDataSize({{ base }})"
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }

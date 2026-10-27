@@ -88,7 +88,7 @@ case class InclusiveIntervalCondition(
   isTextForm: Boolean,
 ) extends Condition
 
-// `contiains` conditions
+// `contains` conditions
 case class ContainsCondition(
   list: Expression,
   negation: Boolean,
@@ -109,3 +109,6 @@ case class CompoundCondition(
 ) extends Condition
 enum CompoundConditionOperator extends LangElem:
   case And, Or, Imply
+
+// polyfill DSL
+case class MetaCondition(name: String, variant: Int = 0) extends Condition

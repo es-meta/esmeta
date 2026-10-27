@@ -14,8 +14,22 @@ object JsonProtocol extends BasicJsonProtocol {
   // references
   given Decoder[Reference] = deriveDecoderWithType
   given Encoder[Reference] = deriveEncoderWithType
-  given Decoder[Variable] = deriveDecoderWithType
-  given Encoder[Variable] = deriveEncoderWithType
+  // omit `meta` and `variant` fields when they have default values
+  given Decoder[Variable] = Decoder.instance { c =>
+    val v = c.downField("Variable")
+    for {
+      name <- v.downField("name").as[String]
+      nt <- v.downField("nt").as[Option[String]]
+      meta <- v.getOrElse[Boolean]("meta")(false)
+      variant <- v.getOrElse[Int]("variant")(0)
+    } yield Variable(name, nt, meta, variant)
+  }
+  given Encoder[Variable] = Encoder.AsObject.instance { x =>
+    val fields = List("name" -> x.name.asJson, "nt" -> x.nt.asJson) ++
+      Option.when(x.meta)("meta" -> x.meta.asJson) ++
+      Option.when(x.variant != 0)("variant" -> x.variant.asJson)
+    JsonObject.singleton("Variable", Json.fromFields(fields))
+  }
   given Decoder[Access] = deriveDecoderWithType
   given Encoder[Access] = deriveEncoderWithType
   given Decoder[AccessKind] = deriveDecoderWithType
@@ -314,6 +328,10 @@ object JsonProtocol extends BasicJsonProtocol {
   given Encoder[PrependStep] = deriveEncoderWithType
   given Decoder[AddStep] = deriveDecoderWithType
   given Encoder[AddStep] = deriveEncoderWithType
+  given Decoder[ReplaceStep] = deriveDecoderWithType
+  given Encoder[ReplaceStep] = deriveEncoderWithType
+  given Decoder[ReplaceStep.Form] = deriveDecoderWithType
+  given Encoder[ReplaceStep.Form] = deriveEncoderWithType
   given Decoder[RepeatStep] = deriveDecoderWithType
   given Encoder[RepeatStep] = deriveEncoderWithType
   given Decoder[RepeatStep.LoopCondition] = deriveDecoderWithType

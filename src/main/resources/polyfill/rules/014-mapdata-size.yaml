@@ -1,0 +1,10 @@
+name: "MapData Size"
+pattern: |
+    1. Let {{ count : var }} be 0.
+    1. For each element {{ elem : var }} of {{ base : ref }}, do
+      1. If {{ elem }}.[[Key]] is not ~empty~, set {{ count }} to {{ count }} + 1.
+replace: |
+    1. Let {{ count }} be IN__MapDataSize({{ base }}).
+where:
+  - isMapData(base)
+  - { isMapData: "_ (.[[MapData]] | .[[WeakMapData]]) .copy*" }

@@ -7,7 +7,12 @@ sealed trait Reference extends Syntax
 object Reference extends Parser.From(Parser.ref)
 
 // variables
-case class Variable(name: String, nt: Option[String] = None) extends Reference
+case class Variable(
+  name: String,
+  nt: Option[String] = None,
+  meta: Boolean = false,
+  variant: Int = 0,
+) extends Reference
 
 // access
 case class Access(
@@ -83,6 +88,9 @@ case class ActiveFunctionObject() extends Reference
 
 // references to agent record
 case class AgentRecord() extends Reference
+
+// polyfill DSL
+case class MetaReference(name: String, variant: Int = 0) extends Reference
 
 // -----------------------------------------------------------------------------
 // intrinsics

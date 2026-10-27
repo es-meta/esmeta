@@ -1,0 +1,8 @@
+name: "[OPER] SetData Remove"
+pattern: |
+  1. Replace {{ elem : expr }} in {{ base : ref }} with ~empty~.
+replace: |
+  1. Perform IN__SetDataRemove({{ base }}, {{ elem }}).
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }

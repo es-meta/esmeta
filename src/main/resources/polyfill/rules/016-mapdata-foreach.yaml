@@ -1,0 +1,12 @@
+name: "MapData ForEach"
+pattern: "1. For each element {{ elem : var }} of {{ base : ref }}, {{ body : step }}"
+replace: "1. Perform IN__MapDataIterate({{ base }}, closure({{ elem }}) { {{ body }} })."
+where:
+  - isMapData(base)
+  - { isMapData: "_ (.[[MapData]] | .[[WeakMapData]]) .copy*" }
+subrules:
+  - name: "MapData ForEach >> MapData Remove"
+    pattern: |
+      1. Set {{ elem }}.[[Key]] to ~empty~.
+      1. Set {{ elem }}.[[Value]] to ~empty~.
+    replace: "1. Perform IN__MapDataRemove({{ base }}, {{ elem }}.[[Key]])."

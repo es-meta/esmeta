@@ -1,0 +1,8 @@
+name: "[OPER] SetData Create (Let)"
+pattern: |
+  1. Let {{ base : var }} be a new empty List.
+replace: |
+  1. Let {{ base }} be IN__SetDataCreate().
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }

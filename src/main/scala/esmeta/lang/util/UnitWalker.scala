@@ -59,6 +59,8 @@ trait UnitWalker extends BasicUnitWalker {
     case PrependStep(expr, ref)          => walk(expr); walk(ref)
     case InsertStep(expr, ref)           => walk(expr); walk(ref)
     case AddStep(expr, ref)              => walk(expr); walk(ref)
+    case ReplaceStep(oldExpr, newExpr, ref, _) =>
+      walk(oldExpr); walk(newExpr); walk(ref)
     case RemoveStep(target, p, list)     => walk(target); walk(p); walk(list)
     case PushContextStep(ref)            => walk(ref)
     case SuspendStep(ref, remove)        => walkOpt(ref, walk); walk(remove)
@@ -97,6 +99,7 @@ trait UnitWalker extends BasicUnitWalker {
     // -------------------------------------------------------------------------
     // TODO refactor following code
     // -------------------------------------------------------------------------
+    case MetaStep(_, _, _) =>
   }
 
   def walk(target: RemoveStep.Target): Unit =
@@ -183,6 +186,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(multi)
     case yet: YetExpression =>
       walk(yet)
+    case MetaExpression(_, _) =>
   }
 
   def walk(multi: MultilineExpression): Unit = multi match {
@@ -276,6 +280,7 @@ trait UnitWalker extends BasicUnitWalker {
       walk(list); walk(neg); walk(target)
     case CompoundCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
+    case MetaCondition(_, _) =>
   }
 
   def walk(form: HasFieldConditionForm): Unit = {}
@@ -310,6 +315,7 @@ trait UnitWalker extends BasicUnitWalker {
     case CurrentRealmRecord()             =>
     case ActiveFunctionObject()           =>
     case AgentRecord()                    =>
+    case MetaReference(_, _)              =>
   }
 
   def walk(x: Variable): Unit = {}
