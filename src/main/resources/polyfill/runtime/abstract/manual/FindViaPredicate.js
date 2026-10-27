@@ -1,3 +1,4 @@
+var ENUM__ascending = require("../../internal/Enum")("ascending");
 var AO__IsCallable = require("./IsCallable");
 var AO__ToString = require("./ToString");
 var AO__Get = require("./Get");
@@ -12,7 +13,7 @@ function AO__FindViaPredicate(O, len, direction, predicate, thisArg) {
   if (AO__IsCallable(predicate) === false) throw new TypeError();
 
   // 2. If direction is ascending, then
-  if (direction === "ascending") {
+  if (direction === ENUM__ascending) {
     // a. Let indices be a List of the integers in the interval from 0 (inclusive) to len (exclusive), in ascending order.
     // var indices = Array.from({ length: len }, function (v, k) { return k; });
   }
@@ -26,7 +27,7 @@ function AO__FindViaPredicate(O, len, direction, predicate, thisArg) {
 
   // 4. For each integer k of indices, do
   for (var _k = 0; _k < len; _k++) {
-    var k = direction === "ascending" ? _k : len - _k - 1;
+    var k = direction === ENUM__ascending ? _k : len - _k - 1;
     // a. Let Pk be ! ToString(𝔽(k)).
     var Pk = AO__ToString(k);
     // b. NOTE: If O is a TypedArray, the following invocation of Get will return a normal completion.

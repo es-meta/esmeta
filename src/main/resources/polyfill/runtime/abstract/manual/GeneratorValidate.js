@@ -1,3 +1,4 @@
+var ENUM__executing = require("../../internal/Enum")("executing");
 var AO__RequireInternalSlot = require('../RequireInternalSlot');
 
 function AO__GeneratorValidate(generator, generatorBrand) {
@@ -5,7 +6,7 @@ function AO__GeneratorValidate(generator, generatorBrand) {
   AO__RequireInternalSlot(generator, "GeneratorBrand");
   if(generator["GeneratorBrand"] !== generatorBrand) throw new TypeError('generatorBrand unmatch');
   var state = generator["GeneratorState"];
-  if(state === "executing") throw new TypeError('generator validation failed: it is executing');
+  if(state === ENUM__executing) throw new TypeError('generator validation failed: it is executing');
   return state;
 }
 

@@ -1,3 +1,4 @@
+var ENUM__start = require("../../internal/Enum")("start");
 // Workaround of substring operation
 function SubString(S, start, end) {
   return "".substring.call(S, start, end);
@@ -27,7 +28,7 @@ function AO__StringPad(S, maxLength, fillString, placement) {
     fillLen,
   );
   // 6. If placement is start, return the string-concatenation of truncatedStringFiller and S.
-  if (placement === "start") return truncatedStringFiller + S;
+  if (placement === ENUM__start) return truncatedStringFiller + S;
   // 7. Else, return the string-concatenation of S and truncatedStringFiller.
   else return S + truncatedStringFiller;
 }

@@ -1,3 +1,4 @@
+var ENUM__skip_holes = require("../../internal/Enum")("skip-holes");
 var AO__Get = require("./Get");
 var AO__HasProperty = require("./HasProperty");
 var AO__ToString = require("./ToString");
@@ -10,7 +11,7 @@ function AO__SortIndexedProperties(obj, len, SortCompare, holes) {
   var k = 0;
   while (k < len) {
     var Pk = AO__ToString(k);
-    var kRead = holes === "skip-holes" ? AO__HasProperty(obj, Pk) : true;
+    var kRead = holes === ENUM__skip_holes ? AO__HasProperty(obj, Pk) : true;
     if (kRead === true) items[items.length] = AO__Get(obj, Pk);
     k = k + 1;
   }

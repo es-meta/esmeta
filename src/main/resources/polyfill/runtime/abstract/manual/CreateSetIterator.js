@@ -1,3 +1,5 @@
+var ENUM__empty = require("../../internal/Enum")("empty");
+var ENUM__key_value = require("../../internal/Enum")("key+value");
 var AO__RequireInternalSlot = require("./RequireInternalSlot");
 var IteratorPrototype = require("../../internal/IteratorPrototype");
 
@@ -39,8 +41,8 @@ Object.defineProperty(SetIteratorPrototype, "next", {
       O._SetNextIndex = index;
 
       // 4. If element is not empty, return it
-      if (e !== "empty") {
-        if (itemKind === "key+value") {
+      if (e !== ENUM__empty) {
+        if (itemKind === ENUM__key_value) {
           return { value: [e, e], done: false };
         }
         return { value: e, done: false };

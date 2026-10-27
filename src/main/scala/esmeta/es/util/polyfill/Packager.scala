@@ -308,6 +308,7 @@ class Packager(
       case Internal(name)    => s"internal/$name"
       case AO(name)          => abstractOp(name)
       case Numeric(ty, name) => abstractOp(s"$ty${name.capitalize}")
+      case Enum(_)           => "internal/Enum"
 
   // ---------------------------------------------------------------------------
   // Runtime assets
@@ -552,11 +553,13 @@ class Packager(
       dep <- deps.distinct.sortBy(_.symbol)
       target = moduleFor(dep)
       path = relative(dir, target)
-    } yield
-      if (cyclicEdges(self -> target))
+    } yield dep match
+      case Polyfill.Dep.Enum(name) =>
+        s"""var ${dep.symbol} = require("$path")("$name");"""
+      case _ if cyclicEdges(self -> target) =>
         s"var ${dep.symbol} = function () " +
         s"""{ return require("$path").apply(this, arguments); };"""
-      else s"""var ${dep.symbol} = require("$path");"""
+      case _ => s"""var ${dep.symbol} = require("$path");"""
     lines.mkString(LINE_SEP)
 
   // ---------------------------------------------------------------------------

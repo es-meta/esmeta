@@ -45,11 +45,15 @@ object Polyfill {
     /** a numeric method of a numeric type, e.g. `Number::lessThan` */
     case Numeric(ty: String, name: String)
 
+    /** an enum value, e.g. `~empty~`, obtained from the hand-written runtime */
+    case Enum(name: String)
+
     /** the symbol the generated code calls it by */
     def symbol: String = this match
       case AO(name)          => s"AO__$name"
       case Internal(name)    => s"IN__$name"
       case Numeric(ty, name) => s"${ty}__$name"
+      case Enum(name)        => s"ENUM__${name.replaceAll("\\W", "_")}"
 
   sealed trait Stmt {
     override def toString: String = toString(0)

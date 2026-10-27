@@ -1,3 +1,4 @@
+var ENUM__suspended_yield = require("../../internal/Enum")("suspended-yield");
 /*
 var genContext = {
     Generator: generator,
@@ -13,7 +14,7 @@ var genContext = {
 function AO__GeneratorYield(iteratorResult) {
   var genContext = globalThis["GeneratorContext"];
   var generator = genContext["Generator"];
-  generator["GeneratorState"] = "suspended-yield";
+  generator["GeneratorState"] = ENUM__suspended_yield;
 
   genContext["signal"] = "yield";
   genContext["value"] = iteratorResult;

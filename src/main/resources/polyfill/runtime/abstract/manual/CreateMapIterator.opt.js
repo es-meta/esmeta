@@ -1,3 +1,5 @@
+var ENUM__key = require("../../internal/Enum")("key");
+var ENUM__value = require("../../internal/Enum")("value");
 var MapIteratorPrototype = {};
 
 // If the environment has Symbols (or a polyfill), we make the iterator "iterable" 
@@ -47,8 +49,8 @@ function CreateMapIterator(M, kind) {
     var key = node.Key;
     var value = node.Value;
 
-    if (kind === "key") return { value: key, done: false };
-    if (kind === "value") return { value: value, done: false };
+    if (kind === ENUM__key) return { value: key, done: false };
+    if (kind === ENUM__value) return { value: value, done: false };
 
     return { value: [key, value], done: false };
   };

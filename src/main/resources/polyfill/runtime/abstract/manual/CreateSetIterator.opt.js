@@ -1,3 +1,4 @@
+var ENUM__key_value = require("../../internal/Enum")("key+value");
 var SetIteratorPrototype = {};
 
 // If the environment has Symbols (or a polyfill), we make the iterator "iterable" 
@@ -47,7 +48,7 @@ function CreateSetIterator(S, kind) {
     last = node;
     var value = node.value;
 
-    if (kind === "key+value") return { value: [value, value], done: false };
+    if (kind === ENUM__key_value) return { value: [value, value], done: false };
     return { value: value, done: false };
   };
 

@@ -426,7 +426,7 @@ class Translator(spec: Spec) {
     case SoleElementExpression(list) => unsupported(expr)
     case CodeUnitAtExpression(base, index) =>
       s"${compile(pb, base)}.charCodeAt(${compile(pb, index)})"
-    case lit: Literal            => compile(lit)
+    case lit: Literal            => compile(pb, lit)
     case MetaExpression(name, _) => unsupported(expr)
   }
 
@@ -560,7 +560,7 @@ class Translator(spec: Spec) {
     case MetaCondition(name, _) => unsupported(cond)
   }
 
-  def compile(lit: Literal): String =
+  def compile(pb: Builder, lit: Literal): String =
     lit match {
       case _: ThisLiteral          => "this"
       case _: ThisParseNodeLiteral => unsupported(lit)
@@ -576,7 +576,7 @@ class Translator(spec: Spec) {
       case GrammarSymbolLiteral(name, flags) => unsupported(lit)
       case NonterminalLiteral(ordinal, name, flags, hasArticle) =>
         unsupported(lit)
-      case EnumLiteral(name)           => s"\"$name\""
+      case EnumLiteral(name)           => pb.use(Dep.Enum(name))
       case StringLiteral(str, _)       => s"\"$str\""
       case FieldLiteral(name)          => s"\"$name\""
       case SymbolLiteral(sym)          => s"Symbol.$sym"

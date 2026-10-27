@@ -1,3 +1,6 @@
+var ENUM__empty = require("../../internal/Enum")("empty");
+var ENUM__key = require("../../internal/Enum")("key");
+var ENUM__value = require("../../internal/Enum")("value");
 var AO__RequireInternalSlot = require("./RequireInternalSlot");
 var IteratorPrototype = require("../../internal/IteratorPrototype");
 
@@ -28,11 +31,11 @@ Object.defineProperty(MapIteratorPrototype, "next", {
       index = index + 1;
       O._MapNextIndex = index;
 
-      if (e["Key"] !== "empty") {
+      if (e["Key"] !== ENUM__empty) {
         var result;
 
-        if (itemKind === "key") result = e["Key"];
-        else if (itemKind === "value") result = e["Value"];
+        if (itemKind === ENUM__key) result = e["Key"];
+        else if (itemKind === ENUM__value) result = e["Value"];
         else result = [e["Key"], e["Value"]];
 
         return { value: result, done: false };

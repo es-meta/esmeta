@@ -1,3 +1,6 @@
+var ENUM__empty = require("../../internal/Enum")("empty");
+var ENUM__key = require("../../internal/Enum")("key");
+var ENUM__value = require("../../internal/Enum")("value");
 const AO__Get = require("./Get");
 const AO__LengthOfArrayLike = require("./LengthOfArrayLike");
 const AO__ToString = require("./ToString");
@@ -9,7 +12,7 @@ const AO__GeneratorResume = require("./GeneratorResume");
 
 var ArrayIteratorPrototype = {
   next: function next() {
-    return AO__GeneratorResume(this, 'empty', "%ArrayIteratorPrototype%");
+    return AO__GeneratorResume(this, ENUM__empty, "%ArrayIteratorPrototype%");
   }
 }
 
@@ -35,11 +38,11 @@ function AO__CreateArrayIterator(array, kind) {
             return undefined;
           }
           genContext.locals.indexNumber = genContext.locals.index;
-          if(kind === 'key') genContext.locals.result = genContext.locals.indexNumber;
+          if(kind === ENUM__key) genContext.locals.result = genContext.locals.indexNumber;
           else {
             genContext.locals.elementKey = AO__ToString(genContext.locals.indexNumber);
             genContext.locals.elementValue = AO__Get(array, genContext.locals.elementKey);
-            if(kind === 'value') genContext.locals.result = genContext.locals.elementValue;
+            if(kind === ENUM__value) genContext.locals.result = genContext.locals.elementValue;
             else genContext.locals.result = AO__CreateArrayFromList([genContext.locals.indexNumber, genContext.locals.elementValue]);
           }
           genContext.locals.index = genContext.locals.index + 1;

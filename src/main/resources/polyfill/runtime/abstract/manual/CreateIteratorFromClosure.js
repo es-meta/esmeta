@@ -1,3 +1,4 @@
+var ENUM__suspended_start = require("../../internal/Enum")("suspended-start");
 const AO__GeneratorStart = require("./GeneratorStart");
 const AO__OrdinaryObjectCreate = require("./OrdinaryObjectCreate");
 
@@ -5,7 +6,7 @@ function AO__CreateIteratorFromClosure(closure, generatorBrand, generatorPrototy
   var extraSlots = arguments.length > 3 ? arguments[3] : [];
   var generator = AO__OrdinaryObjectCreate(generatorPrototype, extraSlots);
   generator["GeneratorBrand"] = generatorBrand;
-  generator["GeneratorState"] = "suspended-start";
+  generator["GeneratorState"] = ENUM__suspended_start;
   // Skip 7~13
   var wrap = function(genContext) {globalThis["GeneratorContext"] = genContext; closure(genContext); globalThis["GeneratorContext"] = undefined;};
   AO__GeneratorStart(generator, wrap);
