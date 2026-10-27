@@ -112,6 +112,7 @@ object Targets {
     "INTRINSICS.MapIteratorPrototype.next",
     "INTRINSICS.SetIteratorPrototype.next",
     "INTRINSICS.String.prototype[%Symbol.iterator%]",
+    "INTRINSICS.Array.fromAsync",
     "CreateAsyncFromSyncIterator",
 
     // Hand-written
