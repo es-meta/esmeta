@@ -90,17 +90,22 @@ function runConfig(cfg, targets, baseline, report) {
   let total = 0, passed = 0;
 
   for (const target of targets) {
+    // a target that cannot be run is an error, never a silent pass
     if (!fs.existsSync(path.join(cfg.lib, target.module))) {
-      report.skipped.push(`${cfg.name}/${target.name} (no ${target.module})`);
+      report.errors.push(`${cfg.name}/${target.name}: no ${target.module}`);
       continue;
     }
     let rs;
     try {
       rs = runTests(target, bundle(cfg.name, cfg.lib, target));
     } catch (e) {
-      report.regressions.push(
+      report.errors.push(
         `${cfg.name}/${target.name}: harness failed -- ${e.message.split("\n")[0]}`,
       );
+      continue;
+    }
+    if (rs.length === 0) {
+      report.errors.push(`${cfg.name}/${target.name}: no tests match ${target.testPattern}`);
       continue;
     }
 
@@ -137,6 +142,10 @@ function main() {
   const onlyCfg = (process.argv.find((a) => a.startsWith("--config=")) || "").slice(9);
 
   const configs = onlyCfg ? CONFIGS.filter((c) => c.name === onlyCfg) : CONFIGS;
+  if (configs.length === 0) {
+    console.error(`no configuration named "${onlyCfg}" (basic or opt)`);
+    process.exit(2);
+  }
   for (const cfg of configs)
     if (!fs.existsSync(cfg.lib)) {
       console.error(`no generated library for "${cfg.name}" at ${cfg.lib}`);
@@ -149,8 +158,12 @@ function main() {
   fs.rmSync(BUNDLES, { recursive: true, force: true });
   fs.mkdirSync(BUNDLES, { recursive: true });
 
-  let targets = yaml.load(fs.readFileSync(path.join(HERE, "targets.yaml"), "utf8"));
-  if (only) targets = targets.filter((t) => t.name === only);
+  const allTargets = yaml.load(fs.readFileSync(path.join(HERE, "targets.yaml"), "utf8"));
+  const targets = only ? allTargets.filter((t) => t.name === only) : allTargets;
+  if (targets.length === 0) {
+    console.error(`no target named "${only}" in targets.yaml`);
+    process.exit(2);
+  }
 
   const stored = fs.existsSync(BASELINE)
     ? JSON.parse(fs.readFileSync(BASELINE, "utf8"))
@@ -158,7 +171,7 @@ function main() {
   const baseline = stored.knownFailures || {};
   const allowed = new Set(Object.keys(stored.allowedDivergences || {}));
 
-  const report = { failures: {}, regressions: [], fixed: [], skipped: [] };
+  const report = { failures: {}, regressions: [], fixed: [], errors: [] };
   const byConfig = {};
   const recorded = {};
 
@@ -179,18 +192,38 @@ function main() {
         );
     }
 
-  if (report.skipped.length) console.log(`skipped: ${report.skipped.join(", ")}`);
+  if (report.errors.length) {
+    console.error(`\n${report.errors.length} target(s) could not be run:`);
+    for (const e of report.errors) console.error(`  ${e}`);
+    process.exit(1);
+  }
 
   if (update) {
+    // replace only the configurations and targets of this run, keeping the
+    // rest of the baseline as it was, in the order of targets.yaml
+    const ran = new Set(targets.map((t) => t.name));
+    const knownFailures = { ...baseline };
+    for (const cfg of configs) {
+      const old = knownFailures[cfg.name] || {};
+      const entries = {};
+      for (const { name } of allTargets) {
+        const failures = ran.has(name) ? recorded[cfg.name][name] : old[name];
+        if (failures) entries[name] = failures;
+      }
+      knownFailures[cfg.name] = entries;
+    }
     fs.writeFileSync(
       BASELINE,
       JSON.stringify(
-        { knownFailures: recorded, allowedDivergences: stored.allowedDivergences || {} },
+        { knownFailures, allowedDivergences: stored.allowedDivergences || {} },
         null,
         2,
       ) + "\n",
     );
-    console.log(`baseline updated for: ${Object.keys(recorded).join(", ")}`);
+    console.log(
+      `baseline updated for: ${configs.map((c) => c.name).join(", ")}` +
+      (only ? ` (${only})` : ""),
+    );
     return;
   }
 
