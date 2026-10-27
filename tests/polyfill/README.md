@@ -37,7 +37,7 @@ run, reported separately from an ordinary regression so the cause is not
 mistaken for a translation bug.
 
 That cross-check is the reason both are run. Conformance alone cannot see the
-optimizer: with it switched off entirely the suite still scores 8033/8049,
+optimizer: with it switched off entirely the suite still scores 8353/8401,
 because unoptimized output is simply plainer, not wrong. Only the comparison
 tells you the optimizer preserved behaviour.
 

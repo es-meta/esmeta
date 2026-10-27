@@ -1,6 +1,48 @@
 {
   "knownFailures": {
     "basic": {
+      "Array.prototype.entries": {
+        "test/built-ins/Array/prototype/entries/resizable-buffer.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/entries/resizable-buffer.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/entries/returns-iterator-from-object.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/entries/returns-iterator-from-object.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/entries/returns-iterator.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/entries/returns-iterator.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype"
+      },
+      "Array.prototype.keys": {
+        "test/built-ins/Array/prototype/keys/resizable-buffer-shrink-mid-iteration.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/keys/resizable-buffer-shrink-mid-iteration.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/keys/resizable-buffer.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/keys/resizable-buffer.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/keys/returns-iterator-from-object.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/keys/returns-iterator-from-object.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/keys/returns-iterator.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/keys/returns-iterator.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype"
+      },
+      "Array.prototype.values": {
+        "test/built-ins/Array/prototype/values/resizable-buffer-shrink-mid-iteration.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/values/resizable-buffer-shrink-mid-iteration.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/values/resizable-buffer.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/values/resizable-buffer.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/values/returns-iterator-from-object.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/values/returns-iterator-from-object.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/values/returns-iterator.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/values/returns-iterator.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype"
+      },
+      "Array.prototype[@@unscopables]": {
+        "test/built-ins/Array/prototype/Symbol.unscopables/array-find-from-last.js [default]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/array-find-from-last.js [strict mode]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/change-array-by-copy.js [default]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/change-array-by-copy.js [strict mode]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/prop-desc.js [default]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/prop-desc.js [strict mode]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/value.js [default]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/value.js [strict mode]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)"
+      },
+      "String.fromCodePoint": {
+        "test/built-ins/String/fromCodePoint/length.js [default]": "length comes from the JS parameter list (0 for ...codePoints), not the spec value 1",
+        "test/built-ins/String/fromCodePoint/length.js [strict mode]": "length comes from the JS parameter list (0 for ...codePoints), not the spec value 1"
+      },
       "Map": {
         "test/built-ins/Map/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
         "test/built-ins/Map/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"
@@ -33,6 +75,48 @@
       }
     },
     "opt": {
+      "Array.prototype.entries": {
+        "test/built-ins/Array/prototype/entries/resizable-buffer.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/entries/resizable-buffer.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/entries/returns-iterator-from-object.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/entries/returns-iterator-from-object.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/entries/returns-iterator.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/entries/returns-iterator.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype"
+      },
+      "Array.prototype.keys": {
+        "test/built-ins/Array/prototype/keys/resizable-buffer-shrink-mid-iteration.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/keys/resizable-buffer-shrink-mid-iteration.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/keys/resizable-buffer.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/keys/resizable-buffer.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/keys/returns-iterator-from-object.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/keys/returns-iterator-from-object.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/keys/returns-iterator.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/keys/returns-iterator.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype"
+      },
+      "Array.prototype.values": {
+        "test/built-ins/Array/prototype/values/resizable-buffer-shrink-mid-iteration.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/values/resizable-buffer-shrink-mid-iteration.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/values/resizable-buffer.js [default]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/values/resizable-buffer.js [strict mode]": "CreateArrayIterator (hand-written) does not check TypedArray out-of-bounds after a resizable ArrayBuffer shrinks, so it yields instead of throwing TypeError",
+        "test/built-ins/Array/prototype/values/returns-iterator-from-object.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/values/returns-iterator-from-object.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/values/returns-iterator.js [default]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype",
+        "test/built-ins/Array/prototype/values/returns-iterator.js [strict mode]": "the host's Array.prototype[Symbol.iterator] stays native, so its %ArrayIteratorPrototype% differs from the polyfill's own iterator prototype"
+      },
+      "Array.prototype[@@unscopables]": {
+        "test/built-ins/Array/prototype/Symbol.unscopables/array-find-from-last.js [default]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/array-find-from-last.js [strict mode]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/change-array-by-copy.js [default]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/change-array-by-copy.js [strict mode]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/prop-desc.js [default]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/prop-desc.js [strict mode]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/value.js [default]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)",
+        "test/built-ins/Array/prototype/Symbol.unscopables/value.js [strict mode]": "installed as the algorithm function instead of the object it returns (step 9, deferred; never runs on ES2015+ hosts, which have it natively)"
+      },
+      "String.fromCodePoint": {
+        "test/built-ins/String/fromCodePoint/length.js [default]": "length comes from the JS parameter list (0 for ...codePoints), not the spec value 1",
+        "test/built-ins/String/fromCodePoint/length.js [strict mode]": "length comes from the JS parameter list (0 for ...codePoints), not the spec value 1"
+      },
       "Map": {
         "test/built-ins/Map/proto-from-ctor-realm.js [default]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)",
         "test/built-ins/Map/proto-from-ctor-realm.js [strict mode]": "cross-realm: needs another realms intrinsics, unreachable from JS (core-js fails these too)"

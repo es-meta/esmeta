@@ -8,6 +8,10 @@
   module: Array.from.js
   deleteStmt: delete Array.from;
   testPattern: test/built-ins/Array/from/*.js
+- name: Array.isArray
+  module: Array.isArray.js
+  deleteStmt: delete Array.isArray;
+  testPattern: test/built-ins/Array/isArray/*.js
 - name: Array.of
   module: Array.of.js
   deleteStmt: delete Array.of;
@@ -20,6 +24,10 @@
   module: Array.prototype.copyWithin.js
   deleteStmt: delete Array.prototype.copyWithin;
   testPattern: test/built-ins/Array/prototype/copyWithin/*.js
+- name: Array.prototype.entries
+  module: Array.prototype.entries.js
+  deleteStmt: delete Array.prototype.entries;
+  testPattern: test/built-ins/Array/prototype/entries/*.js
 - name: Array.prototype.every
   module: Array.prototype.every.js
   deleteStmt: delete Array.prototype.every;
@@ -68,6 +76,10 @@
   module: Array.prototype.indexOf.js
   deleteStmt: delete Array.prototype.indexOf;
   testPattern: test/built-ins/Array/prototype/indexOf/*.js
+- name: Array.prototype.keys
+  module: Array.prototype.keys.js
+  deleteStmt: delete Array.prototype.keys;
+  testPattern: test/built-ins/Array/prototype/keys/*.js
 - name: Array.prototype.lastIndexOf
   module: Array.prototype.lastIndexOf.js
   deleteStmt: delete Array.prototype.lastIndexOf;
@@ -92,14 +104,30 @@
   module: Array.prototype.toReversed.js
   deleteStmt: delete Array.prototype.toReversed;
   testPattern: test/built-ins/Array/prototype/toReversed/*.js
+- name: Array.prototype.toSorted
+  module: Array.prototype.toSorted.js
+  deleteStmt: delete Array.prototype.toSorted;
+  testPattern: test/built-ins/Array/prototype/toSorted/*.js
 - name: Array.prototype.toSpliced
   module: Array.prototype.toSpliced.js
   deleteStmt: delete Array.prototype.toSpliced;
   testPattern: test/built-ins/Array/prototype/toSpliced/*.js
+- name: Array.prototype.values
+  module: Array.prototype.values.js
+  deleteStmt: delete Array.prototype.values;
+  testPattern: test/built-ins/Array/prototype/values/*.js
 - name: Array.prototype.with
   module: Array.prototype.with.js
   deleteStmt: delete Array.prototype.with;
   testPattern: test/built-ins/Array/prototype/with/*.js
+- name: Array.prototype[@@unscopables]
+  module: Array.prototype[%Symbol.unscopables%].js
+  deleteStmt: delete Array.prototype[Symbol.unscopables];
+  testPattern: test/built-ins/Array/prototype/Symbol.unscopables/*.js
+- name: String.fromCodePoint
+  module: String.fromCodePoint.js
+  deleteStmt: delete String.fromCodePoint;
+  testPattern: test/built-ins/String/fromCodePoint/*.js
 - name: String.prototype.at
   module: String.prototype.at.js
   deleteStmt: delete String.prototype.at;
@@ -128,6 +156,10 @@
   module: String.prototype.padStart.js
   deleteStmt: delete String.prototype.padStart;
   testPattern: test/built-ins/String/prototype/padStart/*.js
+- name: String.prototype.replaceAll
+  module: String.prototype.replaceAll.js
+  deleteStmt: delete String.prototype.replaceAll;
+  testPattern: test/built-ins/String/prototype/replaceAll/*.js
 - name: String.prototype.startsWith
   module: String.prototype.startsWith.js
   deleteStmt: delete String.prototype.startsWith;
@@ -148,6 +180,10 @@
   module: String.prototype.trimStart.js
   deleteStmt: delete String.prototype.trimStart;
   testPattern: test/built-ins/String/prototype/trimStart/*.js
+- name: String.raw
+  module: String.raw.js
+  deleteStmt: delete String.raw;
+  testPattern: test/built-ins/String/raw/*.js
 - name: Map
   module: Map.js
   deleteStmt: Map = undefined; globalThis.Map = undefined;

@@ -58,7 +58,9 @@ function bundle(cfgName, lib, target) {
   );
   execFileSync(
     bin("webpack"),
-    ["--mode", "production", "--target", "node",
+    // no minification: it rewrites `({ m() {} }).m` into an arrow function,
+    // which changes the method's `name` that test262 checks
+    ["--mode", "production", "--no-optimization-minimize", "--target", "node",
      "--entry", entry, "--output-path", BUNDLES, "--output-filename", outName],
     { cwd: HERE, stdio: "pipe" },
   );
