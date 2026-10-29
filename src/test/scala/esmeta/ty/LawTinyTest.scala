@@ -262,6 +262,11 @@ class LawTinyTest extends TyTest {
       NumberTy.int(intSet(Int.MaxValue)).contains(Number(3.0e9)) -> false,
       NumberTy.int(intSet(3000000000L)).contains(Number(3.0e9)) -> true,
       NumberTy.int(intSet(huge)).contains(Number(1.0)) -> false,
+      // 1e23 is exactly 99999999999999991611392, not 10^23
+      NumberTy.int(intSet(BigInt(10).pow(23))).contains(Number(1e23)) -> false,
+      NumberTy
+        .int(intSet(BigInt("99999999999999991611392")))
+        .contains(Number(1e23)) -> true,
     )
 
     // the integral number 0 stands for both *+0* and *-0*
