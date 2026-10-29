@@ -1,6 +1,47 @@
-// TODO implementation is missing
 @main def main() = {
-  //assert (= ([number] x) ???)
-  //assert (= ([bigint] x) ???)
-  //assert (= ([str] x) ???)
+  // code units
+  assert (= ([math] 97cu) 97)
+  assert (= ([codeUnit] 97) 97cu)
+
+  // mathematical values
+  assert (= ([number] 0.5) 0.5f)
+  assert (= ([number] 0.1) 0.1f)
+  assert (= ([number] (/ 1 3)) 0.3333333333333333f)
+  assert (= ([approx-number] 0.1) 0.1f)
+  assert (= ([bigInt] 42) 42n)
+  assert (= ([math] 3.2) 3.2)
+
+  // extended mathematical values
+  assert (= ([number] +INF) +NUM_INF)
+  assert (= ([number] -INF) -NUM_INF)
+  assert (= ([approx-number] +INF) +NUM_INF)
+
+  // strings
+  assert (= ([number] "  42  ") 42f)
+  assert (= ([number] "0x1A") 26f)
+  assert (= ([number] "-0") -0f)
+  assert (= ([number] "") 0f)
+  assert (= ([number] "Infinity") +NUM_INF)
+  assert (= ([number] "abc") NaN)
+  assert (= ([bigInt] "0x10") 16n)
+  assert (= ([bigInt] "1.5") undefined)
+  assert (= ([str] "abc") "abc")
+
+  // numbers
+  assert (= ([math] 1.5f) 1.5)
+  assert (! (= ([math] 0.1f) 0.1)) // the exact value of the double
+  assert (= ([number] (- ([math] 1.3f) ([math] 1.1f))) 0.19999999999999996f)
+  assert (= ([bigInt] ([math] 1e23f)) 99999999999999991611392n)
+  assert (= ([bigInt] 1e23f) 99999999999999991611392n)
+  assert (= ([number] 1.5f) 1.5f)
+  assert (= ([str] 1.5f) "1.5")
+  assert (= ([str] -0f) "0")
+  assert (= ([str] 1e21f) "1e+21")
+  assert (= ([str 16] 255f) "ff")
+
+  // big integers
+  assert (= ([math] 10n) 10)
+  assert (= ([bigInt] 10n) 10n)
+  assert (= ([str] 255n) "255")
+  assert (= ([str 16] 255n) "ff")
 }
