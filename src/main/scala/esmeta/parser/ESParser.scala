@@ -331,10 +331,11 @@ case class ESParser(
     }
   }
 
-  // keyword parser that does not match a prefix of an identifier
+  // keyword parser that does not match a prefix of an identifier, using the
+  // `IdentifierPart` lexer extracted from the specification
+  private lazy val identifierPart = lexers(("IdentifierPart", 0))
   private def keyword(t: String): Parser[String] = Parser { in =>
-    // IdentifierPart :: UnicodeIDContinue | `$` | `\` UnicodeEscapeSequence
-    (t <~ not(IDContinue | "$" | "\\"))(in) match
+    (t <~ not(identifierPart))(in) match
       // fail at the start of the keyword for correct ASI
       case Failure(msg, _) => Failure(msg, in)
       case res             => res
