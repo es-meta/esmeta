@@ -290,7 +290,7 @@ class Interpreter(
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
         case (Number(d), ToNumber | ToApproxNumber) => Number(d)
-        case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
+        case (Number(n), ToBigInt)                  => Math(n).toBigInt
         // big integer
         case (BigInt(n), ToMath) => Math(n)
         case (BigInt(n), ToStr(radixOpt)) =>
@@ -591,19 +591,25 @@ object Interpreter {
       case (Mul, Math(l), Math(r)) => Math(l * r)
       case (Div, Math(l), Math(r)) =>
         // XXX rounded only when the exact quotient has a non-terminating
-        // decimal expansion. For example, 1 / 3 = 0.3333... The precision is
-        // 34 digits (as in DECIMAL128) more than the integral digits of the
-        // quotient to keep its integral part exact (e.g., truncate(1e308 / 3)
-        // in Number::remainder). The rounded result is put back into UNLIMITED
-        // not to propagate the reduced precision into the later operations.
+        // decimal expansion. For example, 1 / 3 = 0.3333... The rounded
+        // result is put back into UNLIMITED not to propagate the reduced
+        // precision into the later operations.
         Math(
           try l(UNLIMITED) / r(UNLIMITED)
           catch
             case _: ArithmeticException =>
+              // an upper bound of the number of integral digits of l / r
               val intDigits =
                 (l.precision - l.scale) - (r.precision - r.scale) + 1
+              // the denominator of l / r divides the unscaled value of r
+              // times 10^max(0, l.scale - r.scale), so a non-integral l / r
+              // is farther than 10^-gap from any integer. Keeping gap (at
+              // least 34, as in DECIMAL128) fractional digits makes the
+              // integral part exact (e.g., truncate in Number::remainder and
+              // BigInt::divide).
+              val gap = r.precision + (l.scale - r.scale).max(0)
               val mc = MathContext(
-                intDigits.max(0) + DECIMAL128.getPrecision,
+                intDigits.max(0) + gap.max(DECIMAL128.getPrecision),
                 DECIMAL128.getRoundingMode,
               )
               new BigDecimal(l.bigDecimal.divide(r.bigDecimal, mc), UNLIMITED),

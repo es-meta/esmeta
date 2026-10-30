@@ -1,0 +1,4 @@
+assert (= @REALM.GlobalObject.__MAP__.q.Value 1n)
+assert (= @REALM.GlobalObject.__MAP__.r.Value 29999999999999999999999999999999999999999n)
+assert (= @REALM.GlobalObject.__MAP__.nq.Value -1n)
+assert (= @REALM.GlobalObject.__MAP__.big.Value 3333333333333333333333333333333333333333n)
