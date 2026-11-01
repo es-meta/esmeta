@@ -157,13 +157,7 @@ class Translator(spec: Spec) {
         case Until(cond) => "!" + compile(pb, cond)
       pb.addStmt(WhileStmt(compiledCond, compileWithScope(pb, body)))
     case ForEachStep(ty, elem, expr, forward, _) =>
-      val compiledExpr = compile(pb, expr)
-      val index = pb.newTId
-      val element = compile(elem)
-      val end = s"${compiledExpr}.length"
-      val loopHead = NormalStmt(s"var $element = $compiledExpr[$index];")
-      val compiledBody = compileWithScope(pb, body)
-      pb.addStmt(ForEachStmt(index, end, loopHead ++ compiledBody))
+      compileForEach(pb, elem, expr, forward, compileWithScope(pb, body))
     case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, _) =>
       pb.addStmt(
         ForEachIntStmt(
@@ -178,6 +172,27 @@ class Translator(spec: Spec) {
       )
     case other => unsupported(other)
   }
+
+  /** compile a loop over the elements of a list, in list order or in reverse
+    * list order
+    */
+  private def compileForEach(
+    pb: Builder,
+    elem: Variable,
+    expr: Expression,
+    forward: Boolean,
+    compiledBody: => Stmt,
+  ): Unit =
+    val compiledExpr = compile(pb, expr)
+    val index = pb.newTId
+    val element = compile(elem)
+    val end = s"${compiledExpr}.length"
+    val loopHead = NormalStmt(s"var $element = $compiledExpr[$index];")
+    val body = loopHead ++ compiledBody
+    pb.addStmt(
+      if (forward) ForEachStmt(index, end, body)
+      else ForEachIntStmt(index, "0", true, end, false, false, body),
+    )
 
   /** compile the expressions of the polyfill pipeline language */
   def compile(pb: Builder, expr: PolyfillExpr): String = {
@@ -253,13 +268,7 @@ class Translator(spec: Spec) {
         case Until(cond) => "!" + compile(pb, cond)
       pb.addStmt(WhileStmt(compiledCond, compileWithScope(pb, body)))
     case ForEachStep(ty, elem, expr, forward, body) =>
-      val compiledExpr = compile(pb, expr)
-      val index = pb.newTId
-      val element = compile(elem)
-      val end = s"${compiledExpr}.length"
-      val loopHead = NormalStmt(s"var $element = $compiledExpr[$index];")
-      val compiledBody = compileWithScope(pb, body)
-      pb.addStmt(ForEachStmt(index, end, loopHead ++ compiledBody))
+      compileForEach(pb, elem, expr, forward, compileWithScope(pb, body))
     case ForEachIntegerStep(x, low, lowInc, high, highInc, ascending, body) =>
       val compiledLow = compile(pb, low)
       val compiledHigh = compile(pb, high)
@@ -495,7 +504,9 @@ class Translator(spec: Spec) {
       case "number[int]" =>
         s"${pb.use(Dep.Internal("IsIntegralNumber"))}($expr)"
       case "record[array]" => s"${pb.use(Dep.AO("IsArray"))}($expr)"
-      case _ if ty.startsWith("record[") => "false"
+      // ECMAScript code never passes a Private Name to a built-in
+      case "record[privatename]"         => "false"
+      case _ if ty.startsWith("record[") => unsupported("TypeCheck", ty)
       case _                             => s"typeof $expr === \"$ty\""
 
   def negateIf(neg: Boolean)(cond: String): String =
@@ -517,7 +528,9 @@ class Translator(spec: Spec) {
           s"(function ($operand) { return $checks; })($compiledExpr)",
         )
     case HasFieldCondition(ref, neg, field, form, opTy) =>
-      negateIf(neg)(s"${compile(pb, field)} in ${compile(pb, ref)}")
+      negateIf(neg)(
+        s"${pb.use(Dep.Internal("HasField"))}(${compile(pb, ref)}, ${compile(pb, field)})",
+      )
     case HasBindingCondition(ref, neg, binding)    => unsupported(cond)
     case ProductionCondition(nt, lhsName, rhsName) => unsupported(cond)
     case PredicateCondition(expr, neg, op) =>

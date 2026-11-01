@@ -15,9 +15,13 @@ import esmeta.util.BaseUtils.*
   */
 class ValueAccessUnwrapper(env: TypeEnv) extends PolyfillWalker {
 
+  /** abstract operations that construct completion records */
+  private val CompletionAOs =
+    Set("Completion", "NormalCompletion", "ThrowCompletion", "AbruptCompletion")
+
   override def walk(expr: PolyfillExpr): PolyfillExpr = expr match {
     case completionAO @ PolyfillExpr.Invoke(name, args, _)
-        if name.contains("Completion") =>
+        if CompletionAOs.contains(name) =>
       if (args.length > 1)
         raise(
           s"Completion AO Call should contain up to one argument:\n\t$completionAO",
@@ -45,7 +49,7 @@ class ValueAccessUnwrapper(env: TypeEnv) extends PolyfillWalker {
           case _ => List(walk(arg))
         }
       case PolyfillExpr.Invoke(innerCallName, innerArgs, _)
-          if innerCallName.contains("Completion") =>
+          if CompletionAOs.contains(innerCallName) =>
         innerCallName match {
           case "NormalCompletion" =>
             List(PolyfillExpr.LangExpr(EnumLiteral("normal"))) ++ innerArgs
@@ -68,7 +72,7 @@ class ValueAccessUnwrapper(env: TypeEnv) extends PolyfillWalker {
           ReferenceExpression(Variable(varName, Some("value_unwrapped")))
       }
     case completionAO @ InvokeAbstractOperationExpression(name, args, _)
-        if name.contains("Completion") =>
+        if CompletionAOs.contains(name) =>
       if (args.length > 1)
         raise(
           s"Completion AO Call should contain up to one argument:\n\t$completionAO",
@@ -90,7 +94,7 @@ class ValueAccessUnwrapper(env: TypeEnv) extends PolyfillWalker {
               innerCallName,
               innerArgs,
               _,
-            ) if innerCallName.contains("Completion") =>
+            ) if CompletionAOs.contains(innerCallName) =>
           if (innerArgs.length > 1)
             raise(
               s"Completion AO Call should contain up to one argument:\n\t$c",
@@ -124,9 +128,10 @@ object CompletionCheckPattern {
     cond: Condition,
   ): Option[(CompletionType, String)] =
     cond match {
-      case PredicateCondition(expr, _, op) =>
-        // TODO: Proper decision for negated case
+      case PredicateCondition(expr, neg, op) =>
         op match {
+          case Abrupt | Throw | Normal if neg =>
+            Eraser.unsupportedCompletion("NegatedCompletionCheck")
           // Abrupt, Throw, Normal are not pluralOp
           case Abrupt | Throw => Some((MayAbrupt, extractVarName(expr.head)))
           case Normal         => Some((MayNormal, extractVarName(expr.head)))

@@ -155,8 +155,10 @@ object Targets {
       _.flatMap(getAOCallees(spec, _))
     }
 
+    // hand-written ones replace the generated code, so they are not translated
     result
       .filter(algo => !ignoreTargets.contains(algo.name))
+      .filter(algo => !Packager.blacklist.contains(algo.name))
       .toList
       .sortWith(_.name < _.name)
   }

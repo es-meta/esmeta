@@ -83,8 +83,8 @@ object Polyfill {
           val cond = s"$index " + (if (highInc) "<=" else "<") + high
           s"for ($init; $cond; $index++)" + LINE_SEP + s"${body.toString(depth)}"
         case ForEachIntStmt(index, low, lowInc, high, highInc, false, body) =>
-          val init = s"var $index = $low" + (if (lowInc) "" else " - 1")
-          val cond = s"$index " + (if (highInc) ">=" else ">") + high
+          val init = s"var $index = $high" + (if (highInc) "" else " - 1")
+          val cond = s"$index " + (if (lowInc) ">=" else ">") + low
           s"for ($init; $cond; $index--)" + LINE_SEP + s"${body.toString(depth)}"
         case BlockStmt(stmts) =>
           "{" + LINE_SEP + stmts

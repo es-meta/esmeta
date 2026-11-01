@@ -62,8 +62,8 @@ object CompletionCheckTransform extends EraseRule {
                 newElse,
                 elseConfig,
               )
-            // TODO Can we ignore ElseStep? If not, how can we handle it?
-            case None => config(mergedEnv) :+ newThen
+            case None if newElse.isEmpty => config(mergedEnv) :+ newThen
+            case None => unsupportedCompletion("CompletionCheckWithElse")
           },
         )
       case _ => None

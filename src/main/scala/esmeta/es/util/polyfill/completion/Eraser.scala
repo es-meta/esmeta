@@ -1,5 +1,7 @@
 package esmeta.es.util.polyfill.completion
 
+import esmeta.error.NotSupported
+import esmeta.error.NotSupported.Category.Metalanguage
 import esmeta.es.util.polyfill.*
 import esmeta.es.util.polyfill.completion.CompletionType.*
 import esmeta.es.util.polyfill.completion.rules.completion.*
@@ -75,17 +77,23 @@ object Eraser {
 
   /** replace completion checks in a condition with checks on completion flags
     */
+  /** reject a completion check that cannot be erased faithfully */
+  def unsupportedCompletion(reason: String): Nothing =
+    throw NotSupported(Metalanguage)(List("polyfill", reason))
+
   def rebaseCondition(
     cond: Condition,
     completionCondition: Map[String, Condition],
   ): Option[Condition] = cond match {
     case PredicateCondition(
           List(ReferenceExpression(Variable(targetVar, _, _, _))),
-          _,
+          neg,
           op,
         ) =>
       op match {
         case Abrupt | Throw | Normal | Return =>
+          // a negated completion check would need the opposite flag check
+          if (neg) unsupportedCompletion("NegatedCompletionCheck")
           completionCondition.get(targetVar)
         case _ => Some(cond)
       }
@@ -96,9 +104,8 @@ object Eraser {
       ) match {
         case (Some(newLeft), Some(newRight)) =>
           Some(compoundCond.copy(left = newLeft, right = newRight))
-        case (None, Some(newRight)) => Some(newRight)
-        case (Some(newLeft), None)  => Some(newLeft)
-        case (None, None)           => None
+        // dropping one operand would change the meaning of the condition
+        case _ => unsupportedCompletion("PartialCompletionCheck")
       }
     case _ => Some(cond)
   }
