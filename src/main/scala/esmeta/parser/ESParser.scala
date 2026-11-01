@@ -212,7 +212,7 @@ case class ESParser(
       lazy val parser = cases
         .map(
           _.map(_ match {
-            case Terminal(t) if t.matches("[a-z]+") => t <~ not(IDContinue)
+            case Terminal(t) if t.matches("[a-z]+") => keyword(t)
             case symbol => getSymbolParser(symbol, argsSet)
           }).reduce(_ %% _),
         )
@@ -331,6 +331,16 @@ case class ESParser(
     }
   }
 
+  // keyword parser that does not match a prefix of an identifier, using the
+  // `IdentifierPart` lexer extracted from the specification
+  private lazy val identifierPart = lexers(("IdentifierPart", 0))
+  private def keyword(t: String): Parser[String] = Parser { in =>
+    (t <~ not(identifierPart))(in) match
+      // fail at the start of the keyword for correct ASI
+      case Failure(msg, _) => Failure(msg, in)
+      case res             => res
+  }
+
   // terminal parsers
   private val t = cached[String, LAParser[String]] {
     case t =>
@@ -338,7 +348,7 @@ case class ESParser(
         LAParser(
           follow => {
             Skip ~> {
-              if (t.matches("[a-z]+")) t <~ not(IDContinue)
+              if (t.matches("[a-z]+")) keyword(t)
               else t
             } <~ +follow.parser
           },

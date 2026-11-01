@@ -1,0 +1,6 @@
+assert (= @REALM.GlobalObject.__MAP__.x.Value 1.0f)
+assert (= @REALM.GlobalObject.__MAP__.input.Value 2.0f)
+assert (= @REALM.GlobalObject.__MAP__.index.Value 3.0f)
+assert (= @REALM.GlobalObject.__MAP__.instanceofx.Value 4.0f)
+assert (= @REALM.GlobalObject.__MAP__["in$x"].Value 5.0f)
+assert (= @REALM.GlobalObject.__MAP__.inputs.Value 6.0f)
