@@ -35,6 +35,10 @@ trait DSLParsers extends Parsers {
 
   protected val defs: mutable.Map[String, LangElem] = mutable.Map.empty
 
+  // names of operations, also allowing `_` for runtime helpers (e.g. `IN__Foo`)
+  override lazy val opName: Parser[String] =
+    "[a-zA-Z][a-zA-Z0-9/_]*".r.filter(!mathFuncNames.contains(_))
+
   def getContext: Parser[Map[String, LangElem]] = Parser { in =>
     Success(defs.toMap, in)
   }

@@ -850,7 +850,7 @@ trait Parsers extends IndentParsers {
 
   // names for operations
   lazy val opName: Parser[String] =
-    "[a-zA-Z][a-zA-Z0-9/_]*".r.filter(!mathFuncNames.contains(_))
+    "[a-zA-Z][a-zA-Z0-9/]*".r.filter(!mathFuncNames.contains(_))
 
   lazy val shorthandName: Parser[String] =
     opName <~ guard(elem('('))
