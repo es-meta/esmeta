@@ -583,7 +583,8 @@ class Translator(spec: Spec) {
       case ProductionLiteral(lhs, rhs) => unsupported(lit)
       case ErrorObjectLiteral(name) =>
         name match {
-          case "AggregateError" => s"new $name(errors)"
+          // ES2021; its "errors" property is defined by the next spec step
+          case "AggregateError" => s"${pb.use(Dep.Internal(name))}()"
           case _                => s"new $name()"
         }
       case _: PositiveInfinityMathValueLiteral => "Infinity"
