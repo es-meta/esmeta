@@ -496,7 +496,11 @@ class Packager(
     join(
       "// Installs the generated polyfills. Each module is side-effecting:" +
       LINE_SEP +
-      "// requiring it defines the built-in when the host lacks it.",
+      "// a member of a host built-in is defined only when the host lacks it," +
+      LINE_SEP +
+      "// but a built-in generated from scratch (e.g., Map, Set, WeakMap," +
+      LINE_SEP +
+      "// WeakSet, Promise) always replaces the host's one.",
       selected
         .map(_.module)
         .sorted
