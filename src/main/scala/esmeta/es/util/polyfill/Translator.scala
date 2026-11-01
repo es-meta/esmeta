@@ -17,6 +17,20 @@ class Translator(spec: Spec) {
   private val IS_PRESENT = "IsPresent"
   private val RESERVED_WORDS = Set("return")
 
+  /** a JavaScript string literal for `str` */
+  private def jsString(str: String): String =
+    val sb = StringBuilder("\"")
+    for (c <- str) c match
+      case '"'  => sb ++= "\\\""
+      case '\\' => sb ++= "\\\\"
+      case '\n' => sb ++= "\\n"
+      case '\r' => sb ++= "\\r"
+      case '\t' => sb ++= "\\t"
+      case c if c < ' ' || c == '\u2028' || c == '\u2029' =>
+        sb ++= f"\\u${c.toInt}%04x"
+      case c => sb += c
+    (sb += '"').toString
+
   private def unsupported(elem: Any, details: Any*): Nothing =
     def nameOf(x: Any): String = x match
       case p: Product => p.productPrefix
@@ -317,7 +331,7 @@ class Translator(spec: Spec) {
           // todo: handle unicode escape sequences properly
           if (e.startsWith("0x")) s"String.fromCharCode($e)" else e,
         )
-        .mkString(" + ")
+        .mkString("(", " + ", ")")
     case ListConcatExpression(es) =>
       s"[].concat(${es.map(compile(pb, _)).mkString(", ")})"
     case CopyExpression(expr, _) => s"${compile(pb, expr)}.slice()"
@@ -387,22 +401,22 @@ class Translator(spec: Spec) {
     case ExponentiationExpression(base, power) =>
       s"Math.pow(${compile(pb, base)}, ${compile(pb, power)})"
     case BinaryExpression(left, op, right, _) =>
-      s"${compile(pb, left)} ${compile(op)} ${compile(pb, right)}"
-    case UnaryExpression(op, expr) => s"${compile(op)}${compile(pb, expr)}"
+      s"(${compile(pb, left)} ${compile(op)} ${compile(pb, right)})"
+    case UnaryExpression(op, expr) => s"${compile(op)}(${compile(pb, expr)})"
     case ClampExpression(target, lower, upper) =>
       s"${pb.use(Dep.Internal("clamp"))}(${compile(pb, target)}, ${compile(pb, lower)}, ${compile(pb, upper)})"
     case MathOpExpression(op, args) =>
       import MathOpExpressionOperator.*
       (op, args) match
-        case (Neg, List(e))    => s"-${compile(pb, e)}"
-        case (Add, List(l, r)) => s"${compile(pb, l)} + ${compile(pb, r)}"
-        case (Mul, List(l, r)) => s"${compile(pb, l)} * ${compile(pb, r)}"
-        case (Sub, List(l, r)) => s"${compile(pb, l)} - ${compile(pb, r)}"
+        case (Neg, List(e))    => s"-(${compile(pb, e)})"
+        case (Add, List(l, r)) => s"(${compile(pb, l)} + ${compile(pb, r)})"
+        case (Mul, List(l, r)) => s"(${compile(pb, l)} * ${compile(pb, r)})"
+        case (Sub, List(l, r)) => s"(${compile(pb, l)} - ${compile(pb, r)})"
         case (Pow, List(l, r)) =>
           s"Math.pow(${compile(pb, l)}, ${compile(pb, r)})"
         case _ => unsupported(expr, op)
     case BitwiseExpression(l, op, r) =>
-      s"${compile(pb, l)} ${compile(op)} ${compile(pb, r)}"
+      s"(${compile(pb, l)} ${compile(op)} ${compile(pb, r)})"
     case AbstractClosureExpression(params, captured, body) =>
       val funcBody =
         s"(${params.map(compile).mkString(", ")}) => ${compileWithScope(pb, body)}"
@@ -511,7 +525,7 @@ class Translator(spec: Spec) {
       op match {
         case Finite  => negateIf(neg)(s"isFinite(${compile(pb, expr)})")
         case Present => negateIf(neg)(compile(pb, expr) + IS_PRESENT)
-        case x       => s"TODO: $x"
+        case _       => unsupported(cond, op)
       }
     case IsAreCondition(left, neg, right) =>
       val es = for (lexpr <- left) yield {
@@ -524,7 +538,7 @@ class Translator(spec: Spec) {
             case NumberLiteral(n) if n.isNaN => s"$l !== $l"
             case rexpr                       => s"$l === ${compile(pb, rexpr)}"
           }
-          .reduce((l, r) => s"$l || $r")
+          .reduce((l, r) => s"($l || $r)")
         negateIf(neg)(e)
       }
       es.reduce((l, r) => s"($l && $r)")
@@ -533,12 +547,12 @@ class Translator(spec: Spec) {
       lazy val l = compile(pb, left)
       lazy val r = compile(pb, right)
       op match {
-        case Eq               => s"$l === $r"
-        case NEq              => s"$l !== $r"
-        case LessThan         => s"$l < $r"
-        case LessThanEqual    => s"$l <= $r"
-        case GreaterThan      => s"$l > $r"
-        case GreaterThanEqual => s"$l >= $r"
+        case Eq               => s"($l === $r)"
+        case NEq              => s"($l !== $r)"
+        case LessThan         => s"($l < $r)"
+        case LessThanEqual    => s"($l <= $r)"
+        case GreaterThan      => s"($l > $r)"
+        case GreaterThanEqual => s"($l >= $r)"
         case SameCodeUnits    => unsupported(cond, op)
       }
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
@@ -554,8 +568,8 @@ class Translator(spec: Spec) {
       lazy val l = compile(pb, left)
       lazy val r = compile(pb, right)
       op match
-        case And   => s"$l && $r"
-        case Or    => s"$l || $r"
+        case And   => s"($l && $r)"
+        case Or    => s"($l || $r)"
         case Imply => unsupported(cond, op)
     case MetaCondition(name, _) => unsupported(cond)
   }
@@ -571,13 +585,13 @@ class Translator(spec: Spec) {
       case HexLiteral(hex, hasCodeUnitDescription, _, _) =>
         val value = s"0x${hex.toHexString.toUpperCase}"
         if (hasCodeUnitDescription) s"String.fromCharCode($value)" else value
-      case CodeLiteral(code)                 => s"\"$code\""
+      case CodeLiteral(code)                 => jsString(code)
       case ConstantLiteral(name)             => unsupported(lit)
       case GrammarSymbolLiteral(name, flags) => unsupported(lit)
       case NonterminalLiteral(ordinal, name, flags, hasArticle) =>
         unsupported(lit)
       case EnumLiteral(name)           => pb.use(Dep.Enum(name))
-      case StringLiteral(str, _)       => s"\"$str\""
+      case StringLiteral(str, _)       => jsString(str)
       case FieldLiteral(name)          => s"\"$name\""
       case SymbolLiteral(sym)          => s"Symbol.$sym"
       case ProductionLiteral(lhs, rhs) => unsupported(lit)
@@ -591,7 +605,10 @@ class Translator(spec: Spec) {
       case _: NegativeInfinityMathValueLiteral => "-Infinity"
       case DecimalMathValueLiteral(n)          => s"$n"
       case MathConstantLiteral(pre, name)      => unsupported(lit)
-      case NumberLiteral(n)        => if (n.toInt == n) s"${n.toInt}" else s"$n"
+      case NumberLiteral(n) =>
+        if (n == 0 && 1 / n < 0) "-0"
+        else if (n.toInt == n) s"${n.toInt}"
+        else s"$n"
       case BigIntLiteral(n)        => s"${n}n"
       case _: TrueLiteral          => "true"
       case _: FalseLiteral         => "false"
