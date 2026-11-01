@@ -1,0 +1,8 @@
+{
+  "ForEachIntegerStep" : true,
+  "ForEachStep" : true,
+  "HasFieldCondition" : true,
+  "StringLiteral" : true,
+  "TypeCheck" : true,
+  "TypeCheck (unknown record)" : true
+}

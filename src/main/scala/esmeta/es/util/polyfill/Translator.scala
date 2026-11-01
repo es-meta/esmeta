@@ -33,6 +33,7 @@ class Translator(spec: Spec) {
 
   private def unsupported(elem: Any, details: Any*): Nothing =
     def nameOf(x: Any): String = x match
+      case s: String  => s
       case p: Product => p.productPrefix
       case _          => x.getClass.getSimpleName
     throw NotSupported(Metalanguage)(
