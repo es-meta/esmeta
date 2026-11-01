@@ -1,3 +1,4 @@
+var ENUM__completed = require("../../internal/Enum")("completed");
 var AO__CreateIteratorResultObject = require('../CreateIteratorResultObject');
 
 function AO__GeneratorStart(generator, generatorBody) {
@@ -21,7 +22,7 @@ function AO__GeneratorStart(generator, generatorBody) {
       genContext.value = e;
     }
     if(genContext.signal === "yield") return genContext.value;
-    genContext.Generator["GeneratorState"] = "completed";
+    genContext.Generator["GeneratorState"] = ENUM__completed;
     switch(genContext.signal) {
       case "return": var resultValue = genContext.value; break;
       case "throw": throw genContext.value;

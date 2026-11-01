@@ -1,7 +1,9 @@
 var ENUM__empty = require("./Enum")("empty");
+var AO__SameValue = require("../abstract/manual/SameValue");
+
 module.exports = function (mapData, key) {
   for (var i = 0; i < mapData.length; i++) {
-    if (key === mapData[i]["Key"]) {
+    if (AO__SameValue(key, mapData[i]["Key"])) {
       mapData[i]["Key"] = ENUM__empty;
       mapData[i]["Value"] = ENUM__empty;
       return;
