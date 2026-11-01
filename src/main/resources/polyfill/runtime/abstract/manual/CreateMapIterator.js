@@ -10,7 +10,7 @@ Object.defineProperty(MapIteratorPrototype, "next", {
   value: function next() {
     var O = this;
 
-    if (!O || typeof O !== "object" || !("_IteratedMap" in O)) {
+    if (!O || typeof O !== "object" || !Object.prototype.hasOwnProperty.call(O, "_IteratedMap")) {
       throw new TypeError(
         "Method Map Iterator.prototype.next called on incompatible receiver",
       );

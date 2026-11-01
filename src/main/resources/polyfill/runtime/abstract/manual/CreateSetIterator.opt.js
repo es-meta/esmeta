@@ -1,57 +1,67 @@
+var ENUM__key = require("../../internal/Enum")("key");
+var ENUM__value = require("../../internal/Enum")("value");
 var ENUM__key_value = require("../../internal/Enum")("key+value");
-var SetIteratorPrototype = {};
+var IteratorPrototype = require("../../internal/IteratorPrototype");
 
-// If the environment has Symbols (or a polyfill), we make the iterator "iterable" 
-// so it works in for..of loops if they are transpiled.
-if (typeof Symbol !== "undefined" && Symbol.iterator) {
-  Object.defineProperty(SetIteratorPrototype, Symbol.iterator, {
-    value: function () { return this; },
-    writable: true,
-    enumerable: false,
-    configurable: true
-  });
-}
+// Like SetIterator.js, but walks the linked list of the optimized
+// SetData. The iteration state is kept in a non-enumerable own property,
+// which also brands the iterator for %SetIteratorPrototype%.next.
+var STATE = "_SetIteratorState";
+var hasOwn = Object.prototype.hasOwnProperty;
 
-// If the environment has toStringTag, compliant with Spec.
-if (typeof Symbol !== "undefined" && Symbol.toStringTag) {
-  Object.defineProperty(SetIteratorPrototype, Symbol.toStringTag, {
-    value: "Set Iterator",
-    writable: false,
-    enumerable: false,
-    configurable: true
-  });
-}
+var SetIteratorPrototype = Object.create(IteratorPrototype);
 
-function CreateSetIterator(S, kind) {
-  var data = S["SetData"];
+Object.defineProperty(SetIteratorPrototype, "next", {
+  value: function next() {
+    var O = this;
+    if (!O || typeof O !== "object" || !hasOwn.call(O, STATE)) {
+      throw new TypeError(
+        "Method Set Iterator.prototype.next called on incompatible receiver",
+      );
+    }
+    var state = O[STATE];
+    if (state.finished) return { value: undefined, done: true };
 
-  if (!data) throw new TypeError;
-  var last = null;
-  var finished = false;
-
-  var iterator = Object.create(SetIteratorPrototype);
-
-  iterator.next = function () {
-    if (finished) return { value: undefined, done: true };
-
-    var anchor = last;
+    var anchor = state.last;
     while (anchor && anchor.removed) anchor = anchor.prev;
-    var node = anchor ? anchor.next : data.head;
+    var node = anchor ? anchor.next : state.data.head;
     while (node && node.removed) node = node.next;
 
     if (!node) {
-      finished = true;
-      last = null;
+      state.finished = true;
+      state.last = null;
       return { value: undefined, done: true };
     }
 
-    last = node;
+    state.last = node;
     var value = node.value;
-
-    if (kind === ENUM__key_value) return { value: [value, value], done: false };
+    if (state.kind === ENUM__key_value)
+      return { value: [value, value], done: false };
     return { value: value, done: false };
-  };
+  },
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
+Object.defineProperty(SetIteratorPrototype, Symbol.toStringTag, {
+  value: "Set Iterator",
+  writable: false,
+  enumerable: false,
+  configurable: true,
+});
+
+function CreateSetIterator(x, kind) {
+  var data = x && hasOwn.call(x, "SetData") ? x["SetData"] : undefined;
+  if (!data) throw new TypeError("CreateSetIterator: not a Set");
+
+  var iterator = Object.create(SetIteratorPrototype);
+  Object.defineProperty(iterator, STATE, {
+    value: { data: data, kind: kind, last: null, finished: false },
+    writable: false,
+    enumerable: false,
+    configurable: false,
+  });
   return iterator;
 }
 

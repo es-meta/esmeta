@@ -17,7 +17,7 @@ Object.defineProperty(SetIteratorPrototype, "next", {
 
     // -- ai generated / need review --
     var O = this;
-    if (!O || typeof O !== "object" || !("_IteratedSet" in O)) {
+    if (!O || typeof O !== "object" || !Object.prototype.hasOwnProperty.call(O, "_IteratedSet")) {
       throw new TypeError(
         "Method Set Iterator.prototype.next called on incompatible receiver",
       );

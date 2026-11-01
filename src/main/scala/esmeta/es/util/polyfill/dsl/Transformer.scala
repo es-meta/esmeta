@@ -106,6 +106,16 @@ object Transformer {
     walk(root)
   }
 
+  /** whether any of the steps refers to the variable */
+  private def usesVariable(steps: List[Step], name: String): Boolean =
+    var found = false
+    val finder = new esmeta.lang.util.UnitWalker {
+      override def walk(x: Variable): Unit =
+        if (x.name == name) found = true
+    }
+    steps.foreach(finder.walk)
+    found
+
   /** Process block children for context-match rules (replace=None + subrules).
     * When a child matches the pattern, capture bindings and apply subrules to
     * all subsequent siblings.
@@ -128,7 +138,13 @@ object Transformer {
             (steps, sr) =>
               steps.map(s => transformStepRaw(sr, s, ctx, stats))
           }
-          walk(head) :: transformedTail
+          // the anchor of a context-match rule only computes a value for
+          // the subrules (e.g., `Let index be SetDataIndex(...)`), so it is
+          // dropped once they have rewritten every use of its variable
+          head.step match
+            case LetStep(x, _) if !usesVariable(transformedTail, x.name) =>
+              transformedTail
+            case _ => walk(head) :: transformedTail
         case None =>
           walk(head) :: contextMatchBlock(rule, tail, stats, walk)
       }

@@ -204,6 +204,10 @@
   module: Map.js
   deleteStmt: Map = undefined; globalThis.Map = undefined;
   testPattern: test/built-ins/Map/prototype/entries/*.js
+- name: MapIteratorPrototype
+  module: Map.js
+  deleteStmt: Map = undefined; globalThis.Map = undefined;
+  testPattern: test/built-ins/MapIteratorPrototype/**/*.js
 - name: Map.prototype.forEach
   module: Map.js
   deleteStmt: Map = undefined; globalThis.Map = undefined;
@@ -304,6 +308,10 @@
   module: Set.js
   deleteStmt: Set = undefined; globalThis.Set = undefined;
   testPattern: test/built-ins/Set/prototype/values/*.js
+- name: SetIteratorPrototype
+  module: Set.js
+  deleteStmt: Set = undefined; globalThis.Set = undefined;
+  testPattern: test/built-ins/SetIteratorPrototype/**/*.js
 - name: Promise
   module: Promise.js
   deleteStmt: Promise = undefined; globalThis.Promise = undefined;

@@ -37,7 +37,7 @@ run, reported separately from an ordinary regression so the cause is not
 mistaken for a translation bug.
 
 That cross-check is the reason both are run. Conformance alone cannot see the
-optimizer: with it switched off entirely the suite still scores 8353/8401,
+optimizer: with it switched off entirely the suite still scores 8397/8445,
 because unoptimized output is simply plainer, not wrong. Only the comparison
 tells you the optimizer preserved behaviour.
 
@@ -55,8 +55,10 @@ Nothing newer is required; `globalThis` is used only when the engine has it.
 
 ### Known limitation of `opt`
 
-To find object keys of `Map` and `Set` in O(1), `opt` attaches an ID to each
-key object as a hidden property named `SET_ID_<random>`, as core-js does. So,
+To find object keys of `Map` and `Set` in O(1), `opt` gives each key object an
+ID. The IDs are kept in the host's `WeakMap`, so key objects are never changed.
+Only on an engine without `WeakMap` does `opt` fall back to attaching the ID to
+the key as a hidden property named `SET_ID_<random>`, as core-js does; then,
 unlike the native `Map` and `Set`:
 
 - the property shows up in `Object.getOwnPropertyNames` and `Reflect.ownKeys`
@@ -74,10 +76,13 @@ passes the bundle to `test262-harness` as a prelude.
 
 Two details are easy to get wrong:
 
-- **The built-in must be deleted.** The packager guards each installation with
-  `if (!Base.member)`, so on a modern engine the generated code would never
-  install and the suite would quietly test the host's built-in instead of
-  ESMeta's. `deleteStmt` is what makes the polyfill the thing under test.
+- **The built-in must be deleted.** The packager installs a member of a host
+  built-in (e.g., `Array.prototype.at`) only when the host lacks it, so on a
+  modern engine the generated code would never install and the suite would
+  quietly test the host's built-in instead of ESMeta's. `deleteStmt` is what
+  makes the polyfill the thing under test. (A built-in generated from scratch,
+  such as `Map` or `Promise`, always replaces the host's; deleting it as well
+  keeps every target alike.)
 
 - **The prelude must be bundled.** test262-harness runs each test in its own
   realm. A prelude that merely calls `require` installs the polyfill into the
@@ -90,8 +95,10 @@ Two details are easy to get wrong:
 expected to. The run fails on any test that is not already listed, and reports
 tests that now pass so the baseline can be tightened.
 
-The 16 currently recorded fall into three groups, none of them defects in the
-generator, and core-js fails every one of them as well:
+Each mode currently records 48 failures: 24 tests, each run in both default
+and strict mode. They fall into two kinds.
+
+Out of reach for any JavaScript polyfill (core-js fails these as well):
 
 - **cross-realm** (`proto-from-ctor-realm`, 5 built-ins) — the test constructs
   through a constructor from another realm and expects that realm's prototype.
@@ -105,6 +112,19 @@ generator, and core-js fails every one of them as well:
   `Promise.allSettled`) — a deliberate performance choice: specification Lists
   are represented as JS arrays, so writing a list index can reach a setter
   inherited from `Array.prototype`.
+
+Known gaps of this generator, to be fixed:
+
+- **`Array.prototype[@@unscopables]`** (4 tests) — installed as the algorithm
+  function instead of the object it returns.
+- **`%ArrayIteratorPrototype%`** (`returns-iterator*`, `entries`/`keys`/`values`)
+  — the host's `Array.prototype[Symbol.iterator]` stays native, so its iterator
+  prototype differs from the polyfill's.
+- **resizable buffers** (`resizable-buffer*`) — the hand-written
+  `CreateArrayIterator` does not check for a TypedArray going out of bounds
+  after its buffer shrinks.
+- **`String.fromCodePoint.length`** — taken from the JS parameter list
+  (`...codePoints`, so 0) rather than the specification's 1.
 
 A re-record keeps the reason already written against a failure that persists,
 and marks anything new `UNREVIEWED` — which is the signal to investigate and

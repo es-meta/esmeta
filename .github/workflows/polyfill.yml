@@ -9,12 +9,18 @@ on:
       - ecma262
       - src/main/resources/manuals/**
       - src/main/resources/polyfill/**
+      - src/main/scala/esmeta/*.scala
+      - src/main/scala/esmeta/error/**
       - src/main/scala/esmeta/es/util/polyfill/**
       - src/main/scala/esmeta/extractor/**
       - src/main/scala/esmeta/lang/**
+      - src/main/scala/esmeta/phase/Extract.scala
       - src/main/scala/esmeta/phase/GenPoly.scala
       - src/main/scala/esmeta/spec/**
+      - src/main/scala/esmeta/ty/**
+      - src/main/scala/esmeta/util/**
       - tests/polyfill/**
+      - tests/test262
   pull_request:
     branches-ignore:
       - scalajs
@@ -24,12 +30,18 @@ on:
       - ecma262
       - src/main/resources/manuals/**
       - src/main/resources/polyfill/**
+      - src/main/scala/esmeta/*.scala
+      - src/main/scala/esmeta/error/**
       - src/main/scala/esmeta/es/util/polyfill/**
       - src/main/scala/esmeta/extractor/**
       - src/main/scala/esmeta/lang/**
+      - src/main/scala/esmeta/phase/Extract.scala
       - src/main/scala/esmeta/phase/GenPoly.scala
       - src/main/scala/esmeta/spec/**
+      - src/main/scala/esmeta/ty/**
+      - src/main/scala/esmeta/util/**
       - tests/polyfill/**
+      - tests/test262
 env:
   ESMETA_HOME: ${{ github.workspace }}
 jobs:

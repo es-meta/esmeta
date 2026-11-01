@@ -1,5 +1,9 @@
 var AO__IsCallable = require("./IsCallable");
 
+// captured at load time, so that an own `apply` property of F or a later
+// change to Function.prototype.apply cannot hijack the call
+var apply = Function.prototype.apply;
+
 // https://tc39.es/ecma262/multipage/abstract-operations.html#sec-call
 function AO__Call(F, V) {
   "use strict";
@@ -14,7 +18,7 @@ function AO__Call(F, V) {
     throw new TypeError("AO__Call : F is not callable");
 
   // 3. Return ? F.[[Call]](V, argumentsList).
-  return F.apply(V, argumentsList);
+  return apply.call(F, V, argumentsList);
 }
 
 module.exports = AO__Call;
