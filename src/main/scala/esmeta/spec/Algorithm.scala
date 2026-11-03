@@ -20,11 +20,6 @@ case class Algorithm(
   /** HTML element for head */
   var headElem: Element = Element("div")
 
-  /** check whether it is a built-in algorithm */
-  def isBuiltin: Boolean = head match
-    case _: BuiltinHead => true
-    case _              => false
-
   /** check whether it is complete */
   lazy val complete: Boolean = incompleteSteps.isEmpty
 
