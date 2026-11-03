@@ -22,6 +22,9 @@ ESMeta is written in Scala and requires
 git clone https://github.com/es-meta/esmeta.git
 ```
 
+`main` has the latest changes. For a released version, check out its tag in the
+cloned repository (e.g., `git checkout v0.8.1`).
+
 Add the following to `~/.bashrc` (or `~/.zshrc`), where `<path to ESMeta>` is the
 absolute path of the cloned repository:
 
