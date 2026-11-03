@@ -2,7 +2,7 @@ name: post-submit
 on:
   push:
     branches:
-      - dev
+      - main
 jobs:
   test262test:
     runs-on: ubuntu-latest
