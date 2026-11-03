@@ -1,8 +1,10 @@
 name: polyfill
 on:
   push:
+    # main only fast-forwards to commits already tested on dev
     branches-ignore:
       - scalajs
+      - main
     paths:
       - .github/workflows/polyfill.yml
       - build.sbt
