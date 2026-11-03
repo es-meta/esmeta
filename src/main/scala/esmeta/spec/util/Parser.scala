@@ -156,7 +156,7 @@ trait Parsers extends LangParsers {
     lazy val laList: Parser[List[List[Symbol]]] =
       opt("{") ~> repsep(rep(symbol), ",") <~ opt("}")
     lazy val containsSymbol: Parser[Boolean] =
-      ("!=" | "<!" | "∉") ^^^ false | ("==" | "<" | "∈") ^^^ true
+      ("!=" | "≠" | "<!" | "∉") ^^^ false | ("==" | "=" | "<" | "∈") ^^^ true
     "[lookahead " ~> containsSymbol ~ laList <~ "]" ^^ {
       case b ~ cases => Lookahead(b, cases)
     }
