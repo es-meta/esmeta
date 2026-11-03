@@ -76,6 +76,19 @@ class StringifyTinyTest extends SpecTest {
       "> any Unicode code point with the Unicode property “ID_Start”",
     )
 
+    // lookahead operators (ASCII and Unicode forms of grammarkdown)
+    val bs = List(List(Terminal("\\")))
+    checkParse("Lookahead", Symbol)(
+      "[lookahead == `\\`]" -> Lookahead(true, bs),
+      "[lookahead = `\\`]" -> Lookahead(true, bs),
+      "[lookahead != `\\`]" -> Lookahead(false, bs),
+      "[lookahead ≠ `\\`]" -> Lookahead(false, bs),
+      "[lookahead < {`\\`}]" -> Lookahead(true, bs),
+      "[lookahead ∈ {`\\`}]" -> Lookahead(true, bs),
+      "[lookahead <! {`\\`}]" -> Lookahead(false, bs),
+      "[lookahead ∉ {`\\`}]" -> Lookahead(false, bs),
+    )
+
     // RHS conditions
     checkParseAndStringify("RhsCond", RhsCond)(
       RhsCond("Hello", true) -> "+Hello",

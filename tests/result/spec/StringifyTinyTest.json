@@ -4,6 +4,7 @@
   "Grammar" : true,
   "Head" : true,
   "Lhs" : true,
+  "Lookahead" : true,
   "Production" : true,
   "ProductionKind" : true,
   "Rhs" : true,
