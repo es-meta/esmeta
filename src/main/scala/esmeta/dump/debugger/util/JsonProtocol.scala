@@ -48,6 +48,9 @@ object JsonProtocol extends BasicJsonProtocol {
   given Decoder[Table] = summon
   given Encoder[Table] = summon
 
+  given Decoder[Dfn] = summon
+  given Encoder[Dfn] = summon
+
   given Decoder[ty.TyModel] = summon
   given Encoder[ty.TyModel] = summon
 

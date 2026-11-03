@@ -19,6 +19,7 @@ case class Spec(
   algorithms: List[Algorithm] = Nil, // abstract algorithms for semantics
   constants: List[Constant] = Nil, // constants defined by `emu-eqn` elements
   tables: Map[String, Table] = Map(), // tables
+  dfns: List[Dfn] = Nil, // glossaries
   tyModel: TyModel = TyModel(), // type models
   intrinsics: Intrinsics = Intrinsics(), // intrinsics
 ) extends SpecElem {
@@ -97,6 +98,12 @@ case class Spec(
   lazy val fnameMap: Map[String, Algorithm] =
     (for (algo <- algorithms) yield algo.head.fname -> algo).toMap
 
+  /** mapping from all forms (names and variants) of glossary terms to terms */
+  lazy val dfnMap: Map[String, Dfn] = (for {
+    dfn <- dfns
+    form <- dfn.forms
+  } yield form -> dfn).toMap
+
   /** mapping from constant names to constants */
   lazy val constantMap: Map[String, Constant] =
     (for (const <- constants) yield const.name -> const).toMap
@@ -120,6 +127,7 @@ case class Spec(
     algorithms.isEmpty &&
     constants.isEmpty &&
     tables.isEmpty &&
+    dfns.isEmpty &&
     tyModel == TyModel() &&
     intrinsics == Intrinsics()
 
