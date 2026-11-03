@@ -60,6 +60,21 @@ case class InsertStep(elem: Expression, ref: Reference) extends Step
 // add steps
 case class AddStep(elem: Expression, ref: Reference) extends Step
 
+// replace steps
+case class ReplaceStep(
+  oldElem: Expression,
+  newElem: Expression,
+  ref: Reference,
+  form: ReplaceStep.Form = ReplaceStep.Form.Plain,
+) extends Step
+object ReplaceStep:
+  enum Form:
+    // replace _x_ in _l_ with _y_
+    case Plain
+    // replace the element of _l_ whose value is _x_ with an element whose value
+    // is _y_
+    case Element
+
 // remove element steps
 case class RemoveStep(
   target: RemoveStep.Target,
@@ -198,3 +213,10 @@ case class SetFieldsWithIntrinsicsStep(ref: Reference, desc: String)
 
 // perform block steps
 case class PerformBlockStep(step: StepBlock, desc: String) extends Step
+
+// -----------------------------------------------------------------------------
+// steps for polyfill
+// -----------------------------------------------------------------------------
+// Polyfill DSL
+case class MetaStep(name: String, multiline: Boolean = false, variant: Int = 0)
+  extends Step

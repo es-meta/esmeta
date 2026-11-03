@@ -20,7 +20,7 @@ case class Algorithm(
   /** HTML element for head */
   var headElem: Element = Element("div")
 
-  /** check whether it is incomplete */
+  /** check whether it is complete */
   lazy val complete: Boolean = incompleteSteps.isEmpty
 
   /** algorithm name */

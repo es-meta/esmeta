@@ -1,0 +1,4 @@
+assert (= @REALM.GlobalObject.__MAP__.deleted.Value true)
+assert (= @REALM.GlobalObject.__MAP__.hasNaN.Value false)
+assert (= @REALM.GlobalObject.__MAP__.hasObj.Value false)
+assert (= @REALM.GlobalObject.__MAP__.hasStr.Value true)

@@ -1,0 +1,9 @@
+{
+  "basic keeps spec lists" : true,
+  "no meta-variables left" : true,
+  "operation names" : true,
+  "opt drops SetDataIndex" : true,
+  "opt rewrites SetData" : true,
+  "rules" : true,
+  "same targets" : true
+}

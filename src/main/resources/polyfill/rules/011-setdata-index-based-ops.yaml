@@ -1,0 +1,15 @@
+name: "Where SetDataIndex"
+pattern: "1. Let {{ index : var }} be SetDataIndex({{ base : ref }}, {{ elem : var }})."
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }
+subrules:
+  - name: "Where SetDataIndex >> SetData Remove"
+    pattern: "1. Set {{ base }}[{{ index }}] to ~empty~."
+    replace: "1. Perform IN__SetDataRemove({{ base }}, {{ elem }})."
+  - name: "Where SetDataIndex >> SetData Has (true)"
+    pattern: "{{ index }} is not ~not-found~"
+    replace: "IN__SetDataHas({{ base }}, {{ elem }}) is *true*"
+  - name: "Where SetDataIndex >> SetData Has (false)"
+    pattern: "{{ index }} is ~not-found~"
+    replace: "IN__SetDataHas({{ base }}, {{ elem }}) is *false*"

@@ -1,0 +1,8 @@
+name: SetData ForEach
+pattern: |
+  1. For each element {{ elem : var }} of {{ base : ref }}, do
+    1. {{ body : step }}
+replace: "1. Perform IN__SetDataIterate({{ base }}, closure({{ elem }}) { {{ body }} })."
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }

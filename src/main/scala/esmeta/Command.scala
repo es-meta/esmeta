@@ -1,5 +1,6 @@
 package esmeta
 
+import esmeta.es.util.polyfill.Polyfill
 import esmeta.phase.*
 import esmeta.util.ArgParser
 
@@ -226,4 +227,18 @@ case object CmdYetCheck extends Command("yet-check", CmdBase >> YetCheck) {
     val (yetSteps, yetTypes) = res
     println(s"Found $yetSteps yet-steps and $yetTypes yet-types.")
   }
+}
+
+// -----------------------------------------------------------------------------
+// Polyfill Generator
+// -----------------------------------------------------------------------------
+/** `gen-poly` command */
+case object CmdGenPoly extends Command("gen-poly", CmdExtract >> GenPoly) {
+  val help = "generates polyfill code."
+  val examples = List(
+    "esmeta gen-poly                        # generate polyfill code.",
+    "esmeta gen-poly -extract:target=es2022 # generate polyfill from es2022.",
+  )
+  override def showResult(res: List[Polyfill]): Unit =
+    println(s"Generated ${res.size} polyfills.")
 }

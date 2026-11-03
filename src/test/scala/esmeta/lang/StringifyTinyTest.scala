@@ -55,6 +55,8 @@ class StringifyTinyTest extends LangTest {
       prependStep -> "prepend _x_ to _x_.[[Value]].",
       insertStep -> "insert _x_ as the first element of _x_.[[Value]].",
       addStep -> "add _x_ to _x_.[[Value]].",
+      replaceStep -> "replace _x_ in _x_.[[Value]] with _x_.",
+      replaceElementStep -> "replace the element of _x_.[[Value]] whose value is _x_ with an element whose value is _x_.",
       removeStep -> "remove _x_ from _x_.",
       removeFirstStep -> "remove the first _x_ elements from _x_.",
       removeLastStep -> "remove the last element of _x_.",

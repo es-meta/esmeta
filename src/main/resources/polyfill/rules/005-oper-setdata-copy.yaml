@@ -1,0 +1,8 @@
+name: "[OPER] SetData Copy"
+pattern: |
+  1. Let {{ x : var }} be a List whose elements are the elements of {{ base : ref }}.
+replace: |
+  1. Let {{ x }} be IN__SetDataCopy({{ base }}).
+where:
+  - isSetData(base)
+  - { isSetData: "_ (.[[SetData]] | .[[WeakSetData]]) .copy*" }

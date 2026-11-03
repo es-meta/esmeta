@@ -1,0 +1,23 @@
+name: "MapData Has"
+pattern: |
+    1. For each element {{ elem : var }} of {{ base : ref }}, do
+      1. If {{ elem }}.[[Key]] is not ~empty~ and SameValue({{ elem }}.[[Key]], {{ key : var }}) is *true*, then
+        1. {{ body : step }}
+replace: |
+    1. If IN__MapDataHas({{ base }}, {{ key }}) is *true*, then
+      1. {{ body }}
+where:
+  - isMapData(base)
+  - { isMapData: "_ (.[[MapData]] | .[[WeakMapData]]) .copy*" }
+subrules:
+  - name: "MapData Has >> MapData Remove"
+    pattern: |
+      1. Set {{ elem }}.[[Key]] to ~empty~.
+      1. Set {{ elem }}.[[Value]] to ~empty~.
+    replace: "1. Perform IN__MapDataRemove({{ base }}, {{ key }})."
+  - name: "MapData Has >> MapData Set"
+    pattern: "1. Set {{ elem }}.[[Value]] to {{ expr : expr }}."
+    replace: "1. Perform IN__MapDataInsert({{ base }}, a new Record { [[Key]]: {{ key }}, [[Value]]: {{ expr }} })."
+  - name: "MapData Has >> MapData Get"
+    pattern: "1. Return {{ elem }}.[[Value]]."
+    replace: "1. Return IN__MapDataGet({{ base }}, {{ key }})."
