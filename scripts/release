@@ -338,13 +338,21 @@ if confirm; then
     abort "package.scala was not updated."
   ok "package.scala"
 
-  # The README no longer prints a version string; update it only if it does.
+  # The welcome message in the installation section shows the version.
   if grep -q "ESMeta v[0-9]" README.md; then
     run "updating README.md" \
       sed "${SED_INPLACE[@]}" -E "s/ESMeta v[0-9][^ ]*/ESMeta $TAG_NAME/" README.md
     ok "README.md"
   else
     ok "README.md carries no version string; left untouched"
+  fi
+
+  # The installation section shows how to check out a release tag.
+  if grep -qE "checkout v[0-9]+\.[0-9]+\.[0-9]+" README.md; then
+    run "updating the release tag example in README.md" \
+      sed "${SED_INPLACE[@]}" -E "s/checkout v[0-9]+\.[0-9]+\.[0-9]+/checkout $TAG_NAME/" README.md
+    grep -q "checkout $TAG_NAME" README.md || abort "README.md was not updated."
+    ok "README.md (release tag example)"
   fi
 
   say "  running \`sbt release\` (this takes a while)..."

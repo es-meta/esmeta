@@ -15,15 +15,14 @@ test synthesizer, and a specification type analyzer.
 ## Installation
 
 ESMeta is written in Scala and requires
-[JDK 17+](https://www.oracle.com/java/technologies/downloads/) and
+[JDK 21+](https://www.oracle.com/java/technologies/downloads/) and
 [sbt](https://www.scala-sbt.org/).
 
 ```bash
 git clone https://github.com/es-meta/esmeta.git
+cd esmeta
+git checkout v0.8.1  # optional: a released version (`main` has the latest changes)
 ```
-
-`main` has the latest changes. For a released version, check out its tag in the
-cloned repository (e.g., `git checkout v0.8.1`).
 
 Add the following to `~/.bashrc` (or `~/.zshrc`), where `<path to ESMeta>` is the
 absolute path of the cloned repository:
@@ -37,10 +36,16 @@ source $ESMETA_HOME/.completion        # for auto-completion
 Then update the git submodules and build the binary:
 
 ```bash
-cd esmeta && git submodule update --init && sbt assembly && source .completion
+git submodule update --init && sbt assembly && source .completion
 ```
 
-Run `esmeta` to check the installation.
+Run `esmeta` to check the installation. It should print a welcome message:
+
+```
+$ esmeta
+Welcome to ESMeta v0.8.1 - ECMAScript Specification Metalanguage.
+Please type `esmeta help` to see the help message.
+```
 
 ## Usage
 
@@ -48,30 +53,25 @@ Run `esmeta` to check the installation.
 esmeta <command> <option>* <filename>*
 ```
 
-| Command | Description |
-| --- | --- |
-| `extract` | extract a specification model from ECMA-262 (`ecma262/spec.html`) |
-| `compile` | compile a specification to an IR program |
-| `build-cfg` | build a control-flow graph (CFG) from an IR program |
-| `parse` / `eval` | parse or evaluate an ECMAScript file |
-| `tycheck` | perform a type analysis of ECMA-262 |
-| `test262-test` | run [Test262](https://github.com/tc39/test262) tests (default: `tests/test262`) |
-| `fuzz` | synthesize JavaScript programs using specification coverage |
-| `inject` | inject assertions to check the final state of an ECMAScript file |
+| Command          | Description                                                                     |
+| ---------------- | ------------------------------------------------------------------------------- |
+| `extract`        | extract a specification model from ECMA-262 (`ecma262/spec.html`)               |
+| `compile`        | compile a specification to an IR program                                        |
+| `build-cfg`      | build a control-flow graph (CFG) from an IR program                             |
+| `parse` / `eval` | parse or evaluate an ECMAScript file                                            |
+| `tycheck`        | perform a type analysis of ECMA-262                                             |
+| `test262-test`   | run [Test262](https://github.com/tc39/test262) tests (default: `tests/test262`) |
+| `fuzz`           | synthesize JavaScript programs using specification coverage                     |
+| `inject`         | inject assertions to check the final state of an ECMAScript file                |
+| `gen-poly`       | generate a polyfill library for built-ins from ECMA-262                         |
 
 Use `esmeta help` or `esmeta help <command>` for the full list of commands,
 global options, and command-specific options.
 
-Use the `-extract:target` option with any git tag, branch name, or commit hash
-to target another version of ECMA-262:
-
-```bash
-esmeta build-cfg -extract:target=origin/main  # a branch (the latest draft)
-esmeta build-cfg -extract:target=es2026       # a tag
-esmeta build-cfg -extract:target=2c78e6f      # a commit
-```
-
 ## Features
+
+ESMeta extracts a mechanized specification from ECMA-262 and builds language
+tools on top of it.
 
 ### Mechanized Specification and Interpreter
 
@@ -81,13 +81,24 @@ esmeta build-cfg -extract:target=2c78e6f      # a commit
 2. `compile` — lower it into an IR program (`esmeta.ir.Program`)
 3. `build-cfg` — build a control-flow graph (`esmeta.cfg.CFG`) from that program
 
-That graph is an executable interpreter, so `parse` and `eval` run JavaScript
-directly against the specification — and every feature below is built on it.
+By default, `extract` reads the version of ECMA-262 that the `ecma262` submodule
+points to. Use the `-extract:target` option with any git tag, branch name, or
+commit hash to target another version:
 
 ```bash
-echo 'let x; x ??= class {}; function* f() {}' > example.js
-esmeta parse example.js
-esmeta eval example.js
+esmeta build-cfg -extract:target=origin/main  # a branch (the latest draft)
+esmeta build-cfg -extract:target=es2026       # a tag
+esmeta build-cfg -extract:target=828d35d      # a commit
+```
+
+The control-flow graph is an executable interpreter, so `parse` and `eval` run
+JavaScript directly against the specification.
+
+```bash
+echo 'let x; x ??= class {}; print(typeof x);' > example.js
+esmeta parse example.js         # print the parse tree
+esmeta eval example.js -silent  # print only the output of `print`: "function"
+esmeta eval example.js          # also print the final state (context and heap)
 ```
 
 ### ECMA Visualizer and Double Debugger
@@ -128,7 +139,8 @@ record.
 
 `esmeta tycheck` infers unknown types in the specification by analyzing the
 extracted IR with condition-based type refinement
-([ASE 2021](https://doi.org/10.1109/ASE51524.2021.9678781)). Without an option it
+([ASE 2021](https://doi.org/10.1109/ASE51524.2021.9678781)) and reports the type
+errors it finds, such as return type mismatches. Without an option it
 analyzes the version of ECMA-262 that the `ecma262` submodule points to; use
 `-extract:target` to check another one:
 
@@ -136,6 +148,11 @@ analyzes the version of ECMA-262 that the `ecma262` submodule points to; use
 esmeta tycheck                            # the current submodule version
 esmeta tycheck -extract:target=origin/main
 ```
+
+> [!WARNING]
+> The meta-level static analyzer (`analyze` command,
+> [ESEC/FSE 2022](https://dl.acm.org/doi/10.1145/3540250.3549097)) is temporarily
+> removed and will be re-introduced in a future version.
 
 ### Conformance Testing
 
@@ -156,18 +173,34 @@ coverage with `-fuzz:k-fs=<int>` and `-fuzz:cp`
 assertions derived from the semantics described in ECMA-262, turning synthesized
 programs into conformance tests.
 
-> [!WARNING]
-> The meta-level static analyzer (`analyze` command,
-> [ESEC/FSE 2022](https://dl.acm.org/doi/10.1145/3540250.3549097)) is temporarily
-> removed and will be re-introduced in a future version.
+```bash
+esmeta fuzz -fuzz:duration=3600 -fuzz:out=out    # node/branch coverage, for an hour
+esmeta fuzz -fuzz:k-fs=2 -fuzz:cp -fuzz:out=out  # feature-sensitive coverage
+esmeta inject out/minimal/0.js -inject:defs -inject:out=0.test.js
+```
+
+### Polyfill Generation
+
+`esmeta gen-poly` generates JavaScript polyfills for built-in functions directly
+from their algorithms in ECMA-262
+([ASE 2026](https://doi.org/10.1145/3832783.3837549)). With `-gen-poly:opt`, it
+rewrites specification steps into optimized runtime operations. Use
+`-gen-poly:target` to select built-ins; the output goes to
+`logs/polyfill/minipoly` by default:
+
+```bash
+esmeta gen-poly -gen-poly:opt
+esmeta gen-poly -gen-poly:target='Array.prototype.*'
+```
 
 ## Publications
 
+- **[ASE 2026] [MiniPoly: Automatic Extraction of Efficient JavaScript Polyfill from Language Specification](https://doi.org/10.1145/3832783.3837549)** 🏆 _ACM SIGSOFT Distinguished Paper Award_
 - **[TOSEM 2026] [Selective Feature-Sensitive Coverage for Conformance Testing of Programming Languages](https://doi.org/10.1145/3808231)**
 - **[FSE 2025 Demo] [JSSpecVis: A JavaScript Language Specification Visualization Tool](https://doi.org/10.1145/3696630.3728579)**
+- **[CACM 2024] [JavaScript Language Design and Implementation in Tandem](https://doi.org/10.1145/3624723)**
 - **[PLDI 2023] [Feature-Sensitive Coverage for Conformance Testing of Programming Language Implementations](https://doi.org/10.1145/3591240)**
 - **[ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097)**
 - **[ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781)**
-- **[ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines](https://doi.org/10.1109/ICSE43902.2021.00015)**
+- **[ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines and Specification](https://doi.org/10.1109/ICSE43902.2021.00015)** 🏆 _ACM SIGSOFT Distinguished Paper Award_
 - **[ASE 2020] [JISET: JavaScript IR-based Semantics Extraction Toolchain](https://doi.org/10.1145/3324884.3416632)**
-- **[CACM]** [JavaScript Language Design and Implementation in Tandem](https://doi.org/10.1145/3624723) ([video](https://youtu.be/JGxc-KIUnQY))
