@@ -21,7 +21,7 @@ ESMeta is written in Scala and requires
 ```bash
 git clone https://github.com/es-meta/esmeta.git
 cd esmeta
-git checkout v0.8.1  # optional: a released version (`main` has the latest changes)
+git checkout v0.8.2  # optional: a released version (`main` has the latest changes)
 ```
 
 Add the following to `~/.bashrc` (or `~/.zshrc`), where `<path to ESMeta>` is the
@@ -43,7 +43,7 @@ Run `esmeta` to check the installation. It should print a welcome message:
 
 ```
 $ esmeta
-Welcome to ESMeta v0.8.1 - ECMAScript Specification Metalanguage.
+Welcome to ESMeta v0.8.2 - ECMAScript Specification Metalanguage.
 Please type `esmeta help` to see the help message.
 ```
 
