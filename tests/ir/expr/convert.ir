@@ -1,6 +1,8 @@
-// TODO implementation is missing
 @main def main() = {
-  //assert (= ([number] x) ???)
-  //assert (= ([bigint] x) ???)
-  //assert (= ([str] x) ???)
+  // numbers
+  assert (= ([math] 1.5f) 1.5)
+  assert (! (= ([math] 0.1f) 0.1))
+  assert (= ([number] (- ([math] 1.3f) ([math] 1.1f))) 0.19999999999999996f)
+  assert (= ([bigInt] ([math] 1e23f)) 99999999999999991611392n)
+  assert (= ([bigInt] 1e23f) 99999999999999991611392n)
 }
