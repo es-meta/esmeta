@@ -1047,6 +1047,7 @@ trait Parsers extends IndentParsers {
     productionCond |||
     hasBindingCond |||
     hasFieldCond |||
+    typeCheckWithFieldCond |||
     typeCheckCond |||
     exprCond
 
@@ -1059,6 +1060,27 @@ trait Parsers extends IndentParsers {
   lazy val typeCheckCond: PL[TypeCheckCondition] =
     expr ~ isEither(singleLangType) ^^ {
       case e ~ (n ~ t) => TypeCheckCondition(e, n, t)
+    }
+
+  lazy val typeCheckWithFieldCond: PL[CompoundCondition] =
+    lazy val field =
+      indefArticle ~> expr ^^ { List(_) } | repsep(expr, sep("and"))
+
+    import HasFieldConditionForm.*
+    lazy val form =
+      "field" ^^^ Field |
+      "internal method" ^^^ InternalMethod |
+      "internal slot" ^^^ InternalSlot
+
+    lazy val fieldType = opt("whose value is" ~ indefArticle ~> langType)
+    ref ~ isEither(singleLangType) ~ ("that" ~> hasNeg) ~ field ~
+    (form <~ opt("s")) ~ fieldType ^^ {
+      case r ~ (n ~ t) ~ hn ~ f ~ m ~ ft =>
+        CompoundCondition(
+          TypeCheckCondition(getRefExpr(r), n, t),
+          CompoundConditionOperator.And,
+          HasFieldCondition(r, hn, f, m, ft),
+        )
     }
 
   // field inclusion conditions
