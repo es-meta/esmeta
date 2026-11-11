@@ -10,6 +10,10 @@ case class TyDecl(
   elems: List[TyDecl.Elem] = Nil,
 ) extends TyElem {
   def isExtended: Boolean = parent.exists(_._2)
+
+  infix def merge(that: TyDecl): TyDecl =
+    val names = that.elems.map(_.name).toSet
+    that.copy(elems = elems.filterNot(e => names(e.name)) ++ that.elems)
 }
 
 object TyDecl extends Parser.From(Parser.tyDecl) {
