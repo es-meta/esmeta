@@ -433,8 +433,9 @@ class CaseCollector extends UnitWalker {
       case HasBindingCondition(ref, neg, binding) =>
         val h = if (neg) "does not have" else "has"
         s"{{ ref }} $h a binding for {{ binding }}"
-      case ProductionCondition(nt, lhs, rhs) =>
-        s"{{ expr }} is <emu-grammar>{{ str }} : {{ str }}</emu-grammar>"
+      case ProductionCondition(nt, lhs, rhs, isInlineForm) =>
+        if (isInlineForm) s"{{ expr }} is {{ str }}*"
+        else s"{{ expr }} is <emu-grammar>{{ str }} : {{ str }}*</emu-grammar>"
       case PredicateCondition(xs, neg, op) =>
         if (neg) s"{{ expr }}* is/are not $op"
         else s"{{ expr }}* is/are $op"
@@ -448,8 +449,12 @@ class CaseCollector extends UnitWalker {
           val n = if (neg) " not" else ""
           s"{{ expr }} is${n} in the inclusive interval from {{ expr }} to {{ expr }}"
         else s"{{ expr }} ≤ {{ expr }} ≤ {{ expr }}"
-      case ContainsCondition(list, neg, expr) =>
-        val c = if (neg) "does not contain" else "contains"
+      case ContainsCondition(list, neg, expr, isIncludeForm) =>
+        val c =
+          if (isIncludeForm)
+            if (neg) "does not include the element" else "includes the element"
+          else if (neg) "does not contain"
+          else "contains"
         s"{{ expr }} $c {{ expr }}"
       case CompoundCondition(left, CompoundConditionOperator.Imply, right) =>
         s"if {{ expr }}, then {{ expr }}"
