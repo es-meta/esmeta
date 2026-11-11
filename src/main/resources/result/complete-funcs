@@ -623,6 +623,7 @@ CreateGlobalVarBinding
 CreateIntrinsics
 CreateIteratorFromClosure
 CreateIteratorResultObject
+CreateJSONParseRecord
 CreateListFromArrayLike
 CreateListIteratorRecord
 CreateListIteratorRecord:clo0
@@ -722,6 +723,7 @@ EqualityExpression[4,0].Evaluation
 EqualityExpression[4,0].HasCallInTailPosition
 EqualityExpression[4,0].IsFunctionDefinition
 EvaluateCall
+EvaluateImportCall
 EvaluateModuleSync
 EvaluateNew
 EvaluatePropertyAccessWithExpressionKey
@@ -770,12 +772,14 @@ ExportDeclaration[3,0].ExportedBindings
 ExportDeclaration[3,0].ExportedNames
 ExportDeclaration[3,0].LexicallyScopedDeclarations
 ExportDeclaration[3,0].ModuleRequests
+ExportDeclaration[4,0].BoundNames
 ExportDeclaration[4,0].Evaluation
 ExportDeclaration[4,0].ExportEntries
 ExportDeclaration[4,0].ExportedBindings
 ExportDeclaration[4,0].ExportedNames
 ExportDeclaration[4,0].LexicallyScopedDeclarations
 ExportDeclaration[4,0].ModuleRequests
+ExportDeclaration[5,0].BoundNames
 ExportDeclaration[5,0].Evaluation
 ExportDeclaration[5,0].ExportEntries
 ExportDeclaration[5,0].ExportedBindings
@@ -1167,6 +1171,7 @@ HostEnqueuePromiseJob
 HostEnsureCanCompileStrings
 HostFinalizeImportMeta
 HostGetImportMetaProperties
+HostGetSupportedImportAttributes
 HostLoadImportedModule
 HostMakeJobCallback
 HostPromiseRejectionTracker
@@ -1940,12 +1945,16 @@ ModuleItem[1,0].ContainsUndefinedBreakTarget
 ModuleItem[1,0].ContainsUndefinedContinueTarget
 ModuleItem[1,0].ExportedNames
 ModuleItem[1,0].ImportEntries
+ModuleItem[1,0].LexicallyDeclaredNames
+ModuleItem[1,0].VarDeclaredNames
+ModuleItem[1,0].VarScopedDeclarations
 ModuleItem[2,0].ExportEntries
 ModuleItem[2,0].ExportedBindings
 ModuleItem[2,0].ExportedNames
 ModuleItem[2,0].ImportEntries
 ModuleItem[2,0].LexicallyDeclaredNames
 ModuleItem[2,0].ModuleRequests
+ModuleNamespaceCreate
 ModuleRequestsEqual
 Module[0,0].Evaluation
 Module[0,0].ExportEntries
@@ -2085,6 +2094,7 @@ ParenthesizedExpression[0,0].HasCallInTailPosition
 ParenthesizedExpression[0,0].NamedEvaluation
 ParseHexOctet
 ParseJSONModule
+ParseModule
 ParseScript
 Pattern[0,0].CompilePattern
 PerformPromiseAll
@@ -2169,6 +2179,7 @@ PropertyDefinition[4,0].PropName
 PropertyDefinition[4,0].PropertyDefinitionEvaluation
 PropertyName[0,0].ComputedPropertyContains
 PropertyName[0,0].IsComputedPropertyKey
+PropertyName[1,0].ComputedPropertyContains
 PropertyName[1,0].IsComputedPropertyKey
 PropertySetParameterList[0,0].ExpectedArgumentCount
 ProxyCreate
@@ -2215,6 +2226,7 @@ Record[GlobalEnvironmentRecord].HasThisBinding
 Record[GlobalEnvironmentRecord].SetMutableBinding
 Record[GlobalEnvironmentRecord].WithBaseObject
 Record[ImmutablePrototypeExoticObject].SetPrototypeOf
+Record[ModuleEnvironmentRecord].GetBindingValue
 Record[ModuleEnvironmentRecord].GetThisBinding
 Record[ModuleEnvironmentRecord].HasThisBinding
 Record[ModuleNamespaceExoticObject].DefineOwnProperty
@@ -2503,6 +2515,7 @@ SubstitutionTemplate[0,0].Evaluation
 SubstitutionTemplate[0,0].TemplateStrings
 SuperCall[0,0].Evaluation
 SuperProperty[0,0].Evaluation
+SuperProperty[1,0].Contains
 SuperProperty[1,0].Evaluation
 SwitchStatement[0,0].ContainsDuplicateLabels
 SwitchStatement[0,0].ContainsUndefinedBreakTarget
@@ -2672,6 +2685,7 @@ WhileStatement[0,0].VarDeclaredNames
 WhileStatement[0,0].VarScopedDeclarations
 WhileStatement[0,0].WhileLoopEvaluation
 WithClause[0,0].WithClauseToAttributes
+WithClause[1,0].WithClauseToAttributes
 WithEntries[0,0].WithClauseToAttributes
 WithEntries[1,0].WithClauseToAttributes
 WithStatement[0,0].ContainsDuplicateLabels
@@ -2695,4 +2709,5 @@ __IS_ARRAY_INDEX__
 __NEW_ERROR_OBJ__
 __NEW_OBJ__
 __REMOVE_ELEM__
+__SORT__
 msFromTime
