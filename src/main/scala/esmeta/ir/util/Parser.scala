@@ -170,6 +170,10 @@ trait Parsers extends TyParsers {
       case e => EDebug(e)
     } | "(" ~ "random" ~ ")" ^^^ {
       ERandom()
+    } | "(" ~ "resolve-path" ~> expr ~ expr <~ ")" ^^ {
+      case b ~ p => EResolvePath(b, p)
+    } | "(" ~ "read-file" ~> expr <~ ")" ^^ {
+      case p => EReadFile(p)
     } | astExpr | allocExpr | ((ref ^^ {
       // temp fix
       case Name("true")      => EBool(true)

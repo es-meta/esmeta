@@ -144,6 +144,9 @@ class StringifyTinyTest extends IRTest with ElemCoverage {
       debug -> "(debug x)",
       // random number expressions
       rand -> "(random)",
+      // file system expressions
+      resolvePath -> "(resolve-path x y)",
+      readFile -> "(read-file x)",
       // AST expressions
       ast -> "|Identifier|<1>",
       astArgs -> "|Identifier|[TF]<1>",
