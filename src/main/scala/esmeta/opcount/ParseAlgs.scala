@@ -9,7 +9,8 @@ import io.circe.*, io.circe.syntax.*, io.circe.parser.parse as parseJson
   * metalanguage parser and report how many steps fall back to `YetStep`.
   *
   * input : {edition: {algorithm name: raw emu-alg text}}
-  * output: {edition: {algorithm name: {steps, yetSteps, yetExprs, yets, ast}}}
+  * output: {edition: {algorithm name: {steps, yetSteps, yetExprs, yets, ast,
+  *   ops, blocked, kinds, calls, defaults}}}
   *
   * `--legacy` uses `LegacyParser` instead of `Parser`.
   */
@@ -129,11 +130,12 @@ object ParseAlgs {
       val oc = OpCounter()
       val kd = Kinds()
       val bl = Blocked()
+      val dc = DefaultCounter()
       val error =
         try {
           val step = parser.parseBy(parser.step)(code)
           repr = step.toString
-          c.walk(step); oc.count(step); kd.walk(step); bl.walk(step); None
+          c.walk(step); oc.count(step); kd.walk(step); bl.walk(step); dc.walk(step); None
         } catch { case e: Throwable => Some(e.getMessage.take(200)) }
       name -> Json.obj(
         "steps" -> c.steps.asJson,
@@ -146,6 +148,7 @@ object ParseAlgs {
         "blocked" -> bl.blocked.toList.asJson,
         "kinds" -> kd.kinds.toMap.asJson,
         "calls" -> oc.calls.toList.sorted.asJson,
+        "defaults" -> dc.sites.toMap.asJson,
       )
     }).toMap.asJson
     dumpFile(result.asJson.spaces2, out)
