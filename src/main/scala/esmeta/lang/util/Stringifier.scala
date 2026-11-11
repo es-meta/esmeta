@@ -698,7 +698,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
             tag,
           ) =>
         // XXX handle Contains, Contains always takes one argument
-        if (name == "Contains") app >> base >> " Contains " >> args.head
+        if (name == "Contains") {
+          article.foreach(a => app >> a >> " ")
+          app >> base >> " Contains " >> args.head
+        }
         // Otherwise
         else {
           given Rule[List[Expression]] = argsRule(showNoArg = false)

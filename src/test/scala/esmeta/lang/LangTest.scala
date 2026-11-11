@@ -264,6 +264,14 @@ object LangTest {
       None,
       HtmlTag.None,
     )
+  lazy val invokeSDOExprContainsResult =
+    InvokeSyntaxDirectedOperationExpression(
+      nt,
+      "Contains",
+      List(refExpr),
+      Some("the result of"),
+      HtmlTag.None,
+    )
   lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, T)
   lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
   lazy val emptyListExpr = ListExpression(
