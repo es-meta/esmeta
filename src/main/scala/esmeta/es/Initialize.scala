@@ -25,20 +25,38 @@ class Initialize(cfg: CFG) {
     val (ast, semiInjected) = cfg.scriptParser.fromFileWithCode(filename)
     from(semiInjected, ast, Some(filename))
 
-  /** get initial state with source text and cached AST */
+  /** get initial state from JS file with the Module goal */
+  def fromModuleFile(filename: String): State =
+    val (ast, semiInjected) = cfg.scriptParser.fromWithCode("")
+    from(semiInjected, ast, mainModule = Some(filename))
+
+  /** get initial state with source text and cached AST of a script, and the
+    * main module file loaded by the host after the script
+    */
   def from(
     sourceText: String,
     ast: Ast,
     filename: Option[String] = None,
+    mainModule: Option[String] = None,
   ): State = State(
     cfg,
     context = Context(cfg.main),
     sourceText = Some(sourceText),
-    filename = filename,
+    filename = filename.orElse(mainModule),
     cachedAst = Some(ast),
-    globals = MMap.from(initGlobal + (Global(SOURCE_TEXT) -> Str(sourceText))),
+    globals = MMap.from(
+      initGlobal ++ Map(
+        Global(SOURCE_TEXT) -> Str(sourceText),
+        Global(SCRIPT_PATH) -> pathValue(filename),
+        Global(MAIN_MODULE) -> pathValue(mainModule),
+      ),
+    ),
     heap = initHeap.copied,
   )
+
+  /** normalized absolute path of a file as a value */
+  private def pathValue(path: Option[String]): Value =
+    path.fold[Value](Undef)(p => Str(absPath(p)))
 
   // initial globals
   lazy val initGlobal: Map[Global, Value] =
@@ -47,6 +65,9 @@ class Initialize(cfg: CFG) {
     EXECUTION_STACK ->
     (NamedAddr(EXECUTION_STACK), ListT(RecordT("ExecutionContext"))),
     SOURCE_TEXT -> (Str(""), StrT),
+    SCRIPT_PATH -> (Undef, StrT || UndefT),
+    MAIN_MODULE -> (Undef, StrT || UndefT),
+    MODULE_MAP -> (NamedAddr(MODULE_MAP), MapT(StrT, RecordT("ModuleRecord"))),
     HOST_DEFINED -> (Undef, UndefT),
     INTRINSICS -> (NamedAddr(INTRINSICS), UnknownTy()),
     TYPED_ARRAY -> (NamedAddr(TYPED_ARRAY), MapT(StrT, taType)),
@@ -100,6 +121,7 @@ class Initialize(cfg: CFG) {
       NamedAddr(EXECUTION_STACK) -> ListObj(),
       NamedAddr(JOB_QUEUE) -> ListObj(),
       NamedAddr(SYMBOL_REGISTRY) -> ListObj(),
+      NamedAddr(MODULE_MAP) -> MapObj(),
     )
 
     // add symbols
