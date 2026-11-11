@@ -101,6 +101,16 @@ esmeta eval example.js -silent  # print only the output of `print`: "function"
 esmeta eval example.js          # also print the final state (context and heap)
 ```
 
+Use the `-eval:goal=Module` option to run a file as a module. Modules imported
+with `import` declarations or `import()` calls are loaded from files resolved
+against the importing file:
+
+```bash
+echo 'export const message = "hello";' > lib.mjs
+echo 'import { message } from "./lib.mjs"; print(message);' > main.mjs
+esmeta eval main.mjs -eval:goal=Module -silent  # print "hello"
+```
+
 ### ECMA Visualizer and Double Debugger
 
 Two tools for exploring the mechanized specification interactively

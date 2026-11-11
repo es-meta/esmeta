@@ -2,6 +2,7 @@ package esmeta.phase
 
 import esmeta.*
 import esmeta.cfg.CFG
+import esmeta.error.NoOptArgError
 import esmeta.interpreter.*
 import esmeta.ty.{*, given}
 import esmeta.ty.util.TypeErrorCollector
@@ -27,7 +28,8 @@ case object Eval extends Phase[CFG, State] {
     st
 
   def run(cfg: CFG, config: Config, filename: String): State = Interpreter(
-    cfg.init.fromFile(filename),
+    if (config.goal == "Module") cfg.init.fromModuleFile(filename)
+    else cfg.init.fromFile(filename),
     tyCheck = config.tyCheck,
     log = config.log,
     detail = config.detail,
@@ -36,6 +38,14 @@ case object Eval extends Phase[CFG, State] {
 
   def defaultConfig: Config = Config()
   val options: List[PhaseOption[Config]] = List(
+    (
+      "goal",
+      StrOption((c, s) =>
+        if (s != "Script" && s != "Module") throw NoOptArgError("eval:goal", s)
+        c.goal = s,
+      ),
+      "evaluation goal: Script or Module (default: Script).",
+    ),
     (
       "timeout",
       NumOption((c, k) => c.timeLimit = Some(k)),
@@ -63,6 +73,7 @@ case object Eval extends Phase[CFG, State] {
     ),
   )
   case class Config(
+    var goal: String = "Script",
     var timeLimit: Option[Int] = None,
     var multiple: Boolean = false,
     var tyCheck: Boolean = false,
