@@ -91,6 +91,7 @@ case class NoCallable(v: Value) extends UnexpectedValue("callable", v)
 case class NoAst(v: Value) extends UnexpectedValue("ast", v)
 case class NoGrammarSymbol(v: Value)
   extends UnexpectedValue("grammar symbol", v)
+case class NoCodeUnit(v: Value) extends UnexpectedValue("code unit", v)
 
 // unexpected objects
 class UnexpectedObj(expected: String, obj: Obj)
