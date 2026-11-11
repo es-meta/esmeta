@@ -40,11 +40,13 @@ object PolyfillGenerator {
   /** Intrinsic names (`INTRINSICS.<name>`) whose builtin object declares a
     * [[Construct]] internal method in the manual intrinsics model — the same
     * signal `Initialize.intrTypes` uses (`obj.map contains "Construct"`), read
-    * straight from `manuals/intrinsics` so it stays authoritative without needing
-    * a CFG. A generated polyfill matching one of these is stamped CONSTRUCTABLE so
-    * the runtime permits `new`; everything else defaults to non-constructable.
-    * (Note: the manual model gives Symbol/BigInt a throwing [[Construct]], so they
-    * are included here too — matching esmeta's semantics, not native IsConstructor.) */
+    * straight from `manuals/intrinsics` so it stays authoritative without
+    * needing a CFG. A generated polyfill matching one of these is stamped
+    * CONSTRUCTABLE so the runtime permits `new`; everything else defaults to
+    * non-constructable. (Note: the manual model gives Symbol/BigInt a throwing
+    * [[Construct]], so they are included here too — matching esmeta's
+    * semantics, not native IsConstructor.)
+    */
   lazy val constructorTargets: Set[String] =
     ManualInfo.intrinsics.replacedModels.iterator
       .filter(_.imap.exists(_._1 == "Construct"))
@@ -52,7 +54,6 @@ object PolyfillGenerator {
       .toSet
 
   val ignoreTargets = List(
-
     // Unsupported
     "INTRINSICS.MapIteratorPrototype.next",
     "INTRINSICS.SetIteratorPrototype.next",
@@ -85,8 +86,10 @@ object PolyfillGenerator {
   )
 
   /** boxed-primitive internal slots → the constructor a raw boxed value is an
-    * `instanceof`. These slots aren't represented in the object model, so a spec
-    * "_x_ has a [[…Data]] internal slot" check is approximated on the raw value. */
+    * `instanceof`. These slots aren't represented in the object model, so a
+    * spec "_x_ has a [[…Data]] internal slot" check is approximated on the raw
+    * value.
+    */
   val boxedSlotCtor = Map(
     "StringData" -> "String",
     "NumberData" -> "Number",
@@ -409,16 +412,17 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
 
   /** compile references */
   def compile(pb: PolyfillBuilder, ref: Reference): String = ref match {
-    case x: Variable                => compile(x)
-    case Access(base, name, kind, _) if kind == AccessKind.Field && boxedSlotCtor.contains(name) =>
+    case x: Variable => compile(x)
+    case Access(base, name, kind, _)
+        if kind == AccessKind.Field && boxedSlotCtor.contains(name) =>
       // boxed-primitive data slot ([[BooleanData]]/[[BigIntData]]/…): not in the
       // object model, so read the underlying primitive off the raw boxed value
       // (the guarding HasField check is the matching `instanceof`).
       val b = compile(pb, base)
       s"${RUNTIME}.default(${RUNTIME}.value($b as Lifted<${boxedSlotCtor(name)}>).valueOf(), [$b])"
-    case Access(base, name, kind, _)   => s"${compile(pb, base)}[\"$name\" ${
-      if kind == AccessKind.Field then "/* TODO INTERNAL : internal access */" else ""
-      }]"
+    case Access(base, name, kind, _) =>
+      s"${compile(pb, base)}[\"$name\" ${if kind == AccessKind.Field then "/* TODO INTERNAL : internal access */"
+      else ""}]"
     case ValueOf(base)              => compile(pb, base)
     case IntrinsicField(base, intr) => ???
     case IndexLookup(base, index) =>
@@ -473,7 +477,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // a List's length is a value too — wrap it so it flows through the ops.
       s"${RUNTIME}.default<number>(${compile(pb, ref)}.length, [])"
     case NumberOfExpression(_, _, expr, _) => ???
-    case IntrinsicExpression(intr) =>
+    case IntrinsicExpression(intr)         =>
       // An intrinsic referenced as a *value* (e.g. `%Object.prototype.toString%`)
       // must enter the model lifted, so it flows like any other Lifted value
       // (assigned into a Lifted var, passed to AO__Call, …). Direct-call callees
@@ -504,7 +508,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // `<ty>__<name>` taking `$` first; call it like an AO — runtime receiver
       // plus args cast to the callee's declared param type past lost narrowing.
       val params =
-        spec.fnameMap.get(s"$ty::$name").map(_.head.originalParams).getOrElse(Nil)
+        spec.fnameMap
+          .get(s"$ty::$name")
+          .map(_.head.originalParams)
+          .getOrElse(Nil)
       val argStrs = args.zipWithIndex.map { (arg, i) =>
         val c = compile(pb, arg)
         params.lift(i).fold(c)(p => s"($c as ${Polyfill.tsParamType(p.ty)})")
@@ -581,9 +588,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       s"${RUNTIME}.${compile(op)}(${compile(pb, l)}, ${compile(pb, r)})"
     case AbstractClosureExpression(params, captured, body) =>
       val funcBody =
-        s"${RUNTIME}.default<Unlifted<Function>>( /* ABSTRACT_CLOSURE */ (${params.map(compile).mkString(", ")}) => ${compileWithScope(pb, body)} , [${
-          captured.map(compile(pb, _)).mkString(", ")
-        }])"
+        s"${RUNTIME}.default<Unlifted<Function>>( /* ABSTRACT_CLOSURE */ (${params
+          .map(compile)
+          .mkString(", ")}) => ${compileWithScope(pb, body)} , [${captured.map(compile(pb, _)).mkString(", ")}])"
       s"(() => {var _self = $funcBody; return _self as Lifted<Function>;})() as Lifted<Function>" // return IIFE
     case XRefExpression(
           XRefExpressionOperator.Algo | XRefExpressionOperator.Definition |
@@ -683,19 +690,26 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // callables — a bare `typeof` is wrong there).
       (if (neg) s"!" else "") + tys
         .map(_.normalizedName.toLowerCase())
-        .map(tyStr => tyStr match {
-          case "record[object]" => "object"
-          case "record[symbol]" => "symbol"
-          case _ => tyStr
-        })
+        .map(tyStr =>
+          tyStr match {
+            case "record[object]" => "object"
+            case "record[symbol]" => "symbol"
+            case _                => tyStr
+          },
+        )
         .map {
           // "an integral Number" (NumberInt) is not a `typeof`-checkable runtime
           // kind — it is truncate(ℝ(x)) == ℝ(x). The runtime owns it via the
           // `$.isInteger` predicate. Every predicate now returns a Lifted<boolean>,
           // so funnel each through `$.condition` (like the ordering comparisons) to
           // record a flippable constraint and unwrap to a raw boolean at the branch.
-          case "numberint" => branchWithUnlift(pb, s"${RUNTIME}.isInteger($compiledExpr)")
-          case tyStr       => branchWithUnlift(pb, s"""${RUNTIME}.isType($compiledExpr, "$tyStr")""")
+          case "numberint" =>
+            branchWithUnlift(pb, s"${RUNTIME}.isInteger($compiledExpr)")
+          case tyStr =>
+            branchWithUnlift(
+              pb,
+              s"""${RUNTIME}.isType($compiledExpr, "$tyStr")""",
+            )
         }
         .mkString("(", "||", ")")
     case HasFieldCondition(ref, neg, field, form, opTy) =>
@@ -717,7 +731,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       import PredicateConditionOperator.*
       op match {
         case Finite =>
-          (if (neg) s"!" else "") + branchWithUnlift(pb, s"${RUNTIME}.isFinite(${compile(pb, expr)})")
+          (if (neg) s"!" else "") + branchWithUnlift(
+            pb,
+            s"${RUNTIME}.isFinite(${compile(pb, expr)})",
+          )
         case Abrupt      => ???
         case Throw       => ???
         case Return      => ???
@@ -747,7 +764,11 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
             rexpr match
               case NumberLiteral(n) if n.isNaN =>
                 branchWithUnlift(pb, s"${RUNTIME}.isNaN($l as Lifted<number>)")
-              case _ => branchWithUnlift(pb, s"${RUNTIME}.is($l, ${compile(pb, rexpr)})"),
+              case _ =>
+                branchWithUnlift(
+                  pb,
+                  s"${RUNTIME}.is($l, ${compile(pb, rexpr)})",
+                ),
           )
           .reduce((l, r) => s"($l || $r)")
         (if (neg) s"!" else "") + e
@@ -763,11 +784,13 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // flow. Equality included (`$.is`/`$.isNot` no longer narrow), so a string
       // `candidate === search` inside a search loop is now a real constraint.
       op match {
-        case Eq            => branchWithUnlift(pb, s"${RUNTIME}.is($l, $r)")
-        case NEq           => branchWithUnlift(pb, s"${RUNTIME}.isNot($l, $r)")
-        case LessThan      => branchWithUnlift(pb, s"${RUNTIME}.lessThan($l, $r)")
-        case LessThanEqual => branchWithUnlift(pb, s"${RUNTIME}.lessThanEqual($l, $r)")
-        case GreaterThan   => branchWithUnlift(pb, s"${RUNTIME}.greaterThan($l, $r)")
+        case Eq       => branchWithUnlift(pb, s"${RUNTIME}.is($l, $r)")
+        case NEq      => branchWithUnlift(pb, s"${RUNTIME}.isNot($l, $r)")
+        case LessThan => branchWithUnlift(pb, s"${RUNTIME}.lessThan($l, $r)")
+        case LessThanEqual =>
+          branchWithUnlift(pb, s"${RUNTIME}.lessThanEqual($l, $r)")
+        case GreaterThan =>
+          branchWithUnlift(pb, s"${RUNTIME}.greaterThan($l, $r)")
         case GreaterThanEqual =>
           branchWithUnlift(pb, s"${RUNTIME}.greaterThanEqual($l, $r)")
         case SameCodeUnits => branchWithUnlift(pb, s"${RUNTIME}.is($l, $r)")
@@ -778,8 +801,14 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // (raw boolean) so the native `&&` short-circuits correctly and both
       // bounds are independently flippable.
       val lo =
-        branchWithUnlift(pb, s"${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)})")
-      val hi = branchWithUnlift(pb, s"${RUNTIME}.lessThanEqual($l, ${compile(pb, to)})")
+        branchWithUnlift(
+          pb,
+          s"${RUNTIME}.greaterThanEqual($l, ${compile(pb, from)})",
+        )
+      val hi = branchWithUnlift(
+        pb,
+        s"${RUNTIME}.lessThanEqual($l, ${compile(pb, to)})",
+      )
       val e = s"($lo && $hi)"
       (if (neg) s"!" else "") + e
     case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
@@ -802,9 +831,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case MetaCondition(name, _) => ???
   }
 
-  /** escape a raw string for embedding in a TS double-quoted literal — code-unit
-    * literals can be `"`, `\`, newline, etc. (e.g. 0x0022, 0x000A from JSON
-    * serialization), which would otherwise break the emitted string. */
+  /** escape a raw string for embedding in a TS double-quoted literal —
+    * code-unit literals can be `"`, `\`, newline, etc. (e.g. 0x0022, 0x000A
+    * from JSON serialization), which would otherwise break the emitted string.
+    */
   private def tsStringLit(s: String): String =
     val sb = new StringBuilder("\"")
     s.foreach {
@@ -820,20 +850,23 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     sb.toString
 
   def compile(lit: Literal): String =
-    type ES_TYPE = "string" | "number" | "bigint" | "boolean" | "undefined" | "null" | "symbol"
+    type ES_TYPE = "string" | "number" | "bigint" | "boolean" | "undefined" |
+      "null" | "symbol"
     def w(s: String, ty: ES_TYPE): String = s"${RUNTIME}.default<$ty>($s, [])"
     lit match {
       case _: ThisLiteral          => THIS_PARAM
       case _: ThisParseNodeLiteral => ???
-      case _: NewTargetLiteral     => "$.default<Unlifted<unknown>>(new.target as unknown as Unlifted<unknown>, [])"
+      case _: NewTargetLiteral =>
+        "$.default<Unlifted<unknown>>(new.target as unknown as Unlifted<unknown>, [])"
       case HexLiteral(hex, _, _, _) =>
         w(tsStringLit(hex.toChar.toString), "string")
       case CodeLiteral(code)                 => w(tsStringLit(code), "string")
       case GrammarSymbolLiteral(name, flags) => ???
       case NonterminalLiteral(ordinal, name, flags, hasArticle) => ???
-      case EnumLiteral(name)     => name match
-        case "not-found" => w("-1", "number")
-        case _ => w(tsStringLit(name), "string")
+      case EnumLiteral(name) =>
+        name match
+          case "not-found" => w("-1", "number")
+          case _           => w(tsStringLit(name), "string")
       case StringLiteral(str, _) => w(tsStringLit(str), "string")
       case FieldLiteral(name) =>
         s"\"$name\" /* TODO INTERNAL slots cannot be modeled */"

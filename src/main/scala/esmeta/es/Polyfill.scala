@@ -25,7 +25,9 @@ case class Polyfill(
       // A constructor polyfill is stamped via markConstructable (see
       // markerToString) so the runtime permits `new`; import the helper.
       (if (isConstructor)
-         List(s"""import { markConstructable } from "../internal/constructable.js";""")
+         List(
+           s"""import { markConstructable } from "../internal/constructable.js";""",
+         )
        else Nil) ++
       aoImports.map(n => s"""import { AO__$n } from "./AO__$n.js";""") ++
       // Numeric-method imports are already fully-qualified identifiers (`Number__equal`).
@@ -35,9 +37,11 @@ case class Polyfill(
 
   /** Mark a constructor polyfill so the runtime allows `new <fn>()`. Absent for
     * ordinary built-in functions, which the runtime then treats as
-    * non-constructors (throwing on `new`, like native). */
+    * non-constructors (throwing on `new`, like native).
+    */
   def markerToString: String =
-    if (isConstructor) s"${LINE_SEP}markConstructable($preferedIdentifier);$LINE_SEP"
+    if (isConstructor)
+      s"${LINE_SEP}markConstructable($preferedIdentifier);$LINE_SEP"
     else ""
 
   val banner: String =
