@@ -87,7 +87,7 @@ class Compiler(
       "MakeArg.*".r, // MakeArgGetter, MakeArgSetter
       "ClassTail\\[\\d,\\d\\]\\.ClassDefinitionEvaluation".r,
       "ExecuteAsyncModule".r,
-      "FinishDynamicImport".r,
+      "ContinueDynamicImport".r,
       "INTRINSICS\\.Object\\.fromEntries".r,
       "AsyncFromSyncIteratorContinuation".r,
       "CreateResolvingFunctions".r,
