@@ -1323,7 +1323,7 @@ class Compiler(
   ): Expr =
     val (x, xExpr) = expr match
       case ERef(local: Local) => (local, expr)
-      case _                  => fb.newTIdWithExpr
+      case _                  => fb.newTIdWithExpr(expr)
     fb.addInst(
       if (check) IAssert(ETypeCheck(xExpr, IRType(CompT)))
       else IAssert(ETypeCheck(xExpr, IRType(NormalT))),
