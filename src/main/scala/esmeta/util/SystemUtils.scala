@@ -41,6 +41,7 @@ object SystemUtils {
   lazy val irFilter = extFilter("ir")
   lazy val cfgFilter = extFilter("cfg")
   lazy val jsFilter = extFilter("js")
+  lazy val mjsFilter = extFilter("mjs")
   lazy val jsonFilter = extFilter("json")
   lazy val patchFilter = extFilter("patch")
 

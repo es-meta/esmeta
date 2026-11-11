@@ -1,0 +1,2 @@
+assert (= @REALM.GlobalObject.__MAP__.result.Value "0,1,fixture")
+assert (! (exists @REALM.GlobalObject.__MAP__.before))
