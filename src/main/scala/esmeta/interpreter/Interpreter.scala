@@ -183,7 +183,7 @@ class Interpreter(
       eval(base).asAst match
         case syn: Syntactic =>
           getSdo((syn, method)) match
-            case Some((ast0, sdo)) =>
+            case Some((ast0: Syntactic, sdo)) =>
               val vs = args.map(eval)
               val newLocals = getLocals(
                 sdo.irFunc.params,
@@ -193,7 +193,12 @@ class Interpreter(
               )
               st.callStack ::= CallContext(st.context, lhs)
               st.context = createContext(call, sdo, newLocals, st.context)
-            case None => throw InvalidAstField(syn, Str(method))
+            case _ =>
+              // chain productions ending with lexical nodes
+              syn.chains.last match
+                case lex: Lexical =>
+                  setCallResult(lhs, Interpreter.eval(lex, method))
+                case _ => throw InvalidAstField(syn, Str(method))
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
   }
