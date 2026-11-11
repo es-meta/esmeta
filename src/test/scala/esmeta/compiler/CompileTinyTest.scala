@@ -611,6 +611,9 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       noHasBindingCond -> "assert (! (exists x.__MAP__[x]))",
       prodCond ->
       "assert (? (grammar-symbol |Identifier|): Ast[Identifier[0]])",
+      multiSymbolProdCond -> "assert (? x: Ast[ExportDeclaration[1]])",
+      inlineProdCond ->
+      "assert (? (grammar-symbol |ExportDeclaration|): Ast[ExportDeclaration[1]])",
       finiteCond ->
       "assert (|| (&& (? x: Number) (! (? x: Number[-INF, +INF, NaN]))) (? x: Math | BigInt))",
       finitePluralCond ->
@@ -654,6 +657,8 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       notInclusiveIntervalCond -> "assert (|| (< x 2) (< 32 x))",
       containsCond -> "assert (contains x x)",
       notContainsCond -> "assert (! (contains x x))",
+      includeElementCond -> "assert (contains x x)",
+      notIncludeElementCond -> "assert (! (contains x x))",
       // -----------------------------------------------------------------------
       containsWhoseFieldCond ->
       """%1 = x
@@ -942,7 +947,14 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
 
   /** a fixture specification with the minimum for the cases above */
   private lazy val fixture: Spec = Spec(
-    grammar = Grammar(List(Production.from("Identifier :\n  Identifier"))),
+    grammar = Grammar(
+      List(
+        Production.from("Identifier :\n  Identifier"),
+        Production.from(
+          "ExportDeclaration :\n  `export` NamedExports\n  `export` VariableStatement",
+        ),
+      ),
+    ),
     algorithms = List(fooAlgo, barAlgo, shorthandAlgo),
     constants = List(
       Constant("msPerDay", DecimalMathValueLiteral(BigDecimal(86400000))),

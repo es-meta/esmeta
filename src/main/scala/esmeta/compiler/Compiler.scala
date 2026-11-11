@@ -961,11 +961,17 @@ class Compiler(
         )
         if (neg) not(e) else e
       // XXX need to be generalized?
-      case ProductionCondition(nt, lhsName, rhsName) =>
+      case ProductionCondition(nt, lhsName, rhs, _) =>
         val base = compile(fb, nt)
+        val rhsName = rhs.map(_.stripPrefix("`").stripSuffix("`")).mkString
         getProductionData(lhsName, rhsName) match
           case Some((_, rhsIdx)) =>
-            fb.ntBindings ++= List((rhsName, base, Some(0)))
+            val bindings = rhs match
+              case List(name) => List((name, base, Some(0)))
+              case _ =>
+                val nts = grammar.nameMap(lhsName).rhsVec(rhsIdx).nts
+                nts.zipWithIndex.map((x, idx) => (x.name, base, Some(idx)))
+            fb.ntBindings ++= bindings
             ETypeCheck(base, IRType(AstT(lhsName, rhsIdx)))
           case None => EYet(cond.toString(true, false))
       case PredicateCondition(exprs, neg, op) =>
@@ -1074,7 +1080,7 @@ class Compiler(
         lazy val t = compile(fb, to)
         val cond = not(or(lessThan(l, f), lessThan(t, l)))
         if (neg) not(cond) else cond
-      case ContainsCondition(list, neg, target) =>
+      case ContainsCondition(list, neg, target, _) =>
         import ContainsConditionTarget.*
         lazy val l = compile(fb, list)
         val e = target match

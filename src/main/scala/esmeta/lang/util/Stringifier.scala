@@ -774,10 +774,16 @@ class Stringifier(detail: Boolean, location: Boolean) {
       case HasBindingCondition(ref, neg, binding) =>
         app >> ref >> hasStr(neg)
         app >> "a binding for " >> binding
-      case ProductionCondition(nt, lhs, rhs) =>
-        app >> nt >> " is " >> "<emu-grammar>"
-        app >> lhs >> " : " >> rhs
-        app >> "</emu-grammar>"
+      case ProductionCondition(nt, lhs, rhs, isInlineForm) =>
+        app >> nt >> " is "
+        if (isInlineForm)
+          app >> rhs
+            .map(s => if (s.startsWith("`")) s else s"|$s|")
+            .mkString(" ")
+        else
+          app >> "<emu-grammar>"
+          app >> lhs >> " : " >> rhs.mkString(" ")
+          app >> "</emu-grammar>"
       case PredicateCondition(xs, neg, op) =>
         // TODO is/has
         xs match {
@@ -817,8 +823,14 @@ class Stringifier(detail: Boolean, location: Boolean) {
           app >> " in the inclusive interval from " >> from
           app >> " to " >> to
         else app >> from >> " ≤ " >> left >> " ≤ " >> to
-      case ContainsCondition(list, neg, expr) =>
-        app >> list >> (if (neg) " does not contain " else " contains ") >> expr
+      case ContainsCondition(list, neg, expr, isIncludeForm) =>
+        val verb =
+          if (isIncludeForm)
+            if (neg) " does not include the element "
+            else " includes the element "
+          else if (neg) " does not contain "
+          else " contains "
+        app >> list >> verb >> expr
       case CompoundCondition(_, op, _) =>
         import CompoundConditionOperator.*
 
