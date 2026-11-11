@@ -390,7 +390,11 @@ class Interpreter(
       case (Nil, Nil) =>
       case (Param(lhs, ty, optional, _) :: pl, Nil) =>
         if (optional) aux(idx + 1, pl, Nil)
-        else RemainingParams(ps)
+        else
+          // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
+          callee match
+            case _: Cont =>
+            case _       => throw RemainingParams(ps)
       case (Nil, args) =>
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
         callee match
