@@ -868,6 +868,26 @@ class Compiler(
   def compile(op: UnaryExpressionOperator): UOp = op match
     case UnaryExpressionOperator.Neg => UOp.Neg
 
+  /** compile a right operand of an is/are condition */
+  def compileIsAreRight(
+    fb: FuncBuilder,
+    left: Expression,
+    right: Expression,
+  ): Expr = (left, right) match
+    case (
+          ReferenceExpression(x: Variable),
+          NonterminalLiteral(None, name, flags, false),
+        ) if isGrammarSymbolParam(fb, x.name) =>
+      EGrammarSymbol(name, flags.map(_ `startsWith` "+"))
+    case _ => compile(fb, right)
+
+  /** check whether a variable is a parameter of grammar symbol type */
+  def isGrammarSymbolParam(fb: FuncBuilder, x: String): Boolean =
+    fb.params.exists { p =>
+      val ty = p.ty.toValue
+      p.lhs.name == x && !ty.isBottom && ty <= GrammarSymbolT
+    }
+
   /** compile literals */
   def compile(fb: FuncBuilder, lit: Literal): Expr = lit match {
     case ThisLiteral(_)          => ENAME_THIS
@@ -880,7 +900,6 @@ class Compiler(
       EGrammarSymbol(name, flags.map(_ `startsWith` "+"))
     case NonterminalLiteral(ordinal, name, flags, _) =>
       val ntNames = fb.ntBindings.map(_._1)
-      // TODO ClassTail[0,3].Contains
       if (ntNames contains name) {
         val xs = fb.ntBindings.filter(_._1 == name)
         xs(ordinal.getOrElse(1) - 1) match
@@ -1056,7 +1075,7 @@ class Compiler(
         val es = for (lexpr <- left) yield {
           val l = compile(fb, lexpr)
           val e = right
-            .map(r => EBinary(BOp.Eq, l, compile(fb, r)))
+            .map(r => EBinary(BOp.Eq, l, compileIsAreRight(fb, lexpr, r)))
             .reduce(or(_, _))
           if (neg) not(e) else e
         }

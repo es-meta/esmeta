@@ -928,7 +928,20 @@ trait Parsers extends IndentParsers {
           )
       }
 
-    normalSDOExpr | containsSDOExpr
+    // Contains SDO with `the result of` (e.g., the result of |X| Contains _y_)
+    lazy val resultOfContainsSDOExpr =
+      "the result of" ~> calcExpr ^? {
+        case e @ InvokeSyntaxDirectedOperationExpression(
+              _,
+              "Contains",
+              _,
+              None,
+              _,
+            ) =>
+          e.copy(prefix = Some("the result of"))
+      }
+
+    normalSDOExpr | containsSDOExpr | resultOfContainsSDOExpr
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =

@@ -394,6 +394,10 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       """sdo-call %0 = (grammar-symbol |Identifier|)->Contains(x)
       |let x = %0""".stripMargin,
       // -----------------------------------------------------------------------
+      invokeSDOExprContainsResult ->
+      """sdo-call %0 = (grammar-symbol |Identifier|)->Contains(x)
+      |let x = %0""".stripMargin,
+      // -----------------------------------------------------------------------
       riaCheckExpr ->
       """call %0 = clo<"ToObject">((+ x x), (- x))
       |assert (? %0: Completion)

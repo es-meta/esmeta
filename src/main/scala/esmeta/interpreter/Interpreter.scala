@@ -318,7 +318,14 @@ class Interpreter(
       (eval(expr), eval(target)) match
         case (AstValue(_: Syntactic), GrammarSymbol("", _)) => Bool(true)
         case (AstValue(ast), GrammarSymbol(name, _)) => Bool(ast.name == name)
-        case _                                       => Bool(false)
+        // terminals are not stored in ASTs, so a node is regarded as an
+        // instance of a terminal if its production directly contains it
+        // (e.g., _body_ Contains `await` in ParseModule)
+        case (AstValue(Syntactic(name, _, rhsIdx, _)), Str(term)) =>
+          Bool(cfg.grammar.nameMap.get(name).exists { prod =>
+            prod.rhsVec(rhsIdx).ts.exists(_.term == term)
+          })
+        case _ => Bool(false)
     case ETypeCheck(expr, ty) =>
       Bool(ty.ty.contains(eval(expr), st))
     case ESizeOf(expr) =>
