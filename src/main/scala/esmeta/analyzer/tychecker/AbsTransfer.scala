@@ -1779,6 +1779,10 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           given AbsState = st
           AbsValue(vs(0).ty.list.elem)
         },
+        "__SORT__" -> { (func, vs, retTy, st) =>
+          given AbsState = st
+          AbsValue(vs(0).ty)
+        },
         "__GET_ITEMS__" -> { (func, vs, retTy, st) =>
           given AbsState = st
           val ast = vs(1).ty.toValue.grammarSymbol match
