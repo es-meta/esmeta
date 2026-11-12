@@ -87,6 +87,7 @@
   "module-pending.mjs" : true,
   "module-reject.mjs" : true,
   "module-self-import.mjs" : true,
+  "module-star-default.mjs" : true,
   "module-this.mjs" : true,
   "module-tla.mjs" : true,
   "multiple-statements.js" : true,
