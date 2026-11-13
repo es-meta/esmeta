@@ -561,6 +561,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case ReferenceExpression(ref) => compile(pb, ref)
     case MathFuncExpression(op, args) =>
       s"${RUNTIME}.${compile(op)}(${compile(pb, args)})"
+    // "the code unit whose numeric value is X": X is a number; the code unit is
+    // the one-unit String for it (the lifted X stays its operand)
+    case ConversionExpression(ConversionExpressionOperator.ToCodeUnit, expr, _) =>
+      s"((cu: Lifted<unknown>) => ${RUNTIME}.default<string>(String.fromCharCode(${RUNTIME}.value(cu) as number), [cu]))(${compile(pb, expr)})"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
       s"${RUNTIME}.exponentiate(${compile(pb, base)}, ${compile(pb, power)})"
@@ -858,6 +862,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       case _: ThisParseNodeLiteral => ???
       case _: NewTargetLiteral =>
         "$.default<Unlifted<unknown>>(new.target as unknown as Unlifted<unknown>, [])"
+      // a bare 0x literal (no "the code unit", no U+, no name) is a mathematical
+      // value, e.g. 0x10FFFF in "if cp > 0x10FFFF"; the rest denote code units
+      // / code points, i.e. one-character Strings
+      case HexLiteral(hex, false, false, None) => w(s"$hex", "number")
       case HexLiteral(hex, _, _, _) =>
         w(tsStringLit(hex.toChar.toString), "string")
       case CodeLiteral(code)                 => w(tsStringLit(code), "string")
