@@ -39,6 +39,7 @@ case object GenPoly extends Phase[Spec, List[Polyfill]] {
         )
 
     if (config.log)
+      if (dslDir.isDefined) generator.stats.printSummary()
       rmdir(POLYFILL_LOG_DIR)
       dumpDir(
         name = "generated polyfills",
