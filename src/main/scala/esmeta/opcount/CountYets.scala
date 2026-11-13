@@ -10,8 +10,8 @@ import io.circe.*, io.circe.syntax.*
 import scala.sys.process.*
 
 /** Count unparsed (`Yet`) steps in every `<emu-alg>` of ECMA-262 revisions,
-  * using only the current metalanguage `Parser` (no `LegacyParser`), no
-  * manual algorithms and no bugfix patches. Algorithms are taken from all
+  * using only the current metalanguage `Parser` (no `LegacyParser`), no manual
+  * algorithms and no bugfix patches. Algorithms are taken from all
   * `emu-alg:not([example])` elements, whether or not their heads can be
   * extracted, and `<emu-import>`ed files are inlined.
   */
@@ -81,6 +81,48 @@ object CountYets {
     )
   }
 
+  /** normalize the formatting of an `<emu-alg>` body without touching its
+    * wording, as ecmarkup accepts more than the metalanguage parser:
+    *   - drop carriage returns and expand tabs to two spaces
+    *   - number every step `1.` (ecmarkup renumbers them anyway)
+    *   - indent each nesting level by two spaces
+    *   - join a step's text wrapped onto following lines into one line (lines
+    *     inside HTML blocks such as `<figure>` keep their offset from the step
+    *     above them)
+    */
+  def normalize(code: String): String =
+    val StepNum = "^( *)\\d+\\.( .*|)$".r
+    val BlockOpen = "<(figure|table|pre|emu-table|emu-grammar)\\b".r
+    val BlockClose = "</(figure|table|pre|emu-table|emu-grammar)>".r
+    var stack: List[Int] = Nil // original indents of open levels
+    var base = -1
+    var last: Option[(Int, Int)] = None // (original, new) indent of last step
+    var depth = 0 // nesting of HTML blocks
+    val out = scala.collection.mutable.ArrayBuffer[String]()
+    for (line <- code.replace("\r", "").replace("\t", "  ").split("\n", -1)) {
+      val indent = line.takeWhile(_ == ' ').length
+      val trimmed = line.trim
+      line match
+        case StepNum(_, rest) if depth == 0 =>
+          while (stack.nonEmpty && stack.head > indent) stack = stack.tail
+          if (stack.isEmpty || stack.head < indent) stack = indent :: stack
+          if (base < 0) base = indent
+          val ni = base + 2 * (stack.size - 1)
+          last = Some((indent, ni))
+          out += " " * ni + "1." + rest
+        case _ =>
+          val before = depth
+          depth += BlockOpen.findAllIn(trimmed).size
+          last match
+            case Some((oi, ni)) if trimmed.nonEmpty =>
+              if (before == 0 && depth == 0 && out.nonEmpty)
+                out(out.size - 1) += " " + trimmed
+              else out += " " * (ni + indent - oi).max(0) + line.drop(indent)
+            case _ => out += line
+          depth = (depth - BlockClose.findAllIn(trimmed).size).max(0)
+    }
+    out.mkString("\n")
+
   /** count unparsed steps in a spec.html content */
   def count(label: String, html: String): Result =
     val document = html.toHtml
@@ -90,7 +132,7 @@ object CountYets {
     var (algsWithYet, headed, headedWithYet) = (0, 0, 0)
     val details = for {
       (elem, idx) <- elems.zipWithIndex
-      code = elem.html.unescapeHtml
+      code = normalize(elem.html.unescapeHtml)
       heads =
         try extractor.extractHeads(elem).map(_._1.fname)
         catch { case _: Throwable => Nil }
@@ -99,7 +141,12 @@ object CountYets {
       error =
         try { c.walk(Parser.parseBy(Parser.step)(code)); None }
         catch {
-          case e: Throwable => Some(String.valueOf(e.getMessage).take(200))
+          case e: Throwable =>
+            // the whole algorithm is unparsed: count its numbered steps
+            // (except `Else`/`Otherwise`, which the AST folds into `If`)
+            val n = StepLine.findAllIn(code).count(!ElseLine.matches(_))
+            c.steps = n; c.yetSteps = n; c.stepsWithYetExpr = 0
+            Some(String.valueOf(e.getMessage).take(200))
         }
       hasYet = c.yetSteps + c.stepsWithYetExpr > 0 || error.isDefined
       _ = {
@@ -138,11 +185,16 @@ object CountYets {
   // ---------------------------------------------------------------------------
   // reading ECMA-262 revisions
   // ---------------------------------------------------------------------------
+  private val StepLine = "(?m)^[ \\t]*\\d+\\.[ \\t].*$".r
+  private val ElseLine = "[ \\t]*\\d+\\.[ \\t]+(Else|Otherwise)\\b.*".r
   private val PrPattern = "pr:(\\d+)".r
+  private val FilePattern = "file:(.+)".r
   private val ImportPattern =
     """<emu-import\s+href="([^"]+)"\s*>\s*(</emu-import>)?""".r
 
-  /** label and git revision of a target (`rev`, `label=rev`, or `pr:N`) */
+  /** label and source of a target (`rev`, `label=rev`, `pr:N`, or
+    * `label=file:<path>`)
+    */
   def parseTarget(target: String): (String, String) = target match
     case PrPattern(n) => (s"pr$n", s"refs/esmeta-count-yets/pr/$n")
     case _ =>
@@ -154,7 +206,8 @@ object CountYets {
   def fetchPullRequests(targets: List[String], repo: String): Unit =
     val prs = targets.collect { case PrPattern(n) => n }
     for (group <- prs.grouped(200)) {
-      val refspecs = group.map(n => s"+refs/pull/$n/head:refs/esmeta-count-yets/pr/$n")
+      val refspecs =
+        group.map(n => s"+refs/pull/$n/head:refs/esmeta-count-yets/pr/$n")
       val code = (Seq("git", "-C", repo, "fetch", "-q", "origin") ++ refspecs).!
       if (code != 0) throw Exception(s"failed to fetch pull requests: $group")
     }
@@ -183,6 +236,32 @@ object CountYets {
       )
     inlined("spec.html")
 
+  /** a local spec file (e.g., a proposal's spec.emu) with `<emu-import>`s
+    * inlined and its `<ins>`/`<del>` changes applied
+    */
+  def specFile(path: String): String =
+    def inlined(p: java.nio.file.Path): String =
+      ImportPattern.replaceAllIn(
+        readFile(p.toString),
+        m => {
+          val target = p.getParent.resolve(m.group(1)).normalize
+          scala.util.matching.Regex.quoteReplacement(
+            if (java.nio.file.Files.isRegularFile(target)) inlined(target)
+            else "",
+          )
+        },
+      )
+    val p = java.nio.file.Paths.get(path).toAbsolutePath
+    if (!java.nio.file.Files.isRegularFile(p))
+      throw Exception(s"no such spec file: $path")
+    applyInsDel(inlined(p))
+
+  /** drop `<del>` contents, unwrap `<ins>`, and drop emptied steps */
+  def applyInsDel(html: String): String =
+    val noDel = "(?s)<del\\b[^>]*>.*?</del>".r.replaceAllIn(html, "")
+    val noIns = "</?ins\\b[^>]*>".r.replaceAllIn(noDel, "")
+    "(?m)^[ \\t]*\\d+\\.[ \\t]*\\n".r.replaceAllIn(noIns, "")
+
   /** count all targets, printing a summary line for each */
   def run(
     targets: List[String],
@@ -192,7 +271,10 @@ object CountYets {
     fetchPullRequests(targets, repo)
     val results = for (target <- targets) yield {
       val (label, rev) = parseTarget(target)
-      val result = count(label, specAt(repo, rev))
+      val html = rev match
+        case FilePattern(path) => specFile(path)
+        case _                 => specAt(repo, rev)
+      val result = count(label, html)
       println(result.line)
       result
     }
@@ -202,7 +284,10 @@ object CountYets {
         Json.obj(results.map(r => r.label -> r.summary): _*).spaces2,
         s"$dir/summary.json",
       )
-      dumpFile(results.map(_.line).mkString("", "\n", "\n"), s"$dir/summary.txt")
+      dumpFile(
+        results.map(_.line).mkString("", "\n", "\n"),
+        s"$dir/summary.txt",
+      )
       dumpFile(
         Json.obj(results.map(r => r.label -> r.details.asJson): _*).spaces2,
         s"$dir/details.json",

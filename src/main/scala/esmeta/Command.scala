@@ -234,8 +234,9 @@ case object CmdCountYets extends Command("count-yets", CmdBase >> CountYets) {
     "esmeta count-yets es2025 es2026      # count for editions.",
     "esmeta count-yets main pr:3966       # count for main and a pull request.",
     "esmeta count-yets -count-yets:targets=targets.txt",
+    "esmeta count-yets foo=file:spec.emu    # count a local (proposal) spec.",
   )
-  override val targetName = "<rev | label=rev | pr:N>*"
+  override val targetName = "<rev | label=rev | pr:N | label=file:path>*"
   override val needTarget = false
   override def showResult(res: List[esmeta.opcount.CountYets.Result]): Unit =
     println(s"Counted ${res.size} specifications.")
