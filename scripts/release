@@ -5,7 +5,7 @@
 # Walks through steps 1-5 of the release process described in the wiki:
 #   https://github.com/es-meta/esmeta/wiki/How-to-Release
 # Every step explains itself and waits for your confirmation ([Y/n/q]).
-# Steps 6-9 need forks and pull requests, so they are printed as manual
+# Steps 6-8 need forks and pull requests, so they are printed as manual
 # instructions once step 5 finishes.
 #
 # If any step fails, the script stops WITHOUT rolling anything back, and tells
@@ -157,7 +157,7 @@ manual_from() { # manual_from <first-step-still-to-do>
 manual_tail() {
   say ""
   rule
-  say "${BOLD}Steps 6-9 and the downstream CI updates are always manual${NC}"
+  say "${BOLD}Steps 6-8 and the downstream CI updates are always manual${NC}"
   rule
   say ""
   say "${BOLD} 6-8. Create the GitHub release${NC}"
@@ -175,9 +175,6 @@ manual_tail() {
     say "        (run the command above once the tag $TAG_NAME exists)"
   fi
   say "        \`\`\`"
-  say ""
-  say "${BOLD} 9. Update the website${NC}"
-  say "    Copy README.md into index.md of es-meta/es-meta.github.io."
   say ""
   say "${BOLD}Update CI in tc39/ecma262${NC}"
   say "    In your fork, on a new branch:"
