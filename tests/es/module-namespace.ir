@@ -1,0 +1,3 @@
+assert (= @REALM.GlobalObject.__MAP__.keys.Value "C,a,b,default")
+assert (= @REALM.GlobalObject.__MAP__.tag.Value "Module")
+assert (= @REALM.GlobalObject.__MAP__.extensible.Value false)

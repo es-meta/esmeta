@@ -1,0 +1,1 @@
+assert (= @REALM.GlobalObject.__MAP__.result.Value "imported")

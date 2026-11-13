@@ -24,6 +24,13 @@ object ESTest {
   // file extension converter from .js to .ir
   lazy val js2ir = changeExt("js", "ir")
 
+  // file extension converter from .mjs to .ir
+  lazy val mjs2ir = changeExt("mjs", "ir")
+
+  // check whether a file is a module imported by other test files
+  def isFixture(filename: String): Boolean =
+    removedExt(filename).endsWith("_FIXTURE")
+
   // ---------------------------------------------------------------------------
   // parser helpers
   // ---------------------------------------------------------------------------
@@ -31,6 +38,11 @@ object ESTest {
   lazy val scriptParser: AstFrom = spec.scriptParser
   def parse(str: String): Ast = scriptParser.from(str)
   def parseFile(filename: String): Ast = scriptParser.fromFile(filename)
+
+  // parse ES modules
+  lazy val moduleParser: AstFrom = spec.moduleParser
+  def parseModule(str: String): Ast = moduleParser.from(str)
+  def parseModuleFile(filename: String): Ast = moduleParser.fromFile(filename)
 
   // ---------------------------------------------------------------------------
   // interpreter helpers
@@ -51,11 +63,19 @@ object ESTest {
     checkAfter: List[NormalInst] = Nil,
     filename: Option[String] = None,
   ): State =
-    new CheckAfter(cfg.init.from(str), checkAfter).result
+    val (ast, code) = cfg.scriptParser.fromWithCode(str)
+    new CheckAfter(cfg.init.from(code, ast, filename), checkAfter).result
   def evalFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,
   ): State = eval(readFile(filename), checkAfter, Some(filename))
+
+  // eval ES modules
+  def evalModuleFile(
+    filename: String,
+    checkAfter: List[NormalInst] = Nil,
+  ): State =
+    new CheckAfter(cfg.init.fromModuleFile(filename), checkAfter).result
 
   // ---------------------------------------------------------------------------
   // analyzer helpers
@@ -76,6 +96,12 @@ object ESTest {
     ast
   def parseTest(str: String): Ast = parseTest(parse(str))
   def parseFileTest(filename: String): Ast = parseTest(parseFile(filename))
+  def parseModuleTest(ast: Ast): Ast =
+    val newAst = parseModule(ast.toString(grammar = Some(grammar)))
+    assert(ast == newAst)
+    ast
+  def parseModuleFileTest(filename: String): Ast =
+    parseModuleTest(parseModuleFile(filename))
 
   // tests for ES interpreter
   def checkExit(st: State): st.type = st(GLOBAL_RESULT) match

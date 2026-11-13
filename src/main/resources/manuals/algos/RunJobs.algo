@@ -5,16 +5,35 @@
     1. Perform ? InitializeHostDefinedRealm().
     1. Let _scriptEvaluationJob_ be a new Abstract Closure with no parameters that captures nothing and performs the following steps when called:
       1. Let _sourceText_ be the source code of a script.
-      1. Let _script_ be ParseScript(_sourceText_, the current Realm Record, ~empty~).
+      1. Let _scriptPath_ be the path of the script.
+      1. Let _script_ be ParseScript(_sourceText_, the current Realm Record, _scriptPath_).
       1. Perform ? ScriptEvaluation(_script_).
       1. Return *undefined*.
     1. Perform HostEnqueuePromiseJob(_scriptEvaluationJob_, the current Realm Record).
+    1. Let _mainModule_ be the path of the main module.
+    1. Let _mainCapability_ be ~empty~.
+    1. If _mainModule_ is not *undefined*, then
+      1. Set _mainCapability_ to ! NewPromiseCapability(%Promise%).
+      1. Let _moduleEvaluationJob_ be a new Abstract Closure with no parameters that captures _mainModule_ and _mainCapability_ and performs the following steps when called:
+        1. Let _moduleRequest_ be a new ModuleRequest Record { [[Specifier]]: _mainModule_, [[Attributes]]: « » }.
+        1. Perform HostLoadImportedModule(the current Realm Record, _moduleRequest_, ~empty~, _mainCapability_).
+        1. Return *undefined*.
+      1. Perform HostEnqueuePromiseJob(_moduleEvaluationJob_, the current Realm Record).
     1. Let _errors_ be *undefined*.
     1. Repeat,
       1. Suspend the running execution context and remove it from the execution context stack.
       1. Assert: The execution context stack is empty.
       1. Let _nextQueue_ be a non-empty Job Queue chosen in an implementation-defined manner.
-      1. If all Job Queues are empty, the result is implementation-defined.
+      1. If all Job Queues are empty, then
+        1. If _mainCapability_ is not ~empty~, then
+          1. Let _promise_ be _mainCapability_.[[Promise]].
+          1. If _promise_.[[PromiseState]] is ~rejected~, then
+            1. If _errors_ is *undefined*, set _errors_ to « _promise_.[[PromiseResult]] ».
+            1. Otherwise, append _promise_.[[PromiseResult]] to _errors_.
+          1. Else if _promise_.[[PromiseState]] is ~pending~, then
+            1. If _errors_ is *undefined*, set _errors_ to « *"pending main module"* ».
+            1. Otherwise, append *"pending main module"* to _errors_.
+        1. Return _errors_.
       1. Let _nextPending_ be the PendingJob record at the front of _nextQueue_. Remove that record from _nextQueue_.
       1. Let _newContext_ be a new execution context.
       1. Set _newContext_'s Function to *null*.

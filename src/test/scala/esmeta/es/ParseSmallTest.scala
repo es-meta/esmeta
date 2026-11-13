@@ -16,6 +16,11 @@ class ParseSmallTest extends ESTest {
         val name = file.toString
         ESTest.parseFileTest(name)
       }
+      else if (mjsFilter(filename) && !ESTest.isFixture(filename))
+        check(filename) {
+          val name = file.toString
+          ESTest.parseModuleFileTest(name)
+        }
     }
   }
 

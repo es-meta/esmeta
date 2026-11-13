@@ -1,0 +1,12 @@
+@main def main() = {
+  let base = "/a/b/c.mjs"
+
+  // relative paths are resolved against the directory of the base file
+  assert (= (resolve-path base "./d.mjs") "/a/b/d.mjs")
+  assert (= (resolve-path base "d.mjs") "/a/b/d.mjs")
+  assert (= (resolve-path base "../e/./f.mjs") "/a/e/f.mjs")
+
+  // absolute paths are only normalized
+  assert (= (resolve-path base "/x/../y.mjs") "/y.mjs")
+  assert (= (resolve-path undefined "/x/./y.mjs") "/x/y.mjs")
+}

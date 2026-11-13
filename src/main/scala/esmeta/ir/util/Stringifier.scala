@@ -184,6 +184,10 @@ class Stringifier(detail: Boolean, location: Boolean) {
         app >> "(debug " >> expr >> ")"
       case expr: ERandom =>
         randRule(app, expr)
+      case EResolvePath(base, path) =>
+        app >> "(resolve-path " >> base >> " " >> path >> ")"
+      case EReadFile(path) =>
+        app >> "(read-file " >> path >> ")"
       case expr: AstExpr =>
         astExprRule(app, expr)
       case expr: AllocExpr =>

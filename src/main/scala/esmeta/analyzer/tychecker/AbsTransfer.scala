@@ -706,6 +706,15 @@ trait AbsTransferDecl { analyzer: TyChecker =>
           _ = debug(s"[[ $expr @ $np ]]($st) = $v")
         } yield v
       case ERandom() => pure(NumberTop)
+      case EResolvePath(base, path) =>
+        for {
+          _ <- transfer(base)
+          _ <- transfer(path)
+        } yield StrTop
+      case EReadFile(path) =>
+        for {
+          _ <- transfer(path)
+        } yield AbsValue(StrT || UndefT)
       case ESyntactic(name, _, rhsIdx, _) =>
         pure(AbsValue(AstT(name, rhsIdx)))
       case ELexical(name, expr) => pure(AbsValue(AstT))
