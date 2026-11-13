@@ -11,8 +11,11 @@
 # If any step fails, the script stops WITHOUT rolling anything back, and tells
 # you what has been done and what is left to do by hand.
 #
-# All development happens on `main`, and a release is the "Update version"
-# commit on `main` with the tag v<semver>.
+# All development happens on `main`, which accepts changes only through pull
+# requests. The release commits (.mailmap and the version bump) are made on the
+# branch release/v<semver>, merged by a pull request, and the resulting commit
+# on `main` gets the tag v<semver>. With the GitHub CLI (`gh`) logged in, the
+# script opens and merges that pull request itself, asking first each time.
 #
 # Usage: scripts/release <semver>          e.g. scripts/release 0.9.0
 # ==============================================================================
@@ -136,11 +139,18 @@ manual_from() { # manual_from <first-step-still-to-do>
   rule
   say "${BOLD}Remaining work${NC}"
   rule
-  [ "$from" -le 1 ] && say "  1. Update \`main\`:  git switch main && git pull --ff-only origin main"
+  [ "$from" -le 1 ] && say "  1. Update \`main\` and branch off:  git switch main && git pull --ff-only origin main && git switch -c $BRANCH"
   [ "$from" -le 2 ] && say "  2. Check that CI is green: https://github.com/es-meta/esmeta/actions"
-  [ "$from" -le 3 ] && say "  3. Update .mailmap for new contributors, then commit it."
-  [ "$from" -le 4 ] && say "  4. Set the version to $VERSION in build.sbt and src/main/scala/esmeta/package.scala, run \`sbt release\` and \`sbt test\`, then commit."
-  [ "$from" -le 5 ] && say "  5. Push and tag:  git push origin main && git tag $TAG_NAME && git push origin $TAG_NAME"
+  [ "$from" -le 3 ] && say "  3. Update .mailmap for new contributors, then commit it on $BRANCH."
+  [ "$from" -le 4 ] && say "  4. Set the version to $VERSION in build.sbt and src/main/scala/esmeta/package.scala, run \`sbt release\` and \`sbt test\`, then commit on $BRANCH."
+  [ "$from" -le 5 ] && {
+    say "  5. Push $BRANCH, open a pull request, and squash-merge it once CI passes:"
+    say "       git push -u origin $BRANCH"
+    say "       https://github.com/$REPO/compare/main...$BRANCH?expand=1"
+    say "     Then tag the merged commit:"
+    say "       git switch main && git pull --ff-only origin main"
+    say "       git diff --quiet $BRANCH main && git tag $TAG_NAME main && git push origin $TAG_NAME"
+  }
   [ "$from" -le 6 ] && say "  6. Publish the ScalaDoc:  sbt ghpagesPushSite"
   manual_tail
 }
@@ -203,6 +213,8 @@ TAG_NAME="v$VERSION"
 # multi-digit components (0.10.0) are accepted.
 SEM_VER='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
 TAG_COMMIT="<commit of $TAG_NAME>"
+BRANCH="release/$TAG_NAME"
+REPO="es-meta/esmeta"
 
 say "${BOLD}ESMeta release $TAG_NAME${NC}"
 say ""
@@ -240,6 +252,21 @@ if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
 fi
 ok "$TAG_NAME does not exist yet"
 
+if git rev-parse --verify --quiet "refs/heads/$BRANCH" >/dev/null ||
+  git rev-parse --verify --quiet "refs/remotes/origin/$BRANCH" >/dev/null; then
+  err "Branch $BRANCH already exists (locally or on origin)."
+  exit 1
+fi
+ok "$BRANCH does not exist yet"
+
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  HAS_GH=1
+  ok "gh is logged in; step 5 can open and merge the pull request"
+else
+  HAS_GH=0
+  warn "gh is not available or not logged in; step 5 will ask you to open and merge the pull request yourself"
+fi
+
 git update-index --refresh >/dev/null 2>&1
 if [ -n "$(git status --porcelain)" ]; then
   err "The working tree is not clean. Please commit or stash these first:"
@@ -259,13 +286,21 @@ fi
 # ------------------------------------------------------------------------------
 # 1. update main
 # ------------------------------------------------------------------------------
-begin 1 "Update \`main\`"
-say "The release is cut from \`main\`. Switches to \`main\` and pulls it."
+begin 1 "Update \`main\` and create $BRANCH"
+say "The release is cut from \`main\`. Switches to \`main\`, pulls it, and"
+say "creates the branch $BRANCH, where steps 3 and 4 commit."
 if confirm; then
   run "switching to main" git switch main
   run "pulling main" git pull --ff-only origin main
+  run "creating $BRANCH" git switch -c "$BRANCH"
   finish
 fi
+
+# Steps 3 and 4 commit, and must do so on the release branch, never on `main`.
+require_branch() {
+  [ "$(git rev-parse --abbrev-ref HEAD)" = "$BRANCH" ] ||
+    abort "Not on $BRANCH (on $(git rev-parse --abbrev-ref HEAD)). Run step 1, or create the branch by hand."
+}
 
 # ------------------------------------------------------------------------------
 # 2. check CI
@@ -303,6 +338,7 @@ say ""
 say "If any name or address above is missing from .mailmap, edit it now in"
 say "another terminal. This step commits .mailmap if you changed it."
 if confirm; then
+  require_branch
   if [ -n "$(git status --porcelain .mailmap)" ]; then
     run "staging .mailmap" git add .mailmap
     run "committing .mailmap" git commit -m "Update .mailmap"
@@ -324,6 +360,7 @@ say "Then runs \`sbt release\` (format, assembly, and .completion) and \`sbt tes
 say "\`sbt release\` regenerates .completion, which is tracked, so it is committed too."
 say "This takes several minutes."
 if confirm; then
+  require_branch
   if [ "$(uname)" = "Darwin" ]; then SED_INPLACE=(-i '') ; else SED_INPLACE=(-i) ; fi
 
   run "updating build.sbt" \
@@ -380,19 +417,96 @@ if confirm; then
 fi
 
 # ------------------------------------------------------------------------------
-# 5. push and tag
+# 5. merge the release branch by a pull request, then tag
 # ------------------------------------------------------------------------------
-begin 5 "Push \`main\`, then create the tag $TAG_NAME"
+# ask_yn <question>: Enter or y -> 0, anything else -> 1
+ask_yn() {
+  local ans
+  printf "${CYAN}$1 [Y/n] ${NC}"
+  read -r ans
+  case "$ans" in "" | y | Y) return 0 ;; *) return 1 ;; esac
+}
+
+begin 5 "Merge $BRANCH by a pull request, then tag $TAG_NAME"
 say "${YELLOW}This is the first step that changes the remote repository.${NC}"
-say "It pushes \`main\` to origin/main ($(git rev-parse --short main))"
-say "and creates the tag $TAG_NAME on \`main\`."
+say "\`main\` accepts changes only through pull requests, so this"
+say "  - pushes $BRANCH ($(git rev-parse --short "$BRANCH" 2>/dev/null)),"
+say "  - opens a pull request and squash-merges it once its checks pass"
+say "    (asking before each; without \`gh\`, you do these on GitHub), and"
+say "  - tags the merged commit on \`main\` as $TAG_NAME and pushes the tag."
 if confirm; then
-  run "pushing main" git push origin main
-  ok "pushed main"
+  git rev-parse --verify --quiet "refs/heads/$BRANCH" >/dev/null ||
+    abort "Branch $BRANCH does not exist. Run steps 1-4 first."
+  run "pushing $BRANCH" git push -u origin "$BRANCH"
+  ok "pushed $BRANCH"
+
+  COMPARE_URL="https://github.com/$REPO/compare/main...$BRANCH?expand=1"
+  PR_OPEN=0
+  if [ "$HAS_GH" = 1 ] && ask_yn "Open the pull request \"Update version to $TAG_NAME\" with gh?"; then
+    PR_BODY="Release $TAG_NAME: updates the version"
+    [ -n "$(git diff --name-only "main...$BRANCH" -- .mailmap)" ] && PR_BODY="$PR_BODY and \`.mailmap\`"
+    PR_BODY="$PR_BODY.
+
+Contributors since $PREV_TAG (\`git shortlog -sn --no-merges $PREV_TAG..$BRANCH\`):
+\`\`\`
+$(git --no-pager shortlog -sn --no-merges "$PREV_TAG..$BRANCH" 2>/dev/null)
+\`\`\`
+
+Opened by \`scripts/release\`."
+    run "opening the pull request" gh pr create --repo "$REPO" --base main \
+      --head "$BRANCH" --title "Update version to $TAG_NAME" --body "$PR_BODY"
+    ok "opened $(gh pr view "$BRANCH" --repo "$REPO" --json url -q .url 2>/dev/null)"
+    PR_OPEN=1
+  else
+    say "Open the pull request yourself:"
+    say "  $COMPARE_URL"
+  fi
+
+  MERGED=0
+  if [ "$PR_OPEN" = 1 ] && ask_yn "Wait for the checks, then squash-merge it with gh?"; then
+    # Checks take a moment to be reported on a new pull request.
+    for _ in $(seq 30); do
+      gh pr checks "$BRANCH" --repo "$REPO" 2>&1 | grep -q "no checks reported" || break
+      sleep 10
+    done
+    say "  \$ gh pr checks $BRANCH --watch"
+    gh pr checks "$BRANCH" --repo "$REPO" --watch --interval 30 ||
+      abort "Some checks of the pull request failed. Fix them on $BRANCH, merge it, and tag by hand."
+    ok "checks passed"
+    run "merging the pull request" gh pr merge "$BRANCH" --repo "$REPO" --squash
+    ok "merged"
+    MERGED=1
+  fi
+
+  if [ "$MERGED" = 0 ]; then
+    say "Merge the pull request on GitHub (squash), then come back here."
+    while true; do
+      ask_yn "Has it been merged?" || { say ""; warn "Stopped before tagging."; summary; manual_from 5; exit 0; }
+      if [ "$HAS_GH" = 1 ] &&
+        [ "$(gh pr view "$BRANCH" --repo "$REPO" --json state -q .state 2>/dev/null)" != "MERGED" ]; then
+        warn "GitHub does not report it as merged yet."
+        continue
+      fi
+      break
+    done
+  fi
+
+  # The squash merge makes a new commit, so compare contents, not commits:
+  # the tag must land on a commit of `main` identical to the release branch.
+  run "switching to main" git switch main
+  run "pulling main" git pull --ff-only origin main
+  git diff --quiet "$BRANCH" main ||
+    abort "\`main\` differs from $BRANCH (another pull request merged in between?). Check \`git diff $BRANCH main\` and tag the release commit by hand."
+  ok "\`main\` ($(git rev-parse --short main)) matches $BRANCH"
+
   run "creating the tag" git tag "$TAG_NAME" main
   run "pushing the tag" git push origin "$TAG_NAME"
   ok "pushed $TAG_NAME"
   TAG_COMMIT="$(git rev-parse "$TAG_NAME")"
+
+  # The branch is merged (as a squash), so it is no longer needed.
+  git branch -D "$BRANCH" >>"$LOG" 2>&1 && ok "deleted the local branch $BRANCH"
+  git push origin --delete "$BRANCH" >>"$LOG" 2>&1 && ok "deleted origin/$BRANCH"
   finish
 fi
 
