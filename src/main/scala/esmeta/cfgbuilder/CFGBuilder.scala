@@ -78,7 +78,10 @@ class CFGBuilder(
         val block = prev match
           case List((b: Block, _)) => b
           case _                   => val b = Block(nextNId); connect(b); b
-        block.insts += normal
+        // instructions after a return are unreachable
+        // (not `endsWithReturn`: it is a lazy val and would be cached too early)
+        if (!block.insts.lastOption.exists(_.isInstanceOf[IReturn]))
+          block.insts += normal
         prev = List((block, true))
       case ISeq(insts) => for { i <- insts } aux(i)
       case branch: BranchInst =>

@@ -1,0 +1,12 @@
+def f(x: Boolean) = {
+  if x {
+    return 1
+    nop
+  }
+  return 2
+}
+
+@main def main() = {
+  call r = clo<"f">(true)
+  assert (= r 1)
+}
