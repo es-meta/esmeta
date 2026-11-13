@@ -87,6 +87,7 @@ object ESMeta extends Git(BASE_DIR) {
     CmdDumpVisualizer,
     // ECMA-262 GitHub Actions
     CmdYetCheck,
+    CmdCountYets,
     // Polyfill Generator
     CmdGenPoly,
   )

@@ -227,6 +227,20 @@ case object CmdYetCheck extends Command("yet-check", CmdBase >> YetCheck) {
   }
 }
 
+/** `count-yets` command */
+case object CmdCountYets extends Command("count-yets", CmdBase >> CountYets) {
+  val help = "counts unparsed (yet) steps in all algorithms of ECMA-262."
+  val examples = List(
+    "esmeta count-yets es2025 es2026      # count for editions.",
+    "esmeta count-yets main pr:3966       # count for main and a pull request.",
+    "esmeta count-yets -count-yets:targets=targets.txt",
+  )
+  override val targetName = "<rev | label=rev | pr:N>*"
+  override val needTarget = false
+  override def showResult(res: List[esmeta.opcount.CountYets.Result]): Unit =
+    println(s"Counted ${res.size} specifications.")
+}
+
 // -----------------------------------------------------------------------------
 // Polyfill Generator
 // -----------------------------------------------------------------------------
