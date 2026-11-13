@@ -94,7 +94,8 @@ class OpCounter extends UnitWalker {
           case Sub => add("subtract")
           case Mul => add("multiply")
           case Pow => add("exponentiate")
-          case _   => add(s"math:$op")
+          case _   =>
+            esmeta.es.util.PolyfillGenerator.mathFuncHook(op).foreach(add(_))
       case BitwiseExpression(_, op, _) =>
         import BitwiseExpressionOperator.*
         add(op match
@@ -116,7 +117,7 @@ class OpCounter extends UnitWalker {
           case Sub => "subtract"
           case Mul => "multiply"
           case Div => "divide"
-          case Mod => "remainder",
+          case Mod => "modulo",
         )
       case UnaryExpression(_, _) => add("negate")
       case _ =>

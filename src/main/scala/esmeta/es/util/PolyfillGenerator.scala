@@ -13,6 +13,33 @@ import scala.collection.mutable
 
 /** polyfill generator */
 object PolyfillGenerator {
+  /** hook names of the Math function operators of `MathOpExpression` */
+  def mathFuncHook(op: MathOpExpressionOperator): Option[String] =
+    import MathOpExpressionOperator.*
+    op match
+      case Expm1  => Some("expm1")
+      case Log10  => Some("log10")
+      case Log2   => Some("log2")
+      case Cos    => Some("cos")
+      case Cbrt   => Some("cbrt")
+      case Exp    => Some("exp")
+      case Cosh   => Some("cosh")
+      case Sinh   => Some("sinh")
+      case Tanh   => Some("tanh")
+      case Acos   => Some("acos")
+      case Acosh  => Some("acosh")
+      case Asinh  => Some("asinh")
+      case Atanh  => Some("atanh")
+      case Asin   => Some("asin")
+      case Atan2  => Some("atan2")
+      case Atan   => Some("atan")
+      case Log1p  => Some("log1p")
+      case Log    => Some("log")
+      case Sin    => Some("sin")
+      case Sqrt   => Some("sqrt")
+      case Tan    => Some("tan")
+      case Neg | Add | Sub | Mul | Pow => None
+
   def apply(spec: Spec, dslDir: Option[String]): List[Polyfill] =
     new PolyfillGenerator(spec, dslDir).result
 
@@ -564,7 +591,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     // "the code unit whose numeric value is X": X is a number; the code unit is
     // the one-unit String for it (the lifted X stays its operand)
     case ConversionExpression(ConversionExpressionOperator.ToCodeUnit, expr, _) =>
-      s"((cu: Lifted<unknown>) => ${RUNTIME}.default<string>(String.fromCharCode(${RUNTIME}.value(cu) as number), [cu]))(${compile(pb, expr)})"
+      s"${RUNTIME}.fromCodeUnit((${compile(pb, expr)} as Lifted<number>))"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
       s"${RUNTIME}.exponentiate(${compile(pb, base)}, ${compile(pb, power)})"
@@ -587,6 +614,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case (Sub, List(l, r)) => s"${RUNTIME}.subtract(${n(l)}, ${n(r)})"
         case (Pow, List(l, r)) =>
           s"${RUNTIME}.exponentiate(${n(l)}, ${n(r)})"
+        // Math functions: one hook each, named after the operator
+        case (Atan2, List(y, x)) => s"${RUNTIME}.atan2(${n(y)}, ${n(x)})"
+        case (op, List(e)) if PolyfillGenerator.mathFuncHook(op).isDefined =>
+          s"${RUNTIME}.${PolyfillGenerator.mathFuncHook(op).get}(${n(e)})"
         case _ => ???
     case BitwiseExpression(l, op, r) =>
       s"${RUNTIME}.${compile(op)}(${compile(pb, l)}, ${compile(pb, r)})"
@@ -637,7 +668,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       case Sub => "subtract"
       case Mul => "multiply"
       case Div => "divide"
-      case Mod => "remainder"
+      case Mod => "modulo"
     }
 
   /** compile unary operators */

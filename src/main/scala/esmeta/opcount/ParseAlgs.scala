@@ -89,7 +89,9 @@ object ParseAlgs {
         case _: NumberOfExpression => b("NumberOf(non-ref)")
         case MathOpExpression(op, args) =>
           import MathOpExpressionOperator.*
-          if (!Set(Neg, Add, Mul, Sub, Pow)(op)) b(s"MathOp:$op")
+          if (!Set(Neg, Add, Mul, Sub, Pow)(op) &&
+              esmeta.es.util.PolyfillGenerator.mathFuncHook(op).isEmpty)
+            b(s"MathOp:$op")
         case _: SoleElementExpression => b("SoleElement")
         case _: MetaExpression => b("Meta")
         case InvokeAbstractOperationExpression("Type", _, _) => b("AO:Type")
