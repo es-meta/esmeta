@@ -193,12 +193,4 @@ esmeta gen-poly -gen-poly:target='Array.prototype.*'
 
 ## Publications
 
-- **[ASE 2026] [MiniPoly: Automatic Extraction of Efficient JavaScript Polyfill from Language Specification](https://doi.org/10.1145/3832783.3837549)** 🏆 _ACM SIGSOFT Distinguished Paper Award_
-- **[TOSEM 2026] [Selective Feature-Sensitive Coverage for Conformance Testing of Programming Languages](https://doi.org/10.1145/3808231)**
-- **[FSE 2025 Demo] [JSSpecVis: A JavaScript Language Specification Visualization Tool](https://doi.org/10.1145/3696630.3728579)**
-- **[CACM 2024] [JavaScript Language Design and Implementation in Tandem](https://doi.org/10.1145/3624723)**
-- **[PLDI 2023] [Feature-Sensitive Coverage for Conformance Testing of Programming Language Implementations](https://doi.org/10.1145/3591240)**
-- **[ESEC/FSE 2022] [Automatically Deriving JavaScript Static Analyzers from Specifications using Meta-Level Static Analysis](https://doi.org/10.1145/3540250.3549097)**
-- **[ASE 2021] [JSTAR: JavaScript Specification Type Analyzer using Refinement](https://doi.org/10.1109/ASE51524.2021.9678781)**
-- **[ICSE 2021] [JEST: N+1-version Differential Testing of Both JavaScript Engines and Specification](https://doi.org/10.1109/ICSE43902.2021.00015)** 🏆 _ACM SIGSOFT Distinguished Paper Award_
-- **[ASE 2020] [JISET: JavaScript IR-based Semantics Extraction Toolchain](https://doi.org/10.1145/3324884.3416632)**
+See the [ESMeta website](https://es-meta.github.io/#publications) for the list of publications.
