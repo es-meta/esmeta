@@ -264,6 +264,14 @@ object LangTest {
       None,
       HtmlTag.None,
     )
+  lazy val invokeSDOExprContainsResult =
+    InvokeSyntaxDirectedOperationExpression(
+      nt,
+      "Contains",
+      List(refExpr),
+      Some("the result of"),
+      HtmlTag.None,
+    )
   lazy val riaCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, T)
   lazy val riaNoCheckExpr = ReturnIfAbruptExpression(invokeAOExpr, F)
   lazy val emptyListExpr = ListExpression(
@@ -503,7 +511,20 @@ object LangTest {
     )
   lazy val hasBindingCond = HasBindingCondition(x, F, refExpr)
   lazy val noHasBindingCond = HasBindingCondition(x, T, refExpr)
-  lazy val prodCond = ProductionCondition(nt, "Identifier", "Identifier")
+  lazy val prodCond =
+    ProductionCondition(nt, "Identifier", List("Identifier"), F)
+  lazy val multiSymbolProdCond = ProductionCondition(
+    refExpr,
+    "ExportDeclaration",
+    List("`export`", "VariableStatement"),
+    F,
+  )
+  lazy val inlineProdCond = ProductionCondition(
+    NonterminalLiteral(None, "ExportDeclaration", Nil, false),
+    "ExportDeclaration",
+    List("`export`", "VariableStatement"),
+    T,
+  )
   lazy val finiteCond =
     PredicateCondition(List(refExpr), F, PredicateConditionOperator.Finite)
   lazy val finitePluralCond = PredicateCondition(
@@ -591,18 +612,24 @@ object LangTest {
   lazy val notInclusiveIntervalCond =
     inclusiveIntervalCond.copy(negation = T)
   lazy val containsCond =
-    ContainsCondition(refExpr, F, ContainsConditionTarget.Expr(refExpr))
+    ContainsCondition(refExpr, F, ContainsConditionTarget.Expr(refExpr), F)
   lazy val notContainsCond =
-    ContainsCondition(refExpr, T, ContainsConditionTarget.Expr(refExpr))
+    ContainsCondition(refExpr, T, ContainsConditionTarget.Expr(refExpr), F)
+  lazy val includeElementCond =
+    ContainsCondition(refExpr, F, ContainsConditionTarget.Expr(refExpr), T)
+  lazy val notIncludeElementCond =
+    ContainsCondition(refExpr, T, ContainsConditionTarget.Expr(refExpr), T)
   lazy val containsWhoseFieldCond = ContainsCondition(
     refExpr,
     F,
     ContainsConditionTarget.WhoseField(Some(ty), "Field", refExpr),
+    F,
   )
   lazy val containsSuchThatCond = ContainsCondition(
     refExpr,
     F,
     ContainsConditionTarget.SuchThat(Some(ty), x, isCond),
+    F,
   )
   lazy val compCond =
     CompoundCondition(exprCond, CompoundConditionOperator.And, exprCond)

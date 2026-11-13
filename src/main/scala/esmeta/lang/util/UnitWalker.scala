@@ -266,8 +266,8 @@ trait UnitWalker extends BasicUnitWalker {
       walkOpt(tyOpt, walk)
     case HasBindingCondition(ref, neg, binding) =>
       walk(ref); walk(neg); walk(binding)
-    case ProductionCondition(nt, lhs, rhs) =>
-      walk(nt); walk(lhs); walk(rhs)
+    case ProductionCondition(nt, lhs, rhs, isInlineForm) =>
+      walk(nt); walk(lhs); walkList(rhs, walk); walk(isInlineForm)
     case PredicateCondition(exprs, neg, op) =>
       walkList(exprs, walk); walk(neg); walk(op)
     case IsAreCondition(ls, neg, rs) =>
@@ -276,8 +276,8 @@ trait UnitWalker extends BasicUnitWalker {
       walk(left); walk(op); walk(right)
     case InclusiveIntervalCondition(left, neg, from, to, verbose) =>
       walk(left); walk(neg); walk(from); walk(to); walk(verbose)
-    case ContainsCondition(list, neg, target) =>
-      walk(list); walk(neg); walk(target)
+    case ContainsCondition(list, neg, target, isIncludeForm) =>
+      walk(list); walk(neg); walk(target); walk(isIncludeForm)
     case CompoundCondition(left, op, right) =>
       walk(left); walk(op); walk(right)
     case MetaCondition(_, _) =>

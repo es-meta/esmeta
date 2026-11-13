@@ -42,11 +42,15 @@ case class HasBindingCondition(
 
 // production condition such as
 // `|Declaration| is <emu-grammar>Declaration: HoistableDeclaration</emu-grammar>`
+// or `|ExportDeclaration| is `export` |VariableStatement|` (inline form)
+// where `rhs` is the list of symbols in the right-hand side (e.g., "`export`"
+// for terminals and "VariableStatement" for nonterminals)
 // XXX use production literal?
 case class ProductionCondition(
   ntLiteral: Expression,
   lhsName: String,
-  rhsName: String,
+  rhs: List[String],
+  isInlineForm: Boolean,
 ) extends Condition
 
 // predicate condition
@@ -89,10 +93,12 @@ case class InclusiveIntervalCondition(
 ) extends Condition
 
 // `contains` conditions
+// or `includes the element` conditions (include form)
 case class ContainsCondition(
   list: Expression,
   negation: Boolean,
   target: ContainsConditionTarget,
+  isIncludeForm: Boolean,
 ) extends Condition
 enum ContainsConditionTarget extends LangElem:
   case Expr(expr: Expression)

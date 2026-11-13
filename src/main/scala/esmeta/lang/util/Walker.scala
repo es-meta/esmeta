@@ -324,8 +324,8 @@ trait Walker extends BasicWalker {
       )
     case HasBindingCondition(ref, has, binding) =>
       HasBindingCondition(walk(ref), walk(has), walk(binding))
-    case ProductionCondition(nt, lhs, rhs) =>
-      ProductionCondition(walk(nt), lhs, rhs)
+    case ProductionCondition(nt, lhs, rhs, isInlineForm) =>
+      ProductionCondition(walk(nt), lhs, rhs, walk(isInlineForm))
     case PredicateCondition(exprs, neg, op) =>
       PredicateCondition(walkList(exprs, walk), neg, walk(op))
     case IsAreCondition(ls, neg, rs) =>
@@ -340,8 +340,13 @@ trait Walker extends BasicWalker {
         walk(to),
         walk(verbose),
       )
-    case ContainsCondition(list, neg, target) =>
-      ContainsCondition(walk(list), walk(neg), walk(target))
+    case ContainsCondition(list, neg, target, isIncludeForm) =>
+      ContainsCondition(
+        walk(list),
+        walk(neg),
+        walk(target),
+        walk(isIncludeForm),
+      )
     case CompoundCondition(left, op, right) =>
       CompoundCondition(walk(left), walk(op), walk(right))
     case MetaCondition(name, v) => MetaCondition(name, v)
