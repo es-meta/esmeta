@@ -1,7 +1,6 @@
 [![test](https://github.com/es-meta/esmeta/actions/workflows/ci.yml/badge.svg)](https://github.com/es-meta/esmeta/actions)
 [![license](https://badgen.net/github/license/es-meta/esmeta)](https://github.com/es-meta/esmeta/blob/main/LICENSE.md)
 [![release](https://badgen.net/github/release/es-meta/esmeta)](https://github.com/es-meta/esmeta/releases)
-[![site](https://badgen.net/badge/site/jekyll/blue)](https://es-meta.github.io/)
 
 # ESMeta
 
