@@ -59,13 +59,6 @@ case class TestFilter(spec: Spec) {
       test.flags.contains("noStrict") ||
       test.flags.contains("raw"),
     ),
-    // tests for modules
-    Module -> ((test: Test) =>
-      test.flags.contains("module") ||
-      test.relName.startsWith("language/module-code/") ||
-      test.relName.startsWith("language/import/") ||
-      test.relName.startsWith("language/expressions/import.meta/"),
-    ),
     // fixtures
     Fixture -> ((test: Test) => removedExt(test.relName).endsWith("_FIXTURE")),
     // tests for language features not supported in ESMeta

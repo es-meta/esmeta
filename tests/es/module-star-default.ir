@@ -1,0 +1,2 @@
+assert (= @REALM.GlobalObject.__MAP__.keys.Value "named")
+assert (= @REALM.GlobalObject.__MAP__.error.Value "SyntaxError")

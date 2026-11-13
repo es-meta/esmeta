@@ -21,6 +21,9 @@ case class Test(
   /** absolute path */
   lazy val absPath = getAbsPath(path)
 
+  /** whether the test is interpreted as module code */
+  lazy val isModule: Boolean = flags.contains("module")
+
   /** relative path based on TEST262_TEST_DIR */
   lazy val relName =
     if (absPath.startsWith(TEST262_TEST_DIR))
