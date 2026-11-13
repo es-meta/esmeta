@@ -33,6 +33,7 @@
   "print.ir" : true,
   "push.ir" : true,
   "ref.ir" : true,
+  "return-dead.ir" : true,
   "return.ir" : true,
   "str-concat.ir" : true,
   "substring.ir" : true,
