@@ -1561,6 +1561,7 @@ INTRINSICS.TypedArray.prototype.map
 INTRINSICS.TypedArray.prototype.reduce
 INTRINSICS.TypedArray.prototype.reduceRight
 INTRINSICS.TypedArray.prototype.reverse
+INTRINSICS.TypedArray.prototype.set
 INTRINSICS.TypedArray.prototype.slice
 INTRINSICS.TypedArray.prototype.some
 INTRINSICS.TypedArray.prototype.sort

@@ -140,10 +140,10 @@ class ContainsTinyTest extends TyTest {
     )
 
     checkContains("math values")(
-      MathT -> Math(52.24),
-      MathT(52.24) -> Math(52.24),
+      MathT -> Math("52.24"),
+      MathT(52.24) -> Math("52.24"),
     ).neg(
-      MathT(52.24) -> Math(1.5),
+      MathT(52.24) -> Math("1.5"),
     )
 
     checkContains("enum values")(

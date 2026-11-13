@@ -12,7 +12,6 @@
     "_F_ is an extensible object that does not have a *\"length\"* own property": "(&& F.Extensible (! (exists F.__MAP__.length)))",
     "_F_ is an extensible object that does not have a *\"name\"* own property": "(&& F.Extensible (! (exists F.__MAP__.name)))",
     "_F_ is an extensible object that does not have a *\"prototype\"* own property": "(&& F.Extensible (! (exists F.__MAP__.prototype)))",
-    "_O_ is an Object that has a [[SyncIteratorRecord]] internal slot": "(&& (? O: Record[Object]) (exists O.SyncIteratorRecord))",
     "_O_ is an ordinary, extensible object with no non-configurable properties": "(&& (? O: Record[OrdinaryObject]) O.Extensible)",
     "_Receiver_ does not currently have a property _P_": "(! (exists Receiver.__MAP__[P]))",
     "_base_ is finite and is neither *+0*<sub>𝔽</sub> nor *-0*<sub>𝔽</sub>": "(! (|| (= base 0.0f) (= base -0.0f)))",

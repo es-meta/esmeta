@@ -235,9 +235,15 @@ class Interpreter(
     case EYet(msg) =>
       throw NotSupported(Metalanguage)(msg)
     case EContains(list, elem) =>
-      val l = eval(list).asList(st)
+      val l = eval(list)
       val e = eval(elem)
-      Bool(l.values.contains(e))
+      val b = l match
+        case Str(s) =>
+          e match
+            case CodeUnit(c) => s.contains(c)
+            case _           => throw NoCodeUnit(e)
+        case _ => l.asList(st).values.contains(e)
+      Bool(b)
     case ESubstring(expr, from, to) =>
       val s = eval(expr).asStr
       val f = eval(from).asInt
@@ -384,7 +390,11 @@ class Interpreter(
       case (Nil, Nil) =>
       case (Param(lhs, ty, optional, _) :: pl, Nil) =>
         if (optional) aux(idx + 1, pl, Nil)
-        else RemainingParams(ps)
+        else
+          // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
+          callee match
+            case _: Cont =>
+            case _       => throw RemainingParams(ps)
       case (Nil, args) =>
         // XXX Handle GeneratorStart <-> GeneratorResume arith mismatch
         callee match
