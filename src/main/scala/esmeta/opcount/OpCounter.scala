@@ -131,6 +131,7 @@ class OpCounter extends UnitWalker {
           case "Get" | "GetV" => add("get")
           case "Set"          => add("set")
           case "Call"         => add("call")
+          case "Construct"    => add("construct")
           case _              =>
       case InvokeNumericMethodExpression(t, name, _) => calls += s"$t::$name"
       case _                                         =>
