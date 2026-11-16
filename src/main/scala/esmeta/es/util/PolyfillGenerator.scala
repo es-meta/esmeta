@@ -593,6 +593,22 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     // the one-unit String for it (the lifted X stays its operand)
     case ConversionExpression(ConversionExpressionOperator.ToCodeUnit, expr, _) =>
       s"${RUNTIME}.fromCodeUnit((${compile(pb, expr)} as Lifted<number>))"
+    // "the Number value for the numeric value of the code unit at index i within
+    // S" (String.prototype.charCodeAt): a code unit compiles to its one-unit
+    // String, so the Number needs the unit's numeric value. Only the conversion
+    // to a Number materializes it; a bare "numeric value of" (IsLessThan's
+    // code-unit comparison) stays a one-unit String, whose ordering matches.
+    case ConversionExpression(
+          ConversionExpressionOperator.ToNumber |
+          ConversionExpressionOperator.ToApproxNumber,
+          ConversionExpression(
+            ConversionExpressionOperator.ToMath,
+            cu: CodeUnitAtExpression,
+            _,
+          ),
+          _,
+        ) =>
+      s"((cu: Lifted<string>) => ${RUNTIME}.default<number>(${RUNTIME}.value(cu).charCodeAt(0), [cu]))(${compile(pb, cu)})"
     case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
       s"${RUNTIME}.exponentiate(${compile(pb, base)}, ${compile(pb, power)})"
