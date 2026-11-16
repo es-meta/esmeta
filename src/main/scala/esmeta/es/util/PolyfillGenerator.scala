@@ -501,8 +501,9 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case TrimExpression(expr, leading, trailing) =>
       s"${RUNTIME}.trim(${compile(pb, expr)}, $leading, $trailing)"
     case NumberOfExpression(_, _, ReferenceExpression(ref), _) =>
-      // a List's length is a value too — wrap it so it flows through the ops.
-      s"${RUNTIME}.default<number>(${compile(pb, ref)}.length, [])"
+      // A List's length goes through the same length hook as "the length of",
+      // which takes either a String or a List.
+      s"${RUNTIME}.length(${compile(pb, ref)})"
     case NumberOfExpression(_, _, expr, _) => ???
     case IntrinsicExpression(intr)         =>
       // An intrinsic referenced as a *value* (e.g. `%Object.prototype.toString%`)
