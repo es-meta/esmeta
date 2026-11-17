@@ -332,7 +332,13 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           s"${RUNTIME}.append(${compile(pb, ref)}, ${compile(pb, expr)})",
         ),
       )
-    case InsertStep(expr, ref) => ???
+    // "Insert x as the first element of L": the same List operation as prepend
+    case InsertStep(expr, ref) =>
+      pb.addStmt(
+        NormalStmt(
+          s"${RUNTIME}.prepend(${compile(pb, ref)}, ${compile(pb, expr)})",
+        ),
+      )
     case PrependStep(expr, ref) =>
       pb.addStmt(
         NormalStmt(
@@ -346,14 +352,21 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           s"${RUNTIME}.replace(${compile(pb, ref)}, ${compile(pb, oldElem)}, ${compile(pb, newElem)})",
         ),
       )
+    // every form of "Remove ... from L": the first/last element, the first/last
+    // n elements, or a given element
     case RemoveStep(t, p, l) =>
-      t match {
-        case RemoveStep.Target.First(None) =>
-          pb.addStmt(NormalStmt(s"${RUNTIME}.remove(${compile(pb, l)}, true)"))
-        case RemoveStep.Target.Last(None) =>
-          pb.addStmt(NormalStmt(s"${RUNTIME}.remove(${compile(pb, l)}, false)"))
-        case _ => ???
+      val list = compile(pb, l)
+      val call = t match {
+        case RemoveStep.Target.First(None) => s"${RUNTIME}.remove($list, \"first\")"
+        case RemoveStep.Target.Last(None)  => s"${RUNTIME}.remove($list, \"last\")"
+        case RemoveStep.Target.First(Some(n)) =>
+          s"${RUNTIME}.remove($list, \"first\", (${compile(pb, n)} as Lifted<number>))"
+        case RemoveStep.Target.Last(Some(n)) =>
+          s"${RUNTIME}.remove($list, \"last\", (${compile(pb, n)} as Lifted<number>))"
+        case RemoveStep.Target.Element(e) =>
+          s"${RUNTIME}.remove($list, \"element\", ${compile(pb, e)})"
       }
+      pb.addStmt(NormalStmt(call))
     case PushContextStep(ref)       => ???
     case SuspendStep(ref, rm)       => {}
     case RemoveContextStep(ctxt, t) => ???
@@ -593,15 +606,14 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     // the one-unit String for it (the lifted X stays its operand)
     case ConversionExpression(ConversionExpressionOperator.ToCodeUnit, expr, _) =>
       s"${RUNTIME}.fromCodeUnit((${compile(pb, expr)} as Lifted<number>))"
-    // "the numeric value of X" (ℝ in text form): X is a code unit, which
-    // compiles to its one-unit String, or a code point; the hook gives its
-    // number (String.prototype.charCodeAt, IsLessThan's code-unit comparison).
-    // An enclosing "the Number value for" (𝔽) stays the identity below.
-    case ConversionExpression(
-          ConversionExpressionOperator.ToMath,
-          expr,
-          _: ConversionExpressionForm.Text,
-        ) =>
+    // ℝ: "the numeric value of X" (text form) on a code unit, which compiles to
+    // its one-unit String, or a code point (String.prototype.charCodeAt,
+    // IsLessThan's code-unit comparison); ℝ(x) (symbol form) on a BigInt
+    // (BigInt::equal/lessThan, IsLessThan's BigInt-Number comparison). Whether
+    // x is a BigInt or a Number is known only at run time, so every ℝ goes
+    // through the hook, which returns a Number operand itself: ℝ of a Number is
+    // the identity on JS doubles. An enclosing 𝔽 stays the identity below.
+    case ConversionExpression(ConversionExpressionOperator.ToMath, expr, _) =>
       s"${RUNTIME}.numericValue(${compile(pb, expr)})"
     // ℤ(x): a mathematical value to a BigInt (a Number in the JS model)
     case ConversionExpression(ConversionExpressionOperator.ToBigInt, expr, _) =>
@@ -792,7 +804,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case Continue    => ???
         case NeverAbrupt => ???
         case Normal      => ???
-        case Duplicated  => ???
+        // no branch id for the List predicates below, as for `empty`: a new id
+        // would renumber every later branch
+        case Duplicated =>
+          (if (neg) s"!" else "") + s"${RUNTIME}.value(${RUNTIME}.hasDuplicates(${compile(pb, expr)}))"
         case Present => (if (neg) s"!" else "") + compile(pb, expr) + IS_PRESENT
         // A List "is empty" iff it has no elements (Lists compile to JS arrays).
         // no branch id: a List's emptiness is not a path constraint (and
@@ -800,7 +815,8 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case Empty =>
           (if (neg) s"!" else "") + s"${RUNTIME}.value(${RUNTIME}.isEmpty(${compile(pb, expr)}))"
         case StrictMode       => ???
-        case ArrayIndex       => ???
+        case ArrayIndex =>
+          (if (neg) s"!" else "") + s"${RUNTIME}.value(${RUNTIME}.isArrayIndex(${compile(pb, expr)}))"
         case FalseToken       => ???
         case TrueToken        => ???
         case DataProperty     => ???
@@ -871,7 +887,16 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       val c =
         s"${RUNTIME}.contains(${compile(pb, list)}, ${compile(pb, target)})"
       (if (neg) s"!" else "") + branchWithUnlift(pb, c)
-    case ContainsCondition(list, neg, _) => ???
+    // "L contains a Record whose [[F]] is e" / "... such that cond": no hook of
+    // its own; a loop over the List that tests each element with the existing
+    // ones (`is` on the field, or the compiled condition). No branch id, so the
+    // later branches keep their numbers.
+    case ContainsCondition(list, neg, ContainsConditionTarget.WhoseField(_, f, e)) =>
+      val c = s"${compile(pb, list)}.some((r: any) => ${RUNTIME}.value(${RUNTIME}.is(r[\"$f\"], ${compile(pb, e)})))"
+      (if (neg) s"!" else "") + s"($c)"
+    case ContainsCondition(list, neg, ContainsConditionTarget.SuchThat(_, x, cond)) =>
+      val c = s"${compile(pb, list)}.some((${compile(x)}: any) => ${compile(pb, cond)})"
+      (if (neg) s"!" else "") + s"($c)"
     case CompoundCondition(left, op, right) =>
       import CompoundConditionOperator.*
       lazy val l = compile(pb, left)
