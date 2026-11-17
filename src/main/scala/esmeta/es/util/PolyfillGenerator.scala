@@ -343,15 +343,15 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case ReplaceStep(oldElem, newElem, ref) =>
       pb.addStmt(
         NormalStmt(
-          s"${INTERNAL_HEADER}__Replace(${compile(pb, ref)}, ${compile(pb, oldElem)}, ${compile(pb, newElem)})",
+          s"${RUNTIME}.replace(${compile(pb, ref)}, ${compile(pb, oldElem)}, ${compile(pb, newElem)})",
         ),
       )
     case RemoveStep(t, p, l) =>
       t match {
         case RemoveStep.Target.First(None) =>
-          pb.addStmt(NormalStmt(s"${compile(pb, l)}.shift()"))
+          pb.addStmt(NormalStmt(s"${RUNTIME}.remove(${compile(pb, l)}, true)"))
         case RemoveStep.Target.Last(None) =>
-          pb.addStmt(NormalStmt(s"${compile(pb, l)}.pop()"))
+          pb.addStmt(NormalStmt(s"${RUNTIME}.remove(${compile(pb, l)}, false)"))
         case _ => ???
       }
     case PushContextStep(ref)       => ???
@@ -446,7 +446,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       // object model, so read the underlying primitive off the raw boxed value
       // (the guarding HasField check is the matching `instanceof`).
       val b = compile(pb, base)
-      s"${RUNTIME}.default(${RUNTIME}.value($b as Lifted<${boxedSlotCtor(name)}>).valueOf(), [$b])"
+      s"${RUNTIME}.primitiveValue($b as Lifted<${boxedSlotCtor(name)}>)"
     case Access(base, name, kind, _) =>
       s"${compile(pb, base)}[\"$name\" ${if kind == AccessKind.Field then "/* TODO INTERNAL : internal access */"
       else ""}]"
@@ -479,7 +479,7 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         )
         .reduceLeft((acc, p) => s"${RUNTIME}.concatenate($acc, $p)")
     case ListConcatExpression(es) =>
-      s"[].concat(${es.map(compile(pb, _)).mkString(", ")})"
+      s"${RUNTIME}.listConcat(${es.map(compile(pb, _)).mkString(", ")})"
     case ListCopyExpression(expr) => s"${compile(pb, expr)}.slice()"
     case RecordExpression(rawName, fields, form) =>
       s"{${fields.map((fieldLit, fieldExpr) => s"\"${fieldLit.name}\": ${compile(pb, fieldExpr)}").mkString(", ")}}"
@@ -608,7 +608,11 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
           ),
           _,
         ) =>
-      s"((cu: Lifted<string>) => ${RUNTIME}.default<number>(${RUNTIME}.value(cu).charCodeAt(0), [cu]))(${compile(pb, cu)})"
+      s"${RUNTIME}.numericValue(${compile(pb, cu)})"
+    // ℤ(x): a mathematical value to a BigInt (a Number in the JS model)
+    case ConversionExpression(ConversionExpressionOperator.ToBigInt, expr, _) =>
+      s"${RUNTIME}.toBigInt((${compile(pb, expr)} as Lifted<number>))"
+    // ℝ / 𝔽 / implementation-approximated: the identity on JS doubles
     case ConversionExpression(op, expr, form) => compile(pb, expr)
     case ExponentiationExpression(base, power) =>
       s"${RUNTIME}.exponentiate(${compile(pb, base)}, ${compile(pb, power)})"
@@ -797,8 +801,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         case Duplicated  => ???
         case Present => (if (neg) s"!" else "") + compile(pb, expr) + IS_PRESENT
         // A List "is empty" iff it has no elements (Lists compile to JS arrays).
+        // no branch id: a List's emptiness is not a path constraint (and
+        // allocating one would renumber every later branch)
         case Empty =>
-          (if (neg) s"!" else "") + s"(${compile(pb, expr)}.length === 0)"
+          (if (neg) s"!" else "") + s"${RUNTIME}.value(${RUNTIME}.isEmpty(${compile(pb, expr)}))"
         case StrictMode       => ???
         case ArrayIndex       => ???
         case FalseToken       => ???
