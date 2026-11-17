@@ -86,7 +86,12 @@ object AllBuiltins {
         val calls = new UnitWalker {
           override def walk(expr: CalcExpression): Unit =
             expr match
-              case ConversionExpression(op, _, _) => conv(op.toString) += 1
+              // the text form of ℝ ("the numeric value of X") is its own key:
+              // the polyfill generator compiles it to the numericValue hook
+              case ConversionExpression(op, _, form) =>
+                val text = op == ConversionExpressionOperator.ToMath &&
+                  form.isInstanceOf[ConversionExpressionForm.Text]
+                conv(if (text) s"$op (text)" else op.toString) += 1
               case _ =>
             super.walk(expr)
           override def walk(expr: Expression): Unit =

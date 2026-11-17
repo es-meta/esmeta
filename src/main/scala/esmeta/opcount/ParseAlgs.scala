@@ -72,6 +72,11 @@ object ParseAlgs {
       ref match
         case PositionalElement(_, isFirst) =>
           add(s"ref:PositionalElement:${if isFirst then "first" else "last"}")
+        // a boxed primitive's data slot ([[StringData]], ...) compiles to the
+        // primitiveValue hook, unlike other fields
+        case Access(_, n, AccessKind.Field, _)
+            if esmeta.es.util.PolyfillGenerator.boxedSlotCtor.contains(n) =>
+          add("ref:Access:BoxedData")
         case Access(_, _, kind, _) => add(s"ref:Access:${name(kind)}")
         case _ => add(s"ref:${name(ref)}")
       super.walk(ref)

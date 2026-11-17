@@ -593,22 +593,16 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     // the one-unit String for it (the lifted X stays its operand)
     case ConversionExpression(ConversionExpressionOperator.ToCodeUnit, expr, _) =>
       s"${RUNTIME}.fromCodeUnit((${compile(pb, expr)} as Lifted<number>))"
-    // "the Number value for the numeric value of the code unit at index i within
-    // S" (String.prototype.charCodeAt): a code unit compiles to its one-unit
-    // String, so the Number needs the unit's numeric value. Only the conversion
-    // to a Number materializes it; a bare "numeric value of" (IsLessThan's
-    // code-unit comparison) stays a one-unit String, whose ordering matches.
+    // "the numeric value of X" (ℝ in text form): X is a code unit, which
+    // compiles to its one-unit String, or a code point; the hook gives its
+    // number (String.prototype.charCodeAt, IsLessThan's code-unit comparison).
+    // An enclosing "the Number value for" (𝔽) stays the identity below.
     case ConversionExpression(
-          ConversionExpressionOperator.ToNumber |
-          ConversionExpressionOperator.ToApproxNumber,
-          ConversionExpression(
-            ConversionExpressionOperator.ToMath,
-            cu: CodeUnitAtExpression,
-            _,
-          ),
-          _,
+          ConversionExpressionOperator.ToMath,
+          expr,
+          _: ConversionExpressionForm.Text,
         ) =>
-      s"${RUNTIME}.numericValue(${compile(pb, cu)})"
+      s"${RUNTIME}.numericValue(${compile(pb, expr)})"
     // ℤ(x): a mathematical value to a BigInt (a Number in the JS model)
     case ConversionExpression(ConversionExpressionOperator.ToBigInt, expr, _) =>
       s"${RUNTIME}.toBigInt((${compile(pb, expr)} as Lifted<number>))"
