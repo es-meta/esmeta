@@ -41,9 +41,18 @@ object ParseAlgs {
   class Kinds extends UnitWalker {
     val kinds = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
     private def name(x: Any): String = x.getClass.getSimpleName.stripSuffix("$")
-    private def add(k: String): Unit = kinds(k) += 1
+    private def add(k: String): Unit =
+      kinds((if inAssert > 0 then "assert/" else "") + k) += 1
+    // nodes under an Assert step are tallied with an `assert/` prefix: the
+    // polyfill generator skips Assert steps, so they never reach a model
+    private var inAssert = 0
     override def walk(step: Step): Unit =
-      add(s"step:${name(step)}"); super.walk(step)
+      step match
+        case RemoveStep(t, _, _) => add(s"step:RemoveStep:${t}")
+        case _ => add(s"step:${name(step)}")
+      step match
+        case _: AssertStep => inAssert += 1; super.walk(step); inAssert -= 1
+        case _             => super.walk(step)
     override def walk(expr: Expression): Unit =
       expr match
         case MathOpExpression(op, _) => add(s"expr:MathOp:$op")
@@ -59,8 +68,16 @@ object ParseAlgs {
         case UnaryExpression(op, _) => add(s"calc:Unary:$op")
         case _ => add(s"calc:${name(expr)}")
       super.walk(expr)
+    override def walk(ref: Reference): Unit =
+      ref match
+        case PositionalElement(_, isFirst) =>
+          add(s"ref:PositionalElement:${if isFirst then "first" else "last"}")
+        case Access(_, _, kind, _) => add(s"ref:Access:${name(kind)}")
+        case _ => add(s"ref:${name(ref)}")
+      super.walk(ref)
     override def walk(cond: Condition): Unit =
       cond match
+        case ContainsCondition(_, _, t) => add(s"cond:Contains:${name(t)}")
         case BinaryCondition(_, op, _) => add(s"cond:Binary:$op")
         case PredicateCondition(_, _, op) => add(s"cond:Predicate:$op")
         case CompoundCondition(_, op, _) => add(s"cond:Compound:$op")
