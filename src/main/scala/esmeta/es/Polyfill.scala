@@ -46,7 +46,7 @@ case class Polyfill(
 
   val banner: String =
     s"""|// THIS FILE IS AUTO-GENERATED, DO NOT EDIT
-        |import type { LiftedTransferOps, Lifted, Unlifted } from "../type.js";
+        |import type { SpecRuntime, Lifted, Unlifted } from "../type.js";
         |
         |""".stripMargin
 
@@ -62,7 +62,7 @@ case class Polyfill(
             s"${p.name} : $ts = ${Polyfill.RUNTIME}.default<undefined>(undefined, [])"
           case ParamKind.Variadic => s"...${p.name} : $ts[]"
       }
-    (s"${Polyfill.RUNTIME} : LiftedTransferOps" :: receiver ::: paramStr)
+    (s"${Polyfill.RUNTIME} : SpecRuntime" :: receiver ::: paramStr)
       .mkString("(", ", ", ")")
   }
 
