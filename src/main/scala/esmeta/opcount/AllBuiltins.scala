@@ -8,20 +8,17 @@ import esmeta.util.SystemUtils.*
 import io.circe.*, io.circe.syntax.*
 import scala.collection.mutable.{Map => MMap, Set => MSet, ListBuffer}
 
-/** Census of atomic operations over *every* built-in of the current spec
-  * (the ecma262 submodule, ES2025), not only those DynaJS extracts.
+/** Census of atomic operations over *every* built-in of the current spec (the
+  * ecma262 submodule, ES2025), not only those DynaJS extracts.
   *
   * For each built-in function (`BuiltinHead`), follow invoked algorithms
-  * (abstract operations, numeric methods, syntax-directed operations other
-  * than `Evaluation`) and stop at internal/concrete methods (the object
-  * operations `get`/`set`/`call` sit there) and at host-/implementation-defined
-  * abstract operations, which are recorded as boundary calls.
+  * (abstract operations, numeric methods, syntax-directed operations other than
+  * `Evaluation`) and stop at internal/concrete methods (the object operations
+  * `get`/`set`/`call` sit there) and at host-/implementation-defined abstract
+  * operations, which are recorded as boundary calls.
   *
-  * output: {
-  *   builtins: {built-in: [algorithm, ...]},
-  *   algorithms: {algorithm: {kind, ops, defaults, yets, blocked, kinds,
-  *                            boundary, unresolved}}
-  * }
+  * output: { builtins: {built-in: [algorithm, ...]}, algorithms: {algorithm:
+  * {kind, ops, defaults, yets, blocked, kinds, boundary, unresolved}} }
   *
   * usage: AllBuiltins <out.json>
   */
@@ -31,10 +28,12 @@ object AllBuiltins {
     val spec = Extractor()
     val algs = spec.algorithms
     val byName: Map[String, Algorithm] = algs.map(a => a.name -> a).toMap
-    val sdoByMethod: Map[String, List[Algorithm]] = algs.collect {
-      case a @ Algorithm(h: SyntaxDirectedOperationHead, _, _) =>
-        h.methodName -> a
-    }.groupMap(_._1)(_._2)
+    val sdoByMethod: Map[String, List[Algorithm]] = algs
+      .collect {
+        case a @ Algorithm(h: SyntaxDirectedOperationHead, _, _) =>
+          h.methodName -> a
+      }
+      .groupMap(_._1)(_._2)
 
     def headKind(a: Algorithm): String = a.head match
       case h: AbstractOperationHead =>
@@ -78,7 +77,10 @@ object AllBuiltins {
               case h: AbstractOperationHead if h.isHostDefined =>
                 boundary += name
               case _ =>
-                if (Option(t.elem.closest("emu-clause")).exists(_.attr("type").startsWith("implementation-defined")))
+                if (
+                  Option(t.elem.closest("emu-clause"))
+                    .exists(_.attr("type").startsWith("implementation-defined"))
+                )
                   boundary += name
                 else callees += name
           case None => unresolved += name
@@ -103,7 +105,13 @@ object AllBuiltins {
                 target(s"$base::$name")
               case InvokeMethodExpression(access, _, _) =>
                 boundary += s"method:${access.name}"
-              case InvokeSyntaxDirectedOperationExpression(_, "Evaluation", _, _, _) =>
+              case InvokeSyntaxDirectedOperationExpression(
+                    _,
+                    "Evaluation",
+                    _,
+                    _,
+                    _,
+                  ) =>
                 boundary += "sdo:Evaluation"
               case InvokeSyntaxDirectedOperationExpression(_, name, _, _, _) =>
                 sdoByMethod.get(name) match

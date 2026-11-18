@@ -4,9 +4,9 @@ import esmeta.lang.*
 import esmeta.lang.util.UnitWalker
 import scala.collection.mutable.{Map => MMap, Set => MSet}
 
-/** Count the Table I operations that `PolyfillGenerator` emits for an
-  * algorithm (one count per emitted `$.<op>` call), and collect the abstract
-  * operations it invokes.
+/** Count the Table I operations that `PolyfillGenerator` emits for an algorithm
+  * (one count per emitted `$.<op>` call), and collect the abstract operations
+  * it invokes.
   *
   * Two facts need more than one step, so they are collected in a pre-pass:
   *   - `the number of elements in _S_` over a String (ES2016-) is `length`
@@ -37,7 +37,7 @@ class OpCounter extends UnitWalker {
   // abstract operations producing Strings
   private val strAOs = Set("ToString", "thisStringValue", "ThisStringValue")
   private def isStr(e: Expression): Boolean = e match
-    case ReturnIfAbruptExpression(e, _) => isStr(e)
+    case ReturnIfAbruptExpression(e, _)                => isStr(e)
     case InvokeAbstractOperationExpression(name, _, _) => strAOs(name)
     case _: StringConcatExpression | _: SubstringExpression |
         _: TrimExpression | _: StringLiteral | _: CodeLiteral |
@@ -48,9 +48,9 @@ class OpCounter extends UnitWalker {
   private object Prepass extends UnitWalker {
     override def walk(step: Step): Unit =
       step match
-        case LetStep(x, e) if isStr(e)                     => strVars += x.name
-        case SetStep(x: Variable, e) if isStr(e)           => strVars += x.name
-        case _                                             =>
+        case LetStep(x, e) if isStr(e)           => strVars += x.name
+        case SetStep(x: Variable, e) if isStr(e) => strVars += x.name
+        case _                                   =>
       super.walk(step)
     override def walk(expr: Expression): Unit =
       expr match
@@ -64,10 +64,10 @@ class OpCounter extends UnitWalker {
     step match
       case AppendStep(_, x: Variable) if codeUnitLists(x.name) =>
         add("concatenate")
-      case AppendStep(_, _)       => add("append")
-      case PrependStep(_, _)      => add("prepend")
-      case _: ForEachIntegerStep  => add("range")
-      case _                      =>
+      case AppendStep(_, _)      => add("append")
+      case PrependStep(_, _)     => add("prepend")
+      case _: ForEachIntegerStep => add("range")
+      case _                     =>
     step match
       case _: AssertStep => // not compiled
       case _             => super.walk(step)
@@ -82,10 +82,10 @@ class OpCounter extends UnitWalker {
       case NumberOfExpression(_, _, ReferenceExpression(x: Variable), _)
           if strVars(x.name) =>
         add("length")
-      case CodeUnitAtExpression(_, _) => add("codeUnitAt")
+      case CodeUnitAtExpression(_, _)                     => add("codeUnitAt")
       case ListExpression(_: ListExpressionForm.IntRange) => add("range")
-      case ClampExpression(_, _, _) => add("clamp")
-      case e: MathOpExpression if isConst(e) =>
+      case ClampExpression(_, _, _)                       => add("clamp")
+      case e: MathOpExpression if isConst(e)              =>
       case MathOpExpression(op, _) =>
         import MathOpExpressionOperator.*
         op match
@@ -94,7 +94,7 @@ class OpCounter extends UnitWalker {
           case Sub => add("subtract")
           case Mul => add("multiply")
           case Pow => add("exponentiate")
-          case _   =>
+          case _ =>
             esmeta.es.util.PolyfillGenerator.mathFuncHook(op).foreach(add(_))
       case BitwiseExpression(_, op, _) =>
         import BitwiseExpressionOperator.*
@@ -103,12 +103,12 @@ class OpCounter extends UnitWalker {
           case BOr  => "bitwiseOR"
           case BXOr => "bitwiseXOR",
         )
-      case _                                              =>
+      case _ =>
     super.walk(expr)
 
   override def walk(expr: CalcExpression): Unit =
     if (!isConst(expr)) expr match
-      case MathFuncExpression(op, _) => add(op.toString.toLowerCase)
+      case MathFuncExpression(op, _)      => add(op.toString.toLowerCase)
       case ExponentiationExpression(_, _) => add("exponentiate")
       case BinaryExpression(_, op, _) =>
         import BinaryExpressionOperator.*
@@ -120,7 +120,7 @@ class OpCounter extends UnitWalker {
           case Mod => "modulo",
         )
       case UnaryExpression(_, _) => add("negate")
-      case _ =>
+      case _                     =>
     super.walk(expr)
 
   override def walk(invoke: InvokeExpression): Unit =

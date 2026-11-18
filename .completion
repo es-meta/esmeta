@@ -11,7 +11,7 @@ _esmeta_completions() {
   local cur prev opts lastc informats outformats datafiles
   cur="${COMP_WORDS[COMP_CWORD]}"
   prev="${COMP_WORDS[COMP_CWORD-1]}"
-  cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject mutate dump-debugger dump-visualizer yet-check gen-poly"
+  cmdList="help extract compile build-cfg tycheck parse eval web test262-test fuzz inject mutate dump-debugger dump-visualizer yet-check count-yets gen-poly"
   globalOpt="-silent -error -status -time -test262dir"
   helpOpt=""
   extractOpt="-extract:target -extract:log -extract:eval -extract:repl -extract:strict -extract:allowed-yets"
@@ -99,6 +99,10 @@ _esmeta_completions() {
           ;;
         yet-check)
           COMPREPLY=($(compgen -W "${globalOpt} ${yetcheckOpt}"))
+          return 0
+          ;;
+        count-yets)
+          COMPREPLY=($(compgen -W "${globalOpt} ${countyetsOpt}"))
           return 0
           ;;
         gen-poly)

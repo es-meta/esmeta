@@ -4,12 +4,11 @@ import esmeta.lang.*
 
 /** metalanguage parser extended with phrasings of older editions (ES2016-)
   *
-  * Each legacy phrasing is desugared into the construct that later editions
-  * use for the same operation (e.g., `Increase _k_ by 1.` into `Set _k_ to _k_
-  * + 1.`, a List of code units into a String). It only adds alternatives
-  * through the extension points and the if/repeat steps, so the current
-  * edition parses as with `Parser` except for steps that were not yet
-  * supported.
+  * Each legacy phrasing is desugared into the construct that later editions use
+  * for the same operation (e.g., `Increase _k_ by 1.` into `Set _k_ to _k_ +
+  * 1.`, a List of code units into a String). It only adds alternatives through
+  * the extension points and the if/repeat steps, so the current edition parses
+  * as with `Parser` except for steps that were not yet supported.
   */
 object LegacyParser extends LegacyParsers
 trait LegacyParsers extends Parsers {
@@ -86,8 +85,8 @@ trait LegacyParsers extends Parsers {
   lazy val appendCodeUnitsStep: PL[Step] =
     lazy val elems =
       opt("in order") ~ "the code unit elements of" ~> expr |
-      "the elements of the UTF16Encoding of" ~> expr ^^ {
-        e => InvokeAbstractOperationExpression("UTF16EncodeCodePoint", List(e))
+      "the elements of the UTF16Encoding of" ~> expr ^^ { e =>
+        InvokeAbstractOperationExpression("UTF16EncodeCodePoint", List(e))
       }
     ("append" ~> elems) ~ ("to the end of" ~> ref) <~ lend ^^ {
       case e ~ r => SetStep(r, StringConcatExpression(List(refExpr(r), e)))
@@ -379,7 +378,11 @@ trait LegacyParsers extends Parsers {
         )
     } |
     "a value of Number type, whose value is" ~> expr ^^ {
-      ConversionExpression(ToNumber, _, ConversionExpressionForm.Text("a", "of"))
+      ConversionExpression(
+        ToNumber,
+        _,
+        ConversionExpressionForm.Text("a", "of"),
+      )
     } |
     "the integer that is" ~> expr |
     "the code point" ~> variable ^^ { refExpr(_) } |
@@ -408,11 +411,13 @@ trait LegacyParsers extends Parsers {
     ) ^^! argsList |
     ("a List whose first element is" ~> expr) <~
     "and whose subsequent elements are, in left to right order," ~
-    "the arguments that were passed to this function invocation" ^^ {
-      e =>
-        ListConcatExpression(
-          List(ListExpression(ListExpressionForm.LiteralSyntax(List(e))), argsList),
-        )
+    "the arguments that were passed to this function invocation" ^^ { e =>
+      ListConcatExpression(
+        List(
+          ListExpression(ListExpressionForm.LiteralSyntax(List(e))),
+          argsList,
+        ),
+      )
     } |
     (
       "the number of actual arguments" |
@@ -425,7 +430,10 @@ trait LegacyParsers extends Parsers {
     ("the result of performing Strict Equality Comparison" ~> expr) ~
     ("===" ~> expr) ^^ {
       case l ~ r =>
-        InvokeAbstractOperationExpression("Strict Equality Comparison", List(l, r))
+        InvokeAbstractOperationExpression(
+          "Strict Equality Comparison",
+          List(l, r),
+        )
     } |
     "the result of" ~ guard("?" | "!") ~> returnIfAbruptExpr
 
@@ -434,8 +442,8 @@ trait LegacyParsers extends Parsers {
   lazy val magnitudeExpr: PL[Expression] =
     (("the" ~ ("mathematical" | "Number") ~ "value") ~
     ("that is the same sign as" | "whose sign is the sign of") ~> calcExpr) <~
-    "and whose magnitude is" ~ calcExpr ^^ {
-      e => MathFuncExpression(MathFuncExpressionOperator.Truncate, List(e))
+    "and whose magnitude is" ~ calcExpr ^^ { e =>
+      MathFuncExpression(MathFuncExpressionOperator.Truncate, List(e))
     }
 
   // literals
@@ -494,8 +502,8 @@ trait LegacyParsers extends Parsers {
     } |
     // `there exists any integer _k_ not smaller than _start_ such that <cond>`
     ("there exists" ~ opt("any" | "an") ~ "integer" ~> variable) ~ (
-      "not smaller than" ~> calcExpr ^^ {
-        f => (f, true, PositiveInfinityMathValueLiteral(), false)
+      "not smaller than" ~> calcExpr ^^ { f =>
+        (f, true, PositiveInfinityMathValueLiteral(), false)
       } |
       ("between" ~> calcExpr <~ "(inclusive)") ~
       ("and" ~> calcExpr <~ "(exclusive)") ^^ {

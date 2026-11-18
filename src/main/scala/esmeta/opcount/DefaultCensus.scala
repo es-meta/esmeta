@@ -19,27 +19,39 @@ object DefaultCensus {
     val Array(parsedPath, closurePath, builtinsPath, ed) = args
     val parsed = load[Map[String, Map[String, Json]]](parsedPath).apply(ed)
     val closure = load[Map[String, Map[String, Json]]](closurePath).apply(ed)
-    val builtins = readFile(builtinsPath).linesIterator.map(_.trim).filter(_.nonEmpty).toList
+    val builtins =
+      readFile(builtinsPath).linesIterator.map(_.trim).filter(_.nonEmpty).toList
 
     // site -> (built-ins reaching it, occurrences counting each algorithm once)
-    val reach = scala.collection.mutable.Map[String, Set[String]]().withDefaultValue(Set())
+    val reach = scala.collection.mutable
+      .Map[String, Set[String]]()
+      .withDefaultValue(Set())
     val occ = scala.collection.mutable.Map[String, Int]().withDefaultValue(0)
     val algs: List[(String, String)] =
-      builtins.flatMap(b => closure(b).asObject.toList.flatMap(_.keys).map(a => (b, a)))
+      builtins.flatMap(b =>
+        closure(b).asObject.toList.flatMap(_.keys).map(a => (b, a)),
+      )
     for ((b, alg) <- algs) {
-      val sites = parsed(alg).hcursor.downField("defaults").as[Map[String, Int]]
+      val sites = parsed(alg).hcursor
+        .downField("defaults")
+        .as[Map[String, Int]]
         .fold(e => throw e, identity)
       for ((k, _) <- sites) reach(k) += b
     }
     for (alg <- algs.map(_._2).distinct) {
-      val sites = parsed(alg).hcursor.downField("defaults").as[Map[String, Int]]
+      val sites = parsed(alg).hcursor
+        .downField("defaults")
+        .as[Map[String, Int]]
         .fold(e => throw e, identity)
       for ((k, n) <- sites) occ(k) += n
     }
 
-    println(s"$ed: ${builtins.length} built-ins, ${algs.map(_._2).distinct.length} algorithms")
+    println(
+      s"$ed: ${builtins.length} built-ins, ${algs.map(_._2).distinct.length} algorithms",
+    )
     println(f"${"built-ins"}%9s ${"sites"}%6s  site")
-    val order = reach.keys.toList.sortBy(k => (!k.startsWith("op:"), -reach(k).size, k))
+    val order =
+      reach.keys.toList.sortBy(k => (!k.startsWith("op:"), -reach(k).size, k))
     for (k <- order) {
       val bs = reach(k).toList.sorted.map(_.replace(".prototype", ""))
       val list = if (bs.size <= 13) "  " + bs.mkString(", ") else ""

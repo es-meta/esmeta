@@ -26,7 +26,8 @@ class DefaultCounter extends UnitWalker {
 
   /** whether some `$.default(v, [ops])` call in a snippet has non-empty `ops`:
     * scan each call's parenthesized arguments, skipping string literals, and
-    * inspect its last top-level argument */
+    * inspect its last top-level argument
+    */
   private def hasOperands(code: String): Boolean =
     val call = """\$\.default(<[^>]*>)?\(""".r
     call.findAllMatchIn(code).exists { m =>
@@ -35,17 +36,22 @@ class DefaultCounter extends UnitWalker {
       while (i < code.length && depth > 0) {
         val c = code(i)
         if (quote != 0) { if (c == '\\') i += 1 else if (c == quote) quote = 0 }
-        else c match
-          case '"' | '\'' | '`'   => quote = c
-          case '(' | '[' | '{'    => depth += 1
-          case ')' | ']' | '}'    => depth -= 1
-          case ',' if depth == 1  => lastComma = i
-          case _                  =>
+        else
+          c match
+            case '"' | '\'' | '`'  => quote = c
+            case '(' | '[' | '{'   => depth += 1
+            case ')' | ']' | '}'   => depth -= 1
+            case ',' if depth == 1 => lastComma = i
+            case _                 =>
         i += 1
       }
       lastComma >= 0 && {
         val last = code.substring(lastComma + 1, i - 1).trim
-        last.startsWith("[") && last.stripPrefix("[").stripSuffix("]").trim.nonEmpty
+        last.startsWith("[") && last
+          .stripPrefix("[")
+          .stripSuffix("]")
+          .trim
+          .nonEmpty
       }
     }
 

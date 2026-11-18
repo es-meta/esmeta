@@ -13,31 +13,32 @@ import scala.collection.mutable
 
 /** polyfill generator */
 object PolyfillGenerator {
+
   /** hook names of the Math function operators of `MathOpExpression` */
   def mathFuncHook(op: MathOpExpressionOperator): Option[String] =
     import MathOpExpressionOperator.*
     op match
-      case Expm1  => Some("expm1")
-      case Log10  => Some("log10")
-      case Log2   => Some("log2")
-      case Cos    => Some("cos")
-      case Cbrt   => Some("cbrt")
-      case Exp    => Some("exp")
-      case Cosh   => Some("cosh")
-      case Sinh   => Some("sinh")
-      case Tanh   => Some("tanh")
-      case Acos   => Some("acos")
-      case Acosh  => Some("acosh")
-      case Asinh  => Some("asinh")
-      case Atanh  => Some("atanh")
-      case Asin   => Some("asin")
-      case Atan2  => Some("atan2")
-      case Atan   => Some("atan")
-      case Log1p  => Some("log1p")
-      case Log    => Some("log")
-      case Sin    => Some("sin")
-      case Sqrt   => Some("sqrt")
-      case Tan    => Some("tan")
+      case Expm1                       => Some("expm1")
+      case Log10                       => Some("log10")
+      case Log2                        => Some("log2")
+      case Cos                         => Some("cos")
+      case Cbrt                        => Some("cbrt")
+      case Exp                         => Some("exp")
+      case Cosh                        => Some("cosh")
+      case Sinh                        => Some("sinh")
+      case Tanh                        => Some("tanh")
+      case Acos                        => Some("acos")
+      case Acosh                       => Some("acosh")
+      case Asinh                       => Some("asinh")
+      case Atanh                       => Some("atanh")
+      case Asin                        => Some("asin")
+      case Atan2                       => Some("atan2")
+      case Atan                        => Some("atan")
+      case Log1p                       => Some("log1p")
+      case Log                         => Some("log")
+      case Sin                         => Some("sin")
+      case Sqrt                        => Some("sqrt")
+      case Tan                         => Some("tan")
       case Neg | Add | Sub | Mul | Pow => None
 
   def apply(spec: Spec, dslDir: Option[String]): List[Polyfill] =
@@ -357,8 +358,10 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     case RemoveStep(t, p, l) =>
       val list = compile(pb, l)
       val call = t match {
-        case RemoveStep.Target.First(None) => s"${RUNTIME}.remove($list, \"first\")"
-        case RemoveStep.Target.Last(None)  => s"${RUNTIME}.remove($list, \"last\")"
+        case RemoveStep.Target.First(None) =>
+          s"${RUNTIME}.remove($list, \"first\")"
+        case RemoveStep.Target.Last(None) =>
+          s"${RUNTIME}.remove($list, \"last\")"
         case RemoveStep.Target.First(Some(n)) =>
           s"${RUNTIME}.remove($list, \"first\", (${compile(pb, n)} as Lifted<number>))"
         case RemoveStep.Target.Last(Some(n)) =>
@@ -604,7 +607,11 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
       s"${RUNTIME}.${compile(op)}(${compile(pb, args)})"
     // "the code unit whose numeric value is X": X is a number; the code unit is
     // the one-unit String for it (the lifted X stays its operand)
-    case ConversionExpression(ConversionExpressionOperator.ToCodeUnit, expr, _) =>
+    case ConversionExpression(
+          ConversionExpressionOperator.ToCodeUnit,
+          expr,
+          _,
+        ) =>
       s"${RUNTIME}.fromCodeUnit((${compile(pb, expr)} as Lifted<number>))"
     // ℝ: "the numeric value of X" (text form) on a code unit, which compiles to
     // its one-unit String, or a code point (String.prototype.charCodeAt,
@@ -807,16 +814,22 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
         // no branch id for the List predicates below, as for `empty`: a new id
         // would renumber every later branch
         case Duplicated =>
-          (if (neg) s"!" else "") + s"${RUNTIME}.value(${RUNTIME}.hasDuplicates(${compile(pb, expr)}))"
+          (if (neg) s"!"
+           else
+             "") + s"${RUNTIME}.value(${RUNTIME}.hasDuplicates(${compile(pb, expr)}))"
         case Present => (if (neg) s"!" else "") + compile(pb, expr) + IS_PRESENT
         // A List "is empty" iff it has no elements (Lists compile to JS arrays).
         // no branch id: a List's emptiness is not a path constraint (and
         // allocating one would renumber every later branch)
         case Empty =>
-          (if (neg) s"!" else "") + s"${RUNTIME}.value(${RUNTIME}.isEmpty(${compile(pb, expr)}))"
-        case StrictMode       => ???
+          (if (neg) s"!"
+           else
+             "") + s"${RUNTIME}.value(${RUNTIME}.isEmpty(${compile(pb, expr)}))"
+        case StrictMode => ???
         case ArrayIndex =>
-          (if (neg) s"!" else "") + s"${RUNTIME}.value(${RUNTIME}.isArrayIndex(${compile(pb, expr)}))"
+          (if (neg) s"!"
+           else
+             "") + s"${RUNTIME}.value(${RUNTIME}.isArrayIndex(${compile(pb, expr)}))"
         case FalseToken       => ???
         case TrueToken        => ???
         case DataProperty     => ???
@@ -891,11 +904,21 @@ class PolyfillGenerator(spec: Spec, dslDir: Option[String]) {
     // its own; a loop over the List that tests each element with the existing
     // ones (`is` on the field, or the compiled condition). No branch id, so the
     // later branches keep their numbers.
-    case ContainsCondition(list, neg, ContainsConditionTarget.WhoseField(_, f, e)) =>
-      val c = s"${compile(pb, list)}.some((r: any) => ${RUNTIME}.value(${RUNTIME}.is(r[\"$f\"], ${compile(pb, e)})))"
+    case ContainsCondition(
+          list,
+          neg,
+          ContainsConditionTarget.WhoseField(_, f, e),
+        ) =>
+      val c =
+        s"${compile(pb, list)}.some((r: any) => ${RUNTIME}.value(${RUNTIME}.is(r[\"$f\"], ${compile(pb, e)})))"
       (if (neg) s"!" else "") + s"($c)"
-    case ContainsCondition(list, neg, ContainsConditionTarget.SuchThat(_, x, cond)) =>
-      val c = s"${compile(pb, list)}.some((${compile(x)}: any) => ${compile(pb, cond)})"
+    case ContainsCondition(
+          list,
+          neg,
+          ContainsConditionTarget.SuchThat(_, x, cond),
+        ) =>
+      val c =
+        s"${compile(pb, list)}.some((${compile(x)}: any) => ${compile(pb, cond)})"
       (if (neg) s"!" else "") + s"($c)"
     case CompoundCondition(left, op, right) =>
       import CompoundConditionOperator.*
