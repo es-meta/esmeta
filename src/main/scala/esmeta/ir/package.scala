@@ -143,3 +143,12 @@ extension (r: Ref) {
     case Name(name)       => true
     case Temp(idx)        => true
 }
+
+/** name of the generated function that dispatches an SDO call by its method */
+def sdoDispatcherName(method: String): String = s"__SDO__.$method"
+
+/** name of the generated function that finds an SDO for an AST node */
+def sdoLookupName(method: String): String = s"__SDO_LOOKUP__.$method"
+
+/** name of the generated function that finds the AST node defining an SDO */
+def sdoTargetName(method: String): String = s"__SDO_TARGET__.$method"

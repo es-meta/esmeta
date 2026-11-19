@@ -37,6 +37,7 @@ class Compiler(
   /** compiled specification */
   lazy val result: Program =
     for (algo <- spec.algorithms) compile(algo)
+    funcs ++= SdoGenerator(grammar, funcs).result
     Program(funcs.toList, spec)
 
   /** load manually created IR functions */

@@ -1,0 +1,16 @@
+def <AUX>:__CHAIN_CHILD__(
+  ast: Ast,
+): Ast = {
+  let count = 0
+  let child = null
+  let i = (sizeof ast)
+  while (< 0 i) {
+    i = (- i 1)
+    if (exists ast[i]) {
+      count = (+ count 1)
+      child = ast[i]
+    }
+  }
+  assert (= count 1)
+  return child
+}
