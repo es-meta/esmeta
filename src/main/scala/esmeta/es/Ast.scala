@@ -34,15 +34,6 @@ sealed trait Ast extends ESElem with Locational {
     case lex: Lexical   => Nil
     case syn: Syntactic => syn.args
 
-  /** production chains */
-  lazy val chains: List[Ast] = this :: (this match
-    case lex: Lexical => Nil
-    case syn: Syntactic =>
-      syn.children.flatten match
-        case Vector(child) => this :: child.chains
-        case _             => List(this)
-  )
-
   /** types */
   lazy val types: Set[String] = (this match
     case _: Lexical => Set()
@@ -97,20 +88,6 @@ sealed trait Ast extends ESElem with Locational {
 
   /** existence check */
   def exists(field: Value)(using cfg: CFG): Boolean = get(field).isDefined
-
-  /** get syntax-directed operation (SDO) */
-  def getSdo(name: String)(using cfg: CFG): Option[(Ast, Func)] =
-    val fnameMap = cfg.fnameMap
-    chains.foldLeft[Option[(Ast, Func)]](None) {
-      case (None, ast0) =>
-        val subIdx = ast0.subIdx
-        val fname = s"${ast0.name}[${ast0.idx},${subIdx}].$name"
-        fnameMap
-          .get(fname)
-          .orElse(fnameMap.get(s"DEFAULT:$name"))
-          .map((ast0, _))
-      case (res: Some[_], _) => res
-    }
 
   /** get sub index of parsed Ast */
   def subIdx(using cfg: CFG): Int = this match

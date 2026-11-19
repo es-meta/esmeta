@@ -191,18 +191,15 @@ class Interpreter(
     case ISdoCall(lhs, base, method, args) =>
       eval(base).asAst match
         case syn: Syntactic =>
-          getSdo((syn, method)) match
-            case Some((ast0, sdo)) =>
-              val vs = args.map(eval)
-              val newLocals = getLocals(
-                sdo.irFunc.params,
-                AstValue(ast0) :: vs,
-                call,
-                Clo(sdo, Map()),
-              )
-              st.callStack ::= CallContext(st.context, lhs)
-              st.context = createContext(call, sdo, newLocals, st.context)
-            case None => throw InvalidAstField(syn, Str(method))
+          val sdo = cfg.fnameMap.getOrElse(
+            sdoDispatcherName(method),
+            throw InvalidAstField(syn, Str(method)),
+          )
+          val vs = AstValue(syn) :: args.map(eval)
+          val clo = Clo(sdo, Map())
+          val newLocals = getLocals(sdo.irFunc.params, vs, call, clo)
+          st.callStack ::= CallContext(st.context, lhs)
+          st.context = createContext(call, sdo, newLocals, st.context)
         case lex: Lexical =>
           setCallResult(lhs, Interpreter.eval(lex, method))
   }
@@ -476,9 +473,6 @@ class Interpreter(
   /** logging */
   private lazy val pw: PrintWriter =
     logPW.getOrElse(getPrintWriter(s"$EVAL_LOG_DIR/log"))
-
-  /** cache to get syntax-directed operation (SDO) */
-  private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
 
   /** purity checker for caching results of pure functions */
   private lazy val purity: Purity = Purity(cfg)
