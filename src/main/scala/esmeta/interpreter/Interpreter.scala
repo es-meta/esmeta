@@ -96,6 +96,8 @@ class Interpreter(
           false
         case CallContext(ctxt, retId) :: rest =>
           val (ret, value) = st.context.retVal.getOrElse(throw NoReturnValue)
+          for (key <- Option(pendingMemo.remove(st.context)))
+            memo += key -> value
           st.context = ctxt
           st.callStack = rest
           setCallResult(retId, value)
@@ -165,10 +167,18 @@ class Interpreter(
       eval(fexpr) match
         case clo @ Clo(func, captured) =>
           val vs = args.map(eval)
-          val newLocals =
-            getLocals(func.irFunc.params, vs, call, clo) ++ captured
-          st.callStack ::= CallContext(st.context, lhs)
-          st.context = createContext(call, func, newLocals, st.context)
+          // cache results of pure functions called with AST arguments
+          val key = Option.when(
+            captured.isEmpty && purity.isCacheable(vs) && purity(func),
+          )((func.id, vs))
+          key.flatMap(memo.get) match
+            case Some(value) => setCallResult(lhs, value)
+            case None =>
+              val newLocals =
+                getLocals(func.irFunc.params, vs, call, clo) ++ captured
+              st.callStack ::= CallContext(st.context, lhs)
+              st.context = createContext(call, func, newLocals, st.context)
+              for (key <- key) pendingMemo.put(st.context, key)
         case cont @ Cont(func, captured, callStack) => {
           val vs = args.map(eval)
           val newLocals =
@@ -469,6 +479,16 @@ class Interpreter(
 
   /** cache to get syntax-directed operation (SDO) */
   private val getSdo = cached[(Ast, String), Option[(Ast, Func)]](_.getSdo(_))
+
+  /** purity checker for caching results of pure functions */
+  private lazy val purity: Purity = Purity(cfg)
+
+  /** cached results of pure functions */
+  private val memo: MMap[(Int, List[Value]), Value] = MMap()
+
+  /** keys of pure function calls whose results are pending */
+  private val pendingMemo =
+    java.util.IdentityHashMap[Context, (Int, List[Value])]()
 
   // create a new context
   protected def createContext(
