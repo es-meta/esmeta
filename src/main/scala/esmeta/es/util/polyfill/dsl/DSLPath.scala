@@ -5,18 +5,14 @@ import esmeta.spec.Algorithm
 
 import AstExtensions.*
 
-class DSLPath(dslDir: String) extends TransformPath {
+class DSLPath(dslDir: String, stats: TransformStats = TransformStats())
+  extends TransformPath {
 
   def apply(targets: List[Algorithm]) = {
     val rules = DSLRuleParser.parseDir(dslDir)
-    val stats = new TransformStats()
-
-    val result = targets.map { algo =>
+    targets.map { algo =>
       algo.copy(body = pass(algo.body.flatten, rules, stats))
     }
-
-    stats.printSummary()
-    result
   }
 
   private def pass(

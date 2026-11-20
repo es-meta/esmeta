@@ -43,6 +43,13 @@ class StringifyTinyTest extends InjectorTest {
       |// Assertions
       |$assert.sameValue(x.y.z, null);
       |$assert.callable(x.y.z);""".stripMargin,
+      asyncConformTest -> """// [EXIT] normal
+      |var x = 42;
+      |// Assertions
+      |$delay(() => {
+      |  $assert.sameValue(x.y.z, null);
+      |  $assert.callable(x.y.z);
+      |});""".stripMargin,
     )
   }
 

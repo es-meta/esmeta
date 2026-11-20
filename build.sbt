@@ -3,7 +3,7 @@ import sbtassembly.AssemblyPlugin.defaultUniversalScript
 // ESMeta version
 // NOTE: please update VERSION together in top-level package.scala
 // NOTE: `scripts/release` updates this together with package.scala
-ThisBuild / version := "0.8.1"
+ThisBuild / version := "0.8.2"
 
 // Scala version
 ThisBuild / scalaVersion := "3.9.0"
@@ -35,13 +35,6 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 
 // Metals requires the semanticdb compiler plugin
 Global / semanticdbEnabled := true
-
-// setting for sbt-ghpages with scaladoc
-// NOTE: If you want to update gh-pages, use `ghpagesPushSite` command.
-// Please carefully use it. See https://index.scala-lang.org/sbt/sbt-ghpages
-enablePlugins(GhpagesPlugin)
-enablePlugins(SiteScaladocPlugin)
-git.remoteRepo := "git@github.com:es-meta/esmeta.git"
 
 // general
 lazy val complTest = taskKey[Unit]("Launch .completion validity tests (tiny)")
