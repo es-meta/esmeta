@@ -928,7 +928,20 @@ trait Parsers extends IndentParsers {
           )
       }
 
-    normalSDOExpr | containsSDOExpr
+    // Contains SDO with `the result of` (e.g., the result of |X| Contains _y_)
+    lazy val resultOfContainsSDOExpr =
+      "the result of" ~> calcExpr ^? {
+        case e @ InvokeSyntaxDirectedOperationExpression(
+              _,
+              "Contains",
+              _,
+              None,
+              _,
+            ) =>
+          e.copy(prefix = Some("the result of"))
+      }
+
+    normalSDOExpr | containsSDOExpr | resultOfContainsSDOExpr
 
   // return-if-abrupt expressions
   lazy val returnIfAbruptExpr: PL[ReturnIfAbruptExpression] =
@@ -1086,9 +1099,16 @@ trait Parsers extends IndentParsers {
 
   // production conditions
   // Ex: If _x_ is <emu-grammar>Statement : LabelledStatement</emu-grammar>, ...
+  // Ex: If |ExportDeclaration| is `export` |VariableStatement|, ...
   lazy val productionCond: PL[ProductionCondition] =
-    (expr <~ "is" ~ opt("an instance of")) ~ prodLiteral ^^ {
-      case nt ~ prod => ProductionCondition(nt, prod.lhs, prod.rhs) // TODO
+    lazy val terminal = "`[^`]+`".r
+    lazy val grammarRhs = rep1(terminal | "[\\[\\]A-Za-z]+".r)
+    lazy val inlineRhs = rep1(terminal | nt)
+    (expr <~ "is" ~ opt("an instance of")) ~
+    (opt("the production") ~> tagged((word <~ ":") ~ grammarRhs)) ^^ {
+      case e ~ (l ~ r) => ProductionCondition(e, l, r, false)
+    } | (ntLiteral <~ "is") ~ inlineRhs ^^ {
+      case n ~ r => ProductionCondition(n, n.name, r, true)
     }
 
   // predicate conditions
@@ -1178,7 +1198,15 @@ trait Parsers extends IndentParsers {
     expr ~
     ("does not contain" ^^^ true | "contains" ^^^ false) ~
     containsTarget
-  } ^^ { case l ~ n ~ e => ContainsCondition(l, n, e) }
+  } ^^ { case l ~ n ~ e => ContainsCondition(l, n, e, false) } | {
+    expr ~
+    ("does not include the element" ^^^ true |
+    "includes the element" ^^^ false) ~
+    expr
+  } ^^ {
+    case l ~ n ~ e =>
+      ContainsCondition(l, n, ContainsConditionTarget.Expr(e), true)
+  }
   lazy val containsTarget: P[ContainsConditionTarget] =
     import ContainsConditionTarget.*
     lazy val exprTarget = expr ^^ { Expr(_) }
@@ -1223,7 +1251,12 @@ trait Parsers extends IndentParsers {
     ("such that" ~> cond)
   } ^^ {
     case x ~ l ~ c =>
-      ContainsCondition(l, true, ContainsConditionTarget.SuchThat(None, x, c))
+      ContainsCondition(
+        l,
+        true,
+        ContainsConditionTarget.SuchThat(None, x, c),
+        false,
+      )
   } | {
     // CallExpression[0,0].Evaluation
     expr <~ "has no elements"

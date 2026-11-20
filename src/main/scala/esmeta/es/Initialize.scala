@@ -88,6 +88,7 @@ class Initialize(cfg: CFG) {
         "IsLockFree8" -> Bool(true),
         "CandidateExecution" -> NamedAddr(CANDIDATE_EXECUTION),
         "KeptAlive" -> NamedAddr(KEPT_ALIVE),
+        "ModuleAsyncEvaluationCount" -> Math(0),
       ),
       NamedAddr(AGENT_SIGNIFIER) -> recordObj("AgentSignifier"),
       NamedAddr(CANDIDATE_EXECUTION) -> YetObj(

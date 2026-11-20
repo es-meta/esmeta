@@ -532,8 +532,8 @@ class Translator(spec: Spec) {
       negateIf(neg)(
         s"${pb.use(Dep.Internal("HasField"))}(${compile(pb, ref)}, ${compile(pb, field)})",
       )
-    case HasBindingCondition(ref, neg, binding)    => unsupported(cond)
-    case ProductionCondition(nt, lhsName, rhsName) => unsupported(cond)
+    case HasBindingCondition(ref, neg, binding) => unsupported(cond)
+    case ProductionCondition(_, _, _, _)        => unsupported(cond)
     case PredicateCondition(expr, neg, op) =>
       import PredicateConditionOperator.*
       op match {
@@ -572,11 +572,16 @@ class Translator(spec: Spec) {
     case InclusiveIntervalCondition(left, neg, from, to, _) =>
       val l = compile(pb, left)
       negateIf(neg)(s"$l >= ${compile(pb, from)} && $l <= ${compile(pb, to)}")
-    case ContainsCondition(list, neg, ContainsConditionTarget.Expr(target)) =>
+    case ContainsCondition(
+          list,
+          neg,
+          ContainsConditionTarget.Expr(target),
+          _,
+        ) =>
       negateIf(neg)(
         s"${pb.use(Dep.Internal("Contains"))}(${compile(pb, list)}, ${compile(pb, target)})",
       )
-    case ContainsCondition(_, _, target) => unsupported(cond, target)
+    case ContainsCondition(_, _, target, _) => unsupported(cond, target)
     case CompoundCondition(left, op, right) =>
       import CompoundConditionOperator.*
       lazy val l = compile(pb, left)

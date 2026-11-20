@@ -87,7 +87,7 @@ class Compiler(
       "MakeArg.*".r, // MakeArgGetter, MakeArgSetter
       "ClassTail\\[\\d,\\d\\]\\.ClassDefinitionEvaluation".r,
       "ExecuteAsyncModule".r,
-      "FinishDynamicImport".r,
+      "ContinueDynamicImport".r,
       "INTRINSICS\\.Object\\.fromEntries".r,
       "AsyncFromSyncIteratorContinuation".r,
       "CreateResolvingFunctions".r,
@@ -868,6 +868,26 @@ class Compiler(
   def compile(op: UnaryExpressionOperator): UOp = op match
     case UnaryExpressionOperator.Neg => UOp.Neg
 
+  /** compile a right operand of an is/are condition */
+  def compileIsAreRight(
+    fb: FuncBuilder,
+    left: Expression,
+    right: Expression,
+  ): Expr = (left, right) match
+    case (
+          ReferenceExpression(x: Variable),
+          NonterminalLiteral(None, name, flags, false),
+        ) if isGrammarSymbolParam(fb, x.name) =>
+      EGrammarSymbol(name, flags.map(_ `startsWith` "+"))
+    case _ => compile(fb, right)
+
+  /** check whether a variable is a parameter of grammar symbol type */
+  def isGrammarSymbolParam(fb: FuncBuilder, x: String): Boolean =
+    fb.params.exists { p =>
+      val ty = p.ty.toValue
+      p.lhs.name == x && !ty.isBottom && ty <= GrammarSymbolT
+    }
+
   /** compile literals */
   def compile(fb: FuncBuilder, lit: Literal): Expr = lit match {
     case ThisLiteral(_)          => ENAME_THIS
@@ -880,7 +900,6 @@ class Compiler(
       EGrammarSymbol(name, flags.map(_ `startsWith` "+"))
     case NonterminalLiteral(ordinal, name, flags, _) =>
       val ntNames = fb.ntBindings.map(_._1)
-      // TODO ClassTail[0,3].Contains
       if (ntNames contains name) {
         val xs = fb.ntBindings.filter(_._1 == name)
         xs(ordinal.getOrElse(1) - 1) match
@@ -961,11 +980,17 @@ class Compiler(
         )
         if (neg) not(e) else e
       // XXX need to be generalized?
-      case ProductionCondition(nt, lhsName, rhsName) =>
+      case ProductionCondition(nt, lhsName, rhs, _) =>
         val base = compile(fb, nt)
+        val rhsName = rhs.map(_.stripPrefix("`").stripSuffix("`")).mkString
         getProductionData(lhsName, rhsName) match
           case Some((_, rhsIdx)) =>
-            fb.ntBindings ++= List((rhsName, base, Some(0)))
+            val bindings = rhs match
+              case List(name) => List((name, base, Some(0)))
+              case _ =>
+                val nts = grammar.nameMap(lhsName).rhsVec(rhsIdx).nts
+                nts.zipWithIndex.map((x, idx) => (x.name, base, Some(idx)))
+            fb.ntBindings ++= bindings
             ETypeCheck(base, IRType(AstT(lhsName, rhsIdx)))
           case None => EYet(cond.toString(true, false))
       case PredicateCondition(exprs, neg, op) =>
@@ -1050,7 +1075,7 @@ class Compiler(
         val es = for (lexpr <- left) yield {
           val l = compile(fb, lexpr)
           val e = right
-            .map(r => EBinary(BOp.Eq, l, compile(fb, r)))
+            .map(r => EBinary(BOp.Eq, l, compileIsAreRight(fb, lexpr, r)))
             .reduce(or(_, _))
           if (neg) not(e) else e
         }
@@ -1074,7 +1099,7 @@ class Compiler(
         lazy val t = compile(fb, to)
         val cond = not(or(lessThan(l, f), lessThan(t, l)))
         if (neg) not(cond) else cond
-      case ContainsCondition(list, neg, target) =>
+      case ContainsCondition(list, neg, target, _) =>
         import ContainsConditionTarget.*
         lazy val l = compile(fb, list)
         val e = target match
