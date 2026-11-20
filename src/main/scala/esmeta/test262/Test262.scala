@@ -2,7 +2,13 @@ package esmeta.test262
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.error.{NotSupported, InvalidExit, UnexpectedParseResult}
+import esmeta.error.{
+  NotSupported,
+  InvalidExit,
+  UnexpectedParseResult,
+  AsyncTestFailure,
+  AsyncTestIncomplete,
+}
 import esmeta.error.NotSupported.*
 import esmeta.es.*
 import esmeta.es.util.*
@@ -210,6 +216,7 @@ case class Test262(
         if (tyCheck) collector.add(filename, st.typeErrors)
         val returnValue = st(GLOBAL_RESULT)
         if (returnValue != Undef) throw InvalidExit(returnValue)
+        if (test.flags.contains("async")) checkAsync(st)
       ,
       // dump coverage
       postJob = logDir => {
@@ -317,6 +324,16 @@ case class Test262(
       logPW = logPW,
       timeLimit = timeLimit,
     )
+
+  // check the output of an asynchronous test
+  // https://github.com/tc39/test262/blob/main/INTERPRETING.md#flags
+  private def checkAsync(st: State): Unit =
+    val outputs = st.stdout
+    outputs.find(_.startsWith("Test262:AsyncTestFailure:")) match
+      case Some(msg) => throw AsyncTestFailure(msg)
+      case None =>
+        if (!outputs.contains("Test262:AsyncTestComplete"))
+          throw AsyncTestIncomplete(outputs)
 
   // check whether program point is in harness
   private def inHarness(st: State): Boolean = (for {
