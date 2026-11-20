@@ -41,6 +41,7 @@ object SystemUtils {
   lazy val irFilter = extFilter("ir")
   lazy val cfgFilter = extFilter("cfg")
   lazy val jsFilter = extFilter("js")
+  lazy val mjsFilter = extFilter("mjs")
   lazy val jsonFilter = extFilter("json")
   lazy val patchFilter = extFilter("patch")
 
@@ -258,6 +259,17 @@ object SystemUtils {
 
   /** file existence check */
   def exists(name: String): Boolean = File(name).exists
+
+  /** normalized absolute path of a file */
+  def absPath(path: String): String =
+    Paths.get(path).toAbsolutePath.normalize.toString
+
+  /** resolve a path against the directory of a base file (the working directory
+    * if no base file is given) into a normalized absolute path
+    */
+  def resolvePath(base: Option[String], path: String): String =
+    val dir = base.flatMap(b => Option(Paths.get(b).toAbsolutePath.getParent))
+    absPath(dir.fold(path)(_.resolve(path).toString))
 
   /** check whether a shell command is normally terminated */
   def isNormalExit(str: String): Boolean = optional(executeCmd(str)).isDefined

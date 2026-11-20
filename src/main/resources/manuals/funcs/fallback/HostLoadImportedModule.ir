@@ -4,5 +4,28 @@ def HostLoadImportedModule(
   hostDefined: Any,
   payload: Record[GraphLoadingStateRecord | PromiseCapabilityRecord],
 ): Enum[~unused~] = {
+  // resolve the specifier against the file of the referrer
+  let base = undefined
+  if (! (? referrer: Record[RealmRecord])) base = referrer.HostDefined
+  let path = (resolve-path base moduleRequest.Specifier)
+  if (exists @MODULE_MAP[path]) {
+    call result = clo<"NormalCompletion">(@MODULE_MAP[path])
+  } else {
+    let sourceText = (read-file path)
+    if (= sourceText undefined) {
+      call errObj = clo<"__NEW_ERROR_OBJ__">("%TypeError.prototype%")
+      call result = clo<"ThrowCompletion">(errObj)
+    } else {
+      call parsed = clo<"ParseModule">(sourceText, @EXECUTION_STACK[0].Realm, path)
+      if (? parsed: List[Record[Error]]) {
+        call errObj = clo<"__NEW_ERROR_OBJ__">("%SyntaxError.prototype%")
+        call result = clo<"ThrowCompletion">(errObj)
+      } else {
+        @MODULE_MAP[path] = parsed
+        call result = clo<"NormalCompletion">(parsed)
+      }
+    }
+  }
+  call _ = clo<"FinishLoadingImportedModule">(referrer, moduleRequest, payload, result)
   return ~unused~
 }

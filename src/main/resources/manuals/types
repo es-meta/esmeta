@@ -668,7 +668,8 @@ type ScriptRecord {
   Realm: Record[RealmRecord];
   ECMAScriptCode: Ast[Script];
   LoadedModules: List[Record[LoadedModuleRequestRecord]];
-  HostDefined: Enum[~empty~];
+  // the path of the script file, if any
+  HostDefined: String | Undefined;
 }
 
 // https://tc39.es/ecma262/#modulerequest-record
@@ -700,7 +701,8 @@ type ModuleRecord {
   Realm: Record[RealmRecord];
   Environment: Record[ModuleEnvironmentRecord] | Enum[~empty~];
   Namespace: Record[ModuleNamespaceExoticObject] | Enum[~empty~];
-  HostDefined: Undefined;
+  // the path of the module file, if any
+  HostDefined: String | Undefined;
 }
 
 // https://tc39.es/ecma262/#resolvedbinding-record

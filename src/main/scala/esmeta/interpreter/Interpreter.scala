@@ -349,6 +349,14 @@ class Interpreter(
       Cont(func, captured.toMap, st.callStack)
     case EDebug(expr) => debug(eval(expr))
     case ERandom()    => Number(math.random())
+    case EResolvePath(base, path) =>
+      val p = eval(path).asStr
+      val file = eval(base) match { case Str(f) => Some(f); case _ => None }
+      // keep the path as it is if it is not a valid file path
+      Str(optional(resolvePath(file, p)).getOrElse(p))
+    case EReadFile(path) =>
+      val p = eval(path).asStr
+      if (java.io.File(p).isFile) Str(readFile(p)) else Undef
     case ESyntactic(name, args, rhsIdx, children) =>
       val asts = children.map(_.map(child => eval(child).asAst))
       AstValue(Syntactic(name, args, rhsIdx, asts))

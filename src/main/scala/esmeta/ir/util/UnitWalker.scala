@@ -102,6 +102,10 @@ trait UnitWalker extends BasicUnitWalker {
       walk(fname)
     case EDebug(expr) =>
       walk(expr)
+    case EResolvePath(base, path) =>
+      walk(base); walk(path)
+    case EReadFile(path) =>
+      walk(path)
     case expr: ERandom     => walk(expr)
     case expr: AstExpr     => walk(expr)
     case expr: AllocExpr   => walk(expr)

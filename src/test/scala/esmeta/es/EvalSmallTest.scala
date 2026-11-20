@@ -19,6 +19,14 @@ class EvalSmallTest extends ESTest {
         val insts = NormalInsts.fromFile(irName)
         checkExit(evalFile(jsName, checkAfter = insts))
       }
+    // modules (fixtures are only imported by other tests)
+    else if (mjsFilter(filename) && !isFixture(filename))
+      check(filename) {
+        val mjsName = file.toString
+        val irName = mjs2ir(mjsName)
+        val insts = NormalInsts.fromFile(irName)
+        checkExit(evalModuleFile(mjsName, checkAfter = insts))
+      }
   }
   init
 }

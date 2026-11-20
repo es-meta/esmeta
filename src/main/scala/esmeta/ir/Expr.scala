@@ -36,6 +36,14 @@ case class EDebug(expr: Expr) extends Expr
 // random number expressions
 case class ERandom() extends Expr
 
+// file system expressions
+// - `EResolvePath` resolves `path` against the directory of the file `base`
+//   (the working directory if `base` is not a string) into a normalized
+//   absolute path
+// - `EReadFile` reads the content of a file (`undefined` if it is not a file)
+case class EResolvePath(base: Expr, path: Expr) extends Expr
+case class EReadFile(path: Expr) extends Expr
+
 // abstract syntax tree (AST) expressions
 sealed trait AstExpr extends Expr {
   val name: String

@@ -110,6 +110,10 @@ trait Walker extends BasicWalker {
       ECont(walk(fname))
     case EDebug(expr) =>
       EDebug(walk(expr))
+    case EResolvePath(base, path) =>
+      EResolvePath(walk(base), walk(path))
+    case EReadFile(path) =>
+      EReadFile(walk(path))
     case expr: ERandom     => walk(expr)
     case expr: AstExpr     => walk(expr)
     case expr: AllocExpr   => walk(expr)

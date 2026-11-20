@@ -87,6 +87,9 @@ object IRTest {
   lazy val debug = EDebug(xExpr)
   // random number expressions
   lazy val rand = ERandom()
+  // file system expressions
+  lazy val resolvePath = EResolvePath(xExpr, yExpr)
+  lazy val readFile = EReadFile(xExpr)
   // AST expressions
   lazy val ast = ESyntactic("Identifier", Nil, 1, Vector())
   lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Vector())

@@ -1,0 +1,3 @@
+assert (= (sizeof @RESULT) 1)
+assert (= @RESULT[0] "error in module")
+@RESULT = undefined

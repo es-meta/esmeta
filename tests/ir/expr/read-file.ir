@@ -1,0 +1,10 @@
+@main def main() = {
+  // the content of an existing file (relative to the working directory)
+  let content = (read-file "tests/ir/expr/read-file.ir")
+  assert (? content: String)
+  assert (= (substring content 0 5) "@main")
+
+  // `undefined` for missing files and directories
+  assert (= (read-file "tests/ir/expr/no-such-file.ir") undefined)
+  assert (= (read-file "tests/ir/expr") undefined)
+}
