@@ -78,7 +78,10 @@ class CFGBuilder(
         val block = prev match
           case List((b: Block, _)) => b
           case _                   => val b = Block(nextNId); connect(b); b
-        block.insts += normal
+        // drop unreachable instructions
+        block.insts.lastOption match
+          case Some(_: IReturn) =>
+          case _                => block.insts += normal
         prev = List((block, true))
       case ISeq(insts) => for { i <- insts } aux(i)
       case branch: BranchInst =>

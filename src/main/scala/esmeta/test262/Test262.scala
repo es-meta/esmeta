@@ -80,10 +80,12 @@ case class Test262(
 
   /** load test262 with harness files */
   def loadTest(filename: String, includes: List[String]): Code =
-    // load harness
-    val harness = includes.foldLeft(basicHarness)(_ + getHarness(_))
     // merge with harnesses
-    (harness + parseFile(filename).toCodeVec).toCode
+    (loadHarness(includes) + parseFile(filename).toCodeVec).toCode
+
+  /** load harness files */
+  def loadHarness(includes: List[String]): CodeVec =
+    includes.foldLeft(basicHarness)(_ + getHarness(_))
 
   /** get tests */
   def getTests(
@@ -152,8 +154,13 @@ case class Test262(
     // use error handler for multiple targets
     val multiple = tests.length > 1
 
-    // get target tests and removed tests
-    val (targetTests, removed) = testFilter(tests, withYet)
+    // get target tests and removed tests (coverage only supports scripts)
+    val (targetTests, removed) =
+      val (targets, removed) = testFilter(tests, withYet)
+      if (!useCoverage) (targets, removed)
+      else
+        val (modules, scripts) = targets.partition(_.isModule)
+        (scripts, removed ++ modules.map(_ -> List(Category.Module.name)))
 
     // dump test id to path for -test262test:all-tests
     if (allTests)
@@ -202,7 +209,7 @@ case class Test262(
         val st =
           if (!useCoverage)
             evalFile(
-              filename,
+              test,
               tyCheck,
               log && !multiple,
               detail,
@@ -270,9 +277,9 @@ case class Test262(
     )(
       // check parsing result with its corresponding code
       check = test =>
-        val filename = test.path
-        val (ast, _) = parseFile(filename)
-        val (newAst, _) = parse(ast.toString(grammar = Some(cfg.grammar)))
+        val parser = if (test.isModule) moduleParser else scriptParser
+        val ast = parser.fromFile(test.path)
+        val newAst = parser.from(ast.toString(grammar = Some(cfg.grammar)))
         if (ast != newAst) throw UnexpectedParseResult,
     )
 
@@ -287,35 +294,50 @@ case class Test262(
   // ---------------------------------------------------------------------------
   // parse ECMAScript code
   private lazy val scriptParser = cfg.scriptParser
-  private def parse(code: String): Code =
-    scriptParser.fromWithCode(code)
+  private lazy val moduleParser = cfg.moduleParser
   private def parseFile(filename: String): Code =
     scriptParser.fromFileWithCode(filename)
 
   // eval ECMAScript code
   private def evalFile(
-    filename: String,
+    test: Test,
     tyCheck: Boolean,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
-    val (ast, code) = loadTest(filename)
-    eval(code, ast, filename, tyCheck, log, detail, logPW, timeLimit)
+    val filename = test.path
+    // harness files are evaluated as a script before the module of the test
+    val (ast, code) =
+      if (test.isModule) loadHarness(test.includes).toCode
+      else loadTest(filename, test.includes)
+    val mainModule = if (test.isModule) Some(filename) else None
+    eval(
+      code,
+      ast,
+      filename,
+      mainModule,
+      tyCheck,
+      log,
+      detail,
+      logPW,
+      timeLimit,
+    )
 
   // eval ECMAScript code
   private def eval(
     code: String,
     ast: Ast,
     filename: String,
+    mainModule: Option[String],
     tyCheck: Boolean,
     log: Boolean = false,
     detail: Boolean = false,
     logPW: Option[PrintWriter] = None,
     timeLimit: Option[Int] = None,
   ): State =
-    val st = cfg.init.from(code, ast)
+    val st = cfg.init.from(code, ast, Some(filename), mainModule)
     Interpreter(
       st = st,
       tyCheck = tyCheck,

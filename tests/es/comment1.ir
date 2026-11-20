@@ -1,0 +1,2 @@
+assert (? @REALM.GlobalObject.__MAP__.object.Value: Record[Object])
+assert (= @REALM.GlobalObject.__MAP__.string.Value "comment")

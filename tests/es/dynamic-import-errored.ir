@@ -1,0 +1,2 @@
+assert (? @REALM.GlobalObject.__MAP__.first.Value: Record[ErrorObject])
+assert (= @REALM.GlobalObject.__MAP__.first.Value @REALM.GlobalObject.__MAP__.second.Value)
