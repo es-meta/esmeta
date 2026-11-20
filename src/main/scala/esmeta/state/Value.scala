@@ -115,7 +115,12 @@ object Math {
   val one: Math = Math(1)
   inline def apply(n: Int): Math = Math(BigDecimal(n, UNLIMITED))
   inline def apply(n: Long): Math = Math(BigDecimal(n, UNLIMITED))
-  inline def apply(n: Double): Math = Math(BigDecimal(n, UNLIMITED))
+
+  /** the exact binary value of a double (e.g., `Math(0.1)` is not 0.1 but
+    * 0.1000000000000000055511151231257827021181583404541015625). Use
+    * `Math("0.1")` for a decimal.
+    */
+  inline def apply(n: Double): Math = Math(BigDecimal.exact(n)(UNLIMITED))
   inline def apply(n: scala.math.BigInt): Math = Math(BigDecimal(n, UNLIMITED))
   inline def apply(s: String): Math = Math(BigDecimal(s, UNLIMITED))
   inline def from(s: String, b: Int): Math = apply(scala.math.BigInt(s, b))

@@ -289,7 +289,7 @@ class Interpreter(
           val radix = radixOpt.fold(10)(e => eval(e).asInt)
           Str(toStringHelper(d, radix))
         case (Number(d), ToNumber | ToApproxNumber) => Number(d)
-        case (Number(n), ToBigInt) => BigInt(BigDecimal.exact(n).toBigInt)
+        case (Number(n), ToBigInt)                  => Math(n).toBigInt
         // big integer
         case (BigInt(n), ToMath) => Math(n)
         case (BigInt(n), ToStr(radixOpt)) =>
