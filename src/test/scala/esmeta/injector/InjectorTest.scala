@@ -39,6 +39,7 @@ trait InjectorTest extends ESMetaTest {
     async = false,
     assertions = Vector(hasValue, isCallable),
   )
+  lazy val asyncConformTest = conformTest.copy(async = true)
 
   lazy val addr = DynamicAddr(42)
   lazy val irMainFunc =
