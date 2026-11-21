@@ -1167,7 +1167,6 @@ HostEnqueuePromiseJob
 HostEnsureCanCompileStrings
 HostFinalizeImportMeta
 HostGetImportMetaProperties
-HostLoadImportedModule
 HostMakeJobCallback
 HostPromiseRejectionTracker
 HostResizeArrayBuffer
