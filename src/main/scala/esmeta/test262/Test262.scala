@@ -265,7 +265,9 @@ case class Test262(
       check = test =>
         val filename = test.path
         val (ast, _) = parseFile(filename)
-        val (newAst, _) = parse(ast.toString(grammar = Some(cfg.grammar)))
+        // clear locations to print the AST with the grammar, not its source text
+        val (newAst, _) =
+          parse(ast.clearLoc.toString(grammar = Some(cfg.grammar)))
         if (ast != newAst) throw UnexpectedParseResult,
     )
 
