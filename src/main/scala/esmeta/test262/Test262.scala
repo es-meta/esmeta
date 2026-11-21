@@ -2,13 +2,7 @@ package esmeta.test262
 
 import esmeta.*
 import esmeta.cfg.CFG
-import esmeta.error.{
-  NotSupported,
-  InvalidExit,
-  UnexpectedParseResult,
-  AsyncTestFailure,
-  AsyncTestIncomplete,
-}
+import esmeta.error.*
 import esmeta.error.NotSupported.*
 import esmeta.es.*
 import esmeta.es.util.*
