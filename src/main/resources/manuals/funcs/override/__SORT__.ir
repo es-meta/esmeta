@@ -1,0 +1,37 @@
+def <AUX>:__SORT__(
+  list: List,
+  sortKeys: List,
+): List = {
+  let sorted = (copy list)
+  let sortedKeys = (copy sortKeys)
+  let i = 1
+  let len = (sizeof sorted)
+  while (< i len) {
+    let j = i
+    let moving = true
+    while (&& moving (< 0 j)) {
+      let x = sortedKeys[(- j 1)]
+      let y = sortedKeys[j]
+      if (&& (? x: String) (? y: String)) {
+        call lt = clo<"IsLessThan">(y, x, true)
+        assert (? lt: Normal)
+        lt = lt.Value
+      } else {
+        assert (&& (? x: Math) (? y: Math))
+        let lt = (< y x)
+      }
+      if (= lt true) {
+        let elem = sorted[(- j 1)]
+        sorted[(- j 1)] = sorted[j]
+        sorted[j] = elem
+        sortedKeys[(- j 1)] = y
+        sortedKeys[j] = x
+        j = (- j 1)
+      } else {
+        moving = false
+      }
+    }
+    i = (+ i 1)
+  }
+  return sorted
+}

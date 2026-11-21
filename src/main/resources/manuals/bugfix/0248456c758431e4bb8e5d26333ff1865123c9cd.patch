@@ -1,5 +1,5 @@
 diff --git a/spec.html b/spec.html
-index 22dc069f..d2c8d3bf 100644
+index 22dc069f..1f2d724d 100644
 --- a/spec.html
 +++ b/spec.html
 @@ -13966,6 +13966,7 @@
@@ -10,3 +10,18 @@ index 22dc069f..d2c8d3bf 100644
              1. Return Completion(_result_).
            1. Perform AsyncFunctionStart(_promiseCapability_, _resultsClosure_).
            1. Remove _calleeContext_ from the execution context stack and restore _callerContext_ as the running execution context.
+@@ -28661,13 +28662,8 @@
+             </dl>
+ 
+             <emu-alg>
+-              1. Let _moduleContext_ be a new ECMAScript code execution context.
+-              1. Set the Function of _moduleContext_ to *null*.
+-              1. Set the Realm of _moduleContext_ to _module_.[[Realm]].
+-              1. Set the ScriptOrModule of _moduleContext_ to _module_.
+               1. Assert: _module_ has been linked and declarations in its module environment have been instantiated.
+-              1. Set the VariableEnvironment of _moduleContext_ to _module_.[[Environment]].
+-              1. Set the LexicalEnvironment of _moduleContext_ to _module_.[[Environment]].
++              1. Let _moduleContext_ be _module_.[[Context]].
+               1. Suspend the running execution context.
+               1. If _module_.[[HasTLA]] is *false*, then
+                 1. Assert: _capability_ is not present.

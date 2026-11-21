@@ -229,7 +229,6 @@ type GlobalEnvironmentRecord extends EnvironmentRecord {
 
 // https://tc39.es/ecma262/#sec-module-environment-records
 type ModuleEnvironmentRecord extends DeclarativeEnvironmentRecord {
-  def CreateImportBinding;
   def GetBindingValue;
   def GetThisBinding;
   def HasThisBinding;
@@ -246,6 +245,11 @@ type Binding {
 type ImmutableBinding extends Binding {
   __STRICT__: Boolean;
   __MUTABLE__: False;
+}
+
+type IndirectBinding extends ImmutableBinding {
+  __MODULE__: Record[ModuleRecord];
+  __BINDING_NAME__: String;
 }
 
 type MutableBinding extends Binding {
