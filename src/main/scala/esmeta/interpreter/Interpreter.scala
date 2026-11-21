@@ -155,6 +155,7 @@ class Interpreter(
       }
     case IPrint(expr) =>
       val v = eval(expr)
+      st.stdout :+= (v match { case Str(s) => s; case _ => st.getString(v) })
       if (!TEST_MODE) println(st.getString(v))
     case INop() => /* do nothing */
   }

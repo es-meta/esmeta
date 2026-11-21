@@ -21,6 +21,7 @@ case class State(
   val globals: MMap[Global, Value] = MMap(),
   val heap: Heap = Heap(),
   var typeErrors: Set[TypeError] = Set(),
+  var stdout: Vector[String] = Vector(),
 ) extends StateElem {
 
   given CFG = cfg
@@ -142,6 +143,7 @@ case class State(
       newCallStack,
       newGlobals,
       newHeap,
+      stdout = stdout,
     )
 
   /** get type of value in current state */

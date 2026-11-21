@@ -4,5 +4,5 @@ def HostLoadImportedModule(
   hostDefined: Any,
   payload: Record[GraphLoadingStateRecord | PromiseCapabilityRecord],
 ): Enum[~unused~] = {
-  return ~unused~
+  return (yet "HostLoadImportedModule: loading modules is not supported yet")
 }
