@@ -9,7 +9,7 @@ import esmeta.util.BaseUtils.*
 
 /** runtime type checker */
 case class TypeChecker(st: State) {
-  import ManualInfo.tyModel.exists
+  lazy val exists = st.cfg.tyModel.exists
 
   /** check valid field update check */
   def fieldUpdateCheck(ref: Ref, t: RefTarget, e: Expr, v: Value): Unit =

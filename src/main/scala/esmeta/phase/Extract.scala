@@ -126,6 +126,8 @@ case object Extract extends Phase[Unit, Spec] {
       getName = algo => s"${algo.normalizedName}.algo",
     )
 
+    dumpFile("tyModel", spec.tyModel, s"$EXTRACT_LOG_DIR/tyModel")
+
     dumpDir(
       name = "yet-equal-algos",
       iterable = spec.algorithms.filter(!_.equals),
