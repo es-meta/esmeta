@@ -36,13 +36,6 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 // Metals requires the semanticdb compiler plugin
 Global / semanticdbEnabled := true
 
-// setting for sbt-ghpages with scaladoc
-// NOTE: If you want to update gh-pages, use `ghpagesPushSite` command.
-// Please carefully use it. See https://index.scala-lang.org/sbt/sbt-ghpages
-enablePlugins(GhpagesPlugin)
-enablePlugins(SiteScaladocPlugin)
-git.remoteRepo := "git@github.com:es-meta/esmeta.git"
-
 // general
 lazy val complTest = taskKey[Unit]("Launch .completion validity tests (tiny)")
 

@@ -55,7 +55,7 @@ object ESTest {
   def evalFile(
     filename: String,
     checkAfter: List[NormalInst] = Nil,
-  ): State = eval(readFile(filename), checkAfter, Some(filename))
+  ): State = new CheckAfter(cfg.init.fromFile(filename), checkAfter).result
 
   // ---------------------------------------------------------------------------
   // analyzer helpers
@@ -71,7 +71,8 @@ object ESTest {
 
   // tests for ES parser
   def parseTest(ast: Ast): Ast =
-    val newAst = parse(ast.toString(grammar = Some(grammar)))
+    // clear locations to print the AST with the grammar, not its source text
+    val newAst = parse(ast.clearLoc.toString(grammar = Some(grammar)))
     assert(ast == newAst)
     ast
   def parseTest(str: String): Ast = parseTest(parse(str))

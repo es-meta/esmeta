@@ -1,17 +1,18 @@
 name: e2e
+# See ci.yml for why `push` runs only on `main`.
 on:
   push:
-    branches-ignore:
-      - scalajs
+    branches:
+      - main
   pull_request:
     branches-ignore:
       - scalajs
 env:
   ESMETA_HOME: ${{ github.workspace }}
 jobs:
-  test:
-    # skip `pull_request` runs for same-repository branches, already tested by `push`
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+  # named `e2e`, not `test`, so that it is distinct from the `test` job of CI
+  # when chosen as a required status check
+  e2e:
     runs-on: ubuntu-latest
     steps:
 

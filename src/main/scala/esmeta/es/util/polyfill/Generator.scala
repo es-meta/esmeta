@@ -42,8 +42,11 @@ class Generator(
   /** algorithms dropped by `skipUnsupported`, with the reason for each */
   lazy val skipped: Map[Head, String] = { result; skippedBuffer.toMap }
 
+  /** how many times each DSL rule fired (filled while computing `result`) */
+  val stats: TransformStats = TransformStats()
+
   val optPaths: List[TransformPath] =
-    List(ShorthandInlinePath(spec)) ++ dslDir.map(DSLPath(_))
+    List(ShorthandInlinePath(spec)) ++ dslDir.map(DSLPath(_, stats))
 
   lazy val targets: List[Algorithm] = Targets(spec)
 }

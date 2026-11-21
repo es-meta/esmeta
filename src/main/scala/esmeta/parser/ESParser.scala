@@ -27,11 +27,7 @@ case class ESParser(
   def apply(name: String, args: List[Boolean] = Nil): AstFrom =
     val parser = parsers(name)(args)
     new AstFrom {
-      def fromFile(filename: String): Ast =
-        if (debug) println(debugWelcome)
-        val ast = parse(parser, fileReader(filename)).get
-        updateFilename(ast, filename)
-        ast
+      def fromFile(filename: String): Ast = fromFileWithCode(filename)._1
       def from(str: String): Ast =
         if (debug) println(debugWelcome)
         val ast = parse(parser, str).get
@@ -41,8 +37,10 @@ case class ESParser(
         if (debug) println(debugWelcome)
         val res = parse(parser, fileReader(filename))
         val ast = res.get
+        val code = res.next.source.toString
         updateFilename(ast, filename)
-        (ast, res.next.source.toString)
+        updateOriginText(ast, code)
+        (ast, code)
       def fromWithCode(str: String): (Ast, String) =
         if (debug) println(debugWelcome)
         val res = parse(parser, str)
