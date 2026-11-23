@@ -2686,6 +2686,7 @@ YieldExpression[1,0].Evaluation
 YieldExpression[2,0].Evaluation
 __APPEND_LIST__
 __CLAMP__
+__CONTAINS__
 __FLAT_LIST__
 __GET_ITEMS__
 __GET_TYPED_ARRAY_INFO_FROM_TYPE__
