@@ -1,0 +1,12 @@
+def <AUX>:__CONTAINS__(
+  list: List | String,
+  elem: Any,
+): Boolean = {
+  let i = 0
+  let len = (sizeof list)
+  while (< i len) {
+    if (= list[i] elem) return true
+    i = (+ i 1)
+  }
+  return false
+}

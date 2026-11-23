@@ -14,10 +14,26 @@ def unzip(map: Map[Math -> String]) = {
 @main def main() = {
   let map = (map [Math | BigInt | Number, String] { 1 -> "a", 2n -> "b", 0.3f -> "c" })[#1]
   call pair = clo<"unzip">(map)
-  assert (contains pair[0] 1)
-  assert (contains pair[0] 2n)
-  assert (contains pair[0] 0.3f)
-  assert (contains pair[1] "a")
-  assert (contains pair[1] "b")
-  assert (contains pair[1] "c")
+  call b0 = clo<"contains">(pair[0], 1)
+  assert b0
+  call b1 = clo<"contains">(pair[0], 2n)
+  assert b1
+  call b2 = clo<"contains">(pair[0], 0.3f)
+  assert b2
+  call b3 = clo<"contains">(pair[1], "a")
+  assert b3
+  call b4 = clo<"contains">(pair[1], "b")
+  assert b4
+  call b5 = clo<"contains">(pair[1], "c")
+  assert b5
+}
+
+def contains(list: List | String, elem: Any): Boolean = {
+  let i = 0
+  let len = (sizeof list)
+  while (< i len) {
+    if (= list[i] elem) return true
+    i = (+ i 1)
+  }
+  return false
 }

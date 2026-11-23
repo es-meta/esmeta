@@ -123,7 +123,6 @@ class StringifyTinyTest extends IRTest with ElemCoverage {
       parse -> "(parse x (grammar-symbol |A|[TF]))",
       grammarSymbol -> "(grammar-symbol |A|[TF])",
       yet -> "(yet \"NOT YET\")",
-      contains -> "(contains x x)",
       substring -> "(substring x x)",
       substringTo -> "(substring x x x)",
       trim -> "(trim (trim > x) <)",

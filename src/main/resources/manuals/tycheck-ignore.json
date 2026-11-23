@@ -9,8 +9,11 @@
   "FunctionBody[0,0].EvaluateFunctionBody",
   "FunctionDeclarationInstantiation",
   "GetViewByteLength",
+  "INTRINSICS.RegExp.prototype[%Symbol.replace%]",
+  "INTRINSICS.RegExp.prototype[%Symbol.split%]",
   "LocalTime",
   "MakeFullYear",
   "Record[SourceTextModuleRecord].ExecuteModule",
+  "SerializeJSONArray",
   "TypedArrayLength"
 ]

@@ -235,10 +235,6 @@ class Interpreter(
       Str(ast.toString(grammar = Some(grammar)).trim)
     case EYet(msg) =>
       throw NotSupported(Metalanguage)(msg)
-    case EContains(list, elem) =>
-      val l = eval(list).asList(st)
-      val e = eval(elem)
-      Bool(l.values.contains(e))
     case ESubstring(expr, from, to) =>
       val s = eval(expr).asStr
       val f = eval(from).asInt

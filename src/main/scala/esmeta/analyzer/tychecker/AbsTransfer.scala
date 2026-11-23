@@ -598,14 +598,6 @@ trait AbsTransferDecl { analyzer: TyChecker =>
       case EYet(msg) =>
         if (yetThrow) notSupported(msg)
         else AbsValue.Bot
-      case EContains(list, elem) =>
-        for {
-          l <- transfer(list)
-          v <- transfer(elem)
-          given AbsState <- get
-        } yield
-          if (l.ty.list.isBottom) AbsValue.Bot
-          else BoolTop
       case ESubstring(expr, from, None) =>
         for {
           v <- transfer(expr)

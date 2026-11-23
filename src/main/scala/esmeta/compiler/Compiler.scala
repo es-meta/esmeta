@@ -1079,7 +1079,9 @@ class Compiler(
         lazy val l = compile(fb, list)
         val e = target match
           case Expr(expr) =>
-            EContains(l, compile(fb, expr))
+            val (b, bExpr) = fb.newTIdWithExpr
+            fb.addInst(ICall(b, AUX_CONTAINS, List(l, compile(fb, expr))))
+            bExpr
           case WhoseField(tyOpt, fieldName, expr) =>
             val x = fb.newTId
             lazy val c = is(toStrERef(x, fieldName), compile(fb, expr))
