@@ -652,8 +652,12 @@ class CompileTinyTest extends CompilerTest with SyntaxCoverage {
       inclusiveIntervalCondShort -> "assert (! (|| (< x 2) (< 32 x)))",
       inclusiveIntervalCond -> "assert (! (|| (< x 2) (< 32 x)))",
       notInclusiveIntervalCond -> "assert (|| (< x 2) (< 32 x))",
-      containsCond -> "assert (contains x x)",
-      notContainsCond -> "assert (! (contains x x))",
+      containsCond ->
+      """call %0 = clo<"__CONTAINS__">(x, x)
+      |assert %0""".stripMargin,
+      notContainsCond ->
+      """call %0 = clo<"__CONTAINS__">(x, x)
+      |assert (! %0)""".stripMargin,
       // -----------------------------------------------------------------------
       containsWhoseFieldCond ->
       """%1 = x

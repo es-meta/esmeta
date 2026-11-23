@@ -1,0 +1,21 @@
+@main def main() = {
+  let list = (list [4, 5, 3, 7, 5, 2, 3])[#1]
+  call b0 = clo<"contains">(list, 4)
+  assert b0
+  call b1 = clo<"contains">(list, 10)
+  assert (! b1)
+  call b2 = clo<"contains">("ab;/", 59cu)
+  assert b2
+  call b3 = clo<"contains">("ab", 59cu)
+  assert (! b3)
+}
+
+def contains(list: List | String, elem: Any): Boolean = {
+  let i = 0
+  let len = (sizeof list)
+  while (< i len) {
+    if (= list[i] elem) return true
+    i = (+ i 1)
+  }
+  return false
+}

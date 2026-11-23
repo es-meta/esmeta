@@ -64,7 +64,6 @@ object IRTest {
   lazy val parse = EParse(xExpr, grammarSymbol)
   lazy val grammarSymbol = EGrammarSymbol("A", List(true, false))
   lazy val yet = EYet("NOT YET")
-  lazy val contains = EContains(xExpr, xExpr)
   lazy val substring = ESubstring(xExpr, xExpr, None)
   lazy val substringTo = ESubstring(xExpr, xExpr, Some(xExpr))
   lazy val trim = ETrim(ETrim(xExpr, true), false)

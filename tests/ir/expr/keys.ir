@@ -2,6 +2,18 @@
   let m = (map [Math | String, Boolean | Null] { 42 -> true, "x" -> null })[#1]
   let keys = (keys m)[#1]
   assert (= (sizeof keys) 2)
-  assert (contains keys 42)
-  assert (contains keys "x")
+  call b0 = clo<"contains">(keys, 42)
+  assert b0
+  call b1 = clo<"contains">(keys, "x")
+  assert b1
+}
+
+def contains(list: List | String, elem: Any): Boolean = {
+  let i = 0
+  let len = (sizeof list)
+  while (< i len) {
+    if (= list[i] elem) return true
+    i = (+ i 1)
+  }
+  return false
 }
