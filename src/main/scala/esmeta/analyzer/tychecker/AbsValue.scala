@@ -143,20 +143,28 @@ trait AbsValueDecl { self: TyChecker =>
     /** get syntactic SDO */
     def getSdo(method: String)(using AbsState): List[(Func, AbsValue)] = {
       import cfg.sdoInfo.*
-      this.ty.ast match
+      val ast = this.ty.ast
+      val bases = ast match
         case AstTy.Top =>
-          for {
-            base <- noBase.getOrElse(method, Set()).toList
-          } yield base.func -> AbsValue(base.thisTy)
+          noBase.getOrElse(method, Set()).toList
         case AstTy.Simple(names) =>
-          for {
-            name <- names.toList
+          (for {
+            name <- names
             base <- simple.getOrElse((name, method), Set())
-          } yield base.func -> AbsValue(base.thisTy)
+          } yield base).toList
         case AstTy.Detail(name, idx) =>
-          for {
-            base <- indexed.getOrElse(((name, idx), method), Set()).toList
-          } yield base.func -> AbsValue(base.thisTy)
+          indexed.getOrElse(((name, idx), method), Set()).toList
+      val baseSdos = bases.map(base => base.func -> AbsValue(base.thisTy))
+      // default SDO is applied to the AST itself when it has no own SDO
+      val defaultSdos = for {
+        default <- defaults.get(method).toList
+        if (ast match
+          case AstTy.Top               => true
+          case AstTy.Simple(names)     => names.exists(!hasBases(_, method))
+          case AstTy.Detail(name, idx) => !hasBases(name, idx, method)
+        )
+      } yield default.func -> AbsValue(ValueTy(ast = ast))
+      baseSdos ++ defaultSdos
     }
 
     /** parse strings with a rule */

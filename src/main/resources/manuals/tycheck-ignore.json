@@ -11,6 +11,7 @@
   "GetViewByteLength",
   "LocalTime",
   "MakeFullYear",
+  "PerformEval",
   "Record[SourceTextModuleRecord].ExecuteModule",
   "TypedArrayLength"
 ]

@@ -90,9 +90,11 @@ case class CFG(
       (rhs, idx) <- prod.rhsVec.zipWithIndex
       subIdx <- (0 until rhs.countSubs)
       to = (name, idx, subIdx)
-    } rhs.getNts(subIdx) match
-      case List(Some(sub)) => edges.getOrElseUpdate(sub, MSet()) += to
-      case _               =>
+    } rhs.getNts(subIdx).flatten match
+      // chain production: exactly one child is present (absent optional
+      // children are ignored, as in `Ast.chains`)
+      case List(sub) => edges.getOrElseUpdate(sub, MSet()) += to
+      case _         =>
 
     /** SDOs for a pair of base and method name */
     val (
@@ -122,8 +124,6 @@ case class CFG(
         visited = MSet[String]()
         init = (base.name, base.i, base.j)
         worklist = QueueWorklist(List(init))
-        // no propagation for default SDOs
-        if !defaults.contains(method)
       } while (
         worklist.next.exists { (name, idx, subIdx) =>
           !visited.contains(name) && {
@@ -132,7 +132,8 @@ case class CFG(
             get(simple, (name, method)) += base
             get(indexed, ((name, idx), method)) += base
             get(subIndexed, ((name, idx, subIdx), method)) += base
-            for {
+            // no propagation for default SDOs
+            if (!defaults.contains(method)) for {
               to <- edges.getOrElse(name, Nil)
               if !bases.contains((to, method))
             } worklist += to
@@ -148,6 +149,24 @@ case class CFG(
         subIndexed.view.mapValues(_.toSet).toMap,
       )
     }
+
+    /** check whether all sub-productions of the `idx`-th RHS of `name` have
+      * their own (non-default) SDO for `method`
+      */
+    def hasBases(name: String, idx: Int, method: String): Boolean = (for {
+      prod <- grammar.nameMap.get(name)
+      rhs <- prod.rhsVec.lift(idx)
+    } yield (0 until rhs.countSubs).forall { subIdx =>
+      subIndexed.contains(((name, idx, subIdx), method))
+    }).getOrElse(false)
+
+    /** check whether all RHSs of `name` have their own (non-default) SDO for
+      * `method`
+      */
+    def hasBases(name: String, method: String): Boolean =
+      grammar.nameMap.get(name).fold(false) { prod =>
+        prod.rhsVec.indices.forall(hasBases(name, _, method))
+      }
   }
 
   /** get function by name */
